@@ -707,6 +707,7 @@ name = "edge-dashboard"
 version = "0.1.0"
 dependencies = [
  "actix-web 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bytes 0.4.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "dirs 2.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "edgelet-core 0.1.0",
  "edgelet-docker 0.1.0",

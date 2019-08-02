@@ -15,8 +15,10 @@ use std::sync::Arc;
 use actix_web::error::ErrorInternalServerError;
 use actix_web::Error as ActixError;
 use actix_web::*;
+use bytes::BytesMut;
+use edgelet_core::*;
 use edgelet_core::RuntimeSettings;
-use edgelet_core::{LogOptions, Module as EdgeModule, ModuleRuntime, Provisioning};
+use edgelet_core::{LogOptions, LogTail, Module as EdgeModule, ModuleRuntime, Provisioning};
 use edgelet_docker::Settings as DockerSettings;
 use edgelet_http_mgmt::*;
 use futures::future::{ok, Either, IntoFuture};
@@ -180,11 +182,9 @@ fn get_connectivity(_req: HttpRequest, device: web::Data<Option<state::Device>>)
                     .body("Failed to establish connection with IoT Hub."),
             }
         } else {
-            println!("heck1");
             HttpResponse::UnprocessableEntity().body("IoT Hub name could not be processed")
         }
     } else {
-        println!("heck2");
         HttpResponse::UnprocessableEntity().body("IoT Hub name could not be processed")
     }
 }
@@ -255,33 +255,46 @@ fn get_logs(
                     .and_then(|url| ModuleClient::new(&url).map_err(ErrorInternalServerError)) // can't connect to the endpoint
                     .map(move |mod_client| {
                         mod_client
-                            .logs(module_id, &LogOptions::new())
+                            .logs(module_id, &LogOptions::new()
+                                // .with_tail(LogTail::Num(5))
+                            )
                             .map(|data| {
+                                // let response = data.execute();
                                 let mut response = data.map_err(ErrorInternalServerError).fold(
-                                    String::from(""),
+                                    BytesMut::new(),
                                     |mut acc, chunk| {
-                                        acc.push_str(
-                                            String::from_utf8(chunk.as_ref().to_vec())
-                                                .unwrap_or(String::from(""))
-                                                .as_ref(),
-                                        );
+                                        // let stream = String::from_utf8(chunk.as_ref().to_vec()).unwrap_or(String::from(""));
+                                        acc.extend_from_slice(chunk.as_ref());
+                                        println!("{:?}", String::from_utf8(chunk.as_ref().to_vec()));
                                         Ok::<_, ActixError>(acc)
                                     },
-                                );
+                                ).and_then(|body| {
+                                    HttpResponse::Ok().body(body)
+                                });
 
-                                if let Ok(Async::Ready(val)) = response.poll() {
-                                    HttpResponse::Ok().body(val)
-                                } else if let Ok(Async::NotReady) = response.poll() {
-                                    HttpResponse::ServiceUnavailable().body("Logs aren't ready yet")
+                                if let Ok(val) = response.wait() {
+                                    // HttpResponse::Ok().body(val)
+                                    val
                                 } else {
-                                    HttpResponse::ServiceUnavailable()
-                                        .body("Unable to retrieve logs")
+                                    HttpResponse::Ok().body("heck")
                                 }
+                                
+                                
+                                // if let Ok(Async::Ready(val)) = response.poll() {
+                                //     val
+                                // } else if let Ok(Async::NotReady) = response.poll() {
+                                //     HttpResponse::ServiceUnavailable().body("Logs aren't ready yet")
+                                // } else {
+                                //     HttpResponse::ServiceUnavailable()
+                                //         .body("Unable to retrieve logs")
+                                // }
                             })
                             .map_err(ErrorInternalServerError)
+                            //.or_else(|_| Future<Item=HttpResponse, Error=ActixError>::new(HttpResponse::ServiceUnavailable().body("Logs aren't ready yet")))
+                            // .or_else(|_| HttpResponse::ServiceUnavailable().body("Logs aren't ready yet"))
                     })
                     .into_future()
-                    .flatten(),
+                    .flatten()
             )
         })
         .unwrap_or_else(|err| {
