@@ -37,13 +37,19 @@ steps:
   inputs:
     testResultsFormat: vstest
     testResultsFiles: '**/*.trx'
-    searchFolder: $(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test
+    searchFolder: $(Build.SourcesDirectory)/TestResults
     testRunTitle: End-to-end tests ($(Build.BuildNumber) $(os) $(arch))
     buildPlatform: $(arch)
   condition: succeededOrFailed()
 
 - pwsh: |
     $binDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp2.1'
+    ################
+    if ($IsLinux)
+    {
+      bash -c "ls -al $binDir"
+    }
+    ################
     $logDir = '$(Build.ArtifactStagingDirectory)/logs'
     New-Item $logDir -ItemType Directory -Force | Out-Null
     Out-File "$logDir/$(Build.DefinitionName)-$(Build.BuildNumber)"
