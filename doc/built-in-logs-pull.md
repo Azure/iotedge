@@ -106,12 +106,10 @@ az iot hub invoke-module-method -n <replace-with-hub> -d <replace-with-device-id
 '
 ```
 
+**Upload last 100 log lines from edgeAgent and edgeHub with last 1000 log lines from tempSensor module in uncompressed text format**
 ```
 az iot hub invoke-module-method -n <replace-with-hub> -d <replace-with-device-id> -m \$edgeAgent --mn UploadLogs --mp \
 '
-    {
-**Upload last 100 log lines from edgeAgent and edgeHub with last 1000 log lines from tempSensor module in uncompressed text format**
-
     {
         "schemaVersion": "1.0",
         "sasUrl": "https://xyz.blob.core.windows.net/abc?st=2019-06-06T05%3A11%3A56Z&se=2019-06-11T05%3A11%3A00Z&sp=abc=2018-03-28&sr=c&sig=xyz",
