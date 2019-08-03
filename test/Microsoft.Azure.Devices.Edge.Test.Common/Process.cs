@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
-
 namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
-    using System;
     using System.ComponentModel;
     using System.Diagnostics;
     using System.Threading;
@@ -11,14 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public class Process
     {
-        public static async Task<string[]> RunAsync(string name, string args, int timeoutSeconds = 15)
-        {
-            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds)))
-            {
-                return await RunAsync(name, args, cts.Token);
-            }
-        }
-
         public static async Task<string[]> RunAsync(string name, string args, CancellationToken token)
         {
             var info = new ProcessStartInfo

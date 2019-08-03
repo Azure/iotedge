@@ -104,12 +104,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             List<Module> updatedModulesIndentity = (await this.UpdateServiceModulesIdentityAsync(removeIdentities, createIdentities, updateIdentities)).ToList();
             ImmutableDictionary<string, Module> updatedDict = updatedModulesIndentity.ToImmutableDictionary(p => p.Id);
 
-            IEnumerable<IModuleIdentity> moduleIdentities = updatedModulesIndentity.Concat(modules.Where(p => !updatedDict.ContainsKey(p.Id))).Select(
+            IEnumerable<IModuleIdentity> moduleIdentities;
+
+            moduleIdentities = updatedModulesIndentity.Concat(modules.Where(p => !updatedDict.ContainsKey(p.Id))).Select(
                 p =>
                 {
                     string connectionString = this.GetModuleConnectionString(p);
                     return new ModuleIdentity(this.iothubHostName, this.gatewayHostName, this.deviceId, p.Id, new ConnectionStringCredentials(connectionString));
                 });
+
             return moduleIdentities.ToImmutableDictionary(m => ModuleIdentityHelper.GetModuleName(m.ModuleId));
         }
 

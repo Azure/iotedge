@@ -83,6 +83,15 @@ impl Crypto {
                 .into_owned()
         }
     }
+
+    pub fn get_version(&self) -> Result<String, Error> {
+        let version = unsafe {
+            CStr::from_ptr(hsm_get_version())
+                .to_string_lossy()
+                .into_owned()
+        };
+        Ok(version)
+    }
 }
 
 impl MakeRandom for Crypto {

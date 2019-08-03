@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             }
 
             // Save daemon logs
-            string daemonLog = await Platform.CollectDaemonLogsAsync(testStartTime, filePrefix, token);
+            string daemonLog = await OsPlatform.Current.CollectDaemonLogsAsync(testStartTime, filePrefix, token);
             paths.Add(daemonLog);
 
             return paths;

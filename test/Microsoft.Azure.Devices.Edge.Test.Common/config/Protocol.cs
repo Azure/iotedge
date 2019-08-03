@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 {
     using System.ComponentModel;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
 
     public enum Protocol
     {
@@ -26,6 +27,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                     return TransportType.Mqtt_Tcp_Only;
                 case Protocol.MqttWs:
                     return TransportType.Mqtt_WebSocket_Only;
+                default:
+                    throw new InvalidEnumArgumentException();
+            }
+        }
+
+        public static ITransportSettings ToTransportSettings(this Protocol p)
+        {
+            switch (p)
+            {
+                case Protocol.Amqp:
+                case Protocol.AmqpWs:
+                    return new AmqpTransportSettings(p.ToTransportType());
+                case Protocol.Mqtt:
+                case Protocol.MqttWs:
+                    return new MqttTransportSettings(p.ToTransportType());
                 default:
                     throw new InvalidEnumArgumentException();
             }

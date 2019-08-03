@@ -3,13 +3,16 @@ name = "snitcher"
 version = "0.1.0"
 authors = ["Azure IoT Edge Devs"]
 publish = false
+edition = "2018"
 
 [dependencies]
-azure_sdk_for_rust = "0.9"
+azure_sdk_for_rust = "0.12"
 backtrace = "0.3"
 bytes = "0.4"
 byteorder = "1.2"
 chrono = { version = "0.4", features = ["serde"] }
+edgelet-http = { git = "https://github.com/azure/iotedge", rev = "a742e1e9f8c764b9fc4474b46164831dae0b0456" }
+edgelet-core = { git = "https://github.com/azure/iotedge", rev = "a742e1e9f8c764b9fc4474b46164831dae0b0456" }
 env_logger = "0.5"
 futures = "0.1"
 hex = "0.3"
@@ -20,8 +23,7 @@ hyper-tls = "0.3.0"
 libflate = "0.1"
 log = "0.4"
 openssl-probe = "0.1"
-serde = "1.0"
-serde_derive = "1.0"
+serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_yaml = "0.7"
 tar = "0.4"

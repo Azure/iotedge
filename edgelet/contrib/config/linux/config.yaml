@@ -18,16 +18,35 @@
 # Supported modes:
 #     manual   - using an iothub connection string
 #     dps      - using dps for provisioning
-#     external - the device has been provisioned externally. Uses an external provisioning endpoint to get device specific information.
+#     external - the device has been provisioned externally.
+#                Uses an external provisioning endpoint to get device specific information.
 #
 # DPS Settings
-#     scope_id - Required. Value of a specific DPS instance's ID scope
-#     registration_id - Required. Registration ID of a specific device in DPS
-#     symmetric_key - Optional. This entry should only be specified when
-#                     provisioning devices configured for symmetric key
-#                     attestation
+#     scope_id        - Required. Value of a specific DPS instance's ID scope
+#     registration_id - Required for TPM and symmetric key provisioning flows.
+#                       Optional for X.509 provisioning. Registration ID of a
+#                       specific device in DPS.
+#                       For more information regarding DPS registration ids
+#                       please see https://docs.microsoft.com/en-us/azure/iot-dps/concepts-device#registration-id
+#     symmetric_key   - Optional. This entry should only be specified when
+#                       provisioning devices configured for symmetric key
+#                       attestation. Device specific symmetric key.
+#     identity_cert   - Optional. The Edge device identity X.509 certificate
+#                       entry should only be specified when provisioning
+#                       an Edge device configured for X.509 attestation.
+#                       The value should be specified as a URI.
+#                       Ex. when specifying a PEM encoded certificate file, the URI
+#                       should be specified as file:///path/identity_certificate.pem
+#     identity_pk     - Optional. The Edge device identity private key
+#                       entry should only be specified when provisioning
+#                       an Edge device configured for X.509 attestation.
+#                       The value should be specified as a URI.
+#                       Ex. when specifying a PEM encoded private key file, the URI
+#                       should be specified as file:///path/identity_key.pem
+#
 # External Settings
-#     endpoint - Required. Value of the endpoint used to retrieve device specific information such as its IoT hub connection information.
+#     endpoint - Required. Value of the endpoint used to retrieve device specific
+#                information such as its IoT hub connection information.
 ###############################################################################
 
 # Manual provisioning configuration
@@ -62,8 +81,8 @@ provisioning:
 #   attestation:
 #     method: "x509"
 #     registration_id: "<OPTIONAL REGISTRATION ID. IF UNSPECIFIED CAN BE OBTAINED FROM CN OF identity_cert"
-#     identity_cert: "<REQUIRED PATH TO DEVICE IDENTITY CERTIFICATE HERE>"
-#     identity_pk: "<REQUIRED PATH TO DEVICE IDENTITY PRIVATE KEY HERE>"
+#     identity_cert: "<REQUIRED URI TO DEVICE IDENTITY CERTIFICATE>"
+#     identity_pk: "<REQUIRED URI TO DEVICE IDENTITY PRIVATE KEY>"
 
 # External provisioning configuration
 # provisioning:
@@ -81,17 +100,24 @@ provisioning:
 # production environments.
 #
 # Settings:
-#     device_ca_cert   - path to the device ca certificate and its chain
-#     device_ca_pk     - path to the device ca private key file
-#     trusted_ca_certs - path to a file containing all the trusted CA
+#     device_ca_cert   - URI of the device ca certificate and its chain.
+#                        Optionally can be specified as a file path.
+#     device_ca_pk     - URI of the device ca private key file.
+#                        Optionally can be specified as a file path.
+#     trusted_ca_certs - URI containing all the trusted CA
 #                        certificates required for Edge module communication
+#                        Optionally can be specified as a file path.
 #
+# Note:
+# The values of all of these fields can be specified either as a
+# "file" scheme URI such as "file:///path/cert_key.pem" or a
+#  file path such as "/path/cert_key.pem"
 ###############################################################################
 
 # certificates:
-#   device_ca_cert: "<ADD PATH TO DEVICE CA CERTIFICATE HERE>"
-#   device_ca_pk: "<ADD PATH TO DEVICE CA PRIVATE KEY HERE>"
-#   trusted_ca_certs: "<ADD PATH TO TRUSTED CA CERTIFICATES HERE>"
+#   device_ca_cert: "<ADD URI TO DEVICE CA CERTIFICATE HERE>"
+#   device_ca_pk: "<ADD URI TO DEVICE CA PRIVATE KEY HERE>"
+#   trusted_ca_certs: "<ADD URI TO TRUSTED CA CERTIFICATES HERE>"
 
 ###############################################################################
 # Edge Agent module spec
@@ -247,21 +273,21 @@ homedir: "/var/lib/iotedge"
 #
 # uri - configures the uri for the container runtime.
 # network - configures the network on which the containers will be created.
-# 
-# Additional container network configuration such as enabling IPv6 networking 
-# and providing the IPAM settings can be achieved by specifying the relevant 
+#
+# Additional container network configuration such as enabling IPv6 networking
+# and providing the IPAM settings can be achieved by specifying the relevant
 # configuration in the network settings.
-# 
+#
 # network:
 #   name: "azure-iot-edge"
 #   ipv6: true
 #   ipam:
 #     config:
-#       - 
+#       -
 #           gateway: '172.18.0.1'
 #           subnet: '172.18.0.0/16'
 #           ip_range: '172.18.0.0/16'
-#       - 
+#       -
 #           gateway: '2021:ffff:e0:3b1:1::1'
 #           subnet: '2021:ffff:e0:3b1:1::/80'
 #           ip_range: '2021:ffff:e0:3b1:1::/80'
@@ -270,17 +296,17 @@ homedir: "/var/lib/iotedge"
 moby_runtime:
   uri: "unix:///var/run/docker.sock"
   # network: "azure-iot-edge"
-  # 
+  #
   # network:
   #   name: "azure-iot-edge"
   #   ipv6: true
   #   ipam:
   #     config:
-  #       - 
+  #       -
   #           gateway: '172.18.0.1'
   #           subnet: '172.18.0.0/16'
   #           ip_range: '172.18.0.0/16'
-  #       - 
+  #       -
   #           gateway: '2021:ffff:e0:3b1:1::1'
   #           subnet: '2021:ffff:e0:3b1:1::/80'
   #           ip_range: '2021:ffff:e0:3b1:1::/80'

@@ -56,6 +56,8 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
-        public override string ToString() => $"Background task Status = {this.Status}, Operation = {this.Operation}";
+        public override string ToString() => this.Exception.Match(
+            e => $"Background task Status = {this.Status}, Operation: {this.Operation}, Exception: {e}",
+            () => $"Background task Status: {this.Status}, Operation: {this.Operation}");
     }
 }
