@@ -56,6 +56,7 @@ steps:
       {
         Write-Output "Build triggered by unrecognized build '$(Build.TriggeredBy.DefinitionName)', " +
           "or 'az.pipeline.packages.buildId' and 'az.pipeline.images.buildId' not specified for manual build."
+        return 1
       }
     }
     # If one argument is given without the other, that's an error.
