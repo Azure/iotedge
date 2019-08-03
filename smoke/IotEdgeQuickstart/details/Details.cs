@@ -225,15 +225,8 @@ namespace IotEdgeQuickstart.Details
             {
                 Console.WriteLine($"Device '{device.Id}' already registered on IoT hub '{builder.HostName}'");
                 Console.WriteLine($"Clean up Existing device? {this.cleanUpExistingDeviceOnSuccess}");
+                this.context = new DeviceContext(this.deviceId, device, this.iothubConnectionString, rm, this.cleanUpExistingDeviceOnSuccess);
 
-                this.context = new DeviceContext
-                {
-                    Device = Option.Some(device),
-                    DeviceId = device.Id,
-                    IotHubConnectionString = this.iothubConnectionString,
-                    RegistryManager = rm,
-                    RemoveDevice = this.cleanUpExistingDeviceOnSuccess
-                };
             }
             else
             {
@@ -241,14 +234,7 @@ namespace IotEdgeQuickstart.Details
                 // ESD will register with DPS to create the device in IoT Hub
                 if (this.dpsAttestation.HasValue)
                 {
-                    this.context = new DeviceContext
-                    {
-                        Device = Option.None<Device>(),
-                        DeviceId = this.deviceId,
-                        IotHubConnectionString = this.iothubConnectionString,
-                        RegistryManager = rm,
-                        RemoveDevice = this.cleanUpExistingDeviceOnSuccess
-                    };
+                    this.context = new DeviceContext(this.deviceId, this.iothubConnectionString, rm, this.cleanUpExistingDeviceOnSuccess);
                 }
                 else
                 {
@@ -503,14 +489,7 @@ namespace IotEdgeQuickstart.Details
         {
             if (this.context != null)
             {
-                bool remove = this.context.RemoveDevice;
-                this.context.Device = Option.None<Device>();
-
-                if (remove)
-                {
-                    Console.WriteLine($"Trying to remove device from Registry. Device Id: {this.context.DeviceId}");
-                    return this.context.RegistryManager.RemoveDeviceAsync(this.context.DeviceId);
-                }
+                return this.context.DeleteDevice();
             }
 
             return Task.CompletedTask;
@@ -529,14 +508,7 @@ namespace IotEdgeQuickstart.Details
 
             device = await rm.AddDeviceAsync(device);
 
-            this.context = new DeviceContext
-            {
-                Device = Option.Some(device),
-                DeviceId = this.deviceId,
-                IotHubConnectionString = this.iothubConnectionString,
-                RegistryManager = rm,
-                RemoveDevice = true
-            };
+            this.context = new DeviceContext(this.deviceId, device, builder.ToString(), rm, true);
         }
 
         string EdgeAgentImage()
@@ -599,10 +571,38 @@ namespace IotEdgeQuickstart.Details
 
     public class DeviceContext
     {
-        public Option<Device> Device;
-        public string DeviceId;
-        public string IotHubConnectionString;
-        public RegistryManager RegistryManager;
-        public bool RemoveDevice;
+        public Option<Device> Device { get; }
+        public string DeviceId { get; }
+        public string IotHubConnectionString { get; }
+        public RegistryManager RegistryManager { get; }
+        public bool RemoveDevice { get; set; }
+
+        public DeviceContext(string deviceId, string iothubConnectionString, RegistryManager rm, bool removeDevice)
+        {
+            this.DeviceId = deviceId;
+            this.Device = Option.None<Device>();
+            this.IotHubConnectionString = iothubConnectionString;
+            this.RegistryManager = rm;
+            this.RemoveDevice = removeDevice;
+        }
+
+        public DeviceContext(string deviceId, Device device, string iothubConnectionString, RegistryManager rm, bool removeDevice)
+        {
+            this.DeviceId = deviceId;
+            this.Device = Option.Some(device);
+            this.IotHubConnectionString = iothubConnectionString;
+            this.RegistryManager = rm;
+            this.RemoveDevice = removeDevice;
+        }
+
+        public Task DeleteDevice()
+        {
+            if (this.RemoveDevice)
+            {
+                Console.WriteLine($"Trying to remove device from Registry. Device Id: {this.DeviceId}");
+                return this.RegistryManager.RemoveDeviceAsync(this.DeviceId);
+            }
+            return Task.CompletedTask;
+        }
     }
 }
