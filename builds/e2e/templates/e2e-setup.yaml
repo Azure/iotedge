@@ -18,29 +18,77 @@ steps:
       TestRootCaPassword
 
 - pwsh: |
-    if (-not '$(az.pipeline.packages.buildId)')
+    # If 'az.pipeline.packages.buildId' AND 'az.pipeline.images.buildId' are given (e.g., manual
+    # build), use them for edgelet packages and runtime images.
+    if ('$(az.pipeline.packages.buildId)' -and '$(az.pipeline.images.buildId)')
     {
-      Write-Output 'Using packages from latest successful build against master'
-      Write-Output '##vso[task.setvariable variable=whichVersion]latestFromBranch'
+      Write-Output "Using edgelet packages from build '$(az.pipeline.packages.buildId)'"
+      Write-Output '##vso[task.setvariable variable=whichPackageBuild]specific'
+      Write-Output '##vso[task.setvariable variable=packageBuildId]$(az.pipeline.packages.buildId)'
+
+      Write-Output "Using runtime images from build '$(az.pipeline.images.buildId)'"
+      Write-Output '##vso[task.setvariable variable=whichImageBuild]specific'
+      Write-Output '##vso[task.setvariable variable=imageBuildId]$(az.pipeline.images.buildId)'
     }
+    # If neither are given (e.g., triggered by completion of the Build Images or Edgelet Packages
+    # build), use the triggered build for one, and the latest build on master for the other.
+    elseif (-not '$(az.pipeline.packages.buildId)' -and -not '$(az.pipeline.images.buildId)')
+    {
+      if ('$(Build.TriggeredBy.DefinitionName)' -eq '$(azure.pipeline.packages)')
+      {
+        Write-Output "Using edgelet packages from build '$(Build.TriggeredBy.BuildId)'"
+        Write-Output '##vso[task.setvariable variable=whichPackageBuild]specific'
+        Write-Output '##vso[task.setvariable variable=packageBuildId]$(Build.TriggeredBy.BuildId)'
+
+        Write-Output 'Using runtime images from latest successful build against master'
+        Write-Output '##vso[task.setvariable variable=whichImageBuild]latestFromBranch'
+      }
+      elseif ('$(Build.TriggeredBy.DefinitionName)' -eq '$(azure.pipeline.images)')
+      {
+        Write-Output "Using edgelet packages from latest successful build against master'"
+        Write-Output '##vso[task.setvariable variable=whichPackageBuild]latestFromBranch'
+
+        Write-Output "Using runtime images from build '$(Build.TriggeredBy.BuildId)'"
+        Write-Output '##vso[task.setvariable variable=whichImageBuild]specific'
+        Write-Output '##vso[task.setvariable variable=imageBuildId]$(Build.TriggeredBy.BuildId)'
+      }
+      elseif 
+      {
+        Write-Output "Build triggered by unrecognized build '$(Build.TriggeredBy.DefinitionName)', " +
+          "or 'az.pipeline.packages.buildId' and 'az.pipeline.images.buildId' not specified for manual build."
+      }
+    }
+    # If one argument is given without the other, that's an error.
     else
     {
-      Write-Output "Using packages from build '$(az.pipeline.packages.buildId)'"
-      Write-Output '##vso[task.setvariable variable=whichVersion]specific'
+      Write-Output "One of 'az.pipeline.packages.buildId' or 'az.pipeline.images.buildId' was specified without the other"
+      return 1
     }
-  displayName: Locate iotedged packages
+  displayName: Locate edgelet packages, runtime images
 
 - task: DownloadBuildArtifacts@0
-  displayName: Download iotedged packages
+  displayName: Download edgelet packages
   inputs:
     buildType: specific
     project: one
     pipeline: $(az.pipeline.packages)
-    buildVersionToDownload: $(whichVersion)
+    buildVersionToDownload: $(whichPackageBuild)
     branchName: refs/heads/master
-    buildId: $(az.pipeline.packages.buildId)
+    buildId: $(packageBuildId)
     downloadType: specific
     itemPattern: $(artifactDir)/*
+
+- task: DownloadBuildArtifacts@0
+  displayName: Get Docker image tag
+  inputs:
+    buildType: specific
+    project: one
+    pipeline: $(az.pipeline.images)
+    buildVersionToDownload: $(whichImageBuild)
+    branchName: refs/heads/master
+    buildId: $(imageBuildId)
+    downloadType: specific
+    itemPattern: $(az.pipeline.images.artifacts)/artifactInfo.txt
 
 - pwsh: |
     $certsDir = '$(System.ArtifactsDirectory)/certs'
@@ -62,18 +110,8 @@ steps:
   displayName: Build tests
 
 - pwsh: |
-    $imageId = '$(az.pipeline.images.buildNum)'
-    if (-not $imageId)
-    {
-      $imageId = '$(Build.TriggeredBy.BuildNumber)'
-    }
-    if (-not $imageId)
-    {
-      Write-Output 'Build not triggered by the "Build Images" build, and argument "az.pipeline.images.buildNum" not specified'
-      return 1
-    }
-
     $imagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'
+    $imageId = Get-Content -Encoding Utf8 '$(az.pipeline.images.artifacts)/artifactInfo.txt'
     $imageTag = "$imageId-$(os)-$(arch)"
     $context = @{
       edgeAgentImage = "$imagePrefix-agent:$imageTag";
