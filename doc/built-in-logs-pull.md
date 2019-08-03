@@ -1,6 +1,6 @@
 # Built-in logs collation and upload capability
 
-IoT Edge supports native collation of module logs and upload to Azure Blob Storage. Users can access this functionality via direct method calls to the Edge Agent module. The following methods are available in support of this:
+IoT Edge supports native retrieval of module logs and upload to Azure Blob Storage. Users can access this functionality via direct method calls to the Edge Agent module. The following methods are available in support of this:
 
 - UploadLogs
 - GetTaskStatus
@@ -19,7 +19,7 @@ As of [1.0.8 release](https://github.com/Azure/azure-iotedge/releases/tag/1.0.8)
 For best compatibility with this feature, the recommended logging format is:
 
 ```
-{LogLevel}{Timestamp}{MessageText}
+<{LogLevel}> {Timestamp} {MessageText}
 ```
 
 `{LogLevel}` should follow the [Syslog severity level format](https://wikipedia.org/wiki/Syslog#Severity_lnevel) and `{Timestamp}` should be formatted as `yyyy-mm-dd hh:mm:ss.fff zzz`.
@@ -52,7 +52,7 @@ This method accepts a JSON payload with the following schema:
 | Name          | Type         | Description                                                                                                                                                                                                                                          |
 |---------------|--------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | schemaVersion | string       | Set to `1.0`                                                                                                                                                                                                                                         |
-| sasURL        | string (URI) | [Shared Access Signature URL to Azure Blob Storage container](https://blogs.msdn.microsoft.com/jpsanders/2017/10/12/easily-create-a-sas-to-download-a-file-from-azure-storage-using-azure-storage-explorer/).                                        |
+| sasURL        | string (URI) | [Shared Access Signature URL with write access to Azure Blob Storage container](https://blogs.msdn.microsoft.com/jpsanders/2017/10/12/easily-create-a-sas-to-download-a-file-from-azure-storage-using-azure-storage-explorer/).                                        |
 | items         | JSON array   | An array with `id` and `filter` tuples.                                                                                                                                                                            |
 | id            | string       | A regular expression that supplies the module name. It can match multiple modules on an edge device. [.NET Regular Expressions](https://docs.microsoft.com/en-us/dotnet/standard/base-types/regular-expressions) format is expected.                 |
 | filter        | JSON section | Log filters to apply to the modules matching the `id` regular expression in the tuple.                                                                                                                                                               |
