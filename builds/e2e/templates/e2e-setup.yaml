@@ -52,7 +52,7 @@ steps:
         Write-Output '##vso[task.setvariable variable=whichImageBuild]specific'
         Write-Output '##vso[task.setvariable variable=imageBuildId]$(Build.TriggeredBy.BuildId)'
       }
-      elseif 
+      else
       {
         Write-Output "Build triggered by unrecognized build '$(Build.TriggeredBy.DefinitionName)', " +
           "or 'az.pipeline.packages.buildId' and 'az.pipeline.images.buildId' not specified for manual build."
