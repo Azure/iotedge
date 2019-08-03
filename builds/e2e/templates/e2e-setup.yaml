@@ -1,9 +1,4 @@
 steps:
-- bash: |
-    sudo git clean -ffdx .
-  displayName: (Linux) sudo git clean
-  condition: eq('$(Agent.OS)', 'Linux')
-
 - checkout: self
   clean: true
   fetchDepth: 100
