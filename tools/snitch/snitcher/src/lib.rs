@@ -241,7 +241,7 @@ pub fn get_module_logs(
 
     let module_client = ModuleClient::new(settings.management_uri())
         .map_err(|err| Error::new(ErrorKind::ModuleRuntime(err.to_string())))
-        .expect("Failed to instantiate module client");
+        .expect(&format!("Failed to instantiate module client with {}", settings.management_uri()));
     debug!("Listing docker containers");
     module_client
         .list_with_details()
