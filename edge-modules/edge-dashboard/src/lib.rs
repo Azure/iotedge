@@ -275,7 +275,8 @@ fn get_logs(
                                         if let Ok(content) = String::from_utf8(clone) {
                                             HttpResponse::Ok().body(content)
                                         } else {
-                                            HttpResponse::ServiceUnavailable().body("Logs unable to be displayed")
+                                            HttpResponse::ServiceUnavailable()
+                                                .body("Logs unable to be displayed")
                                         }
                                     })
                             })
