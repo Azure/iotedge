@@ -68,7 +68,7 @@ steps:
     itemPattern: $(artifactDir)/*
 
 - task: DownloadBuildArtifacts@0
-  displayName: Get Docker image tag
+  displayName: Get Docker image info
   inputs:
     buildType: specific
     project: one
