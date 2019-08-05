@@ -2693,7 +2693,7 @@ static int edge_hsm_client_store_create_pki_cert
         int load_status = load_if_cert_and_key_exist_by_alias(handle, alias, issuer_alias);
         if (load_status == LOAD_ERR_FAILED)
         {
-            LOG_INFO("Could not check and load certificate and key for alias %s", alias);
+            LOG_INFO("Could not load certificate and key for alias %s", alias);
             result = __FAILURE__;
         }
         else if (load_status == LOAD_ERR_VERIFICATION_FAILED)
