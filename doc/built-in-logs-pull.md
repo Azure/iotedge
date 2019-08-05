@@ -14,11 +14,8 @@ As of [1.0.8 release](https://github.com/Azure/azure-iotedge/releases/tag/1.0.8)
 | `ExperimentalFeatures__Enabled`          | `true` |
 | `ExperimentalFeatures__EnableUploadLogs` | `true` |
 
-<<<<<<< HEAD
 > Due to certain design limitations, settings for the Edge Agent do not take affect unless its image is also changed (as of 1.0.8 release). If you are using the default Edge Agent settings, change the image to use a specific tag along with the environment variables above, e.g. `mcr.microsoft.com/azureiotedge-agent:1.0.8`.
 
-=======
->>>>>>> 4a254e18d300f836f0d544a9cbabb1740b62ef9f
 ## Recommended logging format
 
 For best compatibility with this feature, the recommended logging format is:
