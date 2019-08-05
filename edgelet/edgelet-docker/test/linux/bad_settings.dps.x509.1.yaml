@@ -1,4 +1,6 @@
 # Configures the provisioning mode
+
+# x509 provisioning does not have a private key URI specified
 provisioning:
   source: "dps"
   global_endpoint: "scheme://jibba-jabba.net"
@@ -6,7 +8,7 @@ provisioning:
   attestation:
     method: "x509"
     registration_id: "register me fool"
-    identity_cert: "some/path/mr.t.cer.pem"
+    identity_cert: "file:///some/path/mr.t.cer.pem"
 
 agent:
   name: "edgeAgent"

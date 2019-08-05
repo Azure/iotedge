@@ -152,6 +152,7 @@ impl From<&ErrorKind> for i32 {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum InitializeErrorReason {
+    CertificateSettings,
     CreateCertificateManager,
     CreateMasterEncryptionKey,
     CreateSettingsDirectory,
@@ -164,6 +165,13 @@ pub enum InitializeErrorReason {
     ExternalProvisioningClient(ExternalProvisioningErrorReason),
     Hsm,
     HttpClient,
+    HybridAuthDirCreate,
+    HybridAuthKeyCreate,
+    HybridAuthKeyLoad,
+    HybridAuthKeyInvalid,
+    IncompatibleHsmVersion,
+    IdentityCertificateSettings,
+    InvalidDeviceCertCredentials,
     InvalidDeviceConfig,
     InvalidHubConfig,
     InvalidProxyUri,
@@ -197,6 +205,10 @@ pub enum ExternalProvisioningErrorReason {
 impl fmt::Display for InitializeErrorReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            InitializeErrorReason::CertificateSettings => {
+                write!(f, "Could not configure Edge gateway certificates")
+            }
+
             InitializeErrorReason::CreateCertificateManager => {
                 write!(f, "Could not create the certificate manager.")
             }
@@ -238,6 +250,34 @@ impl fmt::Display for InitializeErrorReason {
             InitializeErrorReason::Hsm => write!(f, "Could not initialize HSM"),
 
             InitializeErrorReason::HttpClient => write!(f, "Could not initialize HTTP client"),
+
+            InitializeErrorReason::HybridAuthDirCreate => {
+                write!(f, "Could not create the hybrid identity key directory")
+            }
+
+            InitializeErrorReason::HybridAuthKeyCreate => {
+                write!(f, "Could not create the hybrid identity key")
+            }
+
+            InitializeErrorReason::HybridAuthKeyLoad => {
+                write!(f, "Could not load the hybrid identity key")
+            }
+
+            InitializeErrorReason::HybridAuthKeyInvalid => {
+                write!(f, "The loaded hybrid identity key was invalid")
+            }
+
+            InitializeErrorReason::IncompatibleHsmVersion => {
+                write!(f, "Incompatible HSM lib version")
+            }
+
+            InitializeErrorReason::IdentityCertificateSettings => {
+                write!(f, "Could not configure Edge X.509 identity certificate")
+            }
+
+            InitializeErrorReason::InvalidDeviceCertCredentials => {
+                write!(f, "Invalid identity certificate")
+            }
 
             InitializeErrorReason::InvalidDeviceConfig => {
                 write!(f, "Invalid device configuration was provided")
