@@ -16,10 +16,33 @@
 # Configures the identity provisioning mode of the daemon.
 #
 # Supported modes:
-#     manual   - using an iothub connection string
+#     manual   - using an iothub connection string or X.509 certificates
 #     dps      - using dps for provisioning
 #     external - the device has been provisioned externally.
 #                Uses an external provisioning endpoint to get device specific information.
+#
+# Manual settings using IoT Hub connection string
+#     device_connection_string - Required. The Edge device connection string
+#                      when using SharedAccessKey authentication mode.
+#                      Ex. "HostName=<hub-name>.azure-devices.net;DeviceId=<device-id>;SharedAccessKey=<key>
+#
+# Manual settings using X.509 identity certificates
+#     hub_hostname    - Required. The Azure Iot Hub hostname.
+#                       Ex. <hub-name>.azure-devices.net
+#     device_id       - Required. The Edge device id.
+#     identity_cert   - Required. The Edge device identity X.509 certificate
+#                       entry should only be specified when provisioning
+#                       an Edge device configured for X.509 attestation.
+#                       The value should be specified as a URI.
+#                       Ex. when specifying a PEM encoded certificate file, the URI
+#                       should be specified as file:///path/identity_certificate.pem
+#     identity_pk     - Required. The Edge device identity private key
+#                       entry should only be specified when provisioning
+#                       an Edge device configured for X.509 attestation.
+#                       The value should be specified as a URI.
+#                       Ex. when specifying a PEM encoded private key file, the URI
+#                       should be specified as file:///path/identity_key.pem
+#
 #
 # DPS Settings
 #     scope_id        - Required. Value of a specific DPS instance's ID scope
@@ -49,10 +72,22 @@
 #                information such as its IoT hub connection information.
 ###############################################################################
 
-# Manual provisioning configuration
+# Manual provisioning configuration using a connection string
 provisioning:
   source: "manual"
   device_connection_string: "<ADD DEVICE CONNECTION STRING HERE>"
+
+# Manual provisioning configuration using a X509 identity certificate
+# Note: the certificates are required because IoT Hub does not fully support
+# X.509 CA authentication over HTTP or if an Edge device is behind a web proxy
+# provisioning:
+#   source: "manual"
+#   attestation:
+#     method: "x509"
+#     hub_hostname: "<REQUIRED IOTHUB HOSTNAME>"
+#     device_id: "<REQUIRED DEVICE ID PROVISIONED IN IOTHUB>"
+#     identity_cert: "<REQUIRED URI TO DEVICE IDENTITY CERTIFICATE>"
+#     identity_pk: "<REQUIRED URI TO DEVICE IDENTITY PRIVATE KEY>"
 
 # DPS TPM provisioning configuration
 # provisioning:
