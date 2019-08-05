@@ -225,7 +225,7 @@ namespace IotEdgeQuickstart.Details
             {
                 Console.WriteLine($"Device '{device.Id}' already registered on IoT hub '{builder.HostName}'");
                 Console.WriteLine($"Clean up Existing device? {this.cleanUpExistingDeviceOnSuccess}");
-                this.context = new DeviceContext(this.deviceId, device, this.iothubConnectionString, rm, this.cleanUpExistingDeviceOnSuccess);
+                this.context = new DeviceContext(device, this.iothubConnectionString, rm, this.cleanUpExistingDeviceOnSuccess);
 
             }
             else
@@ -508,7 +508,7 @@ namespace IotEdgeQuickstart.Details
 
             device = await rm.AddDeviceAsync(device);
 
-            this.context = new DeviceContext(this.deviceId, device, builder.ToString(), rm, true);
+            this.context = new DeviceContext(device, builder.ToString(), rm, true);
         }
 
         string EdgeAgentImage()
@@ -586,9 +586,9 @@ namespace IotEdgeQuickstart.Details
             this.RemoveDevice = removeDevice;
         }
 
-        public DeviceContext(string deviceId, Device device, string iothubConnectionString, RegistryManager rm, bool removeDevice)
+        public DeviceContext(Device device, string iothubConnectionString, RegistryManager rm, bool removeDevice)
         {
-            this.DeviceId = deviceId;
+            this.DeviceId = device.Id;
             this.Device = Option.Some(device);
             this.IotHubConnectionString = iothubConnectionString;
             this.RegistryManager = rm;
