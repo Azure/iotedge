@@ -21,7 +21,7 @@ const ANALYZER_URL_KEY: &str = "ANALYZER_URL";
 const BLOB_STORAGE_ACCOUNT_KEY: &str = "BLOB_STORAGE_ACCOUNT";
 const BLOB_STORAGE_MASTER_KEY_KEY: &str = "BLOB_STORAGE_MASTER_KEY";
 const BLOB_CONTAINER_NAME_KEY: &str = "BLOB_CONTAINER_NAME";
-const DOCKER_URL_KEY: &str = "DOCKER_URL";
+const MANAGEMENT_URI_KEY: &str = "MANAGEMENT_URI";
 
 static DEFAULT_SETTINGS: &str = include_str!("settings.yaml");
 
@@ -87,7 +87,7 @@ pub struct Settings {
     blob_container_name: String,
     reporting_interval: Option<Duration>,
     #[serde(with = "url_serde")]
-    docker_url: Url,
+    management_uri: Url,
 }
 
 impl Default for Settings {
@@ -114,8 +114,8 @@ impl Settings {
         self.blob_storage_master_key = get_env(BLOB_STORAGE_MASTER_KEY_KEY)?;
         self.blob_container_name = get_env(BLOB_CONTAINER_NAME_KEY)?;
 
-        if let Ok(docker_url) = get_env(DOCKER_URL_KEY) {
-            self.docker_url = Url::parse(&docker_url)?;
+        if let Ok(management_uri) = get_env(MANAGEMENT_URI_KEY) {
+            self.management_uri = Url::parse(&management_uri)?;
         }
 
         self.reporting_interval = get_env(REPORTING_INTERVAL_IN_SECS_KEY)
@@ -158,7 +158,7 @@ impl Settings {
         self.reporting_interval.as_ref()
     }
 
-    pub fn docker_url(&self) -> &Url {
-        &self.docker_url
+    pub fn management_uri(&self) -> &Url {
+        &self.management_uri
     }
 }

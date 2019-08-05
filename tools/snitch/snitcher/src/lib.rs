@@ -4,11 +4,11 @@
 
 pub mod client;
 pub mod connect;
-mod docker;
 pub mod error;
 pub mod report;
 pub mod settings;
 
+use std::io;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
@@ -23,10 +23,10 @@ use azure_sdk_for_rust::storage::container::PublicAccess;
 use bytes::{BufMut, Bytes};
 use chrono::Utc;
 use connect::HyperClientService;
-use docker::{Container, DockerClient};
-use edgelet_http::UrlConnector;
-use error::Error;
-use futures::future::{self, loop_fn, Either, Loop};
+use edgelet_core::{Chunked, LogChunk, LogDecode, LogOptions, Module, ModuleRuntime, ModuleStatus};
+use edgelet_http_mgmt::ModuleClient;
+use error::{Error, ErrorKind};
+use futures::future::{self, loop_fn, Either, FutureResult, Loop};
 use futures::{Future, IntoFuture, Stream};
 use humantime::format_duration;
 use http::Uri;
@@ -92,11 +92,11 @@ pub fn do_report(settings: Settings) -> impl Future<Item = (), Error = Error> + 
                 info!("Fetched module logs.");
 
                 // add each log as a file into the report
-                for (container, logs) in &module_logs {
+                for (container_name, logs) in module_logs {
                     report
                         .lock()
                         .unwrap()
-                        .add_file(&format!("./{}.log", container.name()), logs.as_bytes());
+                        .add_file(&format!("./{}.log", container_name), logs.as_bytes());
                 }
 
                 // write all the files in the report into blob storage
@@ -236,50 +236,58 @@ pub fn upload_file(
 
 pub fn get_module_logs(
     settings: &Settings,
-) -> impl Future<Item = Vec<(Container, String)>, Error = Error> + Send {
+) -> impl Future<Item = Vec<(String, String)>, Error = Error> + Send {
     info!("Fetching module logs");
-    UrlConnector::new(settings.docker_url())
-        .map_err(Error::from)
-        .map(|connector| {
-            let docker_client = client::Client::new(
-                HyperClientService::new(
-                    HyperClient::builder()
-                        // Setting keep_alive to false causes hyper to not pool connections.
-                        // When using UDS this is the only mode in which things work. Not pooling
-                        // connections for UDS is probably OK (?).
-                        .keep_alive(false)
-                        .build(connector),
-                ),
-                settings.docker_url().clone(),
-            );
-            let docker = DockerClient::new(docker_client);
-            let docker_copy = docker.clone();
 
-            debug!("Listing docker containers");
-            let fut = docker.list_containers().and_then(|containers| {
-                containers
-                    .map(|containers| {
-                        // exclude containers whose state is "created"
-                        let containers = containers
-                            .into_iter()
-                            .filter(|c| c.state().map(|s| s != "created").unwrap_or(true));
-
-                        let logs_futures = containers.map(move |container| {
-                            debug!("Getting logs for container {}", container.name());
-                            docker_copy.logs(container.id()).map(|logs| {
-                                debug!("Got logs for container {}", container.name());
-                                (container, logs.unwrap_or_else(|| "<no logs>".to_string()))
+    let module_client = ModuleClient::new(settings.management_uri())
+        .map_err(|err| Error::new(ErrorKind::ModuleRuntime(err.to_string())))
+        .expect("Failed to instantiate module client");
+    debug!("Listing docker containers");
+    module_client
+        .list_with_details()
+        .map_err(|err| Error::new(ErrorKind::ModuleRuntime(err.to_string())))
+        .filter(|(_module, state)| state.status() == &ModuleStatus::Running || state.status() == &ModuleStatus::Stopped)
+        .and_then(move |(module, _state)| {
+            debug!("Got logs for container {}", module.name());
+                module_client
+                    .logs(module.name(), &LogOptions::new())
+                    .map_err(|err| Error::new(ErrorKind::ModuleRuntime(err.to_string())))
+                    .and_then(move |logs| {
+                        let chunked = Chunked::new(logs.map_err(|_| io::Error::new(io::ErrorKind::Other, "unknown")));
+                        LogDecode::new(chunked)
+                            .map_err(|err| Error::new(ErrorKind::ModuleRuntime(err.to_string())))
+                            .fold(String::new(), |mut acc, chunk| {
+                                match chunk {
+                                    LogChunk::Stdin(b)
+                                    | LogChunk::Stdout(b)
+                                    | LogChunk::Stderr(b)
+                                    | LogChunk::Unknown(b) => {
+                                        let result = std::str::from_utf8(&b)
+                                            .map(|s| {
+                                                acc.push_str(s);
+                                                acc
+                                            })
+                                            .map_err(Error::from);
+                                        
+                                        let f: FutureResult<String, Error> = future::result(result);
+                                        f
+                                    }
+                                            
+                                }
                             })
-                        });
-
-                        Either::A(future::join_all(logs_futures))
+                            .map_err(|err| Error::new(ErrorKind::ModuleRuntime(err.to_string())))
                     })
-                    .unwrap_or_else(|| Either::B(future::ok(vec![])))
-            });
-
-            Either::A(fut)
+                    .map_err(|err| Error::new(ErrorKind::ModuleRuntime(err.to_string())))
+                    .map(move |logs| {
+                        let logs = if logs.is_empty() { 
+                            "<no logs>".to_string()
+                            } else { 
+                                logs 
+                            };
+                        (module.name().to_string(), logs)
+                    })
         })
-        .unwrap_or_else(|err| Either::B(future::err(err)))
+        .collect()
 }
 
 pub fn fetch_message_analysis(
