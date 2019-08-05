@@ -259,10 +259,25 @@ fn get_logs(
                                 data.map_err(ErrorInternalServerError)
                                     .fold(BytesMut::new(), |mut acc, chunk| {
                                         acc.extend_from_slice(chunk.as_ref());
-                                        println!("{:?}", String::from_utf8(chunk.as_ref().to_vec()));
                                         Ok::<_, ActixError>(acc)
                                     })
-                                    .and_then(|body| HttpResponse::Ok().body(body))
+                                    .and_then(|body| {
+                                        let mut clone = body.freeze().to_vec().clone();
+                                        let mut curr = true;
+                                        let mut next = true;
+                                        // if the next byte after the \0 encodes the length of msg, ignore
+                                        clone.retain(|&byte| {
+                                            curr = next;
+                                            next = byte as char != '\0';
+                                            byte != 0 && byte != 1 && curr && byte as char != '+'
+                                        });
+                                        clone.retain(|&byte| (byte as char).is_ascii());
+                                        if let Ok(content) = String::from_utf8(clone) {
+                                            HttpResponse::Ok().body(content)
+                                        } else {
+                                            HttpResponse::ServiceUnavailable().body("Logs unable to be displayed")
+                                        }
+                                    })
                             })
                     })
                     .into_future()
