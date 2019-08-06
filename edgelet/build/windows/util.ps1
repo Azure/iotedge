@@ -142,7 +142,6 @@ function PatchRustForArm {
     $ForkedCrates = @"
 
 [patch.crates-io]
-backtrace = { git = "https://github.com/philipktlin/backtrace-rs", branch = "arm" }
 iovec = { git = "https://github.com/philipktlin/iovec", branch = "arm" }
 mio = { git = "https://github.com/philipktlin/mio", branch = "arm" }
 miow = { git = "https://github.com/philipktlin/miow", branch = "arm" }
