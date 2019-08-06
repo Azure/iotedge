@@ -16,7 +16,7 @@ mod certificate_properties;
 pub mod crypto;
 mod error;
 mod identity;
-pub mod logs;
+mod logs;
 mod module;
 mod network;
 mod settings;
