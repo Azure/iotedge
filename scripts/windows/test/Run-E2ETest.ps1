@@ -437,7 +437,7 @@ Function PrepareTestFromArtifacts
                 $escapedBuildId= $ArtifactImageBuildNumber -replace "\.",""
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.AlertUrl>',$SnitchAlertUrl) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildNumber>',$SnitchBuildNumber) | Set-Content $DeploymentWorkingFilePath
-                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildId>',"$SnitchBuildNumber-$(GetImageArchitectureLabel)-linux-$escapedBuildId") | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildId>',"$ReleaseLabel-$(GetImageArchitectureLabel)-windows-$escapedBuildId") | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.ReportingIntervalInSecs>',$SnitchReportingIntervalInSecs) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.StorageAccount>',$SnitchStorageAccount) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.StorageMasterKey>',$SnitchStorageMasterKey) | Set-Content $DeploymentWorkingFilePath

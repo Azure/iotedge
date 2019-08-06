@@ -20,7 +20,6 @@ const ALERT_URL_KEY: &str = "ALERT_URL";
 const ANALYZER_URL_KEY: &str = "ANALYZER_URL";
 const BLOB_STORAGE_ACCOUNT_KEY: &str = "BLOB_STORAGE_ACCOUNT";
 const BLOB_STORAGE_MASTER_KEY_KEY: &str = "BLOB_STORAGE_MASTER_KEY";
-const BLOB_CONTAINER_NAME_KEY: &str = "BLOB_CONTAINER_NAME";
 const MANAGEMENT_URI_KEY: &str = "MANAGEMENT_URI";
 
 static DEFAULT_SETTINGS: &str = include_str!("settings.yaml");
@@ -84,7 +83,6 @@ pub struct Settings {
     analyzer_url: Url,
     blob_storage_account: String,
     blob_storage_master_key: String,
-    blob_container_name: String,
     reporting_interval: Option<Duration>,
     #[serde(with = "url_serde")]
     management_uri: Url,
@@ -112,7 +110,6 @@ impl Settings {
         self.analyzer_url = Url::parse(&get_env(ANALYZER_URL_KEY)?)?;
         self.blob_storage_account = get_env(BLOB_STORAGE_ACCOUNT_KEY)?;
         self.blob_storage_master_key = get_env(BLOB_STORAGE_MASTER_KEY_KEY)?;
-        self.blob_container_name = get_env(BLOB_CONTAINER_NAME_KEY)?;
 
         if let Ok(management_uri) = get_env(MANAGEMENT_URI_KEY) {
             self.management_uri = Url::parse(&management_uri)?;
@@ -148,10 +145,6 @@ impl Settings {
 
     pub fn blob_storage_master_key(&self) -> &str {
         &self.blob_storage_master_key
-    }
-
-    pub fn blob_container_name(&self) -> &str {
-        &self.blob_container_name
     }
 
     pub fn reporting_interval(&self) -> Option<&Duration> {
