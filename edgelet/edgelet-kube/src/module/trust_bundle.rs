@@ -1,12 +1,16 @@
-use crate::convert::trust_bundle_to_config_map;
-use crate::{Error, ErrorKind, KubeModuleRuntime};
-use edgelet_core::GetTrustBundle;
+// Copyright (c) Microsoft. All rights reserved.
+
 use failure::Fail;
 use futures::future::Either;
 use futures::{future, Future, IntoFuture, Stream};
 use hyper::service::Service;
 use hyper::Body;
+
+use edgelet_core::GetTrustBundle;
 use kube_client::{Error as KubeClientError, TokenSource};
+
+use crate::convert::trust_bundle_to_config_map;
+use crate::{Error, ErrorKind, KubeModuleRuntime};
 
 pub fn init_trust_bundle<T, S>(
     runtime: &KubeModuleRuntime<T, S>,
@@ -77,159 +81,126 @@ where
 
 #[cfg(test)]
 mod tests {
+    use futures::future;
     use hyper::service::{service_fn, Service};
     use hyper::{Body, Error as HyperError, Method, Request, Response, StatusCode};
+    use maplit::btreemap;
     use native_tls::TlsConnector;
+    use serde_json::json;
+    use tokio::runtime::Runtime;
+    use typed_headers::{mime, ContentLength, ContentType, HeaderMapExt};
     use url::Url;
 
     use edgelet_test_utils::cert::TestCert;
     use edgelet_test_utils::crypto::TestHsm;
-    use kube_client::{Client as KubeClient, Config as KubeConfig, Error, TokenSource};
-
-    use crate::constants;
-    use crate::module::init_trust_bundle;
-    use crate::tests::make_settings;
-    use crate::{ErrorKind, KubeModuleRuntime};
     use edgelet_test_utils::routes;
     use edgelet_test_utils::web::{
         make_req_dispatcher, HttpMethod, RequestHandler, RequestPath, ResponseFuture,
     };
-    use futures::future;
-    use maplit::btreemap;
-    use serde_json::json;
-    use typed_headers::{mime, ContentLength, ContentType, HeaderMapExt};
+    use kube_client::{Client as KubeClient, Config as KubeConfig, Error, TokenSource};
+
+    use crate::module::init_trust_bundle;
+    use crate::tests::make_settings;
+    use crate::{constants, Settings};
+    use crate::{ErrorKind, KubeModuleRuntime};
 
     #[test]
-    fn init_trust_bundle_fails_when_trust_bundle_unavailable() {
+    fn it_fails_when_trust_bundle_unavailable() {
+        let settings = make_settings(None);
+
         let service = service_fn(|_: Request<Body>| -> Result<Response<Body>, HyperError> {
             Ok(Response::new(Body::empty()))
         });
         let crypto = TestHsm::default().with_fail_call(true);
 
-        let runtime = create_runtime(service);
+        let runtime = create_runtime(settings, service);
         let task = init_trust_bundle(&runtime, &crypto);
 
-        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+        let mut runtime = Runtime::new().unwrap();
         let err = runtime.block_on(task).unwrap_err();
 
         assert_eq!(err.kind(), &ErrorKind::IdentityCertificate)
     }
 
     #[test]
-    fn init_trust_bundle_fails_when_cert_unavailable() {
+    fn it_fails_when_cert_unavailable() {
+        let settings = make_settings(None);
+
         let service = service_fn(|_: Request<Body>| -> Result<Response<Body>, HyperError> {
             Ok(Response::new(Body::empty()))
         });
         let cert = TestCert::default().with_fail_pem(true);
         let crypto = TestHsm::default().with_cert(cert);
 
-        let runtime = create_runtime(service);
+        let runtime = create_runtime(settings, service);
         let task = init_trust_bundle(&runtime, &crypto);
 
-        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+        let mut runtime = Runtime::new().unwrap();
         let err = runtime.block_on(task).unwrap_err();
 
         assert_eq!(err.kind(), &ErrorKind::IdentityCertificate)
     }
 
     #[test]
-    fn init_trust_bundle_fails_when_k8s_api_call_fails() {
+    fn it_fails_when_k8s_api_call_fails() {
+        let settings = make_settings(None);
+
         let service = service_fn(|_: Request<Body>| -> Result<Response<Body>, HyperError> {
             Ok(Response::new(Body::empty()))
         });
         let cert = TestCert::default().with_cert(b"secret_cert".to_vec());
         let crypto = TestHsm::default().with_cert(cert);
 
-        let runtime = create_runtime(service);
+        let runtime = create_runtime(settings, service);
         let task = init_trust_bundle(&runtime, &crypto);
 
-        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+        let mut runtime = Runtime::new().unwrap();
         let err = runtime.block_on(task).unwrap_err();
 
         assert_eq!(err.kind(), &ErrorKind::KubeClient)
     }
 
     #[test]
-    fn init_trust_bundle_updates_existing_trust_bundle_config_map() {
-        let service = service_fn(|_: Request<Body>| -> Result<Response<Body>, HyperError> {
-            let body = r###"{
-                    "kind": "ConfigMap",
-                    "apiVersion": "v1",
-                    "metadata": {
-                        "name": "ca-pemstore",
-                        "namespace": "default"
-                    }
-                }"###;
-            Ok(Response::new(Body::from(body)))
-        });
-
-        let runtime = create_runtime(service);
+    fn it_updates_existing_trust_bundle_config_map() {
+        let settings = make_settings(None);
 
         let dispatch_table = routes!(
-            GET format!("/api/v1/namespaces/{}/configmaps", runtime.settings().namespace()) => config_map_list(),
-            PUT format!("/api/v1/namespaces/{}/configmaps/{}", runtime.settings().namespace(), constants::PROXY_CONFIG_TRUST_BUNDLE_NAME) => update_config_map(),
+            GET format!("/api/v1/namespaces/{}/configmaps", settings.namespace()) => config_map_list(),
+            PUT format!("/api/v1/namespaces/{}/configmaps/{}", settings.namespace(), constants::PROXY_CONFIG_TRUST_BUNDLE_NAME) => update_config_map(),
         );
 
         let handler = make_req_dispatcher(dispatch_table, Box::new(not_found_handler));
         let service = service_fn(handler);
+        let runtime = create_runtime(settings, service);
 
         let cert = TestCert::default().with_cert(b"secret_cert".to_vec());
         let crypto = TestHsm::default().with_cert(cert);
 
-        let runtime = create_runtime(service);
         let task = init_trust_bundle(&runtime, &crypto);
 
-        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+        let mut runtime = Runtime::new().unwrap();
         runtime.block_on(task).unwrap();
     }
 
     #[test]
-    fn init_trust_bundle_creates_new_trust_bundle_config_map() {
-        let service = service_fn(|_: Request<Body>| -> Result<Response<Body>, HyperError> {
-            let body = r###"{
-                    "kind": "ConfigMap",
-                    "apiVersion": "v1",
-                    "metadata": {
-                        "name": "ca-pemstore",
-                        "namespace": "default"
-                    }
-                }"###;
-            Ok(Response::new(Body::from(body)))
-        });
-
-        let runtime = create_runtime(service);
+    fn it_creates_new_trust_bundle_config_map() {
+        let settings = make_settings(None);
 
         let dispatch_table = routes!(
-            GET format!("/api/v1/namespaces/{}/configmaps", runtime.settings().namespace()) => empty_config_map_list(),
-            POST format!("/api/v1/namespaces/{}/configmaps", runtime.settings().namespace()) => create_config_map(),
+            GET format!("/api/v1/namespaces/{}/configmaps", settings.namespace()) => empty_config_map_list(),
+            POST format!("/api/v1/namespaces/{}/configmaps", settings.namespace()) => create_config_map(),
         );
         let handler = make_req_dispatcher(dispatch_table, Box::new(not_found_handler));
         let service = service_fn(handler);
+        let runtime = create_runtime(settings, service);
 
         let cert = TestCert::default().with_cert(b"secret_cert".to_vec());
         let crypto = TestHsm::default().with_cert(cert);
 
-        let runtime = create_runtime(service);
         let task = init_trust_bundle(&runtime, &crypto);
 
-        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+        let mut runtime = Runtime::new().unwrap();
         runtime.block_on(task).unwrap();
-    }
-
-    fn create_runtime<S: Service>(service: S) -> KubeModuleRuntime<TestTokenSource, S> {
-        let settings = make_settings(None);
-        let client = KubeClient::with_client(get_config(), service);
-
-        KubeModuleRuntime::new(client, settings)
-    }
-
-    fn get_config() -> KubeConfig<TestTokenSource> {
-        KubeConfig::new(
-            Url::parse("https://localhost:443").unwrap(),
-            "/api".to_string(),
-            TestTokenSource,
-            TlsConnector::new().unwrap(),
-        )
     }
 
     fn config_map_list() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
@@ -327,6 +298,24 @@ mod tests {
             .unwrap();
 
         Box::new(future::ok(response))
+    }
+
+    fn create_runtime<S: Service>(
+        settings: Settings,
+        service: S,
+    ) -> KubeModuleRuntime<TestTokenSource, S> {
+        let client = KubeClient::with_client(get_config(), service);
+
+        KubeModuleRuntime::new(client, settings)
+    }
+
+    fn get_config() -> KubeConfig<TestTokenSource> {
+        KubeConfig::new(
+            Url::parse("https://localhost:443").unwrap(),
+            "/api".to_string(),
+            TestTokenSource,
+            TlsConnector::new().unwrap(),
+        )
     }
 
     #[derive(Clone)]
