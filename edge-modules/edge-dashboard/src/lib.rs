@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
 
+use actix_cors::Cors;
 use actix_web::error::ErrorInternalServerError;
 use actix_web::Error as ActixError;
 use actix_web::*;
@@ -92,6 +93,7 @@ impl Main {
 
         HttpServer::new(move || {
             App::new()
+                .wrap(Cors::new().send_wildcard())
                 .register_data(context.clone())
                 .register_data(device.clone())
                 .service(web::resource("/api/modules/{id}/restart").to_async(restart_module))
