@@ -28,6 +28,8 @@ mod tests {
     use json_patch::merge;
     use serde_json::{self, json, Value as JsonValue};
 
+    pub const PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME: &str = "device1-iotedged-proxy-trust-bundle";
+
     pub fn make_settings(merge_json: Option<JsonValue>) -> Settings {
         let mut config = Config::default();
         let mut config_json = json!({
@@ -60,7 +62,7 @@ mod tests {
             "device_id": "device1",
             "proxy_image": "proxy:latest",
             "proxy_config_path": "/etc/traefik",
-            "proxy_config_map_name": "device1-iotedged-proxy-config",
+            "proxy_config_map_name": PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME,
             "proxy_trust_bundle_path": "/etc/trust-bundle",
             "proxy_trust_bundle_config_map_name": "device1-iotedged-proxy-trust-bundle",
             "image_pull_policy": "IfNotPresent",

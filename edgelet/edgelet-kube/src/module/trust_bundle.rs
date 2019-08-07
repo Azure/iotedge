@@ -100,8 +100,8 @@ mod tests {
     use kube_client::{Client as KubeClient, Config as KubeConfig, Error, TokenSource};
 
     use crate::module::init_trust_bundle;
-    use crate::tests::make_settings;
-    use crate::{constants, Settings};
+    use crate::tests::{make_settings, PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME};
+    use crate::Settings;
     use crate::{ErrorKind, KubeModuleRuntime};
 
     #[test]
@@ -166,7 +166,7 @@ mod tests {
 
         let dispatch_table = routes!(
             GET format!("/api/v1/namespaces/{}/configmaps", settings.namespace()) => config_map_list(),
-            PUT format!("/api/v1/namespaces/{}/configmaps/{}", settings.namespace(), constants::PROXY_CONFIG_TRUST_BUNDLE_NAME) => update_config_map(),
+            PUT format!("/api/v1/namespaces/{}/configmaps/{}", settings.namespace(), settings.proxy_trust_bundle_config_map_name()) => update_config_map(),
         );
 
         let handler = make_req_dispatcher(dispatch_table, Box::new(not_found_handler));
@@ -212,8 +212,8 @@ mod tests {
                     "items": [
                         {
                             "metadata": {
-                                "name": constants::PROXY_CONFIG_TRUST_BUNDLE_NAME,
-                                "namespace": "my-namespace",
+                                "name": PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME,
+                                "namespace": "default",
                             },
                             "data": {
                                 "cert.pem": "trust bundle"
@@ -233,8 +233,8 @@ mod tests {
                     "kind": "ConfigMap",
                     "apiVersion": "v1",
                     "metadata": {
-                        "name": constants::PROXY_CONFIG_TRUST_BUNDLE_NAME,
-                        "namespace": "my-namespace",
+                        "name": PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME,
+                        "namespace": "default",
                     }
                 })
                 .to_string()
@@ -250,7 +250,7 @@ mod tests {
                     "apiVersion": "v1",
                     "metadata": {
                         "name": "c",
-                        "namespace": "my-namespace",
+                        "namespace": "default",
                     }
                 })
                 .to_string()
@@ -259,8 +259,7 @@ mod tests {
     }
 
     fn empty_config_map_list() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
-        move |req| {
-            println!("{:?}", req);
+        move |_| {
             response(StatusCode::OK, || {
                 json!({
                     "kind": "ConfigMapList",
