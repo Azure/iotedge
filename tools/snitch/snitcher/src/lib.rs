@@ -28,8 +28,8 @@ use edgelet_http_mgmt::ModuleClient;
 use error::{Error, ErrorKind};
 use futures::future::{self, loop_fn, Either, FutureResult, Loop};
 use futures::{Future, IntoFuture, Stream};
-use humantime::format_duration;
 use http::Uri;
+use humantime::format_duration;
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Client as HyperClient, Method, Request};
 use hyper_tls::HttpsConnector;
@@ -132,16 +132,18 @@ pub fn do_report(settings: Settings) -> impl Future<Item = (), Error = Error> + 
     };
 
     // wait for all the bits to get done and then build report and alert
-    let all_futures: Vec<Box<Future<Item = (), Error = Error> + Send>> = vec![
-        Box::new(add_log_files),
-        Box::new(get_analysis),
-    ];
+    let all_futures: Vec<Box<Future<Item = (), Error = Error> + Send>> =
+        vec![Box::new(add_log_files), Box::new(get_analysis)];
     let report_copy = report.clone();
     future::join_all(all_futures)
         .and_then(move |_| {
             info!("Preparing report");
             let report = &mut *report_copy.lock().unwrap();
-            debug!("alert url: {:?}, report: {:?}", &settings.alert().url(), report);
+            debug!(
+                "alert url: {:?}, report: {:?}",
+                &settings.alert().url(),
+                report
+            );
             let report_id = report.id().to_string();
             report.add_attachment(
                 LOGS_FILE_NAME,
@@ -233,7 +235,6 @@ pub fn upload_file(
     .unwrap_or_else(|err| Either::B(future::err(err)))
 }
 
-
 pub fn get_module_logs(
     settings: &Settings,
 ) -> impl Future<Item = Vec<(String, String)>, Error = Error> + Send {
@@ -241,51 +242,55 @@ pub fn get_module_logs(
 
     let module_client = ModuleClient::new(settings.management_uri())
         .map_err(|err| Error::new(ErrorKind::ModuleRuntime(err.to_string())))
-        .expect(&format!("Failed to instantiate module client with {}", settings.management_uri()));
+        .expect(&format!(
+            "Failed to instantiate module client with {}",
+            settings.management_uri()
+        ));
     debug!("Listing docker containers");
     module_client
         .list_with_details()
         .map_err(|err| Error::new(ErrorKind::ModuleRuntime(err.to_string())))
-        .filter(|(_module, state)| state.status() == &ModuleStatus::Running || state.status() == &ModuleStatus::Stopped)
+        .filter(|(_module, state)| {
+            state.status() == &ModuleStatus::Running || state.status() == &ModuleStatus::Stopped
+        })
         .and_then(move |(module, _state)| {
             debug!("Got logs for container {}", module.name());
-                module_client
-                    .logs(module.name(), &LogOptions::new())
-                    .map_err(|err| Error::new(ErrorKind::ModuleRuntime(err.to_string())))
-                    .and_then(move |logs| {
-                        let chunked = Chunked::new(logs.map_err(|_| io::Error::new(io::ErrorKind::Other, "unknown")));
-                        LogDecode::new(chunked)
-                            .map_err(|err| Error::new(ErrorKind::ModuleRuntime(err.to_string())))
-                            .fold(String::new(), |mut acc, chunk| {
-                                match chunk {
-                                    LogChunk::Stdin(b)
-                                    | LogChunk::Stdout(b)
-                                    | LogChunk::Stderr(b)
-                                    | LogChunk::Unknown(b) => {
-                                        let result = std::str::from_utf8(&b)
-                                            .map(|s| {
-                                                acc.push_str(s);
-                                                acc
-                                            })
-                                            .map_err(Error::from);
-                                        
-                                        let f: FutureResult<String, Error> = future::result(result);
-                                        f
-                                    }
-                                            
-                                }
-                            })
-                            .map_err(|err| Error::new(ErrorKind::ModuleRuntime(err.to_string())))
-                    })
-                    .map_err(|err| Error::new(ErrorKind::ModuleRuntime(err.to_string())))
-                    .map(move |logs| {
-                        let logs = if logs.is_empty() { 
-                            "<no logs>".to_string()
-                            } else { 
-                                logs 
-                            };
-                        (module.name().to_string(), logs)
-                    })
+            module_client
+                .logs(module.name(), &LogOptions::new())
+                .map_err(|err| Error::new(ErrorKind::ModuleRuntime(err.to_string())))
+                .and_then(move |logs| {
+                    let chunked = Chunked::new(
+                        logs.map_err(|_| io::Error::new(io::ErrorKind::Other, "unknown")),
+                    );
+                    LogDecode::new(chunked)
+                        .map_err(|err| Error::new(ErrorKind::ModuleRuntime(err.to_string())))
+                        .fold(String::new(), |mut acc, chunk| match chunk {
+                            LogChunk::Stdin(b)
+                            | LogChunk::Stdout(b)
+                            | LogChunk::Stderr(b)
+                            | LogChunk::Unknown(b) => {
+                                let result = std::str::from_utf8(&b)
+                                    .map(|s| {
+                                        acc.push_str(s);
+                                        acc
+                                    })
+                                    .map_err(Error::from);
+
+                                let f: FutureResult<String, Error> = future::result(result);
+                                f
+                            }
+                        })
+                        .map_err(|err| Error::new(ErrorKind::ModuleRuntime(err.to_string())))
+                })
+                .map_err(|err| Error::new(ErrorKind::ModuleRuntime(err.to_string())))
+                .map(move |logs| {
+                    let logs = if logs.is_empty() {
+                        "<no logs>".to_string()
+                    } else {
+                        logs
+                    };
+                    (module.name().to_string(), logs)
+                })
         })
         .collect()
 }
@@ -323,7 +328,10 @@ pub fn raise_alert(
         .map_err(Error::from)
         .map(|(alert_url, connector)| {
             let mut builder = Request::builder();
-            let uri = alert_url.as_str().parse::<Uri>().expect("Unexpected Url to Uri conversion failure");
+            let uri = alert_url
+                .as_str()
+                .parse::<Uri>()
+                .expect("Unexpected Url to Uri conversion failure");
             let req = builder.method(Method::POST).uri(uri);
             let serialized = serde_json::to_string(&report_json).unwrap();
             req.header(CONTENT_TYPE, "text/json");

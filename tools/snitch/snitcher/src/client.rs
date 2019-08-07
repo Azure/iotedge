@@ -7,10 +7,10 @@ use std::sync::{Arc, Mutex};
 use bytes::Bytes;
 use futures::future::{self, Either};
 use futures::{Future, Stream};
+use http::Uri;
 use hyper::header::{HeaderValue, CONTENT_LENGTH, CONTENT_TYPE, IF_MATCH};
 use hyper::service::Service;
 use hyper::{Body, Error as HyperError, Method, Request};
-use http::Uri;
 use log::{debug, error};
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json;
@@ -81,9 +81,11 @@ where
                 // parse operation. At this point the URL has already been parsed
                 // and is known to be good.
                 let mut builder = Request::builder();
-                let req = builder
-                    .method(method)
-                    .uri(url.as_str().parse::<Uri>().expect("Unexpected Url to Uri conversion failure"));
+                let req = builder.method(method).uri(
+                    url.as_str()
+                        .parse::<Uri>()
+                        .expect("Unexpected Url to Uri conversion failure"),
+                );
 
                 // add an `If-Match: "*"` header if we've been asked to
                 if add_if_match {
@@ -103,7 +105,10 @@ where
             })
             .map(move |req| {
                 let uri = req.uri().clone();
-                let res = self.service.lock().unwrap()
+                let res = self
+                    .service
+                    .lock()
+                    .unwrap()
                     .call(req)
                     .map_err(move |err| {
                         error!("HTTP request to {:?} failed with {:?}", uri, err);
@@ -114,8 +119,7 @@ where
                         debug!("HTTP request succeeded with status {}", status);
 
                         let (_, body) = resp.into_parts();
-                        body
-                            .concat2()
+                        body.concat2()
                             .and_then(move |body| Ok((status, body)))
                             .map_err(|err| {
                                 error!("Reading response body, failed with {:?}", err);
