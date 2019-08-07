@@ -75,6 +75,54 @@ where
     Body: From<<S as Service>::ResBody>,
     S::Error: Into<Error>,
 {
+    pub fn list_config_maps(
+        &mut self,
+        namespace: &str,
+        name: Option<&str>,
+        label_selector: Option<&str>,
+    ) -> impl Future<Item = api_core::ConfigMapList, Error = Error> {
+        let field_selector = name.map(|name| format!("metadata.name={}", name));
+        let params = api_core::ListNamespacedConfigMapOptional {
+            field_selector: field_selector.as_ref().map(String::as_ref),
+            label_selector,
+            ..api_core::ListNamespacedConfigMapOptional::default()
+        };
+
+        api_core::ConfigMap::list_namespaced_config_map(namespace, params)
+            .map_err(Error::from)
+            .map(|req| {
+                self.request(req).and_then(|response| match response {
+                    api_core::ListNamespacedConfigMapResponse::Ok(list) => Ok(list),
+                    _ => Err(Error::from(ErrorKind::Response)),
+                })
+            })
+            .into_future()
+            .flatten()
+    }
+
+    pub fn create_config_map(
+        &mut self,
+        namespace: &str,
+        config_map: &api_core::ConfigMap,
+    ) -> impl Future<Item = api_core::ConfigMap, Error = Error> {
+        api_core::ConfigMap::create_namespaced_config_map(
+            namespace,
+            &config_map,
+            api_core::CreateNamespacedConfigMapOptional::default(),
+        )
+        .map_err(Error::from)
+        .map(|req| {
+            self.request(req).and_then(|response| match response {
+                api_core::CreateNamespacedConfigMapResponse::Accepted(config_map)
+                | api_core::CreateNamespacedConfigMapResponse::Created(config_map)
+                | api_core::CreateNamespacedConfigMapResponse::Ok(config_map) => Ok(config_map),
+                _ => Err(Error::from(ErrorKind::Response)),
+            })
+        })
+        .into_future()
+        .flatten()
+    }
+
     pub fn replace_config_map(
         &mut self,
         namespace: &str,
@@ -163,7 +211,7 @@ where
             .map_err(Error::from)
             .map(|req| {
                 self.request(req).and_then(|response| match response {
-                    api_core::ListNamespacedPodResponse::Ok(pod_list) => Ok(pod_list),
+                    api_core::ListNamespacedPodResponse::Ok(list) => Ok(list),
                     _ => Err(Error::from(ErrorKind::Response)),
                 })
             })
@@ -176,7 +224,7 @@ where
         namespace: &str,
         name: Option<&str>,
     ) -> impl Future<Item = api_core::SecretList, Error = Error> {
-        let field_selector = name.map(|secret_name| format!("metadata.name={}", secret_name));
+        let field_selector = name.map(|name| format!("metadata.name={}", name));
         let params = api_core::ListNamespacedSecretOptional {
             field_selector: field_selector.as_ref().map(String::as_ref),
             ..api_core::ListNamespacedSecretOptional::default()
@@ -185,7 +233,7 @@ where
             .map_err(Error::from)
             .map(|req| {
                 self.request(req).and_then(|response| match response {
-                    api_core::ListNamespacedSecretResponse::Ok(secrets) => Ok(secrets),
+                    api_core::ListNamespacedSecretResponse::Ok(list) => Ok(list),
                     _ => Err(Error::from(ErrorKind::Response)),
                 })
             })
@@ -265,6 +313,56 @@ where
             self.request(req).and_then(|response| match response {
                 api_auth::CreateTokenReviewResponse::Created(t)
                 | api_auth::CreateTokenReviewResponse::Ok(t) => Ok(t),
+                _ => Err(Error::from(ErrorKind::Response)),
+            })
+        })
+        .into_future()
+        .flatten()
+    }
+
+    pub fn list_service_accounts(
+        &mut self,
+        namespace: &str,
+        name: Option<&str>,
+        label_selector: Option<&str>,
+    ) -> impl Future<Item = api_core::ServiceAccountList, Error = Error> {
+        let field_selector = name.map(|name| format!("metadata.name={}", name));
+        let params = api_core::ListNamespacedServiceAccountOptional {
+            field_selector: field_selector.as_ref().map(String::as_ref),
+            label_selector,
+            ..api_core::ListNamespacedServiceAccountOptional::default()
+        };
+
+        api_core::ServiceAccount::list_namespaced_service_account(namespace, params)
+            .map_err(Error::from)
+            .map(|req| {
+                self.request(req).and_then(|response| match response {
+                    api_core::ListNamespacedServiceAccountResponse::Ok(list) => Ok(list),
+                    _ => Err(Error::from(ErrorKind::Response)),
+                })
+            })
+            .into_future()
+            .flatten()
+    }
+
+    pub fn create_service_account(
+        &mut self,
+        namespace: &str,
+        service_account: &api_core::ServiceAccount,
+    ) -> impl Future<Item = api_core::ServiceAccount, Error = Error> {
+        api_core::ServiceAccount::create_namespaced_service_account(
+            namespace,
+            &service_account,
+            api_core::CreateNamespacedServiceAccountOptional::default(),
+        )
+        .map_err(Error::from)
+        .map(|req| {
+            self.request(req).and_then(|response| match response {
+                api_core::CreateNamespacedServiceAccountResponse::Accepted(service_account)
+                | api_core::CreateNamespacedServiceAccountResponse::Created(service_account)
+                | api_core::CreateNamespacedServiceAccountResponse::Ok(service_account) => {
+                    Ok(service_account)
+                }
                 _ => Err(Error::from(ErrorKind::Response)),
             })
         })

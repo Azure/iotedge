@@ -273,7 +273,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             // Assert
             Assert.Equal(1, connectedStatusChangedHandlerCount);
-            Assert.Equal(1, disconnectedStatusChangedHandlerCount);
+            Assert.Equal(0, disconnectedStatusChangedHandlerCount);
 
             // Act
             innerClientHandler.Invoke(ConnectionStatus.Disconnected, ConnectionStatusChangeReason.Communication_Error);
