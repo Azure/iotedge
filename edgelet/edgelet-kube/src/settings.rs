@@ -9,11 +9,10 @@ use edgelet_core::{
 };
 use edgelet_docker::{DockerConfig, DEFAULTS};
 use edgelet_utils::YamlFileSource;
-use serde_derive::{Deserialize, Serialize};
 
 use crate::error::Error;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Settings {
     #[serde(flatten)]
     base: BaseSettings<DockerConfig>,

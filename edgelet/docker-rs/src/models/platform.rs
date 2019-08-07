@@ -9,11 +9,11 @@
  */
 
 /// Platform : Platform represents the platform (Arch/OS).
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct Platform {
     /// Architecture represents the hardware architecture (for example, `x86_64`).
     #[serde(rename = "Architecture", skip_serializing_if = "Option::is_none")]

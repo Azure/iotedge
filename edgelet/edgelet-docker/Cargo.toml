@@ -33,6 +33,7 @@ config = { version = "0.9", default-features = false, features = ["json", "yaml"
 json-patch = "0.2.5"
 maplit = "1.0"
 time = "0.1"
+tempdir = "0.3.7"
 typed-headers = "0.1"
 
 edgelet-test-utils = { path = "../edgelet-test-utils" }

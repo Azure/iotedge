@@ -9,11 +9,11 @@
  */
 
 /// SwarmSpecTaskDefaults : Defaults for creating tasks in this cluster.
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct SwarmSpecTaskDefaults {
     #[serde(rename = "LogDriver", skip_serializing_if = "Option::is_none")]
     log_driver: Option<crate::models::SwarmSpecTaskDefaultsLogDriver>,

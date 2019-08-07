@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
-    class EdgeDeploymentDefinition<TConfig> : IEdgeDeploymentDefinition<TConfig>
+    public class EdgeDeploymentDefinition<TConfig> : IEdgeDeploymentDefinition<TConfig>
     {
         [JsonProperty(PropertyName = "apiVersion")]
         public string ApiVersion { get; set; }

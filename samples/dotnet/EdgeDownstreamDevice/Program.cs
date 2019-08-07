@@ -24,6 +24,8 @@ namespace Microsoft.Azure.Devices.Edge.Samples.EdgeDownstreamDevice
         // Either set the DEVICE_CONNECTION_STRING environment variable with this connection string
         // or set it in the Properties/launchSettings.json.
         static readonly string DeviceConnectionString = Environment.GetEnvironmentVariable("DEVICE_CONNECTION_STRING");
+        static readonly string MessageCountEnv = Environment.GetEnvironmentVariable("MESSAGE_COUNT");
+
         static int messageCount = 10;
 
         /// <summary>
@@ -38,17 +40,12 @@ namespace Microsoft.Azure.Devices.Edge.Samples.EdgeDownstreamDevice
         {
             InstallCACert();
 
-            try
+            if (!string.IsNullOrWhiteSpace(MessageCountEnv))
             {
-                string messageCountEnv = Environment.GetEnvironmentVariable("MESSAGE_COUNT");
-                if (!string.IsNullOrWhiteSpace(messageCountEnv))
+                if (!int.TryParse(MessageCountEnv, out messageCount))
                 {
-                    messageCount = int.Parse(messageCountEnv, NumberStyles.None, new CultureInfo("en-US"));
+                    Console.WriteLine("Invalid number of messages in env variable MESSAGE_COUNT. MESSAGE_COUNT set to {0}\n", messageCount);
                 }
-            }
-            catch (Exception)
-            {
-                Console.WriteLine("Invalid number of messages in env variable DEVICE_MESSAGE_COUNT. MESSAGE_COUNT set to {0}\n", messageCount);
             }
 
             Console.WriteLine("Creating device client from connection string\n");
@@ -76,23 +73,23 @@ namespace Microsoft.Azure.Devices.Edge.Samples.EdgeDownstreamDevice
         /// </summary>
         static void InstallCACert()
         {
-            string certPath = Environment.GetEnvironmentVariable("CA_CERTIFICATE_PATH");
-            if (!string.IsNullOrWhiteSpace(certPath))
+            string trustedCACertPath = Environment.GetEnvironmentVariable("IOTEDGE_TRUSTED_CA_CERTIFICATE_PEM_PATH");
+            if (!string.IsNullOrWhiteSpace(trustedCACertPath))
             {
-                Console.WriteLine("User configured CA certificate path: {0}", certPath);
-                if (!File.Exists(certPath))
+                Console.WriteLine("User configured CA certificate path: {0}", trustedCACertPath);
+                if (!File.Exists(trustedCACertPath))
                 {
                     // cannot proceed further without a proper cert file
-                    Console.WriteLine("Invalid certificate file: {0}", certPath);
+                    Console.WriteLine("Certificate file not found: {0}", trustedCACertPath);
                     throw new InvalidOperationException("Invalid certificate file.");
                 }
                 else
                 {
-                    Console.WriteLine("Attempting to install CA certificate: {0}", certPath);
+                    Console.WriteLine("Attempting to install CA certificate: {0}", trustedCACertPath);
                     X509Store store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
                     store.Open(OpenFlags.ReadWrite);
-                    store.Add(new X509Certificate2(X509Certificate.CreateFromCertFile(certPath)));
-                    Console.WriteLine("Successfully added certificate: {0}", certPath);
+                    store.Add(new X509Certificate2(X509Certificate.CreateFromCertFile(trustedCACertPath)));
+                    Console.WriteLine("Successfully added certificate: {0}", trustedCACertPath);
                     store.Close();
                 }
             }

@@ -35,12 +35,6 @@
               "CollectMetrics": {
                 "value": "true"
               },
-              "MetricsStoreType": {
-                "value": "influxdb"
-              },
-              "InfluxDbUrl": {
-                "value": "http://influxdb:8086"
-              },
               "amqpSettings__enabled": {
                 "value": "<amqpSettings__enabled>"
               },
@@ -144,12 +138,6 @@
           //     "ALERT_URL": {
           //       "value": "<Snitch.AlertUrl>"
           //     },
-          //     "INFLUX_URL": {
-          //       "value": "http://influxdb:8086"
-          //     },
-          //     "INFLUX_DB_NAME": {
-          //       "value": "_internal"
-          //     },
           //     "ANALYZER_URL": {
           //       "value": "http://analyzer:15000/api/report"
           //     },
@@ -186,16 +174,6 @@
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-analyzer:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"15000/tcp\":[{\"HostPort\":\"15000\"}]}}}"
-            }
-          },
-          "influxdb": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartpolicy": "on-unhealthy",
-            "settings": {
-              "image": "<Container_Registry>/influxdb:1.7.7-windows-<Architecture>",
-              "createoptions": "{\"exposedports\":{\"8086/tcp\":{}},\"hostconfig\":{\"portbindings\":{\"8086/tcp\":[{\"hostport\":\"8086\"}]}}}"
             }
           }
         }

@@ -194,5 +194,49 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
 
             Mock.Get(identityManager).Verify(im => im.DeleteIdentityAsync(Module3));
         }
+
+        [Fact]
+        [Unit]
+        public async Task TestGetModulesIdentity_WithUnchanged_ShouldReturnAllWhenRequested()
+        {
+            // Arrange
+            const string Module1 = "module1";
+            var identity1 = new Identity(Module1, Guid.NewGuid().ToString(), "IotEdge");
+
+            const string Module2 = "module2";
+            var identity2 = new Identity(Module2, Guid.NewGuid().ToString(), "Me");
+
+            const string Module3 = "module3";
+            var identity3 = new Identity(Module3, Guid.NewGuid().ToString(), Constants.ModuleIdentityEdgeManagedByValue);
+
+            var identityManager = Mock.Of<IIdentityManager>(
+                m =>
+                    m.GetIdentities() == Task.FromResult(new List<Identity>() { identity2, identity3 }.AsEnumerable()) &&
+                    m.CreateIdentityAsync(Module1, It.IsAny<string>()) == Task.FromResult(identity1) &&
+                    m.DeleteIdentityAsync(Module3) == Task.FromResult(identity3));
+
+            var moduleIdentityLifecycleManager = new ModuleIdentityLifecycleManager(identityManager, ModuleIdentityProviderServiceBuilder, EdgeletUri);
+            var envVar = new Dictionary<string, EnvVal>();
+            var desiredModule = new TestModule(Module1, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, envVar);
+            var currentModule1 = new TestModule(Module2, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, envVar);
+            var currentModule2 = new TestModule(Module3, "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, envVar);
+            ModuleSet desired = ModuleSet.Create(new IModule[] { currentModule1, desiredModule });
+            ModuleSet current = ModuleSet.Create(new IModule[] { currentModule1, currentModule2 });
+
+            // Act
+            IImmutableDictionary<string, IModuleIdentity> moduleIdentities = await moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desired, current);
+
+            // Assert
+            Assert.NotNull(moduleIdentities);
+            Assert.True(moduleIdentities.TryGetValue(Module1, out IModuleIdentity module1Identity));
+            Assert.True(moduleIdentities.TryGetValue(Module2, out IModuleIdentity module2Identity));
+            Assert.Equal(Module1, module1Identity.ModuleId);
+            Assert.Equal(Module2, module2Identity.ModuleId);
+            Assert.IsType<IdentityProviderServiceCredentials>(module1Identity.Credentials);
+            Assert.Equal(EdgeletUri.ToString(), ((IdentityProviderServiceCredentials)module1Identity.Credentials).ProviderUri);
+            Assert.Equal(Option.None<string>(), ((IdentityProviderServiceCredentials)module1Identity.Credentials).Version);
+
+            Mock.Get(identityManager).Verify(im => im.DeleteIdentityAsync(Module3));
+        }
     }
 }

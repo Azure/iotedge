@@ -38,7 +38,7 @@ jobs:
         - Agent.OSArchitecture -equals X64
         - run-stress -equals true
     variables:
-      edgelet.artifact.name: 'iotedged-ubuntu-amd64'
+      edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'
     steps:
       - checkout: none
       - task: AzureKeyVault@1
@@ -102,7 +102,7 @@ jobs:
         - run-stress -equals true
         - agent-osbits -equals 32
     variables:
-      edgelet.artifact.name: 'iotedged-ubuntu-armhf'
+      edgelet.artifact.name: 'iotedged-debian9-arm32v7'
     steps:
       - checkout: none
       - task: AzureKeyVault@1
@@ -166,7 +166,7 @@ jobs:
         - run-stress -equals true
         - agent-osbits -equals 64
     variables:
-      edgelet.artifact.name: 'iotedged-ubuntu16.04-aarch64'
+      edgelet.artifact.name: 'iotedged-ubuntu18.04-aarch64'
     steps:
       - checkout: none
       - task: AzureKeyVault@1
@@ -260,6 +260,7 @@ jobs:
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.windows)
           itemPattern: |
+            $(images.artifact.name.windows)/CACertificates/*
             $(images.artifact.name.windows)/IotEdgeQuickstart/x64/*
             $(images.artifact.name.windows)/e2e_deployment_files/stress_deployment.template.windows.json
             $(images.artifact.name.windows)/scripts/windows/setup/IotEdgeSecurityDaemon.ps1

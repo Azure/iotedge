@@ -9,11 +9,11 @@
  */
 
 /// TaskSpecContainerSpecFile1 : File represents a specific target that is backed by a file.
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct TaskSpecContainerSpecFile1 {
     /// Name represents the final filename in the filesystem.
     #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
