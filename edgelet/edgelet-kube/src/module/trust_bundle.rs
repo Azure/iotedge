@@ -100,7 +100,7 @@ mod tests {
     use kube_client::{Client as KubeClient, Config as KubeConfig, Error, TokenSource};
 
     use crate::module::init_trust_bundle;
-    use crate::tests::make_settings;
+    use crate::tests::{make_settings, PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME};
     use crate::Settings;
     use crate::{ErrorKind, KubeModuleRuntime};
 
@@ -212,7 +212,7 @@ mod tests {
                     "items": [
                         {
                             "metadata": {
-                                "name": "device1-iotedged-proxy-trust-bundle",
+                                "name": PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME,
                                 "namespace": "default",
                             },
                             "data": {
@@ -233,7 +233,7 @@ mod tests {
                     "kind": "ConfigMap",
                     "apiVersion": "v1",
                     "metadata": {
-                        "name": "device1-iotedged-proxy-trust-bundle",
+                        "name": PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME,
                         "namespace": "default",
                     }
                 })
