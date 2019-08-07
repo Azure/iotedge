@@ -89,15 +89,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
 
             // Act
             var configUpdater = new ConfigUpdater(router, messageStore.Object, updateFrequency);
-            configUpdater.Init(configProvider.Object);
+            await configUpdater.Init(configProvider.Object);
 
             // Assert
-            await Task.Delay(TimeSpan.FromSeconds(8));
             configProvider.Verify(c => c.GetConfig(), Times.Once);
             endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Once);
 
-            await Task.Delay(TimeSpan.FromSeconds(20));
+            await Task.Delay(TimeSpan.FromSeconds(25));
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(3));
             endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Once);
