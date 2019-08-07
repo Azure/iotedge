@@ -96,7 +96,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
             endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Once);
 
-            await Task.Delay(TimeSpan.FromSeconds(25));
+            // After 5 seconds, the periodic task should not have run.
+            await Task.Delay(TimeSpan.FromSeconds(5));
+            configProvider.Verify(c => c.GetConfig(), Times.Once);
+            endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
+            messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Once);
+
+            await Task.Delay(TimeSpan.FromSeconds(20));
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(3));
             endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Once);
