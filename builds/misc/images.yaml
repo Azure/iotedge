@@ -41,7 +41,7 @@ jobs:
       - script: scripts/linux/buildEdgelet.sh -i azureiotedge-diagnostics -n microsoft -P iotedge-diagnostics -c $(Build.Configuration) -t aarch64
         displayName: Build - Edge Diagnostics - aarch64
 
-      - script: scripts/linux/buildEdgeProxy.sh -i azureiotedge-proxy -n microsoft -P edge-proxy -t aarch64
+      - script: scripts/linux/buildEdgelet.sh -i azureiotedge-proxy -n microsoft -P iotedge-proxy -c $(Build.Configuration) -t aarch64
         displayName: Build - Edge Proxy - aarch64
 
       - task: PublishBuildArtifacts@1
@@ -189,10 +189,11 @@ jobs:
 
       - template: templates/build-edgelet-linux.yaml
         parameters:
-          filePath: scripts/linux/buildEdgeProxy.sh
+          filePath: scripts/linux/buildEdgelet.sh
           name: Edge Proxy
           imageName: azureiotedge-proxy
-          project: edge-proxy
+          project: iotedge-proxy
+          configuration: $(Build.Configuration)
 
       - script: scripts/linux/createArtifactInfo.sh --output-folder '$(Build.BinariesDirectory)/publish' --build-number $(Build.BuildNumber)
         displayName: 'Create Artifact Info File'
