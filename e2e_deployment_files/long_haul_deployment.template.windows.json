@@ -181,7 +181,7 @@
               },
               "RUST_LOG": {
                 "value": "snitcher=info"
-              }
+              },
               "MANAGEMENT_URI": {
                 "value": "unix:///C:/ProgramData/iotedge/mgmt/sock"
               }
