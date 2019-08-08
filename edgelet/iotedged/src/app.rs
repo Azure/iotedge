@@ -44,8 +44,7 @@ fn create_app() -> App<'static, 'static> {
     }
 }
 
-fn init_common(running_as_windows_service: bool) -> Result<Settings, Error>
-{
+fn init_common(running_as_windows_service: bool) -> Result<Settings, Error> {
     let matches = create_app().get_matches();
 
     // If running as a Windows service, logging was already initialized by init_win_svc_logging(), so don't do it again.
@@ -60,7 +59,7 @@ fn init_common(running_as_windows_service: bool) -> Result<Settings, Error>
 
     if cfg!(feature = "runtime-kubernetes") {
         info!("Starting Azure IoT Edge Security Daemon - Kubernetes mode");
-    } else { 
+    } else {
         info!("Starting Azure IoT Edge Security Daemon");
     };
     info!("Version - {}", edgelet_core::version_with_source_version());
@@ -83,14 +82,12 @@ fn init_common(running_as_windows_service: bool) -> Result<Settings, Error>
     Ok(settings)
 }
 
-pub fn init() -> Result<Settings, Error>
-{
+pub fn init() -> Result<Settings, Error> {
     init_common(false)
 }
 
 #[cfg(windows)]
-pub fn init_win_svc() -> Result<Settings, Error>
-{
+pub fn init_win_svc() -> Result<Settings, Error> {
     init_common(true)
 }
 
