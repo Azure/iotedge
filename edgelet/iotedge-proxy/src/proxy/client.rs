@@ -2,10 +2,10 @@
 
 use failure::ResultExt;
 use futures::{Future, IntoFuture};
-use http::{header, HeaderValue};
 use hyper::client::connect::Connect;
 use hyper::client::HttpConnector;
-use hyper::{Body, Client as HyperClient, Request, Response};
+use hyper::header::HeaderValue;
+use hyper::{header, Body, Client as HyperClient, Request, Response};
 use hyper_tls::HttpsConnector;
 use log::info;
 
@@ -117,8 +117,7 @@ pub trait HttpClient {
 #[cfg(test)]
 mod tests {
     use futures::{Future, IntoFuture, Stream};
-    use http::{Request, Response, Uri};
-    use hyper::Body;
+    use hyper::{Body, Request, Response, Uri};
     use native_tls::TlsConnector;
     use tokio::runtime::current_thread;
     use url::Url;

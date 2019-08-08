@@ -5,7 +5,7 @@ use std::fmt::Display;
 use std::io::Error as IoError;
 
 use failure::{Backtrace, Context, Fail};
-use http::uri::InvalidUri;
+use hyper::http::uri::InvalidUri;
 use hyper::Error as HyperError;
 use native_tls::Error as NativeTlsError;
 use url::ParseError as UrlParseError;

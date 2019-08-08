@@ -4,12 +4,12 @@ use std::net::ToSocketAddrs;
 
 use failure::{Fail, ResultExt};
 use futures::future::join_all;
+use futures::sync::oneshot;
+use futures::sync::oneshot::Receiver;
 use futures::{Future, IntoFuture};
 use hyper::Server;
 use log::{debug, info, warn};
 use tokio::runtime::Runtime;
-use tokio::sync::oneshot;
-use tokio::sync::oneshot::Receiver;
 
 use crate::api::ApiService;
 use crate::proxy::{get_config, Client, ProxyService};

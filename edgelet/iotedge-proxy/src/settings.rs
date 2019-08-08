@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use config::{Config, ConfigError, File, FileFormat};
 use failure::Fail;
-use serde::Deserialize;
+use serde_derive::Deserialize;
 use url::Url;
 use url_serde;
 

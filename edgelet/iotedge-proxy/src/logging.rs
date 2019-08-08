@@ -6,10 +6,10 @@ use failure::Fail;
 use log::{log, Level, LevelFilter};
 
 pub fn init() {
-    env_logger::builder()
+    env_logger::Builder::new()
         .filter_level(LevelFilter::Info)
         .default_format_module_path(false)
-        .parse_filters(&env::var("PROXY_LOG").unwrap_or_default())
+        .parse(&env::var("PROXY_LOG").unwrap_or_default())
         .init();
 }
 

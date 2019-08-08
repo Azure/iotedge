@@ -3,9 +3,8 @@
 use failure::{Compat, Fail};
 use futures::future::FutureResult;
 use futures::{future, Future, IntoFuture};
-use http::{header, Method, Request, Response, StatusCode};
 use hyper::service::{NewService, Service};
-use hyper::Body;
+use hyper::{header, Body, Method, Request, Response, StatusCode};
 use log::{debug, info};
 
 use crate::{logging, Error};
