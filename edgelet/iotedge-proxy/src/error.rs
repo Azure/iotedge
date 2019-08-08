@@ -6,9 +6,12 @@ use std::io::Error as IoError;
 
 use failure::{Backtrace, Context, Fail};
 use hyper::http::uri::InvalidUri;
-use hyper::Error as HyperError;
+use hyper::{header, Body, Error as HyperError, Response, StatusCode};
 use native_tls::Error as NativeTlsError;
+use serde_json::json;
 use url::ParseError as UrlParseError;
+
+use crate::IntoResponse;
 
 #[derive(Debug)]
 pub struct Error {
@@ -76,6 +79,29 @@ impl Fail for Error {
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.inner, f)
+    }
+}
+
+impl IntoResponse for Error {
+    fn into_response(self) -> Response<Body> {
+        let mut fail: &dyn Fail = &self;
+        let mut message = self.to_string();
+        while let Some(cause) = fail.cause() {
+            message.push_str(&format!("\n\tcaused by: {}", cause.to_string()));
+            fail = cause;
+        }
+
+        let body = json!({
+            "message": message,
+        })
+        .to_string();
+
+        Response::builder()
+            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .header(header::CONTENT_TYPE, "application/json")
+            .header(header::CONTENT_LENGTH, body.len().to_string().as_str())
+            .body(body.into())
+            .expect("response builder failure")
     }
 }
 

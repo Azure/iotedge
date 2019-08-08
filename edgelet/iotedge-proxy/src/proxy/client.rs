@@ -116,15 +116,16 @@ pub trait HttpClient {
 
 #[cfg(test)]
 mod tests {
-    use futures::{Future, IntoFuture, Stream};
+    use futures::{Future, Stream};
     use hyper::{Body, Request, Response, Uri};
     use native_tls::TlsConnector;
     use tokio::runtime::current_thread;
     use url::Url;
 
-    use crate::proxy::client::ResponseFuture;
     use crate::proxy::config::ValueToken;
-    use crate::proxy::{Client, Config, HttpClient};
+    use crate::proxy::test::config::config;
+    use crate::proxy::test::http::client_fn;
+    use crate::proxy::{Client, Config};
     use crate::{Error, ErrorKind};
 
     #[test]
@@ -144,14 +145,6 @@ mod tests {
         let res = current_thread::block_on_all(task).unwrap();
         let (_, body) = res;
         assert_eq!(body.as_ref(), b"This Is Fine");
-    }
-
-    fn config() -> Config<ValueToken> {
-        Config::new(
-            Url::parse("https://iotedged:8080").unwrap(),
-            ValueToken(None),
-            TlsConnector::builder().build().unwrap(),
-        )
     }
 
     #[test]
@@ -205,28 +198,5 @@ mod tests {
 
         let err = current_thread::block_on_all(task).unwrap_err();
         assert_eq!(err.kind(), &ErrorKind::Hyper);
-    }
-
-    pub fn client_fn<F, S>(f: F) -> HttpClientFn<F>
-    where
-        F: Fn(Request<Body>) -> S,
-        S: IntoFuture,
-    {
-        HttpClientFn { f }
-    }
-
-    pub struct HttpClientFn<F> {
-        f: F,
-    }
-
-    impl<F, Ret> HttpClient for HttpClientFn<F>
-    where
-        F: Fn(Request<Body>) -> Ret,
-        Ret: IntoFuture<Item = Response<Body>, Error = Error>,
-        Ret::Future: Send + 'static,
-    {
-        fn request(&self, req: Request<Body>) -> ResponseFuture {
-            Box::new(((self.f)(req)).into_future())
-        }
     }
 }

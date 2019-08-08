@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use failure::{Compat, Fail};
+use failure::Compat;
 use futures::future::FutureResult;
 use futures::{future, Future};
 use hyper::service::{NewService, Service};
@@ -10,7 +10,7 @@ use hyper::{Body, Request, Response};
 use log::debug;
 
 use crate::proxy::{Client, HttpClient, TokenSource};
-use crate::{logging, Error};
+use crate::{logging, Error, IntoResponse};
 
 pub struct ProxyService<T, S>
 where
@@ -55,17 +55,22 @@ where
         let request = format!("{} {} {:?}", req.method(), req.uri(), req.version());
         debug!("Starting request {}", request);
 
-        let fut = self
-            .client
-            .request(req)
-            .map_err(|err| {
-                logging::failure(&err);
-                err.compat()
-            })
-            .map(move |res| {
-                debug!("Finished request {}", request);
-                res
-            });
+        let fut = self.client.request(req).then(move |result| {
+            let response = match result {
+                Ok(response) => {
+                    debug!("Finished request {}", request);
+                    response
+                }
+                Err(err) => {
+                    debug!("Finished request with error: {}", request);
+
+                    logging::failure(&err);
+                    err.into_response()
+                }
+            };
+
+            Ok(response)
+        });
 
         Box::new(fut)
     }
@@ -85,5 +90,72 @@ where
 
     fn new_service(&self) -> Self::Future {
         future::ok(self.clone())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use failure::Compat;
+    use futures::{Future, Stream};
+    use hyper::service::Service;
+    use hyper::{Body, Chunk, Request, Response, StatusCode};
+    use serde_json::json;
+    use tokio::runtime::Runtime;
+
+    use crate::proxy::test::config::config;
+    use crate::proxy::test::http::client_fn;
+    use crate::proxy::{Client, ProxyService};
+    use crate::Error;
+    use crate::ErrorKind;
+
+    #[test]
+    fn it_returns_response_to_caller() {
+        let http = client_fn(|_| Ok(Response::new(Body::from("This Is Fine"))));
+        let client = Client::with_client(http, config());
+        let req = Request::new(Body::empty());
+        let mut proxy = ProxyService::new(client);
+
+        let task = proxy.call(req).map_err(Compat::into_inner).and_then(|res| {
+            res.into_body()
+                .concat2()
+                .map(Chunk::into_bytes)
+                .map_err(Error::from)
+        });
+
+        let mut runtime = Runtime::new().unwrap();
+        let res = runtime.block_on(task).unwrap();
+        assert_eq!(res.as_ref(), b"This Is Fine");
+    }
+
+    #[test]
+    fn it_returns_500_with_error_message_on_err() {
+        let http = client_fn(|_| Err(Error::from(ErrorKind::Hyper)));
+        let client = Client::with_client(http, config());
+        let req = Request::new(Body::empty());
+        let mut proxy = ProxyService::new(client);
+
+        let task = proxy.call(req).map_err(Compat::into_inner).and_then(|res| {
+            let status = res.status();
+            res.into_body()
+                .concat2()
+                .map(move |body| {
+                    (
+                        status,
+                        std::str::from_utf8(body.into_bytes().as_ref())
+                            .unwrap()
+                            .to_string(),
+                    )
+                })
+                .map_err(Error::from)
+        });
+
+        let mut runtime = Runtime::new().unwrap();
+        let res = runtime.block_on(task).unwrap();
+        let (status, body) = res;
+        assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(
+            body.as_ref(),
+            json!({ "message": "HTTP connection error"}).to_string()
+        );
     }
 }

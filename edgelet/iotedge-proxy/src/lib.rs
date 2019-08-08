@@ -22,6 +22,12 @@ pub use error::{Error, ErrorKind};
 pub use routine::Routine;
 pub use settings::{ApiSettings, ServiceSettings, Settings};
 
+use hyper::{Body, Response};
+
+pub trait IntoResponse {
+    fn into_response(self) -> Response<Body>;
+}
+
 #[cfg(test)]
 #[allow(dead_code)]
 mod tls {
