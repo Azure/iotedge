@@ -174,6 +174,54 @@ where
         .flatten()
     }
 
+    pub fn list_deployments(
+        &mut self,
+        namespace: &str,
+        name: Option<&str>,
+        label_selector: Option<&str>,
+    ) -> impl Future<Item = api_apps::DeploymentList, Error = Error> {
+        let field_selector =
+            name.map(|deployment_name| format!("metadata.name={}", deployment_name));
+        let params = api_apps::ListNamespacedDeploymentOptional {
+            field_selector: field_selector.as_ref().map(String::as_ref),
+            label_selector,
+            ..api_apps::ListNamespacedDeploymentOptional::default()
+        };
+        api_apps::Deployment::list_namespaced_deployment(namespace, params)
+            .map_err(Error::from)
+            .map(|req| {
+                self.request(req).and_then(|response| match response {
+                    api_apps::ListNamespacedDeploymentResponse::Ok(deployments) => Ok(deployments),
+                    _ => Err(Error::from(ErrorKind::Response)),
+                })
+            })
+            .into_future()
+            .flatten()
+    }
+
+    pub fn create_deployment(
+        &mut self,
+        namespace: &str,
+        deployment: &api_apps::Deployment,
+    ) -> impl Future<Item = api_apps::Deployment, Error = Error> {
+        api_apps::Deployment::create_namespaced_deployment(
+            namespace,
+            &deployment,
+            api_apps::CreateNamespacedDeploymentOptional::default(),
+        )
+        .map_err(Error::from)
+        .map(|req| {
+            self.request(req).and_then(|response| match response {
+                api_apps::CreateNamespacedDeploymentResponse::Accepted(deployment)
+                | api_apps::CreateNamespacedDeploymentResponse::Created(deployment)
+                | api_apps::CreateNamespacedDeploymentResponse::Ok(deployment) => Ok(deployment),
+                _ => Err(Error::from(ErrorKind::Response)),
+            })
+        })
+        .into_future()
+        .flatten()
+    }
+
     pub fn replace_deployment(
         &mut self,
         namespace: &str,
@@ -514,16 +562,20 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::config::{Config, TokenSource};
-    use hyper::service::service_fn;
+    use bytes::BytesMut;
+    use futures::{future, Future, Stream};
+    use hyper::service::{service_fn, Service};
     use hyper::{Body, Error as HyperError, Request, Response, StatusCode};
     use k8s_openapi::api::apps::v1 as api_apps;
+    use k8s_openapi::api::core::v1 as api_core;
     use native_tls::TlsConnector;
     use serde_json;
     use tokio::runtime::Runtime;
     use url::percent_encoding::{utf8_percent_encode, USERINFO_ENCODE_SET};
     use url::Url;
+
+    use crate::config::{Config, TokenSource};
+    use crate::Client;
 
     #[derive(Clone)]
     struct TestTokenSource();
