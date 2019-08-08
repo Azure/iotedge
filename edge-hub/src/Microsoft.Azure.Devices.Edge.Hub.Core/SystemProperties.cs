@@ -33,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public const string CreationTime = "creationTime";
         public const string Operation = "operation";
         public const string SequenceNumber = "sequenceNumber";
+        public const string InterfaceId = "iothub-interface-id";
 
         public static readonly Dictionary<string, string> IncomingSystemPropertiesMap = new Dictionary<string, string>
         {
@@ -47,7 +48,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             { OnTheWireSystemPropertyNames.ContentEncodingOnTheWireName, ContentEncoding },
             { OnTheWireSystemPropertyNames.MessageSchemaOnTheWireName, MessageSchema },
             { OnTheWireSystemPropertyNames.OperationOnTheWireName, Operation },
-            { OnTheWireSystemPropertyNames.CreationTimeOnTheWireName, CreationTime }
+            { OnTheWireSystemPropertyNames.CreationTimeOnTheWireName, CreationTime },
+            { OnTheWireSystemPropertyNames.InterfaceIdOnTheWireName, InterfaceId }
         };
 
         public static readonly Dictionary<string, string> OutgoingSystemPropertiesMap = new Dictionary<string, string>
@@ -83,6 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             public const string MessageSchemaOnTheWireName = "$.schema";
             public const string CreationTimeOnTheWireName = "$.ctime";
             public const string OperationOnTheWireName = "iothub-operation";
+            public const string InterfaceIdOnTheWireName = "$.ifid";
         }
     }
 }

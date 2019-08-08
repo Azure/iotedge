@@ -9,6 +9,7 @@ use std::str::{self, Utf8Error};
 
 use azure_sdk_for_rust::core::errors::AzureError;
 use backtrace::Backtrace;
+use edgelet_http::Error as EdgeletHttpError;
 use hex::FromHexError;
 use http::Error as HttpError;
 use hyper::{Error as HyperError, StatusCode as HyperStatusCode};
@@ -38,23 +39,24 @@ impl Error {
 
 #[derive(Debug)]
 pub enum ErrorKind {
-    Io(IoError),
+    Azure(String),
+    Connect(String),
+    EdgeletHttpError(EdgeletHttpError),
     Env(String),
+    Hex(FromHexError),
+    Http(HttpError),
+    Hyper(HyperError),
+    HyperTls(HyperTlsError),
+    InvalidConnectState,
+    InvalidUrlScheme,
+    Io(IoError),
+    MissingPath,
     ParseInt(ParseIntError),
     ParseUrl(ParseUrlError),
     SerdeJson(SerdeJsonError),
-    Hyper(HyperError),
-    HyperTls(HyperTlsError),
-    Http(HttpError),
     Service(HyperStatusCode, String),
     Timer(TimerError),
-    InvalidUrlScheme,
-    MissingPath,
-    Hex(FromHexError),
     Utf8(Utf8Error),
-    Connect(String),
-    InvalidConnectState,
-    Azure(AzureError),
 }
 
 impl StdError for Error {}
@@ -126,7 +128,7 @@ impl From<IoError> for Error {
 
 impl From<AzureError> for Error {
     fn from(err: AzureError) -> Error {
-        Error::new(ErrorKind::Azure(err))
+        Error::new(ErrorKind::Azure(err.to_string()))
     }
 }
 
@@ -151,5 +153,11 @@ impl From<FromHexError> for Error {
 impl From<Utf8Error> for Error {
     fn from(err: Utf8Error) -> Error {
         Error::new(ErrorKind::Utf8(err))
+    }
+}
+
+impl From<EdgeletHttpError> for Error {
+    fn from(err: EdgeletHttpError) -> Error {
+        Error::new(ErrorKind::EdgeletHttpError(err))
     }
 }
