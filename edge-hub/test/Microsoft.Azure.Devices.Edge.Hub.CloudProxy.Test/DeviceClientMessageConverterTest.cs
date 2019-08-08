@@ -157,6 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.Equal("foo", clientMessage.To);
             Assert.Equal("1234", clientMessage.CorrelationId);
             Assert.Equal("m1", clientMessage.MessageId);
+            Assert.Equal(creationTime, clientMessage.CreationTimeUtc.ToString("o"));
             Assert.True(clientMessage.IsSecurityMessage);
         }
 
