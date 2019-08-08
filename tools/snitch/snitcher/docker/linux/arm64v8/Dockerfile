@@ -1,5 +1,7 @@
 FROM ubuntu:18.04 AS builder
 
+ARG SRC_DIR=.
+
 # Add source code
 COPY $SRC_DIR/snitcher /snitcher
 
@@ -34,7 +36,7 @@ RUN sources="$(cat /etc/apt/sources.list | grep -E '^[^#]')" && \
     $HOME/.cargo/bin/cargo build --release --target aarch64-unknown-linux-gnu
     
 # Build real container
-FROM arm64v8/ubuntu:18.04    
+FROM edgebuilds.azurecr.io/microsoft/snitcher-base:1.0-linux-arm64v8
 COPY --from=builder /snitcher/target/aarch64-unknown-linux-gnu/release/snitcher \
      /usr/local/bin/
 CMD /usr/local/bin/snitcher
