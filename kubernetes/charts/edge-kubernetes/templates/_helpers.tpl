@@ -70,7 +70,7 @@ proxy_image:  "{{.Values.iotedgedProxy.image.repository}}:{{.Values.iotedgedProx
 proxy_config_path: "/etc/traefik"
 proxy_config_map_name: "iotedged-proxy-config"
 proxy_trust_bundle_path: "/etc/trust-bundle"
-proxy_trust_bundle_config_map_name: "iotedged-proxy-trust-bundle",
+proxy_trust_bundle_config_map_name: "iotedged-proxy-trust-bundle"
 image_pull_policy: {{ .Values.iotedgedProxy.image.pullPolicy | quote }}
 service_account_name: "iotedge"
 device_hub_selector: ""
