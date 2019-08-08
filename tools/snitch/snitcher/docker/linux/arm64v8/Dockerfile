@@ -1,12 +1,40 @@
-FROM ubuntu:18.04
+FROM ubuntu:18.04 AS builder
 
-RUN apt-get update -y && \
-    apt-get install -y apt-utils ca-certificates curl gpg && \
-    curl https://ftp-master.debian.org/keys/archive-key-9-security.asc | gpg --dearmor > archive-key-9-security.gpg && \
-    cp ./archive-key-9-security.gpg /etc/apt/trusted.gpg.d/ &&\
-    echo "deb http://security.debian.org/debian-security stretch/updates main" >> /etc/apt/sources.list && \
-    apt-get update -y && \
-    apt-get install -y libssl1.0.2
+# Add source code
+COPY $SRC_DIR/snitcher /snitcher
+
+RUN sources="$(cat /etc/apt/sources.list | grep -E '^[^#]')" && \
+    # Update existing repos to be specifically for amd64
+    echo "$sources" | sed -e 's/^deb /deb [arch=amd64] /g' > /etc/apt/sources.list && \
+    # Add arm64 repos
+    echo "$sources" | \
+        sed -e 's/^deb /deb [arch=arm64] /g' \
+            -e 's| http://archive.ubuntu.com/ubuntu/ | http://ports.ubuntu.com/ubuntu-ports/ |g' \
+            -e 's| http://security.ubuntu.com/ubuntu/ | http://ports.ubuntu.com/ubuntu-ports/ |g' \
+            >> /etc/apt/sources.list && \
+    dpkg --add-architecture arm64 && \
+    apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+        binutils build-essential ca-certificates cmake curl debhelper dh-systemd file git \
+        gcc g++ \
+        gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
+        libcurl4-openssl-dev:arm64 libssl-dev:arm64 uuid-dev:arm64 && \
+    mkdir -p ~/.cargo && \
+    echo '[target.aarch64-unknown-linux-gnu]' > ~/.cargo/config && \
+    echo 'linker = "aarch64-linux-gnu-gcc"' >> ~/.cargo/config && \
+    export AARCH64_UNKNOWN_LINUX_GNU_OPENSSL_LIB_DIR=/usr/lib/aarch64-linux-gnu && \
+    export AARCH64_UNKNOWN_LINUX_GNU_OPENSSL_INCLUDE_DIR=/usr/include && \
+    # Install Rust
+    curl -sSLf https://sh.rustup.rs | sh -s -- -y && \
+        . ~/.cargo/env && \
+        rustup target add aarch64-unknown-linux-gnu && \
+    # Build app
+    cd /snitcher && \
+    $HOME/.cargo/bin/cargo build --release --target aarch64-unknown-linux-gnu
     
-COPY ./snitcher /usr/local/bin/
+# Build real container
+FROM arm64v8/ubuntu:18.04    
+COPY --from=builder /snitcher/target/aarch64-unknown-linux-gnu/release/snitcher \
+     /usr/local/bin/
 CMD /usr/local/bin/snitcher

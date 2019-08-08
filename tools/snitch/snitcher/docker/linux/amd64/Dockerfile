@@ -1,12 +1,26 @@
-FROM ubuntu:18.04
+FROM ubuntu:18.04 AS builder
 
-RUN apt-get update -y && \
-    apt-get install -y apt-utils ca-certificates curl gpg && \
-    curl https://ftp-master.debian.org/keys/archive-key-9-security.asc | gpg --dearmor > archive-key-9-security.gpg && \
-    cp ./archive-key-9-security.gpg /etc/apt/trusted.gpg.d/ &&\
-    echo "deb http://security.debian.org/debian-security stretch/updates main" >> /etc/apt/sources.list && \
-    apt-get update -y && \
-    apt-get install -y libssl1.0.2
-    
-COPY ./snitcher /usr/local/bin/
+ARG SRC_DIR=./
+
+# Install pre-requisite
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+    binutils build-essential ca-certificates cmake curl debhelper dh-systemd file git \
+    gcc g++ pkg-config \
+    libcurl4-openssl-dev libssl-dev uuid-dev
+    # Install Rust
+    curl -sSLf https://sh.rustup.rs | sh -s -- -y && \
+    . ~/.cargo/env
+
+# Add source code
+COPY $SRC_DIR/snitcher /snitcher
+
+# Build app
+RUN cd /snitcher && $HOME/.cargo/bin/cargo build --release
+
+# Build real container
+FROM ubuntu:18.04    
+COPY --from=builder /snitcher/target/release/snitcher \
+     /usr/local/bin/
 CMD /usr/local/bin/snitcher

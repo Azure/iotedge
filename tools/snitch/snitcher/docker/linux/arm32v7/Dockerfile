@@ -1,12 +1,40 @@
-FROM ubuntu:18.04
+FROM ubuntu:18.04 AS builder
 
-RUN apt-get update -y && \
-    apt-get install -y apt-utils ca-certificates curl gpg && \
-    curl https://ftp-master.debian.org/keys/archive-key-9-security.asc | gpg --dearmor > archive-key-9-security.gpg && \
-    cp ./archive-key-9-security.gpg /etc/apt/trusted.gpg.d/ &&\
-    echo "deb http://security.debian.org/debian-security stretch/updates main" >> /etc/apt/sources.list && \
-    apt-get update -y && \
-    apt-get install -y libssl1.0.2
-    
-COPY ./snitcher /usr/local/bin/
+# Add source code
+COPY $SRC_DIR/snitcher /snitcher
+
+RUN sources="$(cat /etc/apt/sources.list | grep -E '^[^#]')" && \
+    # Update existing repos to be specifically for amd64
+    echo "$sources" | sed -e 's/^deb /deb [arch=amd64] /g' > /etc/apt/sources.list && \
+    # Add armhf repos
+    echo "$sources" | \
+        sed -e 's/^deb /deb [arch=armhf] /g' \
+            -e 's| http://archive.ubuntu.com/ubuntu/ | http://ports.ubuntu.com/ubuntu-ports/ |g' \
+            -e 's| http://security.ubuntu.com/ubuntu/ | http://ports.ubuntu.com/ubuntu-ports/ |g' \
+            >> /etc/apt/sources.list && \
+    dpkg --add-architecture armhf && \
+    apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+        binutils build-essential ca-certificates cmake curl debhelper dh-systemd file git \
+        gcc g++ \
+        gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf \
+        libcurl4-openssl-dev:armhf libssl-dev:armhf uuid-dev:armhf && \
+    mkdir -p ~/.cargo && \
+    echo '[target.armv7-unknown-linux-gnueabihf]' > ~/.cargo/config && \
+    echo 'linker = "arm-linux-gnueabihf-gcc"' >> ~/.cargo/config && \
+    export ARMV7_UNKNOWN_LINUX_GNUEABIHF_OPENSSL_LIB_DIR=/usr/lib/arm-linux-gnueabihf && \
+    export ARMV7_UNKNOWN_LINUX_GNUEABIHF_OPENSSL_INCLUDE_DIR=/usr/include && \
+    # Install Rust
+    curl -sSLf https://sh.rustup.rs | sh -s -- -y && \
+        . ~/.cargo/env && \
+        rustup target add armv7-unknown-linux-gnueabihf && \
+    # Build app
+    cd /snitcher && \
+    $HOME/.cargo/bin/cargo build --release --target armv7-unknown-linux-gnueabihf
+
+# Build real container
+FROM arm32v7/ubuntu:18.04    
+COPY --from=builder /snitcher/target/armv7-unknown-linux-gnueabihf/release/snitcher \
+     /usr/local/bin/
 CMD /usr/local/bin/snitcher
