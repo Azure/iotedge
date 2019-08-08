@@ -5,25 +5,12 @@ use crate::error::Error;
 use crate::signal;
 
 #[cfg(feature = "runtime-docker")]
-use edgelet_docker::DockerModuleRuntime;
+type ModuleRuntime = edgelet_docker::DockerModuleRuntime;
 #[cfg(feature = "runtime-kubernetes")]
-use edgelet_kube::KubeModuleRuntime;
-#[cfg(feature = "runtime-kubernetes")]
-use hyper::client::HttpConnector;
-#[cfg(feature = "runtime-kubernetes")]
-use hyper::Body;
-#[cfg(feature = "runtime-kubernetes")]
-use hyper_tls::HttpsConnector;
-#[cfg(feature = "runtime-kubernetes")]
-use kube_client::{HttpClient, ValueToken};
-
-#[cfg(feature = "runtime-docker")]
-type ModuleRuntime = DockerModuleRuntime;
-#[cfg(feature = "runtime-kubernetes")]
-type ModuleRuntime = KubeModuleRuntime<ValueToken, HttpClient<HttpsConnector<HttpConnector>, Body>>;
+type ModuleRuntime = edgelet_kube::KubeModuleRuntime<kube_client::ValueToken, kube_client::HttpClient<hyper_tls::HttpsConnector<hyper::client::HttpConnector>, hyper::Body>>;
 
 pub fn run() -> Result<(), Error> {
-    let settings = app::init::<ModuleRuntime>()?;
+    let settings = app::init()?;
     let main = super::Main::<ModuleRuntime>::new(settings);
 
     main.run_until(signal::shutdown)?;

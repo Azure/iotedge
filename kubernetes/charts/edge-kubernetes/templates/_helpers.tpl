@@ -55,7 +55,7 @@ agent:
       serveraddress: {{ .Values.edgeAgent.registryCredentials.serveraddress | quote }}
     {{ else }}
     auth: {}
-    {{ end }}      
+    {{ end }}
 hostname: {{ .Values.edgeAgent.hostname }}
 connect:
   management_uri: "http://localhost:{{ .Values.iotedged.ports.management }}"
