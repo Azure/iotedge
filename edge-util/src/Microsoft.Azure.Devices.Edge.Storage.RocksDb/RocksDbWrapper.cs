@@ -17,10 +17,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     /// </summary>
     sealed class RocksDbWrapper : IRocksDb
     {
-        static string temp = Path.GetTempPath();
-        static string DBBackupPath = Path.Combine(temp, "rocksdb_simple_example_backup");
-        static ILogger Log = Logger.Factory.CreateLogger<RocksDbWrapper>();
-
+        static readonly string Temp = Path.GetTempPath();
+        static readonly string DBBackupPath = Path.Combine(Temp, "rocksdb_simple_example_backup");
+        static readonly ILogger Log = Logger.Factory.CreateLogger<RocksDbWrapper>();
 
         readonly AtomicBoolean isDisposed = new AtomicBoolean(false);
         readonly RocksDb db;
@@ -82,20 +81,20 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         public void Dispose()
         {
             Log.LogInformation($"Dispose called {DBBackupPath}");
-            Log.LogInformation("Directory size:" + GetDirectorySize(path));
+            Log.LogInformation("Directory size:" + GetDirectorySize(this.path));
             Log.LogInformation("backup Directory size:" + GetDirectorySize(DBBackupPath));
 
-            GetMemoryStats();
+            this.GetMemoryStats();
             IntPtr be;
             IntPtr err = IntPtr.Zero;
-            // open Backup Engine that we will use for backing up our database
 
-            be = Native.Instance.rocksdb_backup_engine_open(dbOptions.Handle, DBBackupPath, out err);
+            // open Backup Engine that we will use for backing up our database
+            be = Native.Instance.rocksdb_backup_engine_open(this.dbOptions.Handle, DBBackupPath, out err);
             Log.LogInformation("Backup engine open: " + err.ToInt64());
             Debug.Assert(err == IntPtr.Zero);
 
             // create new backup in a directory specified by DBBackupPath
-            Native.Instance.rocksdb_backup_engine_create_new_backup(be, db.Handle, out err);
+            Native.Instance.rocksdb_backup_engine_create_new_backup(be, this.db.Handle, out err);
             Log.LogInformation("Backup engine create backup: " + err.ToInt64());
             Debug.Assert(err == IntPtr.Zero);
 
@@ -114,8 +113,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             mcc = Native.Instance.rocksdb_memory_consumers_create();
             Log.LogInformation("MCC: " + mcc.ToInt64());
 
-            Native.Instance.rocksdb_memory_consumers_add_db(mcc, db.Handle);
-            Native.Instance.rocksdb_memory_consumers_add_cache(mcc, cache.Handle);
+            Native.Instance.rocksdb_memory_consumers_add_db(mcc, this.db.Handle);
+            Native.Instance.rocksdb_memory_consumers_add_cache(mcc, this.cache.Handle);
             Log.LogInformation("Added db and cache.");
 
             IntPtr err;
@@ -141,8 +140,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             Log.LogInformation($"Restore called {DBBackupPath}");
             Log.LogInformation("backup Directory sizeon restore:" + GetDirectorySize(DBBackupPath));
             IntPtr be;
-            // open Backup Engine that we will use for backing up our database
 
+            // open Backup Engine that we will use for backing up our database
             if (Directory.Exists(DBBackupPath))
             {
                 IntPtr err;
@@ -152,15 +151,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
                 // If something is wrong, you might want to restore data from last backup
                 IntPtr restore_options = Native.Instance.rocksdb_restore_options_create();
-                Native.Instance.rocksdb_backup_engine_restore_db_from_latest_backup(be, path, path,
-                                                                    restore_options, out err);
+                Native.Instance.rocksdb_backup_engine_restore_db_from_latest_backup(
+                    be, path, path, restore_options, out err);
                 Log.LogInformation("Restore result: " + err.ToInt64());
                 Debug.Assert(err == IntPtr.Zero);
 
                 Native.Instance.rocksdb_restore_options_destroy(restore_options);
-
-                //db = Native.Instance.rocksdb_open(dbOptions.Handle, path, out err);
-                //Debug.Assert(err == IntPtr.Zero);
 
                 // cleanup
                 Native.Instance.rocksdb_backup_engine_close(be);
