@@ -96,7 +96,7 @@ pub fn get_file() -> Result<String> {
     #[cfg(target_os = "windows")]
     return handle_windows();
 
-    #[cfg(target_os = "linux")]
+    #[cfg(unix)]
     fs::read_to_string("/etc/iotedge/config.yaml")
 }
 

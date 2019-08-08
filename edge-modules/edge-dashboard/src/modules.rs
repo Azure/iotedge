@@ -5,21 +5,19 @@ use std::sync::Arc;
 use actix_web::error::ErrorInternalServerError;
 use actix_web::Error as ActixError;
 use actix_web::*;
-use bytes::BytesMut;
 use edgelet_core::{LogOptions, Module as EdgeModule, ModuleRuntime, RuntimeSettings};
 use edgelet_http_mgmt::*;
 use futures::future::{ok, Either, IntoFuture};
 use futures::stream::Stream;
-use futures::Async;
-use futures::Future;
-use serde::{Deserialize as JSONDeserialize, Serialize};
+use futures::{Async, Future};
+use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::health::Status;
 use crate::AuthRequest;
 use crate::Context;
 
-#[derive(Debug, JSONDeserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Module {
     name: String,
     status: String,
@@ -44,35 +42,41 @@ pub fn restart_module(
     context: web::Data<Arc<Context>>,
     info: web::Query<AuthRequest>,
 ) -> Box<dyn Future<Item = HttpResponse, Error = ActixError>> {
-    let module_id = req.match_info().get("id");
     let api_ver = &info.api_version;
-    let response = context
-        .edge_config
-        .as_ref()
-        .map(|config| {
-            let mgmt_uri = config.connect().management_uri();
-            Either::A(
-                Url::parse(&format!("{}/modules/?api-version={}", mgmt_uri, api_ver))
-                    .map_err(ErrorInternalServerError)
-                    .and_then(|url| ModuleClient::new(&url).map_err(ErrorInternalServerError))
-                    .map(|mod_client| {
-                        if let Some(id) = module_id {
-                            mod_client.restart(id)
-                        } else {
-                            mod_client.restart("")
-                        }
-                        .map(|_| HttpResponse::Ok().body(""))
-                        .map_err(ErrorInternalServerError)
-                    })
-                    .into_future()
-                    .flatten(),
-            )
+    let response = req
+        .match_info()
+        .get("id")
+        .map(|module_id| {
+            context
+                .edge_config
+                .as_ref()
+                .map(|config| {
+                    let mgmt_uri = config.connect().management_uri();
+                    Either::A(
+                        Url::parse(&format!("{}/modules/?api-version={}", mgmt_uri, api_ver))
+                            .map_err(ErrorInternalServerError)
+                            .and_then(|url| {
+                                ModuleClient::new(&url).map_err(ErrorInternalServerError)
+                            })
+                            .map(|mod_client| {
+                                mod_client
+                                    .restart(module_id)
+                                    .map_err(ErrorInternalServerError)
+                                    .map(|_| {
+                                        HttpResponse::Ok().body(format!("Module has restarted"))
+                                    })
+                            })
+                            .into_future()
+                            .flatten(),
+                    )
+                })
+                .unwrap_or_else(|err| {
+                    Either::B(ok(HttpResponse::ServiceUnavailable()
+                        .content_type("text/plain")
+                        .body(format!("{:?}", err))))
+                })
         })
-        .unwrap_or_else(|err| {
-            Either::B(ok(HttpResponse::ServiceUnavailable()
-                .content_type("text/plain")
-                .body(format!("{:?}", err))))
-        });
+        .unwrap_or_else(|| Either::B(ok(HttpResponse::BadRequest().body("Invalid module ID"))));
 
     Box::new(response)
 }
@@ -82,53 +86,60 @@ pub fn get_logs(
     context: web::Data<Arc<Context>>,
     info: web::Query<AuthRequest>,
 ) -> Box<dyn Future<Item = HttpResponse, Error = ActixError>> {
-    let module_id = req.match_info().get("id").unwrap_or("");
     let api_ver = &info.api_version;
 
-    let response = context
-        .edge_config
-        .as_ref()
-        .map(move |config| {
-            let mgmt_uri = config.connect().management_uri();
-            Either::A(
-                Url::parse(&format!("{}/modules/?api-version={}", mgmt_uri, api_ver))
-                    .map_err(ErrorInternalServerError)
-                    .and_then(|url| ModuleClient::new(&url).map_err(ErrorInternalServerError)) // can't connect to the endpoint
-                    .map(move |mod_client| {
-                        mod_client
-                            .logs(module_id, &LogOptions::new())
+    let response = req
+        .match_info()
+        .get("id")
+        .map(|module_id| {
+            context
+                .edge_config
+                .as_ref()
+                .map(move |config| {
+                    let mgmt_uri = config.connect().management_uri();
+                    Either::A(
+                        Url::parse(&format!("{}/modules/?api-version={}", mgmt_uri, api_ver))
                             .map_err(ErrorInternalServerError)
-                            .and_then(|data| {
-                                data.map_err(ErrorInternalServerError)
-                                    .fold(BytesMut::new(), |mut acc, chunk| {
-                                        let stream = chunk.as_ref();
-                                        if stream.len() >= 8 {
-                                            let (_, right) = stream.split_at(8);
-                                            acc.extend_from_slice(right);
-                                        }
-                                        Ok::<_, ActixError>(acc)
-                                    })
-                                    .and_then(|body| {
-                                        let mut clone = body.freeze().to_vec().clone();
-                                        clone.retain(|&byte| (byte as char).is_ascii());
-                                        if let Ok(content) = String::from_utf8(clone) {
-                                            HttpResponse::Ok().body(content)
-                                        } else {
-                                            HttpResponse::ServiceUnavailable()
-                                                .body("Logs unable to be displayed")
-                                        }
+                            .and_then(|url| {
+                                ModuleClient::new(&url).map_err(ErrorInternalServerError)
+                            }) // can't connect to the endpoint
+                            .map(move |mod_client| {
+                                mod_client
+                                    .logs(module_id, &LogOptions::new())
+                                    .map_err(ErrorInternalServerError)
+                                    .and_then(|data| {
+                                        data.map_err(ErrorInternalServerError)
+                                            .fold(Vec::new(), |mut acc, chunk| {
+                                                let stream = chunk.as_ref();
+                                                if stream.len() >= 8 {
+                                                    let (_, right) = stream.split_at(8);
+                                                    acc.extend_from_slice(right);
+                                                }
+                                                Ok::<_, ActixError>(acc)
+                                            })
+                                            .and_then(|body| {
+                                                let mut clone = body.clone();
+                                                clone.retain(|&byte| (byte as char).is_ascii());
+                                                if let Ok(content) = String::from_utf8(clone) {
+                                                    HttpResponse::Ok().body(content)
+                                                } else {
+                                                    HttpResponse::ServiceUnavailable()
+                                                        .body("Logs unable to be displayed")
+                                                }
+                                            })
                                     })
                             })
-                    })
-                    .into_future()
-                    .flatten(),
-            )
+                            .into_future()
+                            .flatten(),
+                    )
+                })
+                .unwrap_or_else(|err| {
+                    Either::B(ok(HttpResponse::ServiceUnavailable()
+                        .content_type("text/plain")
+                        .body(format!("{:?}", err))))
+                })
         })
-        .unwrap_or_else(|err| {
-            Either::B(ok(HttpResponse::ServiceUnavailable()
-                .content_type("text/plain")
-                .body(format!("{:?}", err))))
-        });
+        .unwrap_or_else(|| Either::B(ok(HttpResponse::BadRequest().body("Invalid module ID"))));
 
     Box::new(response)
 }
@@ -155,25 +166,15 @@ pub fn get_health(
 
 fn health_response(mods: Vec<Module>) -> HttpResponse {
     let mut device_status = Status::new();
-    let mut edge_agent = false;
-    let mut edge_hub = false;
-    let mut other = true;
+    let edge_agent = mods
+        .iter()
+        .any(|module| module.name() == "edgeAgent" && module.status() == "running");
 
-    for module in mods.iter() {
-        if module.name() == "edgeAgent" {
-            if module.status() == "running" {
-                edge_agent = true;
-            }
-        } else if module.name() == "edgeHub" {
-            if module.status() == "running" {
-                edge_hub = true;
-            }
-        } else {
-            if module.status() != "running" {
-                other = false;
-            }
-        }
-    }
+    let edge_hub = mods
+        .iter()
+        .any(|module| module.name() == "edgeHub" && module.status() == "running");
+
+    let other = mods.iter().any(|module| module.status() != "running");
 
     device_status.set_iotedged();
     device_status.set_edge_agent(edge_agent);

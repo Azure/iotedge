@@ -24,7 +24,7 @@ pub fn get_connectivity(_req: HttpRequest, device: web::Data<Option<Device>>) ->
 
             let r = resolve_and_tls_handshake(&(&**iothub_hostname, 443), iothub_hostname);
             match r {
-                Ok(_) => HttpResponse::Ok().body(""),
+                Ok(_) => HttpResponse::Ok().body("Succesfully connected to IoT Hub."),
                 Err(_) => HttpResponse::UnprocessableEntity()
                     .body("Failed to establish connection with IoT Hub."),
             }
