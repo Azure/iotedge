@@ -5,7 +5,7 @@ use std::path::Path;
 use clap::{crate_authors, crate_description, crate_name, crate_version, App, Arg};
 use log::info;
 
-use crate::{logging, Error, Settings};
+use crate::{logging, settings, Error, Settings};
 
 pub fn init() -> Result<Settings, Error> {
     logging::init();
@@ -15,6 +15,17 @@ pub fn init() -> Result<Settings, Error> {
     let matches = create_app().get_matches();
     let config_file = matches
         .value_of_os("config")
+        .map_or_else(
+            || {
+                let path = Path::new(settings::DEFAULT_SETTINGS_FILEPATH);
+                if path.exists() {
+                    Some(path)
+                } else {
+                    None
+                }
+            },
+            |name| Some(Path::new(name)),
+        )
         .and_then(|name| {
             let path = Path::new(name);
             info!("Using config file: {}", path.display());

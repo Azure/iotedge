@@ -12,7 +12,9 @@ use crate::{Error, ErrorKind};
 
 pub const DEFAULTS: &str = include_str!("../config/default.yaml");
 
-const TOKEN_FILE: &str = "/var/run/secrets/kubernetes.io/serviceaccount/token";
+pub const DEFAULT_SETTINGS_FILEPATH: &str = "/etc/iotedge-proxy/config.yaml";
+
+const TOKEN_FILEPATH: &str = "/var/run/secrets/kubernetes.io/serviceaccount/token";
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Settings {
@@ -79,7 +81,7 @@ pub struct ServiceSettings {
 }
 
 fn default_token() -> PathBuf {
-    Path::new(TOKEN_FILE).to_path_buf()
+    Path::new(TOKEN_FILEPATH).to_path_buf()
 }
 
 impl ServiceSettings {
@@ -148,7 +150,7 @@ mod tests {
 
     use url::Url;
 
-    use crate::settings::TOKEN_FILE;
+    use crate::settings::TOKEN_FILEPATH;
     use crate::{ErrorKind, Settings};
 
     #[test]
@@ -178,7 +180,7 @@ mod tests {
             settings.services()[0].certificate().unwrap(),
             Path::new("management.pem")
         );
-        assert_eq!(settings.services()[0].token(), Path::new(TOKEN_FILE));
+        assert_eq!(settings.services()[0].token(), Path::new(TOKEN_FILEPATH));
 
         assert_eq!(settings.services()[1].name(), "workload");
         assert_eq!(
