@@ -169,14 +169,51 @@ where
     spec_to_deployment(runtime.settings(), module)
         .map_err(Error::from)
         .map(|(name, new_deployment)| {
+            let client_copy = runtime.client().clone();
+            let namespace_copy = runtime.settings().namespace().to_owned();
+
             runtime
                 .client()
                 .lock()
                 .expect("Unexpected lock error")
                 .borrow_mut()
-                .replace_deployment(runtime.settings().namespace(), &name, &new_deployment)
+                .list_deployments(
+                    runtime.settings().namespace(),
+                    Some(&name),
+                    Some(&runtime.settings().device_hub_selector()),
+                )
                 .map_err(Error::from)
-                .map(|_| ())
+                .and_then(move |deployments| {
+                    if let Some(current) = deployments.items.into_iter().find(|deployment| {
+                        deployment.metadata.as_ref().map_or(false, |meta| {
+                            meta.name.as_ref().map_or(false, |n| *n == name)
+                        })
+                    }) {
+                        if current == new_deployment {
+                            Either::A(Either::A(future::ok(())))
+                        } else {
+                            let fut = client_copy
+                                .lock()
+                                .expect("Unexpected lock error")
+                                .borrow_mut()
+                                .replace_deployment(namespace_copy.as_str(), &name, &new_deployment)
+                                .map_err(Error::from)
+                                .map(|_| ());
+
+                            Either::A(Either::B(fut))
+                        }
+                    } else {
+                        let fut = client_copy
+                            .lock()
+                            .expect("Unexpected lock error")
+                            .borrow_mut()
+                            .create_deployment(namespace_copy.as_str(), &new_deployment)
+                            .map_err(Error::from)
+                            .map(|_| ());
+
+                        Either::B(fut)
+                    }
+                })
         })
         .into_future()
         .flatten()
@@ -214,10 +251,31 @@ mod tests {
     use crate::{Error, KubeModuleRuntime, Settings};
 
     #[test]
-    fn it_replaces_deployment() {
+    fn it_creates_new_deployment_if_does_not_exist() {
         let settings = make_settings(None);
 
         let dispatch_table = routes!(
+            GET format!("/apis/apps/v1/namespaces/{}/deployments", settings.namespace()) => empty_deployment_list_handler(),
+            POST format!("/apis/apps/v1/namespaces/{}/deployments", settings.namespace()) => create_deployment_handler(),
+        );
+
+        let handler = make_req_dispatcher(dispatch_table, Box::new(not_found_handler));
+        let service = service_fn(handler);
+        let runtime = create_runtime(settings, service);
+        let module = create_module_spec("edgeagent");
+
+        let task = create_or_update_deployment(&runtime, &module);
+
+        let mut runtime = Runtime::new().unwrap();
+        runtime.block_on(task).unwrap();
+    }
+
+    #[test]
+    fn it_updates_existing_deployment_if_exists() {
+        let settings = make_settings(None);
+
+        let dispatch_table = routes!(
+            GET format!("/apis/apps/v1/namespaces/{}/deployments", settings.namespace()) => deployment_list_handler(),
             PUT format!("/apis/apps/v1/namespaces/{}/deployments/edgeagent", settings.namespace()) => replace_deployment_handler(),
         );
 
@@ -233,7 +291,7 @@ mod tests {
     }
 
     #[test]
-    fn it_creates_or_updates_role_binding_for_edgeagent() {
+    fn it_replaces_role_binding_for_edgeagent() {
         let settings = make_settings(None);
 
         let dispatch_table = routes!(
@@ -316,7 +374,8 @@ mod tests {
             GET format!("/api/v1/namespaces/{}/serviceaccounts", settings.namespace()) => empty_service_account_list_handler(),
             POST format!("/api/v1/namespaces/{}/serviceaccounts", settings.namespace()) => create_service_account_handler(),
             PUT format!("/apis/rbac.authorization.k8s.io/v1/namespaces/{}/rolebindings/edgeagent", settings.namespace()) => replace_role_binding_handler(),
-            PUT format!("/apis/apps/v1/namespaces/{}/deployments/edgeagent", settings.namespace()) => replace_deployment_handler(),
+            GET format!("/apis/apps/v1/namespaces/{}/deployments", settings.namespace()) => empty_deployment_list_handler(),
+            POST format!("/apis/apps/v1/namespaces/{}/deployments", settings.namespace()) => create_deployment_handler(),
         );
 
         let handler = make_req_dispatcher(dispatch_table, Box::new(not_found_handler));
@@ -330,16 +389,65 @@ mod tests {
         runtime.block_on(task).unwrap();
     }
 
-    fn create_service_account_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
+    fn empty_deployment_list_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
+        move |_| {
+            response(StatusCode::OK, || {
+                json!({
+                    "kind": "DeploymentList",
+                    "apiVersion": "apps/v1",
+                    "items": []
+                })
+                .to_string()
+            })
+        }
+    }
+
+    fn deployment_list_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
+        move |_| {
+            response(StatusCode::OK, || {
+                json!({
+                    "kind": "DeploymentList",
+                    "apiVersion": "apps/v1",
+                    "items": [
+                        {
+                            "metadata": {
+                                "name": "edgeagent",
+                                "namespace": "my-namespace",
+                            }
+                        }
+                    ]
+                })
+                .to_string()
+            })
+        }
+    }
+
+    fn create_deployment_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
         move |_| {
             response(StatusCode::CREATED, || {
                 json!({
-                    "kind": "ServiceAccount",
-                    "apiVersion": "v1",
+                    "kind": "Deployment",
+                    "apiVersion": "apps/v1",
                     "metadata": {
                         "name": "edgeagent",
                         "namespace": "my-namespace",
-                    }
+                    },
+                })
+                .to_string()
+            })
+        }
+    }
+
+    fn replace_deployment_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
+        move |_| {
+            response(StatusCode::OK, || {
+                json!({
+                    "kind": "Deployment",
+                    "apiVersion": "apps/v1",
+                    "metadata": {
+                        "name": "edgeagent",
+                        "namespace": "my-namespace",
+                    },
                 })
                 .to_string()
             })
@@ -373,6 +481,22 @@ mod tests {
                             }
                         }
                     ]
+                })
+                .to_string()
+            })
+        }
+    }
+
+    fn create_service_account_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
+        move |_| {
+            response(StatusCode::CREATED, || {
+                json!({
+                    "kind": "ServiceAccount",
+                    "apiVersion": "v1",
+                    "metadata": {
+                        "name": "edgeagent",
+                        "namespace": "my-namespace",
+                    }
                 })
                 .to_string()
             })
@@ -417,22 +541,6 @@ mod tests {
                         "kind": "ClusterRole",
                         "name": "cluster-admin"
                     }
-                })
-                .to_string()
-            })
-        }
-    }
-
-    fn replace_deployment_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
-        move |_| {
-            response(StatusCode::OK, || {
-                json!({
-                    "kind": "Deployment",
-                    "apiVersion": "apps/v1",
-                    "metadata": {
-                        "name": "edgeagent",
-                        "namespace": "my-namespace",
-                    },
                 })
                 .to_string()
             })
