@@ -28,14 +28,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             this.configUpdateFrequency = configUpdateFrequency;
         }
 
-        public void Init(IConfigSource configProvider)
+        public async Task Init(IConfigSource configProvider)
         {
             Preconditions.CheckNotNull(configProvider, nameof(configProvider));
             try
             {
                 configProvider.SetConfigUpdatedCallback(this.UpdateConfig);
                 this.configProvider = Option.Some(configProvider);
-                this.configUpdater = Option.Some(new PeriodicTask(this.PullConfig, this.configUpdateFrequency, TimeSpan.Zero, Events.Log, "Get EdgeHub config"));
+
+                // Get the config and initialize the EdgeHub now.
+                await this.PullConfig();
+
+                // Start a periodic task to pull the config.
+                this.configUpdater = Option.Some(new PeriodicTask(this.PullConfig, this.configUpdateFrequency, this.configUpdateFrequency, Events.Log, "Get EdgeHub config"));
                 Events.Initialized();
             }
             catch (Exception ex)
