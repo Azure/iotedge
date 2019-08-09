@@ -508,8 +508,8 @@ pub fn spec_to_role_binding(
         }),
         role_ref: api_rbac::RoleRef {
             api_group: "rbac.authorization.k8s.io".into(),
-            kind: "ClusterRole".into(),
-            name: "cluster-admin".into(),
+            kind: "Role".into(),
+            name: module_label_value.clone(),
         },
         subjects: vec![api_rbac::Subject {
             api_group: None,
@@ -807,8 +807,8 @@ mod tests {
         }
 
         assert_eq!(role_binding.role_ref.api_group, "rbac.authorization.k8s.io");
-        assert_eq!(role_binding.role_ref.kind, "ClusterRole");
-        assert_eq!(role_binding.role_ref.name, "cluster-admin");
+        assert_eq!(role_binding.role_ref.kind, "Role");
+        assert_eq!(role_binding.role_ref.name, "edgeagent");
 
         assert_eq!(role_binding.subjects.len(), 1);
         let subject = &role_binding.subjects[0];
