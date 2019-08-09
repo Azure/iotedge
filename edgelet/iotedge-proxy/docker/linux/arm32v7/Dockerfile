@@ -1,3 +1,9 @@
-FROM arm32v6/alpine:3.9
+FROM alpine:3.10
 
-COPY ./docker/linux/arm32v7/iotedge-proxy /iotedge-proxy
+RUN addgroup -S proxy && adduser -S proxy -G proxy
+USER proxy
+
+WORKDIR /app
+COPY ./docker/linux/arm32v7/iotedge-proxy /app/iotedge-proxy
+
+CMD ["/app/iotedge-proxy"]
