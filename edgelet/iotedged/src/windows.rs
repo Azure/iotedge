@@ -5,7 +5,6 @@ use std::ffi::OsString;
 use std::time::Duration;
 
 use clap::crate_name;
-use edgelet_docker::DockerModuleRuntime;
 use failure::ResultExt;
 use futures::future::Future;
 use log::{error, info};
@@ -21,6 +20,14 @@ use crate::app;
 use crate::error::{Error, ErrorKind, InitializeErrorReason, ServiceError};
 use crate::logging;
 use crate::signal;
+
+#[cfg(feature = "runtime-docker")]
+type ModuleRuntime = edgelet_docker::DockerModuleRuntime;
+#[cfg(feature = "runtime-kubernetes")]
+type ModuleRuntime = edgelet_kube::KubeModuleRuntime<
+    kube_client::ValueToken,
+    kube_client::HttpClient<hyper_tls::HttpsConnector<hyper::client::HttpConnector>, hyper::Body>,
+>;
 
 const RUN_AS_CONSOLE_KEY: &str = "IOTEDGE_RUN_AS_CONSOLE";
 const IOTEDGED_SERVICE_NAME: &str = crate_name!();
@@ -73,7 +80,7 @@ fn run_as_service(_: Vec<OsString>) -> Result<ServiceStatusHandle, Error> {
     // initialize iotedged
     info!("Initializing {} service.", IOTEDGED_SERVICE_NAME);
     let settings = app::init_win_svc()?;
-    let main = super::Main::<DockerModuleRuntime>::new(settings);
+    let main = super::Main::<ModuleRuntime>::new(settings);
 
     // tell Windows we're all set
     update_service_state(status_handle, ServiceState::Running)?;
@@ -100,7 +107,7 @@ fn run_as_service(_: Vec<OsString>) -> Result<ServiceStatusHandle, Error> {
 
 pub fn run_as_console() -> Result<(), Error> {
     let settings = app::init()?;
-    let main = super::Main::<DockerModuleRuntime>::new(settings);
+    let main = super::Main::<ModuleRuntime>::new(settings);
 
     main.run_until(signal::shutdown)?;
 
