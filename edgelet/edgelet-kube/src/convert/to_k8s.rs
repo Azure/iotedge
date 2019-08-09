@@ -544,10 +544,7 @@ pub fn trust_bundle_to_config_map(
     let cert = str::from_utf8(cert.as_ref()).context(ErrorKind::IdentityCertificate)?;
 
     let mut data = BTreeMap::new();
-    data.insert(
-        PROXY_TRUST_BUNDLE_FILENAME.to_string(),
-        cert.to_string(),
-    );
+    data.insert(PROXY_TRUST_BUNDLE_FILENAME.to_string(), cert.to_string());
     let config_map_name = settings.proxy_trust_bundle_config_map_name().to_string();
 
     let config_map = api_core::ConfigMap {
