@@ -156,3 +156,138 @@ fn start_proxy(
         .into_future()
         .flatten()
 }
+
+#[allow(unused_imports)]
+#[cfg(test)]
+mod tests {
+    use std::fs;
+    use std::net::TcpListener;
+    use std::path::Path;
+    use std::str::FromStr;
+
+    use futures::future::Future;
+    use futures::sync::oneshot;
+    use hyper::{Body, Client, StatusCode, Uri};
+    use hyper_tls::HttpsConnector;
+    use tempfile::TempDir;
+    use tokio::runtime::current_thread::Runtime;
+    use url::Url;
+
+    use crate::proxy::test::http::get_unused_tcp_port;
+    use crate::routine::{start_api, start_proxy};
+    use crate::{logging, ApiSettings, ErrorKind, ServiceSettings};
+
+    #[test]
+    fn it_runs_proxy() {
+        let dir = TempDir::new().unwrap();
+
+        let token = dir.path().join("token");
+        fs::write(&token, "token").unwrap();
+
+        let settings = ServiceSettings::new(
+            "management".to_owned(),
+            Url::parse(format!("http://localhost:{}", get_unused_tcp_port()).as_str()).unwrap(),
+            Url::parse("https://iotedge:30000").unwrap(),
+            None,
+            &token,
+        );
+
+        let (tx, rx) = oneshot::channel();
+
+        let proxy = start_proxy(&settings, rx);
+
+        let mut runtime = Runtime::new().unwrap();
+        runtime.spawn(proxy.map_err(|err| println!("{:?}", err)));
+
+        let client = Client::new();
+        let task = client.get(Uri::from_str(settings.entrypoint().as_str()).unwrap());
+
+        let res = runtime.block_on(task).unwrap();
+        assert_eq!(res.status(), StatusCode::INTERNAL_SERVER_ERROR);
+
+        tx.send(()).unwrap();
+    }
+
+    #[test]
+    fn it_fails_start_proxy_when_entrypoint_is_invalid() {
+        let settings = ServiceSettings::new(
+            "management".to_owned(),
+            Url::parse("http://127.0.0.1.com").unwrap(),
+            Url::parse("https://iotedged:30000").unwrap(),
+            None,
+            Path::new("token"),
+        );
+
+        let (_, rx) = oneshot::channel();
+
+        let proxy = start_proxy(&settings, rx);
+
+        let mut runtime = Runtime::new().unwrap();
+        let err = runtime.block_on(proxy).unwrap_err();
+
+        assert_eq!(
+            err.kind(),
+            &ErrorKind::InvalidUrl(settings.entrypoint().to_string())
+        );
+    }
+
+    #[test]
+    fn it_fails_start_proxy_when_proxy_client_config_invalid() {
+        let settings = ServiceSettings::new(
+            "management".to_owned(),
+            Url::parse("http://localhost:3000").unwrap(),
+            Url::parse("https://iotedged:30000").unwrap(),
+            None,
+            Path::new("token"),
+        );
+
+        let (_, rx) = oneshot::channel();
+
+        let proxy = start_proxy(&settings, rx);
+
+        let mut runtime = Runtime::new().unwrap();
+        let err = runtime.block_on(proxy).unwrap_err();
+
+        assert_eq!(err.kind(), &ErrorKind::File("token".to_string()));
+    }
+
+    #[test]
+    fn it_runs_api() {
+        let settings = ApiSettings::new(
+            Url::parse(format!("http://localhost:{}", get_unused_tcp_port()).as_str()).unwrap(),
+        );
+
+        let (tx, rx) = oneshot::channel();
+
+        let proxy = start_api(&settings, rx);
+
+        let mut runtime = Runtime::new().unwrap();
+        runtime.spawn(proxy.map_err(|err| println!("{:?}", err)));
+
+        let client = Client::new();
+        let task = client
+            .get(Uri::from_str(settings.entrypoint().join("/health").unwrap().as_str()).unwrap());
+
+        let res = runtime.block_on(task).unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+
+        tx.send(()).unwrap();
+    }
+
+    #[test]
+    fn it_fails_start_api_when_entrypoint_is_invalid() {
+        let settings = ApiSettings::new(Url::parse("http://127.0.0.1.com").unwrap());
+
+        let (_, rx) = oneshot::channel();
+
+        let proxy = start_api(&settings, rx);
+
+        let mut runtime = Runtime::new().unwrap();
+        let err = runtime.block_on(proxy).unwrap_err();
+
+        assert_eq!(
+            err.kind(),
+            &ErrorKind::InvalidUrl(settings.entrypoint().to_string())
+        );
+    }
+}

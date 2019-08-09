@@ -127,6 +127,10 @@ pub struct ApiSettings {
 }
 
 impl ApiSettings {
+    pub fn new(entrypoint: Url) -> Self {
+        ApiSettings { entrypoint }
+    }
+
     pub fn entrypoint(&self) -> &Url {
         &self.entrypoint
     }
