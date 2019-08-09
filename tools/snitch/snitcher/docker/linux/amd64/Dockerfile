@@ -11,7 +11,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     binutils build-essential ca-certificates cmake curl debhelper dh-systemd file git \
     gcc g++ pkg-config \
-    libcurl4-openssl-dev libssl-dev uuid-dev \
+    libcurl4-openssl-dev libssl-dev uuid-dev && \
     # Install Rust
     curl -sSLf https://sh.rustup.rs | sh -s -- -y && \
     . ~/.cargo/env && \
