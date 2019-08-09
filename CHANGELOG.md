@@ -1,6 +1,6 @@
 # 1.0.9-rc1 (2019-08-09)
 * Support running the Windows installer script in 32-bit PS host on 64-bit Windows ([76eacaf](https://github.com/Azure/iotedge/commit/76eacaf988e7d421b4e45c70a45d8160f1feaaa1))
-* `iotedge check` improvements ([b5b2352](https://github.com/Azure/iotedge/commit/b5b2352f78e9d18b4b3f301ea42e3b5ded85fb6d))
+* `iotedge check` improvements ([8090d6c](https://github.com/Azure/iotedge/commit/8090d6c7fc47a377787d5d9ff15ed5fea894112c))
 
 ## Edge Agent
 ### Features
@@ -34,7 +34,7 @@
 ### Bug fixes
 * Don't restart iotedged when config.yaml isn't ready ([1570c2c](https://github.com/Azure/iotedge/commit/1570c2cb2129b609d56b24800af9f00499b388fd))
 * Add timeout to workload api operations ([da97168](https://github.com/Azure/iotedge/commit/da97168ce1529105422f5673e66dc184d95c6981))
-* Sort `iotedge list` output by module name ([75a8248](https://github.com/Azure/iotedge/commit/75a824823682f68296604993d53bc079d427c939))
+* Sort `iotedge list` output by module name ([0ea4943](https://github.com/Azure/iotedge/commit/0ea4943f390fbaadc45af993df05cafe03bf2030))
 * Should not reconfigure when DPS reprovisioning from backup ([8d36200](https://github.com/Azure/iotedge/commit/8d362006f6c011e10740cc577b371f48f55a34d9))
 
 # 1.0.8 (2019-07-22)
