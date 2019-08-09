@@ -69,11 +69,11 @@ function get_iotedge_quickstart_artifact_file() {
 function get_iotedged_artifact_folder() {
     local path
     if [ "$image_architecture_label" = 'amd64' ]; then
-        path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu-amd64"
+        path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu16.04-amd64"
     elif [ "$image_architecture_label" = 'arm64v8' ]; then
-        path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu16.04-aarch64"
+        path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu18.04-aarch64"
     else
-        path="$E2E_TEST_DIR/artifacts/iotedged-ubuntu-armhf"
+        path="$E2E_TEST_DIR/artifacts/iotedged-debian9-arm32v7"
     fi
 
     echo "$path"
@@ -972,7 +972,7 @@ process_args "$@"
 CONTAINER_REGISTRY="${CONTAINER_REGISTRY:-edgebuilds.azurecr.io}"
 E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
 LONG_HAUL_PROTOCOL_HEAD="${LONG_HAUL_PROTOCOL_HEAD:-amqp}"
-SNITCH_BUILD_NUMBER="${SNITCH_BUILD_NUMBER:-1.1}"
+SNITCH_BUILD_NUMBER="${SNITCH_BUILD_NUMBER:-1.2}"
 LOADGEN1_TRANSPORT_TYPE="${LOADGEN1_TRANSPORT_TYPE:-amqp}"
 LOADGEN2_TRANSPORT_TYPE="${LOADGEN2_TRANSPORT_TYPE:-amqp}"
 LOADGEN3_TRANSPORT_TYPE="${LOADGEN3_TRANSPORT_TYPE:-mqtt}"

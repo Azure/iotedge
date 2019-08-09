@@ -59,6 +59,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
+        public async Task EmptyProductInfoTest()
+        {
+            // Arrange
+            string edgeProductInfo = "IoTEdge 1.0.7";
+            var storeProvider = new StoreProvider(new InMemoryDbStoreProvider());
+            IEntityStore<string, string> store = storeProvider.GetEntityStore<string, string>("productInfo");
+            var productInfoStore = new ProductInfoStore(store, edgeProductInfo);
+
+            // Act
+            await productInfoStore.SetProductInfo("d1", string.Empty);
+            string productInfoValue = await productInfoStore.GetProductInfo("d1");
+
+            // Assert
+            Assert.Equal(string.Empty, productInfoValue);
+        }
+
+        [Fact]
         public void ProductInfoCtorTest()
         {
             new ProductInfoStore(Mock.Of<IKeyValueStore<string, string>>(), "Foo bar");
