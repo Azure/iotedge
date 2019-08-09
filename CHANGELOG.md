@@ -1,3 +1,42 @@
+# 1.0.9-rc1 (2019-08-09)
+* Support running the Windows installer script in 32-bit PS host on 64-bit Windows ([76eacaf](https://github.com/Azure/iotedge/commit/76eacaf988e7d421b4e45c70a45d8160f1feaaa1))
+* `iotedge check` improvements ([b5b2352](https://github.com/Azure/iotedge/commit/b5b2352f78e9d18b4b3f301ea42e3b5ded85fb6d))
+
+## Edge Agent
+### Features
+* Add support to get logs using direct method ([493782f](https://github.com/Azure/iotedge/commit/493782f42a5d563df5fcb40d79a07fcd30a4f01d))
+* Add support for specifying a pull policy for modules ([a39543c](https://github.com/Azure/iotedge/commit/a39543ce1924e7d16b27c43d66bbbc5eb0a7ca29))
+* Add support to restart module using direct method ([fbeec72](https://github.com/Azure/iotedge/commit/fbeec72cf974b0b37f45de83fb6a395ba79b6029)))
+
+### Bug fixes
+* Fix desired property updates with empty patch ([46c77a5](https://github.com/Azure/iotedge/commit/46c77a525c439089b069da62a9f6c5b9af0e87e4))
+* Fix getting status of failed tasks ([bd51b6b](https://github.com/Azure/iotedge/commit/bd51b6b341c9e1c2dd18a98261382e7fa8623352))
+
+## Edge Hub
+### Features
+* Metrics in EdgeHub ([f93c6f3](https://github.com/Azure/iotedge/commit/f93c6f3f217a3ee2a6bc0ba291c936db7aef7f50))
+* Support for forwarding ASC property in messages ([fe1fcf6](https://github.com/Azure/iotedge/commit/fe1fcf63bc58b24ed7566bf302c47afe50f59dda))
+
+### Bug fixes
+* Fix leaking event handlers in offline scenario ([4f05275](https://github.com/Azure/iotedge/commit/4f052756228bf84ac663e4f6171a0a47aa2025ae))
+* Fix handling cloud subscriptions if a feedback message is received multiple times ([f9d1e07](https://github.com/Azure/iotedge/commit/f9d1e07a57fba5e171d1956e012e901a8427b72c))
+* Fix handling connections with no product information ([bb31324](https://github.com/Azure/iotedge/commit/bb31324b90caa7ac28b9526034f289dd5551d2fa))
+* Initialize EdgeHub before starting protocol heads ([32888fa](https://github.com/Azure/iotedge/commit/32888fa62a72d8e15b8b412682704cde1b301fbc))
+
+## iotedged
+### Features
+* Add a new external provisioning mode that uses a hosting environment endpoint for retrieving device specific information ([539efad](https://github.com/Azure/iotedge/commit/539efad6a67aabfddb76f1a320d5c16125549388))
+* Support for hybrid X.509 certificate authentication for IoT Edge ([f012c28](https://github.com/Azure/iotedge/commit/f012c28cdff2b0ac743e167c543d371b5a3269d0))
+* Add support for additional container network configuration to support IPv6-only devices ([9001b8e](https://github.com/Azure/iotedge/commit/9001b8e86b4e7323e970542760b13016c5ae5ace))
+* Use file URIs for X.509 identity certificates ([34f833c](https://github.com/Azure/iotedge/commit/34f833c495479f1666c7fc72a7084356678bbd78))
+* Remove Edge identity certificate auto generation ([81fbdf4](https://github.com/Azure/iotedge/commit/81fbdf42844bd563c95c591f9e61a8abe0206991))
+
+### Bug fixes
+* Don't restart iotedged when config.yaml isn't ready ([1570c2c](https://github.com/Azure/iotedge/commit/1570c2cb2129b609d56b24800af9f00499b388fd))
+* Add timeout to workload api operations ([da97168](https://github.com/Azure/iotedge/commit/da97168ce1529105422f5673e66dc184d95c6981))
+* Sort `iotedge list` output by module name ([75a8248](https://github.com/Azure/iotedge/commit/75a824823682f68296604993d53bc079d427c939))
+* Should not reconfigure when DPS reprovisioning from backup ([8d36200](https://github.com/Azure/iotedge/commit/8d362006f6c011e10740cc577b371f48f55a34d9))
+
 # 1.0.8 (2019-07-22)
 * Preview support for Linux arm64
 * Upgrade Moby version in .cab file to 3.0.5 ([f23aca1](https://github.com/Azure/iotedge/commit/f23aca1fb532574e6ee7ebb0b70452d4c672ae1a))
