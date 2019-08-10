@@ -23,7 +23,7 @@ RUN apt-get update && \
 FROM ubuntu:18.04
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y openssl
+    apt-get install -y ca-certificates openssl
 COPY --from=builder /snitcher/target/release/snitcher \
      /usr/local/bin/
 CMD /usr/local/bin/snitcher
