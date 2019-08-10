@@ -78,8 +78,6 @@ provisioning:
   device_connection_string: "<ADD DEVICE CONNECTION STRING HERE>"
 
 # Manual provisioning configuration using a X509 identity certificate
-# Note: the certificates are required because IoT Hub does not fully support
-# X.509 CA authentication over HTTP or if an Edge device is behind a web proxy
 # provisioning:
 #   source: "manual"
 #   attestation:
