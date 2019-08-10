@@ -3,7 +3,6 @@
 use std::cmp::Ordering;
 use std::path::{Path, PathBuf};
 
-use failure::Fail;
 use regex::Regex;
 use url::Url;
 use url_serde;
@@ -41,9 +40,9 @@ impl Manual {
 
     pub fn parse_device_connection_string(
         &self,
-    ) -> Result<(MemoryKey, String, String), ParseManualDeviceConnectionStringError> {
+    ) -> Result<(MemoryKey, String, String), Error> {
         if self.device_connection_string.is_empty() {
-            return Err(ParseManualDeviceConnectionStringError::Empty);
+            return Err(Error::from(ErrorKind::ConnectionStringEmpty));
         }
 
         let mut key = None;
@@ -62,37 +61,37 @@ impl Manual {
         }
 
         let key = key.ok_or(
-            ParseManualDeviceConnectionStringError::MissingRequiredParameter(SHAREDACCESSKEY_KEY),
+            ErrorKind::ConnectionStringMissingRequiredParameter(SHAREDACCESSKEY_KEY),
         )?;
         if key.is_empty() {
-            return Err(ParseManualDeviceConnectionStringError::MalformedParameter(
+            return Err(Error::from(ErrorKind::ConnectionStringMalformedParameter(
                 SHAREDACCESSKEY_KEY,
-            ));
+            )));
         }
         let key = MemoryKey::new(base64::decode(&key).map_err(|_| {
-            ParseManualDeviceConnectionStringError::MalformedParameter(SHAREDACCESSKEY_KEY)
+            ErrorKind::ConnectionStringMalformedParameter(SHAREDACCESSKEY_KEY)
         })?);
 
         let device_id = device_id.ok_or(
-            ParseManualDeviceConnectionStringError::MissingRequiredParameter(DEVICEID_KEY),
+            ErrorKind::ConnectionStringMalformedParameter(DEVICEID_KEY),
         )?;
         let device_id_regex =
             Regex::new(DEVICEID_REGEX).expect("This hard-coded regex is expected to be valid.");
         if !device_id_regex.is_match(&device_id) {
-            return Err(ParseManualDeviceConnectionStringError::MalformedParameter(
+            return Err(Error::from(ErrorKind::ConnectionStringMalformedParameter(
                 DEVICEID_KEY,
-            ));
+            )));
         }
 
         let hub = hub.ok_or(
-            ParseManualDeviceConnectionStringError::MissingRequiredParameter(HOSTNAME_KEY),
+            ErrorKind::ConnectionStringMissingRequiredParameter(HOSTNAME_KEY),
         )?;
         let hub_regex =
             Regex::new(HOSTNAME_REGEX).expect("This hard-coded regex is expected to be valid.");
         if !hub_regex.is_match(&hub) {
-            return Err(ParseManualDeviceConnectionStringError::MalformedParameter(
+            return Err(Error::from(ErrorKind::ConnectionStringMalformedParameter(
                 HOSTNAME_KEY,
-            ));
+            )));
         }
 
         Ok((key, device_id.to_owned(), hub.to_owned()))
@@ -415,23 +414,6 @@ impl Certificates {
     pub fn trusted_ca_certs_uri(&self) -> Result<Url, Error> {
         convert_to_uri(&self.trusted_ca_certs, "certificates.trusted_ca_certs")
     }
-}
-
-#[derive(Clone, Copy, Debug, Fail)]
-pub enum ParseManualDeviceConnectionStringError {
-    #[fail(
-        display = "The Connection String is empty. Please update the config.yaml and provide the IoTHub connection information."
-    )]
-    Empty,
-
-    #[fail(display = "The Connection String is missing required parameter {}", _0)]
-    MissingRequiredParameter(&'static str),
-
-    #[fail(
-        display = "The Connection String has a malformed value for parameter {}.",
-        _0
-    )]
-    MalformedParameter(&'static str),
 }
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]

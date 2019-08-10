@@ -40,7 +40,7 @@ pub use module::{
 pub use network::{Ipam, IpamConfig, MobyNetwork, Network};
 pub use settings::{
     AttestationMethod, Certificates, Connect, Dps, Listen, Manual,
-    ParseManualDeviceConnectionStringError, Provisioning, RetryLimit, RuntimeSettings, Settings,
+    Provisioning, RetryLimit, RuntimeSettings, Settings,
     SymmetricKeyAttestationInfo, TpmAttestationInfo, WatchdogSettings, X509AttestationInfo,
     DEFAULT_CONNECTION_STRING,
 };
