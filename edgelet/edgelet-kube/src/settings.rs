@@ -23,6 +23,8 @@ pub struct Settings {
     proxy_image: String,
     proxy_config_path: String,
     proxy_config_map_name: String,
+    proxy_trust_bundle_path: String,
+    proxy_trust_bundle_config_map_name: String,
     image_pull_policy: String,
     service_account_name: String,
     device_hub_selector: String,
@@ -85,6 +87,14 @@ impl Settings {
 
     pub fn proxy_config_map_name(&self) -> &str {
         &self.proxy_config_map_name
+    }
+
+    pub fn proxy_trust_bundle_path(&self) -> &str {
+        &self.proxy_trust_bundle_path
+    }
+
+    pub fn proxy_trust_bundle_config_map_name(&self) -> &str {
+        &self.proxy_trust_bundle_config_map_name
     }
 
     pub fn image_pull_policy(&self) -> &str {

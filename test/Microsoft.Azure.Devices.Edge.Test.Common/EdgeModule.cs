@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -101,6 +102,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     {
                         data.SystemProperties.TryGetValue("iothub-connection-device-id", out object devId);
                         data.SystemProperties.TryGetValue("iothub-connection-module-id", out object modId);
+
+                        Log.Verbose($"Received event for '{devId}/{modId}' with body '{Encoding.UTF8.GetString(data.Body)}'");
 
                         return devId != null && devId.ToString().Equals(this.deviceId)
                                              && modId != null && modId.ToString().Equals(this.Id);

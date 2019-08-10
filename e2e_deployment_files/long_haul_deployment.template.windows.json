@@ -149,46 +149,48 @@
               "createOptions": ""
             }
           },
-          // Work needed to enable snitcher for Windows Enterprise/Server x64, Windows IoT Core x64 and Windows IoT Core arm32
-          // "snitcher": {
-          //   "version": "2.0",
-          //   "type": "docker",
-          //   "status": "running",
-          //   "restartPolicy": "always",
-          //   "env": {
-          //     "BUILD_ID": {
-          //       "value": "<Snitch.BuildId>"
-          //     },
-          //     "TEST_DURATION_IN_SECS": {
-          //       "value": "<Snitch.TestDurationInSecs>"
-          //     },
-          //     "REPORTING_INTERVAL_IN_SECS": {
-          //       "value": "<Snitch.ReportingIntervalInSecs>"
-          //     },
-          //     "ALERT_URL": {
-          //       "value": "<Snitch.AlertUrl>"
-          //     },
-          //     "ANALYZER_URL": {
-          //       "value": "http://analyzer:15000/api/report"
-          //     },
-          //     "BLOB_STORAGE_ACCOUNT": {
-          //       "value": "<Snitch.StorageAccount>"
-          //     },
-          //     "BLOB_STORAGE_MASTER_KEY": {
-          //       "value": "<Snitch.StorageMasterKey>"
-          //     },
-          //     "BLOB_CONTAINER_NAME": {
-          //       "value": "loadtest1"
-          //     },
-          //     "RUST_LOG": {
-          //       "value": "snitcher=info"
-          //     }
-          //   },
-          //   "settings": {
-          //     "image": "<Container_Registry>/microsoft/snitcher:<Snitch.BuildNumber>-windows-<Architecture>",
-          //     "createOptions": "{\"HostConfig\":{\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\"]}}"
-          //   }
-          // },
+          "snitcher": {
+            "version": "2.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "BUILD_ID": {
+                "value": "<Snitch.BuildId>"
+              },
+              "TEST_DURATION_IN_SECS": {
+                "value": "<Snitch.TestDurationInSecs>"
+              },
+              "REPORTING_INTERVAL_IN_SECS": {
+                "value": "<Snitch.ReportingIntervalInSecs>"
+              },
+              "ALERT_URL": {
+                "value": "<Snitch.AlertUrl>"
+              },
+              "ANALYZER_URL": {
+                "value": "http://analyzer:15000/api/report"
+              },
+              "BLOB_STORAGE_ACCOUNT": {
+                "value": "<Snitch.StorageAccount>"
+              },
+              "BLOB_STORAGE_MASTER_KEY": {
+                "value": "<Snitch.StorageMasterKey>"
+              },
+              "BLOB_CONTAINER_NAME": {
+                "value": "loadtest1"
+              },
+              "RUST_LOG": {
+                "value": "snitcher=info"
+              },
+              "MANAGEMENT_URI": {
+                "value": "unix:///C:/ProgramData/iotedge/mgmt/sock"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/snitcher:<Snitch.BuildNumber>-windows-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"C:\\\\ProgramData\\\\iotedge\\\\mgmt:C:\\\\ProgramData\\\\iotedge\\\\mgmt\"]}}"
+            }
+          },
           "analyzer": {
             "type": "docker",
             "status": "running",
