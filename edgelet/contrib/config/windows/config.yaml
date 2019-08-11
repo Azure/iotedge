@@ -80,9 +80,9 @@ provisioning:
 # Manual provisioning configuration using a X509 identity certificate
 # provisioning:
 #   source: "manual"
-#   attestation:
+#   authentication:
 #     method: "x509"
-#     hub_hostname: "<REQUIRED IOTHUB HOSTNAME>"
+#     iothub_hostname: "<REQUIRED IOTHUB HOSTNAME>"
 #     device_id: "<REQUIRED DEVICE ID PROVISIONED IN IOTHUB>"
 #     identity_cert: "<REQUIRED URI TO DEVICE IDENTITY CERTIFICATE>"
 #     identity_pk: "<REQUIRED URI TO DEVICE IDENTITY PRIVATE KEY>"
