@@ -404,11 +404,15 @@ where
                             ErrorKind::Initialize(InitializeErrorReason::DpsProvisioningClient)
                         })?;
 
-                        let _key_bytes = hybrid_identity_key.ok_or_else(|| {
+                        let key_bytes = hybrid_identity_key.ok_or_else(|| {
                             ErrorKind::Initialize(InitializeErrorReason::DpsProvisioningClient)
                         })?;
 
-                        let (key_store, provisioning_result, root_key) = manual_provision_x509(x509, &mut tokio_runtime)?;
+                        let (key_store, provisioning_result, root_key) =
+                            manual_provision_x509(x509,
+                                                  &mut tokio_runtime,
+                                                  &key_bytes,
+                                                  id_data.thumbprint.clone(),)?;
                         let thumprint_op = Some(id_data.thumbprint.as_str());
                         start_edgelet!(
                             key_store,
@@ -1357,12 +1361,31 @@ fn manual_provision_connection_string(
 }
 
 fn manual_provision_x509(
-    _x509: &ManualX509Auth,
-    _tokio_runtime: &mut tokio::runtime::Runtime,
+    x509: &ManualX509Auth,
+    tokio_runtime: &mut tokio::runtime::Runtime,
+    hybrid_identity_key: &[u8],
+    cert_thumbprint: String,
 ) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey), Error> {
-    return Err(Error::from(ErrorKind::Initialize(
-        InitializeErrorReason::NotConfigured,
-    )));
+    let key = MemoryKey::new(hybrid_identity_key);
+    let manual = ManualProvisioning::new(key, x509.device_id().to_string(), x509.iothub_hostname().to_string());
+    let memory_hsm = MemoryKeyStore::new();
+    let provision = manual
+        .provision(memory_hsm.clone())
+        .map_err(|err| {
+            Error::from(err.context(ErrorKind::Initialize(
+                InitializeErrorReason::ManualProvisioningClient,
+            )))
+        })
+        .and_then(move |prov_result| {
+            let (derived_key_store, hybrid_derived_key) = prepare_derived_hybrid_key(
+                &memory_hsm,
+                &cert_thumbprint,
+                prov_result.hub_name(),
+                prov_result.device_id(),
+            )?;
+            Ok((derived_key_store, prov_result, hybrid_derived_key))
+        });
+    tokio_runtime.block_on(provision)
 }
 
 #[allow(clippy::too_many_arguments)]
