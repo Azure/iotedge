@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel;
     using System.Linq;
     using System.Threading.Tasks;
     using k8s;
@@ -206,16 +207,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             var desiredModules = ModuleSet.Create(customObject.Spec.ToArray());
             var moduleIdentities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desiredModules, this.currentModules);
 
-            // Pull current configuration from annotations.
-            Dictionary<string, string> currentV1ServicesFromAnnotations = this.GetCurrentServiceConfig(currentServices);
-            // strip out edgeAgent so edgeAgent doesn't update itself.
-            // TODO: remove this filter.
-            var agentDeploymentName = this.DeploymentName(CoreConstants.EdgeAgentModuleName);
-            Dictionary<string, string> currentDeploymentsFromAnnotations = this.GetCurrentDeploymentConfig(currentDeployments)
-                .ToDictionary(
-                    pair => pair.Key,
-                    pair => pair.Value);
-
             var desiredServices = new List<V1Service>();
             var desiredDeployments = new List<V1Deployment>();
             foreach (KubernetesModule<TConfig> module in customObject.Spec)
@@ -260,16 +251,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 }
             }
 
-            // Find current Services/Deployments which need to be removed and updated
+            await ManageServices(currentServices, desiredServices);
+
+            await ManageDeployments(currentDeployments, desiredDeployments);
+
+            this.currentModules = desiredModules;
+        }
+
+        async Task ManageServices(V1ServiceList currentServices, List<V1Service> desiredServices)
+        {
+            Dictionary<string, string> currentV1ServicesFromAnnotations = this.GetCurrentServiceConfig(currentServices);
+
+            // Figure out what to remove
             var servicesRemoved = new List<V1Service>(currentServices.Items);
             servicesRemoved.RemoveAll(s => desiredServices.Exists(i => string.Equals(i.Metadata.Name, s.Metadata.Name)));
-            var deploymentsRemoved = new List<V1Deployment>(currentDeployments.Items);
-            deploymentsRemoved.RemoveAll(
-                d =>
-                {
-                    return desiredDeployments.Exists(i => string.Equals(i.Metadata.Name, d.Metadata.Name));
-                });
 
+            // Figure out what to create
             var newServices = new List<V1Service>();
             desiredServices.ForEach(
                 s =>
@@ -308,6 +305,37 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         newServices.Add(s);
                         Events.CreateService(s.Metadata.Name);
                     }
+                });
+
+            // remove the old
+            await Task.WhenAll(servicesRemoved.Select(
+                i =>
+                {
+                    Events.DeletingService(i);
+                    return this.client.DeleteNamespacedServiceAsync(i.Metadata.Name, this.k8sNamespace, new V1DeleteOptions());
+                }));
+
+            // Create the new.
+            await Task.WhenAll(newServices.Select(
+                s =>
+                {
+                    Events.CreatingService(s);
+                    return this.client.CreateNamespacedServiceAsync(s, this.k8sNamespace);
+                }));
+        }
+
+        async Task ManageDeployments(V1DeploymentList currentDeployments, List<V1Deployment> desiredDeployments)
+        {
+            Dictionary<string, string> currentDeploymentsFromAnnotations = this.GetCurrentDeploymentConfig(currentDeployments)
+                .ToDictionary(
+                    pair => pair.Key,
+                    pair => pair.Value);
+
+            var deploymentsRemoved = new List<V1Deployment>(currentDeployments.Items);
+            deploymentsRemoved.RemoveAll(
+                d =>
+                {
+                    return desiredDeployments.Exists(i => string.Equals(i.Metadata.Name, d.Metadata.Name));
                 });
             var deploymentsUpdated = new List<V1Deployment>();
             var newDeployments = new List<V1Deployment>();
@@ -360,44 +388,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 });
 
             // Remove the old
-            IEnumerable<Task<V1Status>> removeServiceTasks = servicesRemoved.Select(
-                i =>
-                {
-                    Events.DeletingService(i);
-                    return this.client.DeleteNamespacedServiceAsync(i.Metadata.Name, this.k8sNamespace, new V1DeleteOptions());
-                });
-            await Task.WhenAll(removeServiceTasks);
-
-            IEnumerable<Task<V1Status>> removeDeploymentTasks = deploymentsRemoved.Select(
+            await Task.WhenAll(deploymentsRemoved.Select(
                 d =>
                 {
                     Events.DeletingDeployment(d);
                     return this.client.DeleteNamespacedDeployment1Async(d.Metadata.Name, this.k8sNamespace, new V1DeleteOptions(propagationPolicy: "Foreground"), propagationPolicy: "Foreground");
-                });
-            await Task.WhenAll(removeDeploymentTasks);
+                }));
 
-            // Create the new.
-            IEnumerable<Task<V1Service>> createServiceTasks = newServices.Select(
-                s =>
-                {
-                    Events.CreatingService(s);
-                    return this.client.CreateNamespacedServiceAsync(s, this.k8sNamespace);
-                });
-            await Task.WhenAll(createServiceTasks);
-
-            IEnumerable<Task<V1Deployment>> createDeploymentTasks = newDeployments.Select(
+            // Create the new 
+            await Task.WhenAll(newDeployments.Select(
                 deployment =>
                 {
                     Events.CreatingDeployment(deployment);
                     return this.client.CreateNamespacedDeploymentAsync(deployment, this.k8sNamespace);
-                });
-            await Task.WhenAll(createDeploymentTasks);
+                }));
 
             // Update the existing - should only do this when different.
-            IEnumerable<Task<V1Deployment>> updateDeploymentTasks = deploymentsUpdated.Select(deployment => this.client.ReplaceNamespacedDeploymentAsync(deployment, deployment.Metadata.Name, this.k8sNamespace));
-            await Task.WhenAll(updateDeploymentTasks);
+            await Task.WhenAll(deploymentsUpdated.Select(deployment => this.client.ReplaceNamespacedDeploymentAsync(deployment, deployment.Metadata.Name, this.k8sNamespace)));
 
-            this.currentModules = desiredModules;
+            return;
         }
 
         V1PodTemplateSpec GetPodFromModule(Dictionary<string, string> labels, KubernetesModule<TConfig> module, IModuleIdentity moduleIdentity)
