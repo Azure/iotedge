@@ -51,10 +51,10 @@ use edgelet_core::crypto::{
 use edgelet_core::watchdog::Watchdog;
 use edgelet_core::{
     AttestationMethod, Authenticator, Certificate, CertificateIssuer, CertificateProperties,
-    CertificateType, Dps, MakeModuleRuntime, Manual, Module, ModuleRuntime,
+    CertificateType, Dps, MakeModuleRuntime, Module, ModuleRuntime,
     ModuleRuntimeErrorReason, ModuleSpec, Provisioning,
     ProvisioningResult as CoreProvisioningResult, RuntimeSettings, SymmetricKeyAttestationInfo,
-    TpmAttestationInfo, WorkloadConfig, DEFAULT_CONNECTION_STRING,
+    TpmAttestationInfo, WorkloadConfig, DEFAULT_CONNECTION_STRING, ManualDeviceConnectionString, ManualAuthMethod, ManualX509Auth
 };
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::{Crypto, HsmLock, X509};
@@ -248,10 +248,12 @@ where
             .context(ErrorKind::Initialize(InitializeErrorReason::Tokio))?;
 
         if let Provisioning::Manual(ref manual) = settings.provisioning() {
-            if manual.device_connection_string() == DEFAULT_CONNECTION_STRING {
-                return Err(Error::from(ErrorKind::Initialize(
-                    InitializeErrorReason::NotConfigured,
-                )));
+            if let ManualAuthMethod::DeviceConnectionString(cs) = manual.authentication_method() {
+                if cs.device_connection_string() == DEFAULT_CONNECTION_STRING {
+                    return Err(Error::from(ErrorKind::Initialize(
+                        InitializeErrorReason::NotConfigured,
+                    )));
+                }
             }
         }
 
@@ -383,16 +385,40 @@ where
 
         match settings.provisioning() {
             Provisioning::Manual(manual) => {
-                info!("Starting provisioning edge device via manual mode...");
-                let (key_store, provisioning_result, root_key) =
-                    manual_provision(&manual, &mut tokio_runtime)?;
-                start_edgelet!(
-                    key_store,
-                    provisioning_result,
-                    root_key,
-                    force_module_reprovision,
-                    None,
-                );
+                match manual.authentication_method() {
+                    ManualAuthMethod::DeviceConnectionString(cs) => {
+                        info!("Starting provisioning edge device via manual mode using a device connection string...");
+                        let (key_store, provisioning_result, root_key) = manual_provision_connection_string(&cs, &mut tokio_runtime)?;
+                        start_edgelet!(
+                            key_store,
+                            provisioning_result,
+                            root_key,
+                            force_module_reprovision,
+                            None,
+                        );
+                    },
+                    ManualAuthMethod::X509(x509) => {
+                        info!("Starting provisioning edge device via manual mode using X509 identiy certificate...");
+
+                        let id_data = device_cert_identity_data.ok_or_else(|| {
+                            ErrorKind::Initialize(InitializeErrorReason::DpsProvisioningClient)
+                        })?;
+
+                        let _key_bytes = hybrid_identity_key.ok_or_else(|| {
+                            ErrorKind::Initialize(InitializeErrorReason::DpsProvisioningClient)
+                        })?;
+
+                        let (key_store, provisioning_result, root_key) = manual_provision_x509(x509, &mut tokio_runtime)?;
+                        let thumprint_op = Some(id_data.thumbprint.as_str());
+                        start_edgelet!(
+                            key_store,
+                            provisioning_result,
+                            root_key,
+                            force_module_reprovision,
+                            thumprint_op,
+                        );
+                    },
+                };
             }
             Provisioning::External(external) => {
                 info!("Starting provisioning edge device via external provisioning mode...");
@@ -591,37 +617,54 @@ where
         }
     };
 
-    if let Provisioning::Dps(dps) = settings.provisioning() {
-        match dps.attestation() {
-            AttestationMethod::Tpm(ref tpm) => {
-                env::set_var(
-                    DPS_REGISTRATION_ID_ENV_KEY,
-                    tpm.registration_id().to_string(),
-                );
-            }
-            AttestationMethod::SymmetricKey(ref symmetric_key_info) => {
-                env::set_var(
-                    DPS_REGISTRATION_ID_ENV_KEY,
-                    symmetric_key_info.registration_id().to_string(),
-                );
-            }
-            AttestationMethod::X509(ref x509_info) => {
-                if let Some(val) = x509_info.registration_id() {
-                    env::set_var(DPS_REGISTRATION_ID_ENV_KEY, val.to_string());
-                }
-
-                let path = x509_info.identity_cert().context(ErrorKind::Initialize(
+    match settings.provisioning() {
+        Provisioning::Manual(manual) => {
+            if let ManualAuthMethod::X509(x509) = manual.authentication_method() {
+                let path = x509.identity_cert().context(ErrorKind::Initialize(
                     InitializeErrorReason::IdentityCertificateSettings,
                 ))?;
                 env::set_var(DPS_DEVICE_ID_CERT_ENV_KEY, path.as_os_str());
 
-                let path = x509_info.identity_pk().context(ErrorKind::Initialize(
+                let path = x509.identity_pk().context(ErrorKind::Initialize(
                     InitializeErrorReason::IdentityCertificateSettings,
                 ))?;
                 env::set_var(DPS_DEVICE_ID_KEY_ENV_KEY, path.as_os_str());
             }
-        }
+        },
+        Provisioning::Dps(dps) => {
+            match dps.attestation() {
+                AttestationMethod::Tpm(ref tpm) => {
+                    env::set_var(
+                        DPS_REGISTRATION_ID_ENV_KEY,
+                        tpm.registration_id().to_string(),
+                    );
+                }
+                AttestationMethod::SymmetricKey(ref symmetric_key_info) => {
+                    env::set_var(
+                        DPS_REGISTRATION_ID_ENV_KEY,
+                        symmetric_key_info.registration_id().to_string(),
+                    );
+                }
+                AttestationMethod::X509(ref x509_info) => {
+                    if let Some(val) = x509_info.registration_id() {
+                        env::set_var(DPS_REGISTRATION_ID_ENV_KEY, val.to_string());
+                    }
+
+                    let path = x509_info.identity_cert().context(ErrorKind::Initialize(
+                        InitializeErrorReason::IdentityCertificateSettings,
+                    ))?;
+                    env::set_var(DPS_DEVICE_ID_CERT_ENV_KEY, path.as_os_str());
+
+                    let path = x509_info.identity_pk().context(ErrorKind::Initialize(
+                        InitializeErrorReason::IdentityCertificateSettings,
+                    ))?;
+                    env::set_var(DPS_DEVICE_ID_KEY_ENV_KEY, path.as_os_str());
+                }
+            }
+        },
+        _ => {},
     }
+
     info!("Finished configuring provisioning environment variables and certificates.");
     Ok(())
 }
@@ -1048,10 +1091,18 @@ fn get_provisioning_auth_method<S>(settings: &S) -> ProvisioningAuthMethod
 where
     S: RuntimeSettings,
 {
-    if let Provisioning::Dps(dps) = settings.provisioning() {
-        if let AttestationMethod::X509(_) = dps.attestation() {
-            return ProvisioningAuthMethod::X509;
-        }
+    match settings.provisioning() {
+        Provisioning::Manual(manual) => {
+            if let ManualAuthMethod::X509(_) = manual.authentication_method()  {
+                return ProvisioningAuthMethod::X509;
+            }
+        },
+        Provisioning::Dps(dps) => {
+            if let AttestationMethod::X509(_) = dps.attestation() {
+                return ProvisioningAuthMethod::X509;
+            }
+        },
+        _ => {},
     }
     ProvisioningAuthMethod::SharedAccessKey
 }
@@ -1270,12 +1321,12 @@ where
     Ok(runtime)
 }
 
-fn manual_provision(
-    provisioning: &Manual,
+fn manual_provision_connection_string(
+    cs: &ManualDeviceConnectionString,
     tokio_runtime: &mut tokio::runtime::Runtime,
 ) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey), Error> {
     let (key, device_id, hub) =
-        provisioning
+        cs
             .parse_device_connection_string()
             .context(ErrorKind::Initialize(
                 InitializeErrorReason::ManualProvisioningClient,
@@ -1303,6 +1354,15 @@ fn manual_provision(
                 })
         });
     tokio_runtime.block_on(provision)
+}
+
+fn manual_provision_x509(
+    _x509: &ManualX509Auth,
+    _tokio_runtime: &mut tokio::runtime::Runtime,
+) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey), Error> {
+    return Err(Error::from(ErrorKind::Initialize(
+        InitializeErrorReason::NotConfigured,
+    )));
 }
 
 #[allow(clippy::too_many_arguments)]

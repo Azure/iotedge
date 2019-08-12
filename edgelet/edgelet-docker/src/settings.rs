@@ -244,6 +244,7 @@ mod tests {
 
     use edgelet_core::{
         AttestationMethod, IpamConfig, DEFAULT_CONNECTION_STRING, DEFAULT_NETWORKID,
+        ManualAuthMethod,
     };
 
     #[cfg(unix)]
@@ -310,7 +311,13 @@ mod tests {
 
     fn unwrap_manual_provisioning(p: &Provisioning) -> String {
         match p {
-            Provisioning::Manual(manual) => manual.device_connection_string().to_string(),
+            Provisioning::Manual(manual) => {
+                if let ManualAuthMethod::DeviceConnectionString(cs) = manual.authentication_method() {
+                    cs.device_connection_string().to_string()
+                } else {
+                    "not implemented".to_string()
+                }
+            },
             _ => "not implemented".to_string(),
         }
     }
@@ -323,12 +330,7 @@ mod tests {
             .unwrap();
         let settings: Settings = config.try_into().unwrap();
 
-        match settings.provisioning() {
-            Provisioning::Manual(ref manual) => {
-                assert_eq!(manual.device_connection_string(), DEFAULT_CONNECTION_STRING)
-            }
-            _ => unreachable!(),
-        }
+        assert_eq!(unwrap_manual_provisioning(settings.provisioning()), DEFAULT_CONNECTION_STRING);
     }
 
     #[test]

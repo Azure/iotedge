@@ -23,13 +23,67 @@ pub const DEFAULT_CONNECTION_STRING: &str = "<ADD DEVICE CONNECTION STRING HERE>
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 #[serde(rename_all = "lowercase")]
-pub struct Manual {
+pub struct ManualX509Auth {
+    iothub_hostname: String,
+    device_id: String,
+    #[serde(with = "url_serde")]
+    identity_cert: Url,
+    #[serde(with = "url_serde")]
+    identity_pk: Url,
+}
+
+impl ManualX509Auth {
+    pub fn iothub_hostname(&self) -> &str {
+        &self.iothub_hostname
+    }
+
+    pub fn device_id(&self) -> &str {
+        &self.device_id
+    }
+
+    pub fn identity_cert(&self) -> Result<PathBuf, Error> {
+        get_path_from_uri(
+            &self.identity_cert,
+            "provisioning.authentication.identity_cert",
+        )
+    }
+
+    pub fn identity_pk(&self) -> Result<PathBuf, Error> {
+        get_path_from_uri(&self.identity_pk, "provisioning.authentication.identity_pk")
+    }
+
+    pub fn identity_pk_uri(&self) -> Result<&Url, Error> {
+        if is_supported_uri(&self.identity_pk) {
+            Ok(&self.identity_pk)
+        } else {
+            Err(Error::from(ErrorKind::UnsupportedSettingsUri(
+                self.identity_pk.to_string(),
+                "provisioning.authentication.identity_pk",
+            )))
+        }
+    }
+
+    pub fn identity_cert_uri(&self) -> Result<&Url, Error> {
+        if is_supported_uri(&self.identity_cert) {
+            Ok(&self.identity_cert)
+        } else {
+            Err(Error::from(ErrorKind::UnsupportedSettingsUri(
+                self.identity_cert.to_string(),
+                "provisioning.authentication.identity_cert",
+            )))
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+#[serde(rename_all = "lowercase")]
+pub struct ManualDeviceConnectionString {
     device_connection_string: String,
 }
 
-impl Manual {
-    pub fn new(device_connection_string: String) -> Self {
-        Manual {
+impl ManualDeviceConnectionString {
+     pub fn new(device_connection_string: String) -> Self {
+        ManualDeviceConnectionString {
             device_connection_string,
         }
     }
@@ -95,6 +149,68 @@ impl Manual {
         }
 
         Ok((key, device_id.to_owned(), hub.to_owned()))
+    }
+}
+
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+#[serde(tag = "method")]
+#[serde(rename_all = "lowercase")]
+pub enum ManualAuthMethod {
+    DeviceConnectionString(ManualDeviceConnectionString),
+    X509(ManualX509Auth),
+}
+
+#[derive(Clone, Debug, serde_derive::Serialize)]
+#[serde(rename_all = "lowercase")]
+pub struct Manual {
+    auth_method: ManualAuthMethod,
+}
+
+impl<'de> serde::Deserialize<'de> for Manual {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Debug, serde_derive::Deserialize)]
+        struct Inner {
+            #[serde(skip_serializing_if = "Option::is_none")]
+            device_connection_string: Option<String>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            authentication: Option<ManualAuthMethod>,
+        }
+
+        let value: Inner = serde::Deserialize::deserialize(deserializer)?;
+
+        let auth_method = match (value.device_connection_string, value.authentication) {
+            (Some(_), Some(_)) => {
+                return Err(serde::de::Error::custom(
+                    "Both onnection string and attestation configuration may not be set",
+                ));
+            }
+            (Some(cs), None) => ManualAuthMethod::DeviceConnectionString(ManualDeviceConnectionString::new(cs)),
+            (None, Some(auth)) => auth,
+            (None, None) => {
+                return Err(serde::de::Error::custom(
+                    "Device ronnection string or authentication configuration should be set",
+                ));
+            }
+        };
+
+        Ok(Manual {
+            auth_method,
+        })
+    }
+}
+
+impl Manual {
+    pub fn new(auth_method: ManualAuthMethod) -> Self {
+        Manual {
+            auth_method,
+        }
+    }
+
+    pub fn authentication_method(&self) -> &ManualAuthMethod {
+        &self.auth_method
     }
 }
 
