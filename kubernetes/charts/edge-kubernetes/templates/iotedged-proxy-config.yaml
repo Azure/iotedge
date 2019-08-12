@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "edge-kubernetes.fullname" . }}-iotedged-proxy-config
+  name: iotedged-proxy-config
   namespace: {{ include "edge-kubernetes.namespace" . | quote }}
   labels:
-    app.kubernetes.io/name: {{ include "edge-kubernetes.name" . }}-iotedged-proxy-config
+    app.kubernetes.io/name: iotedged-proxy-config
     helm.sh/chart: {{ include "edge-kubernetes.chart" . }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
