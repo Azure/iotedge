@@ -12,7 +12,7 @@ jobs:
     displayName: Linux arm32v7
 
     pool:
-      name: Azure-IoT-Edge-Core
+      name: $(pool.name)
       demands: rpi3-e2e-tests
 
     variables:
