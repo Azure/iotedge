@@ -1620,7 +1620,7 @@ static int generate_edge_hsm_certificates_if_needed(void)
 
     if (load_status == LOAD_ERR_FAILED)
     {
-        LOG_ERROR("Could not check and load owner CA certificate and key");
+        LOG_INFO("Could not load owner CA certificate and key");
         result = __FAILURE__;
     }
     else if ((load_status == LOAD_ERR_VERIFICATION_FAILED) ||
@@ -1648,7 +1648,7 @@ static int generate_edge_hsm_certificates_if_needed(void)
                                                           OWNER_CA_ALIAS);
         if (load_status == LOAD_ERR_FAILED)
         {
-            LOG_ERROR("Could not check and load device CA certificate and key");
+            LOG_INFO("Could not load device CA certificate and key");
             result = __FAILURE__;
         }
         else if ((load_status == LOAD_ERR_VERIFICATION_FAILED) ||
@@ -2693,7 +2693,7 @@ static int edge_hsm_client_store_create_pki_cert
         int load_status = load_if_cert_and_key_exist_by_alias(handle, alias, issuer_alias);
         if (load_status == LOAD_ERR_FAILED)
         {
-            LOG_ERROR("Could not check and load certificate and key for alias %s", alias);
+            LOG_INFO("Could not load certificate and key for alias %s", alias);
             result = __FAILURE__;
         }
         else if (load_status == LOAD_ERR_VERIFICATION_FAILED)

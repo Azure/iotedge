@@ -109,6 +109,12 @@ This check validates that the container engine is configured to rotate module lo
 
 By setting these properties in `daemon.json`, the settings are automatically propagated to all module containers. It is also possible to specify this in the Edge device's deployment instead, and the tool does not detect this. If you have done so, you should ignore this warning.
 
+## production readiness: Edge Agent's / Edge Hub's storage directory is persisted on the host filesystem
+
+The tool checks the Edge Agent and Edge Hub containers to validate that their respective storage directories are mounted from the host. If this is not done, it is possible that some state is lost if the containers are deleted or updated, such as Edge Agent's cache of module state or Edge Hub's unsent messages.
+
+These checks require the Edge Agent and Edge Hub containers to have been created.
+
 
 # Connectivity check details
 
