@@ -388,7 +388,7 @@ impl External {
 #[serde(tag = "source")]
 #[serde(rename_all = "lowercase")]
 pub enum Provisioning {
-    Manual(Manual),
+    Manual(Box<Manual>),
     Dps(Box<Dps>),
     External(External),
 }
