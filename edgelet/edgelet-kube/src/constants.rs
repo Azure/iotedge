@@ -21,3 +21,5 @@ pub const PROXY_TRUST_BUNDLE_FILENAME: &str = "trust_bundle.pem";
 pub const USE_PERSISTENT_VOLUME_CLAIMS: &str = "USE_PERSISTENT_VOLUMES";
 
 pub const PULL_SECRET_DATA_NAME: &str = ".dockerconfigjson";
+
+pub const PULL_SECRET_DATA_TYPE: &str = "kubernetes.io/dockerconfigjson";

@@ -106,6 +106,7 @@ pub fn auth_to_image_pull_secret(
                 namespace: Some(namespace.to_string()),
                 ..api_meta::ObjectMeta::default()
             }),
+            type_: Some(PULL_SECRET_DATA_TYPE.to_string()),
             ..api_core::Secret::default()
         },
     ))
@@ -721,6 +722,7 @@ mod tests {
         let (name, secret) = auth_to_image_pull_secret("namespace", &auth_config).unwrap();
         assert_eq!(name, "user-registry");
 
+        assert_eq!(secret.type_, Some(PULL_SECRET_DATA_TYPE.to_string()));
         assert!(secret.metadata.is_some());
         if let Some(meta) = secret.metadata.as_ref() {
             assert_eq!(meta.name, Some(name));
