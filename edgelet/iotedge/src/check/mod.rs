@@ -19,7 +19,9 @@ use libc;
 use regex::Regex;
 use serde_json;
 
-use edgelet_core::{self, AttestationMethod, MobyNetwork, Provisioning, RuntimeSettings, UrlExt, ManualAuthMethod};
+use edgelet_core::{
+    self, AttestationMethod, ManualAuthMethod, MobyNetwork, Provisioning, RuntimeSettings, UrlExt,
+};
 use edgelet_docker::Settings;
 use edgelet_http::client::ClientImpl;
 use edgelet_http::MaybeProxyClient;
@@ -717,10 +719,8 @@ fn settings_connection_string(check: &mut Check) -> Result<CheckResult, failure:
                                 Please check the value of the provisioning.device_connection_string parameter.",
                 )?;
                 hub
-            },
-            ManualAuthMethod::X509(x509) => {
-                x509.iothub_hostname().to_string()
-            },
+            }
+            ManualAuthMethod::X509(x509) => x509.iothub_hostname().to_string(),
         };
         check.iothub_hostname = Some(hub.to_owned());
     } else if check.iothub_hostname.is_none() {

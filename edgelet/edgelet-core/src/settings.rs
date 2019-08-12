@@ -82,7 +82,7 @@ pub struct ManualDeviceConnectionString {
 }
 
 impl ManualDeviceConnectionString {
-     pub fn new(device_connection_string: String) -> Self {
+    pub fn new(device_connection_string: String) -> Self {
         ManualDeviceConnectionString {
             device_connection_string,
         }
@@ -92,9 +92,7 @@ impl ManualDeviceConnectionString {
         &self.device_connection_string
     }
 
-    pub fn parse_device_connection_string(
-        &self,
-    ) -> Result<(MemoryKey, String, String), Error> {
+    pub fn parse_device_connection_string(&self) -> Result<(MemoryKey, String, String), Error> {
         if self.device_connection_string.is_empty() {
             return Err(Error::from(ErrorKind::ConnectionStringEmpty));
         }
@@ -114,21 +112,21 @@ impl ManualDeviceConnectionString {
             }
         }
 
-        let key = key.ok_or(
-            ErrorKind::ConnectionStringMissingRequiredParameter(SHAREDACCESSKEY_KEY),
-        )?;
+        let key = key.ok_or(ErrorKind::ConnectionStringMissingRequiredParameter(
+            SHAREDACCESSKEY_KEY,
+        ))?;
         if key.is_empty() {
             return Err(Error::from(ErrorKind::ConnectionStringMalformedParameter(
                 SHAREDACCESSKEY_KEY,
             )));
         }
-        let key = MemoryKey::new(base64::decode(&key).map_err(|_| {
-            ErrorKind::ConnectionStringMalformedParameter(SHAREDACCESSKEY_KEY)
-        })?);
+        let key = MemoryKey::new(
+            base64::decode(&key)
+                .map_err(|_| ErrorKind::ConnectionStringMalformedParameter(SHAREDACCESSKEY_KEY))?,
+        );
 
-        let device_id = device_id.ok_or(
-            ErrorKind::ConnectionStringMalformedParameter(DEVICEID_KEY),
-        )?;
+        let device_id =
+            device_id.ok_or(ErrorKind::ConnectionStringMalformedParameter(DEVICEID_KEY))?;
         let device_id_regex =
             Regex::new(DEVICEID_REGEX).expect("This hard-coded regex is expected to be valid.");
         if !device_id_regex.is_match(&device_id) {
@@ -137,9 +135,9 @@ impl ManualDeviceConnectionString {
             )));
         }
 
-        let hub = hub.ok_or(
-            ErrorKind::ConnectionStringMissingRequiredParameter(HOSTNAME_KEY),
-        )?;
+        let hub = hub.ok_or(ErrorKind::ConnectionStringMissingRequiredParameter(
+            HOSTNAME_KEY,
+        ))?;
         let hub_regex =
             Regex::new(HOSTNAME_REGEX).expect("This hard-coded regex is expected to be valid.");
         if !hub_regex.is_match(&hub) {
@@ -187,7 +185,9 @@ impl<'de> serde::Deserialize<'de> for Manual {
                     "Both onnection string and attestation configuration may not be set",
                 ));
             }
-            (Some(cs), None) => ManualAuthMethod::DeviceConnectionString(ManualDeviceConnectionString::new(cs)),
+            (Some(cs), None) => {
+                ManualAuthMethod::DeviceConnectionString(ManualDeviceConnectionString::new(cs))
+            }
             (None, Some(auth)) => auth,
             (None, None) => {
                 return Err(serde::de::Error::custom(
@@ -196,17 +196,13 @@ impl<'de> serde::Deserialize<'de> for Manual {
             }
         };
 
-        Ok(Manual {
-            auth_method,
-        })
+        Ok(Manual { auth_method })
     }
 }
 
 impl Manual {
     pub fn new(auth_method: ManualAuthMethod) -> Self {
-        Manual {
-            auth_method,
-        }
+        Manual { auth_method }
     }
 
     pub fn authentication_method(&self) -> &ManualAuthMethod {

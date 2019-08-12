@@ -51,10 +51,10 @@ use edgelet_core::crypto::{
 use edgelet_core::watchdog::Watchdog;
 use edgelet_core::{
     AttestationMethod, Authenticator, Certificate, CertificateIssuer, CertificateProperties,
-    CertificateType, Dps, MakeModuleRuntime, Module, ModuleRuntime,
-    ModuleRuntimeErrorReason, ModuleSpec, Provisioning,
+    CertificateType, Dps, MakeModuleRuntime, ManualAuthMethod, ManualDeviceConnectionString,
+    ManualX509Auth, Module, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec, Provisioning,
     ProvisioningResult as CoreProvisioningResult, RuntimeSettings, SymmetricKeyAttestationInfo,
-    TpmAttestationInfo, WorkloadConfig, DEFAULT_CONNECTION_STRING, ManualDeviceConnectionString, ManualAuthMethod, ManualX509Auth
+    TpmAttestationInfo, WorkloadConfig, DEFAULT_CONNECTION_STRING,
 };
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::{Crypto, HsmLock, X509};
@@ -388,7 +388,8 @@ where
                 match manual.authentication_method() {
                     ManualAuthMethod::DeviceConnectionString(cs) => {
                         info!("Starting provisioning edge device via manual mode using a device connection string...");
-                        let (key_store, provisioning_result, root_key) = manual_provision_connection_string(&cs, &mut tokio_runtime)?;
+                        let (key_store, provisioning_result, root_key) =
+                            manual_provision_connection_string(&cs, &mut tokio_runtime)?;
                         start_edgelet!(
                             key_store,
                             provisioning_result,
@@ -396,7 +397,7 @@ where
                             force_module_reprovision,
                             None,
                         );
-                    },
+                    }
                     ManualAuthMethod::X509(x509) => {
                         info!("Starting provisioning edge device via manual mode using X509 identiy certificate...");
 
@@ -408,11 +409,12 @@ where
                             ErrorKind::Initialize(InitializeErrorReason::DpsProvisioningClient)
                         })?;
 
-                        let (key_store, provisioning_result, root_key) =
-                            manual_provision_x509(x509,
-                                                  &mut tokio_runtime,
-                                                  &key_bytes,
-                                                  id_data.thumbprint.clone(),)?;
+                        let (key_store, provisioning_result, root_key) = manual_provision_x509(
+                            x509,
+                            &mut tokio_runtime,
+                            &key_bytes,
+                            id_data.thumbprint.clone(),
+                        )?;
                         let thumprint_op = Some(id_data.thumbprint.as_str());
                         start_edgelet!(
                             key_store,
@@ -421,7 +423,7 @@ where
                             force_module_reprovision,
                             thumprint_op,
                         );
-                    },
+                    }
                 };
             }
             Provisioning::External(external) => {
@@ -634,39 +636,37 @@ where
                 ))?;
                 env::set_var(DPS_DEVICE_ID_KEY_ENV_KEY, path.as_os_str());
             }
-        },
-        Provisioning::Dps(dps) => {
-            match dps.attestation() {
-                AttestationMethod::Tpm(ref tpm) => {
-                    env::set_var(
-                        DPS_REGISTRATION_ID_ENV_KEY,
-                        tpm.registration_id().to_string(),
-                    );
+        }
+        Provisioning::Dps(dps) => match dps.attestation() {
+            AttestationMethod::Tpm(ref tpm) => {
+                env::set_var(
+                    DPS_REGISTRATION_ID_ENV_KEY,
+                    tpm.registration_id().to_string(),
+                );
+            }
+            AttestationMethod::SymmetricKey(ref symmetric_key_info) => {
+                env::set_var(
+                    DPS_REGISTRATION_ID_ENV_KEY,
+                    symmetric_key_info.registration_id().to_string(),
+                );
+            }
+            AttestationMethod::X509(ref x509_info) => {
+                if let Some(val) = x509_info.registration_id() {
+                    env::set_var(DPS_REGISTRATION_ID_ENV_KEY, val.to_string());
                 }
-                AttestationMethod::SymmetricKey(ref symmetric_key_info) => {
-                    env::set_var(
-                        DPS_REGISTRATION_ID_ENV_KEY,
-                        symmetric_key_info.registration_id().to_string(),
-                    );
-                }
-                AttestationMethod::X509(ref x509_info) => {
-                    if let Some(val) = x509_info.registration_id() {
-                        env::set_var(DPS_REGISTRATION_ID_ENV_KEY, val.to_string());
-                    }
 
-                    let path = x509_info.identity_cert().context(ErrorKind::Initialize(
-                        InitializeErrorReason::IdentityCertificateSettings,
-                    ))?;
-                    env::set_var(DPS_DEVICE_ID_CERT_ENV_KEY, path.as_os_str());
+                let path = x509_info.identity_cert().context(ErrorKind::Initialize(
+                    InitializeErrorReason::IdentityCertificateSettings,
+                ))?;
+                env::set_var(DPS_DEVICE_ID_CERT_ENV_KEY, path.as_os_str());
 
-                    let path = x509_info.identity_pk().context(ErrorKind::Initialize(
-                        InitializeErrorReason::IdentityCertificateSettings,
-                    ))?;
-                    env::set_var(DPS_DEVICE_ID_KEY_ENV_KEY, path.as_os_str());
-                }
+                let path = x509_info.identity_pk().context(ErrorKind::Initialize(
+                    InitializeErrorReason::IdentityCertificateSettings,
+                ))?;
+                env::set_var(DPS_DEVICE_ID_KEY_ENV_KEY, path.as_os_str());
             }
         },
-        _ => {},
+        _ => {}
     }
 
     info!("Finished configuring provisioning environment variables and certificates.");
@@ -1097,16 +1097,16 @@ where
 {
     match settings.provisioning() {
         Provisioning::Manual(manual) => {
-            if let ManualAuthMethod::X509(_) = manual.authentication_method()  {
+            if let ManualAuthMethod::X509(_) = manual.authentication_method() {
                 return ProvisioningAuthMethod::X509;
             }
-        },
+        }
         Provisioning::Dps(dps) => {
             if let AttestationMethod::X509(_) = dps.attestation() {
                 return ProvisioningAuthMethod::X509;
             }
-        },
-        _ => {},
+        }
+        _ => {}
     }
     ProvisioningAuthMethod::SharedAccessKey
 }
@@ -1330,8 +1330,7 @@ fn manual_provision_connection_string(
     tokio_runtime: &mut tokio::runtime::Runtime,
 ) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey), Error> {
     let (key, device_id, hub) =
-        cs
-            .parse_device_connection_string()
+        cs.parse_device_connection_string()
             .context(ErrorKind::Initialize(
                 InitializeErrorReason::ManualProvisioningClient,
             ))?;
@@ -1367,7 +1366,11 @@ fn manual_provision_x509(
     cert_thumbprint: String,
 ) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey), Error> {
     let key = MemoryKey::new(hybrid_identity_key);
-    let manual = ManualProvisioning::new(key, x509.device_id().to_string(), x509.iothub_hostname().to_string());
+    let manual = ManualProvisioning::new(
+        key,
+        x509.device_id().to_string(),
+        x509.iothub_hostname().to_string(),
+    );
     let memory_hsm = MemoryKeyStore::new();
     let provision = manual
         .provision(memory_hsm.clone())

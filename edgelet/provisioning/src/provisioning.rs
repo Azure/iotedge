@@ -767,10 +767,9 @@ mod tests {
         }
     }
 
-    fn parse_connection_string(
-        s: &str,
-    ) -> Result<ManualProvisioning, CoreError> {
-        let (key, device_id, hub) = ManualDeviceConnectionString::new(s.to_string()).parse_device_connection_string()?;
+    fn parse_connection_string(s: &str) -> Result<ManualProvisioning, CoreError> {
+        let (key, device_id, hub) =
+            ManualDeviceConnectionString::new(s.to_string()).parse_device_connection_string()?;
         Ok(ManualProvisioning::new(key, device_id, hub))
     }
 

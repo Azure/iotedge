@@ -243,8 +243,8 @@ mod tests {
     use tempdir::TempDir;
 
     use edgelet_core::{
-        AttestationMethod, IpamConfig, DEFAULT_CONNECTION_STRING, DEFAULT_NETWORKID,
-        ManualAuthMethod,
+        AttestationMethod, IpamConfig, ManualAuthMethod, DEFAULT_CONNECTION_STRING,
+        DEFAULT_NETWORKID,
     };
 
     #[cfg(unix)]
@@ -312,12 +312,13 @@ mod tests {
     fn unwrap_manual_provisioning(p: &Provisioning) -> String {
         match p {
             Provisioning::Manual(manual) => {
-                if let ManualAuthMethod::DeviceConnectionString(cs) = manual.authentication_method() {
+                if let ManualAuthMethod::DeviceConnectionString(cs) = manual.authentication_method()
+                {
                     cs.device_connection_string().to_string()
                 } else {
                     "not implemented".to_string()
                 }
-            },
+            }
             _ => "not implemented".to_string(),
         }
     }
@@ -330,7 +331,10 @@ mod tests {
             .unwrap();
         let settings: Settings = config.try_into().unwrap();
 
-        assert_eq!(unwrap_manual_provisioning(settings.provisioning()), DEFAULT_CONNECTION_STRING);
+        assert_eq!(
+            unwrap_manual_provisioning(settings.provisioning()),
+            DEFAULT_CONNECTION_STRING
+        );
     }
 
     #[test]

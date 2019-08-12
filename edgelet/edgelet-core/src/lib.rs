@@ -39,10 +39,10 @@ pub use module::{
 };
 pub use network::{Ipam, IpamConfig, MobyNetwork, Network};
 pub use settings::{
-    AttestationMethod, Certificates, Connect, Dps, Listen, Manual,
-    Provisioning, RetryLimit, RuntimeSettings, Settings,
-    SymmetricKeyAttestationInfo, TpmAttestationInfo, WatchdogSettings, X509AttestationInfo,
-    DEFAULT_CONNECTION_STRING, ManualDeviceConnectionString, ManualX509Auth, ManualAuthMethod,
+    AttestationMethod, Certificates, Connect, Dps, Listen, Manual, ManualAuthMethod,
+    ManualDeviceConnectionString, ManualX509Auth, Provisioning, RetryLimit, RuntimeSettings,
+    Settings, SymmetricKeyAttestationInfo, TpmAttestationInfo, WatchdogSettings,
+    X509AttestationInfo, DEFAULT_CONNECTION_STRING,
 };
 pub use workload::WorkloadConfig;
 
