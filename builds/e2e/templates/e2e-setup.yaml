@@ -28,7 +28,7 @@ steps:
       Write-Output '##vso[task.setvariable variable=packageBuildId]$(Build.TriggeredBy.BuildId)'
     }
     # 2) 'Build Images' build triggered this build (use latest 'Edgelet Packages' build on master)
-    elseif ('$(Build.TriggeredBy.DefinitionName)' -eq '$(azure.pipeline.images)')
+    elseif ($env:BUILD_TRIGGEREDBY_DEFINITIONNAME -eq '$(azure.pipeline.images)')
     {
       Write-Output '##vso[task.setvariable variable=whichPackageBuild]latestFromBranch'
       Write-Output '##vso[task.setvariable variable=whichImageBuild]specific'
@@ -44,9 +44,9 @@ steps:
     }
     else # Error
     {
-      if ('$(Build.TriggeredBy.DefinitionName)' -ne '')
+      if ($env:BUILD_TRIGGEREDBY_DEFINITIONNAME -ne '')
       {
-        Write-Output "Build triggered by unrecognized build '$(Build.TriggeredBy.DefinitionName)'"
+        Write-Output "Build triggered by unrecognized build '$env:BUILD_TRIGGEREDBY_DEFINITIONNAME'"
       }
       else
       {
