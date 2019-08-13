@@ -24,10 +24,11 @@ steps:
     Write-Output "2>> '$env:BUILD_TRIGGEREDBY_DEFINITIONNAME'"
     #Write-Output "3>> '$(Build.TriggeredBy.BuildId)'"
     Write-Output "4>> '$env:BUILD_TRIGGEREDBY_BUILDID'"
-    Write-Output "5>> '$(azure.pipeline.packages)'"
-    Write-Output "6>> '$(az.pipeline.packages.buildId)'"
-    Write-Output "7>> '$(azure.pipeline.images)'"
-    Write-Output "8>> '$(azure.pipeline.images.buildId)'"
+    #Write-Output "5>> '$(azure.pipeline.packages)'"
+    Write-Output "6>> '$env:AZURE_PIPELINE_PACKAGES'"
+    Write-Output "7>> '$(az.pipeline.packages.buildId)'"
+    Write-Output "8>> '$(azure.pipeline.images)'"
+    Write-Output "9>> '$(azure.pipeline.images.buildId)'"
     # We care about three cases:
     # 1) 'Edgelet Packages' build triggered this build (use latest 'Build Images' build on master)
     if ($env:BUILD_TRIGGEREDBY_DEFINITIONNAME -eq '$(azure.pipeline.packages)')
