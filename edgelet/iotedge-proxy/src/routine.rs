@@ -203,7 +203,7 @@ mod tests {
         let task = client.get(Uri::from_str(settings.entrypoint().as_str()).unwrap());
 
         let res = runtime.block_on(task).unwrap();
-        assert_eq!(res.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(res.status(), StatusCode::BAD_GATEWAY);
 
         tx.send(()).unwrap();
     }

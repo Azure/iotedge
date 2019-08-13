@@ -118,11 +118,11 @@ process_args()
         fi
     done
 
-    if [[ ${PROJECT,,} == "iotedged" ]]; then
-        LIBC="glibc"
-    else
+#    if [[ ${PROJECT,,} == "iotedged" ]]; then
+#        LIBC="glibc"
+#    else
         LIBC="musl"
-    fi
+#    fi
 
     case ${ARCH}_${LIBC} in
         amd64_musl) TOOLCHAIN="x86_64-unknown-linux-musl";;
@@ -160,13 +160,13 @@ process_args()
         print_help_and_exit
     fi
 
-    if [[ ${BUILD_CONFIGURATION,,} == "release" ]]; then
+#    if [[ ${BUILD_CONFIGURATION,,} == "release" ]]; then
         BUILD_CONFIGURATION='release'
         BUILD_CONFIG_OPTION='--release'
-    else
-        BUILD_CONFIGURATION='debug'
-        BUILD_CONFIG_OPTION=''
-    fi
+#    else
+#        BUILD_CONFIGURATION='debug'
+#        BUILD_CONFIG_OPTION=''
+#    fi
 }
 
 ###############################################################################

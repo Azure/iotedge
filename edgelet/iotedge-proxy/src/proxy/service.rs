@@ -129,7 +129,7 @@ mod tests {
 
     #[test]
     fn it_returns_500_with_error_message_on_err() {
-        let http = client_fn(|_| Err(Error::from(ErrorKind::Hyper)));
+        let http = client_fn(|_| Err(Error::from(ErrorKind::Generic)));
         let client = Client::with_client(http, config());
         let req = Request::new(Body::empty());
         let mut proxy = ProxyService::new(client);
@@ -153,6 +153,35 @@ mod tests {
         let res = runtime.block_on(task).unwrap();
         let (status, body) = res;
         assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(body.as_ref(), json!({ "message": "Error"}).to_string());
+    }
+
+    #[test]
+    fn it_returns_502_with_error_message_on_server_unavailable_err() {
+        let http = client_fn(|_| Err(Error::from(ErrorKind::Hyper)));
+        let client = Client::with_client(http, config());
+        let req = Request::new(Body::empty());
+        let mut proxy = ProxyService::new(client);
+
+        let task = proxy.call(req).map_err(Compat::into_inner).and_then(|res| {
+            let status = res.status();
+            res.into_body()
+                .concat2()
+                .map(move |body| {
+                    (
+                        status,
+                        std::str::from_utf8(body.into_bytes().as_ref())
+                            .unwrap()
+                            .to_string(),
+                    )
+                })
+                .map_err(Error::from)
+        });
+
+        let mut runtime = Runtime::new().unwrap();
+        let res = runtime.block_on(task).unwrap();
+        let (status, body) = res;
+        assert_eq!(status, StatusCode::BAD_GATEWAY);
         assert_eq!(
             body.as_ref(),
             json!({ "message": "HTTP connection error"}).to_string()
