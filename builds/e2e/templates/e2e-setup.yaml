@@ -21,7 +21,7 @@ steps:
     Set-PSDebug -Trace 2
     # We care about three cases:
     # 1) 'Edgelet Packages' build triggered this build (use latest 'Build Images' build on master)
-    if ('$(Build.TriggeredBy.DefinitionName)' -eq '$(azure.pipeline.packages)')
+    if ($env:BUILD_TRIGGEREDBY_DEFINITIONNAME -eq '$(azure.pipeline.packages)')
     {
       Write-Output '##vso[task.setvariable variable=whichPackageBuild]specific'
       Write-Output '##vso[task.setvariable variable=whichImageBuild]latestFromBranch'
