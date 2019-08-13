@@ -18,6 +18,7 @@ steps:
       TestRootCaPassword
 
 - pwsh: |
+    Set-PSDebug -Trace 2
     # We care about three cases:
     # 1) 'Edgelet Packages' build triggered this build (use latest 'Build Images' build on master)
     if ('$(Build.TriggeredBy.DefinitionName)' -eq '$(azure.pipeline.packages)')
