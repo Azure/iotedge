@@ -18,21 +18,6 @@ steps:
       TestRootCaPassword
 
 - pwsh: |
-    Set-PSDebug -Trace 2
-
-    #Write-Output "01>> '$(Build.TriggeredBy.DefinitionName)'"
-    Write-Output "02>> '$env:BUILD_TRIGGEREDBY_DEFINITIONNAME'"
-    #Write-Output "03>> '$(Build.TriggeredBy.BuildId)'"
-    Write-Output "04>> '$env:BUILD_TRIGGEREDBY_BUILDID'"
-    Write-Output "05>> '$(az.pipeline.packages)'"
-    Write-Output "06>> '$env:AZ_PIPELINE_PACKAGES'"
-    Write-Output "07>> '$(az.pipeline.packages.buildId)'"
-    Write-Output "08>> '$env:AZ_PIPELINE_PACKAGES_BUILDID'"
-    Write-Output "09>> '$(az.pipeline.images)'"
-    Write-Output "10>> '$env:AZ_PIPELINE_IMAGES'"
-    Write-Output "11>> '$(az.pipeline.images.buildId)'"
-    Write-Output "12>> '$env:AZ_PIPELINE_IMAGES_BUILDID'"
-
     # We care about three cases:
     # 1) 'Edgelet Packages' build triggered this build (use latest 'Build Images' build on master)
     if ($env:BUILD_TRIGGEREDBY_DEFINITIONNAME -eq '$(az.pipeline.packages)')
