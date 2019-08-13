@@ -148,10 +148,19 @@ fn spec_to_podspec(
         })
         .collect();
     // Pass along "USE_PERSISTENT_VOLUMES" to EdgeAgent
-    if settings.use_pvc() && EDGE_EDGE_AGENT_NAME == module_label_value {
+    if EDGE_EDGE_AGENT_NAME == module_label_value {
+        if settings.use_pvc() {
+            let env_var = api_core::EnvVar {
+                name: USE_PERSISTENT_VOLUME_CLAIMS.to_string(),
+                value: Some("True".to_string()),
+                ..api_core::EnvVar::default()
+            };
+            env_vars.push(env_var);
+        }
+
         let env_var = api_core::EnvVar {
-            name: USE_PERSISTENT_VOLUME_CLAIMS.to_string(),
-            value: Some("True".to_string()),
+            name: MODE_KEY.to_string(),
+            value: Some(KUBERNETES_MODE.to_string()),
             ..api_core::EnvVar::default()
         };
         env_vars.push(env_var);
@@ -682,8 +691,8 @@ mod tests {
             if let Some(podspec) = spec.template.spec.as_ref() {
                 assert_eq!(podspec.containers.len(), 2);
                 if let Some(module) = podspec.containers.iter().find(|c| c.name == "edgeagent") {
-                    // 2 from module spec, 1 for use_pvc
-                    assert_eq!(module.env.as_ref().map(Vec::len).unwrap(), 3);
+                    // 2 from module spec, 1 for use_pvc, 1 for kubernetes mode.
+                    assert_eq!(module.env.as_ref().map(Vec::len).unwrap(), 4);
                     assert_eq!(module.volume_mounts.as_ref().map(Vec::len).unwrap(), 6);
                     assert_eq!(module.image.as_ref().unwrap(), "my-image:v1.0");
                     assert_eq!(module.image_pull_policy.as_ref().unwrap(), "IfNotPresent");
@@ -693,8 +702,8 @@ mod tests {
                     .iter()
                     .find(|c| c.name == PROXY_CONTAINER_NAME)
                 {
-                    // 2 from module spec, 1 for use_pvc
-                    assert_eq!(proxy.env.as_ref().map(Vec::len).unwrap(), 3);
+                    // 2 from module spec, 1 for use_pvc, 1 for kubernetes mode.
+                    assert_eq!(proxy.env.as_ref().map(Vec::len).unwrap(), 4);
                     assert_eq!(proxy.volume_mounts.as_ref().map(Vec::len).unwrap(), 2);
                     assert_eq!(proxy.image.as_ref().unwrap(), "proxy:latest");
                     assert_eq!(proxy.image_pull_policy.as_ref().unwrap(), "IfNotPresent");

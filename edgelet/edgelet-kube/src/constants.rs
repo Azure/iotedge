@@ -23,3 +23,7 @@ pub const USE_PERSISTENT_VOLUME_CLAIMS: &str = "USE_PERSISTENT_VOLUMES";
 pub const PULL_SECRET_DATA_NAME: &str = ".dockerconfigjson";
 
 pub const PULL_SECRET_DATA_TYPE: &str = "kubernetes.io/dockerconfigjson";
+
+pub const MODE_KEY: &str = "Mode";
+
+pub const KUBERNETES_MODE: &str = "kubernetes";
