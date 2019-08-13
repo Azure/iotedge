@@ -238,6 +238,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             return (storeAndForwardEnabled, usePersistentStorage, storeAndForwardConfiguration, storagePath);
         }
 
+        // Note: Keep in sync with iotedge-check's edge-hub-storage-mounted-from-host check (edgelet/iotedge/src/check/mod.rs)
         string GetStoragePath()
         {
             string baseStoragePath = this.configuration.GetValue<string>("storageFolder");

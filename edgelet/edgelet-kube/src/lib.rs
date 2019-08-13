@@ -23,10 +23,21 @@ pub use settings::Settings;
 
 #[cfg(test)]
 mod tests {
-    use crate::settings::Settings;
     use config::{Config, File, FileFormat};
+    use futures::future;
+    use hyper::service::Service;
+    use hyper::{Body, Request, Response, StatusCode};
     use json_patch::merge;
+    use native_tls::TlsConnector;
     use serde_json::{self, json, Value as JsonValue};
+    use typed_headers::{mime, ContentLength, ContentType, HeaderMapExt};
+    use url::Url;
+
+    use edgelet_test_utils::web::ResponseFuture;
+    use kube_client::{Client as KubeClient, Config as KubeConfig, Error, TokenSource};
+
+    use crate::settings::Settings;
+    use crate::KubeModuleRuntime;
 
     pub const PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME: &str = "device1-iotedged-proxy-trust-bundle";
 
@@ -79,5 +90,62 @@ mod tests {
             .unwrap();
 
         config.try_into().unwrap()
+    }
+
+    #[derive(Clone)]
+    pub struct TestTokenSource;
+
+    impl TokenSource for TestTokenSource {
+        type Error = Error;
+
+        fn get(&self) -> kube_client::error::Result<Option<String>> {
+            Ok(None)
+        }
+    }
+
+    pub fn create_runtime<S: Service>(
+        settings: Settings,
+        service: S,
+    ) -> KubeModuleRuntime<TestTokenSource, S> {
+        let client = KubeClient::with_client(get_config(), service);
+
+        KubeModuleRuntime::new(client, settings)
+    }
+
+    pub fn get_config() -> KubeConfig<TestTokenSource> {
+        KubeConfig::new(
+            Url::parse("https://localhost:443").unwrap(),
+            "/api".to_string(),
+            TestTokenSource,
+            TlsConnector::new().unwrap(),
+        )
+    }
+
+    pub fn response(
+        status_code: StatusCode,
+        response: impl Fn() -> String + Clone + Send + 'static,
+    ) -> ResponseFuture {
+        let response = response();
+        let response_len = response.len();
+
+        let mut response = Response::new(response.into());
+        *response.status_mut() = status_code;
+        response
+            .headers_mut()
+            .typed_insert(&ContentLength(response_len as u64));
+        response
+            .headers_mut()
+            .typed_insert(&ContentType(mime::APPLICATION_JSON));
+
+        Box::new(future::ok(response)) as ResponseFuture
+    }
+
+    pub fn not_found_handler(_: Request<Body>) -> ResponseFuture {
+        let response = Response::builder()
+            .status(StatusCode::NOT_FOUND)
+            .body(Body::default())
+            .unwrap();
+
+        Box::new(future::ok(response))
     }
 }
