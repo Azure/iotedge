@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use iotedge_proxy::{app, Error, Routine};
-use iotedge_proxy::{logging, signal};
+use iotedge_proxy::{app, logging, signal, Error, Routine};
 
 fn main() {
     if let Err(e) = run() {

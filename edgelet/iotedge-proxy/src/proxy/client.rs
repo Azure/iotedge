@@ -26,7 +26,10 @@ where
     T: TokenSource,
 {
     pub fn new(config: Config<T>) -> Self {
+        // NOTE: We are defaulting to using 4 threads here. Is this a good default?
+        //       This is what the "hyper" crate uses by default at this time.
         let mut http = HttpConnector::new(4);
+        // if we don't do this then the HttpConnector rejects the "https" scheme
         http.enforce_http(false);
 
         let https = HttpsConnector::from((http, config.tls().clone()));

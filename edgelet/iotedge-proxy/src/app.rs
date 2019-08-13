@@ -13,28 +13,17 @@ pub fn init() -> Result<Settings, Error> {
     info!("Starting proxy server");
 
     let matches = create_app().get_matches();
-    let config_file = matches
-        .value_of_os("config")
-        .map_or_else(
-            || {
-                let path = Path::new(settings::DEFAULT_SETTINGS_FILEPATH);
-                if path.exists() {
-                    Some(path)
-                } else {
-                    None
-                }
-            },
-            |name| Some(Path::new(name)),
-        )
-        .and_then(|name| {
-            let path = Path::new(name);
-            info!("Using config file: {}", path.display());
-            Some(path)
-        })
-        .or_else(|| {
-            info!("Using default configuration");
-            None
-        });
+    let config_file = matches.value_of_os("config").map_or_else(
+        || {
+            let path = Path::new(settings::DEFAULT_SETTINGS_FILEPATH);
+            if path.exists() {
+                Some(path)
+            } else {
+                None
+            }
+        },
+        |name| Some(Path::new(name)),
+    );
 
     let settings = Settings::new(config_file)?;
 

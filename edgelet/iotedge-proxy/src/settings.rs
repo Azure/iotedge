@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use config::{Config, ConfigError, File, FileFormat};
 use failure::Fail;
+use log::info;
 use serde_derive::Deserialize;
 use url::Url;
 use url_serde;
@@ -28,7 +29,10 @@ impl Settings {
         config.merge(File::from_str(DEFAULTS, FileFormat::Yaml))?;
 
         if let Some(path) = path {
+            info!("Using config file: {}", path.display());
             config.merge(File::from(path))?;
+        } else {
+            info!("Using default configuration");
         }
 
         let settings = convert(config)?;
