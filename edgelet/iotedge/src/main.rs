@@ -4,7 +4,9 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(clippy::similar_names)]
 
+use std::borrow::Cow;
 use std::io;
+use std::path::{Path, PathBuf};
 use std::process;
 
 use clap::{crate_description, crate_name, App, AppSettings, Arg, SubCommand};
@@ -16,22 +18,6 @@ use edgelet_core::{LogOptions, LogTail};
 use edgelet_http_mgmt::ModuleClient;
 
 use iotedge::*;
-
-#[cfg(unix)]
-const MGMT_URI: &str = "unix:///var/run/iotedge/mgmt.sock";
-#[cfg(windows)]
-const MGMT_URI: &str = "unix:///C:/ProgramData/iotedge/mgmt/sock";
-
-#[cfg(unix)]
-const DEFAULT_CONFIG_PATH: &str = "/etc/iotedge/config.yaml";
-#[cfg(windows)]
-const DEFAULT_CONFIG_PATH: &str = r"C:\ProgramData\iotedge\config.yaml";
-
-#[cfg(unix)]
-const DEFAULT_CONTAINER_ENGINE_CONFIG_PATH: &str = "/etc/docker/daemon.json";
-#[cfg(windows)]
-const DEFAULT_CONTAINER_ENGINE_CONFIG_PATH: &str =
-    r"C:\ProgramData\iotedge-moby\config\daemon.json";
 
 fn main() {
     if let Err(ref error) = run() {
@@ -50,11 +36,52 @@ fn main() {
 }
 
 fn run() -> Result<(), Error> {
-    let default_uri = option_env!("IOTEDGE_HOST").unwrap_or(MGMT_URI);
+    let (default_mgmt_uri, default_config_path, default_container_engine_config_path) =
+        if cfg!(windows) {
+            let program_data: PathBuf = std::env::var_os("PROGRAMDATA")
+                .map_or_else(|| r"C:\ProgramData".into(), Into::into);
+
+            let default_mgmt_uri = program_data
+                .to_str()
+                .expect("PROGRAMDATA is not a utf-8 path")
+                .replace('\\', "/");
+            let default_mgmt_uri = format!("unix:///{}/iotedge/mgmt/sock", default_mgmt_uri);
+            let default_mgmt_uri = Cow::Owned(default_mgmt_uri);
+
+            let mut default_config_path = program_data.clone();
+            default_config_path.push("iotedge");
+            default_config_path.push("config.yaml");
+            let default_config_path = Cow::Owned(default_config_path);
+
+            let mut default_container_engine_config_path = program_data.clone();
+            default_container_engine_config_path.push("iotedge-moby");
+            default_container_engine_config_path.push("config");
+            default_container_engine_config_path.push("daemon.json");
+            let default_container_engine_config_path =
+                Cow::Owned(default_container_engine_config_path);
+
+            (
+                default_mgmt_uri,
+                default_config_path,
+                default_container_engine_config_path,
+            )
+        } else {
+            (
+                Cow::Borrowed("unix:///var/run/iotedge/mgmt.sock"),
+                Cow::Borrowed(Path::new("/etc/iotedge/config.yaml")),
+                Cow::Borrowed(Path::new("/etc/docker/daemon.json")),
+            )
+        };
+
+    let default_mgmt_uri = option_env!("IOTEDGE_HOST").unwrap_or(&*default_mgmt_uri);
+
     let default_diagnostics_image_name = format!(
         "mcr.microsoft.com/azureiotedge-diagnostics:{}",
         edgelet_core::version().replace("~", "-")
     );
+
+    let mut possible_check_id_values: Vec<_> = Check::possible_ids().collect();
+    possible_check_id_values.sort();
 
     let matches = App::new(crate_name!())
         .version(edgelet_core::version_with_source_version())
@@ -69,7 +96,7 @@ fn run() -> Result<(), Error> {
                 .value_name("HOST")
                 .global(true)
                 .env("IOTEDGE_HOST")
-                .default_value(default_uri),
+                .default_value(default_mgmt_uri),
         )
         .subcommand(
             SubCommand::with_name("check")
@@ -81,7 +108,7 @@ fn run() -> Result<(), Error> {
                         .value_name("FILE")
                         .help("Sets daemon configuration file")
                         .takes_value(true)
-                        .default_value(DEFAULT_CONFIG_PATH),
+                        .default_value_os(default_config_path.as_os_str()),
                 )
                 .arg(
                     Arg::with_name("container-engine-config-file")
@@ -89,7 +116,7 @@ fn run() -> Result<(), Error> {
                         .value_name("FILE")
                         .help("Sets the path of the container engine configuration file")
                         .takes_value(true)
-                        .default_value(DEFAULT_CONTAINER_ENGINE_CONFIG_PATH),
+                        .default_value_os(default_container_engine_config_path.as_os_str()),
                 )
                 .arg(
                     Arg::with_name("diagnostics-image-name")
@@ -98,6 +125,15 @@ fn run() -> Result<(), Error> {
                         .help("Sets the name of the azureiotedge-diagnostics image.")
                         .takes_value(true)
                         .default_value(&default_diagnostics_image_name),
+                )
+                .arg(
+                    Arg::with_name("dont-run")
+                        .long("dont-run")
+                        .value_name("DONT_RUN")
+                        .help("Space-separated list of check IDs. The checks listed here will not be run. See 'iotedge check-list' for details of all checks.\n")
+                        .multiple(true)
+                        .takes_value(true)
+                        .possible_values(&possible_check_id_values),
                 )
                 .arg(
                     Arg::with_name("expected-iotedged-version")
@@ -136,7 +172,7 @@ fn run() -> Result<(), Error> {
                         .long("output")
                         .short("o")
                         .value_name("FORMAT")
-                        .help("Output format.")
+                        .help("Output format. Note that JSON output contains some additional host information like OS name and version.")
                         .takes_value(true)
                         .possible_values(&["json", "text"])
                         .default_value("text"),
@@ -147,8 +183,16 @@ fn run() -> Result<(), Error> {
                         .value_name("VERBOSE")
                         .help("Increases verbosity of output.")
                         .takes_value(false),
+                )
+                .arg(
+                    Arg::with_name("warnings-as-errors")
+                        .long("warnings-as-errors")
+                        .value_name("WARNINGS_AS_ERRORS")
+                        .help("Treats warnings as errors. Thus 'iotedge check' will exit with non-zero code if it encounters warnings.")
+                        .takes_value(false),
                 ),
         )
+        .subcommand(SubCommand::with_name("check-list").about("List the checks that are run for 'iotedge check'"))
         .subcommand(SubCommand::with_name("list").about("List modules"))
         .subcommand(
             SubCommand::with_name("restart")
@@ -195,15 +239,18 @@ fn run() -> Result<(), Error> {
         .subcommand(SubCommand::with_name("version").about("Show the version information"))
         .get_matches();
 
-    let url = matches.value_of("host").map_or_else(
-        || Err(Error::from(ErrorKind::MissingHostParameter)),
-        |h| {
-            Url::parse(h)
-                .context(ErrorKind::BadHostParameter)
-                .map_err(Error::from)
-        },
-    )?;
-    let runtime = ModuleClient::new(&url).context(ErrorKind::ModuleRuntime)?;
+    let runtime = || -> Result<_, Error> {
+        let url = matches.value_of("host").map_or_else(
+            || Err(Error::from(ErrorKind::MissingHostParameter)),
+            |h| {
+                Url::parse(h)
+                    .context(ErrorKind::BadHostParameter)
+                    .map_err(Error::from)
+            },
+        )?;
+        let runtime = ModuleClient::new(&url).context(ErrorKind::ModuleRuntime)?;
+        Ok(runtime)
+    };
 
     let mut tokio_runtime = tokio::runtime::Runtime::new().context(ErrorKind::InitializeTokio)?;
 
@@ -221,6 +268,11 @@ fn run() -> Result<(), Error> {
                 args.value_of("diagnostics-image-name")
                     .expect("arg has a default value")
                     .to_string(),
+                args.values_of("dont-run")
+                    .into_iter()
+                    .flatten()
+                    .map(ToOwned::to_owned)
+                    .collect(),
                 args.value_of("expected-iotedged-version")
                     .map(ToOwned::to_owned),
                 args.value_of_os("iotedged")
@@ -238,15 +290,17 @@ fn run() -> Result<(), Error> {
                         _ => unreachable!(),
                     })
                     .expect("arg has a default value"),
-                args.occurrences_of("verbose") > 0,
+                args.is_present("verbose"),
+                args.is_present("warnings-as-errors"),
             )
             .and_then(|mut check| check.execute()),
         ),
-        ("list", Some(_args)) => tokio_runtime.block_on(List::new(runtime, io::stdout()).execute()),
+        ("check-list", _) => Check::print_list(),
+        ("list", _) => tokio_runtime.block_on(List::new(runtime()?, io::stdout()).execute()),
         ("restart", Some(args)) => tokio_runtime.block_on(
             Restart::new(
                 args.value_of("MODULE").unwrap().to_string(),
-                runtime,
+                runtime()?,
                 io::stdout(),
             )
             .execute(),
@@ -266,9 +320,9 @@ fn run() -> Result<(), Error> {
                 .with_follow(follow)
                 .with_tail(tail)
                 .with_since(since);
-            tokio_runtime.block_on(Logs::new(id, options, runtime).execute())
+            tokio_runtime.block_on(Logs::new(id, options, runtime()?).execute())
         }
-        ("version", Some(_args)) => tokio_runtime.block_on(Version::new().execute()),
+        ("version", _) => tokio_runtime.block_on(Version::new().execute()),
         (command, _) => tokio_runtime.block_on(Unknown::new(command.to_string()).execute()),
     }
 }

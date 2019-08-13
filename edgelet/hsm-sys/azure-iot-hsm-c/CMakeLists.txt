@@ -11,6 +11,8 @@ set (iothsm_VERSION_PATCH 8)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 include_directories(./deps/c-shared/inc)
+include_directories(./deps/c-shared/deps/azure-macro-utils-c/inc)
+include_directories(./deps/c-shared/deps/umock-c/inc)
 include_directories(./deps/utpm/inc)
 include_directories(. ./inc)
 
@@ -176,6 +178,7 @@ set (CPACK_DEBIAN_PACKAGE_PROVIDES "libiothsm")
 set (CPACK_DEBIAN_PACKAGE_MAINTAINER "Azure IoT Edge Devs")
 set (CPACK_DEBIAN_FILE_NAME "DEB-DEFAULT")
 set (CPACK_DEBIAN_PACKAGE_GENERATE_SHLIBS "ON")
+set (CPACK_DEBIAN_PACKAGE_DEPENDS "${OPENSSL_DEPENDS_SPEC}")
 
 set (CPACK_RPM_FILE_NAME RPM-DEFAULT)
 set (CPACK_RPM_PACKAGE_RELEASE_DIST On)
@@ -183,6 +186,7 @@ set (CPACK_RPM_PACKAGE_URL "http://github.com/azure/iotedge")
 set (CPACK_RPM_PACKAGE_VENDOR "Microsoft Corporation")
 set (CPACK_RPM_PACKAGE_DESCRIPTION "Azure IoT standard mode HSM lib")
 set (CPACK_RPM_PACKAGE_LICENSE "Proprietary")
+set (CPACK_RPM_PACKAGE_DEPENDS "${OPENSSL_DEPENDS_SPEC}")
 
 include (CPack)
 

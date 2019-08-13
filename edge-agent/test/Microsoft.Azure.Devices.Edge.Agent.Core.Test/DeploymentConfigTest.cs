@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             "edgeAgent",
             "docker",
             new TestConfig("microsoft/edgeAgent:1.0"),
+            ImagePullPolicy.OnCreate,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -21,6 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             "edgeAgent",
             "docker",
             new TestConfig("microsoft/edgeAgent:1.0"),
+            ImagePullPolicy.OnCreate,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -28,6 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             "edgeAgent",
             "docker",
             new TestConfig("microsoft/edgeAgent:2.0"),
+            ImagePullPolicy.OnCreate,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -35,6 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             "edgeAgent",
             "rkt",
             new TestConfig("microsoft/edgeAgent:1.0"),
+            ImagePullPolicy.OnCreate,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -44,6 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ModuleStatus.Running,
             new TestConfig("microsoft/edgeHub:1.0"),
             RestartPolicy.Always,
+            ImagePullPolicy.OnCreate,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -53,6 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ModuleStatus.Running,
             new TestConfig("microsoft/edgeHub:1.0"),
             RestartPolicy.Always,
+            ImagePullPolicy.OnCreate,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -62,6 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ModuleStatus.Running,
             new TestConfig("microsoft/edgeHub:2.0"),
             RestartPolicy.Always,
+            ImagePullPolicy.OnCreate,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -71,6 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ModuleStatus.Running,
             new TestConfig("microsoft/edgeHub:1.0"),
             RestartPolicy.Always,
+            ImagePullPolicy.OnCreate,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -81,6 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ModuleStatus.Running,
             new TestConfig("mod1:v0"),
             RestartPolicy.Always,
+            ImagePullPolicy.OnCreate,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -91,6 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ModuleStatus.Running,
             new TestConfig("mod1:v0"),
             RestartPolicy.Always,
+            ImagePullPolicy.OnCreate,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -101,6 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ModuleStatus.Running,
             new TestConfig("mod1:v2"),
             RestartPolicy.Always,
+            ImagePullPolicy.OnCreate,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -111,6 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ModuleStatus.Stopped,
             new TestConfig("mod1:v0"),
             RestartPolicy.Always,
+            ImagePullPolicy.OnCreate,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -121,6 +133,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ModuleStatus.Running,
             new TestConfig("mod1:v0"),
             RestartPolicy.OnFailure,
+            ImagePullPolicy.OnCreate,
+            new ConfigurationInfo(),
+            new Dictionary<string, EnvVal>());
+
+        static readonly IModule TestModule1_5 = new TestModule(
+            "mod1",
+            string.Empty,
+            "docker",
+            ModuleStatus.Running,
+            new TestConfig("mod1:v0"),
+            RestartPolicy.Always,
+            ImagePullPolicy.Never,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -131,6 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ModuleStatus.Running,
             new TestConfig("mod2:v0"),
             RestartPolicy.Always,
+            ImagePullPolicy.Never,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -141,6 +166,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             ModuleStatus.Running,
             new TestConfig("mod2:v0"),
             RestartPolicy.Always,
+            ImagePullPolicy.Never,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -299,6 +325,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 ["mod2"] = TestModule2
             });
 
+        static readonly DeploymentConfig Config16 = new DeploymentConfig(
+            "1.0",
+            new TestRuntimeInfo("docker"),
+            new SystemModules(TestEdgeAgent1, TestEdgeHub1),
+            new Dictionary<string, IModule>
+            {
+                ["mod1"] = TestModule1_5,
+                ["mod2"] = TestModule2
+            });
+
         public static IEnumerable<object[]> EqualityTestData()
         {
             yield return new object[] { Config1, Config1_1, true };
@@ -316,6 +352,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             yield return new object[] { Config1, Config13, false };
             yield return new object[] { Config1, Config14, false };
             yield return new object[] { Config1, Config15, false };
+            yield return new object[] { Config1, Config16, false };
         }
 
         [Fact]
@@ -325,8 +362,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var edgeHubModule = Mock.Of<IEdgeHubModule>(m => m.Name == "edgeHub");
             var systemModules = new SystemModules(edgeAgentModule, edgeHubModule);
 
-            var mod1 = new TestModule(null, string.Empty, "test", ModuleStatus.Running, new TestConfig("mod1"), RestartPolicy.Always, new ConfigurationInfo(), null);
-            var mod2 = new TestModule(null, string.Empty, "test", ModuleStatus.Running, new TestConfig("mod2"), RestartPolicy.Always, new ConfigurationInfo(), null);
+            var mod1 = new TestModule(null, string.Empty, "test", ModuleStatus.Running, new TestConfig("mod1"), RestartPolicy.Always, ImagePullPolicy.OnCreate, new ConfigurationInfo(), null);
+            var mod2 = new TestModule(null, string.Empty, "test", ModuleStatus.Running, new TestConfig("mod2"), RestartPolicy.Always, ImagePullPolicy.OnCreate, new ConfigurationInfo(), null);
 
             var modules = new Dictionary<string, IModule>
             {

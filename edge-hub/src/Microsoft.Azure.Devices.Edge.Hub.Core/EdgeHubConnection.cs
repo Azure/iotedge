@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.ObjectModel;
     using System.Linq;
     using System.Net;
     using System.Threading.Tasks;
@@ -104,19 +105,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         internal static void ValidateSchemaVersion(string schemaVersion)
         {
-            if (string.IsNullOrWhiteSpace(schemaVersion) || !Version.TryParse(schemaVersion, out Version version))
+            if (Constants.ConfigSchemaVersion.CompareMajorVersion(schemaVersion, "desired properties schema") != 0)
             {
-                throw new ArgumentException($"Invalid desired properties schema version {schemaVersion ?? string.Empty}");
-            }
-
-            if (Constants.ConfigSchemaVersion.Major != version.Major)
-            {
-                throw new InvalidOperationException($"Desired properties schema version {schemaVersion} is not compatible with the expected version is {Constants.ConfigSchemaVersion}");
-            }
-
-            if (Constants.ConfigSchemaVersion.Minor != version.Minor)
-            {
-                Events.MismatchedMinorVersions(version, Constants.ConfigSchemaVersion);
+                Events.MismatchedMinorVersions(schemaVersion, Constants.ConfigSchemaVersion);
             }
         }
 
@@ -228,7 +219,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
             ValidateSchemaVersion(desiredProperties.SchemaVersion);
 
-            var routes = new List<(string Name, string Value, Route Route)>();
+            var routes = new Dictionary<string, RouteConfig>();
             if (desiredProperties.Routes != null)
             {
                 foreach (KeyValuePair<string, string> inputRoute in desiredProperties.Routes)
@@ -238,7 +229,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                         if (!string.IsNullOrWhiteSpace(inputRoute.Value))
                         {
                             Route route = this.routeFactory.Create(inputRoute.Value);
-                            routes.Add((inputRoute.Key, inputRoute.Value, route));
+                            routes.Add(inputRoute.Key, new RouteConfig(inputRoute.Key, inputRoute.Value, route));
                         }
                     }
                     catch (Exception ex)
@@ -248,7 +239,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 }
             }
 
-            return new EdgeHubConfig(desiredProperties.SchemaVersion, routes, desiredProperties.StoreAndForwardConfiguration);
+            return new EdgeHubConfig(desiredProperties.SchemaVersion, new ReadOnlyDictionary<string, RouteConfig>(routes), desiredProperties.StoreAndForwardConfiguration);
         }
 
         async Task HandleDesiredPropertiesUpdate(IMessage desiredPropertiesUpdate)
@@ -542,7 +533,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                     Invariant($"Error getting edge hub config from twin desired properties"));
             }
 
-            public static void MismatchedMinorVersions(Version receivedVersion, Version expectedVersion)
+            public static void MismatchedMinorVersions(string receivedVersion, Version expectedVersion)
             {
                 Log.LogWarning(
                     (int)EventIds.MismatchedSchemaVersion,

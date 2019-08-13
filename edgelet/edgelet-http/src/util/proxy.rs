@@ -3,6 +3,7 @@
 use hyper::{Body, Request, Uri};
 
 use super::super::client::ClientImpl;
+use super::super::PemCertificate;
 use super::hyperwrap::Client;
 use crate::error::Error;
 
@@ -12,17 +13,32 @@ pub struct MaybeProxyClient {
 }
 
 impl MaybeProxyClient {
-    pub fn new(proxy_uri: Option<Uri>) -> Result<Self, Error> {
-        MaybeProxyClient::create(false, proxy_uri)
+    pub fn new(
+        proxy_uri: Option<Uri>,
+        identity_certificate: Option<PemCertificate>,
+        trust_bundle: Option<PemCertificate>,
+    ) -> Result<Self, Error> {
+        MaybeProxyClient::new_inner(false, proxy_uri, identity_certificate, trust_bundle)
     }
 
-    fn create(null: bool, proxy_uri: Option<Uri>) -> Result<Self, Error> {
+    fn new_inner(
+        null: bool,
+        proxy_uri: Option<Uri>,
+        identity_certificate: Option<PemCertificate>,
+        trust_bundle: Option<PemCertificate>,
+    ) -> Result<Self, Error> {
         let mut config = Client::configure();
         if null {
             config.null();
         }
         if let Some(uri) = proxy_uri {
             config.proxy(uri);
+        }
+        if let Some(id_cert) = identity_certificate {
+            config.identity_certificate(id_cert);
+        }
+        if let Some(tb) = trust_bundle {
+            config.trust_bundle(tb);
         }
         Ok(MaybeProxyClient {
             client: config.build()?,
@@ -31,7 +47,7 @@ impl MaybeProxyClient {
 
     #[cfg(test)]
     pub fn new_null() -> Result<Self, Error> {
-        MaybeProxyClient::create(true, None)
+        MaybeProxyClient::new_inner(true, None, None, None)
     }
 
     #[cfg(test)]
@@ -62,14 +78,14 @@ mod tests {
 
     #[test]
     fn can_create_client() {
-        let client = MaybeProxyClient::new(None).unwrap();
+        let client = MaybeProxyClient::new(None, None, None).unwrap();
         assert!(!client.has_proxy() && !client.is_null());
     }
 
     #[test]
     fn can_create_client_with_proxy() {
         let uri = "http://example.com".parse::<Uri>().unwrap();
-        let client = MaybeProxyClient::new(Some(uri)).unwrap();
+        let client = MaybeProxyClient::new(Some(uri), None, None).unwrap();
         assert!(client.has_proxy() && !client.is_null());
     }
 

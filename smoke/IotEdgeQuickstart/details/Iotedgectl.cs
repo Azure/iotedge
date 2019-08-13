@@ -86,9 +86,11 @@ namespace IotEdgeQuickstart.Details
                 300); // 5 min timeout because install can be slow on raspberry pi
         }
 
-        public async Task Configure(string connectionString, string image, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
+        public async Task Configure(DeviceProvisioningMethod method, string image, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
         {
             Console.WriteLine($"Setting up iotedgectl with agent image '{image}'");
+
+            string connectionString = method.ManualConnectionString.Expect(() => new ArgumentException("The iotedgectl utility only supports device connection string to bootstrap Edge"));
 
             string registryArgs = this.credentials.Match(
                 c => $"--docker-registries {c.Address} {c.User} {c.Password}",

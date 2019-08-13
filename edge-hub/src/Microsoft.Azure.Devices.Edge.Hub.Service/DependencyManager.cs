@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.Edge.Hub.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Logging;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.ProtocolGateway.Instrumentation;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
@@ -69,15 +70,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     var loggerFactory = c.Resolve<ILoggerFactory>();
                     InternalLoggerFactory.DefaultFactory = loggerFactory;
 
-                    var eventListener = new LoggerEventListener(loggerFactory.CreateLogger("ProtocolGateway"));
+                    var eventListener = new LoggerEventListener(loggerFactory.CreateLogger("EdgeHub"));
                     eventListener.EnableEvents(CommonEventSource.Log, EventLevel.Informational);
                 });
 
             bool optimizeForPerformance = this.configuration.GetValue("OptimizeForPerformance", true);
             (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward = this.GetStoreAndForwardConfiguration();
 
+            IConfiguration configuration = this.configuration.GetSection("experimentalFeatures");
+            ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(configuration);
+
             this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward);
-            this.RegisterRoutingModule(builder, storeAndForward);
+            this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures);
             this.RegisterMqttModule(builder, storeAndForward, optimizeForPerformance);
             this.RegisterAmqpModule(builder);
             builder.RegisterModule(new HttpModule());
@@ -107,7 +111,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration, topics, this.serverCertificate, storeAndForward.isEnabled, clientCertAuthEnabled, optimizeForPerformance));
         }
 
-        void RegisterRoutingModule(ContainerBuilder builder, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward)
+        void RegisterRoutingModule(
+            ContainerBuilder builder,
+            (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward,
+            ExperimentalFeatures experimentalFeatures)
         {
             var routes = this.configuration.GetSection("routes").Get<Dictionary<string, string>>();
             int connectionPoolSize = this.configuration.GetValue<int>("IotHubConnectionPoolSize");
@@ -133,6 +140,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             int maxUpstreamBatchSize = this.configuration.GetValue("MaxUpstreamBatchSize", 10);
             int upstreamFanOutFactor = this.configuration.GetValue("UpstreamFanOutFactor", 10);
             bool encryptTwinStore = this.configuration.GetValue("EncryptTwinStore", false);
+            int configUpdateFrequencySecs = this.configuration.GetValue("ConfigRefreshFrequencySecs", 3600);
+            TimeSpan configUpdateFrequency = TimeSpan.FromSeconds(configUpdateFrequencySecs);
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -157,12 +166,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     useV1TwinManager,
                     maxUpstreamBatchSize,
                     upstreamFanOutFactor,
-                    encryptTwinStore));
+                    encryptTwinStore,
+                    configUpdateFrequency,
+                    experimentalFeatures));
         }
 
         void RegisterCommonModule(ContainerBuilder builder, bool optimizeForPerformance, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward)
         {
-            string productInfo = VersionInfo.Get(Constants.VersionInfoFileName).ToString();
             bool cacheTokens = this.configuration.GetValue("CacheTokens", false);
             Option<string> workloadUri = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadUri);
             Option<string> workloadApiVersion = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadAPiVersion);
@@ -176,7 +186,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             int scopeCacheRefreshRateSecs = this.configuration.GetValue("DeviceScopeCacheRefreshRateSecs", 3600);
             TimeSpan scopeCacheRefreshRate = TimeSpan.FromSeconds(scopeCacheRefreshRateSecs);
 
+            MetricsConfig metricsConfig = MetricsConfig.Create(this.configuration.GetSection("metrics"));
+
             string proxy = this.configuration.GetValue("https_proxy", string.Empty);
+            string productInfo = GetProductInfo();
 
             // Register modules
             builder.RegisterModule(
@@ -197,7 +210,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     scopeCacheRefreshRate,
                     cacheTokens,
                     this.trustBundle,
-                    proxy));
+                    proxy,
+                    metricsConfig));
+        }
+
+        static string GetProductInfo()
+        {
+            string version = VersionInfo.Get(Constants.VersionInfoFileName).ToString();
+            string productInfo = $"{Core.Constants.IoTEdgeProductInfoIdentifier}/{version}";
+            return productInfo;
         }
 
         (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) GetStoreAndForwardConfiguration()
@@ -217,6 +238,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             return (storeAndForwardEnabled, usePersistentStorage, storeAndForwardConfiguration, storagePath);
         }
 
+        // Note: Keep in sync with iotedge-check's edge-hub-storage-mounted-from-host check (edgelet/iotedge/src/check/mod.rs)
         string GetStoragePath()
         {
             string baseStoragePath = this.configuration.GetValue<string>("storageFolder");

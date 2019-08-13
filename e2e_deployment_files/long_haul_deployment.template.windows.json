@@ -21,25 +21,19 @@
           "edgeAgent": {
             "type": "docker",
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-agent:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": ""
             }
           },
           "edgeHub": {
             "type": "docker",
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-hub:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-hub:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"443/tcp\": [{\"HostPort\": \"443\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
             "env": {
               "CollectMetrics": {
                 "value": "true"
-              },
-              "MetricsStoreType": {
-                "value": "influxdb"
-              },
-              "InfluxDbUrl": {
-                "value": "http://influxdb:8086"
               }
             },
             "status": "running",
@@ -61,7 +55,7 @@
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": ""
             }
           },
@@ -79,7 +73,7 @@
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": ""
             }
           },
@@ -89,7 +83,7 @@
             "status": "running",
             "restartPolicy": "always",
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-simulated-temperature-sensor:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-simulated-temperature-sensor:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": ""
             },
             "env": {
@@ -115,7 +109,7 @@
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-temperature-filter:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-temperature-filter:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": ""
             }
           },
@@ -125,7 +119,7 @@
             "status": "running",
             "restartPolicy": "always",
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-simulated-temperature-sensor:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-simulated-temperature-sensor:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": ""
             },
             "env": {
@@ -151,56 +145,52 @@
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-temperature-filter:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-temperature-filter:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": ""
             }
           },
-          // Work needed to enable snitcher for Windows
-          // "snitcher": {
-          //   "version": "2.0",
-          //   "type": "docker",
-          //   "status": "running",
-          //   "restartPolicy": "always",
-          //   "env": {
-          //     "BUILD_ID": {
-          //       "value": "<Snitch.BuildId>"
-          //     },
-          //     "TEST_DURATION_IN_SECS": {
-          //       "value": "<Snitch.TestDurationInSecs>"
-          //     },
-          //     "REPORTING_INTERVAL_IN_SECS": {
-          //       "value": "<Snitch.ReportingIntervalInSecs>"
-          //     },
-          //     "ALERT_URL": {
-          //       "value": "<Snitch.AlertUrl>"
-          //     },
-          //     "INFLUX_URL": {
-          //       "value": "http://influxdb:8086"
-          //     },
-          //     "INFLUX_DB_NAME": {
-          //       "value": "_internal"
-          //     },
-          //     "ANALYZER_URL": {
-          //       "value": "http://analyzer:15000/api/report"
-          //     },
-          //     "BLOB_STORAGE_ACCOUNT": {
-          //       "value": "<Snitch.StorageAccount>"
-          //     },
-          //     "BLOB_STORAGE_MASTER_KEY": {
-          //       "value": "<Snitch.StorageMasterKey>"
-          //     },
-          //     "BLOB_CONTAINER_NAME": {
-          //       "value": "loadtest1"
-          //     },
-          //     "RUST_LOG": {
-          //       "value": "snitcher=info"
-          //     }
-          //   },
-          //   "settings": {
-          //     "image": "<Container_Registry>/microsoft/snitcher:<Snitch.BuildNumber>-linux-<Architecture>",
-          //     "createOptions": "{\"HostConfig\":{\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\"]}}"
-          //   }
-          // },
+          "snitcher": {
+            "version": "2.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "BUILD_ID": {
+                "value": "<Snitch.BuildId>"
+              },
+              "TEST_DURATION_IN_SECS": {
+                "value": "<Snitch.TestDurationInSecs>"
+              },
+              "REPORTING_INTERVAL_IN_SECS": {
+                "value": "<Snitch.ReportingIntervalInSecs>"
+              },
+              "ALERT_URL": {
+                "value": "<Snitch.AlertUrl>"
+              },
+              "ANALYZER_URL": {
+                "value": "http://analyzer:15000/api/report"
+              },
+              "BLOB_STORAGE_ACCOUNT": {
+                "value": "<Snitch.StorageAccount>"
+              },
+              "BLOB_STORAGE_MASTER_KEY": {
+                "value": "<Snitch.StorageMasterKey>"
+              },
+              "BLOB_CONTAINER_NAME": {
+                "value": "loadtest1"
+              },
+              "RUST_LOG": {
+                "value": "snitcher=info"
+              },
+              "MANAGEMENT_URI": {
+                "value": "unix:///C:/ProgramData/iotedge/mgmt/sock"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/snitcher:<Snitch.BuildNumber>-windows-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"C:\\\\ProgramData\\\\iotedge\\\\mgmt:C:\\\\ProgramData\\\\iotedge\\\\mgmt\"]}}"
+            }
+          },
           "analyzer": {
             "type": "docker",
             "status": "running",
@@ -214,21 +204,10 @@
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-analyzer:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-analyzer:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"15000/tcp\":[{\"HostPort\":\"15000\"}]}}}"
             }
           },
-          // No windows version of influxdb
-          // "influxdb": {
-          //   "version": "1.0",
-          //   "type": "docker",
-          //   "status": "running",
-          //   "restartPolicy": "on-unhealthy",
-          //   "settings": {
-          //     "image": "influxdb:1.7.5",
-          //     "createOptions": "{\"ExposedPorts\":{\"8086/tcp\":{}},\"HostConfig\":{\"PortBindings\":{\"8086/tcp\":[{\"HostPort\":\"8086\"}]}}}"
-          //   }
-          // },
           "DirectMethodCloudSender": {
             "version": "1.0",
             "type": "docker",
@@ -246,7 +225,7 @@
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-cloud-sender:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-cloud-sender:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": ""
             }
           },
@@ -261,7 +240,7 @@
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": ""
             }
           },
@@ -282,7 +261,7 @@
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-cloud-sender:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-cloud-sender:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": ""
             }
           },
@@ -297,7 +276,7 @@
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": ""
             }
           }

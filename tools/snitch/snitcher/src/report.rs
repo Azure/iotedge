@@ -6,10 +6,10 @@ use std::io::Write;
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use libflate::gzip::Encoder as GzipEncoder;
+use serde::{Deserialize, Serialize};
 use tar::{Builder as TarBuilder, Header as TarHeader};
 
-use error::Result;
-use influx::QueryResults;
+use crate::error::Result;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -36,7 +36,6 @@ pub struct Report {
     id: String,
     #[serde(skip)]
     files: Vec<(String, Bytes)>,
-    metrics: HashMap<String, QueryResults>,
     notes: Vec<String>,
     message_analysis: Option<Vec<MessageAnalysis>>,
     attachments: HashMap<String, String>,
@@ -47,7 +46,6 @@ impl Report {
         Report {
             id,
             files: vec![],
-            metrics: HashMap::new(),
             notes: vec![],
             message_analysis: None,
             attachments: HashMap::new(),
@@ -64,11 +62,6 @@ impl Report {
 
     pub fn add_file(&mut self, name: &str, data: &[u8]) -> &Self {
         self.files.push((name.to_owned(), Bytes::from(data)));
-        self
-    }
-
-    pub fn add_metric(&mut self, name: &str, metric: QueryResults) -> &Self {
-        self.metrics.insert(name.to_owned(), metric);
         self
     }
 

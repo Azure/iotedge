@@ -7,8 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     using System.Collections.ObjectModel;
     using System.Linq;
     using System.Threading.Tasks;
-    using App.Metrics;
-    using App.Metrics.Gauge;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -37,7 +35,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             this.maxClients = Preconditions.CheckRange(maxClients, 1, nameof(maxClients));
             this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(credentialsCache));
             this.identityProvider = Preconditions.CheckNotNull(identityProvider, nameof(identityProvider));
-            Util.Metrics.RegisterGaugeCallback(() => Metrics.SetConnectedClientCountGauge(this));
         }
 
         public event EventHandler<IIdentity> CloudConnectionEstablished;
@@ -82,15 +79,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public async Task<Option<ICloudProxy>> GetCloudConnection(string id)
         {
+            Try<ICloudProxy> cloudProxyTry = await this.TryGetCloudConnection(id);
+            return cloudProxyTry
+                .Ok()
+                .Map(c => (ICloudProxy)new RetryingCloudProxy(id, () => this.TryGetCloudConnection(id), c));
+        }
+
+        async Task<Try<ICloudProxy>> TryGetCloudConnection(string id)
+        {
             IIdentity identity = this.identityProvider.Create(Preconditions.CheckNonWhiteSpace(id, nameof(id)));
             ConnectedDevice device = this.GetOrCreateConnectedDevice(identity);
 
             Try<ICloudConnection> cloudConnectionTry = await device.GetOrCreateCloudConnection(
-                c => this.cloudConnectionProvider.Connect(c.Identity, (i, status) => this.CloudConnectionStatusChangedHandler(i, status)));
+                c => this.cloudConnectionProvider.Connect(c.Identity, this.CloudConnectionStatusChangedHandler));
 
             Events.GetCloudConnection(device.Identity, cloudConnectionTry);
             Try<ICloudProxy> cloudProxyTry = GetCloudProxyFromCloudConnection(cloudConnectionTry, device.Identity);
-            return cloudProxyTry.Ok();
+            return cloudProxyTry;
         }
 
         public void AddSubscription(string id, DeviceSubscription deviceSubscription)
@@ -134,7 +139,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Try<ICloudConnection> newCloudConnection = await device.CreateOrUpdateCloudConnection(c => this.CreateOrUpdateCloudConnection(c, credentials));
             Events.NewCloudConnection(credentials.Identity, newCloudConnection);
             Try<ICloudProxy> cloudProxyTry = GetCloudProxyFromCloudConnection(newCloudConnection, credentials.Identity);
-            return cloudProxyTry;
+            return cloudProxyTry.Success
+                ? Try.Success((ICloudProxy)new RetryingCloudProxy(credentials.Identity.Id, () => this.TryGetCloudConnection(credentials.Identity.Id), cloudProxyTry.Value))
+                : cloudProxyTry;
         }
 
         // This method is not used, but it has important logic and this will be useful for offline scenarios.
@@ -150,11 +157,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             Try<ICloudConnection> cloudConnectionTry = await device.GetOrCreateCloudConnection((c) => this.CreateOrUpdateCloudConnection(c, credentials));
             Events.GetCloudConnection(credentials.Identity, cloudConnectionTry);
             Try<ICloudProxy> cloudProxyTry = GetCloudProxyFromCloudConnection(cloudConnectionTry, credentials.Identity);
-            return cloudProxyTry;
+            return cloudProxyTry.Success
+                ? Try.Success((ICloudProxy)new RetryingCloudProxy(credentials.Identity.Id, () => this.TryGetCloudConnection(credentials.Identity.Id), cloudProxyTry.Value))
+                : cloudProxyTry;
         }
 
         static Try<ICloudProxy> GetCloudProxyFromCloudConnection(Try<ICloudConnection> cloudConnection, IIdentity identity) => cloudConnection.Success
-            ? cloudConnection.Value.CloudProxy.Map(cp => Try.Success(cp))
+            ? cloudConnection.Value.CloudProxy.Map(Try.Success)
                 .GetOrElse(() => Try<ICloudProxy>.Failure(new EdgeHubConnectionException($"Unable to get cloud proxy for device {identity.Id}")))
             : Try<ICloudProxy>.Failure(cloudConnection.Exception);
 
@@ -488,22 +497,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 {
                     Log.LogInformation((int)EventIds.ObtainCloudConnectionError, cloudConnection.Exception, Invariant($"Error getting cloud connection for device {identity.Id}"));
                 }
-            }
-        }
-
-        static class Metrics
-        {
-            static readonly GaugeOptions ConnectedClientGaugeOptions = new GaugeOptions
-            {
-                Name = "EdgeHubConnectedClientGauge",
-                MeasurementUnit = Unit.Events
-            };
-
-            public static void SetConnectedClientCountGauge(ConnectionManager connectionManager)
-            {
-                // Subtract EdgeHub from the list of connected clients
-                int connectedClients = connectionManager.GetConnectedClients().Count() - 1;
-                Util.Metrics.SetGauge(ConnectedClientGaugeOptions, connectedClients);
             }
         }
     }

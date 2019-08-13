@@ -6,9 +6,8 @@ use std::time::Duration;
 
 use clap::crate_name;
 use failure::ResultExt;
+use futures::future::Future;
 use log::{error, info};
-use winapi::shared::minwindef::DWORD;
-use winapi::um::wincon::{GenerateConsoleCtrlEvent, CTRL_C_EVENT};
 use windows_service::service::{
     ServiceControl, ServiceControlAccept, ServiceExitCode, ServiceState, ServiceStatus, ServiceType,
 };
@@ -20,6 +19,15 @@ use windows_service::{define_windows_service, service_dispatcher};
 use crate::app;
 use crate::error::{Error, ErrorKind, InitializeErrorReason, ServiceError};
 use crate::logging;
+use crate::signal;
+
+#[cfg(feature = "runtime-docker")]
+type ModuleRuntime = edgelet_docker::DockerModuleRuntime;
+#[cfg(feature = "runtime-kubernetes")]
+type ModuleRuntime = edgelet_kube::KubeModuleRuntime<
+    kube_client::ValueToken,
+    kube_client::HttpClient<hyper_tls::HttpsConnector<hyper::client::HttpConnector>, hyper::Body>,
+>;
 
 const RUN_AS_CONSOLE_KEY: &str = "IOTEDGE_RUN_AS_CONSOLE";
 const IOTEDGED_SERVICE_NAME: &str = crate_name!();
@@ -44,6 +52,10 @@ fn iotedge_service_main(args: Vec<OsString>) {
 }
 
 fn run_as_service(_: Vec<OsString>) -> Result<ServiceStatusHandle, Error> {
+    // Configure a Signal Future to alert us if Windows shuts us down.
+    let windows_signal = signal_future::signal();
+    let ws_signaler = windows_signal.clone();
+
     // setup the service control handler
     let status_handle = register(
         IOTEDGED_SERVICE_NAME,
@@ -51,14 +63,8 @@ fn run_as_service(_: Vec<OsString>) -> Result<ServiceStatusHandle, Error> {
             ServiceControl::Shutdown | ServiceControl::Stop => {
                 info!("{} service is shutting down", IOTEDGED_SERVICE_NAME);
 
-                // We were told by windows to shutdown :(
-                // Let's generate a CTRL_C event to trigger the shutdown sequence
-                // https://docs.microsoft.com/en-us/windows/console/generateconsolectrlevent
-                // 0 is used as the process group id since CTRL C is passed to all processes
-                // that share a console, but doesn't actually target a process group
-                unsafe {
-                    GenerateConsoleCtrlEvent(CTRL_C_EVENT, 0 as DWORD);
-                }
+                let mut windows_signal = windows_signal.clone();
+                windows_signal.signal();
 
                 ServiceControlHandlerResult::NoError
             }
@@ -71,28 +77,40 @@ fn run_as_service(_: Vec<OsString>) -> Result<ServiceStatusHandle, Error> {
         InitializeErrorReason::RegisterWindowsService,
     ))?;
 
+    // initialize iotedged
+    info!("Initializing {} service.", IOTEDGED_SERVICE_NAME);
     let settings = app::init_win_svc()?;
-    let main = super::Main::new(settings);
+    let main = super::Main::<ModuleRuntime>::new(settings);
 
     // tell Windows we're all set
     update_service_state(status_handle, ServiceState::Running)?;
 
     // start running
     info!("Starting {} service.", IOTEDGED_SERVICE_NAME);
-    main.run()?;
-
-    // This will only happen if a shutdown class event happens and main returns.
-    info!("Stopping {} service.", IOTEDGED_SERVICE_NAME);
-    update_service_state(status_handle, ServiceState::StopPending)?;
+    main.run_until(move || {
+        signal::shutdown()
+            .select(ws_signaler.clone())
+            .map(move |_| {
+                info!("Stopping {} service.", IOTEDGED_SERVICE_NAME);
+                if let Err(err) = update_service_state(status_handle, ServiceState::StopPending) {
+                    error!(
+                        "An error occurred while setting service status to STOP_PENDING: {:?}",
+                        err,
+                    );
+                }
+            })
+            .map_err(|_| ())
+    })?;
 
     Ok(status_handle)
 }
 
 pub fn run_as_console() -> Result<(), Error> {
     let settings = app::init()?;
-    let main = super::Main::new(settings);
+    let main = super::Main::<ModuleRuntime>::new(settings);
 
-    main.run()?;
+    main.run_until(signal::shutdown)?;
+
     Ok(())
 }
 
@@ -103,6 +121,10 @@ pub fn run() -> Result<(), Error> {
         run_as_console()?;
         Ok(())
     } else {
+        // Initialize logging before starting the service so that errors can be logged even if the service never starts,
+        // such as if we couldn't connect to the service controller.
+        app::init_win_svc_logging();
+
         // kick-off the Windows service dance
         service_dispatcher::start(IOTEDGED_SERVICE_NAME, ffi_service_main)
             .map_err(ServiceError::from)

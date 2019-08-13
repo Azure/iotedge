@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.ProtocolGateway.Messaging;
     using Microsoft.Extensions.Logging;
     using Microsoft.Extensions.Primitives;
@@ -165,6 +166,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             {
                 IMessage coreMessage = this.messageConverter.ToMessage(message);
                 Events.ProcessMessage(this.deviceListener.Identity);
+                Metrics.AddReceivedMessage(this.deviceListener.Identity);
                 return this.deviceListener.ProcessDeviceMessageAsync(coreMessage);
             }
             catch (Exception e)
@@ -224,6 +226,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             {
                 Log.LogWarning((int)EventIds.SendMethodResponseFailure, Invariant($"Methods response was not sent for device Id {identity.Id} exception {exception}"));
             }
+        }
+
+        static class Metrics
+        {
+            static readonly IMetricsCounter ReceivedMessagesCounter = Microsoft.Azure.Devices.Edge.Util.Metrics.Metrics.Instance.CreateCounter(
+                "messages_received",
+                "Number of messages received from client",
+                new List<string>
+                {
+                    "protocol",
+                    "id"
+                });
+
+            public static void AddReceivedMessage(IIdentity identity) => ReceivedMessagesCounter.Increment(1, new[] { "mqtt", identity.Id });
         }
     }
 }

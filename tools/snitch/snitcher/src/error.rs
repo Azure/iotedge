@@ -38,23 +38,24 @@ impl Error {
 
 #[derive(Debug)]
 pub enum ErrorKind {
-    Io(IoError),
+    Azure(String),
+    Connect(String),
     Env(String),
+    Hex(FromHexError),
+    Http(HttpError),
+    Hyper(HyperError),
+    HyperTls(HyperTlsError),
+    InvalidConnectState,
+    InvalidUrlScheme,
+    Io(IoError),
+    MissingPath,
+    ModuleRuntime(String),
     ParseInt(ParseIntError),
     ParseUrl(ParseUrlError),
     SerdeJson(SerdeJsonError),
-    Hyper(HyperError),
-    HyperTls(HyperTlsError),
-    Http(HttpError),
     Service(HyperStatusCode, String),
     Timer(TimerError),
-    InvalidUrlScheme,
-    MissingPath,
-    Hex(FromHexError),
     Utf8(Utf8Error),
-    Connect(String),
-    InvalidConnectState,
-    Azure(AzureError),
 }
 
 impl StdError for Error {}
@@ -126,7 +127,7 @@ impl From<IoError> for Error {
 
 impl From<AzureError> for Error {
     fn from(err: AzureError) -> Error {
-        Error::new(ErrorKind::Azure(err))
+        Error::new(ErrorKind::Azure(err.to_string()))
     }
 }
 

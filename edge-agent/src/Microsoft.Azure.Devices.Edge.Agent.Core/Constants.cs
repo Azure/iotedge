@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
+    using System;
+
     public static class Constants
     {
         public const string OwnerValue = "Microsoft.Azure.Devices.Edge.Agent";
@@ -73,6 +75,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string DockerMode = "docker";
 
+        public const string KubernetesMode = "kubernetes";
+
         public const string NetworkIdKey = "NetworkId";
 
         public const string EdgeletClientApiVersion = "2019-01-30";
@@ -84,6 +88,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public const string RequestTimeoutSecs = "RequestTimeoutSecs";
 
         public const string AllModulesIdentifier = "all";
+
+        public const string ProxyImageEnvKey = "ProxyImage";
+
+        public const string ProxyConfigPathEnvKey = "ProxyConfigPath";
+
+        public const string ProxyConfigVolumeEnvKey = "ProxyConfigVolume";
+
+        public const string DisableCloudSubscriptions = "DisableCloudSubscriptions";
+
+        public const string CloseOnIdleTimeout = "CloseCloudConnectionOnIdleTimeout";
+
+        public const string IdleTimeoutSecs = "CloudConnectionIdleTimeoutSecs";
+
+        public const string EdgeAgentServiceAccountName = "ServiceAccountName";
 
         public static class Labels
         {

@@ -16,15 +16,37 @@
 # Configures the identity provisioning mode of the daemon.
 #
 # Supported modes:
-#     manual - using an iothub connection string
-#     dps    - using dps for provisioning
+#     manual   - using an iothub connection string
+#     dps      - using dps for provisioning
+#     external - the device has been provisioned externally.
+#                Uses an external provisioning endpoint to get device specific information.
 #
 # DPS Settings
-#     scope_id - Required. Value of a specific DPS instance's ID scope
-#     registration_id - Required. Registration ID of a specific device in DPS
-#     symmetric_key - Optional. This entry should only be specified when
-#                     provisioning devices configured for symmetric key
-#                     attestation
+#     scope_id        - Required. Value of a specific DPS instance's ID scope
+#     registration_id - Required for TPM and symmetric key provisioning flows.
+#                       Optional for X.509 provisioning. Registration ID of a
+#                       specific device in DPS.
+#                       For more information regarding DPS registration ids
+#                       please see https://docs.microsoft.com/en-us/azure/iot-dps/concepts-device#registration-id
+#     symmetric_key   - Optional. This entry should only be specified when
+#                       provisioning devices configured for symmetric key
+#                       attestation. Device specific symmetric key.
+#     identity_cert   - Optional. The Edge device identity X.509 certificate
+#                       entry should only be specified when provisioning
+#                       an Edge device configured for X.509 attestation.
+#                       The value should be specified as a URI.
+#                       Ex. when specifying a PEM encoded certificate file, the URI
+#                       should be specified as file:///C:/identity_certificate.pem
+#     identity_pk     - Optional. The Edge device identity private key
+#                       entry should only be specified when provisioning
+#                       an Edge device configured for X.509 attestation.
+#                       The value should be specified as a URI.
+#                       Ex. when specifying a PEM encoded private key file, the URI
+#                       should be specified as file:///C:/identity_key.pem
+#
+# External Settings
+#     endpoint - Required. Value of the endpoint used to retrieve device specific
+#                information such as its IoT hub connection information.
 ###############################################################################
 
 # Manual provisioning configuration
@@ -40,7 +62,6 @@ provisioning:
 #   attestation:
 #     method: "tpm"
 #     registration_id: "{registration_id}"
-#     device_id: "<OPTIONAL DEVICE ID TO BE PROVISIONED IN IOTHUB>"
 
 # DPS symmetric key provisioning configuration
 # provisioning:
@@ -50,7 +71,6 @@ provisioning:
 #   attestation:
 #     method: "symmetric_key"
 #     registration_id: "{registration_id}"
-#     device_id: "<OPTIONAL DEVICE ID TO BE PROVISIONED IN IOTHUB>"
 #     symmetric_key: "{symmetric_key}"
 
 # DPS X.509 provisioning configuration
@@ -61,9 +81,13 @@ provisioning:
 #   attestation:
 #     method: "x509"
 #     registration_id: "<OPTIONAL REGISTRATION ID. IF UNSPECIFIED CAN BE OBTAINED FROM CN OF identity_cert"
-#     device_id: "<OPTIONAL DEVICE ID TO BE PROVISIONED IN IOTHUB>"
-#     identity_cert: "<OPTIONAL PATH TO DEVICE IDENTITY CERTIFICATE HERE. IF UNSPECIFIED, DEVICE CA WILL ISSUE ONE>"
-#     identity_pk: "<OPTIONAL PATH TO DEVICE IDENTITY PRIVATE KEY HERE. IF UNSPECIFIED, DEVICE CA WILL ISSUE ONE>"
+#     identity_cert: "<REQUIRED URI TO DEVICE IDENTITY CERTIFICATE>"
+#     identity_pk: "<REQUIRED URI TO DEVICE IDENTITY PRIVATE KEY>"
+
+# External provisioning configuration
+# provisioning:
+#   source: "external"
+#   endpoint: "http://localhost:9999"
 
 ###############################################################################
 # Certificate settings
@@ -76,17 +100,24 @@ provisioning:
 # production environments.
 #
 # Settings:
-#     device_ca_cert   - path to the device ca certificate and its chain
-#     device_ca_pk     - path to the device ca private key file
-#     trusted_ca_certs - path to a file containing all the trusted CA
+#     device_ca_cert   - URI of the device ca certificate and its chain.
+#                        Optionally can be specified as a file path.
+#     device_ca_pk     - URI of the device ca private key file.
+#                        Optionally can be specified as a file path.
+#     trusted_ca_certs - URI containing all the trusted CA
 #                        certificates required for Edge module communication
+#                        Optionally can be specified as a file path.
 #
+# Note:
+# The values of all of these fields can be specified either as a
+# "file" scheme URI such as "file:///C:/cert_key.pem" or a
+#  file path such as "C:\\cert_key.pem"
 ###############################################################################
 
 # certificates:
-#   device_ca_cert: "<ADD PATH TO DEVICE CA CERTIFICATE HERE>"
-#   device_ca_pk: "<ADD PATH TO DEVICE CA PRIVATE KEY HERE>"
-#   trusted_ca_certs: "<ADD PATH TO TRUSTED CA CERTIFICATES HERE>"
+#   device_ca_cert: "<ADD URI TO DEVICE CA CERTIFICATE HERE>"
+#   device_ca_pk: "<ADD URI TO DEVICE CA PRIVATE KEY HERE>"
+#   trusted_ca_certs: "<ADD URI TO TRUSTED CA CERTIFICATES HERE>"
 
 ###############################################################################
 # Edge Agent module spec
@@ -143,6 +174,33 @@ agent:
 ###############################################################################
 
 hostname: "<ADD HOSTNAME HERE>"
+
+###############################################################################
+# Watchdog settings
+###############################################################################
+#
+# The IoT edge daemon has a watchdog that periodically checks the health of the
+# Edge Agent module and restarts it if it's down.
+#
+# max_retries - Configures the number of retry attempts that the IoT edge daemon
+#               should make for failed operations before failing with a fatal error.
+#
+#               If this configuration is not specified, the daemon keeps retrying
+#               on errors and doesn't fail fatally.
+#
+#               On a fatal failure, the daemon returns an exit code which
+#               signifies the kind of error encountered. Currently, the following
+#               error codes are returned by the daemon -
+#
+#               150 - Invalid Device ID specified.
+#               151 - Invalid IoT hub configuration.
+#               152 - Invalid SAS token used to call IoT hub.
+#                     This could signal an invalid SAS key.
+#               1 - All other errors.
+###############################################################################
+
+#watchdog:
+#  max_retries: 2
 
 ###############################################################################
 # Connect settings

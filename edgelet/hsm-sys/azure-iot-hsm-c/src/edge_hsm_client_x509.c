@@ -11,17 +11,25 @@
 #include "azure_c_shared_utility/gballoc.h"
 #include "azure_c_shared_utility/crt_abstractions.h"
 #include "hsm_client_data.h"
+#include "hsm_constants.h"
+#include "hsm_err.h"
 #include "hsm_log.h"
 #include "hsm_utils.h"
 
-extern const char* const EDGE_DEVICE_ALIAS;
-extern const char* const ENV_DEVICE_CERTIFICATE_PATH;
-extern const char* const ENV_DEVICE_PRIVATE_KEY_PATH;
-extern const char* const ENV_REGISTRATION_ID;
-
+//##############################################################################
+// Static data variables
+//##############################################################################
 static bool g_is_x509_initialized = false;
 static unsigned int g_ref_cnt = 0;
 
+//##############################################################################
+// Forward declarations
+//##############################################################################
+static CERT_INFO_HANDLE edge_x509_hsm_get_cert_info(HSM_CLIENT_HANDLE hsm_handle);
+
+//##############################################################################
+// Interface implementation
+//##############################################################################
 int hsm_client_x509_init()
 {
     int result;
@@ -128,200 +136,58 @@ void edge_x509_hsm_destroy(HSM_CLIENT_HANDLE hsm_handle)
     }
 }
 
-static CERT_PROPS_HANDLE create_edge_device_properties
-(
-    const char* common_name,
-    uint64_t validity_seconds,
-    const char* issuer_alias
-)
-{
-    CERT_PROPS_HANDLE certificate_props = cert_properties_create();
-    const char* alias = EDGE_DEVICE_ALIAS;
-
-    if (certificate_props == NULL)
-    {
-        LOG_ERROR("Could not create certificate props for %s", alias);
-    }
-    else if (set_common_name(certificate_props, common_name) != 0)
-    {
-        LOG_ERROR("Could not set common name for %s", alias);
-        cert_properties_destroy(certificate_props);
-        certificate_props = NULL;
-    }
-    else if (set_validity_seconds(certificate_props, validity_seconds) != 0)
-    {
-        LOG_ERROR("Could not set validity for %s", alias);
-        cert_properties_destroy(certificate_props);
-        certificate_props = NULL;
-    }
-    else if (set_alias(certificate_props, alias) != 0)
-    {
-        LOG_ERROR("Could not set alias for %s", alias);
-        cert_properties_destroy(certificate_props);
-        certificate_props = NULL;
-    }
-    else if (set_issuer_alias(certificate_props, issuer_alias) != 0)
-    {
-        LOG_ERROR("Could not set issuer alias for %s", alias);
-        cert_properties_destroy(certificate_props);
-        certificate_props = NULL;
-    }
-    else if (set_certificate_type(certificate_props, CERTIFICATE_TYPE_CLIENT) != 0)
-    {
-        LOG_ERROR("Could not set certificate type for %s", alias);
-        cert_properties_destroy(certificate_props);
-        certificate_props = NULL;
-    }
-
-    return certificate_props;
-}
-
-static CERT_INFO_HANDLE create_device_certificate(HSM_CLIENT_HANDLE hsm_handle)
-{
-    CERT_INFO_HANDLE result, issuer;
-    uint64_t validity_seconds = 0;
-    const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
-    const char* issuer_alias = hsm_get_device_ca_alias();
-    char *common_name;
-
-    if ((hsm_get_env(ENV_REGISTRATION_ID, &common_name) != 0) ||
-        (common_name == NULL))
-    {
-        LOG_ERROR("Environment variable %s is not set or empty."
-                  "This value is required to create the device identity certificate",
-                  ENV_REGISTRATION_ID);
-        result = NULL;
-    }
-    else if (strlen(common_name) == 0)
-    {
-        LOG_ERROR("Environment variable %s is not set or empty."
-                  "This value is required to create the device identity certificate",
-                  ENV_REGISTRATION_ID);
-        free(common_name);
-        result = NULL;
-    }
-    else if ((issuer = interface->hsm_client_crypto_get_certificate(hsm_handle,
-                                                                    issuer_alias)) == NULL)
-    {
-        LOG_ERROR("Issuer alias %s does not exist", issuer_alias);
-        free(common_name);
-        result = NULL;
-    }
-    else
-    {
-        CERT_PROPS_HANDLE certificate_props;
-
-        if ((validity_seconds = certificate_info_get_valid_to(issuer)) == 0)
-        {
-            LOG_ERROR("Issuer alias's %s certificate contains invalid expiration", issuer_alias);
-            result = NULL;
-        }
-        else
-        {
-            double seconds_left = 0;
-            time_t now = time(NULL);
-
-            if ((seconds_left = difftime(validity_seconds, now)) <= 0)
-            {
-                LOG_ERROR("Issuer certificate has expired");
-                result = NULL;
-            }
-            else if ((certificate_props = create_edge_device_properties(common_name,
-                                                                        (uint64_t)floor(seconds_left),
-                                                                        issuer_alias)) == NULL)
-            {
-                LOG_ERROR("Error creating certificate properties for device certificate");
-                result = NULL;
-            }
-            else
-            {
-                result = interface->hsm_client_create_certificate(hsm_handle, certificate_props);
-                if (result == NULL)
-                {
-                    LOG_ERROR("Failed to create device certificate with CN %s", common_name);
-                }
-                cert_properties_destroy(certificate_props);
-            }
-        }
-        free(common_name);
-        certificate_info_destroy(issuer);
-    }
-
-    return result;
-}
-
 static int get_device_id_cert_env_vars(char **device_cert_file_path, char **device_pk_file_path)
 {
     int result;
     char *cert_path = NULL;
     char *key_path = NULL;
 
-    if (hsm_get_env(ENV_DEVICE_CERTIFICATE_PATH, &cert_path) != 0)
+    if (hsm_get_env(ENV_DEVICE_ID_CERTIFICATE_PATH, &cert_path) != 0)
     {
-        LOG_ERROR("Failed to read env variable %s", ENV_DEVICE_CERTIFICATE_PATH);
+        LOG_ERROR("Failed to read env variable %s", ENV_DEVICE_ID_CERTIFICATE_PATH);
         result = __FAILURE__;
     }
-    else if (hsm_get_env(ENV_DEVICE_PRIVATE_KEY_PATH, &key_path) != 0)
+    else if (hsm_get_env(ENV_DEVICE_ID_PRIVATE_KEY_PATH, &key_path) != 0)
     {
-        LOG_ERROR("Failed to read env variable %s", ENV_DEVICE_PRIVATE_KEY_PATH);
-        if (cert_path != NULL)
-        {
-            free(cert_path);
-        }
+        LOG_ERROR("Failed to read env variable %s", ENV_DEVICE_ID_PRIVATE_KEY_PATH);
         result = __FAILURE__;
     }
     else
     {
-        *device_cert_file_path = cert_path;
-        *device_pk_file_path = key_path;
         result = 0;
     }
 
+    if (result != 0)
+    {
+        FREEIF(cert_path);
+        FREEIF(key_path);
+    }
+
+    *device_cert_file_path = cert_path;
+    *device_pk_file_path = key_path;
+
     return result;
 }
 
-static CERT_INFO_HANDLE prepare_device_certificate_info
-(
-    const char *cert_file_path,
-    const char *pk_file_path
-)
+static CERT_INFO_HANDLE get_device_id_cert_if_exists(HSM_CLIENT_HANDLE hsm_handle)
 {
-    CERT_INFO_HANDLE result;
-    char *cert_contents, *private_key_contents;
-    size_t private_key_size = 0;
+    const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
 
-    if ((private_key_contents = read_file_into_buffer(pk_file_path, &private_key_size)) == NULL)
+    CERT_INFO_HANDLE result = interface->hsm_client_crypto_get_certificate(hsm_handle,
+                                                                           EDGE_DEVICE_ALIAS);
+    if (result == NULL)
     {
-        LOG_ERROR("Could not load private key into buffer %s", pk_file_path);
-        result = NULL;
-    }
-    else if ((cert_contents = read_file_into_cstring(cert_file_path, NULL)) == NULL)
-    {
-        LOG_ERROR("Could not read certificate into buffer %s", cert_file_path);
-        free(private_key_contents);
-        result = NULL;
-    }
-    else
-    {
-        result = certificate_info_create(cert_contents,
-                                         private_key_contents,
-                                         private_key_size,
-                                         (private_key_size != 0) ? PRIVATE_KEY_PAYLOAD :
-                                                                   PRIVATE_KEY_UNKNOWN);
-        free(private_key_contents);
-        free(cert_contents);
+        LOG_INFO("Failed to obtain device identity certificate");
     }
 
     return result;
 }
 
-static CERT_INFO_HANDLE get_or_create_device_certificate(HSM_CLIENT_HANDLE hsm_handle)
+static CERT_INFO_HANDLE get_device_identity_certificate(HSM_CLIENT_HANDLE hsm_handle)
 {
     CERT_INFO_HANDLE result;
     char *device_cert_file_path = NULL;
     char *device_pk_file_path = NULL;
-    bool env_set = false;
-    unsigned int mask = 0, i = 0;
 
     if (get_device_id_cert_env_vars(&device_cert_file_path, &device_pk_file_path) != 0)
     {
@@ -329,74 +195,23 @@ static CERT_INFO_HANDLE get_or_create_device_certificate(HSM_CLIENT_HANDLE hsm_h
     }
     else
     {
-        if (device_cert_file_path != NULL)
+        if ((device_cert_file_path != NULL) && (device_pk_file_path != NULL))
         {
-            if ((strlen(device_cert_file_path) != 0) && is_file_valid(device_cert_file_path))
-            {
-                mask |= 1 << i; i++;
-            }
-            else
-            {
-                LOG_ERROR("Path set in env variable %s is invalid or cannot be accessed: '%s'",
-                          ENV_DEVICE_CERTIFICATE_PATH, device_cert_file_path);
-            }
-            env_set = true;
-            LOG_DEBUG("Env %s set to %s", ENV_DEVICE_CERTIFICATE_PATH, device_cert_file_path);
+            // obtain provisioned device id certificate
+            result = get_device_id_cert_if_exists(hsm_handle);
         }
         else
         {
-            LOG_DEBUG("Env %s is NULL", ENV_DEVICE_CERTIFICATE_PATH);
-        }
-
-        if (device_pk_file_path != NULL)
-        {
-            if ((strlen(device_pk_file_path) != 0) && is_file_valid(device_pk_file_path))
-            {
-                mask |= 1 << i; i++;
-            }
-            else
-            {
-                LOG_ERROR("Path set in env variable %s is invalid or cannot be accessed: '%s'",
-                          ENV_DEVICE_PRIVATE_KEY_PATH, device_pk_file_path);
-            }
-            env_set = true;
-            LOG_DEBUG("Env %s set to %s", ENV_DEVICE_PRIVATE_KEY_PATH, device_pk_file_path);
-        }
-        else
-        {
-            LOG_DEBUG("Env %s is NULL", ENV_DEVICE_PRIVATE_KEY_PATH);
-        }
-
-        LOG_DEBUG("Device identity setup mask 0x%02x", mask);
-        if (env_set && (mask != 0x3))
-        {
-            LOG_ERROR("To provisiong the Edge with device identity certificates, set "
-                      "env variables with valid values:\n  %s\n  %s",
-                      ENV_DEVICE_CERTIFICATE_PATH, ENV_DEVICE_PRIVATE_KEY_PATH);
+            // no device certificate and key were provided so we return NULL
+            LOG_INFO("Env vars [%s, %s] for the Edge device identity certificate "
+                     "and private key were not set",
+                     ENV_DEVICE_ID_CERTIFICATE_PATH, ENV_DEVICE_ID_PRIVATE_KEY_PATH);
             result = NULL;
         }
-        else
-        {
-            if (env_set)
-            {
-                result = prepare_device_certificate_info(device_cert_file_path,
-                                                         device_pk_file_path);
-            }
-            else
-            {
-                // no device certificate and key were provided so generate them
-                result = create_device_certificate(hsm_handle);
-            }
-        }
-        if (device_cert_file_path != NULL)
-        {
-            free(device_cert_file_path);
-        }
-        if (device_pk_file_path != NULL)
-        {
-            free(device_pk_file_path);
-        }
     }
+
+    FREEIF(device_cert_file_path);
+    FREEIF(device_pk_file_path);
 
     return result;
 }
@@ -435,6 +250,7 @@ static int edge_x509_sign_with_private_key
 )
 {
     int result;
+    CERT_INFO_HANDLE cert_info;
 
     if (!g_is_x509_initialized)
     {
@@ -446,6 +262,13 @@ static int edge_x509_sign_with_private_key
         LOG_ERROR("hsm_handle parameter is null");
         result = __FAILURE__;
     }
+    // check if the device certificate exists and valid before performing
+    // any sign operations
+    else if ((cert_info = edge_x509_hsm_get_cert_info(hsm_handle)) == NULL)
+    {
+        LOG_ERROR("Device certificate info could not be obtained");
+        result = __FAILURE__;
+    }
     else
     {
         const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
@@ -455,6 +278,7 @@ static int edge_x509_sign_with_private_key
                                                                     data_size,
                                                                     digest,
                                                                     digest_size);
+        certificate_info_destroy(cert_info);
     }
 
     return result;
@@ -476,10 +300,10 @@ static CERT_INFO_HANDLE edge_x509_hsm_get_cert_info(HSM_CLIENT_HANDLE hsm_handle
     }
     else
     {
-        result = get_or_create_device_certificate(hsm_handle);
+        result = get_device_identity_certificate(hsm_handle);
         if (result == NULL)
         {
-            LOG_ERROR("Could not create device certificate info handle");
+            LOG_ERROR("Could not create device identity certificate info handle");
         }
     }
 

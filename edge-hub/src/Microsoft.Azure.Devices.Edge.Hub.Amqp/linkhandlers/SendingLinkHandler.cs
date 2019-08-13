@@ -23,8 +23,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             Uri requestUri,
             IDictionary<string, string> boundVariables,
             IConnectionHandler connectionHandler,
-            IMessageConverter<AmqpMessage> messageConverter)
-            : base(identity, link, requestUri, boundVariables, connectionHandler, messageConverter)
+            IMessageConverter<AmqpMessage> messageConverter,
+            IProductInfoStore productInfoStore)
+            : base(identity, link, requestUri, boundVariables, connectionHandler, messageConverter, productInfoStore)
         {
             Preconditions.CheckArgument(!link.IsReceiver, $"Link {requestUri} cannot send");
             this.SendingAmqpLink = link;
@@ -58,6 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
                 }
 
                 Events.MessageSent(this, message);
+                this.OnMessageSent(message);
             }
             catch (Exception ex)
             {
@@ -65,6 +67,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             }
 
             return Task.CompletedTask;
+        }
+
+        protected virtual void OnMessageSent(IMessage message)
+        {
         }
 
         protected override Task OnOpenAsync(TimeSpan timeout)

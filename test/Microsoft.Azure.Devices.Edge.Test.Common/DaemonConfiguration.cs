@@ -4,42 +4,63 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System;
     using System.IO;
+    using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
 
     public class DaemonConfiguration
     {
-        const string ConfigYamlFile = @"C:\ProgramData\iotedge\config.yaml";
+        readonly string configYamlFile;
+        readonly YamlDocument config;
 
-        YamlDocument config;
-
-        public DaemonConfiguration()
+        public DaemonConfiguration(string configYamlFile)
         {
-            string contents = File.ReadAllText(ConfigYamlFile);
+            this.configYamlFile = configYamlFile;
+            string contents = File.ReadAllText(this.configYamlFile);
             this.config = new YamlDocument(contents);
         }
 
         public void AddHttpsProxy(Uri proxy)
         {
             this.config.ReplaceOrAdd("agent.env.https_proxy", proxy.ToString());
-            // TODO: When we allow the caller to specify an upstream protocol,
-            //       we'll need to honor that if it's WebSocket-based, otherwise
-            //       convert to an equivalent WebSocket-based protocol (e.g.,
-            //       Mqtt --> MqttWs)
+            // The config.yaml file is configured during test suite
+            // initialization, before we know which protocol a given test
+            // will use. Always use AmqpWs, and when each test deploys a
+            // configuration, it can use whatever it wants.
             this.config.ReplaceOrAdd("agent.env.UpstreamProtocol", "AmqpWs");
+        }
+
+        public void SetDeviceConnectionString(string value)
+        {
+            this.config.ReplaceOrAdd("provisioning.device_connection_string", value);
+        }
+
+        public void SetDeviceHostname(string value)
+        {
+            this.config.ReplaceOrAdd("hostname", value);
+        }
+
+        public void SetCertificates(EdgeCertificates certs)
+        {
+            this.config.ReplaceOrAdd("certificates.device_ca_cert", certs.CertificatePath);
+            this.config.ReplaceOrAdd("certificates.device_ca_pk", certs.KeyPath);
+            this.config.ReplaceOrAdd("certificates.trusted_ca_certs", certs.TrustedCertificatesPath);
+        }
+
+        public void RemoveCertificates()
+        {
+            this.config.RemoveIfExists("certificates");
         }
 
         public void Update()
         {
-            var attr = File.GetAttributes(ConfigYamlFile);
-            File.SetAttributes(ConfigYamlFile, attr & ~FileAttributes.ReadOnly);
+            var attr = File.GetAttributes(this.configYamlFile);
+            File.SetAttributes(this.configYamlFile, attr & ~FileAttributes.ReadOnly);
 
-            File.WriteAllText(ConfigYamlFile, this.config.ToString());
+            File.WriteAllText(this.configYamlFile, this.config.ToString());
 
             if (attr != 0)
             {
-                File.SetAttributes(ConfigYamlFile, attr);
+                File.SetAttributes(this.configYamlFile, attr);
             }
-
-            Console.WriteLine($"Updated daemon configuration file '{ConfigYamlFile}'");
         }
     }
 }

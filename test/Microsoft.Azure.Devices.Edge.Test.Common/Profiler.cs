@@ -3,32 +3,51 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System;
     using System.Diagnostics;
+    using System.Linq;
     using System.Threading.Tasks;
+    using Serilog;
 
     public class Profiler
     {
-        public static Task Run(string startMessage, Func<Task> func, string endMessage = "") => Run(
-            startMessage,
+        readonly Stopwatch stopwatch = Stopwatch.StartNew();
+
+        public static Task Run(Func<Task> func, string message, params object[] properties) => Run(
             async () =>
             {
                 await func();
                 return true;
             },
-            endMessage);
+            message,
+            properties);
 
-        public static async Task<T> Run<T>(string startMessage, Func<Task<T>> func, string endMessage = "")
+        public static async Task<T> Run<T>(Func<Task<T>> func, string message, params object[] properties)
         {
-            Console.Write(startMessage + (string.IsNullOrEmpty(endMessage) ? "..." : "\n"));
-            var stopwatch = new Stopwatch();
-            stopwatch.Start();
+            Profiler profiler = Start();
+            try
+            {
+                T t = await func();
+                profiler.Stop(message, properties);
+                return t;
+            }
+            catch (Exception e)
+            {
+                Log.Error($"Encountered exception during task \"{message}\": {e.Message}", properties);
+                throw;
+            }
+        }
 
-            T t = await func();
+        public static Profiler Start() => new Profiler();
 
-            stopwatch.Stop();
-            TimeSpan ts = stopwatch.Elapsed;
-            Console.WriteLine(
-                (string.IsNullOrEmpty(endMessage) ? "done" : endMessage) + $" [{ts}]");
-            return t;
+        public void Stop(string message, params object[] properties)
+        {
+            if (!this.stopwatch.IsRunning)
+            {
+                throw new InvalidOperationException("Method 'Stop' called more than once on this instance of Profiler");
+            }
+
+            this.stopwatch.Stop();
+            var args = new object[] { $"{((double)this.stopwatch.ElapsedMilliseconds) / 1000,9:+0.000s}" };
+            Log.Information($"[{{Elapsed}}] {message}", args.Concat(properties).ToArray());
         }
     }
 }

@@ -26,63 +26,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     /// Note that subscriptions are not stored in the SubscriptionProcessor - they are stored
     /// in the ConnectionManager.
     /// </summary>
-    public class SubscriptionProcessor : ISubscriptionProcessor
+    public class SubscriptionProcessor : SubscriptionProcessorBase
     {
         static readonly ITransientErrorDetectionStrategy TransientErrorDetectionStrategy = new ErrorDetectionStrategy();
 
         static readonly RetryStrategy TransientRetryStrategy =
             new ExponentialBackoff(2, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(4));
 
-        readonly IConnectionManager connectionManager;
         readonly ConcurrentDictionary<string, ConcurrentQueue<(DeviceSubscription, bool)>> pendingSubscriptions;
         readonly ActionBlock<string> processSubscriptionsBlock;
         readonly IInvokeMethodHandler invokeMethodHandler;
 
         public SubscriptionProcessor(IConnectionManager connectionManager, IInvokeMethodHandler invokeMethodHandler, IDeviceConnectivityManager deviceConnectivityManager)
+            : base(connectionManager)
         {
             Preconditions.CheckNotNull(deviceConnectivityManager, nameof(deviceConnectivityManager));
-            this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             this.invokeMethodHandler = Preconditions.CheckNotNull(invokeMethodHandler, nameof(invokeMethodHandler));
             this.pendingSubscriptions = new ConcurrentDictionary<string, ConcurrentQueue<(DeviceSubscription, bool)>>();
             this.processSubscriptionsBlock = new ActionBlock<string>(this.ProcessPendingSubscriptions);
-            deviceConnectivityManager.DeviceConnected += this.DeviceConnected;
+            deviceConnectivityManager.DeviceConnected += this.CloudConnectivityEstablished;
+            connectionManager.CloudConnectionEstablished += this.ClientCloudConnectionEstablished;
         }
 
-        public Task AddSubscription(string id, DeviceSubscription deviceSubscription)
-        {
-            Events.AddingSubscription(id, deviceSubscription);
-            this.connectionManager.AddSubscription(id, deviceSubscription);
-            this.AddToPendingSubscriptions(id, new List<(DeviceSubscription, bool)> { (deviceSubscription, true) });
-            return Task.CompletedTask;
-        }
+        protected override void HandleSubscriptions(string id, List<(DeviceSubscription, bool)> subscriptions) =>
+            this.AddToPendingSubscriptions(id, subscriptions);
 
-        public Task RemoveSubscription(string id, DeviceSubscription deviceSubscription)
+        static Task ExecuteWithRetry(Func<Task> func, Action<RetryingEventArgs> onRetry)
         {
-            Events.RemovingSubscription(id, deviceSubscription);
-            this.connectionManager.RemoveSubscription(id, deviceSubscription);
-            this.AddToPendingSubscriptions(id, new List<(DeviceSubscription, bool)> { (deviceSubscription, false) });
-            return Task.CompletedTask;
-        }
-
-        public Task ProcessSubscriptions(string id, IEnumerable<(DeviceSubscription, bool)> subscriptions)
-        {
-            Preconditions.CheckNonWhiteSpace(id, nameof(id));
-            List<(DeviceSubscription, bool)> subscriptionsList = Preconditions.CheckNotNull(subscriptions, nameof(subscriptions)).ToList();
-            Events.ProcessingSubscriptions(id, subscriptionsList);
-            foreach ((DeviceSubscription deviceSubscription, bool addSubscription) in subscriptionsList)
-            {
-                if (addSubscription)
-                {
-                    this.connectionManager.AddSubscription(id, deviceSubscription);
-                }
-                else
-                {
-                    this.connectionManager.RemoveSubscription(id, deviceSubscription);
-                }
-            }
-
-            this.AddToPendingSubscriptions(id, subscriptionsList);
-            return Task.CompletedTask;
+            var transientRetryPolicy = new RetryPolicy(TransientErrorDetectionStrategy, TransientRetryStrategy);
+            transientRetryPolicy.Retrying += (_, args) => onRetry(args);
+            return transientRetryPolicy.ExecuteAsync(func);
         }
 
         async Task ProcessSubscriptionWithRetry(string id, Option<ICloudProxy> cloudProxy, DeviceSubscription deviceSubscription, bool addSubscription)
@@ -137,17 +110,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        async void DeviceConnected(object sender, EventArgs eventArgs)
+        async void CloudConnectivityEstablished(object sender, EventArgs eventArgs)
         {
             Events.DeviceConnectedProcessingSubscriptions();
             try
             {
-                IEnumerable<IIdentity> connectedClients = this.connectionManager.GetConnectedClients().ToList();
+                IEnumerable<IIdentity> connectedClients = this.ConnectionManager.GetConnectedClients().ToList();
                 foreach (IIdentity identity in connectedClients)
                 {
                     try
                     {
-                        Events.ProcessingSubscriptions(identity);
+                        Events.ProcessingSubscriptionsOnDeviceConnected(identity);
                         await this.ProcessExistingSubscriptions(identity.Id);
                     }
                     catch (Exception e)
@@ -162,10 +135,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
+        async void ClientCloudConnectionEstablished(object sender, IIdentity identity)
+        {
+            try
+            {
+                Events.ClientConnectedProcessingSubscriptions(identity);
+                await this.ProcessExistingSubscriptions(identity.Id);
+            }
+            catch (Exception e)
+            {
+                Events.ErrorProcessingSubscriptions(e, identity);
+            }
+        }
+
         async Task ProcessExistingSubscriptions(string id)
         {
-            Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(id);
-            Option<IReadOnlyDictionary<DeviceSubscription, bool>> subscriptions = this.connectionManager.GetSubscriptions(id);
+            Option<ICloudProxy> cloudProxy = await this.ConnectionManager.GetCloudConnection(id);
+            Option<IReadOnlyDictionary<DeviceSubscription, bool>> subscriptions = this.ConnectionManager.GetSubscriptions(id);
             await subscriptions.ForEachAsync(
                 async s =>
                 {
@@ -178,10 +164,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         async Task ProcessPendingSubscriptions(string id)
         {
+            Events.ProcessingSubscriptions(id);
             ConcurrentQueue<(DeviceSubscription, bool)> clientSubscriptionsQueue = this.GetClientSubscriptionsQueue(id);
             if (!clientSubscriptionsQueue.IsEmpty)
             {
-                Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(id);
+                Option<ICloudProxy> cloudProxy = await this.ConnectionManager.GetCloudConnection(id);
+                if (!cloudProxy.HasValue)
+                {
+                    Events.ProcessingSubscriptionsNoCloudProxy(id);
+                }
+
                 while (clientSubscriptionsQueue.TryDequeue(out (DeviceSubscription deviceSubscription, bool addSubscription) result))
                 {
                     await this.ProcessSubscriptionWithRetry(id, cloudProxy, result.deviceSubscription, result.addSubscription);
@@ -198,13 +190,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         ConcurrentQueue<(DeviceSubscription, bool)> GetClientSubscriptionsQueue(string id)
             => this.pendingSubscriptions.GetOrAdd(id, new ConcurrentQueue<(DeviceSubscription, bool)>());
-
-        static Task ExecuteWithRetry(Func<Task> func, Action<RetryingEventArgs> onRetry)
-        {
-            var transientRetryPolicy = new RetryPolicy(TransientErrorDetectionStrategy, TransientRetryStrategy);
-            transientRetryPolicy.Retrying += (_, args) => onRetry(args);
-            return transientRetryPolicy.ExecuteAsync(func);
-        }
 
         class ErrorDetectionStrategy : ITransientErrorDetectionStrategy
         {
@@ -227,10 +212,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 ErrorProcessingSubscriptions = IdStart,
                 ErrorRemovingSubscription,
                 ErrorAddingSubscription,
-                AddingSubscription,
-                RemovingSubscription,
                 ProcessingSubscriptions,
-                ProcessingSubscription
+                ProcessingSubscription,
+                ClientConnectedProcessingSubscriptions,
+                ProcessingSubscriptionsNoCloudProxy
             }
 
             public static void ErrorProcessingSubscriptions(Exception ex, IIdentity identity)
@@ -273,17 +258,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 }
             }
 
-            public static void AddingSubscription(string id, DeviceSubscription subscription)
-            {
-                Log.LogDebug((int)EventIds.AddingSubscription, Invariant($"Adding subscription {subscription} for client {id}."));
-            }
-
-            public static void RemovingSubscription(string id, DeviceSubscription subscription)
-            {
-                Log.LogDebug((int)EventIds.RemovingSubscription, Invariant($"Removing subscription {subscription} for client {id}."));
-            }
-
-            public static void ProcessingSubscriptions(IIdentity identity)
+            public static void ProcessingSubscriptionsOnDeviceConnected(IIdentity identity)
             {
                 Log.LogInformation((int)EventIds.ProcessingSubscriptions, Invariant($"Processing subscriptions for client {identity.Id}."));
             }
@@ -303,10 +278,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 Log.LogWarning((int)EventIds.ProcessingSubscription, e, Invariant($"Error processing subscriptions for connected clients."));
             }
 
-            internal static void ProcessingSubscriptions(string id, List<(DeviceSubscription, bool)> subscriptionsList)
+            public static void ClientConnectedProcessingSubscriptions(IIdentity identity)
             {
-                string subscriptions = string.Join(", ", subscriptionsList.Select(s => $"{s.Item1}"));
-                Log.LogInformation((int)EventIds.ProcessingSubscription, Invariant($"Processing subscriptions {subscriptions} for client {id}."));
+                Log.LogInformation((int)EventIds.ClientConnectedProcessingSubscriptions, Invariant($"Client {identity.Id} connected to cloud, processing existing subscriptions."));
+            }
+
+            public static void ProcessingSubscriptions(string id)
+            {
+                Log.LogInformation((int)EventIds.ProcessingSubscription, Invariant($"Processing pending subscriptions for {id}"));
+            }
+
+            public static void ProcessingSubscriptionsNoCloudProxy(string id)
+            {
+                Log.LogInformation((int)EventIds.ProcessingSubscriptionsNoCloudProxy, Invariant($"Processing pending subscriptions for {id}, but no cloud proxy was found"));
             }
         }
     }
