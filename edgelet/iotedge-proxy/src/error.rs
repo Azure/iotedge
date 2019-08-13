@@ -91,13 +91,18 @@ impl IntoResponse for Error {
             fail = cause;
         }
 
+        let status_code = match *self.kind() {
+            ErrorKind::Hyper => StatusCode::BAD_GATEWAY,
+            _ => StatusCode::INTERNAL_SERVER_ERROR,
+        };
+
         let body = json!({
             "message": message,
         })
         .to_string();
 
         Response::builder()
-            .status(StatusCode::INTERNAL_SERVER_ERROR)
+            .status(status_code)
             .header(header::CONTENT_TYPE, "application/json")
             .header(header::CONTENT_LENGTH, body.len().to_string().as_str())
             .body(body.into())
