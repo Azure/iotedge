@@ -169,7 +169,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                             break;
 
                         case WatchEventType.Deleted:
-                            await this.DeleteDeployments(currentServices, currentDeployments);
+                            await this.HandleEdgeDeploymentDeleted(currentServices, currentDeployments);
                             break;
 
                         case WatchEventType.Error:
@@ -186,7 +186,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         private string DeploymentName(string moduleId) => KubeUtils.SanitizeK8sValue(moduleId);
 
-        private async Task DeleteDeployments(V1ServiceList currentServices, V1DeploymentList currentDeployments)
+        private async Task HandleEdgeDeploymentDeleted(V1ServiceList currentServices, V1DeploymentList currentDeployments)
         {
             // Delete the deployment.
             // Delete any services.
@@ -198,6 +198,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     this.k8sNamespace,
                     new V1DeleteOptions(propagationPolicy: "Foreground"),
                     propagationPolicy: "Foreground"));
+
+            // Remove the service account for all deployments
+            var serviceAccountNames = currentDeployments.Items.Select(deployment => deployment.Metadata.Name);
+            await this.PruneServiceAccounts(serviceAccountNames.ToList());
+
             await Task.WhenAll(removeDeploymentTasks);
             this.currentModules = ModuleSet.Empty;
         }
@@ -387,6 +392,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     }
                 });
 
+            // First we must delete existing service accounts since service account does not support an update operation.
+            // This needs to block so that we can re-create the new accounts below without a collision.
+            // We will also take this opportunity to delete the accounts that have their deployment being deleted.
+            var deletedOrUpdatedDeploymentNames = deploymentsRemoved.Concat(newDeployments).Select(deployment => deployment.Metadata.Name);
+            await this.PruneServiceAccounts(deletedOrUpdatedDeploymentNames.ToList());
+
             // Remove the old
             var removeDeploymentsTasks = deploymentsRemoved.Select(
                 deployment =>
@@ -395,7 +406,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     return this.client.DeleteNamespacedDeployment1Async(deployment.Metadata.Name, this.k8sNamespace, new V1DeleteOptions(propagationPolicy: "Foreground"), propagationPolicy: "Foreground");
                 });
 
-            // Create the new
+            // Create the new deployments
             var createDeploymentsTasks = newDeployments.Select(
                 deployment =>
                 {
@@ -403,21 +414,59 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     return this.client.CreateNamespacedDeploymentAsync(deployment, this.k8sNamespace);
                 });
 
+            // Create the new Service Accounts
+            var createServiceAccounts = newDeployments.Select(
+                deployment =>
+                {
+                    Events.CreatingServiceAccount(deployment.Metadata.Name);
+                    return this.CreateServiceAccount(deployment);
+                });
+
             // Update the existing - should only do this when different.
             var updateDeploymentsTasks = deploymentsUpdated.Select(deployment => this.client.ReplaceNamespacedDeploymentAsync(deployment, deployment.Metadata.Name, this.k8sNamespace));
 
             await Task.WhenAll(removeDeploymentsTasks);
             await Task.WhenAll(createDeploymentsTasks);
+            await Task.WhenAll(createServiceAccounts);
             await Task.WhenAll(updateDeploymentsTasks);
 
             return;
         }
 
-        /* void CreateServiceAccount(V1Deployment deployment)
+        Task<V1ServiceAccount> CreateServiceAccount(V1Deployment deployment)
         {
+            V1ServiceAccount account = new V1ServiceAccount();
+            var metadata = new V1ObjectMeta();
 
+            string moduleId = deployment.Metadata.Labels[Constants.K8sEdgeModuleLabel];
+            metadata.Labels = deployment.Metadata.Labels;
+            metadata.Annotations = new Dictionary<string, string>()
+            {
+                [Constants.K8sEdgeOriginalModuleId] = moduleId
+            };
+
+            metadata.Name = moduleId;
+
+            account.Metadata = metadata;
+
+            return this.client.CreateNamespacedServiceAccountAsync(account, this.k8sNamespace);
         }
-        */
+
+        async Task PruneServiceAccounts(List<string> accountNamesToPrune)
+        {
+            var currentServiceAccounts = (await this.client.ListNamespacedServiceAccountAsync(this.k8sNamespace)).Items;
+
+            // Prune down the list to those found in the passed in prune list.
+            var accountsToDelete = currentServiceAccounts.Where(serviceAccount => accountNamesToPrune.Contains(serviceAccount.Metadata.Name));
+
+            var deletionTasks = accountsToDelete.Select(account =>
+            {
+                Events.DeletingServiceAccount(account.Metadata.Name);
+                return this.client.DeleteNamespacedServiceAccountAsync(account.Metadata.Name, this.k8sNamespace);
+            });
+
+            await Task.WhenAll(deletionTasks);
+        }
 
         V1PodTemplateSpec GetPodFromModule(Dictionary<string, string> labels, KubernetesModule<TConfig> module, IModuleIdentity moduleIdentity)
         {
@@ -859,6 +908,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 CreatingService,
                 ReplacingDeployment,
                 CrdWatchClosed,
+                CreatingServiceAccount,
+                DeletingServiceAccount
             }
 
             public static void DeletingService(V1Service service)
@@ -944,6 +995,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             public static void CreateDeployment(string name)
             {
                 Log.LogDebug((int)EventIds.CreateDeployment, $"Creating edge deployment '{name}'");
+            }
+
+            public static void CreatingServiceAccount(string name)
+            {
+                Log.LogDebug((int)EventIds.CreatingServiceAccount, $"Creating Service Account {name}");
+            }
+
+            public static void DeletingServiceAccount(string name)
+            {
+                Log.LogDebug((int)EventIds.DeletingServiceAccount, $"Deleting Service Account {name}");
             }
 
             public static void NullListResponse(string listType, string what)
