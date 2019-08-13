@@ -40,6 +40,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public const string ModuleConfigMap = "moduleconfigmap";
 
+        public const string PortMappingServiceType = "PortMappingServiceType";
+
+        public const string EnableK8sServiceCallTracingName = "EnableK8sServiceCallTracing";
+
+        public const string K8sNamespaceKey = "K8sNamespace";
+
         public const PortMapServiceType DefaultPortMapServiceType = PortMapServiceType.ClusterIP;
     }
 }

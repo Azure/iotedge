@@ -103,12 +103,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string EdgeAgentServiceAccountName = "ServiceAccountName";
 
-        public const string PortMappingServiceType = "PortMappingServiceType";
-
-        public const string EnableK8sServiceCallTracingName = "EnableK8sServiceCallTracing";
-
-        public const string K8sNamespaceKey = "K8sNamespace";
-
         public static class Labels
         {
             public const string Version = "net.azure-devices.edge.version";

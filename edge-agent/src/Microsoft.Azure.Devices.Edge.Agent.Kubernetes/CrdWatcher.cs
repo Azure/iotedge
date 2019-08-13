@@ -165,7 +165,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     {
                         case WatchEventType.Added:
                         case WatchEventType.Modified:
-                            await this.ManageDeployments(currentServices, currentDeployments, edgeDeploymentDefinition);
+                            await this.UpsertDeployments(currentServices, currentDeployments, edgeDeploymentDefinition);
                             break;
 
                         case WatchEventType.Deleted:
@@ -202,7 +202,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.currentModules = ModuleSet.Empty;
         }
 
-        private async Task ManageDeployments(V1ServiceList currentServices, V1DeploymentList currentDeployments, EdgeDeploymentDefinition<TConfig> customObject)
+        private async Task UpsertDeployments(V1ServiceList currentServices, V1DeploymentList currentDeployments, EdgeDeploymentDefinition<TConfig> customObject)
         {
             var desiredModules = ModuleSet.Create(customObject.Spec.ToArray());
             var moduleIdentities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desiredModules, this.currentModules);
@@ -251,9 +251,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 }
             }
 
-            await ManageServices(currentServices, desiredServices);
+            await this.ManageServices(currentServices, desiredServices);
 
-            await ManageDeployments(currentDeployments, desiredDeployments);
+            await this.ManageDeployments(currentDeployments, desiredDeployments);
 
             this.currentModules = desiredModules;
         }
@@ -269,41 +269,41 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             // Figure out what to create
             var newServices = new List<V1Service>();
             desiredServices.ForEach(
-                s =>
+                service =>
                 {
-                    string creationString = JsonConvert.SerializeObject(s);
+                    string creationString = JsonConvert.SerializeObject(service);
 
-                    if (currentV1ServicesFromAnnotations.ContainsKey(s.Metadata.Name))
+                    if (currentV1ServicesFromAnnotations.ContainsKey(service.Metadata.Name))
                     {
-                        string serviceAnnotation = currentV1ServicesFromAnnotations[s.Metadata.Name];
+                        string serviceAnnotation = currentV1ServicesFromAnnotations[service.Metadata.Name];
                         // If configuration matches, no need to update service
                         if (string.Equals(serviceAnnotation, creationString))
                         {
                             return;
                         }
 
-                        if (s.Metadata.Annotations == null)
+                        if (service.Metadata.Annotations == null)
                         {
-                            s.Metadata.Annotations = new Dictionary<string, string>();
+                            service.Metadata.Annotations = new Dictionary<string, string>();
                         }
 
-                        s.Metadata.Annotations[Constants.CreationString] = creationString;
+                        service.Metadata.Annotations[Constants.CreationString] = creationString;
 
-                        servicesRemoved.Add(s);
-                        newServices.Add(s);
-                        Events.UpdateService(s.Metadata.Name);
+                        servicesRemoved.Add(service);
+                        newServices.Add(service);
+                        Events.UpdateService(service.Metadata.Name);
                     }
                     else
                     {
-                        if (s.Metadata.Annotations == null)
+                        if (service.Metadata.Annotations == null)
                         {
-                            s.Metadata.Annotations = new Dictionary<string, string>();
+                            service.Metadata.Annotations = new Dictionary<string, string>();
                         }
 
-                        s.Metadata.Annotations[Constants.CreationString] = creationString;
+                        service.Metadata.Annotations[Constants.CreationString] = creationString;
 
-                        newServices.Add(s);
-                        Events.CreateService(s.Metadata.Name);
+                        newServices.Add(service);
+                        Events.CreateService(service.Metadata.Name);
                     }
                 });
 
@@ -333,81 +333,91 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
             var deploymentsRemoved = new List<V1Deployment>(currentDeployments.Items);
             deploymentsRemoved.RemoveAll(
-                d =>
+                removedDeployment =>
                 {
-                    return desiredDeployments.Exists(i => string.Equals(i.Metadata.Name, d.Metadata.Name));
+                    return desiredDeployments.Exists(deployment => string.Equals(deployment.Metadata.Name, removedDeployment.Metadata.Name));
                 });
             var deploymentsUpdated = new List<V1Deployment>();
             var newDeployments = new List<V1Deployment>();
             List<V1Deployment> currentDeploymentsList = currentDeployments.Items.ToList();
             desiredDeployments.ForEach(
-                d =>
+                deployment =>
                 {
-                    if (currentDeploymentsFromAnnotations.ContainsKey(d.Metadata.Name))
+                    if (currentDeploymentsFromAnnotations.ContainsKey(deployment.Metadata.Name))
                     {
-                        V1Deployment current = currentDeploymentsList.Find(i => string.Equals(i.Metadata.Name, d.Metadata.Name));
-                        string currentFromAnnotation = currentDeploymentsFromAnnotations[d.Metadata.Name];
-                        string creationString = JsonConvert.SerializeObject(d);
+                        V1Deployment current = currentDeploymentsList.Find(i => string.Equals(i.Metadata.Name, deployment.Metadata.Name));
+                        string currentFromAnnotation = currentDeploymentsFromAnnotations[deployment.Metadata.Name];
+                        string creationString = JsonConvert.SerializeObject(deployment);
 
                         // If configuration matches, or this is edgeAgent deployment and the images match,
                         // no need to do update deployment
                         if (string.Equals(currentFromAnnotation, creationString) ||
-                            (string.Equals(d.Metadata.Name, this.DeploymentName(CoreConstants.EdgeAgentModuleName)) && V1DeploymentEx.ImageEquals(current, d)))
+                            (string.Equals(deployment.Metadata.Name, this.DeploymentName(CoreConstants.EdgeAgentModuleName)) && V1DeploymentEx.ImageEquals(current, deployment)))
                         {
                             return;
                         }
 
-                        d.Metadata.ResourceVersion = current.Metadata.ResourceVersion;
-                        if (d.Metadata.Annotations == null)
+                        deployment.Metadata.ResourceVersion = current.Metadata.ResourceVersion;
+                        if (deployment.Metadata.Annotations == null)
                         {
                             var annotations = new Dictionary<string, string>
                             {
                                 [Constants.CreationString] = creationString
                             };
-                            d.Metadata.Annotations = annotations;
+                            deployment.Metadata.Annotations = annotations;
                         }
                         else
                         {
-                            d.Metadata.Annotations[Constants.CreationString] = creationString;
+                            deployment.Metadata.Annotations[Constants.CreationString] = creationString;
                         }
 
-                        deploymentsUpdated.Add(d);
-                        Events.UpdateDeployment(d.Metadata.Name);
+                        deploymentsUpdated.Add(deployment);
+                        Events.UpdateDeployment(deployment.Metadata.Name);
                     }
                     else
                     {
-                        string creationString = JsonConvert.SerializeObject(d);
+                        string creationString = JsonConvert.SerializeObject(deployment);
                         var annotations = new Dictionary<string, string>
                         {
                             [Constants.CreationString] = creationString
                         };
-                        d.Metadata.Annotations = annotations;
-                        newDeployments.Add(d);
-                        Events.CreateDeployment(d.Metadata.Name);
+                        deployment.Metadata.Annotations = annotations;
+                        newDeployments.Add(deployment);
+                        Events.CreateDeployment(deployment.Metadata.Name);
                     }
                 });
 
             // Remove the old
-            await Task.WhenAll(deploymentsRemoved.Select(
-                d =>
+            var removeDeploymentsTasks = deploymentsRemoved.Select(
+                deployment =>
                 {
-                    Events.DeletingDeployment(d);
-                    return this.client.DeleteNamespacedDeployment1Async(d.Metadata.Name, this.k8sNamespace, new V1DeleteOptions(propagationPolicy: "Foreground"), propagationPolicy: "Foreground");
-                }));
+                    Events.DeletingDeployment(deployment);
+                    return this.client.DeleteNamespacedDeployment1Async(deployment.Metadata.Name, this.k8sNamespace, new V1DeleteOptions(propagationPolicy: "Foreground"), propagationPolicy: "Foreground");
+                });
 
-            // Create the new 
-            await Task.WhenAll(newDeployments.Select(
+            // Create the new
+            var createDeploymentsTasks = newDeployments.Select(
                 deployment =>
                 {
                     Events.CreatingDeployment(deployment);
                     return this.client.CreateNamespacedDeploymentAsync(deployment, this.k8sNamespace);
-                }));
+                });
 
             // Update the existing - should only do this when different.
-            await Task.WhenAll(deploymentsUpdated.Select(deployment => this.client.ReplaceNamespacedDeploymentAsync(deployment, deployment.Metadata.Name, this.k8sNamespace)));
+            var updateDeploymentsTasks = deploymentsUpdated.Select(deployment => this.client.ReplaceNamespacedDeploymentAsync(deployment, deployment.Metadata.Name, this.k8sNamespace));
+
+            await Task.WhenAll(removeDeploymentsTasks);
+            await Task.WhenAll(createDeploymentsTasks);
+            await Task.WhenAll(updateDeploymentsTasks);
 
             return;
         }
+
+        /* void CreateServiceAccount(V1Deployment deployment)
+        {
+
+        }
+        */
 
         V1PodTemplateSpec GetPodFromModule(Dictionary<string, string> labels, KubernetesModule<TConfig> module, IModuleIdentity moduleIdentity)
         {
