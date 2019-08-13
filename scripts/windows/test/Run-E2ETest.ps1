@@ -1096,6 +1096,10 @@ Function RunLeafDeviceTest
     [string]$edgeDeviceId
 )
 {
+
+    if ($leafDeviceId.Length -gt 64) {
+        throw "can't generate cert. asn1 device name length of 64 exceeded. $leafDeviceId"
+    }
     $testCommand = $null
     switch ($authType) {
         "sas"
@@ -1252,22 +1256,19 @@ Function RunTransparentGatewayTest
     # run the various leaf device tests
     $deviceId = "e2e-${ReleaseLabel}-Win-${Architecture}"
 
-    RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-noscope-leaf" $null
-    RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-noscope-leaf" $null
+    # NOTE: device name cannot be > 64 chars because of asn1 limits for certs
+    # thus we're abbreviating noscope/inscope as no/in and leaf as lf.
+    RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-no-lf" $null
+    RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-no-lf" $null
 
-    RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-inscope-leaf" $edgeDeviceId
-    RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-inscope-leaf" $edgeDeviceId
+    RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-in-lf" $edgeDeviceId
+    RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-in-lf" $edgeDeviceId
 
-    RunLeafDeviceTest "x509CA" "Mqtt" "$deviceId-mqtt-x509ca-inscope-leaf" $edgeDeviceId
-    # The below test is failing. Commented out for now.
-    # Relevant bug for investigation: https://msazure.visualstudio.com/One/_workitems/edit/4683653
-    #RunLeafDeviceTest "x509CA" "Amqp" "$deviceId-amqp-x509ca-inscope-leaf" $edgeDeviceId
+    RunLeafDeviceTest "x509CA" "Mqtt" "$deviceId-mqtt-x509ca-in-lf" $edgeDeviceId
+    RunLeafDeviceTest "x509CA" "Amqp" "$deviceId-amqp-x509ca-in-lf" $edgeDeviceId
 
-    RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-x509th-inscope-leaf" $edgeDeviceId
-
-    # The below test is failing. Commented out for now.
-    # Relevant bug for investigation: https://msazure.visualstudio.com/One/_workitems/edit/4683653
-    #RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-x509th-inscope-leaf" $edgeDeviceId
+    RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-x509th-in-lf" $edgeDeviceId
+    RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-x509th-in-lf" $edgeDeviceId
 
     Return $testExitCode
 }
