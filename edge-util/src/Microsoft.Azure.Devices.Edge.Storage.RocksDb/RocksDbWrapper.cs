@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     sealed class RocksDbWrapper : IRocksDb
     {
         static readonly string Temp = Path.GetTempPath();
-        static readonly string DBBackupPath = Path.Combine(Temp, "rocksdb_simple_example_backup");
+        static readonly string DbBackupPath = Path.Combine(Temp, "edgehub_rocksdb_backup");
         static readonly ILogger Log = Logger.Factory.CreateLogger<RocksDbWrapper>();
 
         readonly AtomicBoolean isDisposed = new AtomicBoolean(false);
@@ -41,6 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             Preconditions.CheckNotNull(optionsProvider, nameof(optionsProvider));
             DbOptions dbOptions = Preconditions.CheckNotNull(optionsProvider.GetDbOptions());
 
+            // This is similar to the default cache created by RocksDb if no explicit cache instance is provided as part of
+            // initialization.
             Cache lruCache = Cache.CreateLru(8 * 1024 * 1024);
             dbOptions.SetBlockBasedTableFactory(new BlockBasedTableOptions().SetBlockCache(lruCache));
             RestoreDb(dbOptions, path);
@@ -80,47 +82,28 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
         public void Dispose()
         {
-            Log.LogInformation($"Dispose called {DBBackupPath}");
+            Log.LogInformation($"Dispose called {DbBackupPath}");
             Log.LogInformation("Directory size:" + GetDirectorySize(this.path));
-            Log.LogInformation("backup Directory size:" + GetDirectorySize(DBBackupPath));
-
-            this.GetMemoryStats();
-            IntPtr be;
-            IntPtr err = IntPtr.Zero;
-
-            // open Backup Engine that we will use for backing up our database
-            be = Native.Instance.rocksdb_backup_engine_open(this.dbOptions.Handle, DBBackupPath, out err);
-            Log.LogInformation("Backup engine open: " + err.ToInt64());
-            Debug.Assert(err == IntPtr.Zero);
-
-            // create new backup in a directory specified by DBBackupPath
-            Native.Instance.rocksdb_backup_engine_create_new_backup(be, this.db.Handle, out err);
-            Log.LogInformation("Backup engine create backup: " + err.ToInt64());
-            Debug.Assert(err == IntPtr.Zero);
-
-            Log.LogInformation("backup Directory size:" + GetDirectorySize(DBBackupPath));
+            Log.LogInformation("backup Directory size:" + GetDirectorySize(DbBackupPath));
 
             if (!this.isDisposed.GetAndSet(true))
             {
+                this.GetMemoryStats();
+                this.BackupDb();
                 this.db?.Dispose();
             }
         }
 
-        private void GetMemoryStats()
+        void GetMemoryStats()
         {
             Log.LogInformation("GetMemoryStats called");
-            IntPtr mcc;
-            mcc = Native.Instance.rocksdb_memory_consumers_create();
-            Log.LogInformation("MCC: " + mcc.ToInt64());
+            IntPtr mcc = Native.Instance.rocksdb_memory_consumers_create();
 
             Native.Instance.rocksdb_memory_consumers_add_db(mcc, this.db.Handle);
             Native.Instance.rocksdb_memory_consumers_add_cache(mcc, this.cache.Handle);
-            Log.LogInformation("Added db and cache.");
 
-            IntPtr err;
-            IntPtr muc = Native.Instance.rocksdb_approximate_memory_usage_create(mcc, out err);
-            Log.LogInformation("muc: " + muc.ToInt64());
-            Log.LogInformation("err: " + err.ToInt64());
+            IntPtr muc = Native.Instance.rocksdb_approximate_memory_usage_create(mcc, out IntPtr err);
+            Debug.Assert(err == IntPtr.Zero);
 
             ulong mtt = Native.Instance.rocksdb_approximate_memory_usage_get_mem_table_total(muc);
             Log.LogInformation("mtt: " + mtt);
@@ -135,41 +118,56 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             Native.Instance.rocksdb_approximate_memory_usage_destroy(muc);
         }
 
-        private static void RestoreDb(DbOptions dbOptions, string path)
+        static void RestoreDb(DbOptions dbOptions, string path)
         {
-            Log.LogInformation($"Restore called {DBBackupPath}");
-            Log.LogInformation("backup Directory sizeon restore:" + GetDirectorySize(DBBackupPath));
-            IntPtr be;
+            Log.LogInformation($"Restore called {DbBackupPath}");
+            Log.LogInformation("backup Directory sizeon restore:" + GetDirectorySize(DbBackupPath));
 
-            // open Backup Engine that we will use for backing up our database
-            if (Directory.Exists(DBBackupPath))
+            // Backup DB from last backup if available.
+            if (Directory.Exists(DbBackupPath))
             {
-                IntPtr err;
-                be = Native.Instance.rocksdb_backup_engine_open(dbOptions.Handle, DBBackupPath, out err);
-                Log.LogInformation("Backup engine open: " + err.ToInt64());
+                Events.RestoringFromBackup();
+                IntPtr backupEngine = Native.Instance.rocksdb_backup_engine_open(dbOptions.Handle, DbBackupPath, out IntPtr err);
                 Debug.Assert(err == IntPtr.Zero);
 
-                // If something is wrong, you might want to restore data from last backup
                 IntPtr restore_options = Native.Instance.rocksdb_restore_options_create();
                 Native.Instance.rocksdb_backup_engine_restore_db_from_latest_backup(
-                    be, path, path, restore_options, out err);
-                Log.LogInformation("Restore result: " + err.ToInt64());
+                    backupEngine, path, path, restore_options, out err);
                 Debug.Assert(err == IntPtr.Zero);
 
                 Native.Instance.rocksdb_restore_options_destroy(restore_options);
-
-                // cleanup
-                Native.Instance.rocksdb_backup_engine_close(be);
+                Native.Instance.rocksdb_backup_engine_close(backupEngine);
+                Events.RestoreComplete();
             }
             else
             {
-                Log.LogInformation($"{DBBackupPath} doesn't exist");
+                Events.BackupDirectoryNotFound(DbBackupPath);
             }
+        }
+
+        void BackupDb()
+        {
+            Events.StartingBackup();
+            IntPtr backupEngine = Native.Instance.rocksdb_backup_engine_open(this.dbOptions.Handle, DbBackupPath, out IntPtr err);
+            Debug.Assert(err == IntPtr.Zero);
+
+            // Create a new DB backup.
+            Native.Instance.rocksdb_backup_engine_create_new_backup(backupEngine, this.db.Handle, out err);
+            Debug.Assert(err == IntPtr.Zero);
+
+            // Purge old backups but the last one.
+            Native.Instance.rocksdb_backup_engine_purge_old_backups(backupEngine, 1, out err);
+            Log.LogInformation("Purged old backups: " + err.ToInt64());
+            Debug.Assert(err == IntPtr.Zero);
+
+            Log.LogInformation("backup Directory size:" + GetDirectorySize(DbBackupPath));
+            Native.Instance.rocksdb_backup_engine_close(backupEngine);
+            Events.BackupComplete();
         }
 
         static long GetDirectorySize(string directoryPath)
         {
-            var directory = new DirectoryInfo(directoryPath);
+            DirectoryInfo directory = new DirectoryInfo(directoryPath);
             return GetDirectorySize(directory);
         }
 
@@ -178,17 +176,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             long size = 0;
 
             // Get size for all files in directory
-            FileInfo[] files = directory.GetFiles();
+            FileInfo[] files = directory.GetFiles("*", SearchOption.AllDirectories);
             foreach (FileInfo file in files)
             {
                 size += file.Length;
-            }
-
-            // Recursively get size for all directories in current directory
-            DirectoryInfo[] dis = directory.GetDirectories();
-            foreach (DirectoryInfo di in dis)
-            {
-                size += GetDirectorySize(di);
             }
 
             return size;
@@ -209,6 +200,46 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             }
 
             return columnFamilies ?? Enumerable.Empty<string>();
+        }
+
+        static class Events
+        {
+            const int IdStart = UtilEventsIds.RocksDb;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<RocksDbWrapper>();
+
+            enum EventIds
+            {
+                StartingBackup = IdStart,
+                BackupComplete,
+                RestoringFromBackup,
+                RestoreComplete,
+                BackupDirectoryNotFound
+            }
+
+            internal static void StartingBackup()
+            {
+                Log.LogInformation((int)EventIds.StartingBackup, "Starting backup of database.");
+            }
+
+            internal static void BackupComplete()
+            {
+                Log.LogInformation((int)EventIds.BackupComplete, $"Backup of database complete.");
+            }
+
+            internal static void RestoringFromBackup()
+            {
+                Log.LogInformation((int)EventIds.RestoringFromBackup, "Starting restore of database from last backup.");
+            }
+
+            internal static void RestoreComplete()
+            {
+                Log.LogInformation((int)EventIds.RestoreComplete, "Database restore from backup complete.");
+            }
+
+            internal static void BackupDirectoryNotFound(string backupDirectoryPath)
+            {
+                Log.LogInformation((int)EventIds.BackupDirectoryNotFound, $"The database backup directory {backupDirectoryPath} doesn't exist.");
+            }
         }
     }
 }
