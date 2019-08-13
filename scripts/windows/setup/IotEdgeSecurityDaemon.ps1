@@ -65,6 +65,23 @@ enum ContainerOs {
     Windows
 }
 
+function New-Sockets([string] $EdgeDataDirectory) {
+    foreach ($name in 'mgmt', 'workload') {
+        # We can't bind socket files directly in Windows, so create a folder
+        # and bind to that. The folder needs to give Modify rights to a
+        # well-known group that will exist in any container so that
+        # non-privileged modules can access it.
+        $path = "$EdgeDataDirectory\$name"
+        New-Item $Path -ItemType Directory -Force | Out-Null
+        $sid = New-Object System.Security.Principal.SecurityIdentifier 'S-1-5-11' # NT AUTHORITY\Authenticated Users
+        $rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule(`
+            $sid, 'Modify', 'ObjectInherit', 'InheritOnly', 'Allow')
+        $acl = Get-Acl -Path $path
+        $acl.AddAccessRule($rule)
+        Set-Acl -Path $path -AclObject $acl
+    }
+}
+
 <#
 .SYNOPSIS
 
@@ -252,7 +269,8 @@ function Initialize-IoTEdge {
         [String] $Username,
 
         # Password used to access the container registry and pull the IoT Edge Agent image.
-        [SecureString] $Password
+        [SecureString] $Password,
+        [switch] $Force=$false
     )
 
     switch ($PSCmdlet.ParameterSetName) {
@@ -309,13 +327,15 @@ function Initialize-IoTEdge {
     Setup-Environment -ContainerOs $ContainerOs -SkipArchCheck -SkipBatteryCheck
 
     $configPath = Join-Path -Path $EdgeDataDirectory -ChildPath 'config.yaml'
-    if (Test-Path $configPath) {
+    if ((-not $Force) -and (Test-Path $configPath)) {
         Write-HostRed
         Write-HostRed "$configPath already exists."
         Write-HostRed ('Delete it using "Uninstall-IoTEdge -Force" and then ' +
             're-run "Deploy-IoTEdge" and "Initialize-IoTEdge"')
         throw
     }
+
+    New-Sockets $EdgeDataDirectory
 
     # config.yaml
     Write-Host 'Generating config.yaml...'
@@ -1291,7 +1311,6 @@ function Try-StopService([string] $Name) {
         }
     }
 }
-
 function Get-IoTEdge([ref] $RestartNeeded, [bool] $Update) {
     try {
         # If we create the archive ourselves, then delete it when we're done
@@ -1312,21 +1331,7 @@ function Get-IoTEdge([ref] $RestartNeeded, [bool] $Update) {
         Install-Package -Path $edgeArchivePath -RestartNeeded $RestartNeeded
         if (-not $Update) {
             Stop-Service $EdgeServiceName -ErrorAction SilentlyContinue
-
-            foreach ($name in 'mgmt', 'workload') {
-                # We can't bind socket files directly in Windows, so create a folder
-                # and bind to that. The folder needs to give Modify rights to a
-                # well-known group that will exist in any container so that
-                # non-privileged modules can access it.
-                $path = "$EdgeDataDirectory\$name"
-                New-Item $Path -ItemType Directory -Force | Out-Null
-                $sid = New-Object System.Security.Principal.SecurityIdentifier 'S-1-5-11' # NT AUTHORITY\Authenticated Users
-                $rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule(`
-                    $sid, 'Modify', 'ObjectInherit', 'InheritOnly', 'Allow')
-                $acl = Get-Acl -Path $path
-                $acl.AddAccessRule($rule)
-                Set-Acl -Path $path -AclObject $acl
-            }
+            New-Sockets $EdgeDataDirectory
         }
     }
     finally {
