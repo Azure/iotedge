@@ -51,6 +51,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             this.InstallTrustedCertificates(certs, StoreName.Root);
 
         static string BuildCertCommand(string command, string scriptPath) =>
-            $"-c \"'{Path.Combine(scriptPath, "certGen.sh")}' {command}\"";
+            $"-c \"FORCE_NO_PROD_WARNING=true '{Path.Combine(scriptPath, "certGen.sh")}' {command}\"";
     }
 }

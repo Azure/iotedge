@@ -81,15 +81,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use futures::future;
-    use hyper::service::{service_fn, Service};
+    use hyper::service::service_fn;
     use hyper::{Body, Error as HyperError, Method, Request, Response, StatusCode};
     use maplit::btreemap;
-    use native_tls::TlsConnector;
     use serde_json::json;
     use tokio::runtime::Runtime;
-    use typed_headers::{mime, ContentLength, ContentType, HeaderMapExt};
-    use url::Url;
 
     use edgelet_test_utils::cert::TestCert;
     use edgelet_test_utils::crypto::TestHsm;
@@ -97,12 +93,13 @@ mod tests {
     use edgelet_test_utils::web::{
         make_req_dispatcher, HttpMethod, RequestHandler, RequestPath, ResponseFuture,
     };
-    use kube_client::{Client as KubeClient, Config as KubeConfig, Error, TokenSource};
 
     use crate::module::init_trust_bundle;
-    use crate::tests::{make_settings, PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME};
-    use crate::Settings;
-    use crate::{ErrorKind, KubeModuleRuntime};
+    use crate::tests::{
+        create_runtime, make_settings, not_found_handler, response,
+        PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME,
+    };
+    use crate::ErrorKind;
 
     #[test]
     fn it_fails_when_trust_bundle_unavailable() {
@@ -268,63 +265,6 @@ mod tests {
                 })
                 .to_string()
             })
-        }
-    }
-
-    fn response(
-        status_code: StatusCode,
-        response: impl Fn() -> String + Clone + Send + 'static,
-    ) -> ResponseFuture {
-        let response = response();
-        let response_len = response.len();
-
-        let mut response = Response::new(response.into());
-        *response.status_mut() = status_code;
-        response
-            .headers_mut()
-            .typed_insert(&ContentLength(response_len as u64));
-        response
-            .headers_mut()
-            .typed_insert(&ContentType(mime::APPLICATION_JSON));
-
-        Box::new(future::ok(response)) as ResponseFuture
-    }
-
-    fn not_found_handler(_: Request<Body>) -> ResponseFuture {
-        let response = Response::builder()
-            .status(StatusCode::NOT_FOUND)
-            .body(Body::default())
-            .unwrap();
-
-        Box::new(future::ok(response))
-    }
-
-    fn create_runtime<S: Service>(
-        settings: Settings,
-        service: S,
-    ) -> KubeModuleRuntime<TestTokenSource, S> {
-        let client = KubeClient::with_client(get_config(), service);
-
-        KubeModuleRuntime::new(client, settings)
-    }
-
-    fn get_config() -> KubeConfig<TestTokenSource> {
-        KubeConfig::new(
-            Url::parse("https://localhost:443").unwrap(),
-            "/api".to_string(),
-            TestTokenSource,
-            TlsConnector::new().unwrap(),
-        )
-    }
-
-    #[derive(Clone)]
-    struct TestTokenSource;
-
-    impl TokenSource for TestTokenSource {
-        type Error = Error;
-
-        fn get(&self) -> kube_client::error::Result<Option<String>> {
-            Ok(None)
         }
     }
 }

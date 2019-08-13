@@ -1,0 +1,54 @@
+steps:
+- pwsh: |
+    $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
+
+    if ($IsWindows)
+    {
+      # The windows installer script doesn't update the PATH in the current
+      # terminal session, so add `iotedge` and `docker` CLIs manually
+      $env:Path =
+        $env:Path,
+        $(Join-Path $env:ProgramFiles 'iotedge'),
+        $(Join-Path $env:ProgramFiles 'iotedge-moby') -join ';'
+
+      dotnet vstest $testFile --logger:trx
+    }
+    else
+    {
+      sudo --preserve-env dotnet vstest $testFile --logger:trx
+    }
+  displayName: Run tests
+  env:
+    E2E_EVENT_HUB_ENDPOINT: $(TestEventHubCompatibleEndpoint)
+    E2E_IOT_HUB_CONNECTION_STRING: $(TestIotHubConnectionString)
+    E2E_REGISTRIES__0__PASSWORD: $(TestContainerRegistryPassword)
+    E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
+
+- task: PublishTestResults@2
+  displayName: Publish test results
+  inputs:
+    testResultsFormat: vstest
+    testResultsFiles: '**/*.trx'
+    searchFolder: $(Build.SourcesDirectory)/TestResults
+    testRunTitle: End-to-end tests ($(Build.BuildNumber) $(os) $(arch))
+    buildPlatform: $(arch)
+  condition: succeededOrFailed()
+
+- pwsh: |
+    $logDir = '$(Build.ArtifactStagingDirectory)/logs'
+    New-Item $logDir -ItemType Directory -Force | Out-Null
+    Out-File "$logDir/$(Build.DefinitionName)-$(Build.BuildNumber)"
+    Copy-Item "$(Build.SourcesDirectory)/TestResults" "$logDir/" -Recurse
+    # The setup fixture runs outside the scope of any test, so its logs (*-test-*.log) aren't
+    # included in the TRX. Copy them manually here.
+    Copy-Item "$(binDir)/*-test-*.log" "$logDir/"
+    Copy-Item "$(binDir)/testoutput.log" "$logDir/"
+  displayName: Collect Logs
+  condition: succeededOrFailed()
+
+- task: PublishBuildArtifacts@1
+  displayName: Publish logs
+  inputs:
+    PathtoPublish: $(Build.ArtifactStagingDirectory)/logs
+    ArtifactName: logs-end-to-end-$(Build.BuildNumber)-$(os)-$(arch)
+  condition: succeededOrFailed()
