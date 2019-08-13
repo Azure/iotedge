@@ -20,15 +20,19 @@ steps:
 - pwsh: |
     Set-PSDebug -Trace 2
 
-    #Write-Output "1>> '$(Build.TriggeredBy.DefinitionName)'"
-    Write-Output "2>> '$env:BUILD_TRIGGEREDBY_DEFINITIONNAME'"
-    #Write-Output "3>> '$(Build.TriggeredBy.BuildId)'"
-    Write-Output "4>> '$env:BUILD_TRIGGEREDBY_BUILDID'"
-    #Write-Output "5>> '$(azure.pipeline.packages)'"
-    Write-Output "6>> '$env:AZURE_PIPELINE_PACKAGES'"
-    Write-Output "7>> '$(az.pipeline.packages.buildId)'"
-    Write-Output "8>> '$(azure.pipeline.images)'"
-    Write-Output "9>> '$(azure.pipeline.images.buildId)'"
+    #Write-Output "01>> '$(Build.TriggeredBy.DefinitionName)'"
+    Write-Output "02>> '$env:BUILD_TRIGGEREDBY_DEFINITIONNAME'"
+    #Write-Output "03>> '$(Build.TriggeredBy.BuildId)'"
+    Write-Output "04>> '$env:BUILD_TRIGGEREDBY_BUILDID'"
+    #Write-Output "05>> '$(azure.pipeline.packages)'"
+    Write-Output "06>> '$env:AZURE_PIPELINE_PACKAGES'"
+    Write-Output "07>> '$(az.pipeline.packages.buildId)'"
+    Write-Output "08>> '$env:AZ_PIPELINE_PACKAGES_BUILDID'"
+    #Write-Output "09>> '$(azure.pipeline.images)'"
+    Write-Output "10>> '$env:AZURE_PIPELINE_IMAGES'"
+    Write-Output "11>> '$(azure.pipeline.images.buildId)'"
+    Write-Output "12>> '$env:AZURE_PIPELINE_IMAGES_BUILDID'"
+
     # We care about three cases:
     # 1) 'Edgelet Packages' build triggered this build (use latest 'Build Images' build on master)
     if ($env:BUILD_TRIGGEREDBY_DEFINITIONNAME -eq '$(azure.pipeline.packages)')
