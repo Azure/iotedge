@@ -51,7 +51,7 @@ steps:
       {
         Write-Output "Missing build parameter 'az.pipeline.packages.buildId' or 'az.pipeline.images.buildId'"
       }
-      return 1
+      exit 1
     }
   displayName: Locate edgelet packages, runtime images
 
