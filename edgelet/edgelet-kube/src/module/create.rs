@@ -223,15 +223,11 @@ where
 mod tests {
     use std::collections::HashMap;
 
-    use futures::future;
-    use hyper::service::{service_fn, Service};
-    use hyper::{Body, Method, Request, Response, StatusCode};
+    use hyper::service::service_fn;
+    use hyper::{Body, Method, Request, StatusCode};
     use maplit::btreemap;
-    use native_tls::TlsConnector;
     use serde_json::json;
     use tokio::runtime::Runtime;
-    use typed_headers::{mime, ContentLength, ContentType, HeaderMapExt};
-    use url::Url;
 
     use docker::models::{AuthConfig, ContainerCreateBody, HostConfig, Mount};
     use edgelet_core::{ImagePullPolicy, ModuleSpec};
@@ -240,15 +236,13 @@ mod tests {
     use edgelet_test_utils::web::{
         make_req_dispatcher, HttpMethod, RequestHandler, RequestPath, ResponseFuture,
     };
-    use kube_client::{Client as KubeClient, Config as KubeConfig, TokenSource};
 
     use crate::module::create::{
         create_or_update_deployment, create_or_update_role_binding,
         create_or_update_service_account,
     };
     use crate::module::create_module;
-    use crate::tests::make_settings;
-    use crate::{Error, KubeModuleRuntime, Settings};
+    use crate::tests::{create_runtime, make_settings, not_found_handler, response};
 
     #[test]
     fn it_creates_new_deployment_if_does_not_exist() {
@@ -547,34 +541,6 @@ mod tests {
         }
     }
 
-    fn response(
-        status_code: StatusCode,
-        response: impl Fn() -> String + Clone + Send + 'static,
-    ) -> ResponseFuture {
-        let response = response();
-        let response_len = response.len();
-
-        let mut response = Response::new(response.into());
-        *response.status_mut() = status_code;
-        response
-            .headers_mut()
-            .typed_insert(&ContentLength(response_len as u64));
-        response
-            .headers_mut()
-            .typed_insert(&ContentType(mime::APPLICATION_JSON));
-
-        Box::new(future::ok(response)) as ResponseFuture
-    }
-
-    fn not_found_handler(_: Request<Body>) -> ResponseFuture {
-        let response = Response::builder()
-            .status(StatusCode::NOT_FOUND)
-            .body(Body::default())
-            .unwrap();
-
-        Box::new(future::ok(response))
-    }
-
     fn create_module_spec(name: &str) -> ModuleSpec<DockerConfig> {
         let create_body = ContainerCreateBody::new()
             .with_host_config(
@@ -625,33 +591,5 @@ mod tests {
             ImagePullPolicy::default(),
         )
         .unwrap()
-    }
-
-    fn create_runtime<S: Service>(
-        settings: Settings,
-        service: S,
-    ) -> KubeModuleRuntime<TestTokenSource, S> {
-        let client = KubeClient::with_client(get_config(), service);
-        KubeModuleRuntime::new(client, settings)
-    }
-
-    fn get_config() -> KubeConfig<TestTokenSource> {
-        KubeConfig::new(
-            Url::parse("https://localhost:443").unwrap(),
-            "/api".to_string(),
-            TestTokenSource,
-            TlsConnector::new().unwrap(),
-        )
-    }
-
-    #[derive(Clone)]
-    struct TestTokenSource;
-
-    impl TokenSource for TestTokenSource {
-        type Error = Error;
-
-        fn get(&self) -> kube_client::error::Result<Option<String>> {
-            Ok(None)
-        }
     }
 }
