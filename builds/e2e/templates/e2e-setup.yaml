@@ -20,7 +20,7 @@ steps:
 - pwsh: |
     Set-PSDebug -Trace 2
 
-    Write-Output "1>> '$(Build.TriggeredBy.DefinitionName)'"
+    #Write-Output "1>> '$(Build.TriggeredBy.DefinitionName)'"
     Write-Output "2>> '$env:BUILD_TRIGGEREDBY_DEFINITIONNAME'"
     Write-Output "3>> '$(Build.TriggeredBy.BuildId)'"
     Write-Output "4>> '$(azure.pipeline.packages)'"
