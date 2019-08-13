@@ -159,10 +159,11 @@ mod tests {
     use super::*;
 
     #[test]
-    #[should_panic(expected = "URL does not have a recognized scheme")]
     fn invalid_url_scheme() {
-        let _connector =
-            UrlConnector::new(&Url::parse("foo:///this/is/not/valid").unwrap()).unwrap();
+        let err = UrlConnector::new(&Url::parse("foo:///this/is/not/valid").unwrap()).unwrap_err();
+        assert!(failure::Fail::iter_chain(&err).any(|err| err
+            .to_string()
+            .contains("URL does not have a recognized scheme")));
     }
 
     #[test]
