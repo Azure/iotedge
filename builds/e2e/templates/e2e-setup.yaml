@@ -19,6 +19,14 @@ steps:
 
 - pwsh: |
     Set-PSDebug -Trace 2
+
+    Write-Output "1>> '$(Build.TriggeredBy.DefinitionName)'"
+    Write-Output "2>> '$env:BUILD_TRIGGEREDBY_DEFINITIONNAME'"
+    Write-Output "3>> '$(Build.TriggeredBy.BuildId)'"
+    Write-Output "4>> '$(azure.pipeline.packages)'"
+    Write-Output "5>> '$(az.pipeline.packages.buildId)'"
+    Write-Output "6>> '$(azure.pipeline.images)'"
+    Write-Output "7>> '$(azure.pipeline.images.buildId)'"
     # We care about three cases:
     # 1) 'Edgelet Packages' build triggered this build (use latest 'Build Images' build on master)
     if ($env:BUILD_TRIGGEREDBY_DEFINITIONNAME -eq '$(azure.pipeline.packages)')
@@ -44,7 +52,7 @@ steps:
     }
     else # Error
     {
-      if ($env:BUILD_TRIGGEREDBY_DEFINITIONNAME -ne '')
+      if ($env:BUILD_TRIGGEREDBY_DEFINITIONNAME)
       {
         Write-Output "Build triggered by unrecognized build '$env:BUILD_TRIGGEREDBY_DEFINITIONNAME'"
       }
