@@ -379,49 +379,49 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "HSM API Not Implemented")]
     fn tpm_no_activate_function_fail() {
         let hsm_tpm = fake_no_if_tpm_hsm();
         let key = b"key data";
-        hsm_tpm.activate_identity_key(key).unwrap();
-        println!("You should never see this print");
+        let err = hsm_tpm.activate_identity_key(key).unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM API Not Implemented")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API Not Implemented")]
     fn tpm_no_getek_function_fail() {
         let hsm_tpm = fake_no_if_tpm_hsm();
-        let result = hsm_tpm.get_ek().unwrap();
-        println!("You should never see this print {:?}", result);
+        let err = hsm_tpm.get_ek().unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM API Not Implemented")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API Not Implemented")]
     fn tpm_no_getsrk_function_fail() {
         let hsm_tpm = fake_no_if_tpm_hsm();
-        let result = hsm_tpm.get_srk().unwrap();
-        println!("You should never see this print {:?}", result);
+        let err = hsm_tpm.get_srk().unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM API Not Implemented")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API Not Implemented")]
     fn tpm_no_sign_function_fail() {
         let hsm_tpm = fake_no_if_tpm_hsm();
         let key = b"key data";
-        let result = hsm_tpm.sign_with_identity(key).unwrap();
-        println!("You should never see this print {:?}", result);
+        let err = hsm_tpm.sign_with_identity(key).unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM API Not Implemented")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API Not Implemented")]
     fn tpm_no_derive_and_sign_function_fail() {
         let hsm_tpm = fake_no_if_tpm_hsm();
         let key = b"key data";
         let identity = b"identity";
-        let result = hsm_tpm
+        let err = hsm_tpm
             .derive_and_sign_with_identity(key, identity)
-            .unwrap();
-        println!("You should never see this print {:?}", result);
+            .unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM API Not Implemented")));
     }
 
     fn fake_good_tpm_hsm() -> Tpm {
@@ -442,7 +442,6 @@ mod tests {
 
     #[test]
     #[allow(clippy::let_unit_value)]
-
     fn tpm_success() {
         let hsm_tpm = fake_good_tpm_hsm();
         let k1 = b"A fake key";
@@ -485,47 +484,48 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "HSM API failure occurred")]
     fn tpm_activate_identity_errors() {
         let hsm_tpm = fake_bad_tpm_hsm();
         let k1 = b"A fake key";
-        hsm_tpm.activate_identity_key(k1).unwrap();
-        println!("You should never see this print");
+        let err = hsm_tpm.activate_identity_key(k1).unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM API failure occurred")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API failure occurred")]
     fn tpm_getek_errors() {
         let hsm_tpm = fake_bad_tpm_hsm();
-        let result = hsm_tpm.get_ek().unwrap();
-        println!("You should never see this print {:?}", result);
+        let err = hsm_tpm.get_ek().unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM API failure occurred")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API failure occurred")]
     fn tpm_getsrk_errors() {
         let hsm_tpm = fake_bad_tpm_hsm();
-        let result = hsm_tpm.get_srk().unwrap();
-        println!("You should never see this print {:?}", result);
+        let err = hsm_tpm.get_srk().unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM API failure occurred")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API failure occurred")]
     fn tpm_sign_errors() {
         let hsm_tpm = fake_bad_tpm_hsm();
         let k1 = b"A fake buffer";
-        let result = hsm_tpm.sign_with_identity(k1).unwrap();
-        println!("You should never see this print {:?}", result);
+        let err = hsm_tpm.sign_with_identity(k1).unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM API failure occurred")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API failure occurred")]
     fn tpm_derive_and_sign_errors() {
         let hsm_tpm = fake_bad_tpm_hsm();
         let k1 = b"A fake buffer";
         let identity = b"an identity";
-        let result = hsm_tpm.derive_and_sign_with_identity(k1, identity).unwrap();
-        println!("You should never see this print {:?}", result);
+        let err = hsm_tpm
+            .derive_and_sign_with_identity(k1, identity)
+            .unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM API failure occurred")));
     }
-
 }
