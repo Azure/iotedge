@@ -1,7 +1,4 @@
-FROM arm64v8/alpine:3.10
-
-RUN addgroup -S proxy && adduser -S proxy -G proxy
-USER proxy
+FROM azureiotedge/azureiotedge-proxy-base:1.0-arm64v8
 
 WORKDIR /app
 COPY ./docker/linux/arm64v8/iotedge-proxy /app/iotedge-proxy
