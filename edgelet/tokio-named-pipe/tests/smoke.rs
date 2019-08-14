@@ -39,7 +39,9 @@ fn server() -> (NamedPipe, String) {
 fn connect_invalid_path() {
     let err = PipeStream::connect(r"\\.\pipe\boo", None).unwrap_err();
     #[allow(clippy::cast_sign_loss)]
-    assert_eq!(err.raw_os_error().unwrap() as u32, ERROR_FILE_NOT_FOUND);
+    {
+        assert_eq!(err.raw_os_error().unwrap() as u32, ERROR_FILE_NOT_FOUND);
+    }
 }
 
 #[test]
