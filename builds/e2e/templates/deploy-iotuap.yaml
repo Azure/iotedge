@@ -48,6 +48,9 @@ steps:
       $startDateTime = Get-Date
       $timeoutMinutes = 5
       
+      # allow for device to go offline (starts rebooting)
+      Sleep 60
+      
       Write-Host "Waiting device $(iotuap-x64-machine) to become online (for up to $timeoutMinutes minutes)..."
       
       Do { $Ping = Test-Connection $(iotuap-x64-machine) -quiet }
