@@ -2,9 +2,9 @@
 namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 {
     using System;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
 
     public class EndpointExecutorStatus
     {

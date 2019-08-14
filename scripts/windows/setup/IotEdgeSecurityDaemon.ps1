@@ -125,11 +125,6 @@ PS> Initialize-IoTEdge -Dps -ScopeId $scopeId -ContainerOs Windows -X509Identity
 
 .EXAMPLE
 
-PS> Initialize-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows -AutoGenX509IdentityCertificate $true -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
-
-
-.EXAMPLE
-
 PS> Initialize-IoTEdge -External -ExternalProvisioningEndpoint $externalProvisioningEndpoint -ContainerOs Windows -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
 #>
 function Initialize-IoTEdge {
@@ -175,10 +170,6 @@ function Initialize-IoTEdge {
         [ValidateNotNullOrEmpty()]
         [String] $X509IdentityPrivateKey,
 
-        # Auto generate the X.509 identity certificate from the device CA
-        [Parameter(ParameterSetName = 'DPS')]
-        [bool] $AutoGenX509IdentityCertificate = $false,
-
         # The Edge device CA certificate
         [ValidateNotNullOrEmpty()]
         [String] $DeviceCACertificate,
@@ -219,28 +210,26 @@ function Initialize-IoTEdge {
     if (-not (Test-EdgeAlreadyInstalled)) {
         Write-HostRed
         Write-HostRed ('IoT Edge is not yet installed. ' + $InstallMessage)
-        return
+        throw
     }
 
     if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
         Write-HostRed
         Write-HostRed ('IoT Edge is installed in an invalid location. ' + $ReinstallMessage)
-        return
+        throw
     }
 
     if (-not (Test-MobyAlreadyInstalled)) {
         Write-HostRed
         Write-HostRed ('IoT Edge Moby Engine is not yet installed. ' + $ReinstallMessage)
-        return
+        throw
     }
 
     if (-not (Test-AgentRegistryArgs)) {
-        return
+        throw
     }
 
-    if (-not (Setup-Environment -ContainerOs $ContainerOs -SkipArchCheck -SkipBatteryCheck)) {
-        return
-    }
+    Setup-Environment -ContainerOs $ContainerOs -SkipArchCheck -SkipBatteryCheck
 
     $configPath = Join-Path -Path $EdgeDataDirectory -ChildPath 'config.yaml'
     if (Test-Path $configPath) {
@@ -248,7 +237,7 @@ function Initialize-IoTEdge {
         Write-HostRed "$configPath already exists."
         Write-HostRed ('Delete it using "Uninstall-IoTEdge -Force" and then ' +
             're-run "Deploy-IoTEdge" and "Initialize-IoTEdge"')
-        return
+        throw
     }
 
     # config.yaml
@@ -272,7 +261,6 @@ function Initialize-IoTEdge {
     Set-MobyEngineParameters
 
     # Start services
-    Set-SystemPath
     Start-IoTEdgeService
     if ($ContainerOs -eq 'Linux') {
         Add-FirewallExceptions
@@ -319,9 +307,8 @@ function Update-IoTEdge {
         # Proxy URI used for all Invoke-WebRequest calls. To specify other proxy-related options like -ProxyCredential, see -InvokeWebRequestParameters
         [Uri] $Proxy,
 
-        # If set to a directory path, the installer prefers to use IoTEdge CAB, Moby Engine CAB, Moby CLI CAB and VC Runtime MSI files from inside this directory
-        # over downloading them from the internet. Thus placing all four files in this directory can be used to have a completely offline install,
-        # or a specific subset can be placed to override the online versions of those specific components.
+        # If set to a directory path, the installer uses the IoTEdge CAB and VC Runtime MSI files from inside this directory
+        # instead of downloading them from the internet. Thus placing both files in this directory can be used to have a completely offline install.
         [String] $OfflineInstallationPath,
 
         # Splatted into every Invoke-WebRequest invocation. Can be used to set extra options.
@@ -386,9 +373,8 @@ function Deploy-IoTEdge {
         # Proxy URI used for all Invoke-WebRequest calls. To specify other proxy-related options like -ProxyCredential, see -InvokeWebRequestParameters
         [Uri] $Proxy,
 
-        # If set to a directory path, the installer prefers to use IoTEdge CAB, Moby Engine CAB, Moby CLI CAB and VC Runtime MSI files from inside this directory
-        # over downloading them from the internet. Thus placing all four files in this directory can be used to have a completely offline install,
-        # or a specific subset can be placed to override the online versions of those specific components.
+        # If set to a directory path, the installer uses the IoTEdge CAB and VC Runtime MSI files from inside this directory
+        # instead of downloading them from the internet. Thus placing both files in this directory can be used to have a completely offline install.
         [String] $OfflineInstallationPath,
 
         # Splatted into every Invoke-WebRequest invocation. Can be used to set extra options.
@@ -418,6 +404,8 @@ function Deploy-IoTEdge {
         -RestartIfNeeded:$RestartIfNeeded `
         -SkipArchCheck:$SkipArchCheck `
         -SkipBatteryCheck:$SkipBatteryCheck
+
+    Set-SystemPath
 }
 
 <#
@@ -478,11 +466,6 @@ PS> Install-IoTEdge -Dps -ScopeId $scopeId -ContainerOs Windows -X509IdentityCer
 
 .EXAMPLE
 
-PS> Install-IoTEdge -Dps -ScopeId $scopeId -RegistrationId $registrationId -ContainerOs Windows -AutoGenX509IdentityCertificate $true -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
-
-
-.EXAMPLE
-
 PS> Install-IoTEdge -External -ExternalProvisioningEndpoint $externalProvisioningEndpoint -ContainerOs Windows -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
 #>
 function Install-IoTEdge {
@@ -528,10 +511,6 @@ function Install-IoTEdge {
         [ValidateNotNullOrEmpty()]
         [String] $X509IdentityPrivateKey,
 
-        # Auto generate the X.509 identity certificate from the device CA
-        [Parameter(ParameterSetName = 'DPS')]
-        [bool] $AutoGenX509IdentityCertificate = $false,
-
         # The Edge device CA certificate
         [ValidateNotNullOrEmpty()]
         [String] $DeviceCACertificate,
@@ -559,9 +538,8 @@ function Install-IoTEdge {
         # Proxy URI used for all Invoke-WebRequest calls. To specify other proxy-related options like -ProxyCredential, see -InvokeWebRequestParameters
         [Uri] $Proxy,
 
-        # If set to a directory path, the installer prefers to use IoTEdge CAB, Moby Engine CAB, Moby CLI CAB and VC Runtime MSI files from inside this directory
-        # over downloading them from the internet. Thus placing all four files in this directory can be used to have a completely offline install,
-        # or a specific subset can be placed to override the online versions of those specific components.
+        # If set to a directory path, the installer uses the IoTEdge CAB and VC Runtime MSI files from inside this directory
+        # instead of downloading them from the internet. Thus placing both files in this directory can be used to have a completely offline install.
         [String] $OfflineInstallationPath,
 
         # IoT Edge Agent image to pull for the initial configuration.
@@ -592,7 +570,10 @@ function Install-IoTEdge {
         [Switch] $SkipBatteryCheck
     )
 
-    # Used to indicate success of Deploy-IoTEdge so we can abort early in case of failure
+    # Set by Deploy-IoTEdge if it succeeded, so we can abort early in case of failure.
+    #
+    # We use a script-scope var instead of having Deploy-IoTEdge return a boolean or take a [ref] parameter
+    # because users can also run Deploy-IoTEdge themselves, so it can't be part of the public API.
     $script:installPackagesCompleted = $false
 
     # Used to suppress some messages from Deploy-IoTEdge since we are automatically running Initialize-IoTEdge
@@ -624,7 +605,6 @@ function Install-IoTEdge {
     if ($SymmetricKey) { $Params["-SymmetricKey"] = $SymmetricKey }
     if ($X509IdentityCertificate) { $Params["-X509IdentityCertificate"] = $X509IdentityCertificate }
     if ($X509IdentityPrivateKey) { $Params["-X509IdentityPrivateKey"] = $X509IdentityPrivateKey }
-    if ($AutoGenX509IdentityCertificate) { $Params["-AutoGenX509IdentityCertificate"] = $AutoGenX509IdentityCertificate }
     if ($DeviceCACertificate) { $Params["-DeviceCACertificate"] = $DeviceCACertificate }
     if ($DeviceCAPrivateKey) { $Params["-DeviceCAPrivateKey"] = $DeviceCAPrivateKey }
     if ($DeviceTrustbundle) { $Params["-DeviceTrustbundle"] = $DeviceTrustbundle }
@@ -685,15 +665,16 @@ function Uninstall-IoTEdge {
     $legacyInstaller = Test-LegacyInstaller
 
     if ((Test-IoTCore) -and (-not $legacyInstaller)) {
+        Write-HostRed
         Write-HostRed ('Uninstall-IoTEdge is only supported on IoTCore to uninstall legacy installation. ' +
             'For new installations, please use "Update-IoTEdge" directly to update.')
-        return
+        throw
     }
 
     if (-not $Force -and -not ((Test-EdgeAlreadyInstalled) -or (Test-MobyAlreadyInstalled))) {
         Write-HostRed
         Write-HostRed 'IoT Edge is not installed. Use "-Force" to uninstall anyway.'
-        return
+        throw
     }
 
     Write-Host 'Uninstalling...'
@@ -760,51 +741,51 @@ function Install-Packages(
         if (-not (Test-EdgeAlreadyInstalled)) {
             Write-HostRed
             Write-HostRed ('IoT Edge is not yet installed. ' + $InstallMessage)
-            return
+            throw
         }
 
         if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
             Write-HostRed
             Write-HostRed ('IoT Edge is installed in an invalid location. ' + $ReinstallMessage)
-            return
+            throw
         }
 
         if (-not (Test-MobyAlreadyInstalled)) {
             Write-HostRed
             Write-HostRed ('IoT Edge Moby Engine is not yet installed. ' + $ReinstallMessage)
-            return
+            throw
         }
     }
     else {
         if (Test-EdgeAlreadyInstalled) {
-            Write-HostRed
             if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
+                Write-HostRed
                 Write-HostRed ('IoT Edge is installed in an invalid location. ' + $ReinstallMessage)
             }
             else {
+                Write-HostRed
                 Write-HostRed ('IoT Edge is already installed. To update, run "Update-IoTEdge". ' +
                     'Alternatively, if you want to finalize the installation, run "Initialize-IoTEdge".')
             }
-            return
+            throw
         }
 
         if (Test-MobyAlreadyInstalled) {
-            Write-HostRed
             if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
+                Write-HostRed
                 Write-HostRed ('IoT Edge Moby Engine is installed in an invalid location. ' +
                     $ReinstallMessage)
             }
             else {
+                Write-HostRed
                 Write-HostRed ('IoT Edge Moby Engine is already installed, but IoT Edge is not. ' +
                     $ReinstallMessage)
             }
-            return
+            throw
         }
     }
 
-    if (-not (Setup-Environment -ContainerOs $ContainerOs -SkipArchCheck:$SkipArchCheck -SkipBatteryCheck:$SkipBatteryCheck)) {
-        return
-    }
+    Setup-Environment -ContainerOs $ContainerOs -SkipArchCheck:$SkipArchCheck -SkipBatteryCheck:$SkipBatteryCheck
 
     $restartNeeded = $false
 
@@ -828,7 +809,9 @@ function Install-Packages(
             Start-Service $EdgeServiceName
         }
         catch {
-            throw 'Failed to start Security Daemon, make sure to initialize config file by running "Initialize-IoTEdge".'
+            Write-HostRed
+            Write-HostRed 'Failed to start Security Daemon, make sure to initialize config file by running "Initialize-IoTEdge".'
+            throw
         }
     }
 
@@ -910,7 +893,7 @@ function Setup-Environment {
         Write-HostRed
         Write-HostRed ('The prerequisites for installation of the IoT Edge Security daemon are not met. ' +
             'Please fix all known issues before rerunning this script.')
-        return $false
+        throw
     }
 
     if (-not (Test-IotCore)) {
@@ -937,14 +920,13 @@ function Setup-Environment {
                     'before using these power states.')
 
                 if (-not $PSCmdlet.ShouldContinue('Do you want to continue with installation?', '')) {
+                    Write-HostRed
                     Write-HostRed 'Aborting installation.'
-                    return $false
+                    throw
                 }
             }
         }
     }
-
-    return $true
 }
 
 function Write-LogInformation {
@@ -998,13 +980,18 @@ function Set-ContainerOs {
                 $dockerCliExe = "$ProgramFilesDirectory\Docker\Docker\DockerCli.exe"
 
                 if (-not (Test-Path -Path $dockerCliExe)) {
-                    throw 'Unable to switch to Linux containers.'
+                    Write-HostRed
+                    Write-HostRed "Unable to switch to Linux containers: could not find $dockerCliExe"
+                    throw
                 }
 
                 Invoke-Native """$dockerCliExe"" -SwitchDaemon"
 
-                if ((Get-ExternalDockerServerOs) -ne 'Linux') {
-                    throw 'Unable to switch to Linux containers.'
+                $newExternalDockerServerOs = Get-ExternalDockerServerOs
+                if ($newExternalDockerServerOs -ne 'Linux') {
+                    Write-HostRed
+                    Write-HostRed "Unable to switch to Linux containers: Docker is still set to use $newExternalDockerServerOs containers"
+                    throw
                 }
 
                 Write-HostGreen 'Switched Docker to use Linux containers.'
@@ -1147,7 +1134,7 @@ function Try-StopService([string] $Name) {
 
 function Get-IoTEdge([ref] $RestartNeeded, [bool] $Update) {
     try {
-        # If we create these archives ourselves, then delete them when we're done
+        # If we create the archive ourselves, then delete it when we're done
         $deleteEdgeArchive = $false
 
         if (Test-IotCore) {
@@ -1194,11 +1181,17 @@ function Get-IoTEdge([ref] $RestartNeeded, [bool] $Update) {
         $output = Invoke-Native 'ApplyUpdate -commit' -DoNotThrow -Passthru
         # On success, this should reboot, we currently cannot block that
         if ($LASTEXITCODE -ne 0) {
-            throw "Failed to deploy, consider rebooting. Please refer to the following for more information: `n$output"
+            Write-HostRed
+            Write-HostRed "Failed to deploy, consider rebooting. Please refer to the following for more information:"
+            Write-HostRed "$output"
+            throw
         }
         Start-Sleep -Seconds 120
         $output = Invoke-Native 'ApplyUpdate -status' -DoNotThrow -Passthru
-        throw "Failed to deploy. Please refer to the following for more information: `n$output"
+        Write-HostRed
+        Write-HostRed "Failed to deploy. Please refer to the following for more information:"
+        Write-HostRed "$output"
+        throw
     }
 }
 
@@ -1213,7 +1206,6 @@ Function Remove-SecurityDaemonDirectory([string] $Path)
         Write-Verbose "$cmdErr"
         Write-HostRed ("Could not delete directory '$Path'. Please reboot " +
             'your device and run "Uninstall-IoTEdge" again with "-Force".')
-        $success = $false
     }
     else {
         Write-Verbose "$cmdErr"
@@ -1226,18 +1218,29 @@ function Delete-Directory([string] $Path) {
     }
 
     # Removing "$MobyDataRootDirectory" is tricky. Windows base images contain files owned by TrustedInstaller, etc
-    # Deleting them is a three-step process:
+    # It can also silently succeed but actually delete only some of the files.
     #
-    # 1. Take ownership of all files
-    Invoke-Native "takeown /r /skipsl /d y /f ""$Path"""
+    # So try up to three times to ensure the directory really does get deleted.
+    for ($i = 0; $i -lt 3; $i++) {
+        # Deleting is a three-step process:
+        #
+        # 1. Take ownership of all files
+        Invoke-Native "takeown /r /skipsl /d y /f ""$Path""" -DoNotThrow
 
-    # 2. Reset their ACLs so that they inherit from their container
-    Invoke-Native "icacls ""$Path"" /reset /t /l /q /c"
+        # 2. Reset their ACLs so that they inherit from their container
+        Invoke-Native "icacls ""$Path"" /reset /t /l /q /c" -DoNotThrow
 
-    # 3. Use cmd's "rd" rather than "Remove-Item" since the latter gets tripped up by reparse points, etc.
-    #    Prepend the path with "\\?\" since the layer directories have long names, so the paths usually exceed 260 characters,
-    #    and IoT Core's filesystem doesn't seem to automatically use (or even have) short names
-    Invoke-Native "rd /s /q ""\\?\$Path"""
+        # 3. Use cmd's "rd" rather than "Remove-Item" since the latter gets tripped up by reparse points, etc.
+        #    Prepend the path with "\\?\" since the layer directories have long names, so the paths usually exceed 260 characters,
+        #    and IoT Core's filesystem doesn't seem to automatically use (or even have) short names
+        Invoke-Native "rd /s /q ""\\?\$Path""" -DoNotThrow
+
+        if (-not (Test-Path $Path)) {
+            return
+        }
+    }
+
+    throw
 }
 
 function Remove-IoTEdgeResources([bool] $LegacyInstaller) {
@@ -1411,14 +1414,13 @@ function Get-VcRuntime {
 
     $deleteVcRuntimeArchive = $false
 
+    $vcRuntimeArchivePath = Download-File `
+        -Description 'VC Runtime installer' `
+        -Url 'https://download.microsoft.com/download/0/6/4/064F84EA-D1DB-4EAA-9A5C-CC2F0FF6A638/vc_redist.x64.exe' `
+        -DownloadFilename 'vc_redist.x64.exe' `
+        -LocalCacheGlob '*vc_redist*.exe' `
+        -Delete ([ref] $deleteVcRuntimeArchive)
     try {
-        $vcRuntimeArchivePath = Download-File `
-            -Description 'VC Runtime installer' `
-            -Url 'https://download.microsoft.com/download/0/6/4/064F84EA-D1DB-4EAA-9A5C-CC2F0FF6A638/vc_redist.x64.exe' `
-            -DownloadFilename 'vc_redist.x64.exe' `
-            -LocalCacheGlob '*vc_redist*.exe' `
-            -Delete ([ref] $deleteVcRuntimeArchive)
-
         Invoke-Native """$vcRuntimeArchivePath"" /quiet /norestart"
         Write-HostGreen 'Installed VC Runtime.'
     }
@@ -1517,13 +1519,19 @@ function Validate-GatewaySettings {
     $certFilesProvided = $false
     if ($DeviceCACertificate -or $DeviceCAPrivateKey -or $DeviceTrustbundle) {
         if (-Not (Test-Path -Path $DeviceCACertificate)) {
-            throw "Device CA certificate file $DeviceCACertificate not found. When configuring device certificates, a certificate file is required."
+            Write-HostRed
+            Write-HostRed "Device CA certificate file $DeviceCACertificate not found. When configuring device certificates, a certificate file is required."
+            throw
         }
         if (-Not (Test-Path -Path $DeviceCAPrivateKey)) {
-            throw "Device CA private key file $DeviceCAPrivateKey not found. When configuring device certificates, a private key file is required."
+            Write-HostRed
+            Write-HostRed "Device CA private key file $DeviceCAPrivateKey not found. When configuring device certificates, a private key file is required."
+            throw
         }
         if (-Not (Test-Path -Path $DeviceTrustbundle)) {
-            throw "Device trustbundle file $DeviceTrustbundle not found. When configuring device certificates, a trust bundle file is required."
+            Write-HostRed
+            Write-HostRed "Device trustbundle file $DeviceTrustbundle not found. When configuring device certificates, a trust bundle file is required."
+            throw
         }
         $certFilesProvided = $true
     }
@@ -1537,9 +1545,6 @@ function Get-DpsProvisioningSettings {
     if ($SymmetricKey) {
         $attestationMethod = 'symmetric_key'
     }
-    elseif ($AutoGenX509IdentityCertificate) {
-        $attestationMethod = 'x509'
-    }
     elseif ($X509IdentityCertificate -or $X509IdentityPrivateKey) {
         $attestationMethod = 'x509'
         $idCertFilesProvided = $true
@@ -1552,26 +1557,22 @@ function Get-DpsProvisioningSettings {
     }
     else {
         if (-not $RegistrationId) {
-            throw "RegistrationId is required for this DPS provisioning mode."
+            Write-HostRed
+            Write-HostRed "RegistrationId is required for this DPS provisioning mode."
+            throw
         }
     }
 
     if ($attestationMethod -eq 'x509') {
-        if ($idCertFilesProvided) {
-            if (-Not (Test-Path -Path $X509IdentityCertificate)) {
-                throw "Identity certificate file $X509IdentityCertificate not found."
-            }
-            if (-Not (Test-Path -Path $X509IdentityPrivateKey)) {
-                throw "Identity private file $X509IdentityPrivateKey not found."
-            }
+        if (-Not (Test-Path -Path $X509IdentityCertificate)) {
+            Write-HostRed
+            Write-HostRed "Identity certificate file $X509IdentityCertificate not found."
+            throw
         }
-        else {
-            if ($X509IdentityCertificate -or $X509IdentityPrivateKey) {
-                throw 'Cannot specify a device identity certificate and also set AutoGenX509IdentityCertificate as true.'
-            }
-            if (-Not (Validate-GatewaySettings)) {
-                throw 'Device CA certificate files are not found. These are required when using AutoGenX509IdentityCertificate.'
-            }
+        if (-Not (Test-Path -Path $X509IdentityPrivateKey)) {
+            Write-HostRed
+            Write-HostRed "Identity private file $X509IdentityPrivateKey not found."
+            throw
         }
     }
 
@@ -1604,7 +1605,7 @@ function Set-ProvisioningMode {
         }
         else {
             $attestationMethod = Get-DpsProvisioningSettings
-            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*global_endpoint:\s*".*"\s*#?\s*scope_id:\s*".*"\s*#?\s*attestation:\s*#?\s*method:\s*"' + $attestationMethod + '"\s*#?\s*registration_id:\s*".*"\s*#?\s*device_id:\s*".*"'
+            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*global_endpoint:\s*".*"\s*#?\s*scope_id:\s*".*"\s*#?\s*attestation:\s*#?\s*method:\s*"' + $attestationMethod + '"\s*#?\s*registration_id:\s*".*"'
 
             if ($attestationMethod -eq 'symmetric_key') {
                 $selectionRegex += '\s*#?\s*symmetric_key:\s".*"'
@@ -1625,10 +1626,12 @@ function Set-ProvisioningMode {
                 $replacementContent += "    symmetric_key: '$SymmetricKey'"
             }
             if ($X509IdentityCertificate) {
-                $replacementContent += "    identity_cert: '$X509IdentityCertificate'"
+                $uri = ([System.Uri][System.IO.Path]::GetFullPath($X509IdentityCertificate)).AbsoluteUri
+                $replacementContent += "    identity_cert: '$uri'"
             }
             if ($X509IdentityPrivateKey) {
-                $replacementContent += "    identity_pk: '$X509IdentityPrivateKey'"
+                $uri = ([System.Uri][System.IO.Path]::GetFullPath($X509IdentityPrivateKey)).AbsoluteUri
+                $replacementContent += "    identity_pk: '$uri'"
             }
             $configurationYaml = $configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")
 
@@ -1647,11 +1650,14 @@ function Set-Certificates {
         Update-ConfigYaml({
             param($configurationYaml)
             $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?certificates:\s*#?\s*device_ca_cert:\s*".*"\s*#?\s*device_ca_pk:\s*".*"\s*#?\s*trusted_ca_certs:\s*".*"'
+            $certURI = ([System.Uri][System.IO.Path]::GetFullPath($DeviceCACertificate)).AbsoluteUri
+            $keyURI = ([System.Uri][System.IO.Path]::GetFullPath($DeviceCAPrivateKey)).AbsoluteUri
+            $tbURI = ([System.Uri][System.IO.Path]::GetFullPath($DeviceTrustbundle)).AbsoluteUri
             $replacementContent = @(
                 "certificates:",
-                "  device_ca_cert: '$DeviceCACertificate'",
-                "  device_ca_pk: '$DeviceCAPrivateKey'",
-                "  trusted_ca_certs: '$DeviceTrustbundle'")
+                "  device_ca_cert: '$certURI'",
+                "  device_ca_pk: '$keyURI'",
+                "  trusted_ca_certs: '$tbURI'")
             $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
             Write-HostGreen 'Configured device for manual provisioning.'
             return $configurationYaml
@@ -1947,7 +1953,14 @@ function Remove-BuiltinWritePermissions([string] $Path) {
 }
 
 function Download-File([string] $Description, [string] $Url, [string] $DownloadFilename, [string] $LocalCacheGlob, [ref] $Delete) {
-    if (($OfflineInstallationPath -ne '') -and (Test-Path "$OfflineInstallationPath\$LocalCacheGlob")) {
+    if ($OfflineInstallationPath -ne '') {
+        if (-not (Test-Path "$OfflineInstallationPath\$LocalCacheGlob")) {
+            Write-HostRed
+            Write-HostRed "Could not find $Description at $OfflineInstallationPath\$LocalCacheGlob"
+            Write-HostRed "Please download it from $Url and save it under $OfflineInstallationPath"
+            throw
+        }
+
         $result = (Get-Item "$OfflineInstallationPath\$LocalCacheGlob" | Select-Object -First 1).FullName
 
         $Delete.Value = $false

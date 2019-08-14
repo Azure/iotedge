@@ -11,14 +11,15 @@ use std::time::Duration;
 use chrono::prelude::*;
 use failure::{Fail, ResultExt};
 use futures::{Future, Stream};
-use serde_derive::{Deserialize, Serialize};
 use serde_json;
 
 use edgelet_utils::{ensure_not_empty_with_context, serialize_ordered};
 
 use crate::error::{Error, ErrorKind, Result};
+use crate::settings::RuntimeSettings;
+use crate::GetTrustBundle;
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, serde_derive::Deserialize, PartialEq, serde_derive::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ModuleStatus {
     Unknown,
@@ -47,7 +48,7 @@ impl fmt::Display for ModuleStatus {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(serde_derive::Serialize, serde_derive::Deserialize, Debug, PartialEq, Clone)]
 pub struct ModuleRuntimeState {
     status: ModuleStatus,
     exit_code: Option<i64>,
@@ -137,7 +138,7 @@ impl ModuleRuntimeState {
     }
 }
 
-#[derive(Deserialize, Debug, Serialize)]
+#[derive(serde_derive::Deserialize, Debug, serde_derive::Serialize)]
 pub struct ModuleSpec<T> {
     name: String,
     #[serde(rename = "type")]
@@ -146,6 +147,9 @@ pub struct ModuleSpec<T> {
     #[serde(default = "HashMap::new")]
     #[serde(serialize_with = "serialize_ordered")]
     env: HashMap<String, String>,
+    #[serde(default)]
+    #[serde(rename = "imagePullPolicy")]
+    image_pull_policy: ImagePullPolicy,
 }
 
 impl<T> Clone for ModuleSpec<T>
@@ -158,6 +162,7 @@ where
             type_: self.type_.clone(),
             config: self.config.clone(),
             env: self.env.clone(),
+            image_pull_policy: self.image_pull_policy,
         }
     }
 }
@@ -168,6 +173,7 @@ impl<T> ModuleSpec<T> {
         type_: String,
         config: T,
         env: HashMap<String, String>,
+        image_pull_policy: ImagePullPolicy,
     ) -> Result<Self> {
         ensure_not_empty_with_context(&name, || ErrorKind::InvalidModuleName(name.clone()))?;
         ensure_not_empty_with_context(&type_, || ErrorKind::InvalidModuleType(type_.clone()))?;
@@ -177,6 +183,7 @@ impl<T> ModuleSpec<T> {
             type_,
             config,
             env,
+            image_pull_policy,
         })
     }
 
@@ -219,8 +226,21 @@ impl<T> ModuleSpec<T> {
         &self.env
     }
 
+    pub fn env_mut(&mut self) -> &mut HashMap<String, String> {
+        &mut self.env
+    }
+
     pub fn with_env(mut self, env: HashMap<String, String>) -> Self {
         self.env = env;
+        self
+    }
+
+    pub fn image_pull_policy(&self) -> ImagePullPolicy {
+        self.image_pull_policy
+    }
+
+    pub fn with_image_pull_policy(mut self, image_pull_policy: ImagePullPolicy) -> Self {
+        self.image_pull_policy = image_pull_policy;
         self
     }
 }
@@ -381,10 +401,30 @@ impl ModuleTop {
     }
 }
 
-pub trait ModuleRuntime {
+pub trait ProvisioningResult {
+    fn device_id(&self) -> &str;
+    fn hub_name(&self) -> &str;
+}
+
+pub trait MakeModuleRuntime {
+    type Config: Clone + Send;
+    type Settings: RuntimeSettings<Config = Self::Config>;
+    type ProvisioningResult: ProvisioningResult;
+    type ModuleRuntime: ModuleRuntime<Config = Self::Config>;
+    type Error: Fail;
+    type Future: Future<Item = Self::ModuleRuntime, Error = Self::Error> + Send;
+
+    fn make_runtime(
+        settings: Self::Settings,
+        provisioning_result: Self::ProvisioningResult,
+        crypto: impl GetTrustBundle + 'static,
+    ) -> Self::Future;
+}
+
+pub trait ModuleRuntime: Sized {
     type Error: Fail;
 
-    type Config: Send;
+    type Config: Clone + Send;
     type Module: Module<Config = Self::Config> + Send;
     type ModuleRegistry: ModuleRegistry<Config = Self::Config, Error = Self::Error>;
     type Chunk: AsRef<[u8]>;
@@ -392,7 +432,6 @@ pub trait ModuleRuntime {
 
     type CreateFuture: Future<Item = (), Error = Self::Error> + Send;
     type GetFuture: Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send;
-    type InitFuture: Future<Item = (), Error = Self::Error> + Send;
     type ListFuture: Future<Item = Vec<Self::Module>, Error = Self::Error> + Send;
     type ListWithDetailsStream: Stream<
             Item = (Self::Module, ModuleRuntimeState),
@@ -406,7 +445,6 @@ pub trait ModuleRuntime {
     type SystemInfoFuture: Future<Item = SystemInfo, Error = Self::Error> + Send;
     type RemoveAllFuture: Future<Item = (), Error = Self::Error> + Send;
 
-    fn init(&self) -> Self::InitFuture;
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture;
     fn get(&self, id: &str) -> Self::GetFuture;
     fn start(&self, id: &str) -> Self::StartFuture;
@@ -493,6 +531,34 @@ impl fmt::Display for RuntimeOperation {
     }
 }
 
+#[derive(Clone, Copy, Debug, serde_derive::Deserialize, PartialEq, serde_derive::Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ImagePullPolicy {
+    #[serde(rename = "on-create")]
+    OnCreate,
+    Never,
+}
+
+impl Default for ImagePullPolicy {
+    fn default() -> Self {
+        ImagePullPolicy::OnCreate
+    }
+}
+
+impl FromStr for ImagePullPolicy {
+    type Err = Error;
+
+    fn from_str(s: &str) -> StdResult<ImagePullPolicy, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "on-create" => Ok(ImagePullPolicy::OnCreate),
+            "never" => Ok(ImagePullPolicy::Never),
+            _ => Err(Error::from(ErrorKind::InvalidImagePullPolicy(
+                s.to_string(),
+            ))),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -531,7 +597,13 @@ mod tests {
     #[test]
     fn module_config_empty_name_fails() {
         let name = "".to_string();
-        match ModuleSpec::new(name.clone(), "docker".to_string(), 10_i32, HashMap::new()) {
+        match ModuleSpec::new(
+            name.clone(),
+            "docker".to_string(),
+            10_i32,
+            HashMap::new(),
+            ImagePullPolicy::default(),
+        ) {
             Ok(_) => panic!("Expected error"),
             Err(err) => {
                 if let ErrorKind::InvalidModuleName(s) = err.kind() {
@@ -546,7 +618,13 @@ mod tests {
     #[test]
     fn module_config_white_space_name_fails() {
         let name = "    ".to_string();
-        match ModuleSpec::new(name.clone(), "docker".to_string(), 10_i32, HashMap::new()) {
+        match ModuleSpec::new(
+            name.clone(),
+            "docker".to_string(),
+            10_i32,
+            HashMap::new(),
+            ImagePullPolicy::default(),
+        ) {
             Ok(_) => panic!("Expected error"),
             Err(err) => {
                 if let ErrorKind::InvalidModuleName(s) = err.kind() {
@@ -561,7 +639,13 @@ mod tests {
     #[test]
     fn module_config_empty_type_fails() {
         let type_ = "    ".to_string();
-        match ModuleSpec::new("m1".to_string(), type_.clone(), 10_i32, HashMap::new()) {
+        match ModuleSpec::new(
+            "m1".to_string(),
+            type_.clone(),
+            10_i32,
+            HashMap::new(),
+            ImagePullPolicy::default(),
+        ) {
             Ok(_) => panic!("Expected error"),
             Err(err) => {
                 if let ErrorKind::InvalidModuleType(s) = err.kind() {
@@ -576,7 +660,13 @@ mod tests {
     #[test]
     fn module_config_white_space_type_fails() {
         let type_ = "    ".to_string();
-        match ModuleSpec::new("m1".to_string(), type_.clone(), 10_i32, HashMap::new()) {
+        match ModuleSpec::new(
+            "m1".to_string(),
+            type_.clone(),
+            10_i32,
+            HashMap::new(),
+            ImagePullPolicy::default(),
+        ) {
             Ok(_) => panic!("Expected error"),
             Err(err) => {
                 if let ErrorKind::InvalidModuleType(s) = err.kind() {

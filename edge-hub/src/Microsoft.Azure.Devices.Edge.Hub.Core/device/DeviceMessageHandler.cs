@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Extensions.Logging;
     using static System.FormattableString;
 
@@ -20,6 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
         readonly ConcurrentDictionary<string, TaskCompletionSource<DirectMethodResponse>> methodCallTaskCompletionSources = new ConcurrentDictionary<string, TaskCompletionSource<DirectMethodResponse>>();
         readonly ConcurrentDictionary<string, TaskCompletionSource<bool>> messageTaskCompletionSources = new ConcurrentDictionary<string, TaskCompletionSource<bool>>();
+        readonly ConcurrentDictionary<string, bool> c2dMessageTaskCompletionSources = new ConcurrentDictionary<string, bool>();
 
         readonly IEdgeHub edgeHub;
         readonly IConnectionManager connectionManager;
@@ -103,10 +105,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                     taskCompletionSource.SetException(new EdgeHubIOException($"Message not completed by client {this.Identity.Id}"));
                 }
             }
-            else
+            else if (this.c2dMessageTaskCompletionSources.TryRemove(messageId, out bool value) && value)
             {
+                Events.ReceivedC2DFeedbackMessage(this.Identity, messageId);
                 Option<ICloudProxy> cloudProxy = await this.connectionManager.GetCloudConnection(this.Identity.Id);
                 await cloudProxy.ForEachAsync(cp => cp.SendFeedbackMessageAsync(messageId, feedbackStatus));
+            }
+            else
+            {
+                Events.UnknownFeedbackMessage(this.Identity, messageId, feedbackStatus);
             }
         }
 
@@ -154,11 +161,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         {
             try
             {
-                IMessage twin = await this.edgeHub.GetTwinAsync(this.Identity.Id);
-                twin.SystemProperties[SystemProperties.CorrelationId] = correlationId;
-                twin.SystemProperties[SystemProperties.StatusCode] = ((int)HttpStatusCode.OK).ToString();
-                await this.SendTwinUpdate(twin);
-                Events.ProcessedGetTwin(this.Identity.Id);
+                using (Metrics.TimeGetTwin(this.Identity.Id))
+                {
+                    IMessage twin = await this.edgeHub.GetTwinAsync(this.Identity.Id);
+                    twin.SystemProperties[SystemProperties.CorrelationId] = correlationId;
+                    twin.SystemProperties[SystemProperties.StatusCode] = ((int)HttpStatusCode.OK).ToString();
+                    await this.SendTwinUpdate(twin);
+                    Events.ProcessedGetTwin(this.Identity.Id);
+                    Metrics.AddGetTwin(this.Identity.Id);
+                }
             }
             catch (Exception e)
             {
@@ -190,20 +201,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
 
             try
             {
-                await this.edgeHub.UpdateReportedPropertiesAsync(this.Identity, reportedPropertiesMessage);
-
-                if (!string.IsNullOrWhiteSpace(correlationId))
+                using (Metrics.TimeReportedPropertiesUpdate(this.Identity.Id))
                 {
-                    IMessage responseMessage = new EdgeMessage.Builder(new byte[0])
-                        .SetSystemProperties(
-                            new Dictionary<string, string>
-                            {
-                                [SystemProperties.CorrelationId] = correlationId,
-                                [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o"),
-                                [SystemProperties.StatusCode] = ((int)HttpStatusCode.NoContent).ToString()
-                            })
-                        .Build();
-                    await this.SendTwinUpdate(responseMessage);
+                    await this.edgeHub.UpdateReportedPropertiesAsync(this.Identity, reportedPropertiesMessage);
+                    Metrics.AddUpdateReportedProperties(this.Identity.Id);
+                    if (!string.IsNullOrWhiteSpace(correlationId))
+                    {
+                        IMessage responseMessage = new EdgeMessage.Builder(new byte[0])
+                            .SetSystemProperties(
+                                new Dictionary<string, string>
+                                {
+                                    [SystemProperties.CorrelationId] = correlationId,
+                                    [SystemProperties.EnqueuedTime] = DateTime.UtcNow.ToString("o"),
+                                    [SystemProperties.StatusCode] = ((int)HttpStatusCode.NoContent).ToString()
+                                })
+                            .Build();
+                        await this.SendTwinUpdate(responseMessage);
+                    }
                 }
             }
             catch (Exception e)
@@ -254,7 +268,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 MessageSentToClient,
                 ErrorGettingTwin,
                 ErrorUpdatingReportedProperties,
-                ProcessedGetTwin
+                ProcessedGetTwin,
+                C2dNoLockToken,
+                SendingC2DMessage,
+                ReceivedC2DMessageWithSameToken,
+                ReceivedC2DFeedbackMessage,
+                UnknownFeedbackMessage
             }
 
             public static void BindDeviceProxy(IIdentity identity)
@@ -326,11 +345,53 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             {
                 Log.LogDebug((int)EventIds.ProcessedGetTwin, Invariant($"Processed GetTwin for {identityId}"));
             }
+
+            public static void C2dNoLockToken(IIdentity identity)
+            {
+                Log.LogWarning((int)EventIds.C2dNoLockToken, Invariant($"Received C2D message for {identity.Id} with no lock token. Abandoning message."));
+            }
+
+            public static void SendingC2DMessage(IIdentity identity, string lockToken)
+            {
+                Log.LogDebug((int)EventIds.SendingC2DMessage, Invariant($"Sending C2D message with lock token {lockToken} to {identity.Id}"));
+            }
+
+            public static void ReceivedC2DMessageWithSameToken(IIdentity identity, string lockToken)
+            {
+                Log.LogWarning((int)EventIds.ReceivedC2DMessageWithSameToken, Invariant($"Received duplicate C2D message for {identity.Id} with the same lock token {lockToken}. Abandoning message."));
+            }
+
+            public static void ReceivedC2DFeedbackMessage(IIdentity identity, string messageId)
+            {
+                Log.LogDebug((int)EventIds.ReceivedC2DFeedbackMessage, Invariant($"Received C2D feedback message from {identity.Id} with lock token {messageId}"));
+            }
+
+            public static void UnknownFeedbackMessage(IIdentity identity, string messageId, FeedbackStatus feedbackStatus)
+            {
+                Log.LogWarning((int)EventIds.UnknownFeedbackMessage, Invariant($"Received unknown feedback message from {identity.Id} with lock token {messageId} and status {feedbackStatus}. Abandoning message."));
+            }
         }
 
         #region IDeviceProxy
 
-        public Task SendC2DMessageAsync(IMessage message) => this.underlyingProxy.SendC2DMessageAsync(message);
+        public Task SendC2DMessageAsync(IMessage message)
+        {
+            if (!message.SystemProperties.TryGetValue(SystemProperties.LockToken, out string lockToken) || string.IsNullOrWhiteSpace(lockToken))
+            {
+                // TODO - Should we throw here instead?
+                Events.C2dNoLockToken(this.Identity);
+                return Task.CompletedTask;
+            }
+
+            Events.SendingC2DMessage(this.Identity, lockToken);
+            if (!this.c2dMessageTaskCompletionSources.TryAdd(lockToken, true))
+            {
+                Events.ReceivedC2DMessageWithSameToken(this.Identity, lockToken);
+                return Task.CompletedTask;
+            }
+
+            return this.underlyingProxy.SendC2DMessageAsync(message);
+        }
 
         /// <summary>
         /// This method sends the message to the device, and adds the TaskCompletionSource (that awaits the response) to the messageTaskCompletionSources list.
@@ -349,18 +410,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 var taskCompletionSource = new TaskCompletionSource<bool>();
                 this.messageTaskCompletionSources.TryAdd(lockToken, taskCompletionSource);
 
-                Events.SendingMessage(this.Identity, lockToken);
-                await this.underlyingProxy.SendMessageAsync(message, input);
-
-                Task completedTask = await Task.WhenAny(taskCompletionSource.Task, Task.Delay(MessageResponseTimeout));
-                if (completedTask != taskCompletionSource.Task)
+                using (Metrics.TimeMessageSend(this.Identity, message))
                 {
-                    Events.MessageFeedbackTimedout(this.Identity, lockToken);
-                    taskCompletionSource.SetException(new TimeoutException("Message completion response not received"));
-                    this.messageTaskCompletionSources.TryRemove(lockToken, out taskCompletionSource);
-                }
+                    Events.SendingMessage(this.Identity, lockToken);
+                    Metrics.MessageProcessingLatency(this.Identity, message);
+                    await this.underlyingProxy.SendMessageAsync(message, input);
 
-                await taskCompletionSource.Task;
+                    Task completedTask = await Task.WhenAny(taskCompletionSource.Task, Task.Delay(MessageResponseTimeout));
+                    if (completedTask != taskCompletionSource.Task)
+                    {
+                        Events.MessageFeedbackTimedout(this.Identity, lockToken);
+                        taskCompletionSource.SetException(new TimeoutException("Message completion response not received"));
+                        this.messageTaskCompletionSources.TryRemove(lockToken, out taskCompletionSource);
+                    }
+
+                    await taskCompletionSource.Task;
+                }
             }
         }
 
@@ -401,5 +466,68 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
         public Task<Option<IClientCredentials>> GetUpdatedIdentity() => this.underlyingProxy.GetUpdatedIdentity();
 
         #endregion
+
+        static class Metrics
+        {
+            static readonly IMetricsTimer MessagesTimer = Util.Metrics.Metrics.Instance.CreateTimer(
+                "message_send_duration_seconds",
+                "Time taken to send a message",
+                new List<string> { "from", "to" });
+
+            static readonly IMetricsTimer GetTwinTimer = Util.Metrics.Metrics.Instance.CreateTimer(
+                "gettwin_duration_seconds",
+                "Time taken to get twin",
+                new List<string> { "source", "id" });
+
+            static readonly IMetricsCounter GetTwinCounter = Util.Metrics.Metrics.Instance.CreateCounter(
+                "gettwin",
+                "Get twin calls",
+                new List<string> { "source", "id" });
+
+            static readonly IMetricsTimer ReportedPropertiesTimer = Util.Metrics.Metrics.Instance.CreateTimer(
+                "reported_properties_update_duration_seconds",
+                "Time taken to update reported properties",
+                new List<string> { "target", "id" });
+
+            static readonly IMetricsCounter ReportedPropertiesCounter = Util.Metrics.Metrics.Instance.CreateCounter(
+                "reported_properties",
+                "Reported properties update calls",
+                new List<string> { "target", "id" });
+
+            static readonly IMetricsDuration MessagesProcessLatency = Util.Metrics.Metrics.Instance.CreateDuration(
+                "message_process_duration",
+                "Time taken to process message in EdgeHub",
+                new List<string> { "from", "to" });
+
+            public static IDisposable TimeMessageSend(IIdentity identity, IMessage message)
+            {
+                string from = message.GetSenderId();
+                string to = identity.Id;
+                return MessagesTimer.GetTimer(new[] { from, to });
+            }
+
+            public static IDisposable TimeGetTwin(string id) => GetTwinTimer.GetTimer(new[] { "edge_hub", id });
+
+            public static void AddGetTwin(string id) => GetTwinCounter.Increment(1, new[] { "edge_hub", id });
+
+            public static IDisposable TimeReportedPropertiesUpdate(string id) => ReportedPropertiesTimer.GetTimer(new[] { "edge_hub", id });
+
+            public static void AddUpdateReportedProperties(string id) => ReportedPropertiesCounter.Increment(1, new[] { "edge_hub", id });
+
+            public static void MessageProcessingLatency(IIdentity identity, IMessage message)
+            {
+                string from = message.GetSenderId();
+                string to = identity.Id;
+                if (message.SystemProperties != null
+                    && message.SystemProperties.TryGetValue(SystemProperties.EnqueuedTime, out string enqueuedTimeString)
+                    && DateTime.TryParse(enqueuedTimeString, out DateTime enqueuedTime))
+                {
+                    TimeSpan duration = DateTime.UtcNow - enqueuedTime.ToUniversalTime();
+                    MessagesProcessLatency.Set(
+                        duration.TotalSeconds,
+                        new[] { from, to });
+                }
+            }
+        }
     }
 }

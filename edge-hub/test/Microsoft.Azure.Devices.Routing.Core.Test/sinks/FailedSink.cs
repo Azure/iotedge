@@ -5,7 +5,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Sinks
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public class FailedSink<T> : ISink<T>
     {

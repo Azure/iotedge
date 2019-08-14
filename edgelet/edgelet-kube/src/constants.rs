@@ -14,6 +14,10 @@ pub const PROXY_CONTAINER_NAME: &str = "proxy";
 
 pub const PROXY_CONFIG_VOLUME_NAME: &str = "config-volume";
 
+pub const PROXY_TRUST_BUNDLE_VOLUME_NAME: &str = "trust-bundle-volume";
+
+pub const PROXY_TRUST_BUNDLE_FILENAME: &str = "trust_bundle.pem";
+
 pub const USE_PERSISTENT_VOLUME_CLAIMS: &str = "USE_PERSISTENT_VOLUMES";
 
 pub const PULL_SECRET_DATA_NAME: &str = ".dockerconfigjson";

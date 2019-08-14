@@ -16,7 +16,10 @@ mod certificate_properties;
 pub mod crypto;
 mod error;
 mod identity;
+mod logs;
 mod module;
+mod network;
+mod settings;
 pub mod watchdog;
 pub mod workload;
 
@@ -24,18 +27,25 @@ pub use authentication::Authenticator;
 pub use authorization::{AuthId, ModuleId, Policy};
 pub use certificate_properties::{CertificateIssuer, CertificateProperties, CertificateType};
 pub use crypto::{
-    Certificate, CreateCertificate, Decrypt, Encrypt, GetDeviceIdentityCertificate, GetIssuerAlias,
-    GetTrustBundle, KeyBytes, KeyIdentity, KeyStore, MakeRandom, MasterEncryptionKey, PrivateKey,
-    Signature, IOTEDGED_CA_ALIAS,
+    Certificate, CreateCertificate, Decrypt, Encrypt, GetDeviceIdentityCertificate, GetHsmVersion,
+    GetIssuerAlias, GetTrustBundle, KeyBytes, KeyIdentity, KeyStore, MakeRandom,
+    MasterEncryptionKey, PrivateKey, Signature, IOTEDGED_CA_ALIAS,
 };
 pub use error::{Error, ErrorKind};
 pub use identity::{AuthType, Identity, IdentityManager, IdentityOperation, IdentitySpec};
+pub use logs::{Chunked, LogChunk, LogDecode};
 pub use module::{
-    LogOptions, LogTail, Module, ModuleOperation, ModuleRegistry, ModuleRuntime,
-    ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleSpec, ModuleStatus, ModuleTop,
-    RegistryOperation, RuntimeOperation, SystemInfo,
+    ImagePullPolicy, LogOptions, LogTail, MakeModuleRuntime, Module, ModuleOperation,
+    ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleSpec,
+    ModuleStatus, ModuleTop, ProvisioningResult, RegistryOperation, RuntimeOperation, SystemInfo,
 };
-pub use watchdog::RetryLimit;
+pub use network::{Ipam, IpamConfig, MobyNetwork, Network};
+pub use settings::{
+    AttestationMethod, Certificates, Connect, Dps, Listen, Manual,
+    ParseManualDeviceConnectionStringError, Provisioning, RetryLimit, RuntimeSettings, Settings,
+    SymmetricKeyAttestationInfo, TpmAttestationInfo, WatchdogSettings, X509AttestationInfo,
+    DEFAULT_CONNECTION_STRING,
+};
 pub use workload::WorkloadConfig;
 
 lazy_static! {
@@ -96,3 +106,6 @@ impl UrlExt for Url {
 }
 
 pub const UNIX_SCHEME: &str = "unix";
+
+/// This is the name of the network created by the iotedged
+pub const DEFAULT_NETWORKID: &str = "azure-iot-edge";

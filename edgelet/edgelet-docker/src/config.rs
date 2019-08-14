@@ -1,14 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use failure::ResultExt;
-use serde_derive::{Deserialize, Serialize};
 
 use docker::models::{AuthConfig, ContainerCreateBody};
 use edgelet_utils::{ensure_not_empty_with_context, serde_clone};
 
 use crate::error::{ErrorKind, Result};
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DockerConfig {
     image: String,
@@ -93,15 +92,14 @@ mod tests {
     use super::*;
 
     #[test]
-    #[should_panic]
     fn empty_image_fails() {
-        DockerConfig::new("".to_string(), ContainerCreateBody::new(), None).unwrap();
+        let _ = DockerConfig::new("".to_string(), ContainerCreateBody::new(), None).unwrap_err();
     }
 
     #[test]
-    #[should_panic]
     fn white_space_image_fails() {
-        DockerConfig::new("    ".to_string(), ContainerCreateBody::new(), None).unwrap();
+        let _ =
+            DockerConfig::new("    ".to_string(), ContainerCreateBody::new(), None).unwrap_err();
     }
 
     #[test]

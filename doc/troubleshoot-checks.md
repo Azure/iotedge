@@ -26,6 +26,8 @@ Errors have a high likelihood of preventing the IoT Edge runtime or the modules 
 
 Warnings might not affect immediate connectivity but are potential deviations from best practices, and may affect long term stability, offline operation or supportability of the edge device.
 
+If there are warnings but no errors, the tool will exit successfully with code 0. Use `--warnings-as-errors` to treat warnings as errors.
+
 
 # Configuration checks details
 
@@ -81,6 +83,12 @@ This check validates that a DNS server has been specified in the container engin
 
 It is possible to specify a DNS server in the Edge device's deployment instead of in the container engine's `daemon.json`, and the tool does not detect this. If you have done so, you should ignore this warning.
 
+## IPv6 network configuration
+
+This check validates that if IPv6 container network configuration is enabled in `config.yaml` (by setting the value of `moby_runtime.network.ipv6` field to `true`), the container engine's `daemon.json` file also has IPv6 support enabled. To enable IPv6 support for the container runtime, please refer to this guide <https://aka.ms/iotedge-docker-ipv6>.
+
+IPv6 container runtime network configuration is currently not supported for the Windows operating system and this check fails if IPv6 support is enabled in the container enginer's `daemon.json` file.
+
 ## production readiness: certificates (*warning*)
 
 This check validates that device CA and trusted CA certificates have been defined in the `certificates` section of the `config.yaml`. If these certificates are not specified, the device operates in quickstart mode and is not supported in production. Certificate management best practices are documented at <https://aka.ms/iotedge-prod-checklist-certs>
@@ -107,6 +115,7 @@ The tool checks the Edge Agent and Edge Hub containers to validate that their re
 
 These checks require the Edge Agent and Edge Hub containers to have been created.
 
+
 # Connectivity check details
 
 ## host can connect to and perform TLS handshake with DPS endpoint
@@ -127,9 +136,9 @@ The tool launches a diagnostics container on the default (`bridge`) container ne
 
 When using manual provisioning, the FQDN of the IoT Hub is taken from the connection string. For DPS provisioning, you must specify the FQDN of the IoT Hub using the `--iothub-hostname` parameter.
 
-Note that these checks do not perform a TLS handshake with the IoT Hub.
+Note that these checks do not perform a TLS handshake with the IoT Hub. They only test that a TCP connection can be established to the respective port.
 
-Note that these checks do not run for Windows containers.
+Note that these checks do not run for Windows containers since they are redundant with the following checks.
 
 ## container on the IoT Edge module network can connect to IoT Hub AMQP / HTTPS / MQTT port
 
@@ -137,7 +146,7 @@ The tool launches a diagnostics container on the IoT Edge container network spec
 
 When using manual provisioning, the FQDN of the IoT Hub is taken from the connection string. For DPS provisioning, you must specify the FQDN of the IoT Hub using the `--iothub-hostname` parameter.
 
-Note that these checks do not perform a TLS handshake with the IoT Hub.
+Note that these checks do not perform a TLS handshake with the IoT Hub. They only test that a TCP connection can be established to the respective port.
 
 ## Edge Hub can bind to ports on host
 

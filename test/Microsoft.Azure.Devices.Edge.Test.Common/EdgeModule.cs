@@ -2,10 +2,14 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Shared;
+    using Newtonsoft.Json.Linq;
     using Serilog;
 
     public enum EdgeModuleStatus
@@ -19,23 +23,20 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         protected string deviceId;
         protected IotHub iotHub;
 
+        public string Id { get; }
+
         public EdgeModule(string id, string deviceId, IotHub iotHub)
         {
             this.deviceId = deviceId;
-            this.iotHub = iotHub;
             this.Id = id;
+            this.iotHub = iotHub;
         }
 
-        public string Id { get; }
-
-        public static Task WaitForStatusAsync(EdgeModule[] modules, EdgeModuleStatus desired, CancellationToken token)
+        public static Task WaitForStatusAsync(IEnumerable<EdgeModule> modules, EdgeModuleStatus desired, CancellationToken token)
         {
-            (string template, string[] args) FormatModulesList() => modules.Length == 1
-                ? ("module '{0}'", new[] { modules.First().Id })
-                : ("modules ({0})", modules.Select(module => module.Id).ToArray());
+            string[] moduleIds = modules.Select(m => m.Id).Distinct().ToArray();
 
-            string SentenceCase(string input) =>
-                $"{input.First().ToString().ToUpper()}{input.Substring(1)}";
+            string FormatModulesList() => moduleIds.Length == 1 ? "Module '{0}'" : "Modules ({0})";
 
             async Task WaitForStatusAsync()
             {
@@ -51,10 +52,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                                 ln =>
                                 {
                                     var columns = ln.Split(null as char[], StringSplitOptions.RemoveEmptyEntries);
-                                    foreach (var module in modules)
+                                    foreach (var moduleId in moduleIds)
                                     {
                                         // each line is "name status"
-                                        if (columns[0] == module.Id &&
+                                        if (columns[0] == moduleId &&
                                             columns[1].Equals(desired.ToString(), StringComparison.OrdinalIgnoreCase))
                                         {
                                             return true;
@@ -64,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                                     return false;
                                 }).ToArray();
                     },
-                    a => a.Length == modules.Length,
+                    a => a.Length == moduleIds.Length,
                     e =>
                     {
                         // Retry if iotedged's management endpoint is still starting up,
@@ -79,11 +80,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     token);
             }
 
-            (string template, string[] args) = FormatModulesList();
             return Profiler.Run(
                 WaitForStatusAsync,
-                string.Format(SentenceCase(template), "{Modules}") + " entered the '{Desired}' state",
-                string.Join(", ", args),
+                string.Format(FormatModulesList(), "{Modules}") + " entered the '{Desired}' state",
+                string.Join(", ", moduleIds),
                 desired.ToString().ToLower());
         }
 
@@ -92,15 +92,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return WaitForStatusAsync(new[] { this }, desired, token);
         }
 
-        public Task WaitForEventsReceivedAsync(CancellationToken token)
+        public Task WaitForEventsReceivedAsync(DateTime seekTime, CancellationToken token)
         {
             return Profiler.Run(
                 () => this.iotHub.ReceiveEventsAsync(
                     this.deviceId,
+                    seekTime,
                     data =>
                     {
                         data.SystemProperties.TryGetValue("iothub-connection-device-id", out object devId);
                         data.SystemProperties.TryGetValue("iothub-connection-module-id", out object modId);
+
+                        Log.Verbose($"Received event for '{devId}/{modId}' with body '{Encoding.UTF8.GetString(data.Body)}'");
 
                         return devId != null && devId.ToString().Equals(this.deviceId)
                                              && modId != null && modId.ToString().Equals(this.Id);
@@ -109,6 +112,41 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 "Received events from device '{Device}' on Event Hub '{EventHub}'",
                 this.deviceId,
                 this.iotHub.EntityPath);
+        }
+
+        public Task UpdateDesiredPropertiesAsync(object patch, CancellationToken token)
+        {
+            return Profiler.Run(
+                () => this.iotHub.UpdateTwinAsync(this.deviceId, this.Id, patch, token),
+                "Updated twin for module '{Module}'",
+                this.Id);
+        }
+
+        public Task WaitForReportedPropertyUpdatesAsync(object expectedPatch, CancellationToken token)
+        {
+            return Profiler.Run(
+                () =>
+                {
+                    return Retry.Do(
+                        async () =>
+                        {
+                            Twin twin = await this.iotHub.GetTwinAsync(this.deviceId, this.Id, token);
+                            return twin.Properties.Reported;
+                        },
+                        reported =>
+                        {
+                            JObject expected = JObject.FromObject(expectedPatch)
+                                .Value<JObject>("properties")
+                                .Value<JObject>("reported");
+                            return expected.Value<JObject>().All<KeyValuePair<string, JToken>>(
+                                prop => reported.Contains(prop.Key) && reported[prop.Key] == prop.Value);
+                        },
+                        null,
+                        TimeSpan.FromSeconds(5),
+                        token);
+                },
+                "Received expected twin updates for module '{Module}'",
+                this.Id);
         }
     }
 }

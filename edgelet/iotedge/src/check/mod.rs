@@ -2,7 +2,7 @@
 
 use std;
 use std::borrow::Cow;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::{CStr, OsStr, OsString};
 use std::fs::File;
 use std::io::{Read, Write};
@@ -19,9 +19,8 @@ use libc;
 use regex::Regex;
 use serde_json;
 
-use edgelet_config::{Provisioning, Settings};
-use edgelet_core::{self, UrlExt};
-use edgelet_docker::DockerConfig;
+use edgelet_core::{self, AttestationMethod, MobyNetwork, Provisioning, RuntimeSettings, UrlExt};
+use edgelet_docker::Settings;
 use edgelet_http::client::ClientImpl;
 use edgelet_http::MaybeProxyClient;
 
@@ -34,23 +33,186 @@ use self::additional_info::AdditionalInfo;
 mod stdout;
 use self::stdout::Stdout;
 
+mod upstream_protocol_port;
+use self::upstream_protocol_port::UpstreamProtocolPort;
+
+static CHECKS: &[(
+    &str, // Section name
+    &[(
+        &str,                                                  // Check ID
+        &str,                                                  // Check description
+        fn(&mut Check) -> Result<CheckResult, failure::Error>, // Check function
+    )],
+)] = &[
+    (
+        "Configuration checks",
+        &[
+            ("config-yaml-well-formed", "config.yaml is well-formed", parse_settings),
+            (
+                "connection-string",
+                "config.yaml has well-formed connection string",
+                settings_connection_string,
+            ),
+            (
+                "container-engine-uri",
+                "container engine is installed and functional",
+                container_engine,
+            ),
+            ("windows-host-version", "Windows host version is supported", host_version),
+            ("hostname", "config.yaml has correct hostname", settings_hostname),
+            (
+                "connect-management-uri",
+                "config.yaml has correct URIs for daemon mgmt endpoint",
+                daemon_mgmt_endpoint_uri,
+            ),
+            ("iotedged-version", "latest security daemon", iotedged_version),
+            ("host-local-time", "host time is close to real time", host_local_time),
+            ("container-local-time", "container time is close to host time", container_local_time),
+            ("container-engine-dns", "DNS server", container_engine_dns),
+            ("container-engine-ipv6", "IPv6 network configuration", container_engine_ipv6),
+            (
+                "identity-certificate-expiry",
+                "production readiness: identity certificates expiry",
+                settings_identity_certificates_expiry,
+            ),
+            ("certificates-quickstart", "production readiness: certificates", settings_certificates),
+            (
+                "certificates-expiry",
+                "production readiness: certificates expiry",
+                settings_certificates_expiry,
+            ),
+            (
+                "container-engine-is-moby",
+                "production readiness: container engine",
+                settings_moby_runtime_uri,
+            ),
+            (
+                "container-engine-logrotate",
+                "production readiness: logs policy",
+                container_engine_logrotate,
+            ),
+            (
+                "edge-agent-storage-mounted-from-host",
+                "production readiness: Edge Agent's storage directory is persisted on the host filesystem",
+                // Note: Keep in sync with Microsoft.Azure.Devices.Edge.Agent.Service.Program.GetStoragePath
+                |check| storage_mounted_from_host(check, "edgeAgent", "edgeAgent"),
+            ),
+            (
+                "edge-hub-storage-mounted-from-host",
+                "production readiness: Edge Hub's storage directory is persisted on the host filesystem",
+                // Note: Keep in sync with Microsoft.Azure.Devices.Edge.Hub.Service.DependencyManager.GetStoragePath
+                |check| storage_mounted_from_host(check, "edgeHub", "edgeHub"),
+            ),
+        ],
+    ),
+    (
+        "Connectivity checks",
+        &[
+            (
+                "host-connect-dps-endpoint",
+                "host can connect to and perform TLS handshake with DPS endpoint",
+                connection_to_dps_endpoint,
+            ),
+            (
+                "host-connect-iothub-amqp",
+                "host can connect to and perform TLS handshake with IoT Hub AMQP port",
+                |check| connection_to_iot_hub_host(check, UpstreamProtocolPort::Amqp),
+            ),
+            (
+                "host-connect-iothub-https",
+                "host can connect to and perform TLS handshake with IoT Hub HTTPS / WebSockets port",
+                |check| connection_to_iot_hub_host(check, UpstreamProtocolPort::Https),
+            ),
+            (
+                "host-connect-iothub-mqtt",
+                "host can connect to and perform TLS handshake with IoT Hub MQTT port",
+                |check| connection_to_iot_hub_host(check, UpstreamProtocolPort::Mqtt),
+            ),
+            (
+                "container-default-connect-iothub-amqp",
+                "container on the default network can connect to IoT Hub AMQP port",
+                |check| {
+                    if cfg!(windows) {
+                        // The default network is the same as the IoT Edge module network,
+                        // so let the module network checks handle it.
+                        Ok(CheckResult::Ignored)
+                    } else {
+                        connection_to_iot_hub_container(check, UpstreamProtocolPort::Amqp, false)
+                    }
+                },
+            ),
+            (
+                "container-default-connect-iothub-https",
+                "container on the default network can connect to IoT Hub HTTPS / WebSockets port",
+                |check| {
+                    if cfg!(windows) {
+                        // The default network is the same as the IoT Edge module network,
+                        // so let the module network checks handle it.
+                        Ok(CheckResult::Ignored)
+                    } else {
+                        connection_to_iot_hub_container(check, UpstreamProtocolPort::Https, false)
+                    }
+                },
+            ),
+            (
+                "container-default-connect-iothub-mqtt",
+                "container on the default network can connect to IoT Hub MQTT port",
+                |check| {
+                    if cfg!(windows) {
+                        // The default network is the same as the IoT Edge module network,
+                        // so let the module network checks handle it.
+                        Ok(CheckResult::Ignored)
+                    } else {
+                        connection_to_iot_hub_container(check, UpstreamProtocolPort::Mqtt, false)
+                    }
+                },
+            ),
+            (
+                "container-module-connect-iothub-amqp",
+                "container on the IoT Edge module network can connect to IoT Hub AMQP port",
+                |check| {
+                    connection_to_iot_hub_container(check, UpstreamProtocolPort::Amqp, true)
+                },
+            ),
+            (
+                "container-module-connect-iothub-https",
+                "container on the IoT Edge module network can connect to IoT Hub HTTPS / WebSockets port",
+                |check| {
+                    connection_to_iot_hub_container(check, UpstreamProtocolPort::Https, true)
+                },
+            ),
+            (
+                "container-module-connect-iothub-mqtt",
+                "container on the IoT Edge module network can connect to IoT Hub MQTT port",
+                |check| {
+                    connection_to_iot_hub_container(check, UpstreamProtocolPort::Mqtt, true)
+                },
+            ),
+            ("edgehub-host-ports", "Edge Hub can bind to ports on host", edge_hub_ports_on_host),
+        ],
+    ),
+];
+
 pub struct Check {
     config_file: PathBuf,
     container_engine_config_path: PathBuf,
     diagnostics_image_name: String,
+    dont_run: BTreeSet<String>,
     iotedged: PathBuf,
     latest_versions: Result<super::LatestVersions, Option<Error>>,
     ntp_server: String,
     output_format: OutputFormat,
     verbose: bool,
+    warnings_as_errors: bool,
 
     additional_info: AdditionalInfo,
 
     // These optional fields are populated by the checks
-    settings: Option<Settings<DockerConfig>>,
+    settings: Option<Settings>,
     docker_host_arg: Option<String>,
     docker_server_version: Option<String>,
     iothub_hostname: Option<String>,
+    device_ca_cert_path: Option<PathBuf>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -85,12 +247,14 @@ impl Check {
         config_file: PathBuf,
         container_engine_config_path: PathBuf,
         diagnostics_image_name: String,
+        dont_run: BTreeSet<String>,
         expected_iotedged_version: Option<String>,
         iotedged: PathBuf,
         iothub_hostname: Option<String>,
         ntp_server: String,
         output_format: OutputFormat,
         verbose: bool,
+        warnings_as_errors: bool,
     ) -> impl Future<Item = Self, Error = Error> + Send {
         let latest_versions = if let Some(expected_iotedged_version) = expected_iotedged_version {
             future::Either::A(future::ok::<_, Error>(LatestVersions {
@@ -99,28 +263,23 @@ impl Check {
         } else {
             let proxy = std::env::var("HTTPS_PROXY")
                 .ok()
-                .or_else(|| std::env::var("https_proxy").ok());
-            let proxy = if let Some(proxy) = proxy {
-                let proxy = proxy
-                    .parse::<hyper::Uri>()
-                    .context(ErrorKind::FetchLatestVersions(
-                        FetchLatestVersionsReason::CreateClient,
-                    ));
-                match proxy {
-                    Ok(proxy) => future::ok(Some(proxy)),
-                    Err(err) => future::err(Error::from(err)),
-                }
-            } else {
-                future::ok(None)
-            };
-
+                .or_else(|| std::env::var("https_proxy").ok())
+                .map(|proxy| proxy.parse::<hyper::Uri>())
+                .transpose()
+                .context(ErrorKind::FetchLatestVersions(
+                    FetchLatestVersionsReason::CreateClient,
+                ));
             let hyper_client = proxy.and_then(|proxy| {
-                Ok(
-                    MaybeProxyClient::new(proxy).context(ErrorKind::FetchLatestVersions(
-                        FetchLatestVersionsReason::CreateClient,
-                    ))?,
-                )
+                MaybeProxyClient::new(proxy, None, None).context(ErrorKind::FetchLatestVersions(
+                    FetchLatestVersionsReason::CreateClient,
+                ))
             });
+            let hyper_client = match hyper_client {
+                Ok(hyper_client) => hyper_client,
+                Err(err) => {
+                    return future::Either::A(future::err(err.into()));
+                }
+            };
 
             let request = hyper::Request::get("https://aka.ms/latest-iotedge-stable")
                 .body(hyper::Body::default())
@@ -128,15 +287,14 @@ impl Check {
 
             future::Either::B(
                 hyper_client
-                    .and_then(|hyper_client| {
-                        hyper_client.call(request).then(|response| {
-                            let response = response.context(ErrorKind::FetchLatestVersions(
-                                FetchLatestVersionsReason::GetResponse,
-                            ))?;
-                            Ok((response, hyper_client))
-                        })
+                    .call(request)
+                    .then(|response| -> Result<_, Error> {
+                        let response = response.context(ErrorKind::FetchLatestVersions(
+                            FetchLatestVersionsReason::GetResponse,
+                        ))?;
+                        Ok(response)
                     })
-                    .and_then(move |(response, hyper_client)| match response.status() {
+                    .and_then(move |response| match response.status() {
                         hyper::StatusCode::MOVED_PERMANENTLY => {
                             let uri = response
                                 .headers()
@@ -191,16 +349,18 @@ impl Check {
             )
         };
 
-        latest_versions.then(move |latest_versions| {
+        future::Either::B(latest_versions.then(move |latest_versions| {
             Ok(Check {
                 config_file,
                 container_engine_config_path,
                 diagnostics_image_name,
+                dont_run,
                 iotedged,
                 latest_versions: latest_versions.map_err(Some),
                 ntp_server,
                 output_format,
                 verbose,
+                warnings_as_errors,
 
                 additional_info: AdditionalInfo::new(),
 
@@ -208,162 +368,62 @@ impl Check {
                 docker_host_arg: None,
                 docker_server_version: None,
                 iothub_hostname,
+                device_ca_cert_path: None,
             })
-        })
+        }))
+    }
+
+    pub fn possible_ids() -> impl Iterator<Item = &'static str> {
+        CHECKS
+            .iter()
+            .flat_map(|(_, section_checks)| *section_checks)
+            .map(|(check_id, _, _)| *check_id)
+    }
+
+    pub fn print_list() -> Result<(), Error> {
+        // All our text is ASCII, so we can measure text width in bytes rather than using unicode-segmentation to count graphemes.
+        let widest_section_name_len = CHECKS
+            .iter()
+            .map(|(section_name, _)| section_name.len())
+            .max()
+            .expect("Have at least one section");
+        let section_name_column_width = widest_section_name_len + 1;
+        let widest_check_id_len = CHECKS
+            .iter()
+            .flat_map(|(_, section_checks)| *section_checks)
+            .map(|(check_id, _, _)| check_id.len())
+            .max()
+            .expect("Have at least one check");
+        let check_id_column_width = widest_check_id_len + 1;
+
+        println!(
+            "{:section_name_column_width$}{:check_id_column_width$}DESCRIPTION",
+            "CATEGORY",
+            "ID",
+            section_name_column_width = section_name_column_width,
+            check_id_column_width = check_id_column_width,
+        );
+        println!();
+
+        for (section_name, section_checks) in CHECKS {
+            for (check_id, check_name, _) in *section_checks {
+                println!(
+                    "{:section_name_column_width$}{:check_id_column_width$}{}",
+                    section_name,
+                    check_id,
+                    check_name,
+                    section_name_column_width = section_name_column_width,
+                    check_id_column_width = check_id_column_width,
+                );
+            }
+
+            println!();
+        }
+
+        Ok(())
     }
 
     fn execute_inner(&mut self) -> Result<(), Error> {
-        const CHECKS: &[(
-            &str, // Section name
-            &[(
-                &str,                                                  // Check ID
-                &str,                                                  // Check description
-                fn(&mut Check) -> Result<CheckResult, failure::Error>, // Check function
-            )],
-        )] = &[
-            (
-                "Configuration checks",
-                &[
-                    ("config-yaml-well-formed", "config.yaml is well-formed", parse_settings),
-                    (
-                        "connection-string",
-                        "config.yaml has well-formed connection string",
-                        settings_connection_string,
-                    ),
-                    (
-                        "container-engine-uri",
-                        "container engine is installed and functional",
-                        container_engine,
-                    ),
-                    ("windows-host-version", "Windows host version is supported", host_version),
-                    ("hostname", "config.yaml has correct hostname", settings_hostname),
-                    (
-                        "connect-management-uri",
-                        "config.yaml has correct URIs for daemon mgmt endpoint",
-                        daemon_mgmt_endpoint_uri,
-                    ),
-                    ("iotedged-version", "latest security daemon", iotedged_version),
-                    ("host-local-time", "host time is close to real time", host_local_time),
-                    ("container-local-time", "container time is close to host time", container_local_time),
-                    ("container-engine-dns", "DNS server", container_engine_dns),
-                    ("certificates-quickstart", "production readiness: certificates", settings_certificates),
-                    (
-                        "certificates-expiry",
-                        "production readiness: certificates expiry",
-                        settings_certificates_expiry,
-                    ),
-                    (
-                        "container-engine-is-moby",
-                        "production readiness: container engine",
-                        settings_moby_runtime_uri,
-                    ),
-                    (
-                        "container-engine-logrotate",
-                        "production readiness: logs policy",
-                        container_engine_logrotate,
-                    ),
-                    (
-                        "edge-agent-storage-mounted-from-host",
-                        "production readiness: Edge Agent's storage directory is persisted on the host filesystem",
-                        // Note: Keep in sync with Microsoft.Azure.Devices.Edge.Agent.Service.Program.GetStoragePath
-                        |check| storage_mounted_from_host(check, "edgeAgent", "edgeAgent"),
-                    ),
-                    (
-                        "edge-hub-storage-mounted-from-host",
-                        "production readiness: Edge Hub's storage directory is persisted on the host filesystem",
-                        // Note: Keep in sync with Microsoft.Azure.Devices.Edge.Hub.Service.DependencyManager.GetStoragePath
-                        |check| storage_mounted_from_host(check, "edgeHub", "edgeHub"),
-                    ),
-                ],
-            ),
-            (
-                "Connectivity checks",
-                &[
-                    (
-                        "host-connect-dps-endpoint",
-                        "host can connect to and perform TLS handshake with DPS endpoint",
-                        connection_to_dps_endpoint,
-                    ),
-                    (
-                        "host-connect-iothub-amqp",
-                        "host can connect to and perform TLS handshake with IoT Hub AMQP port",
-                        |check| connection_to_iot_hub_host(check, 5671),
-                    ),
-                    (
-                        "host-connect-iothub-https",
-                        "host can connect to and perform TLS handshake with IoT Hub HTTPS / WebSockets port",
-                        |check| connection_to_iot_hub_host(check, 443),
-                    ),
-                    (
-                        "host-connect-iothub-mqtt",
-                        "host can connect to and perform TLS handshake with IoT Hub MQTT port",
-                        |check| connection_to_iot_hub_host(check, 8883),
-                    ),
-                    (
-                        "container-default-connect-iothub-amqp",
-                        "container on the default network can connect to IoT Hub AMQP port",
-                        |check| {
-                            if cfg!(windows) {
-                                // The default network is the same as the IoT Edge module network,
-                                // so let the module network checks handle it.
-                                Ok(CheckResult::Ignored)
-                            } else {
-                                connection_to_iot_hub_container(check, 5671, false)
-                            }
-                        },
-                    ),
-                    (
-                        "container-default-connect-iothub-https",
-                        "container on the default network can connect to IoT Hub HTTPS / WebSockets port",
-                        |check| {
-                            if cfg!(windows) {
-                                // The default network is the same as the IoT Edge module network,
-                                // so let the module network checks handle it.
-                                Ok(CheckResult::Ignored)
-                            } else {
-                                connection_to_iot_hub_container(check, 443, false)
-                            }
-                        },
-                    ),
-                    (
-                        "container-default-connect-iothub-mqtt",
-                        "container on the default network can connect to IoT Hub MQTT port",
-                        |check| {
-                            if cfg!(windows) {
-                                // The default network is the same as the IoT Edge module network,
-                                // so let the module network checks handle it.
-                                Ok(CheckResult::Ignored)
-                            } else {
-                                connection_to_iot_hub_container(check, 8883, false)
-                            }
-                        },
-                    ),
-                    (
-                        "container-module-connect-iothub-amqp",
-                        "container on the IoT Edge module network can connect to IoT Hub AMQP port",
-                        |check| {
-                            connection_to_iot_hub_container(check, 5671, true)
-                        },
-                    ),
-                    (
-                        "container-module-connect-iothub-https",
-                        "container on the IoT Edge module network can connect to IoT Hub HTTPS / WebSockets port",
-                        |check| {
-                            connection_to_iot_hub_container(check, 443, true)
-                        },
-                    ),
-                    (
-                        "container-module-connect-iothub-mqtt",
-                        "container on the IoT Edge module network can connect to IoT Hub MQTT port",
-                        |check| {
-                            connection_to_iot_hub_container(check, 8883, true)
-                        },
-                    ),
-                    ("edgehub-host-ports", "Edge Hub can bind to ports on host", edge_hub_ports_on_host),
-                ],
-            ),
-        ];
-
         let mut checks: BTreeMap<&str, _> = Default::default();
 
         let mut stdout = Stdout::new(self.output_format);
@@ -389,7 +449,12 @@ impl Check {
                     break;
                 }
 
-                match check(self) {
+                let check_result = if self.dont_run.contains(*check_id) {
+                    Ok(CheckResult::Ignored)
+                } else {
+                    check(self)
+                };
+                match check_result {
                     Ok(CheckResult::Ok) => {
                         num_successful += 1;
 
@@ -401,7 +466,7 @@ impl Check {
                         });
                     }
 
-                    Ok(CheckResult::Warning(warning)) => {
+                    Ok(CheckResult::Warning(ref warning)) if !self.warnings_as_errors => {
                         num_warnings += 1;
 
                         checks.insert(
@@ -483,7 +548,7 @@ impl Check {
                         });
                     }
 
-                    Err(err) => {
+                    Ok(CheckResult::Warning(err)) | Err(err) => {
                         num_errors += 1;
 
                         checks.insert(
@@ -741,6 +806,60 @@ fn container_engine(check: &mut Check) -> Result<CheckResult, failure::Error> {
     Ok(CheckResult::Ok)
 }
 
+fn container_engine_ipv6(check: &mut Check) -> Result<CheckResult, failure::Error> {
+    const MESSAGE: &str =
+        "Container engine is not configured for IPv6 communication.\n\
+         Please see https://aka.ms/iotedge-docker-ipv6 for a guide on how to enable IPv6 support.";
+
+    #[derive(serde_derive::Deserialize)]
+    struct DaemonConfig {
+        ipv6: Option<bool>,
+    }
+
+    let is_edge_ipv6_configured = check.settings.as_ref().map_or(false, |settings| {
+        let moby_network = settings.moby_runtime().network();
+        if let MobyNetwork::Network(network) = moby_network {
+            network.ipv6().unwrap_or_default()
+        } else {
+            false
+        }
+    });
+
+    let daemon_config_file = File::open(&check.container_engine_config_path)
+        .with_context(|_| {
+            format!(
+                "Could not open container engine config file {}",
+                check.container_engine_config_path.display(),
+            )
+        })
+        .context(MESSAGE);
+    let daemon_config_file = match daemon_config_file {
+        Ok(daemon_config_file) => daemon_config_file,
+        Err(err) => {
+            if is_edge_ipv6_configured {
+                return Err(err.context(MESSAGE).into());
+            } else {
+                return Ok(CheckResult::Ignored);
+            }
+        }
+    };
+    let daemon_config: DaemonConfig = serde_json::from_reader(daemon_config_file)
+        .with_context(|_| {
+            format!(
+                "Could not parse container engine config file {}",
+                check.container_engine_config_path.display(),
+            )
+        })
+        .context(MESSAGE)?;
+
+    match (daemon_config.ipv6.unwrap_or_default(), is_edge_ipv6_configured) {
+        (true, _) if cfg!(windows) => Err(Context::new("IPv6 container network configuration is not supported for the Windows operating system.").into()),
+        (true, _) => Ok(CheckResult::Ok),
+        (false, true) => Err(Context::new(MESSAGE).into()),
+        (false, false) => Ok(CheckResult::Ignored),
+    }
+}
+
 fn host_version(check: &mut Check) -> Result<CheckResult, failure::Error> {
     #[cfg(unix)]
     {
@@ -776,7 +895,7 @@ fn host_version(check: &mut Check) -> Result<CheckResult, failure::Error> {
             (major_version, minor_version, build_number, _) => {
                 return Ok(CheckResult::Fatal(Context::new(format!(
                     "The host has an unsupported OS version {}.{}.{}. IoT Edge on Windows only supports OS version 10.0.17763.\n\
-                     Please see https://aka.ms/iotedge-platsup for details.",
+                    Please see https://aka.ms/iotedge-platsup for details.",
                     major_version, minor_version, build_number,
                 )).into()))
             }
@@ -1158,6 +1277,24 @@ fn container_engine_dns(check: &mut Check) -> Result<CheckResult, failure::Error
     Ok(CheckResult::Ok)
 }
 
+fn settings_identity_certificates_expiry(check: &mut Check) -> Result<CheckResult, failure::Error> {
+    let settings = if let Some(settings) = &check.settings {
+        settings
+    } else {
+        return Ok(CheckResult::Skipped);
+    };
+
+    if let Provisioning::Dps(dps) = settings.provisioning() {
+        if let AttestationMethod::X509(x509_info) = dps.attestation() {
+            let path = x509_info.identity_cert()?;
+            return CertificateValidity::parse("DPS identity certificate", &path)?
+                .to_check_result();
+        }
+    }
+
+    Ok(CheckResult::Ignored)
+}
+
 fn settings_certificates(check: &mut Check) -> Result<CheckResult, failure::Error> {
     let settings = if let Some(settings) = &check.settings {
         settings
@@ -1165,124 +1302,85 @@ fn settings_certificates(check: &mut Check) -> Result<CheckResult, failure::Erro
         return Ok(CheckResult::Skipped);
     };
 
+    check.device_ca_cert_path = Some({
+        if let Some(certificates) = settings.certificates() {
+            certificates.device_ca_cert()?
+        } else {
+            let certs_dir = settings.homedir().join("hsm").join("certs");
+
+            let mut device_ca_cert_path = None;
+
+            let entries = std::fs::read_dir(&certs_dir).with_context(|_| {
+                format!("Could not enumerate files under {}", certs_dir.display())
+            })?;
+            for entry in entries {
+                let entry = entry.with_context(|_| {
+                    format!("Could not enumerate files under {}", certs_dir.display())
+                })?;
+                let path = entry.path();
+                if let Some(file_name) = path.file_name().and_then(OsStr::to_str) {
+                    if file_name.starts_with("device_ca_alias") && file_name.ends_with(".cert.pem")
+                    {
+                        device_ca_cert_path = Some(path);
+                        break;
+                    }
+                }
+            }
+
+            device_ca_cert_path.ok_or_else(|| {
+                Context::new(format!(
+                    "Could not find device CA certificate under {}",
+                    certs_dir.display(),
+                ))
+            })?
+        }
+    });
+
     if settings.certificates().is_none() {
-        return Ok(CheckResult::Warning(
-            Context::new(
-                "Device is using self-signed, automatically generated certs.\n\
-                 Please see https://aka.ms/iotedge-prod-checklist-certs for best practices.",
-            )
-            .into(),
-        ));
+        let CertificateValidity { not_after, .. } = CertificateValidity::parse(
+            "Device CA certificate",
+            check.device_ca_cert_path.as_ref().unwrap(),
+        )?;
+
+        let now = chrono::Utc::now();
+
+        if not_after < now {
+            return Ok(CheckResult::Warning(
+                Context::new(format!(
+                    "The Edge device is using self-signed automatically-generated development certificates.\n\
+                     The certs expired at {}. Restart the IoT Edge daemon to generate new development certs with 90-day expiry.\n\
+                     \n\
+                     Please consider using production certificates instead. See https://aka.ms/iotedge-prod-checklist-certs for best practices.",
+                    not_after,
+                ))
+                .into(),
+            ));
+        } else {
+            return Ok(CheckResult::Warning(
+                Context::new(format!(
+                    "The Edge device is using self-signed automatically-generated development certificates.\n\
+                     They will expire in {} days (at {}) causing module-to-module and downstream device communication to fail on an active deployment.\n\
+                     After the certs have expired, restarting the IoT Edge daemon will trigger it to generate new development certs with 90-day expiry.\n\
+                     \n\
+                     Please consider using production certificates instead. See https://aka.ms/iotedge-prod-checklist-certs for best practices.",
+                    (not_after - now).num_days(), not_after,
+                ))
+                .into(),
+            ));
+        }
     }
 
     Ok(CheckResult::Ok)
 }
 
 fn settings_certificates_expiry(check: &mut Check) -> Result<CheckResult, failure::Error> {
-    fn parse_openssl_time(
-        time: &openssl::asn1::Asn1TimeRef,
-    ) -> chrono::ParseResult<chrono::DateTime<chrono::Utc>> {
-        // openssl::asn1::Asn1TimeRef does not expose any way to convert the ASN1_TIME to a Rust-friendly type
-        //
-        // Its Display impl uses ASN1_TIME_print, so we convert it into a String and parse it back
-        // into a chrono::DateTime<chrono::Utc>
-        let time = time.to_string();
-        let time = chrono::NaiveDateTime::parse_from_str(&time, "%b %e %H:%M:%S %Y GMT")?;
-        Ok(chrono::DateTime::<chrono::Utc>::from_utc(time, chrono::Utc))
-    }
-
-    let settings = if let Some(settings) = &check.settings {
-        settings
+    let device_ca_cert_path = if let Some(device_ca_cert_path) = &check.device_ca_cert_path {
+        device_ca_cert_path
     } else {
         return Ok(CheckResult::Skipped);
     };
 
-    let (device_ca_cert_path, device_ca_cert_path_source) = if let Some(certificates) =
-        settings.certificates()
-    {
-        (
-            certificates.device_ca_cert().to_owned(),
-            Cow::Borrowed("certificates.device_ca_cert"),
-        )
-    } else {
-        let certs_dir = settings.homedir().join("hsm").join("certs");
-
-        let mut device_ca_cert_path = None;
-
-        let entries = std::fs::read_dir(&certs_dir)
-            .with_context(|_| format!("Could not enumerate files under {}", certs_dir.display()))?;
-        for entry in entries {
-            let entry = entry.with_context(|_| {
-                format!("Could not enumerate files under {}", certs_dir.display())
-            })?;
-            let path = entry.path();
-            if let Some(file_name) = path.file_name().and_then(OsStr::to_str) {
-                if file_name.starts_with("device_ca_alias") && file_name.ends_with(".cert.pem") {
-                    device_ca_cert_path = Some(path);
-                    break;
-                }
-            }
-        }
-
-        let device_ca_cert_path = device_ca_cert_path.ok_or_else(|| {
-            Context::new(format!(
-                "Could not find device CA certificate under {}",
-                certs_dir.display(),
-            ))
-        })?;
-        let device_ca_cert_path_source = device_ca_cert_path.to_string_lossy().into_owned();
-        (device_ca_cert_path, Cow::Owned(device_ca_cert_path_source))
-    };
-
-    let (not_after, not_before) = File::open(device_ca_cert_path)
-        .map_err(failure::Error::from)
-        .and_then(|mut device_ca_cert_file| {
-            let mut device_ca_cert = vec![];
-            device_ca_cert_file.read_to_end(&mut device_ca_cert)?;
-            let device_ca_cert = openssl::x509::X509::stack_from_pem(&device_ca_cert)?;
-            let device_ca_cert = &device_ca_cert[0];
-
-            let not_after = parse_openssl_time(device_ca_cert.not_after())?;
-            let not_before = parse_openssl_time(device_ca_cert.not_before())?;
-
-            Ok((not_after, not_before))
-        })
-        .with_context(|_| {
-            format!(
-                "Could not parse {} as a valid certificate file",
-                device_ca_cert_path_source,
-            )
-        })?;
-
-    let now = chrono::Utc::now();
-
-    if not_before > now {
-        return Err(Context::new(format!(
-            "Device CA certificate in {} has not-before time {} which is in the future",
-            device_ca_cert_path_source, not_before,
-        ))
-        .into());
-    }
-
-    if not_after < now {
-        return Err(Context::new(format!(
-            "Device CA certificate in {} expired at {}",
-            device_ca_cert_path_source, not_after,
-        ))
-        .into());
-    }
-
-    if not_after < now + chrono::Duration::days(7) {
-        return Ok(CheckResult::Warning(
-            Context::new(format!(
-                "Device CA certificate in {} will expire soon ({})",
-                device_ca_cert_path_source, not_after,
-            ))
-            .into(),
-        ));
-    }
-
-    Ok(CheckResult::Ok)
+    CertificateValidity::parse("Device CA certificate", &device_ca_cert_path)?.to_check_result()
 }
 
 fn settings_moby_runtime_uri(check: &mut Check) -> Result<CheckResult, failure::Error> {
@@ -1420,33 +1518,19 @@ fn storage_mounted_from_host(
         return Ok(CheckResult::Skipped);
     };
 
-    let inspect_result = docker(docker_host_arg, &["inspect", container_name])
-        .map_err(|(_, err)| err)
-        .and_then(|output| {
-            let (inspect_result,): (docker::models::InlineResponse200,) =
-                serde_json::from_slice(&output)
-                    .context("Could not parse result of docker inspect")?;
-            Ok(inspect_result)
-        })
-        .with_context(|_| {
-            format!(
-                "Could not check current state of {} container",
-                container_name,
-            )
-        })?;
+    let inspect_result = inspect_container(docker_host_arg, container_name)?;
 
     let temp_dir = inspect_result
         .config()
         .and_then(docker::models::ContainerConfig::env)
         .into_iter()
         .flatten()
-        .filter_map(|env| {
+        .find_map(|env| {
             STORAGE_FOLDER_ENV_VAR_KEY_REGEX
                 .captures(env)
                 .and_then(|capture| capture.get(1))
                 .map(|match_| match_.as_str())
         })
-        .next()
         .unwrap_or(
             // Hard-code the value here rather than using the tempfile crate. It needs to match .Net Core's implementation,
             // and needs to be in the context of the container user instead of the host running `iotedge check`.
@@ -1477,13 +1561,14 @@ fn storage_mounted_from_host(
         .chain(volume_directories)
         .any(|container_directory| container_directory == storage_directory)
     {
-        return Err(Context::new(format!(
-            "Container {} is not configured to persist its {} directory on the host filesystem.\n\
-             Data might be lost if the container is deleted or updated.",
-            container_name,
-            storage_directory.display(),
-        ))
-        .into());
+        return Ok(CheckResult::Warning(
+            Context::new(format!(
+                "The {} module is not configured to persist its {} directory on the host filesystem.\n\
+                Data might be lost if the module is deleted or updated.",
+                container_name,
+                storage_directory.display(),
+            )).into(),
+        ));
     }
 
     Ok(CheckResult::Ok)
@@ -1511,12 +1596,17 @@ fn connection_to_dps_endpoint(check: &mut Check) -> Result<CheckResult, failure:
     Ok(CheckResult::Ok)
 }
 
-fn connection_to_iot_hub_host(check: &mut Check, port: u16) -> Result<CheckResult, failure::Error> {
+fn connection_to_iot_hub_host(
+    check: &mut Check,
+    upstream_protocol_port: UpstreamProtocolPort,
+) -> Result<CheckResult, failure::Error> {
     let iothub_hostname = if let Some(iothub_hostname) = &check.iothub_hostname {
         iothub_hostname
     } else {
         return Ok(CheckResult::Skipped);
     };
+
+    let port = upstream_protocol_port.as_port();
 
     resolve_and_tls_handshake(
         &(&**iothub_hostname, port),
@@ -1529,7 +1619,7 @@ fn connection_to_iot_hub_host(check: &mut Check, port: u16) -> Result<CheckResul
 
 fn connection_to_iot_hub_container(
     check: &mut Check,
-    port: u16,
+    upstream_protocol_port: UpstreamProtocolPort,
     use_container_runtime_network: bool,
 ) -> Result<CheckResult, failure::Error> {
     let settings = if let Some(settings) = &check.settings {
@@ -1550,9 +1640,9 @@ fn connection_to_iot_hub_container(
         return Ok(CheckResult::Skipped);
     };
 
-    let network_name = settings.moby_runtime().network();
+    let network_name = settings.moby_runtime().network().name();
 
-    let port = port.to_string();
+    let port = upstream_protocol_port.as_port().to_string();
 
     let mut args = vec!["run", "--rm"];
 
@@ -1595,15 +1685,7 @@ fn edge_hub_ports_on_host(check: &mut Check) -> Result<CheckResult, failure::Err
         return Ok(CheckResult::Skipped);
     };
 
-    let inspect_result = docker(docker_host_arg, &["inspect", "edgeHub"])
-        .map_err(|(_, err)| err)
-        .and_then(|output| {
-            let (inspect_result,): (docker::models::InlineResponse200,) =
-                serde_json::from_slice(&output)
-                    .context("Could not parse result of docker inspect")?;
-            Ok(inspect_result)
-        })
-        .context("Could not check current state of Edge Hub container")?;
+    let inspect_result = inspect_container(docker_host_arg, "edgeHub")?;
 
     let is_running = inspect_result
         .state()
@@ -1668,6 +1750,90 @@ fn edge_hub_ports_on_host(check: &mut Check) -> Result<CheckResult, failure::Err
     Ok(CheckResult::Ok)
 }
 
+#[derive(Debug)]
+struct CertificateValidity<'a> {
+    cert_name: &'a str,
+    cert_path: &'a Path,
+    not_after: chrono::DateTime<chrono::Utc>,
+    not_before: chrono::DateTime<chrono::Utc>,
+}
+
+impl<'a> CertificateValidity<'a> {
+    fn parse(cert_name: &'a str, cert_path: &'a Path) -> Result<Self, failure::Error> {
+        fn parse_openssl_time(
+            time: &openssl::asn1::Asn1TimeRef,
+        ) -> chrono::ParseResult<chrono::DateTime<chrono::Utc>> {
+            // openssl::asn1::Asn1TimeRef does not expose any way to convert the ASN1_TIME to a Rust-friendly type
+            //
+            // Its Display impl uses ASN1_TIME_print, so we convert it into a String and parse it back
+            // into a chrono::DateTime<chrono::Utc>
+            let time = time.to_string();
+            let time = chrono::NaiveDateTime::parse_from_str(&time, "%b %e %H:%M:%S %Y GMT")?;
+            Ok(chrono::DateTime::<chrono::Utc>::from_utc(time, chrono::Utc))
+        }
+
+        let (not_after, not_before) = File::open(cert_path)
+            .map_err(failure::Error::from)
+            .and_then(|mut device_ca_cert_file| {
+                let mut device_ca_cert = vec![];
+                device_ca_cert_file.read_to_end(&mut device_ca_cert)?;
+                let device_ca_cert = openssl::x509::X509::stack_from_pem(&device_ca_cert)?;
+                let device_ca_cert = &device_ca_cert[0];
+
+                let not_after = parse_openssl_time(device_ca_cert.not_after())?;
+                let not_before = parse_openssl_time(device_ca_cert.not_before())?;
+
+                Ok((not_after, not_before))
+            })
+            .with_context(|_| {
+                format!(
+                    "Could not parse {} as a valid certificate file",
+                    cert_path.display(),
+                )
+            })?;
+
+        Ok(CertificateValidity {
+            cert_name,
+            cert_path,
+            not_after,
+            not_before,
+        })
+    }
+
+    fn to_check_result(&self) -> Result<CheckResult, failure::Error> {
+        let cert_path_displayable = self.cert_path.display();
+
+        let now = chrono::Utc::now();
+
+        if self.not_before > now {
+            Err(Context::new(format!(
+                "{} at {} has not-before time {} which is in the future",
+                self.cert_name, cert_path_displayable, self.not_before,
+            ))
+            .into())
+        } else if self.not_after < now {
+            Err(Context::new(format!(
+                "{} at {} expired at {}",
+                self.cert_name, cert_path_displayable, self.not_after,
+            ))
+            .into())
+        } else if self.not_after < now + chrono::Duration::days(7) {
+            Ok(CheckResult::Warning(
+                Context::new(format!(
+                    "{} at {} will expire soon ({}, in {} days)",
+                    self.cert_name,
+                    cert_path_displayable,
+                    self.not_after,
+                    (self.not_after - now).num_days(),
+                ))
+                .into(),
+            ))
+        } else {
+            Ok(CheckResult::Ok)
+        }
+    }
+}
+
 fn docker<I>(docker_host_arg: &str, args: I) -> Result<Vec<u8>, (Option<String>, failure::Error)>
 where
     I: IntoIterator,
@@ -1697,6 +1863,21 @@ where
     }
 
     Ok(output.stdout)
+}
+
+fn inspect_container(
+    docker_host_arg: &str,
+    name: &str,
+) -> Result<docker::models::InlineResponse200, failure::Error> {
+    Ok(docker(docker_host_arg, &["inspect", name])
+        .map_err(|(_, err)| err)
+        .and_then(|output| {
+            let (inspect_result,): (docker::models::InlineResponse200,) =
+                serde_json::from_slice(&output)
+                    .context("Could not parse result of docker inspect")?;
+            Ok(inspect_result)
+        })
+        .with_context(|_| format!("Could not check current state of {} container", name))?)
 }
 
 // Resolves the given `ToSocketAddrs`, then connects to the first address via TCP and completes a TLS handshake.
@@ -1832,9 +2013,9 @@ mod tests {
     fn config_file_checks_ok() {
         let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
 
-        for filename in &["sample_settings.yaml", "sample_settings.tg.yaml"] {
+        for filename in &["sample_settings.yaml", "sample_settings.tg.filepaths.yaml"] {
             let config_file = format!(
-                "{}/../edgelet-config/test/{}/{}",
+                "{}/../edgelet-docker/test/{}/{}",
                 env!("CARGO_MANIFEST_DIR"),
                 if cfg!(windows) { "windows" } else { "linux" },
                 filename,
@@ -1845,11 +2026,13 @@ mod tests {
                     config_file.into(),
                     "daemon.json".into(), // unused for this test
                     "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                    Default::default(),
                     Some("1.0.0".to_owned()),      // unused for this test
                     "iotedged".into(),             // unused for this test
                     None,                          // unused for this test
                     "pool.ntp.org:123".to_owned(), // unused for this test
                     super::OutputFormat::Text,     // unused for this test
+                    false,
                     false,
                 ))
                 .unwrap();
@@ -1903,7 +2086,7 @@ mod tests {
 
         let filename = "bad_sample_settings.yaml";
         let config_file = format!(
-            "{}/../edgelet-config/test/{}/{}",
+            "{}/../edgelet-docker/test/{}/{}",
             env!("CARGO_MANIFEST_DIR"),
             if cfg!(windows) { "windows" } else { "linux" },
             filename,
@@ -1914,11 +2097,13 @@ mod tests {
                 config_file.into(),
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                Default::default(),
                 Some("1.0.0".to_owned()),      // unused for this test
                 "iotedged".into(),             // unused for this test
                 None,                          // unused for this test
                 "pool.ntp.org:123".to_owned(), // unused for this test
                 super::OutputFormat::Text,     // unused for this test
+                false,
                 false,
             ))
             .unwrap();
@@ -1948,7 +2133,7 @@ mod tests {
 
         let filename = "sample_settings.dps.sym.yaml";
         let config_file = format!(
-            "{}/../edgelet-config/test/{}/{}",
+            "{}/../edgelet-docker/test/{}/{}",
             env!("CARGO_MANIFEST_DIR"),
             if cfg!(windows) { "windows" } else { "linux" },
             filename,
@@ -1959,11 +2144,13 @@ mod tests {
                 config_file.into(),
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                Default::default(),
                 Some("1.0.0".to_owned()), // unused for this test
                 "iotedged".into(),        // unused for this test
                 Some("something.something.com".to_owned()), // pretend user specified --iothub-hostname
                 "pool.ntp.org:123".to_owned(),              // unused for this test
                 super::OutputFormat::Text,                  // unused for this test
+                false,
                 false,
             ))
             .unwrap();
@@ -1985,7 +2172,7 @@ mod tests {
 
         let filename = "sample_settings.dps.sym.yaml";
         let config_file = format!(
-            "{}/../edgelet-config/test/{}/{}",
+            "{}/../edgelet-docker/test/{}/{}",
             env!("CARGO_MANIFEST_DIR"),
             if cfg!(windows) { "windows" } else { "linux" },
             filename,
@@ -1996,11 +2183,13 @@ mod tests {
                 config_file.into(),
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                Default::default(),
                 Some("1.0.0".to_owned()),      // unused for this test
                 "iotedged".into(),             // unused for this test
                 None,                          // pretend user did not specify --iothub-hostname
                 "pool.ntp.org:123".to_owned(), // unused for this test
                 super::OutputFormat::Text,     // unused for this test
+                false,
                 false,
             ))
             .unwrap();
@@ -2026,7 +2215,7 @@ mod tests {
 
         let filename = "sample_settings_notmoby.yaml";
         let config_file = format!(
-            "{}/../edgelet-config/test/{}/{}",
+            "{}/../edgelet-docker/test/{}/{}",
             env!("CARGO_MANIFEST_DIR"),
             if cfg!(windows) { "windows" } else { "linux" },
             filename,
@@ -2037,11 +2226,13 @@ mod tests {
                 config_file.into(),
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                Default::default(),
                 Some("1.0.0".to_owned()),      // unused for this test
                 "iotedged".into(),             // unused for this test
                 None,                          // unused for this test
                 "pool.ntp.org:123".to_owned(), // unused for this test
                 super::OutputFormat::Text,     // unused for this test
+                false,
                 false,
             ))
             .unwrap();
@@ -2077,7 +2268,7 @@ mod tests {
 
         let filename = "sample_settings.yaml";
         let config_file = format!(
-            "{}/../edgelet-config/test/{}/{}",
+            "{}/../edgelet-docker/test/{}/{}",
             env!("CARGO_MANIFEST_DIR"),
             if cfg!(windows) { "windows" } else { "linux" },
             filename,
@@ -2088,11 +2279,13 @@ mod tests {
                 config_file.into(),
                 "daemon.json".into(), // unused for this test
                 "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                Default::default(),
                 Some("1.0.0".to_owned()),      // unused for this test
                 "iotedged".into(),             // unused for this test
                 None,                          // unused for this test
                 "pool.ntp.org:123".to_owned(), // unused for this test
                 super::OutputFormat::Text,     // unused for this test
+                false,
                 false,
             ))
             .unwrap();

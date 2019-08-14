@@ -7,7 +7,6 @@ use failure::Fail;
 use futures::future::{self, Either, FutureResult};
 use futures::Future;
 use log::{info, warn, Level};
-use serde_derive::{Deserialize, Serialize};
 use tokio::prelude::*;
 use tokio::timer::Interval;
 
@@ -16,8 +15,10 @@ use edgelet_utils::log_failure;
 use crate::error::{Error, ErrorKind};
 use crate::identity::{Identity, IdentityManager, IdentitySpec};
 use crate::module::{
-    Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec, ModuleStatus,
+    ImagePullPolicy, Module, ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec,
+    ModuleStatus,
 };
+use crate::settings::RetryLimit;
 
 // Time to allow EdgeAgent to gracefully shutdown (including stopping all modules, and updating reported properties)
 const EDGE_RUNTIME_STOP_TIME: Duration = Duration::from_secs(60);
@@ -27,28 +28,6 @@ const MODULE_GENERATIONID: &str = "IOTEDGE_MODULEGENERATIONID";
 
 /// This is the frequency with which the watchdog checks for the status of the edge runtime module.
 const WATCHDOG_FREQUENCY_SECS: u64 = 60;
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(untagged)]
-pub enum RetryLimit {
-    Infinite,
-    Num(u32),
-}
-
-impl RetryLimit {
-    pub fn compare(&self, right: u32) -> Ordering {
-        match self {
-            RetryLimit::Infinite => Ordering::Greater,
-            RetryLimit::Num(n) => n.cmp(&right),
-        }
-    }
-}
-
-impl Default for RetryLimit {
-    fn default() -> Self {
-        RetryLimit::Infinite
-    }
-}
 
 pub struct Watchdog<M, I> {
     runtime: M,
@@ -287,9 +266,13 @@ where
             id.generation_id().to_string(),
         );
         let spec = spec.with_env(env);
-        runtime
-            .registry()
-            .pull(spec.clone().config())
+
+        let pull_future = match spec.image_pull_policy() {
+            ImagePullPolicy::Never => Either::A(future::ok(())),
+            ImagePullPolicy::OnCreate => Either::B(runtime.registry().pull(spec.clone().config())),
+        };
+
+        pull_future
             .and_then(move |_| runtime.create(spec))
             .and_then(move |_| runtime_copy.start(&module_name))
             .map_err(|e| Error::from(e.context(ErrorKind::ModuleRuntime)))

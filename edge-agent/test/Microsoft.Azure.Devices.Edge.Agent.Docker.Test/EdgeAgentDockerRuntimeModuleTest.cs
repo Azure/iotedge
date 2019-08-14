@@ -26,6 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 string.Empty,
                 lastStartTimeUtc,
                 lastExitTimeUtc,
+                ImagePullPolicy.OnCreate,
                 null,
                 new Dictionary<string, EnvVal>());
 
@@ -42,6 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                     lastExitTimeUtc = lastExitTimeUtc,
                     statusDescription = string.Empty,
                     type = "docker",
+                    imagePullPolicy = "on-create",
                     settings = new
                     {
                         image = "booyah:latest",
@@ -136,6 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 string.Empty,
                 lastStartTimeUtc,
                 lastExitTimeUtc,
+                ImagePullPolicy.OnCreate,
                 new ConfigurationInfo("bing"),
                 new Dictionary<string, EnvVal>());
             var updatedModule1 = (EdgeAgentDockerRuntimeModule)module.WithRuntimeStatus(ModuleStatus.Running);

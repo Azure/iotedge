@@ -3,12 +3,15 @@
 use std::fmt;
 use std::fmt::Display;
 
+use config::ConfigError;
+use failure::{Backtrace, Context, Fail};
+use hyper::Error as HyperError;
+use serde_json::Error as JsonError;
+use typed_headers::Error as HeaderError;
+
 use edgelet_core::{ModuleRuntimeErrorReason, RuntimeOperation};
 use edgelet_docker::Error as DockerError;
-use failure::{Backtrace, Context, Fail};
-use hyper::header::ToStrError;
 use kube_client::Error as KubeClientError;
-use serde_json::Error as JsonError;
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
@@ -27,6 +30,12 @@ pub enum ErrorKind {
 
     #[fail(display = "Invalid module name {:?}", _0)]
     InvalidModuleName(String),
+
+    #[fail(display = "Device Id was not found")]
+    MissingDeviceId,
+
+    #[fail(display = "IoT Hub name was not found")]
+    MissingHubName,
 
     #[fail(display = "Container not found in module, name = {:?}", _0)]
     ModuleNotFound(String),
@@ -72,6 +81,15 @@ pub enum ErrorKind {
 
     #[fail(display = "{}", _0)]
     NotFound(String),
+
+    #[fail(display = "Config parsing error")]
+    Config,
+
+    #[fail(display = "HTTP connection error")]
+    Hyper,
+
+    #[fail(display = "An error occurred obtaining the client identity certificate")]
+    IdentityCertificate,
 }
 
 impl Fail for Error {
@@ -126,6 +144,7 @@ impl From<KubeClientError> for Error {
         }
     }
 }
+
 impl From<DockerError> for Error {
     fn from(error: DockerError) -> Self {
         Error {
@@ -133,6 +152,7 @@ impl From<DockerError> for Error {
         }
     }
 }
+
 impl From<JsonError> for Error {
     fn from(error: JsonError) -> Self {
         Error {
@@ -140,10 +160,27 @@ impl From<JsonError> for Error {
         }
     }
 }
-impl From<ToStrError> for Error {
-    fn from(error: ToStrError) -> Self {
+
+impl From<HeaderError> for Error {
+    fn from(error: HeaderError) -> Self {
         Error {
             inner: error.context(ErrorKind::ModuleAuthenticationError),
+        }
+    }
+}
+
+impl From<ConfigError> for Error {
+    fn from(error: ConfigError) -> Self {
+        Error {
+            inner: error.context(ErrorKind::Config),
+        }
+    }
+}
+
+impl From<HyperError> for Error {
+    fn from(error: HyperError) -> Self {
+        Error {
+            inner: error.context(ErrorKind::Hyper),
         }
     }
 }

@@ -61,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         {
             (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
 
-            IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
+            IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { addModule });
             ModuleSet addRunning = ModuleSet.Create(addModule);
             var addExecutionList = new List<TestRecordType>
@@ -82,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         {
             (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
 
-            IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Stopped, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
+            IModule addModule = new TestModule("mod1", "version1", "test", ModuleStatus.Stopped, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { addModule });
             ModuleSet addRunning = ModuleSet.Create(addModule);
             var addExecutionList = new List<TestRecordType>
@@ -116,7 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 0,
                 DateTime.MinValue,
                 ModuleStatus.Running);
-            IModule desiredModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
+            IModule desiredModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { desiredModule });
             ModuleSet currentSet = ModuleSet.Create(currentModule);
             ModuleSet desiredSet = ModuleSet.Create(desiredModule);
@@ -472,8 +472,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             // Arrange
             (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
 
-            IModule module1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
-            IModule edgeAgentModule = new TestModule(Constants.EdgeAgentModuleName, "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars);
+            IModule module1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            IModule edgeAgentModule = new TestModule(Constants.EdgeAgentModuleName, "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             var modules = new List<IModule>
             {
                 module1,
@@ -814,9 +814,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Running,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule1", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule1", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -833,9 +834,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Backoff,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule2", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule2", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -852,9 +854,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Unhealthy,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule3", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule3", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -871,9 +874,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule4", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule4", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -890,9 +894,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Failed,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule5", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule5", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
 
             // OnUnhealthy
@@ -911,9 +916,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Running,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule6", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule6", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -930,9 +936,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Backoff,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule7", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule7", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -949,9 +956,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Unhealthy,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule8", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule8", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -968,9 +976,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule9", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule9", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -987,9 +996,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Failed,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule10", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule10", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
 
             // OnFailure
@@ -1008,9 +1018,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Running,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule11", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule11", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -1027,9 +1038,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Backoff,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule12", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule12", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -1046,9 +1058,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Unhealthy,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule13", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule13", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -1065,9 +1078,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule14", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule14", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -1084,9 +1098,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Failed,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule15", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule15", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnFailure, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
 
             // Never
@@ -1105,9 +1120,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Running,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule16", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule16", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -1124,9 +1140,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Backoff,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule17", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule17", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -1143,9 +1160,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Unhealthy,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule18", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule18", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -1162,9 +1180,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule19", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule19", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -1181,9 +1200,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Failed,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule20", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule20", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Never, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars)
             ),
         };
 
@@ -1205,6 +1225,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
                 new TestModule(
@@ -1214,6 +1235,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ModuleStatus.Running,
                     Config1,
                     RestartPolicy.Always,
+                    ImagePullPolicy.OnCreate,
                     DefaultConfigurationInfo,
                     EnvVars)
             ),
@@ -1234,6 +1256,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
                 new TestModule(
@@ -1243,6 +1266,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ModuleStatus.Running,
                     Config1,
                     RestartPolicy.OnUnhealthy,
+                    ImagePullPolicy.OnCreate,
                     DefaultConfigurationInfo,
                     EnvVars)
             ),
@@ -1263,6 +1287,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
                 new TestModule(
@@ -1272,6 +1297,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ModuleStatus.Running,
                     Config1,
                     RestartPolicy.OnFailure,
+                    ImagePullPolicy.OnCreate,
                     DefaultConfigurationInfo,
                     EnvVars)
             ),
@@ -1292,6 +1318,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
                 new TestModule(
@@ -1301,6 +1328,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ModuleStatus.Running,
                     Config1,
                     RestartPolicy.Never,
+                    ImagePullPolicy.OnCreate,
                     DefaultConfigurationInfo,
                     EnvVars)
             ),
@@ -1321,6 +1349,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
                 new TestModule(
@@ -1330,6 +1359,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ModuleStatus.Running,
                     Config1,
                     RestartPolicy.Never,
+                    ImagePullPolicy.OnCreate,
                     DefaultConfigurationInfo,
                     EnvVars)
             )
@@ -1353,6 +1383,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Running,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
                 new TestModule(
@@ -1362,6 +1393,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ModuleStatus.Stopped,
                     Config1,
                     RestartPolicy.Always,
+                    ImagePullPolicy.OnCreate,
                     DefaultConfigurationInfo,
                     EnvVars)
             ),
@@ -1380,6 +1412,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Backoff,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
                 new TestModule(
@@ -1389,6 +1422,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ModuleStatus.Stopped,
                     Config1,
                     RestartPolicy.Always,
+                    ImagePullPolicy.OnCreate,
                     DefaultConfigurationInfo,
                     EnvVars)
             ),
@@ -1407,6 +1441,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
                 new TestModule(
@@ -1416,6 +1451,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ModuleStatus.Running,
                     Config1,
                     RestartPolicy.Always,
+                    ImagePullPolicy.OnCreate,
                     DefaultConfigurationInfo,
                     EnvVars)
             ),
@@ -1434,6 +1470,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
                 new TestModule(
@@ -1443,6 +1480,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ModuleStatus.Stopped,
                     Config1,
                     RestartPolicy.Always,
+                    ImagePullPolicy.OnCreate,
                     DefaultConfigurationInfo,
                     EnvVars)
             ),
@@ -1461,6 +1499,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Failed,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
                 new TestModule(
@@ -1470,6 +1509,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ModuleStatus.Stopped,
                     Config1,
                     RestartPolicy.Always,
+                    ImagePullPolicy.OnCreate,
                     DefaultConfigurationInfo,
                     EnvVars)
             ),
@@ -1490,6 +1530,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Running,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
                 new TestModule(
@@ -1499,6 +1540,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ModuleStatus.Stopped,
                     Config1,
                     RestartPolicy.OnUnhealthy,
+                    ImagePullPolicy.OnCreate,
                     DefaultConfigurationInfo,
                     EnvVars)
             ),
@@ -1517,6 +1559,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Backoff,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
                 new TestModule(
@@ -1526,6 +1569,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ModuleStatus.Stopped,
                     Config1,
                     RestartPolicy.OnUnhealthy,
+                    ImagePullPolicy.OnCreate,
                     DefaultConfigurationInfo,
                     EnvVars)
             ),
@@ -1544,6 +1588,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Unhealthy,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
                 new TestModule(
@@ -1553,6 +1598,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ModuleStatus.Stopped,
                     Config1,
                     RestartPolicy.OnUnhealthy,
+                    ImagePullPolicy.OnCreate,
                     DefaultConfigurationInfo,
                     EnvVars)
             ),
@@ -1571,6 +1617,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
                 new TestModule(
@@ -1580,6 +1627,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ModuleStatus.Stopped,
                     Config1,
                     RestartPolicy.OnUnhealthy,
+                    ImagePullPolicy.OnCreate,
                     DefaultConfigurationInfo,
                     EnvVars)
             ),
@@ -1598,6 +1646,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Failed,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
                 new TestModule(
@@ -1607,6 +1656,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ModuleStatus.Stopped,
                     Config1,
                     RestartPolicy.OnUnhealthy,
+                    ImagePullPolicy.OnCreate,
                     DefaultConfigurationInfo,
                     EnvVars)
             ),
@@ -1627,6 +1677,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Running,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
                 new TestModule(
@@ -1636,6 +1687,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ModuleStatus.Stopped,
                     Config1,
                     RestartPolicy.OnFailure,
+                    ImagePullPolicy.OnCreate,
                     DefaultConfigurationInfo,
                     EnvVars)
             ),
@@ -1654,6 +1706,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Backoff,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
                 new TestModule(
@@ -1663,6 +1716,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ModuleStatus.Stopped,
                     Config1,
                     RestartPolicy.OnFailure,
+                    ImagePullPolicy.OnCreate,
                     DefaultConfigurationInfo,
                     EnvVars)
             ),
@@ -1681,6 +1735,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Unhealthy,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
                 new TestModule(
@@ -1690,6 +1745,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ModuleStatus.Stopped,
                     Config1,
                     RestartPolicy.OnFailure,
+                    ImagePullPolicy.OnCreate,
                     DefaultConfigurationInfo,
                     EnvVars)
             ),
@@ -1708,6 +1764,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
                 new TestModule(
@@ -1717,6 +1774,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ModuleStatus.Stopped,
                     Config1,
                     RestartPolicy.OnFailure,
+                    ImagePullPolicy.OnCreate,
                     DefaultConfigurationInfo,
                     EnvVars)
             ),
@@ -1735,6 +1793,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
                 new TestModule(
@@ -1744,6 +1803,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ModuleStatus.Running,
                     Config1,
                     RestartPolicy.OnFailure,
+                    ImagePullPolicy.OnCreate,
                     DefaultConfigurationInfo,
                     EnvVars)
             ),
@@ -1764,6 +1824,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Running,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
                 new TestModule(
@@ -1773,6 +1834,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ModuleStatus.Stopped,
                     Config1,
                     RestartPolicy.Never,
+                    ImagePullPolicy.OnCreate,
                     DefaultConfigurationInfo,
                     EnvVars)
             ),
@@ -1791,6 +1853,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Backoff,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
                 new TestModule(
@@ -1800,6 +1863,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ModuleStatus.Stopped,
                     Config1,
                     RestartPolicy.Never,
+                    ImagePullPolicy.OnCreate,
                     DefaultConfigurationInfo,
                     EnvVars)
             ),
@@ -1818,6 +1882,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Unhealthy,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
                 new TestModule(
@@ -1827,6 +1892,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ModuleStatus.Stopped,
                     Config1,
                     RestartPolicy.Never,
+                    ImagePullPolicy.OnCreate,
                     DefaultConfigurationInfo,
                     EnvVars)
             ),
@@ -1845,6 +1911,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Stopped,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
                 new TestModule(
@@ -1854,6 +1921,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ModuleStatus.Stopped,
                     Config1,
                     RestartPolicy.Never,
+                    ImagePullPolicy.OnCreate,
                     DefaultConfigurationInfo,
                     EnvVars)
             ),
@@ -1872,6 +1940,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     0,
                     DateTime.MinValue,
                     ModuleStatus.Failed,
+                    ImagePullPolicy.OnCreate,
                     null,
                     EnvVars),
                 new TestModule(
@@ -1881,6 +1950,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     ModuleStatus.Stopped,
                     Config1,
                     RestartPolicy.Never,
+                    ImagePullPolicy.OnCreate,
                     DefaultConfigurationInfo,
                     EnvVars)
             ),

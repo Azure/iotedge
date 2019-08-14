@@ -6,8 +6,8 @@ namespace Microsoft.Azure.Devices.Routing.Core
     using System.Collections.Immutable;
     using System.Globalization;
     using System.Linq;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
-    using Microsoft.Azure.Devices.Routing.Core.Util;
 
     public class Route : IEquatable<Route>
     {
