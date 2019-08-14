@@ -1207,13 +1207,6 @@ Function RunTransparentGatewayTest
     $edgeDeviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-TransGW"
     PrintHighlightedMessage "Run transparent gateway test on device ""$edgeDeviceId"" started at $testStartAt."
 
-    # setup certificate generation tools to create the Edge device and leaf device certificates
-    PrepareCertificateTools
-    # dot source the certificate generation script
-    . "$EdgeCertGenScript"
-    # install the provided root CA to seed the certificate chain
-    Install-RootCACertificate $EdgeE2ERootCACertRSAFile $EdgeE2ERootCAKeyRSAFile "rsa" $EdgeE2ETestRootCAPassword
-
     # generate the edge gateway certs
     New-CACertsEdgeDevice $edgeDeviceId
 
@@ -1245,7 +1238,7 @@ Function RunTransparentGatewayTest
     Invoke-Expression $testCommand | Out-Host
 
     # if the deployment of edge runtime and modules fails, then return immediately.
-    if($LastExitCode -eq 1) {
+    If($LastExitCode -eq 1) {
       Return $LastExitCode
     }
 
@@ -1276,16 +1269,19 @@ Function RunTest
 {
     $testExitCode = 0
 
-    # setup certificate generation tools to create the Edge device and leaf device certificates
-    PrepareCertificateTools
-
-    # dot source the certificate generation script
-    . "$EdgeCertGenScript"
-
-    # install the provided root CA to seed the certificate chain
-    If ($EdgeE2ERootCACertRSAFile -and $EdgeE2ERootCAKeyRSAFile)
+    If ($TestName.StartsWith("Dps") || $TestName -eq "TransparentGateway")
     {
-        Install-RootCACertificate $EdgeE2ERootCACertRSAFile $EdgeE2ERootCAKeyRSAFile "rsa" $EdgeE2ETestRootCAPassword
+        # setup certificate generation tools to create the Edge device and leaf device certificates
+        PrepareCertificateTools
+
+        # dot source the certificate generation script
+        . "$EdgeCertGenScript"
+
+        # install the provided root CA to seed the certificate chain
+        If ($EdgeE2ERootCACertRSAFile -and $EdgeE2ERootCAKeyRSAFile)
+        {
+            Install-RootCACertificate $EdgeE2ERootCACertRSAFile $EdgeE2ERootCAKeyRSAFile "rsa" $EdgeE2ETestRootCAPassword
+        }
     }
 
     Switch ($TestName)
