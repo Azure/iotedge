@@ -26,13 +26,13 @@ steps:
     inputs:
       SourceFolder: "$(Build.StagingDirectory)/${{ parameters['edgelet.artifact.name'] }}"
       TargetFolder: "\\\\$(iotuap-x64-machine)\\c$\\Data\\e2etests\\artifacts\\${{ parameters['edgelet.artifact.name'] }}"
-      #CleanTargetFolder: true
+      CleanTargetFolder: true
   - task: CopyFiles@2
     displayName: 'Copy Images Artifact to $(iotuap-x64-machine)'
     inputs:
       SourceFolder: "$(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}"
       TargetFolder: "\\\\$(iotuap-x64-machine)\\c$\\Data\\e2etests\\artifacts\\${{ parameters['images.artifact.name'] }}"
-      #CleanTargetFolder: true
+      CleanTargetFolder: true
   - task: PowerShellOnTargetMachines@3
     displayName: 'Environment Setup/Cleanup ($(iotuap-x64-machine))'
     inputs:
@@ -67,7 +67,7 @@ steps:
       UserPassword: '$(iotuap-x64-password)'
       InlineScript: |
         #Requires -RunAsAdministrator
-        If (${{ parameters['testName'] }} -eq "Stress")
+        If ("${{ parameters['testName'] }}" -eq "Stress")
         {
           # schedule a task to stop iotedge service (terminate the test) in 4:30h
           $ScheduleDatetime = [DateTime]::Now.AddMinutes(270)
