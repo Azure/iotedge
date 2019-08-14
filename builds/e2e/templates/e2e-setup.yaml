@@ -1,0 +1,140 @@
+steps:
+- checkout: self
+  clean: true
+  fetchDepth: 100
+
+- task: AzureKeyVault@1
+  displayName: Get secrets
+  inputs:
+    azureSubscription: $(az.subscription)
+    keyVaultName: $(kv.name)
+    secretsFilter: >-
+      TestContainerRegistryPassword,
+      TestEventHubCompatibleEndpoint,
+      TestIotedgedPackageRootSigningCert,
+      TestIotHubConnectionString,
+      TestRootCaCertificate,
+      TestRootCaKey,
+      TestRootCaPassword
+
+- pwsh: |
+    # We care about three cases:
+    # 1) 'Edgelet Packages' build triggered this build (use latest 'Build Images' build on master)
+    if ('$(Build.TriggeredBy.DefinitionName)' -eq '$(azure.pipeline.packages)')
+    {
+      Write-Output '##vso[task.setvariable variable=whichPackageBuild]specific'
+      Write-Output '##vso[task.setvariable variable=whichImageBuild]latestFromBranch'
+      Write-Output '##vso[task.setvariable variable=packageBuildId]$(Build.TriggeredBy.BuildId)'
+    }
+    # 2) 'Build Images' build triggered this build (use latest 'Edgelet Packages' build on master)
+    elseif ('$(Build.TriggeredBy.DefinitionName)' -eq '$(azure.pipeline.images)')
+    {
+      Write-Output '##vso[task.setvariable variable=whichPackageBuild]latestFromBranch'
+      Write-Output '##vso[task.setvariable variable=whichImageBuild]specific'
+      Write-Output '##vso[task.setvariable variable=imageBuildId]$(Build.TriggeredBy.BuildId)'
+    }
+    # 3) Manual build (use given args for 'Build Images' build ID and 'Edgelet Packages' build ID)
+    elseif ('$(az.pipeline.packages.buildId)' -and '$(az.pipeline.images.buildId)')
+    {
+      Write-Output '##vso[task.setvariable variable=whichPackageBuild]specific'
+      Write-Output '##vso[task.setvariable variable=whichImageBuild]specific'
+      Write-Output '##vso[task.setvariable variable=packageBuildId]$(az.pipeline.packages.buildId)'
+      Write-Output '##vso[task.setvariable variable=imageBuildId]$(az.pipeline.images.buildId)'
+    }
+    else # Error
+    {
+      if ('$(Build.TriggeredBy.DefinitionName)' -ne '')
+      {
+        Write-Output "Build triggered by unrecognized build '$(Build.TriggeredBy.DefinitionName)'"
+      }
+      else
+      {
+        Write-Output "Missing build parameter 'az.pipeline.packages.buildId' or 'az.pipeline.images.buildId'"
+      }
+      return 1
+    }
+  displayName: Locate edgelet packages, runtime images
+
+- task: DownloadBuildArtifacts@0
+  displayName: Download edgelet packages
+  inputs:
+    buildType: specific
+    project: one
+    pipeline: $(az.pipeline.packages)
+    buildVersionToDownload: $(whichPackageBuild)
+    branchName: refs/heads/master
+    buildId: $(packageBuildId)
+    downloadType: specific
+    itemPattern: $(artifactDir)/*
+
+- task: DownloadBuildArtifacts@0
+  displayName: Get Docker image info
+  inputs:
+    buildType: specific
+    project: one
+    pipeline: $(az.pipeline.images)
+    buildVersionToDownload: $(whichImageBuild)
+    branchName: refs/heads/master
+    buildId: $(imageBuildId)
+    downloadType: specific
+    itemPattern: $(az.pipeline.images.artifacts)/artifactInfo.txt
+
+- pwsh: |
+    $certsDir = '$(System.ArtifactsDirectory)/certs'
+    New-Item "$certsDir" -ItemType Directory -Force | Out-Null
+    $env:ROOT_CERT | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.cert.pem"
+    $env:ROOT_KEY | Out-File -Encoding Utf8 "$certsDir/rsa_root_ca.key.pem"
+    Write-Output "##vso[task.setvariable variable=certsDir]$certsDir"
+  displayName: Install CA keys
+  env:
+    ROOT_CERT: $(TestRootCaCertificate)
+    ROOT_KEY: $(TestRootCaKey)
+
+- pwsh: |
+    $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
+    dotnet build $testDir
+
+    $binDir = Convert-Path "$testDir/bin/Debug/netcoreapp2.1"
+    Write-Output "##vso[task.setvariable variable=binDir]$binDir"
+  displayName: Build tests
+
+- pwsh: |
+    $imagePrefix = '$(cr.address)/$(cr.labelPrefix)azureiotedge'
+    $imageId = Get-Content -Encoding Utf8 `
+      '$(System.ArtifactsDirectory)/$(az.pipeline.images.artifacts)/artifactInfo.txt'
+    $imageId = ($imageId -split '=')[1]
+    $imageTag = "$imageId-$(os)-$(arch)"
+    $context = @{
+      edgeAgentImage = "$imagePrefix-agent:$imageTag";
+      edgeHubImage = "$imagePrefix-hub:$imageTag";
+      tempSensorImage = "$imagePrefix-simulated-temperature-sensor:$imageTag";
+      methodSenderImage = "$imagePrefix-direct-method-sender:$imageTag";
+      methodReceiverImage = "$imagePrefix-direct-method-receiver:$imageTag";
+      registries = @(
+        @{
+          address = '$(cr.address)';
+          username = '$(cr.username)';
+        }
+      );
+      packagePath = Convert-Path '$(System.ArtifactsDirectory)/$(artifactDir)';
+      caCertScriptPath = Convert-Path '$(Build.SourcesDirectory)/tools/CACertificates';
+      rootCaCertificatePath = Convert-Path '$(certsDir)/rsa_root_ca.cert.pem';
+      rootCaPrivateKeyPath = Convert-Path '$(certsDir)/rsa_root_ca.key.pem';
+      logFile = Join-Path '$(binDir)' 'testoutput.log';
+    }
+
+    if ($IsWindows)
+    {
+      $context['installerPath'] = Convert-Path '$(Build.SourcesDirectory)/scripts/windows/setup'
+    }
+
+    if ('$(arch)' -eq 'arm32v7')
+    {
+      $context['optimizeForPerformance'] = 'false'
+      $context['setupTimeoutMinutes'] = 8
+      $context['teardownTimeoutMinutes'] = 5
+      $context['testTimeoutMinutes'] = 8
+    }
+
+    $context | ConvertTo-Json | Out-File -Encoding Utf8 '$(binDir)/context.json'
+  displayName: Create test arguments file (context.json)
