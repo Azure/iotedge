@@ -161,7 +161,7 @@ pub enum ManualAuthMethod {
 #[derive(Clone, Debug, serde_derive::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub struct Manual {
-    auth_method: ManualAuthMethod,
+    authentication: ManualAuthMethod,
 }
 
 impl<'de> serde::Deserialize<'de> for Manual {
@@ -179,10 +179,10 @@ impl<'de> serde::Deserialize<'de> for Manual {
 
         let value: Inner = serde::Deserialize::deserialize(deserializer)?;
 
-        let auth_method = match (value.device_connection_string, value.authentication) {
+        let authentication = match (value.device_connection_string, value.authentication) {
             (Some(_), Some(_)) => {
                 return Err(serde::de::Error::custom(
-                    "Both onnection string and attestation configuration may not be set",
+                    "Both connection string and attestation configuration may not be set",
                 ));
             }
             (Some(cs), None) => {
@@ -191,22 +191,22 @@ impl<'de> serde::Deserialize<'de> for Manual {
             (None, Some(auth)) => auth,
             (None, None) => {
                 return Err(serde::de::Error::custom(
-                    "Device ronnection string or authentication configuration should be set",
+                    "Device connection string or authentication configuration should be set",
                 ));
             }
         };
 
-        Ok(Manual { auth_method })
+        Ok(Manual { authentication })
     }
 }
 
 impl Manual {
-    pub fn new(auth_method: ManualAuthMethod) -> Self {
-        Manual { auth_method }
+    pub fn new(authentication: ManualAuthMethod) -> Self {
+        Manual { authentication }
     }
 
     pub fn authentication_method(&self) -> &ManualAuthMethod {
-        &self.auth_method
+        &self.authentication
     }
 }
 
