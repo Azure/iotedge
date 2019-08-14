@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Storage.Disk;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
@@ -17,18 +18,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         readonly IMessageStore messageStore;
         readonly TimeSpan configUpdateFrequency;
         readonly IDiskSpaceChecker diskSpaceChecker;
+        readonly bool usePersistentStorage;
+        readonly IDbStoreStatistics dbStoreStatistics;
         readonly AsyncLock updateLock = new AsyncLock();
 
         Option<PeriodicTask> configUpdater;
         Option<EdgeHubConfig> currentConfig;
         Option<IConfigSource> configProvider;
 
-        public ConfigUpdater(Router router, IMessageStore messageStore, TimeSpan configUpdateFrequency, IDiskSpaceChecker diskSpaceChecker)
+        public ConfigUpdater(
+            Router router,
+            IMessageStore messageStore,
+            TimeSpan configUpdateFrequency,
+            IDiskSpaceChecker diskSpaceChecker,
+            bool usePersistentStorage,
+            IDbStoreStatistics dbStoreStatistics)
         {
             this.router = Preconditions.CheckNotNull(router, nameof(router));
             this.messageStore = messageStore;
             this.configUpdateFrequency = configUpdateFrequency;
             this.diskSpaceChecker = diskSpaceChecker;
+            this.usePersistentStorage = usePersistentStorage;
+            this.dbStoreStatistics = dbStoreStatistics;
         }
 
         public void Init(IConfigSource configProvider)
@@ -127,7 +138,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             if (storeAndForwardConfiguration != null)
             {
                 this.messageStore?.SetTimeToLive(storeAndForwardConfiguration.TimeToLive);
-                storeAndForwardConfiguration.MaxStorageSpaceBytes.ForEach(s => this.diskSpaceChecker?.SetMaxDiskUsageSize(s));
+                storeAndForwardConfiguration.MaxStorageSpaceBytes.ForEach(
+                    s =>
+                    {
+                        if (this.usePersistentStorage)
+                        {
+                            this.diskSpaceChecker?.SetMaxDiskUsageSize(s);
+                        }
+                        else
+                        {
+                            this.diskSpaceChecker?.SetMaxMemoryUsageSize(this.dbStoreStatistics, this.usePersistentStorage, s);
+                        }
+                    });
+
                 Events.UpdatedStoreAndForwardConfiguration();
             }
         }

@@ -52,6 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly bool encryptTwinStore;
         readonly TimeSpan configUpdateFrequency;
         readonly ExperimentalFeatures experimentalFeatures;
+        readonly bool usePersistentStorage;
 
         public RoutingModule(
             string iotHubName,
@@ -77,7 +78,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             int upstreamFanOutFactor,
             bool encryptTwinStore,
             TimeSpan configUpdateFrequency,
-            ExperimentalFeatures experimentalFeatures)
+            ExperimentalFeatures experimentalFeatures,
+            bool usePersistentStorage)
         {
             this.iotHubName = Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
@@ -103,6 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.encryptTwinStore = encryptTwinStore;
             this.configUpdateFrequency = configUpdateFrequency;
             this.experimentalFeatures = experimentalFeatures;
+            this.usePersistentStorage = usePersistentStorage;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -510,8 +513,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     {
                         IMessageStore messageStore = this.isStoreAndForwardEnabled ? c.Resolve<IMessageStore>() : null;
                         var diskSpaceChecker = c.Resolve<IDiskSpaceChecker>();
+                        var dbStoreStatistics = c.Resolve<IDbStoreStatistics>();
                         Router router = await c.Resolve<Task<Router>>();
-                        var configUpdater = new ConfigUpdater(router, messageStore, this.configUpdateFrequency, diskSpaceChecker);
+                        var configUpdater = new ConfigUpdater(router, messageStore, this.configUpdateFrequency, diskSpaceChecker, this.usePersistentStorage, dbStoreStatistics);
                         return configUpdater;
                     })
                 .As<Task<ConfigUpdater>>()

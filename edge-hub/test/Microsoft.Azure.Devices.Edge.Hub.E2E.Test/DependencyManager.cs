@@ -126,7 +126,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     90,
                     TimeSpan.FromSeconds(120),
                     experimentalFeatures,
-                    TimeSpan.FromHours(2)));
+                    TimeSpan.FromHours(2),
+                    false));
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -153,7 +154,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     10,
                     false,
                     TimeSpan.FromHours(1),
-                    experimentalFeatures));
+                    experimentalFeatures,
+                    false));
 
             builder.RegisterModule(new HttpModule());
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, this.serverCertificate, false, false, false));

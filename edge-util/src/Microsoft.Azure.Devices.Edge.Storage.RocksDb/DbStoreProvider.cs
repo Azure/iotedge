@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     using Microsoft.Extensions.Logging;
     using RocksDbSharp;
 
-    public class DbStoreProvider : IDbStoreProvider
+    public class DbStoreProvider : IDbStoreProvider, IDbStoreStatistics
     {
         const string DefaultPartitionName = "default";
         readonly IRocksDbOptionsProvider optionsProvider;
@@ -35,19 +35,20 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         }
 
         public static DbStoreProvider Create(IRocksDbOptionsProvider optionsProvider, string path, IEnumerable<string> partitionsList)
-            => Create(optionsProvider, path, partitionsList, Option.None<IDiskSpaceChecker>(), TimeSpan.FromHours(2));
+            => Create(optionsProvider, path, partitionsList, Option.None<IDiskSpaceChecker>(), TimeSpan.FromHours(2), false);
 
-        public static DbStoreProvider Create(IRocksDbOptionsProvider optionsProvider, string path, IEnumerable<string> partitionsList, TimeSpan compactionPeriod)
-            => Create(optionsProvider, path, partitionsList, Option.None<IDiskSpaceChecker>(), compactionPeriod);
+        public static DbStoreProvider Create(IRocksDbOptionsProvider optionsProvider, string path, IEnumerable<string> partitionsList, TimeSpan compactionPeriod, bool useBackupAndRestore)
+            => Create(optionsProvider, path, partitionsList, Option.None<IDiskSpaceChecker>(), compactionPeriod, useBackupAndRestore);
 
         public static DbStoreProvider Create(
             IRocksDbOptionsProvider optionsProvider,
             string path,
             IEnumerable<string> partitionsList,
             Option<IDiskSpaceChecker> diskSpaceChecker,
-            TimeSpan compactionPeriod)
+            TimeSpan compactionPeriod,
+            bool useBackupAndRestore)
         {
-            IRocksDb db = RocksDbWrapper.Create(optionsProvider, path, partitionsList);
+            IRocksDb db = RocksDbWrapper.Create(optionsProvider, path, partitionsList, useBackupAndRestore);
             IEnumerable<string> columnFamilies = db.ListColumnFamilies();
             IDictionary<string, IDbStore> entityDbStoreDictionary = new Dictionary<string, IDbStore>();
             foreach (string columnFamilyName in columnFamilies)
@@ -123,6 +124,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
                 }
             }
         }
+
+        public ulong GetApproximateMemoryUsage() => this.db.GetApproximateMemoryUsage();
 
         static class Events
         {

@@ -1,10 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Storage
 {
+    using System;
     using System.Collections.Concurrent;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class InMemoryDbStoreProvider : IDbStoreProvider
+    public class InMemoryDbStoreProvider : IDbStoreProvider, IDbStoreStatistics
     {
         const string DefaultPartitionName = "$Default";
         readonly ConcurrentDictionary<string, IDbStore> partitionDbStoreDictionary = new ConcurrentDictionary<string, IDbStore>();
@@ -28,5 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         {
             // No-op
         }
+
+        public ulong GetApproximateMemoryUsage() => throw new NotImplementedException();
     }
 }

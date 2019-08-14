@@ -56,6 +56,15 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             }
         }
 
+        public void SetMaxMemoryUsageSize(IDbStoreStatistics dbStoreStatistics, bool usePersistentStorage, long maxUsageInBytes)
+        {
+            lock (this.updateLock)
+            {
+                Events.SetMaxMemorySpaceUsage(maxUsageInBytes, this.storageFolder);
+                this.inner = new FixedSizeMemorySpaceChecker(dbStoreStatistics, this.storageFolder, usePersistentStorage, maxUsageInBytes, this.checkFrequency, Events.Log);
+            }
+        }
+
         internal static Option<DriveInfo> GetMatchingDrive(string storageFolder)
         {
             DriveInfo match = null;
@@ -98,6 +107,26 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             return Option.Maybe(match);
         }
 
+        internal static long GetDirectorySize(string directoryPath)
+        {
+            var directory = new DirectoryInfo(directoryPath);
+            return GetDirectorySize(directory);
+        }
+
+        static long GetDirectorySize(DirectoryInfo directory)
+        {
+            long size = 0;
+
+            // Get size for all files in directory and subdirectories.
+            FileInfo[] files = directory.GetFiles("*", SearchOption.AllDirectories);
+            foreach (FileInfo file in files)
+            {
+                size += file.Length;
+            }
+
+            return size;
+        }
+
         static class Events
         {
             public static readonly ILogger Log = Logger.Factory.CreateLogger<DiskSpaceChecker>();
@@ -110,7 +139,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
                 SetMaxPercentageUsage,
                 FoundDrive,
                 NoMatchingDriveFound,
-                ErrorGettingMatchingDrive
+                ErrorGettingMatchingDrive,
+                SetMaxMemorySpaceUsage
             }
 
             public static void Created(string storageFolder)
@@ -121,6 +151,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             public static void SetMaxSizeDiskSpaceUsage(long maxSizeBytes, string storageFolder)
             {
                 Log.LogInformation((int)EventIds.SetMaxSizeDiskSpaceUsage, $"Setting maximum disk space usage to {maxSizeBytes} bytes for folder {storageFolder}");
+            }
+
+            public static void SetMaxMemorySpaceUsage(long maxSizeBytes, string storageFolder)
+            {
+                Log.LogInformation((int)EventIds.SetMaxMemorySpaceUsage, $"Setting maximum memory space usage to {maxSizeBytes} bytes for folder {storageFolder}");
             }
 
             public static void SetMaxPercentageUsage(int thresholdPercentage, string drive)

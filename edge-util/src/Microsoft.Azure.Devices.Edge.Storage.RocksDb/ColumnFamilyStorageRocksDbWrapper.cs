@@ -3,10 +3,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.IO;
     using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Extensions.Logging;
     using RocksDbSharp;
 
     /// <summary>
@@ -28,12 +30,15 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
         readonly AtomicBoolean isDisposed = new AtomicBoolean(false);
         readonly RocksDb db;
+        readonly Cache cache;
         readonly ColumnFamiliesProvider columnFamiliesProvider;
         static readonly object ColumnFamiliesLock = new object();
+        static readonly ILogger Log = Logger.Factory.CreateLogger<ColumnFamilyStorageRocksDbWrapper>();
 
-        ColumnFamilyStorageRocksDbWrapper(RocksDb db, ColumnFamiliesProvider columnFamiliesProvider)
+        ColumnFamilyStorageRocksDbWrapper(RocksDb db, Cache cache, ColumnFamiliesProvider columnFamiliesProvider)
         {
             this.db = db;
+            this.cache = cache;
             this.columnFamiliesProvider = columnFamiliesProvider;
         }
 
@@ -44,6 +49,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             string dbPath = Path.Combine(path, DbFolderName);
             string columnFamiliesFilePath = Path.Combine(path, ColumnFamiliesFileName);
             var columnFamiliesProvider = new ColumnFamiliesProvider(columnFamiliesFilePath);
+
+            // This is similar to the default cache created by RocksDb if no explicit cache instance is provided as part of
+            // initialization.
+            Cache lruCache = Cache.CreateLru(8 * 1024 * 1024);
+            Options.SetBlockBasedTableFactory(new BlockBasedTableOptions().SetBlockCache(lruCache));
 
             lock (ColumnFamiliesLock)
             {
@@ -57,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
                 columnFamiliesProvider.SetColumnFamilies(columnFamiliesList);
                 RocksDb db = RocksDb.Open(Options, dbPath, columnFamilies);
-                var rocksDbWrapper = new ColumnFamilyStorageRocksDbWrapper(db, columnFamiliesProvider);
+                var rocksDbWrapper = new ColumnFamilyStorageRocksDbWrapper(db, lruCache, columnFamiliesProvider);
                 return rocksDbWrapper;
             }
         }
@@ -114,6 +124,36 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             {
                 this.db?.Dispose();
             }
+        }
+
+        public ulong GetApproximateMemoryUsage()
+        {
+            ulong memoryUsedInBytes = 0;
+            Log.LogInformation("ColumnFamilyStorageRocksDbWrapper GetMemoryStats called");
+            IntPtr mcc = Native.Instance.rocksdb_memory_consumers_create();
+
+            Native.Instance.rocksdb_memory_consumers_add_db(mcc, this.db.Handle);
+            Native.Instance.rocksdb_memory_consumers_add_cache(mcc, this.cache.Handle);
+
+            IntPtr muc = Native.Instance.rocksdb_approximate_memory_usage_create(mcc, out IntPtr err);
+            Debug.Assert(err == IntPtr.Zero);
+
+            ulong memTableUsage = Native.Instance.rocksdb_approximate_memory_usage_get_mem_table_total(muc);
+            memoryUsedInBytes += memTableUsage;
+            Log.LogInformation("mtt: " + memTableUsage);
+
+            ulong memTableReadersUsage = Native.Instance.rocksdb_approximate_memory_usage_get_mem_table_readers_total(muc);
+            memoryUsedInBytes += memTableReadersUsage;
+            Log.LogInformation("mtrt: " + memTableReadersUsage);
+
+            ulong cacheUsage = Native.Instance.rocksdb_approximate_memory_usage_get_cache_total(muc);
+            memoryUsedInBytes += cacheUsage;
+            Log.LogInformation("cachet: " + cacheUsage);
+
+            Native.Instance.rocksdb_memory_consumers_destroy(mcc);
+            Native.Instance.rocksdb_approximate_memory_usage_destroy(muc);
+
+            return memoryUsedInBytes;
         }
 
         class ColumnFamiliesProvider

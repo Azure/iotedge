@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
 {
     using System;
-    using System.IO;
     using Microsoft.Extensions.Logging;
 
     class FixedSizeSpaceChecker : DiskSpaceCheckerBase
@@ -20,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
 
         protected override DiskStatus GetDiskStatus()
         {
-            long bytes = GetDirectorySize(this.storageFolder);
+            long bytes = DiskSpaceChecker.GetDirectorySize(this.storageFolder);
             double usagePercentage = (double)bytes * 100 / this.maxSizeBytes;
             DiskStatus diskStatus = GetDiskStatus(usagePercentage);
             if (diskStatus != DiskStatus.Available)
@@ -44,33 +43,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             }
 
             return DiskStatus.Full;
-        }
-
-        static long GetDirectorySize(string directoryPath)
-        {
-            var directory = new DirectoryInfo(directoryPath);
-            return GetDirectorySize(directory);
-        }
-
-        static long GetDirectorySize(DirectoryInfo directory)
-        {
-            long size = 0;
-
-            // Get size for all files in directory
-            FileInfo[] files = directory.GetFiles();
-            foreach (FileInfo file in files)
-            {
-                size += file.Length;
-            }
-
-            // Recursively get size for all directories in current directory
-            DirectoryInfo[] dis = directory.GetDirectories();
-            foreach (DirectoryInfo di in dis)
-            {
-                size += GetDirectorySize(di);
-            }
-
-            return size;
         }
     }
 }

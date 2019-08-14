@@ -142,6 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool encryptTwinStore = this.configuration.GetValue("EncryptTwinStore", false);
             int configUpdateFrequencySecs = this.configuration.GetValue("ConfigRefreshFrequencySecs", 3600);
             TimeSpan configUpdateFrequency = TimeSpan.FromSeconds(configUpdateFrequencySecs);
+            bool usePersistentStorage = this.configuration.GetValue("UsePersistentStorage", false);
 
             builder.RegisterModule(
                 new RoutingModule(
@@ -168,7 +169,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     upstreamFanOutFactor,
                     encryptTwinStore,
                     configUpdateFrequency,
-                    experimentalFeatures));
+                    experimentalFeatures,
+                    usePersistentStorage));
         }
 
         void RegisterCommonModule(
@@ -199,6 +201,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             TimeSpan diskSpaceCheckFrequency = TimeSpan.FromSeconds(diskSpaceCheckFrequencySecs);
             long rocksDbCompactionPeriodSecs = this.configuration.GetValue("RocksDbCompactionPeriodSecs", 7200);
             TimeSpan rocksDbCompactionPeriod = TimeSpan.FromSeconds(rocksDbCompactionPeriodSecs);
+            bool useBackupAndRestore = this.configuration.GetValue("UseBackupAndRestore", false);
 
             // Register modules
             builder.RegisterModule(
@@ -224,7 +227,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     storageLimitThresholdPercentage,
                     diskSpaceCheckFrequency,
                     experimentalFeatures,
-                    rocksDbCompactionPeriod));
+                    rocksDbCompactionPeriod,
+                    useBackupAndRestore));
         }
 
         static string GetProductInfo()
