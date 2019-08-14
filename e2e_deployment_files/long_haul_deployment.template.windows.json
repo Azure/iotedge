@@ -188,7 +188,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/snitcher:<Snitch.BuildNumber>-windows-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Binds\":[\"C:\\\\ProgramData\\\\iotedge\\\\mgmt:C:\\\\ProgramData\\\\iotedge\\\\mgmt\"]}}"
+              "createOptions": "{\"HostConfig\":{\"Binds\":[<Snitch.Binds>]}}"
             }
           },
           "analyzer": {
