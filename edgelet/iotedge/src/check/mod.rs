@@ -212,6 +212,7 @@ pub struct Check {
     docker_host_arg: Option<String>,
     docker_server_version: Option<String>,
     iothub_hostname: Option<String>,
+    device_ca_cert_path: Option<PathBuf>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -367,6 +368,7 @@ impl Check {
                 docker_host_arg: None,
                 docker_server_version: None,
                 iothub_hostname,
+                device_ca_cert_path: None,
             })
         }))
     }
@@ -1275,26 +1277,6 @@ fn container_engine_dns(check: &mut Check) -> Result<CheckResult, failure::Error
     Ok(CheckResult::Ok)
 }
 
-fn settings_certificates(check: &mut Check) -> Result<CheckResult, failure::Error> {
-    let settings = if let Some(settings) = &check.settings {
-        settings
-    } else {
-        return Ok(CheckResult::Skipped);
-    };
-
-    if settings.certificates().is_none() {
-        return Ok(CheckResult::Warning(
-            Context::new(
-                "Device is using self-signed, automatically generated certs.\n\
-                 Please see https://aka.ms/iotedge-prod-checklist-certs for best practices.",
-            )
-            .into(),
-        ));
-    }
-
-    Ok(CheckResult::Ok)
-}
-
 fn settings_identity_certificates_expiry(check: &mut Check) -> Result<CheckResult, failure::Error> {
     let settings = if let Some(settings) = &check.settings {
         settings
@@ -1305,53 +1287,100 @@ fn settings_identity_certificates_expiry(check: &mut Check) -> Result<CheckResul
     if let Provisioning::Dps(dps) = settings.provisioning() {
         if let AttestationMethod::X509(x509_info) = dps.attestation() {
             let path = x509_info.identity_cert()?;
-            check_certificate_expiry(path)
-        } else {
-            Ok(CheckResult::Skipped)
+            return CertificateValidity::parse("DPS identity certificate", &path)?
+                .to_check_result();
         }
-    } else {
-        Ok(CheckResult::Skipped)
     }
+
+    Ok(CheckResult::Ignored)
 }
 
-fn settings_certificates_expiry(check: &mut Check) -> Result<CheckResult, failure::Error> {
+fn settings_certificates(check: &mut Check) -> Result<CheckResult, failure::Error> {
     let settings = if let Some(settings) = &check.settings {
         settings
     } else {
         return Ok(CheckResult::Skipped);
     };
 
-    let device_ca_cert_path = if let Some(certificates) = settings.certificates() {
-        let path = certificates.device_ca_cert()?;
-        path.to_owned()
-    } else {
-        let certs_dir = settings.homedir().join("hsm").join("certs");
+    check.device_ca_cert_path = Some({
+        if let Some(certificates) = settings.certificates() {
+            certificates.device_ca_cert()?
+        } else {
+            let certs_dir = settings.homedir().join("hsm").join("certs");
 
-        let mut device_ca_cert_path = None;
+            let mut device_ca_cert_path = None;
 
-        let entries = std::fs::read_dir(&certs_dir)
-            .with_context(|_| format!("Could not enumerate files under {}", certs_dir.display()))?;
-        for entry in entries {
-            let entry = entry.with_context(|_| {
+            let entries = std::fs::read_dir(&certs_dir).with_context(|_| {
                 format!("Could not enumerate files under {}", certs_dir.display())
             })?;
-            let path = entry.path();
-            if let Some(file_name) = path.file_name().and_then(OsStr::to_str) {
-                if file_name.starts_with("device_ca_alias") && file_name.ends_with(".cert.pem") {
-                    device_ca_cert_path = Some(path);
-                    break;
+            for entry in entries {
+                let entry = entry.with_context(|_| {
+                    format!("Could not enumerate files under {}", certs_dir.display())
+                })?;
+                let path = entry.path();
+                if let Some(file_name) = path.file_name().and_then(OsStr::to_str) {
+                    if file_name.starts_with("device_ca_alias") && file_name.ends_with(".cert.pem")
+                    {
+                        device_ca_cert_path = Some(path);
+                        break;
+                    }
                 }
             }
-        }
 
-        device_ca_cert_path.ok_or_else(|| {
-            Context::new(format!(
-                "Could not find device CA certificate under {}",
-                certs_dir.display(),
-            ))
-        })?
+            device_ca_cert_path.ok_or_else(|| {
+                Context::new(format!(
+                    "Could not find device CA certificate under {}",
+                    certs_dir.display(),
+                ))
+            })?
+        }
+    });
+
+    if settings.certificates().is_none() {
+        let CertificateValidity { not_after, .. } = CertificateValidity::parse(
+            "Device CA certificate",
+            check.device_ca_cert_path.as_ref().unwrap(),
+        )?;
+
+        let now = chrono::Utc::now();
+
+        if not_after < now {
+            return Ok(CheckResult::Warning(
+                Context::new(format!(
+                    "The Edge device is using self-signed automatically-generated development certificates.\n\
+                     The certs expired at {}. Restart the IoT Edge daemon to generate new development certs with 90-day expiry.\n\
+                     \n\
+                     Please consider using production certificates instead. See https://aka.ms/iotedge-prod-checklist-certs for best practices.",
+                    not_after,
+                ))
+                .into(),
+            ));
+        } else {
+            return Ok(CheckResult::Warning(
+                Context::new(format!(
+                    "The Edge device is using self-signed automatically-generated development certificates.\n\
+                     They will expire in {} days (at {}) causing module-to-module and downstream device communication to fail on an active deployment.\n\
+                     After the certs have expired, restarting the IoT Edge daemon will trigger it to generate new development certs with 90-day expiry.\n\
+                     \n\
+                     Please consider using production certificates instead. See https://aka.ms/iotedge-prod-checklist-certs for best practices.",
+                    (not_after - now).num_days(), not_after,
+                ))
+                .into(),
+            ));
+        }
+    }
+
+    Ok(CheckResult::Ok)
+}
+
+fn settings_certificates_expiry(check: &mut Check) -> Result<CheckResult, failure::Error> {
+    let device_ca_cert_path = if let Some(device_ca_cert_path) = &check.device_ca_cert_path {
+        device_ca_cert_path
+    } else {
+        return Ok(CheckResult::Skipped);
     };
-    check_certificate_expiry(device_ca_cert_path)
+
+    CertificateValidity::parse("Device CA certificate", &device_ca_cert_path)?.to_check_result()
 }
 
 fn settings_moby_runtime_uri(check: &mut Check) -> Result<CheckResult, failure::Error> {
@@ -1721,69 +1750,88 @@ fn edge_hub_ports_on_host(check: &mut Check) -> Result<CheckResult, failure::Err
     Ok(CheckResult::Ok)
 }
 
-fn check_certificate_expiry(cert_path: PathBuf) -> Result<CheckResult, failure::Error> {
-    fn parse_openssl_time(
-        time: &openssl::asn1::Asn1TimeRef,
-    ) -> chrono::ParseResult<chrono::DateTime<chrono::Utc>> {
-        // openssl::asn1::Asn1TimeRef does not expose any way to convert the ASN1_TIME to a Rust-friendly type
-        //
-        // Its Display impl uses ASN1_TIME_print, so we convert it into a String and parse it back
-        // into a chrono::DateTime<chrono::Utc>
-        let time = time.to_string();
-        let time = chrono::NaiveDateTime::parse_from_str(&time, "%b %e %H:%M:%S %Y GMT")?;
-        Ok(chrono::DateTime::<chrono::Utc>::from_utc(time, chrono::Utc))
-    }
+#[derive(Debug)]
+struct CertificateValidity<'a> {
+    cert_name: &'a str,
+    cert_path: &'a Path,
+    not_after: chrono::DateTime<chrono::Utc>,
+    not_before: chrono::DateTime<chrono::Utc>,
+}
 
-    let cert_path_source = cert_path.to_string_lossy().into_owned();
-    let (not_after, not_before) = File::open(cert_path)
-        .map_err(failure::Error::from)
-        .and_then(|mut device_ca_cert_file| {
-            let mut device_ca_cert = vec![];
-            device_ca_cert_file.read_to_end(&mut device_ca_cert)?;
-            let device_ca_cert = openssl::x509::X509::stack_from_pem(&device_ca_cert)?;
-            let device_ca_cert = &device_ca_cert[0];
+impl<'a> CertificateValidity<'a> {
+    fn parse(cert_name: &'a str, cert_path: &'a Path) -> Result<Self, failure::Error> {
+        fn parse_openssl_time(
+            time: &openssl::asn1::Asn1TimeRef,
+        ) -> chrono::ParseResult<chrono::DateTime<chrono::Utc>> {
+            // openssl::asn1::Asn1TimeRef does not expose any way to convert the ASN1_TIME to a Rust-friendly type
+            //
+            // Its Display impl uses ASN1_TIME_print, so we convert it into a String and parse it back
+            // into a chrono::DateTime<chrono::Utc>
+            let time = time.to_string();
+            let time = chrono::NaiveDateTime::parse_from_str(&time, "%b %e %H:%M:%S %Y GMT")?;
+            Ok(chrono::DateTime::<chrono::Utc>::from_utc(time, chrono::Utc))
+        }
 
-            let not_after = parse_openssl_time(device_ca_cert.not_after())?;
-            let not_before = parse_openssl_time(device_ca_cert.not_before())?;
+        let (not_after, not_before) = File::open(cert_path)
+            .map_err(failure::Error::from)
+            .and_then(|mut device_ca_cert_file| {
+                let mut device_ca_cert = vec![];
+                device_ca_cert_file.read_to_end(&mut device_ca_cert)?;
+                let device_ca_cert = openssl::x509::X509::stack_from_pem(&device_ca_cert)?;
+                let device_ca_cert = &device_ca_cert[0];
 
-            Ok((not_after, not_before))
+                let not_after = parse_openssl_time(device_ca_cert.not_after())?;
+                let not_before = parse_openssl_time(device_ca_cert.not_before())?;
+
+                Ok((not_after, not_before))
+            })
+            .with_context(|_| {
+                format!(
+                    "Could not parse {} as a valid certificate file",
+                    cert_path.display(),
+                )
+            })?;
+
+        Ok(CertificateValidity {
+            cert_name,
+            cert_path,
+            not_after,
+            not_before,
         })
-        .with_context(|_| {
-            format!(
-                "Could not parse {} as a valid certificate file",
-                cert_path_source,
-            )
-        })?;
-
-    let now = chrono::Utc::now();
-
-    if not_before > now {
-        return Err(Context::new(format!(
-            "Device CA certificate in {} has not-before time {} which is in the future",
-            cert_path_source, not_before,
-        ))
-        .into());
     }
 
-    if not_after < now {
-        return Err(Context::new(format!(
-            "Device CA certificate in {} expired at {}",
-            cert_path_source, not_after,
-        ))
-        .into());
-    }
+    fn to_check_result(&self) -> Result<CheckResult, failure::Error> {
+        let cert_path_displayable = self.cert_path.display();
 
-    if not_after < now + chrono::Duration::days(7) {
-        return Ok(CheckResult::Warning(
-            Context::new(format!(
-                "Device CA certificate in {} will expire soon ({})",
-                cert_path_source, not_after,
+        let now = chrono::Utc::now();
+
+        if self.not_before > now {
+            Err(Context::new(format!(
+                "{} at {} has not-before time {} which is in the future",
+                self.cert_name, cert_path_displayable, self.not_before,
             ))
-            .into(),
-        ));
+            .into())
+        } else if self.not_after < now {
+            Err(Context::new(format!(
+                "{} at {} expired at {}",
+                self.cert_name, cert_path_displayable, self.not_after,
+            ))
+            .into())
+        } else if self.not_after < now + chrono::Duration::days(7) {
+            Ok(CheckResult::Warning(
+                Context::new(format!(
+                    "{} at {} will expire soon ({}, in {} days)",
+                    self.cert_name,
+                    cert_path_displayable,
+                    self.not_after,
+                    (self.not_after - now).num_days(),
+                ))
+                .into(),
+            ))
+        } else {
+            Ok(CheckResult::Ok)
+        }
     }
-
-    Ok(CheckResult::Ok)
 }
 
 fn docker<I>(docker_host_arg: &str, args: I) -> Result<Vec<u8>, (Option<String>, failure::Error)>

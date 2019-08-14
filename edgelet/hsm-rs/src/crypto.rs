@@ -1053,72 +1053,73 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "HSM API Not Implemented")]
     fn no_random_bytes_api_fail() {
         let hsm_crypto = fake_no_if_hsm_crypto();
         let mut test_array = [0_u8; 4];
-        hsm_crypto.get_random_bytes(&mut test_array).unwrap();
-        println!("You should never see this print");
+        let err = hsm_crypto.get_random_bytes(&mut test_array).unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM API Not Implemented")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API Not Implemented")]
     fn no_create_master_key_api_fail() {
         let hsm_crypto = fake_no_if_hsm_crypto();
-        hsm_crypto.create_master_encryption_key().unwrap();
-        println!("You should never see this print");
+        let err = hsm_crypto.create_master_encryption_key().unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM API Not Implemented")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API Not Implemented")]
     fn no_destroy_master_key_api_fail() {
         let hsm_crypto = fake_no_if_hsm_crypto();
-        hsm_crypto.destroy_master_encryption_key().unwrap();
-        println!("You should never see this print");
+        let err = hsm_crypto.destroy_master_encryption_key().unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM API Not Implemented")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API Not Implemented")]
     fn no_create_certificate_api_fail() {
         let props = CertificateProperties::default();
         let hsm_crypto = fake_no_if_hsm_crypto();
-        let result = hsm_crypto.create_certificate(&props).unwrap();
-        println!("You should never see this print {:?}", result);
+        let err = hsm_crypto.create_certificate(&props).unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM API Not Implemented")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API Not Implemented")]
     fn no_trust_bundle_api_fail() {
         let hsm_crypto = fake_no_if_hsm_crypto();
-        let result = hsm_crypto.get_trust_bundle().unwrap();
-        println!("You should never see this print {:?}", result);
+        let err = hsm_crypto.get_trust_bundle().unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM API Not Implemented")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API Not Implemented")]
     fn no_encrypt_api_fail() {
         let client_id = b"client_id";
         let plaintext = b"plaintext";
         let initialization_vector = b"initialization_vector";
         let hsm_crypto = fake_no_if_hsm_crypto();
-        let result = hsm_crypto
+        let err = hsm_crypto
             .encrypt(client_id, plaintext, initialization_vector)
-            .unwrap();
-        println!("You should never see this print {:?}", result);
+            .unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM API Not Implemented")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API Not Implemented")]
     fn no_decrypt_api_fail() {
         let client_id = b"client_id";
         let ciphertext = b"ciphertext";
         let initialization_vector = b"initialization_vector";
         let hsm_crypto = fake_no_if_hsm_crypto();
-        let result = hsm_crypto
+        let err = hsm_crypto
             .encrypt(client_id, ciphertext, initialization_vector)
-            .unwrap();
-        println!("You should never see this print {:?}", result);
+            .unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM API Not Implemented")));
     }
+
     fn fake_bad_hsm_crypto() -> Crypto {
         Crypto {
             handle: unsafe { fake_handle_create_bad() },
@@ -1141,65 +1142,66 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "HSM API failure occurred")]
     fn hsm_get_random_bytes_errors() {
         let hsm_crypto = fake_bad_hsm_crypto();
         let mut test_array = [0_u8; 4];
-        hsm_crypto.get_random_bytes(&mut test_array).unwrap();
-        println!("You should never see this print");
+        let err = hsm_crypto.get_random_bytes(&mut test_array).unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM API failure occurred")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API failure occurred")]
     fn hsm_create_master_encryption_key_errors() {
         let hsm_crypto = fake_bad_hsm_crypto();
-        hsm_crypto.create_master_encryption_key().unwrap();
-        println!("You should never see this print");
+        let err = hsm_crypto.create_master_encryption_key().unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM API failure occurred")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API failure occurred")]
     fn hsm_destroy_master_encryption_key_errors() {
         let hsm_crypto = fake_bad_hsm_crypto();
-        hsm_crypto.destroy_master_encryption_key().unwrap();
-        println!("You should never see this print");
+        let err = hsm_crypto.destroy_master_encryption_key().unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM API failure occurred")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API returned an invalid null response")]
     fn hsm_create_certificate_errors() {
         let hsm_crypto = fake_bad_hsm_crypto();
         let props = CertificateProperties::default();
-
-        let result = hsm_crypto.create_certificate(&props).unwrap();
-        println!("You should never see this print {:?}", result);
+        let err = hsm_crypto.create_certificate(&props).unwrap_err();
+        assert!(failure::Fail::iter_chain(&err).any(|err| err
+            .to_string()
+            .contains("HSM API returned an invalid null response")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API returned an invalid null response")]
     fn hsm_get_trust_bundle_errors() {
         let hsm_crypto = fake_bad_hsm_crypto();
-        let result = hsm_crypto.get_trust_bundle().unwrap();
-        println!("You should never see this print {:?}", result);
+        let err = hsm_crypto.get_trust_bundle().unwrap_err();
+        assert!(failure::Fail::iter_chain(&err).any(|err| err
+            .to_string()
+            .contains("HSM API returned an invalid null response")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API failure occurred")]
     fn hsm_encrypt_errors() {
         let hsm_crypto = fake_bad_hsm_crypto();
-        let result = hsm_crypto
+        let err = hsm_crypto
             .encrypt(b"client_id", b"plaintext", b"init_vector")
-            .unwrap();
-        println!("You should never see this print {:?}", result);
+            .unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM API failure occurred")));
     }
     #[test]
-    #[should_panic(expected = "HSM API failure occurred")]
     fn hsm_decrypt_errors() {
         let hsm_crypto = fake_bad_hsm_crypto();
-        let result = hsm_crypto
+        let err = hsm_crypto
             .decrypt(b"client_id", b"ciphertext", b"init_vector")
-            .unwrap();
-        println!("You should never see this print {:?}", result);
+            .unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM API failure occurred")));
     }
 
     fn fake_good_hsm_crypto() -> Crypto {
