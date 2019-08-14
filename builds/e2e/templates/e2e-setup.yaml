@@ -20,15 +20,17 @@ steps:
 - pwsh: |
     # We care about three cases:
     # 1) 'Edgelet Packages' build triggered this build (use latest 'Build Images' build on master)
-    if ('$(Build.TriggeredBy.DefinitionName)' -eq '$(azure.pipeline.packages)')
+    if ($env:BUILD_TRIGGEREDBY_DEFINITIONNAME -eq '$(az.pipeline.packages)')
     {
+      Write-Output "Triggered by build '$(az.pipeline.packages)' \#$(Build.TriggeredBy.BuildId)"
       Write-Output '##vso[task.setvariable variable=whichPackageBuild]specific'
       Write-Output '##vso[task.setvariable variable=whichImageBuild]latestFromBranch'
       Write-Output '##vso[task.setvariable variable=packageBuildId]$(Build.TriggeredBy.BuildId)'
     }
     # 2) 'Build Images' build triggered this build (use latest 'Edgelet Packages' build on master)
-    elseif ('$(Build.TriggeredBy.DefinitionName)' -eq '$(azure.pipeline.images)')
+    elseif ($env:BUILD_TRIGGEREDBY_DEFINITIONNAME -eq '$(az.pipeline.images)')
     {
+      Write-Output "Triggered by build '$(az.pipeline.images)' \#$(Build.TriggeredBy.BuildId)"
       Write-Output '##vso[task.setvariable variable=whichPackageBuild]latestFromBranch'
       Write-Output '##vso[task.setvariable variable=whichImageBuild]specific'
       Write-Output '##vso[task.setvariable variable=imageBuildId]$(Build.TriggeredBy.BuildId)'
@@ -43,15 +45,15 @@ steps:
     }
     else # Error
     {
-      if ('$(Build.TriggeredBy.DefinitionName)' -ne '')
+      if ($env:BUILD_TRIGGEREDBY_DEFINITIONNAME)
       {
-        Write-Output "Build triggered by unrecognized build '$(Build.TriggeredBy.DefinitionName)'"
+        Write-Output "Build triggered by unrecognized build '$env:BUILD_TRIGGEREDBY_DEFINITIONNAME'"
       }
       else
       {
         Write-Output "Missing build parameter 'az.pipeline.packages.buildId' or 'az.pipeline.images.buildId'"
       }
-      return 1
+      exit 1
     }
   displayName: Locate edgelet packages, runtime images
 

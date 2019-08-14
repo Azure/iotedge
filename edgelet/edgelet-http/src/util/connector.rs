@@ -105,6 +105,17 @@ impl UrlConnector {
     }
 }
 
+impl std::fmt::Debug for UrlConnector {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            UrlConnector::Http(_) => f.debug_struct("Http").finish(),
+            #[cfg(windows)]
+            UrlConnector::Pipe(_) => f.debug_struct("Pipe").finish(),
+            UrlConnector::Unix(_) => f.debug_struct("UnixConnector").finish(),
+        }
+    }
+}
+
 impl Connect for UrlConnector {
     type Transport = StreamSelector;
     type Error = io::Error;
@@ -159,10 +170,11 @@ mod tests {
     use super::*;
 
     #[test]
-    #[should_panic(expected = "URL does not have a recognized scheme")]
     fn invalid_url_scheme() {
-        let _connector =
-            UrlConnector::new(&Url::parse("foo:///this/is/not/valid").unwrap()).unwrap();
+        let err = UrlConnector::new(&Url::parse("foo:///this/is/not/valid").unwrap()).unwrap_err();
+        assert!(failure::Fail::iter_chain(&err).any(|err| err
+            .to_string()
+            .contains("URL does not have a recognized scheme")));
     }
 
     #[test]

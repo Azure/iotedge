@@ -1269,7 +1269,7 @@ Function RunTest
 {
     $testExitCode = 0
 
-    If ($TestName.StartsWith("Dps") || $TestName -eq "TransparentGateway")
+    If ($TestName.StartsWith("Dps") -Or $TestName -eq "TransparentGateway")
     {
         # setup certificate generation tools to create the Edge device and leaf device certificates
         PrepareCertificateTools
