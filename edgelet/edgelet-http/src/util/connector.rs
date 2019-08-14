@@ -105,6 +105,17 @@ impl UrlConnector {
     }
 }
 
+impl std::fmt::Debug for UrlConnector {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            UrlConnector::Http(_) => f.debug_struct("Http").finish(),
+            #[cfg(windows)]
+            UrlConnector::Pipe(_) => f.debug_struct("Pipe").finish(),
+            UrlConnector::Unix(_) => f.debug_struct("UnixConnector").finish(),
+        }
+    }
+}
+
 impl Connect for UrlConnector {
     type Transport = StreamSelector;
     type Error = io::Error;
