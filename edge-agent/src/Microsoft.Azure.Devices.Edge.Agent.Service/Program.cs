@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using System.Collections.Generic;
     using System.IO;
     using System.Net;
+    using System.Runtime.CompilerServices;
     using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
@@ -175,14 +176,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                             closeOnIdleTimeout,
                             idleTimeout));
 
-                            /*
-                             *      IRuntimeInfoProvider edgeOperator = await container.Resolve<Task<IRuntimeInfoProvider>>();
-                                    if (edgeOperator is IKubernetesOperator kubernetesOperator)
-                                    {
-                                        kubernetesOperator.Start();
-                                    }
-                            */
-
                         break;
 
                     default:
@@ -222,6 +215,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             {
                 logger.LogCritical(AgentEventIds.Agent, ex, "Fatal error building application.");
                 return 1;
+            }
+
+            if (mode.ToLowerInvariant().Equals(Constants.KubernetesMode))
+            {
+                // Start the runtime info provider
+                IRuntimeInfoProvider edgeOperator = await container.Resolve<Task<IRuntimeInfoProvider>>();
+                if (edgeOperator is Kubernetes.IKubernetesOperator kubernetesOperator)
+                {
+                    kubernetesOperator.Start();
+                }
+
+                // Start the crdwatch
+                Kubernetes.IKubernetesOperator crdWatch = await container.Resolve<Task<Kubernetes.IKubernetesOperator>>();
+                crdWatch.Start();
             }
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)
