@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel;
     using System.Linq;
     using System.Threading.Tasks;
     using k8s;
@@ -164,11 +165,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     {
                         case WatchEventType.Added:
                         case WatchEventType.Modified:
-                            await this.ManageDeployments(currentServices, currentDeployments, edgeDeploymentDefinition);
+                            await this.UpsertDeployments(currentServices, currentDeployments, edgeDeploymentDefinition);
                             break;
 
                         case WatchEventType.Deleted:
-                            await this.DeleteDeployments(currentServices, currentDeployments);
+                            await this.HandleEdgeDeploymentDeleted(currentServices, currentDeployments);
                             break;
 
                         case WatchEventType.Error:
@@ -185,7 +186,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         private string DeploymentName(string moduleId) => KubeUtils.SanitizeK8sValue(moduleId);
 
-        private async Task DeleteDeployments(V1ServiceList currentServices, V1DeploymentList currentDeployments)
+        private async Task HandleEdgeDeploymentDeleted(V1ServiceList currentServices, V1DeploymentList currentDeployments)
         {
             // Delete the deployment.
             // Delete any services.
@@ -197,24 +198,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     this.k8sNamespace,
                     new V1DeleteOptions(propagationPolicy: "Foreground"),
                     propagationPolicy: "Foreground"));
+
+            // Remove the service account for all deployments
+            var serviceAccountNames = currentDeployments.Items.Select(deployment => deployment.Metadata.Name);
+            await this.PruneServiceAccounts(serviceAccountNames.ToList());
+
             await Task.WhenAll(removeDeploymentTasks);
             this.currentModules = ModuleSet.Empty;
         }
 
-        private async Task ManageDeployments(V1ServiceList currentServices, V1DeploymentList currentDeployments, EdgeDeploymentDefinition<TConfig> customObject)
+        private async Task UpsertDeployments(V1ServiceList currentServices, V1DeploymentList currentDeployments, EdgeDeploymentDefinition<TConfig> customObject)
         {
             var desiredModules = ModuleSet.Create(customObject.Spec.ToArray());
             var moduleIdentities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desiredModules, this.currentModules);
-
-            // Pull current configuration from annotations.
-            Dictionary<string, string> currentV1ServicesFromAnnotations = this.GetCurrentServiceConfig(currentServices);
-            // strip out edgeAgent so edgeAgent doesn't update itself.
-            // TODO: remove this filter.
-            var agentDeploymentName = this.DeploymentName(CoreConstants.EdgeAgentModuleName);
-            Dictionary<string, string> currentDeploymentsFromAnnotations = this.GetCurrentDeploymentConfig(currentDeployments)
-                .ToDictionary(
-                    pair => pair.Key,
-                    pair => pair.Value);
 
             var desiredServices = new List<V1Service>();
             var desiredDeployments = new List<V1Deployment>();
@@ -260,144 +256,216 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 }
             }
 
-            // Find current Services/Deployments which need to be removed and updated
+            await this.ManageServices(currentServices, desiredServices);
+
+            await this.ManageDeployments(currentDeployments, desiredDeployments);
+
+            this.currentModules = desiredModules;
+        }
+
+        async Task ManageServices(V1ServiceList currentServices, List<V1Service> desiredServices)
+        {
+            Dictionary<string, string> currentV1ServicesFromAnnotations = this.GetCurrentServiceConfig(currentServices);
+
+            // Figure out what to remove
             var servicesRemoved = new List<V1Service>(currentServices.Items);
             servicesRemoved.RemoveAll(s => desiredServices.Exists(i => string.Equals(i.Metadata.Name, s.Metadata.Name)));
-            var deploymentsRemoved = new List<V1Deployment>(currentDeployments.Items);
-            deploymentsRemoved.RemoveAll(
-                d =>
-                {
-                    return desiredDeployments.Exists(i => string.Equals(i.Metadata.Name, d.Metadata.Name));
-                });
 
+            // Figure out what to create
             var newServices = new List<V1Service>();
             desiredServices.ForEach(
-                s =>
+                service =>
                 {
-                    string creationString = JsonConvert.SerializeObject(s);
+                    string creationString = JsonConvert.SerializeObject(service);
 
-                    if (currentV1ServicesFromAnnotations.ContainsKey(s.Metadata.Name))
+                    if (currentV1ServicesFromAnnotations.ContainsKey(service.Metadata.Name))
                     {
-                        string serviceAnnotation = currentV1ServicesFromAnnotations[s.Metadata.Name];
+                        string serviceAnnotation = currentV1ServicesFromAnnotations[service.Metadata.Name];
                         // If configuration matches, no need to update service
                         if (string.Equals(serviceAnnotation, creationString))
                         {
                             return;
                         }
 
-                        if (s.Metadata.Annotations == null)
+                        if (service.Metadata.Annotations == null)
                         {
-                            s.Metadata.Annotations = new Dictionary<string, string>();
+                            service.Metadata.Annotations = new Dictionary<string, string>();
                         }
 
-                        s.Metadata.Annotations[Constants.CreationString] = creationString;
+                        service.Metadata.Annotations[Constants.CreationString] = creationString;
 
-                        servicesRemoved.Add(s);
-                        newServices.Add(s);
-                        Events.UpdateService(s.Metadata.Name);
+                        servicesRemoved.Add(service);
+                        newServices.Add(service);
+                        Events.UpdateService(service.Metadata.Name);
                     }
                     else
                     {
-                        if (s.Metadata.Annotations == null)
+                        if (service.Metadata.Annotations == null)
                         {
-                            s.Metadata.Annotations = new Dictionary<string, string>();
+                            service.Metadata.Annotations = new Dictionary<string, string>();
                         }
 
-                        s.Metadata.Annotations[Constants.CreationString] = creationString;
+                        service.Metadata.Annotations[Constants.CreationString] = creationString;
 
-                        newServices.Add(s);
-                        Events.CreateService(s.Metadata.Name);
+                        newServices.Add(service);
+                        Events.CreateService(service.Metadata.Name);
                     }
+                });
+
+            // remove the old
+            await Task.WhenAll(servicesRemoved.Select(
+                i =>
+                {
+                    Events.DeletingService(i);
+                    return this.client.DeleteNamespacedServiceAsync(i.Metadata.Name, this.k8sNamespace, new V1DeleteOptions());
+                }));
+
+            // Create the new.
+            await Task.WhenAll(newServices.Select(
+                s =>
+                {
+                    Events.CreatingService(s);
+                    return this.client.CreateNamespacedServiceAsync(s, this.k8sNamespace);
+                }));
+        }
+
+        async Task ManageDeployments(V1DeploymentList currentDeployments, List<V1Deployment> desiredDeployments)
+        {
+            Dictionary<string, string> currentDeploymentsFromAnnotations = this.GetCurrentDeploymentConfig(currentDeployments)
+                .ToDictionary(
+                    pair => pair.Key,
+                    pair => pair.Value);
+
+            var deploymentsRemoved = new List<V1Deployment>(currentDeployments.Items);
+            deploymentsRemoved.RemoveAll(
+                removedDeployment =>
+                {
+                    return desiredDeployments.Exists(deployment => string.Equals(deployment.Metadata.Name, removedDeployment.Metadata.Name));
                 });
             var deploymentsUpdated = new List<V1Deployment>();
             var newDeployments = new List<V1Deployment>();
             List<V1Deployment> currentDeploymentsList = currentDeployments.Items.ToList();
             desiredDeployments.ForEach(
-                d =>
+                deployment =>
                 {
-                    if (currentDeploymentsFromAnnotations.ContainsKey(d.Metadata.Name))
+                    if (currentDeploymentsFromAnnotations.ContainsKey(deployment.Metadata.Name))
                     {
-                        V1Deployment current = currentDeploymentsList.Find(i => string.Equals(i.Metadata.Name, d.Metadata.Name));
-                        string currentFromAnnotation = currentDeploymentsFromAnnotations[d.Metadata.Name];
-                        string creationString = JsonConvert.SerializeObject(d);
+                        V1Deployment current = currentDeploymentsList.Find(i => string.Equals(i.Metadata.Name, deployment.Metadata.Name));
+                        string currentFromAnnotation = currentDeploymentsFromAnnotations[deployment.Metadata.Name];
+                        string creationString = JsonConvert.SerializeObject(deployment);
 
                         // If configuration matches, or this is edgeAgent deployment and the images match,
                         // no need to do update deployment
                         if (string.Equals(currentFromAnnotation, creationString) ||
-                            (string.Equals(d.Metadata.Name, this.DeploymentName(CoreConstants.EdgeAgentModuleName)) && V1DeploymentEx.ImageEquals(current, d)))
+                            (string.Equals(deployment.Metadata.Name, this.DeploymentName(CoreConstants.EdgeAgentModuleName)) && V1DeploymentEx.ImageEquals(current, deployment)))
                         {
                             return;
                         }
 
-                        d.Metadata.ResourceVersion = current.Metadata.ResourceVersion;
-                        if (d.Metadata.Annotations == null)
+                        deployment.Metadata.ResourceVersion = current.Metadata.ResourceVersion;
+                        if (deployment.Metadata.Annotations == null)
                         {
                             var annotations = new Dictionary<string, string>
                             {
                                 [Constants.CreationString] = creationString
                             };
-                            d.Metadata.Annotations = annotations;
+                            deployment.Metadata.Annotations = annotations;
                         }
                         else
                         {
-                            d.Metadata.Annotations[Constants.CreationString] = creationString;
+                            deployment.Metadata.Annotations[Constants.CreationString] = creationString;
                         }
 
-                        deploymentsUpdated.Add(d);
-                        Events.UpdateDeployment(d.Metadata.Name);
+                        deploymentsUpdated.Add(deployment);
+                        Events.UpdateDeployment(deployment.Metadata.Name);
                     }
                     else
                     {
-                        string creationString = JsonConvert.SerializeObject(d);
+                        string creationString = JsonConvert.SerializeObject(deployment);
                         var annotations = new Dictionary<string, string>
                         {
                             [Constants.CreationString] = creationString
                         };
-                        d.Metadata.Annotations = annotations;
-                        newDeployments.Add(d);
-                        Events.CreateDeployment(d.Metadata.Name);
+                        deployment.Metadata.Annotations = annotations;
+                        newDeployments.Add(deployment);
+                        Events.CreateDeployment(deployment.Metadata.Name);
                     }
                 });
 
+            // First we must delete existing service accounts since service account does not support an update operation.
+            // This needs to block so that we can re-create the new accounts below without a collision.
+            // We will also take this opportunity to delete the accounts that have their deployment being deleted.
+            var deletedOrUpdatedDeploymentNames = deploymentsRemoved.Concat(newDeployments).Select(deployment => deployment.Metadata.Name);
+            await this.PruneServiceAccounts(deletedOrUpdatedDeploymentNames.ToList());
+
             // Remove the old
-            IEnumerable<Task<V1Status>> removeServiceTasks = servicesRemoved.Select(
-                i =>
+            var removeDeploymentsTasks = deploymentsRemoved.Select(
+                deployment =>
                 {
-                    Events.DeletingService(i);
-                    return this.client.DeleteNamespacedServiceAsync(i.Metadata.Name, this.k8sNamespace, new V1DeleteOptions());
+                    Events.DeletingDeployment(deployment);
+                    return this.client.DeleteNamespacedDeployment1Async(deployment.Metadata.Name, this.k8sNamespace, new V1DeleteOptions(propagationPolicy: "Foreground"), propagationPolicy: "Foreground");
                 });
-            await Task.WhenAll(removeServiceTasks);
 
-            IEnumerable<Task<V1Status>> removeDeploymentTasks = deploymentsRemoved.Select(
-                d =>
-                {
-                    Events.DeletingDeployment(d);
-                    return this.client.DeleteNamespacedDeployment1Async(d.Metadata.Name, this.k8sNamespace, new V1DeleteOptions(propagationPolicy: "Foreground"), propagationPolicy: "Foreground");
-                });
-            await Task.WhenAll(removeDeploymentTasks);
-
-            // Create the new.
-            IEnumerable<Task<V1Service>> createServiceTasks = newServices.Select(
-                s =>
-                {
-                    Events.CreatingService(s);
-                    return this.client.CreateNamespacedServiceAsync(s, this.k8sNamespace);
-                });
-            await Task.WhenAll(createServiceTasks);
-
-            IEnumerable<Task<V1Deployment>> createDeploymentTasks = newDeployments.Select(
+            // Create the new deployments
+            var createDeploymentsTasks = newDeployments.Select(
                 deployment =>
                 {
                     Events.CreatingDeployment(deployment);
                     return this.client.CreateNamespacedDeploymentAsync(deployment, this.k8sNamespace);
                 });
-            await Task.WhenAll(createDeploymentTasks);
+
+            // Create the new Service Accounts
+            var createServiceAccounts = newDeployments.Select(
+                deployment =>
+                {
+                    Events.CreatingServiceAccount(deployment.Metadata.Name);
+                    return this.CreateServiceAccount(deployment);
+                });
 
             // Update the existing - should only do this when different.
-            IEnumerable<Task<V1Deployment>> updateDeploymentTasks = deploymentsUpdated.Select(deployment => this.client.ReplaceNamespacedDeploymentAsync(deployment, deployment.Metadata.Name, this.k8sNamespace));
-            await Task.WhenAll(updateDeploymentTasks);
+            var updateDeploymentsTasks = deploymentsUpdated.Select(deployment => this.client.ReplaceNamespacedDeploymentAsync(deployment, deployment.Metadata.Name, this.k8sNamespace));
 
-            this.currentModules = desiredModules;
+            await Task.WhenAll(removeDeploymentsTasks);
+            await Task.WhenAll(createDeploymentsTasks);
+            await Task.WhenAll(createServiceAccounts);
+            await Task.WhenAll(updateDeploymentsTasks);
+
+            return;
+        }
+
+        Task<V1ServiceAccount> CreateServiceAccount(V1Deployment deployment)
+        {
+            V1ServiceAccount account = new V1ServiceAccount();
+            var metadata = new V1ObjectMeta();
+
+            string moduleId = deployment.Metadata.Labels[Constants.K8sEdgeModuleLabel];
+            metadata.Labels = deployment.Metadata.Labels;
+            metadata.Annotations = new Dictionary<string, string>()
+            {
+                [Constants.K8sEdgeOriginalModuleId] = moduleId
+            };
+
+            metadata.Name = moduleId;
+
+            account.Metadata = metadata;
+
+            return this.client.CreateNamespacedServiceAccountAsync(account, this.k8sNamespace);
+        }
+
+        async Task PruneServiceAccounts(List<string> accountNamesToPrune)
+        {
+            var currentServiceAccounts = (await this.client.ListNamespacedServiceAccountAsync(this.k8sNamespace)).Items;
+
+            // Prune down the list to those found in the passed in prune list.
+            var accountsToDelete = currentServiceAccounts.Where(serviceAccount => accountNamesToPrune.Contains(serviceAccount.Metadata.Name));
+
+            var deletionTasks = accountsToDelete.Select(account =>
+            {
+                Events.DeletingServiceAccount(account.Metadata.Name);
+                return this.client.DeleteNamespacedServiceAccountAsync(account.Metadata.Name, this.k8sNamespace);
+            });
+
+            await Task.WhenAll(deletionTasks);
         }
 
         V1PodTemplateSpec GetPodFromModule(Dictionary<string, string> labels, KubernetesModule<TConfig> module, IModuleIdentity moduleIdentity)
@@ -840,6 +908,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 CreatingService,
                 ReplacingDeployment,
                 CrdWatchClosed,
+                CreatingServiceAccount,
+                DeletingServiceAccount
             }
 
             public static void DeletingService(V1Service service)
@@ -925,6 +995,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             public static void CreateDeployment(string name)
             {
                 Log.LogDebug((int)EventIds.CreateDeployment, $"Creating edge deployment '{name}'");
+            }
+
+            public static void CreatingServiceAccount(string name)
+            {
+                Log.LogDebug((int)EventIds.CreatingServiceAccount, $"Creating Service Account {name}");
+            }
+
+            public static void DeletingServiceAccount(string name)
+            {
+                Log.LogDebug((int)EventIds.DeletingServiceAccount, $"Deleting Service Account {name}");
             }
 
             public static void NullListResponse(string listType, string what)
