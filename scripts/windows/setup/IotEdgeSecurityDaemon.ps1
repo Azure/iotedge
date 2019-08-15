@@ -88,7 +88,19 @@ PS> Initialize-IoTEdge -Manual -DeviceConnectionString $deviceConnectionString -
 
 .EXAMPLE
 
-PS> Initialize-IoTEdge -Manual -DeviceConnectionString $deviceConnectionString -ContainerOs Windows -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
+PS> Initialize-IoTEdge -Manual -X509 -IotHubHostName $iotHubHostName -DeviceId $deviceId -X509IdentityCertificate $x509IdentityCertificate
+-X509IdentityPrivateKey $x509IdentityPrivateKey -ContainerOs Windows
+
+
+.EXAMPLE
+
+PS> Initialize-IoTEdge -Manual -DeviceConnectionString $deviceConnectionString -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle -ContainerOs Windows
+
+
+.EXAMPLE
+
+PS> Initialize-IoTEdge -Manual -X509 -IotHubHostName $iotHubHostName -DeviceId $deviceId -X509IdentityCertificate $x509IdentityCertificate
+-X509IdentityPrivateKey $x509IdentityPrivateKey -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle -ContainerOs Windows
 
 
 .EXAMPLE
@@ -143,8 +155,28 @@ function Initialize-IoTEdge {
         [Switch] $External,
 
         # The device connection string.
-        [Parameter(Mandatory = $true, ParameterSetName = 'Manual')]
+        [Parameter(ParameterSetName = 'Manual')]
         [String] $DeviceConnectionString,
+
+        # The IoT Hub hostname the Edge device is a part of
+        [Parameter(ParameterSetName = 'Manual')]
+        [ValidateNotNullOrEmpty()]
+        [String] $IotHubHostName,
+
+        # The Edge device Id
+        [Parameter(ParameterSetName = 'Manual')]
+        [ValidateNotNullOrEmpty()]
+        [String] $DeviceId,
+
+        # The Edge device identity certificate
+        [Parameter(ParameterSetName = 'Manual')]
+        [ValidateNotNullOrEmpty()]
+        [String] $X509IdentityCertificate,
+
+        # The Edge device identity private key
+        [Parameter(ParameterSetName = 'Manual')]
+        [ValidateNotNullOrEmpty()]
+        [String] $X509IdentityPrivateKey,
 
         # The DPS scope ID.
         [Parameter(Mandatory = $true, ParameterSetName = 'DPS')]
@@ -431,8 +463,22 @@ PS> Install-IoTEdge -Manual -DeviceConnectionString $deviceConnectionString -Con
 
 .EXAMPLE
 
-PS> Install-IoTEdge -Manual -DeviceConnectionString $deviceConnectionString -ContainerOs Windows -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
+PS> Install-IoTEdge -Manual -DeviceConnectionString $deviceConnectionString
+-DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
+-ContainerOs Windows
 
+
+.EXAMPLE
+
+PS> Initialize-IoTEdge -Manual -X509 -IotHubHostName $iotHubHostName -DeviceId $deviceId -X509IdentityCertificate $x509IdentityCertificate
+-X509IdentityPrivateKey $x509IdentityPrivateKey -ContainerOs Windows
+
+
+.EXAMPLE
+
+PS> Initialize-IoTEdge -Manual -X509 -IotHubHostName $iotHubHostName -DeviceId $deviceId -X509IdentityCertificate $x509IdentityCertificate
+-X509IdentityPrivateKey $x509IdentityPrivateKey -DeviceCACertificate $deviceCACertificate -DeviceCAPrivateKey $deviceCAPrivateKey -DeviceTrustbundle $deviceTrustbundle
+-ContainerOs Windows
 
 .EXAMPLE
 
@@ -484,8 +530,29 @@ function Install-IoTEdge {
         [Switch] $External,
 
         # The device connection string.
-        [Parameter(Mandatory = $true, ParameterSetName = 'Manual')]
+        [Parameter(ParameterSetName = 'Manual')]
         [String] $DeviceConnectionString,
+
+        # The IoT Hub hostname the Edge device is a part of
+        [Parameter(ParameterSetName = 'Manual')]
+        [ValidateNotNullOrEmpty()]
+        [String] $IotHubHostName,
+
+        # The Edge device Id
+        [Parameter(ParameterSetName = 'Manual')]
+        [ValidateNotNullOrEmpty()]
+        [String] $DeviceId,
+
+        # The Edge device identity certificate
+        [Parameter(ParameterSetName = 'Manual')]
+        [ValidateNotNullOrEmpty()]
+        [String] $X509IdentityCertificate,
+
+        # The Edge device identity private key
+        [Parameter(ParameterSetName = 'Manual')]
+        [ValidateNotNullOrEmpty()]
+        [String] $X509IdentityPrivateKey,
+
 
         # The DPS scope ID.
         [Parameter(Mandatory = $true, ParameterSetName = 'DPS')]
@@ -1579,16 +1646,72 @@ function Get-DpsProvisioningSettings {
     return $attestationMethod
 }
 
+function Get-ManualAuthSettings {
+    $idCertFilesProvided = $false
+    $authenticationMethod = 'device_connection_string' # default
+
+    if ($X509IdentityCertificate -or $X509IdentityPrivateKey) {
+        $idCertFilesProvided = $true
+    }
+
+    if ($DeviceConnectionString -and $idCertFilesProvided) {
+        Write-HostRed
+        Write-HostRed "Both identity certificate and connection string authentication methods should not be specified."
+        throw
+    } else if ($idCertFilesProvided) {
+        if (-Not (Test-Path -Path $X509IdentityCertificate)) {
+            Write-HostRed
+            Write-HostRed "Identity certificate file $X509IdentityCertificate not found."
+            throw
+        }
+        if (-Not (Test-Path -Path $X509IdentityPrivateKey)) {
+            Write-HostRed
+            Write-HostRed "Identity private file $X509IdentityPrivateKey not found."
+            throw
+        }
+        if ($DeviceId) {
+            Write-HostRed
+            Write-HostRed "Please specify the Edge device id"
+            throw
+        }
+        if ($IotHubHostName) {
+            Write-HostRed
+            Write-HostRed "Please specify the Edge device's IoT Hub hostname"
+            throw
+        }
+        $authenticationMethod = 'x509'
+    } else {
+        Write-HostRed
+        Write-HostRed "Specify either identity certificate or connection string authentication methods when using -Manual provisioning."
+        throw
+    }
+
+    return $authenticationMethod
+}
+
 function Set-ProvisioningMode {
     Update-ConfigYaml({
         param($configurationYaml)
 
         if ($Manual -or $DeviceConnectionString) {
             $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"'
-            $replacementContent = @(
-                'provisioning:',
-                '  source: ''manual''',
-                "  device_connection_string: '$DeviceConnectionString'")
+            $authenticationMethod = Get-ManualAuthSettings
+            if ($authenticationMethod -eq 'device_connection_string') {
+                $replacementContent = @(
+                    'provisioning:',
+                    '  source: ''manual''',
+                    "  device_connection_string: '$DeviceConnectionString'")
+            } elseif ($authenticationMethod -eq 'x509') {
+                $replacementContent = @(
+                    'provisioning:',
+                    '  source: ''manual''',
+                    '  authentication:',
+                    "    method: '$authenticationMethod'"
+                    "    iothub_hostname: '$IotHubHostName'"
+                    "    device_id: '$DeviceId'"
+                    "    identity_cert: '$X509IdentityCertificate'"
+                    "    identity_pk: '$X509IdentityPrivateKey'")
+            }
             $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
             Write-HostGreen 'Configured device for manual provisioning.'
             return $configurationYaml
