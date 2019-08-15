@@ -80,6 +80,12 @@ impl DockerModuleRuntime {
     }
 }
 
+impl std::fmt::Debug for DockerModuleRuntime {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DockerModuleRuntime").finish()
+    }
+}
+
 impl ModuleRegistry for DockerModuleRuntime {
     type Error = Error;
     type PullFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
@@ -972,30 +978,33 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "URL does not have a recognized scheme")]
     fn invalid_uri_prefix_fails() {
         let settings = make_settings(Some(json!({
             "moby_runtime": {
                 "uri": "foo:///this/is/not/valid"
             }
         })));
-        let _runtime = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+        let err = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
             .wait()
-            .unwrap();
+            .unwrap_err();
+        assert!(failure::Fail::iter_chain(&err).any(|err| err
+            .to_string()
+            .contains("URL does not have a recognized scheme")));
     }
 
     #[cfg(unix)]
     #[test]
-    #[should_panic(expected = "Socket file could not be found")]
     fn invalid_uds_path_fails() {
         let settings = make_settings(Some(json!({
             "moby_runtime": {
                 "uri": "unix:///this/file/does/not/exist"
             }
         })));
-        let _runtime = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
+        let err = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
             .wait()
-            .unwrap();
+            .unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("Socket file could not be found")));
     }
 
     #[test]
