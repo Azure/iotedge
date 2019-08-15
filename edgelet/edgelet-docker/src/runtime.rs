@@ -461,9 +461,12 @@ impl ModuleRuntime for DockerModuleRuntime {
                             if let DockerError::Api(err) = &err {
                                 if err.code == StatusCode::INTERNAL_SERVER_ERROR {
                                     if let Some(message) = crate::error::get_message(err) {
-                                        is_hcs_vhd_in_use_by_another_process = message.starts_with(
-                                            "hcsshim::ActivateLayer failed in Win32: The process cannot access the file because it is being used by another process. (0x20)",
-                                        );
+                                        is_hcs_vhd_in_use_by_another_process =
+                                            (message.starts_with(
+                                                "hcsshim::ActivateLayer failed in Win32: ",
+                                            ) || message.starts_with(
+                                                "hcsshim::ActivateLayer - failed failed in Win32: ",
+                                            )) && message.ends_with(" (0x20)");
                                     }
                                 }
                             }
@@ -475,27 +478,29 @@ impl ModuleRuntime for DockerModuleRuntime {
                         );
 
                         if is_hcs_vhd_in_use_by_another_process {
-                            future::Either::B(client
-                                .container_api()
-                                .container_delete(
-                                    &id,
-                                    /* remove volumes */ false,
-                                    /* force */ true,
-                                    /* remove link */ false,
-                                ).then(|result| {
-                                    if let Err(err) = result {
-                                        let err = Error::from_docker_error(
-                                            err,
-                                            ErrorKind::RuntimeOperation(RuntimeOperation::StartModule(id)),
-                                        );
-                                        log_failure(Level::Warn, &err);
-                                    }
+                            future::Either::B(
+                                client
+                                    .container_api()
+                                    .container_delete(
+                                        &id, /* remove volumes */ false,
+                                        /* force */ true, /* remove link */ false,
+                                    )
+                                    .then(|result| {
+                                        if let Err(err) = result {
+                                            let err = Error::from_docker_error(
+                                                err,
+                                                ErrorKind::RuntimeOperation(
+                                                    RuntimeOperation::StartModule(id),
+                                                ),
+                                            );
+                                            log_failure(Level::Warn, &err);
+                                        }
 
-                                    // Return original error so that caller interprets the start operation as a failure
-                                    Err(err)
-                                }))
-                        }
-                        else {
+                                        // Return original error so that caller interprets the start operation as a failure
+                                        Err(err)
+                                    }),
+                            )
+                        } else {
                             future::Either::A(future::err(err))
                         }
                     }
