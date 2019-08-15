@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
             ICollection<string> partitions = new List<string>();
             // Act
             // Assert
-            Assert.Throws<ArgumentNullException>(() => RocksDbWrapper.Create(null, "AnyPath", partitions));
+            Assert.Throws<ArgumentNullException>(() => RocksDbWrapper.Create(null, "AnyPath", partitions, false));
             partitions.Clear();
         }
 
@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
             var options = new RocksDbOptionsProvider(new SystemEnvironment(), true);
             // Act
             // Assert
-            Assert.Throws<ArgumentException>(() => RocksDbWrapper.Create(options, null, partitions));
+            Assert.Throws<ArgumentException>(() => RocksDbWrapper.Create(options, null, partitions, false));
             partitions.Clear();
         }
 
@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
 
             // Act
             // Assert
-            Assert.Throws<ArgumentNullException>(() => RocksDbWrapper.Create(options, "AnyPath", null));
+            Assert.Throws<ArgumentNullException>(() => RocksDbWrapper.Create(options, "AnyPath", null, false));
         }
     }
 }
