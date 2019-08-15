@@ -72,6 +72,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             // Since EdgeHub buffers messages, this does not work well, since older messages will get rejected.
             // So always set the creation time to UtcNow. This is inline with the current EdgeHub behavior.
             DateTime createdTimeUtc = DateTime.UtcNow;
+            if (message.SystemProperties.TryGetValue(SystemProperties.EnqueuedTime, out string createdTime))
+            {
+                createdTimeUtc = DateTime.Parse(createdTime, null, DateTimeStyles.RoundtripKind);
+            }
 
             if (!message.SystemProperties.TryGetValue(SystemProperties.OutboundUri, out string uriTemplateKey))
             {
