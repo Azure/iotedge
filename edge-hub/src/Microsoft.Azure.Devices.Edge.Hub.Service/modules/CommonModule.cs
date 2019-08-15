@@ -202,7 +202,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         }
                     })
                 .As<IDbStoreProvider>()
-                .As<IDbStoreStatistics>()
                 .SingleInstance();
 
             // IProductInfoStore

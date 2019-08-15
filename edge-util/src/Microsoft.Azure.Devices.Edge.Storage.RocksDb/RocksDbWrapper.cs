@@ -133,11 +133,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         static void RestoreDb(DbOptions dbOptions, string path)
         {
             Log.LogInformation($"Restore called {DbBackupPath}");
-            Log.LogInformation("backup Directory sizeon restore:" + GetDirectorySize(DbBackupPath));
 
             // Backup DB from last backup if available.
             if (Directory.Exists(DbBackupPath))
             {
+                Log.LogInformation("backup Directory sizeon restore:" + GetDirectorySize(DbBackupPath));
                 Events.RestoringFromBackup();
                 IntPtr backupEngine = Native.Instance.rocksdb_backup_engine_open(dbOptions.Handle, DbBackupPath, out IntPtr err);
                 Debug.Assert(err == IntPtr.Zero);

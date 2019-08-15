@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Disk
 
         void SetMaxDiskUsageSize(long maxDiskUsageBytes);
 
-        void SetMaxMemoryUsageSize(IDbStoreStatistics dbStoreStatistics, bool usePersistentStorage, long maxUsageInBytes);
+        void SetMaxMemoryUsageSize(IDbStoreProvider dbStoreStatistics, bool usePersistentStorage, long maxUsageInBytes);
 
         bool IsFull { get; }
     }

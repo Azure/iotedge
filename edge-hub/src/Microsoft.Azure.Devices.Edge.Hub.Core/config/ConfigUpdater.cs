@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         readonly TimeSpan configUpdateFrequency;
         readonly IDiskSpaceChecker diskSpaceChecker;
         readonly bool usePersistentStorage;
-        readonly IDbStoreStatistics dbStoreStatistics;
+        readonly IDbStoreProvider dbStoreStatistics;
         readonly AsyncLock updateLock = new AsyncLock();
 
         Option<PeriodicTask> configUpdater;
@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             TimeSpan configUpdateFrequency,
             IDiskSpaceChecker diskSpaceChecker,
             bool usePersistentStorage,
-            IDbStoreStatistics dbStoreStatistics)
+            IDbStoreProvider dbStoreStatistics)
         {
             this.router = Preconditions.CheckNotNull(router, nameof(router));
             this.messageStore = messageStore;

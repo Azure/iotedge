@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     using Microsoft.Extensions.Logging;
     using RocksDbSharp;
 
-    public class DbStoreProvider : IDbStoreProvider, IDbStoreStatistics
+    public class DbStoreProvider : IDbStoreProvider
     {
         const string DefaultPartitionName = "default";
         readonly IRocksDbOptionsProvider optionsProvider;

@@ -513,7 +513,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     {
                         IMessageStore messageStore = this.isStoreAndForwardEnabled ? c.Resolve<IMessageStore>() : null;
                         var diskSpaceChecker = c.Resolve<IDiskSpaceChecker>();
-                        var dbStoreStatistics = c.Resolve<IDbStoreStatistics>();
+                        var dbStoreStatistics = c.Resolve<IDbStoreProvider>();
                         Router router = await c.Resolve<Task<Router>>();
                         var configUpdater = new ConfigUpdater(router, messageStore, this.configUpdateFrequency, diskSpaceChecker, this.usePersistentStorage, dbStoreStatistics);
                         return configUpdater;

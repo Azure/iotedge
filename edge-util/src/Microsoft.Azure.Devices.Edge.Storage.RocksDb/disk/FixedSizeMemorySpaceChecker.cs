@@ -7,12 +7,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
 
     class FixedSizeMemorySpaceChecker : DiskSpaceCheckerBase
     {
-        readonly IDbStoreStatistics dbStoreStatistics;
+        readonly IDbStoreProvider dbStoreStatistics;
         readonly bool usePersistentStorage;
         readonly string storageFolder;
         readonly long maxSizeBytes;
 
-        public FixedSizeMemorySpaceChecker(IDbStoreStatistics dbStoreStatistics, string storageFolder, bool usePersistentStorage, long maxSizeBytes, TimeSpan checkFrequency, ILogger logger)
+        public FixedSizeMemorySpaceChecker(IDbStoreProvider dbStoreStatistics, string storageFolder, bool usePersistentStorage, long maxSizeBytes, TimeSpan checkFrequency, ILogger logger)
             : base(checkFrequency, logger)
         {
             Preconditions.CheckNotNull(dbStoreStatistics, nameof(dbStoreStatistics));

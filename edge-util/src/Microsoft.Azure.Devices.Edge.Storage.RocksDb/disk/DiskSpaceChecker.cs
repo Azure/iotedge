@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             }
         }
 
-        public void SetMaxMemoryUsageSize(IDbStoreStatistics dbStoreStatistics, bool usePersistentStorage, long maxUsageInBytes)
+        public void SetMaxMemoryUsageSize(IDbStoreProvider dbStoreStatistics, bool usePersistentStorage, long maxUsageInBytes)
         {
             lock (this.updateLock)
             {

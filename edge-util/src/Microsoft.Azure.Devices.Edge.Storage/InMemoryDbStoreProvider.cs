@@ -5,7 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     using System.Collections.Concurrent;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class InMemoryDbStoreProvider : IDbStoreProvider, IDbStoreStatistics
+    public class InMemoryDbStoreProvider : IDbStoreProvider
     {
         const string DefaultPartitionName = "$Default";
         readonly ConcurrentDictionary<string, IDbStore> partitionDbStoreDictionary = new ConcurrentDictionary<string, IDbStore>();

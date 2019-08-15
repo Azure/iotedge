@@ -142,7 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool encryptTwinStore = this.configuration.GetValue("EncryptTwinStore", false);
             int configUpdateFrequencySecs = this.configuration.GetValue("ConfigRefreshFrequencySecs", 3600);
             TimeSpan configUpdateFrequency = TimeSpan.FromSeconds(configUpdateFrequencySecs);
-            bool usePersistentStorage = this.configuration.GetValue("UsePersistentStorage", false);
+            bool usePersistentStorage = this.configuration.GetValue("UsePersistentStorage", true);
 
             builder.RegisterModule(
                 new RoutingModule(
