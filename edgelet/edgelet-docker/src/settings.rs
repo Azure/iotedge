@@ -276,6 +276,10 @@ mod tests {
     #[cfg(unix)]
     static BAD_SETTINGS_DPS_X5094: &str = "test/linux/bad_settings.dps.x509.4.yaml";
     #[cfg(unix)]
+    static BAD_SETTINGS_MANUAL_CS_AUTH1: &str = "test/linux/bad_settings.manual.cs.1.yaml";
+    #[cfg(unix)]
+    static BAD_SETTINGS_MANUAL_CS_AUTH2: &str = "test/linux/bad_settings.manual.cs.2.yaml";
+    #[cfg(unix)]
     static BAD_SETTINGS_MANUAL_X509_AUTH1: &str = "test/linux/bad_settings.manual.x509.1.yaml";
     #[cfg(unix)]
     static BAD_SETTINGS_MANUAL_X509_AUTH2: &str = "test/linux/bad_settings.manual.x509.2.yaml";
@@ -283,6 +287,8 @@ mod tests {
     static BAD_SETTINGS_MANUAL_X509_AUTH3: &str = "test/linux/bad_settings.manual.x509.3.yaml";
     #[cfg(unix)]
     static BAD_SETTINGS_MANUAL_X509_AUTH4: &str = "test/linux/bad_settings.manual.x509.4.yaml";
+    #[cfg(unix)]
+    static BAD_SETTINGS_MANUAL_X509_AUTH5: &str = "test/linux/bad_settings.manual.x509.5.yaml";
     #[cfg(unix)]
     static GOOD_SETTINGS_EXTERNAL: &str = "test/linux/sample_settings.external.yaml";
     #[cfg(unix)]
@@ -317,6 +323,10 @@ mod tests {
     #[cfg(windows)]
     static BAD_SETTINGS_DPS_X5094: &str = "test/windows/bad_settings.dps.x509.4.yaml";
     #[cfg(windows)]
+    static BAD_SETTINGS_MANUAL_CS_AUTH1: &str = "test/windows/bad_settings.manual.cs.1.yaml";
+    #[cfg(windows)]
+    static BAD_SETTINGS_MANUAL_CS_AUTH2: &str = "test/windows/bad_settings.manual.cs.2.yaml";
+    #[cfg(windows)]
     static BAD_SETTINGS_MANUAL_X509_AUTH1: &str = "test/windows/bad_settings.manual.x509.1.yaml";
     #[cfg(windows)]
     static BAD_SETTINGS_MANUAL_X509_AUTH2: &str = "test/windows/bad_settings.manual.x509.2.yaml";
@@ -324,6 +334,8 @@ mod tests {
     static BAD_SETTINGS_MANUAL_X509_AUTH3: &str = "test/windows/bad_settings.manual.x509.3.yaml";
     #[cfg(windows)]
     static BAD_SETTINGS_MANUAL_X509_AUTH4: &str = "test/windows/bad_settings.manual.x509.4.yaml";
+    #[cfg(windows)]
+    static BAD_SETTINGS_MANUAL_X509_AUTH5: &str = "test/windows/bad_settings.manual.x509.5.yaml";
     #[cfg(windows)]
     static GOOD_SETTINGS_EXTERNAL: &str = "test/windows/sample_settings.external.yaml";
     #[cfg(windows)]
@@ -451,6 +463,12 @@ mod tests {
 
         let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_X509_AUTH4)));
         assert!(settings.is_err());
+
+        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_X509_AUTH5)));
+        assert!(settings.is_err());
+
+        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_CS_AUTH1)));
+        assert!(settings.is_err());
     }
 
     #[test]
@@ -479,6 +497,29 @@ mod tests {
             connection_string,
             "HostName=something.something.com;DeviceId=something;SharedAccessKey=QXp1cmUgSW9UIEVkZ2U="
         );
+    }
+
+    #[test]
+    fn manual_authentication_bad_connection_string_fails() {
+        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_CS_AUTH2)));
+        println!("{:?}", settings);
+        assert!(settings.is_ok());
+        let s = settings.unwrap();
+        match s.provisioning() {
+            Provisioning::Manual(manual) => {
+                match manual.authentication_method() {
+                    ManualAuthMethod::DeviceConnectionString(cs) => {
+                        assert_eq!(
+                            cs.device_connection_string(),
+                            "blah"
+                        );
+                        cs.parse_device_connection_string().unwrap_err();
+                    },
+                    _ => unreachable!(),
+                }
+            },
+            _ => unreachable!(),
+        }
     }
 
     fn prepare_test_manual_x509_authentication_settings_yaml(
