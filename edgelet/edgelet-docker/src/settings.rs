@@ -250,6 +250,8 @@ mod tests {
     #[cfg(unix)]
     static GOOD_SETTINGS: &str = "test/linux/sample_settings.yaml";
     #[cfg(unix)]
+    static GOOD_SETTINGS_MANUAL_CS_AUTH: &str = "test/linux/sample_settings.manual.auth.cs.yaml";
+    #[cfg(unix)]
     static BAD_SETTINGS: &str = "test/linux/bad_sample_settings.yaml";
     #[cfg(unix)]
     static GOOD_SETTINGS_DPS_SYM_KEY: &str = "test/linux/sample_settings.dps.sym.yaml";
@@ -288,6 +290,8 @@ mod tests {
 
     #[cfg(windows)]
     static GOOD_SETTINGS: &str = "test/windows/sample_settings.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_MANUAL_CS_AUTH: &str = "test/windows/sample_settings.manual.auth.cs.yaml";
     #[cfg(windows)]
     static BAD_SETTINGS: &str = "test/windows/bad_sample_settings.yaml";
     #[cfg(windows)]
@@ -452,6 +456,20 @@ mod tests {
     #[test]
     fn manual_file_gets_sample_connection_string() {
         let settings = Settings::new(Some(Path::new(GOOD_SETTINGS)));
+        println!("{:?}", settings);
+        assert!(settings.is_ok());
+        let s = settings.unwrap();
+        let p = s.provisioning();
+        let connection_string = unwrap_manual_provisioning(p);
+        assert_eq!(
+            connection_string,
+            "HostName=something.something.com;DeviceId=something;SharedAccessKey=QXp1cmUgSW9UIEVkZ2U="
+        );
+    }
+
+    #[test]
+    fn manual_authentication_connection_string() {
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_MANUAL_CS_AUTH)));
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
