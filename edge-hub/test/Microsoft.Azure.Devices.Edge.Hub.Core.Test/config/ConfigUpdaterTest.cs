@@ -90,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
             var diskSpaceChecker = Mock.Of<IDiskSpaceChecker>();
 
             // Act
-            var configUpdater = new ConfigUpdater(router, messageStore.Object, updateFrequency, diskSpaceChecker);
+            var configUpdater = new ConfigUpdater(router, messageStore.Object, updateFrequency, diskSpaceChecker, false, null);
             configUpdater.Init(configProvider.Object);
 
             // Assert
