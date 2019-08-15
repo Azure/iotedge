@@ -734,7 +734,7 @@ fn settings_connection_string(check: &mut Check) -> Result<CheckResult, failure:
                 )?;
                 hub
             }
-            ManualAuthMethod::X509(x509) => x509.iothub_hostname().to_string()
+            ManualAuthMethod::X509(x509) => x509.iothub_hostname().to_string(),
         };
         check.iothub_hostname = Some(hub.to_owned());
     } else if check.iothub_hostname.is_none() {
@@ -1299,14 +1299,17 @@ fn settings_identity_certificates_expiry(check: &mut Check) -> Result<CheckResul
                 return CertificateValidity::parse("DPS identity certificate", &path)?
                     .to_check_result();
             }
-        },
+        }
         Provisioning::Manual(manual) => {
             if let ManualAuthMethod::X509(x509) = manual.authentication_method() {
                 let path = x509.identity_cert()?;
-                return CertificateValidity::parse("Manual authentication identity certificate", &path)?
-                    .to_check_result();
+                return CertificateValidity::parse(
+                    "Manual authentication identity certificate",
+                    &path,
+                )?
+                .to_check_result();
             }
-        },
+        }
         _ => (),
     }
 

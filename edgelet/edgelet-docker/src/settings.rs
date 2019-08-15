@@ -506,17 +506,12 @@ mod tests {
         assert!(settings.is_ok());
         let s = settings.unwrap();
         match s.provisioning() {
-            Provisioning::Manual(manual) => {
-                match manual.authentication_method() {
-                    ManualAuthMethod::DeviceConnectionString(cs) => {
-                        assert_eq!(
-                            cs.device_connection_string(),
-                            "blah"
-                        );
-                        cs.parse_device_connection_string().unwrap_err();
-                    },
-                    _ => unreachable!(),
+            Provisioning::Manual(manual) => match manual.authentication_method() {
+                ManualAuthMethod::DeviceConnectionString(cs) => {
+                    assert_eq!(cs.device_connection_string(), "blah");
+                    cs.parse_device_connection_string().unwrap_err();
                 }
+                _ => unreachable!(),
             },
             _ => unreachable!(),
         }
@@ -538,16 +533,17 @@ mod tests {
             .expect("Test identity private key file could not be written");
 
         let settings_yaml = json!({
-            "provisioning": {
-                "source": "manual",
-                "authentication": {
-                    "method": "x509",
-                    "iothub_hostname": "something.something.com",
-                    "device_id": "something",
-                    "identity_cert": Url::from_file_path(id_cert_path).unwrap().into_string(),
-                    "identity_pk": Url::from_file_path(id_key_path).unwrap().into_string(),
-                }
-            }}).to_string();
+        "provisioning": {
+            "source": "manual",
+            "authentication": {
+                "method": "x509",
+                "iothub_hostname": "something.something.com",
+                "device_id": "something",
+                "identity_cert": Url::from_file_path(id_cert_path).unwrap().into_string(),
+                "identity_pk": Url::from_file_path(id_key_path).unwrap().into_string(),
+            }
+        }})
+        .to_string();
 
         File::create(&settings_path)
             .expect("Test settings file could not be created")
@@ -689,31 +685,28 @@ mod tests {
         let settings = Settings::new(Some(&settings_path)).unwrap();
         println!("{:?}", settings);
         match settings.provisioning() {
-            Provisioning::Manual(manual) => {
-                match manual.authentication_method() {
-                    ManualAuthMethod::X509(x509) => {
-                        assert_eq!(x509.iothub_hostname(), "something.something.com");
-                        assert_eq!(x509.device_id(), "something");
-                        assert_eq!(
-                            &Url::parse(&format!("file://{}", id_cert_path.to_str().unwrap()))
-                                .unwrap(),
-                            x509.identity_cert_uri().unwrap(),
-                        );
-                        assert_eq!(
-                            &Url::parse(&format!("file://{}", id_key_path.to_str().unwrap())).unwrap(),
-                            x509.identity_pk_uri().unwrap(),
-                        );
-                        assert_eq!(
-                            id_cert_path.to_str().unwrap(),
-                            x509.identity_cert().unwrap().to_str().unwrap(),
-                        );
-                        assert_eq!(
-                            id_key_path.to_str().unwrap(),
-                            x509.identity_pk().unwrap().to_str().unwrap(),
-                        );
-                    }
-                    _ => unreachable!(),
+            Provisioning::Manual(manual) => match manual.authentication_method() {
+                ManualAuthMethod::X509(x509) => {
+                    assert_eq!(x509.iothub_hostname(), "something.something.com");
+                    assert_eq!(x509.device_id(), "something");
+                    assert_eq!(
+                        &Url::parse(&format!("file://{}", id_cert_path.to_str().unwrap())).unwrap(),
+                        x509.identity_cert_uri().unwrap(),
+                    );
+                    assert_eq!(
+                        &Url::parse(&format!("file://{}", id_key_path.to_str().unwrap())).unwrap(),
+                        x509.identity_pk_uri().unwrap(),
+                    );
+                    assert_eq!(
+                        id_cert_path.to_str().unwrap(),
+                        x509.identity_cert().unwrap().to_str().unwrap(),
+                    );
+                    assert_eq!(
+                        id_key_path.to_str().unwrap(),
+                        x509.identity_pk().unwrap().to_str().unwrap(),
+                    );
                 }
+                _ => unreachable!(),
             },
             _ => unreachable!(),
         }
