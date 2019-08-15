@@ -444,6 +444,8 @@ Function PrepareTestFromArtifacts
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.TestDurationInSecs>',$SnitchTestDurationInSecs) | Set-Content $DeploymentWorkingFilePath
                 $SnitcherBinds = "\""$($env:ProgramData.Replace("\", "\\\\"))\\\\iotedge\\\\mgmt:$($env:ProgramData.Replace("\", "\\\\"))\\\\iotedge\\\\mgmt\"""
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.Binds>',$SnitcherBinds) | Set-Content $DeploymentWorkingFilePath
+                $ManagementUri = "unix:///$($env:ProgramData.Replace("\", "/"))/iotedge/mgmt/sock"
+                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.Binds>',$SnitcherBinds) | Set-Content $DeploymentWorkingFilePath
             }
             "TempFilter"
             {
