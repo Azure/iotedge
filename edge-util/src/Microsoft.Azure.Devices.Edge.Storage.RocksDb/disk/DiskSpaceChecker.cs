@@ -109,6 +109,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
 
         internal static long GetDirectorySize(string directoryPath)
         {
+            if (!Directory.Exists(directoryPath))
+            {
+                return 0;
+            }
+
             var directory = new DirectoryInfo(directoryPath);
             return GetDirectorySize(directory);
         }
