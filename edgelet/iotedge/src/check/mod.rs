@@ -1564,7 +1564,9 @@ fn storage_mounted_from_host(
         return Ok(CheckResult::Warning(
             Context::new(format!(
                 "The {} module is not configured to persist its {} directory on the host filesystem.\n\
-                Data might be lost if the module is deleted or updated.",
+                 Data might be lost if the module is deleted or updated.\n\
+                 \n\
+                 Please see https://aka.ms/iotedge-storage-host for best practices.",
                 container_name,
                 storage_directory.display(),
             )).into(),
