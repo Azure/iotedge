@@ -164,6 +164,39 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.Test
         }
 
         [Fact]
+        public void ToMessageTest_InterfaceId()
+        {
+            // Arrange
+            IMessage receivedMessage;
+            byte[] bytes = { 1, 2, 3, 4 };
+            string messageId = Guid.NewGuid().ToString();
+            string correlationId = Guid.NewGuid().ToString();
+            using (AmqpMessage amqpMessage = AmqpMessage.Create(new Data { Value = new ArraySegment<byte>(bytes) }))
+            {
+                amqpMessage.Properties.MessageId = messageId;
+                amqpMessage.Properties.CorrelationId = correlationId;
+                amqpMessage.Properties.ContentType = "application/json";
+                amqpMessage.Properties.ContentEncoding = "UTF-8";
+
+                amqpMessage.MessageAnnotations.Map[SystemProperties.InterfaceId] = "InterfaceId1";
+                var messageConverter = new AmqpMessageConverter();
+
+                // Act
+                receivedMessage = messageConverter.ToMessage(amqpMessage);
+            }
+
+            // Assert
+            Assert.NotNull(receivedMessage);
+            Assert.Equal(receivedMessage.Body, bytes);
+            Assert.Equal(5, receivedMessage.SystemProperties.Count);
+            Assert.Equal(receivedMessage.SystemProperties[SystemProperties.MessageId], messageId);
+            Assert.Equal(receivedMessage.SystemProperties[SystemProperties.MsgCorrelationId], correlationId);
+            Assert.Equal("application/json", receivedMessage.SystemProperties[SystemProperties.ContentType]);
+            Assert.Equal("UTF-8", receivedMessage.SystemProperties[SystemProperties.ContentEncoding]);
+            Assert.Equal("InterfaceId1", receivedMessage.SystemProperties[SystemProperties.InterfaceId]);
+        }
+
+        [Fact]
         public void FromMessageTest()
         {
             // Arrange

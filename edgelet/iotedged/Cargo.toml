@@ -13,6 +13,7 @@ env_logger = "0.5"
 failure = "0.1"
 futures = "0.1"
 hyper = "0.12.17"
+hyper-tls = { version = "0.3", optional = true }
 log = "0.4"
 serde_json = "1.0"
 serde = "1.0"
@@ -34,8 +35,10 @@ edgelet-http-external-provisioning = { path = "../edgelet-http-external-provisio
 edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 edgelet-http-workload = { path = "../edgelet-http-workload" }
 edgelet-iothub = { path = "../edgelet-iothub" }
+edgelet-kube = { path = "../edgelet-kube", optional = true }
 edgelet-utils = { path = "../edgelet-utils" }
 iothubservice = { path = "../iothubservice" }
+kube-client = { path = "../kube-client", optional = true }
 provisioning = { path = "../provisioning" }
 signal-future = { path = "../signal-future" }
 
@@ -50,3 +53,8 @@ rand = "0.5"
 tempdir = "0.3.7"
 
 edgelet-test-utils = { path = "../edgelet-test-utils" }
+
+[features]
+default = ["runtime-docker"]
+runtime-docker = []
+runtime-kubernetes = ["edgelet-kube", "kube-client", "hyper-tls"]

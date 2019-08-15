@@ -104,7 +104,7 @@ If ($osEdition -eq "IoTUAP")    # Windows IoT Core - update iotedge
         if ($AttemptUpdate) {
             Write-Host "Attempt to update $serviceName..."
             try {
-                # triggers reboot
+                # update triggers reboot
                 Update-IoTEdge -ContainerOs Windows -OfflineInstallationPath $IoTEdgedArtifactFolder
             }
             catch {
@@ -116,6 +116,8 @@ If ($osEdition -eq "IoTUAP")    # Windows IoT Core - update iotedge
                 if ($testExitCode -eq "0x8018830D") {
                     Write-Host "A newer version is already installed on the device."
                 }
+		# sanity reboot on unsuccessful update
+		shutdown -r -t 10
             }
         }
     } Else {

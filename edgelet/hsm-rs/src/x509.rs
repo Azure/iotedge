@@ -398,35 +398,35 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "HSM API Not Implemented")]
     fn x509_no_getcert_function_fail() {
         let hsm_x509 = fake_no_if_x509_hsm();
-        let result = hsm_x509.get_cert().unwrap();
-        println!("You should never see this print {:?}", result);
+        let err = hsm_x509.get_cert().unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM API Not Implemented")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API Not Implemented")]
     fn x509_no_getkey_function_fail() {
         let hsm_x509 = fake_no_if_x509_hsm();
-        let result = hsm_x509.get_key().unwrap();
-        println!("You should never see this print {:?}", result);
+        let err = hsm_x509.get_key().unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM API Not Implemented")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API Not Implemented")]
     fn x509_no_getname_function_fail() {
         let hsm_x509 = fake_no_if_x509_hsm();
-        let result = hsm_x509.get_common_name().unwrap();
-        println!("You should never see this print {:?}", result);
+        let err = hsm_x509.get_common_name().unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM API Not Implemented")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API Not Implemented")]
     fn x509_no_sign_with_private_key_function_fail() {
         let hsm_x509 = fake_no_if_x509_hsm();
-        let result = hsm_x509.sign_with_private_key(b"aabb").unwrap();
-        println!("You should never see this print {:?}", result);
+        let err = hsm_x509.sign_with_private_key(b"aabb").unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM API Not Implemented")));
     }
 
     fn fake_good_x509_hsm() -> X509 {
@@ -509,44 +509,46 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "HSM API returned an invalid null response")]
     fn get_cert_null() {
         let hsm_x509 = fake_bad_x509_hsm();
-        let result1 = hsm_x509.get_cert().unwrap();
-        let string1 = &result1;
-        assert!(string1.is_null());
+        let err = hsm_x509.get_cert().unwrap_err();
+        assert!(failure::Fail::iter_chain(&err).any(|err| err
+            .to_string()
+            .contains("HSM API returned an invalid null response")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API returned an invalid null response")]
     fn get_key_null() {
         let hsm_x509 = fake_bad_x509_hsm();
-        let result2 = hsm_x509.get_key().unwrap();
-        let string2 = &result2;
-        assert!(string2.is_null());
+        let err = hsm_x509.get_key().unwrap_err();
+        assert!(failure::Fail::iter_chain(&err).any(|err| err
+            .to_string()
+            .contains("HSM API returned an invalid null response")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API returned an invalid null response")]
     fn common_name_error() {
         let hsm_x509 = fake_bad_x509_hsm();
-        let result3 = hsm_x509.get_common_name().unwrap();
-        println!("This string should not be displayed {:?}", result3);
+        let err = hsm_x509.get_common_name().unwrap_err();
+        assert!(failure::Fail::iter_chain(&err).any(|err| err
+            .to_string()
+            .contains("HSM API returned an invalid null response")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API sign with private key failed")]
     fn sign_with_private_key_error() {
         let hsm_x509 = fake_bad_x509_hsm();
-        let result = hsm_x509.sign_with_private_key(b"aabbcc").unwrap();
-        println!("This string should not be displayed {:?}", result);
+        let err = hsm_x509.sign_with_private_key(b"aabbcc").unwrap_err();
+        assert!(failure::Fail::iter_chain(&err).any(|err| err
+            .to_string()
+            .contains("HSM API sign with private key failed")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM certificate info get failed")]
     fn get_certificate_info_error() {
         let hsm_x509 = fake_bad_x509_hsm();
-        let result = hsm_x509.get_certificate_info().unwrap();
-        println!("This string should not be displayed {:?}", result);
+        let err = hsm_x509.get_certificate_info().unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM certificate info get failed")));
     }
 }
