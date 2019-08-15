@@ -17,10 +17,10 @@ use futures::Poll;
 use mio_named_pipes::NamedPipe;
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::reactor::PollEvented2;
+use winapi::shared::winerror::ERROR_PIPE_BUSY;
 use winapi::um::namedpipeapi::WaitNamedPipeW;
 use winapi::um::winbase::*;
 
-const ERROR_PIPE_BUSY: i32 = 0xE7;
 const PIPE_WAIT_TIMEOUT_MS: u32 = 10 * 1000;
 
 #[derive(Debug)]
@@ -54,10 +54,11 @@ impl PipeStream {
             .write(true)
             .custom_flags(FILE_FLAG_OVERLAPPED);
 
+        #[allow(clippy::cast_sign_loss)]
         match options.open(path.as_ref()) {
             Err(err) => {
                 if let Some(code) = err.raw_os_error() {
-                    if code == ERROR_PIPE_BUSY {
+                    if code as u32 == ERROR_PIPE_BUSY {
                         unsafe {
                             WaitNamedPipeW(pipe_path.as_ptr(), timeout);
                         }
