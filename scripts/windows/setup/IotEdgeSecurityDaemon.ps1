@@ -261,7 +261,6 @@ function Initialize-IoTEdge {
     Set-MobyEngineParameters
 
     # Start services
-    Set-SystemPath
     Start-IoTEdgeService
     if ($ContainerOs -eq 'Linux') {
         Add-FirewallExceptions
@@ -405,6 +404,8 @@ function Deploy-IoTEdge {
         -RestartIfNeeded:$RestartIfNeeded `
         -SkipArchCheck:$SkipArchCheck `
         -SkipBatteryCheck:$SkipBatteryCheck
+
+    Set-SystemPath
 }
 
 <#

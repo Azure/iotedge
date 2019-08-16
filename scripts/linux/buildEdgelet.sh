@@ -177,7 +177,7 @@ build_project()
     # build project with cross
     cd "$EDGELET_DIR"
 
-    execute cross build -p "$PROJECT" "$BUILD_CONFIG_OPTION" --target "$TOOLCHAIN"
+    execute cross build -p "$PROJECT" --manifest-path=iotedged/Cargo.toml --no-default-features --features runtime-kubernetes "$BUILD_CONFIG_OPTION" --target "$TOOLCHAIN"
     execute "$STRIP" "$EDGELET_DIR/target/$TOOLCHAIN/$BUILD_CONFIGURATION/$PROJECT"
 
     # prepare docker folder

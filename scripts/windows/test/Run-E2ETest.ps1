@@ -226,7 +226,7 @@ Param (
     [ValidateNotNullOrEmpty()]
     [string] $SnitchAlertUrl = $null,
 
-    [string] $SnitchBuildNumber = "1.1",
+    [string] $SnitchBuildNumber = "1.2",
 
     [string] $SnitchReportingIntervalInSecs = $null,
 
@@ -437,11 +437,15 @@ Function PrepareTestFromArtifacts
                 $escapedBuildId= $ArtifactImageBuildNumber -replace "\.",""
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.AlertUrl>',$SnitchAlertUrl) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildNumber>',$SnitchBuildNumber) | Set-Content $DeploymentWorkingFilePath
-                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildId>',"$SnitchBuildNumber-$(GetImageArchitectureLabel)-linux-$escapedBuildId") | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildId>',"$ReleaseLabel-$(GetImageArchitectureLabel)-windows-$escapedBuildId") | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.ReportingIntervalInSecs>',$SnitchReportingIntervalInSecs) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.StorageAccount>',$SnitchStorageAccount) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.StorageMasterKey>',$SnitchStorageMasterKey) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.TestDurationInSecs>',$SnitchTestDurationInSecs) | Set-Content $DeploymentWorkingFilePath
+                $SnitcherBinds = "\""$($env:ProgramData.Replace("\", "\\\\"))\\\\iotedge\\\\mgmt:$($env:ProgramData.Replace("\", "\\\\"))\\\\iotedge\\\\mgmt\"""
+                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.Binds>',$SnitcherBinds) | Set-Content $DeploymentWorkingFilePath
+                $ManagementUri = "unix:///$($env:ProgramData.Replace("\", "/"))/iotedge/mgmt/sock"
+                (Get-Content $DeploymentWorkingFilePath).replace('<Management.Uri>',$ManagementUri) | Set-Content $DeploymentWorkingFilePath
             }
             "TempFilter"
             {
@@ -1207,13 +1211,6 @@ Function RunTransparentGatewayTest
     $edgeDeviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-TransGW"
     PrintHighlightedMessage "Run transparent gateway test on device ""$edgeDeviceId"" started at $testStartAt."
 
-    # setup certificate generation tools to create the Edge device and leaf device certificates
-    PrepareCertificateTools
-    # dot source the certificate generation script
-    . "$EdgeCertGenScript"
-    # install the provided root CA to seed the certificate chain
-    Install-RootCACertificate $EdgeE2ERootCACertRSAFile $EdgeE2ERootCAKeyRSAFile "rsa" $EdgeE2ETestRootCAPassword
-
     # generate the edge gateway certs
     New-CACertsEdgeDevice $edgeDeviceId
 
@@ -1245,7 +1242,7 @@ Function RunTransparentGatewayTest
     Invoke-Expression $testCommand | Out-Host
 
     # if the deployment of edge runtime and modules fails, then return immediately.
-    if($LastExitCode -eq 1) {
+    If($LastExitCode -eq 1) {
       Return $LastExitCode
     }
 
@@ -1276,16 +1273,19 @@ Function RunTest
 {
     $testExitCode = 0
 
-    # setup certificate generation tools to create the Edge device and leaf device certificates
-    PrepareCertificateTools
-
-    # dot source the certificate generation script
-    . "$EdgeCertGenScript"
-
-    # install the provided root CA to seed the certificate chain
-    If ($EdgeE2ERootCACertRSAFile -and $EdgeE2ERootCAKeyRSAFile)
+    If ($TestName.StartsWith("Dps") -Or $TestName -eq "TransparentGateway")
     {
-        Install-RootCACertificate $EdgeE2ERootCACertRSAFile $EdgeE2ERootCAKeyRSAFile "rsa" $EdgeE2ETestRootCAPassword
+        # setup certificate generation tools to create the Edge device and leaf device certificates
+        PrepareCertificateTools
+
+        # dot source the certificate generation script
+        . "$EdgeCertGenScript"
+
+        # install the provided root CA to seed the certificate chain
+        If ($EdgeE2ERootCACertRSAFile -and $EdgeE2ERootCAKeyRSAFile)
+        {
+            Install-RootCACertificate $EdgeE2ERootCACertRSAFile $EdgeE2ERootCAKeyRSAFile "rsa" $EdgeE2ETestRootCAPassword
+        }
     }
 
     Switch ($TestName)

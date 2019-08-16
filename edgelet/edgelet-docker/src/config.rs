@@ -92,15 +92,14 @@ mod tests {
     use super::*;
 
     #[test]
-    #[should_panic]
     fn empty_image_fails() {
-        DockerConfig::new("".to_string(), ContainerCreateBody::new(), None).unwrap();
+        let _ = DockerConfig::new("".to_string(), ContainerCreateBody::new(), None).unwrap_err();
     }
 
     #[test]
-    #[should_panic]
     fn white_space_image_fails() {
-        DockerConfig::new("    ".to_string(), ContainerCreateBody::new(), None).unwrap();
+        let _ =
+            DockerConfig::new("    ".to_string(), ContainerCreateBody::new(), None).unwrap_err();
     }
 
     #[test]

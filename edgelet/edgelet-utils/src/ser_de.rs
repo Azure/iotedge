@@ -147,14 +147,13 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn deser_from_bad_str_fails() {
         let container_json = json!({
             "options": "not really json you know"
         })
         .to_string();
 
-        let _container: Container = serde_json::from_str(&container_json).unwrap();
+        let _ = serde_json::from_str::<Container>(&container_json).unwrap_err();
     }
 
     #[test]
