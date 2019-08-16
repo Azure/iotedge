@@ -186,11 +186,12 @@ const IOTEDGED_VALIDITY: u64 = 7_776_000;
 // 90 days
 const IOTEDGED_COMMONNAME: &str = "iotedged workload ca";
 const IOTEDGED_TLS_COMMONNAME: &str = "iotedged";
-const IOTEDGED_MIN_EXPIRATION_DURATION: i64 = 300;
 // 5 mins
-const IOTEDGE_ID_CERT_MAX_DURATION_SECS: i64 = 7200;
+const IOTEDGED_MIN_EXPIRATION_DURATION: i64 = 5 * 60;
 // 2 hours
-const IOTEDGE_SERVER_CERT_MAX_DURATION_SECS: i64 = 7_776_000; // 90 days
+const IOTEDGE_ID_CERT_MAX_DURATION_SECS: i64 = 2 * 3600;
+// 90 days
+const IOTEDGE_SERVER_CERT_MAX_DURATION_SECS: i64 = 90 * 24 * 3600;
 
 // HSM lib version that the iotedge runtime required
 const IOTEDGE_COMPAT_HSM_VERSION: &str = "1.0.2";

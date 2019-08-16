@@ -45,6 +45,7 @@ namespace DirectMethodSender
 
             await CallDirectMethod(moduleClient, dmDelay, targetDeviceId, targetModuleId, cts);
             await moduleClient.CloseAsync();
+            await cts.Token.WhenCanceled();
 
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
@@ -72,6 +73,7 @@ namespace DirectMethodSender
                     if (response.Status == (int)HttpStatusCode.OK)
                     {
                         await moduleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method Call succeeded.")));
+                        break;
                     }
                 }
                 catch (Exception e)

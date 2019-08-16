@@ -15,6 +15,5 @@ alert:
 analyzer_url: http://analyzer:15000/api/report
 blob_storage_account: ''
 blob_storage_master_key: ''
-blob_container_name: ''
 reporting_interval: null
-docker_url: unix:///var/run/docker.sock
+management_uri: unix:///var/run/iotedge/mgmt.sock

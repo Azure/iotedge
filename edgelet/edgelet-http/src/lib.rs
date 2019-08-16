@@ -271,6 +271,15 @@ where
 
         Run(Box::new(main_execution))
     }
+
+    pub fn port(&self) -> Option<u16> {
+        match &self.incoming {
+            Incoming::Tcp(listener) => listener.local_addr().ok().map(|addr| addr.port()),
+            #[cfg(unix)]
+            Incoming::Tls(listener, _, _) => listener.local_addr().ok().map(|addr| addr.port()),
+            Incoming::Unix(_) => None,
+        }
+    }
 }
 
 pub trait HyperExt {
