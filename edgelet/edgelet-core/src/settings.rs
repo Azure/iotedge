@@ -185,7 +185,7 @@ impl<'de> serde::Deserialize<'de> for Manual {
                 if cs == DEFAULT_CONNECTION_STRING {
                     auth
                 } else if let ManualAuthMethod::DeviceConnectionString(_) = auth {
-                        return Err(serde::de::Error::custom(
+                    return Err(serde::de::Error::custom(
                             "Multiple connection strings specified under provisioning.device_connection_string and provisioning.authentication.device_connection_string. Please specify only one connection string in the config.yaml",
                         ));
                 } else {
