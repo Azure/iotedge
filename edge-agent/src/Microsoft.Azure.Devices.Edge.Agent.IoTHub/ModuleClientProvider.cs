@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.connectionString = connectionString;
             this.sdkModuleClientProvider = sdkModuleClientProvider;
             this.upstreamProtocol = upstreamProtocol;
-            this.productInfo = productInfo;
+            this.productInfo = Preconditions.CheckNotNull(productInfo, nameof(productInfo));
             this.proxy = proxy;
             this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.idleTimeout = idleTimeout;

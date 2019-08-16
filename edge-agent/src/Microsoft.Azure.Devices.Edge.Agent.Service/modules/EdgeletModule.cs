@@ -61,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.dockerAuthConfig = Preconditions.CheckNotNull(dockerAuthConfig, nameof(dockerAuthConfig));
             this.upstreamProtocol = upstreamProtocol;
             this.proxy = proxy;
-            this.productInfo = productInfo;
+            this.productInfo = Preconditions.CheckNotNull(productInfo, nameof(productInfo));
             this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.idleTimeout = idleTimeout;
         }

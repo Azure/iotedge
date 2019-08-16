@@ -76,6 +76,33 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             sdkModuleClient.Verify(s => s.OpenAsync(), Times.Once);
         }
 
+        [Fact]
+        public void CreateFromEnvironment_NullProductInfo_ShouldThrow()
+        {
+            // Arrange
+            ITransportSettings receivedTransportSettings = null;
+
+            var sdkModuleClient = new Mock<ISdkModuleClient>();
+
+            var sdkModuleClientProvider = new Mock<ISdkModuleClientProvider>();
+            sdkModuleClientProvider.Setup(s => s.GetSdkModuleClient(It.IsAny<ITransportSettings>()))
+                .Callback<ITransportSettings>(t => receivedTransportSettings = t)
+                .ReturnsAsync(sdkModuleClient.Object);
+
+            bool closeOnIdleTimeout = false;
+            TimeSpan idleTimeout = TimeSpan.FromMinutes(5);
+            ConnectionStatusChangesHandler handler = (status, reason) => { };
+
+            // Assert
+            Assert.Throws<ArgumentNullException>(() => new ModuleClientProvider(
+                sdkModuleClientProvider.Object,
+                Option.None<UpstreamProtocol>(),
+                Option.None<IWebProxy>(),
+                null,
+                closeOnIdleTimeout,
+                idleTimeout));
+        }
+
         [Theory]
         [MemberData(nameof(GetTestData))]
         public async Task CreateFromConnectionStringTest(
