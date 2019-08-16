@@ -87,13 +87,17 @@ Note that if you're using this certificate as a DPS registration ID, the ID **mu
   * This will create files ```iot-edge-device-mydevice*``` that each contain the public key, private key, and PFX respectively.
 
 ### **Bash**
-#### IoT Leaf Device
+#### IoT Leaf Device Identity Certificate
 * Run `./certGen.sh create_device_certificate mydevice` to create the new device certificate.
   * This will create files ```iot-device-mydevice*``` that each contain the public key, private key, and PFX respectively.
 
-#### IoT Edge Device
-* Run `./certGen.sh create_edge_device_certificate myEdgeDevice` to create the new IoT Edge device certificate.
-  * This will create files ```iot-edge-device-mydevice*``` that each contain the public key, private key, and PFX respectively.
+#### IoT Edge Device CA Certificate
+* Run `./certGen.sh create_edge_device_ca_certificate MyEdgeDeviceCA` to create the new IoT Edge device CA certificate.
+  * This will create files ```iot-edge-device-ca-MyEdgeDeviceCA*``` that each contain the public key, private key, and PFX respectively.
+
+#### IoT Edge Device Identity Certificate
+* Run `./certGen.sh create_edge_device_ca_certificate MyEdgeDeviceId` to create the new IoT Edge device identity certificate.
+  * This will create files ```iot-edge-device-identity-MyEdgeDeviceId*``` that each contain the public key, private key, and PFX respectively.
 
 ## Step 5 - Cleanup
 These scripts output certificates to the current working directory, so there is no analogous system cleanup needed. Simply delete the contents of your work directory.

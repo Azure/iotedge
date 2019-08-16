@@ -404,16 +404,30 @@ function generate_edge_server_certificate()
 }
 
 ###############################################################################
-# Generates a certificate for a Edge device, chained to the intermediate.
+# Generates a CA certificate for a Edge device, chained to the intermediate.
+###############################################################################
+function generate_edge_device_ca_certificate()
+{
+    # Note: Appending a '.ca' to the common name is useful in situations
+    # where a user names their hostname as the edge device name.
+    # By doing so we avoid TLS validation errors where we have a server or
+    # client certificate where the hostname is used as the common name
+    # which essentially results in "loop" for validation purposes.
+    local common_name="${1}.ca"
+    generate_certificate_common "v3_intermediate_ca" \
+                                ${DEFAULT_VALIDITY_DAYS} \
+                                ${common_name} \
+                                "iot-edge-device-ca-${1}" \
+                                ${INTERMEDIATE_CA_PREFIX} \
+                                "" \
+                                ${INTERMEDIATE_CA_PASSWORD}
+}
+
+###############################################################################
+# Generates a CA certificate for a Edge device, chained to the intermediate.
 ###############################################################################
 function generate_edge_device_certificate()
 {
-    local device_prefix="new-edge-device"
-    if [[ $# -ne 1 ]] || [[ -z ${1} ]]; then
-        echo "Usage error: Please provide a <subjectName>"
-        exit 1
-    fi
-
     # Note: Appending a '.ca' to the common name is useful in situations
     # where a user names their hostname as the edge device name.
     # By doing so we avoid TLS validation errors where we have a server or
@@ -441,6 +455,10 @@ elif [ "${1}" == "create_device_certificate" ]; then
     generate_device_certificate "${2}"
 elif [ "${1}" == "create_edge_device_certificate" ]; then
     generate_edge_device_certificate "${2}"
+elif [ "${1}" == "create_edge_device_ca_certificate" ]; then
+    generate_edge_device_ca_certificate "${2}"
+elif [ "${1}" == "create_edge_device_identity_certificate" ]; then
+    generate_device_certificate "${2}"
 elif [ "${1}" == "create_edge_server_certificate" ]; then
     generate_edge_server_certificate "${2}"
 else
@@ -449,7 +467,9 @@ else
     echo "       install_root_ca_from_cli <certificate payload> <private key payload> <private key password>  # Sets up a CA file and creates an intermediate signing certificate. Both key and certificate are expected to be in PEM format"
     echo "       create_verification_certificate <subjectName>  # Creates a verification certificate, signed with <subjectName>"
     echo "       create_device_certificate <subjectName>        # Creates a device certificate, signed with <subjectName>"
-    echo "       create_edge_device_certificate <subjectName>   # Creates an edge device certificate, signed with <subjectName>"
+    echo "       create_edge_device_certificate <subjectName>   # Creates an edge device CA certificate, signed with <subjectName>"
+    echo "       create_edge_device_ca_certificate <subjectName>   # Creates an edge device CA certificate, signed with <subjectName>"
+    echo "       create_edge_device_identity_certificate <subjectName>   # Creates an edge device identity certificate, signed with <subjectName>"
     echo "       create_edge_server_certificate <subjectName>   # Creates an edge device certificate, signed with <subjectName>"
     exit 1
 fi
