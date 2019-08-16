@@ -9,7 +9,7 @@ jobs:
 ################################################################################
   - job: linux_dotnet_projects_arm64
 ################################################################################
-    displayName: Linux ARM64
+    displayName: LinuxDotnet ARM64
     pool:
       vmImage: 'ubuntu-16.04'
     steps:
