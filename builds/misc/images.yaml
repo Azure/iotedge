@@ -7,69 +7,26 @@ pr: none
 
 jobs:
 ################################################################################
-  - job: linuxARM64
+  - job: linux_dotnet_projects_arm64
 ################################################################################
-    displayName: LinuxARM64
+    displayName: LinuxDotnet ARM64
     pool:
       vmImage: 'ubuntu-16.04'
     steps:
-      - task: DotNetCoreInstaller@0
-        displayName: Install .NET Core
-        inputs:
-          packageType: sdk
-          version: 3.0.100-preview5-011568
+      - template: templates/install-dotnet3.yaml
 
       - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
         displayName: 'Docker Login'
 
-      - script: edgelet/build/linux/install.sh --package-arm
-        displayName: Install Rust
-
-      - bash: 'echo "##vso[task.setvariable variable=PATH;]${CARGO_HOME:-"$HOME/.cargo"}/bin:$PATH"'
-        displayName: Modify path
-
-      - bash: 'cargo install --git https://github.com/arsing/cross.git --branch set-path'
-        displayName: 'Install cross (fork with docker fix)'
-
       - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin --os Unix --dotnet_runtime netcoreapp3.0
         name: build
         displayName: Build ($(Build.Configuration))
-
-      - script: scripts/linux/buildEdgelet.sh -i azureiotedge-iotedged -n microsoft -P iotedged -c $(Build.Configuration) -t aarch64
-        displayName: Build - Edge Security Daemon - aarch64
-
-      - script: scripts/linux/buildEdgelet.sh -i azureiotedge-diagnostics -n microsoft -P iotedge-diagnostics -c $(Build.Configuration) -t aarch64
-        displayName: Build - Edge Diagnostics - aarch64
-
-      - script: scripts/linux/buildEdgeProxy.sh -i azureiotedge-proxy -n microsoft -P edge-proxy -t aarch64
-        displayName: Build - Edge Proxy - aarch64
 
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifacts'
         inputs:
           PathtoPublish: '$(Build.BinariesDirectory)/publish'
           ArtifactName: 'core-linux'
-
-      # Edge Security Daemon - Not Using Template for ARM64 because we have 2 different .NET Core.
-      - task: Bash@3
-        displayName: Build Image - Edge Security Daemon - aarch64
-        inputs:
-          filePath: scripts/linux/buildImage.sh
-          arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-iotedged -n microsoft -P azureiotedge-iotedged --target-arch aarch64
-
-      # Edge Diagnostics - Not Using Template for ARM64 because we have 2 different .NET Core.
-      - task: Bash@3
-        displayName: Build Image - Edge Diagnostics - aarch64
-        inputs:
-          filePath: scripts/linux/buildImage.sh
-          arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-diagnostics -n microsoft -P azureiotedge-diagnostics --target-arch aarch64
-
-      # Edge Proxy - Not Using Template for ARM64 because we have 2 different .NET Core.
-      - task: Bash@3
-        displayName: Build Image - Edge Proxy - aarch64
-        inputs:
-          filePath: scripts/linux/buildImage.sh
-          arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-proxy -n microsoft -P azureiotedge-proxy --target-arch aarch64
 
       # Edge Agent - Not Using Template for ARM64 because we have 2 different .NET Core.
       - task: Bash@3
@@ -143,56 +100,20 @@ jobs:
            
           
 ################################################################################
-  - job: linux
+  - job: linux_dotnet_projects
 ################################################################################
-    displayName: Linux
+    displayName: LinuxDotnet
     pool:
       vmImage: 'ubuntu-16.04'
-    variables:
-      NetCorePackageUri: https://download.microsoft.com/download/4/0/9/40920432-3302-47a8-b13c-bbc4848ad114/dotnet-sdk-2.1.302-linux-x64.tar.gz
     steps:
-      - script: scripts/linux/installPrereqs.sh -u $(NetCorePackageUri)
-        name: install
-        displayName: Install dependencies
+      - template: templates/install-dotnet2.yaml
 
       - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
         displayName: 'Docker Login'
 
-      - script: edgelet/build/linux/install.sh --package-arm
-        displayName: Install Rust
-
-      - bash: 'echo "##vso[task.setvariable variable=PATH;]${CARGO_HOME:-"$HOME/.cargo"}/bin:$PATH"'
-        displayName: Modify path
-
-      - bash: 'cargo install --git https://github.com/arsing/cross.git --branch set-path'
-        displayName: 'Install cross (fork with docker fix)'
-
       - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
         name: build
         displayName: Build ($(Build.Configuration))
-
-      - template: templates/build-edgelet-linux.yaml
-        parameters:
-          filePath: scripts/linux/buildEdgelet.sh
-          name: Edge Security Daemon
-          imageName: azureiotedge-iotedged
-          project: iotedged
-          configuration: $(Build.Configuration)
-
-      - template: templates/build-edgelet-linux.yaml
-        parameters:
-          filePath: scripts/linux/buildEdgelet.sh
-          name: Edge Diagnostics
-          imageName: azureiotedge-diagnostics
-          project: iotedge-diagnostics
-          configuration: $(Build.Configuration)
-
-      - template: templates/build-edgelet-linux.yaml
-        parameters:
-          filePath: scripts/linux/buildEdgeProxy.sh
-          name: Edge Proxy
-          imageName: azureiotedge-proxy
-          project: edge-proxy
 
       - script: scripts/linux/createArtifactInfo.sh --output-folder '$(Build.BinariesDirectory)/publish' --build-number $(Build.BuildNumber)
         displayName: 'Create Artifact Info File'
@@ -202,27 +123,6 @@ jobs:
         inputs:
           PathtoPublish: '$(Build.BinariesDirectory)/publish'
           ArtifactName: 'core-linux'
-
-      # Edge Security Daemon
-      - template: templates/image-linux.yaml
-        parameters:
-          name: Edge Security Daemon
-          imageName: azureiotedge-iotedged
-          project: azureiotedge-iotedged
-
-      # Edge Diagnostics
-      - template: templates/image-linux.yaml
-        parameters:
-          name: Edge Diagnostics
-          imageName: azureiotedge-diagnostics
-          project: azureiotedge-diagnostics
-
-      # Edge Proxy
-      - template: templates/image-linux.yaml
-        parameters:
-          name: Edge Proxy
-          imageName: azureiotedge-proxy
-          project: azureiotedge-proxy
 
       # Edge Agent
       - template: templates/image-linux.yaml
@@ -293,6 +193,30 @@ jobs:
           name: Direct Method Cloud Sender
           imageName: azureiotedge-direct-method-cloud-sender
           project: DirectMethodCloudSender
+
+################################################################################
+# linux - Rust amd64
+################################################################################
+  - template: templates/image-linux-rust-jobs.yaml
+    parameters:
+      archName: amd64
+      targetArch: x86_64
+      
+################################################################################
+# linux - Rust arm32
+################################################################################
+  - template: templates/image-linux-rust-jobs.yaml
+    parameters:
+      archName: arm32
+      targetArch: armv7l
+
+################################################################################
+# linux - Rust arm64
+################################################################################
+  - template: templates/image-linux-rust-jobs.yaml
+    parameters:
+      archName: arm64
+      targetArch: aarch64
 
 ################################################################################
   - job: windows
@@ -419,9 +343,12 @@ jobs:
     pool:
       vmImage: 'ubuntu-16.04'
     dependsOn:
-      - linux
+      - linux_dotnet_projects
+      - linux_dotnet_projects_arm64
+      - linux_rust_amd64
+      - linux_rust_arm32
+      - linux_rust_arm64
       - windows
-      - linuxARM64
     variables:
       tags: "['latest']"
     steps:
