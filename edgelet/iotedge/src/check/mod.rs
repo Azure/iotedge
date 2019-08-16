@@ -1292,12 +1292,25 @@ fn settings_identity_certificates_expiry(check: &mut Check) -> Result<CheckResul
         return Ok(CheckResult::Skipped);
     };
 
-    if let Provisioning::Dps(dps) = settings.provisioning() {
-        if let AttestationMethod::X509(x509_info) = dps.attestation() {
-            let path = x509_info.identity_cert()?;
-            return CertificateValidity::parse("DPS identity certificate", &path)?
-                .to_check_result();
+    match settings.provisioning() {
+        Provisioning::Dps(dps) => {
+            if let AttestationMethod::X509(x509_info) = dps.attestation() {
+                let path = x509_info.identity_cert()?;
+                return CertificateValidity::parse("DPS identity certificate", &path)?
+                    .to_check_result();
+            }
         }
+        Provisioning::Manual(manual) => {
+            if let ManualAuthMethod::X509(x509) = manual.authentication_method() {
+                let path = x509.identity_cert()?;
+                return CertificateValidity::parse(
+                    "Manual authentication identity certificate",
+                    &path,
+                )?
+                .to_check_result();
+            }
+        }
+        _ => (),
     }
 
     Ok(CheckResult::Ignored)

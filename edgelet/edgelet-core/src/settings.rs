@@ -184,16 +184,14 @@ impl<'de> serde::Deserialize<'de> for Manual {
             (Some(cs), Some(auth)) => {
                 if cs == DEFAULT_CONNECTION_STRING {
                     auth
-                } else {
-                    if let ManualAuthMethod::DeviceConnectionString(_) = auth {
-                        return Err(serde::de::Error::custom(
+                } else if let ManualAuthMethod::DeviceConnectionString(_) = auth {
+                    return Err(serde::de::Error::custom(
                             "Multiple connection strings specified under provisioning.device_connection_string and provisioning.authentication.device_connection_string. Please specify only one connection string in the config.yaml",
                         ));
-                    } else {
-                        return Err(serde::de::Error::custom(
-                            "Both connection string specified under provisioning.device_connection_string and provisioning.authentication configuration may not be set",
-                        ));
-                    }
+                } else {
+                    return Err(serde::de::Error::custom(
+                        "Both connection string specified under provisioning.device_connection_string and provisioning.authentication configuration may not be set",
+                    ));
                 }
             }
             (Some(cs), None) => {
