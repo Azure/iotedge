@@ -264,10 +264,10 @@ mod tests {
         free(b);
     }
 
-    fn fake_good_x509_buffer_free() -> HSM_CLIENT_X509_INTERFACE_TAG {
-        HSM_CLIENT_X509_INTERFACE_TAG {
+    fn fake_good_x509_buffer_free() -> HSM_CLIENT_X509_INTERFACE {
+        HSM_CLIENT_X509_INTERFACE {
             hsm_client_free_buffer: Some(real_buffer_destroy),
-            ..HSM_CLIENT_X509_INTERFACE_TAG::default()
+            ..HSM_CLIENT_X509_INTERFACE::default()
         }
     }
 
@@ -294,7 +294,7 @@ mod tests {
         let len = key.len();
 
         let key2 = X509Data::new(
-            HSM_CLIENT_X509_INTERFACE_TAG::default(),
+            HSM_CLIENT_X509_INTERFACE::default(),
             key.as_ptr() as *mut c_char,
         );
 

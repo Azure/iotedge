@@ -34,7 +34,7 @@ pub enum CertificateType {
 #[derive(Clone, Debug)]
 pub struct Crypto {
     handle: HSM_CLIENT_HANDLE,
-    interface: HSM_CLIENT_CRYPTO_INTERFACE_TAG,
+    interface: HSM_CLIENT_CRYPTO_INTERFACE,
 }
 
 // Handles don't have thread-affinity

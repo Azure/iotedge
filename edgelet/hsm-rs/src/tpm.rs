@@ -233,10 +233,10 @@ mod tests {
         free(b);
     }
 
-    fn fake_good_tpm_buffer_free() -> HSM_CLIENT_TPM_INTERFACE_TAG {
-        HSM_CLIENT_TPM_INTERFACE_TAG {
+    fn fake_good_tpm_buffer_free() -> HSM_CLIENT_TPM_INTERFACE {
+        HSM_CLIENT_TPM_INTERFACE {
             hsm_client_free_buffer: Some(real_buffer_destroy),
-            ..HSM_CLIENT_TPM_INTERFACE_TAG::default()
+            ..HSM_CLIENT_TPM_INTERFACE::default()
         }
     }
 
@@ -264,7 +264,7 @@ mod tests {
         let len = key.len();
 
         let key2 = TpmKey::new(
-            HSM_CLIENT_TPM_INTERFACE_TAG::default(),
+            HSM_CLIENT_TPM_INTERFACE::default(),
             key.as_ptr() as *const c_uchar,
             len,
         );
@@ -370,10 +370,10 @@ mod tests {
     fn fake_no_if_tpm_hsm() -> Tpm {
         Tpm {
             handle: unsafe { fake_handle_create_good() },
-            interface: HSM_CLIENT_TPM_INTERFACE_TAG {
+            interface: HSM_CLIENT_TPM_INTERFACE {
                 hsm_client_tpm_create: Some(fake_handle_create_good),
                 hsm_client_tpm_destroy: Some(fake_handle_destroy),
-                ..HSM_CLIENT_TPM_INTERFACE_TAG::default()
+                ..HSM_CLIENT_TPM_INTERFACE::default()
             },
         }
     }
@@ -427,7 +427,7 @@ mod tests {
     fn fake_good_tpm_hsm() -> Tpm {
         Tpm {
             handle: unsafe { fake_handle_create_good() },
-            interface: HSM_CLIENT_TPM_INTERFACE_TAG {
+            interface: HSM_CLIENT_TPM_INTERFACE {
                 hsm_client_tpm_create: Some(fake_handle_create_good),
                 hsm_client_tpm_destroy: Some(fake_handle_destroy),
                 hsm_client_activate_identity_key: Some(fake_activate_id_key),
@@ -470,7 +470,7 @@ mod tests {
     fn fake_bad_tpm_hsm() -> Tpm {
         Tpm {
             handle: unsafe { fake_handle_create_bad() },
-            interface: HSM_CLIENT_TPM_INTERFACE_TAG {
+            interface: HSM_CLIENT_TPM_INTERFACE {
                 hsm_client_tpm_create: Some(fake_handle_create_good),
                 hsm_client_tpm_destroy: Some(fake_handle_destroy),
                 hsm_client_activate_identity_key: Some(fake_activate_id_key),
