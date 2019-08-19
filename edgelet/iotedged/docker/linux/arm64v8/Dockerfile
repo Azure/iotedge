@@ -1,4 +1,4 @@
-FROM azureiotedge/azureiotedge-iotedged-base:1.0-arm64v8
+FROM azureiotedge/azureiotedge-iotedged-base:1.0-linux-arm64v8
 
 WORKDIR /app
 ADD ./docker/linux/arm64v8/libiothsm.so* /app/
