@@ -176,10 +176,13 @@ const EDGE_SETTINGS_SUBDIR: &str = "cache";
 
 /// This is the DPS registration ID env variable key
 const DPS_REGISTRATION_ID_ENV_KEY: &str = "IOTEDGE_REGISTRATION_ID";
-/// This is the DPS identity certificate file path/uri env variable key
-const DPS_DEVICE_ID_CERT_ENV_KEY: &str = "IOTEDGE_DEVICE_IDENTITY_CERT";
-/// This is the DPS identity private key file path/uri env variable key
-const DPS_DEVICE_ID_KEY_ENV_KEY: &str = "IOTEDGE_DEVICE_IDENTITY_PK";
+
+/// This is the edge device identity certificate file path env variable key.
+/// This is used for both DPS attestation and manual authentication modes.
+const DEVICE_IDENTITY_CERT_PATH_ENV_KEY: &str = "IOTEDGE_DEVICE_IDENTITY_CERT";
+/// This is the edge device identity private key file path env variable key.
+/// This is used for both DPS attestation and manual authentication modes.
+const DEVICE_IDENTITY_KEY_PATH_ENV_KEY: &str = "IOTEDGE_DEVICE_IDENTITY_PK";
 
 /// These are the properties of the workload CA certificate
 const IOTEDGED_VALIDITY: u64 = 7_776_000;
@@ -400,14 +403,14 @@ where
                         );
                     }
                     ManualAuthMethod::X509(x509) => {
-                        info!("Starting provisioning edge device via manual mode using X509 identiy certificate...");
+                        info!("Starting provisioning edge device via manual mode using X509 identity certificate...");
 
                         let id_data = device_cert_identity_data.ok_or_else(|| {
-                            ErrorKind::Initialize(InitializeErrorReason::DpsProvisioningClient)
+                            ErrorKind::Initialize(InitializeErrorReason::ManualProvisioningClient)
                         })?;
 
                         let key_bytes = hybrid_identity_key.ok_or_else(|| {
-                            ErrorKind::Initialize(InitializeErrorReason::DpsProvisioningClient)
+                            ErrorKind::Initialize(InitializeErrorReason::ManualProvisioningClient)
                         })?;
 
                         let (key_store, provisioning_result, root_key) = manual_provision_x509(
@@ -416,13 +419,13 @@ where
                             &key_bytes,
                             id_data.thumbprint.clone(),
                         )?;
-                        let thumprint_op = Some(id_data.thumbprint.as_str());
+                        let thumbprint_op = Some(id_data.thumbprint.as_str());
                         start_edgelet!(
                             key_store,
                             provisioning_result,
                             root_key,
                             force_module_reprovision,
-                            thumprint_op,
+                            thumbprint_op,
                         );
                     }
                 };
@@ -560,13 +563,13 @@ where
                             &key_bytes,
                             id_data.thumbprint.clone(),
                         )?;
-                        let thumprint_op = Some(id_data.thumbprint.as_str());
+                        let thumbprint_op = Some(id_data.thumbprint.as_str());
                         start_edgelet!(
                             key_store,
                             provisioning_result,
                             root_key,
                             force_module_reprovision,
-                            thumprint_op,
+                            thumbprint_op,
                         );
                     }
                 }
@@ -630,12 +633,12 @@ where
                 let path = x509.identity_cert().context(ErrorKind::Initialize(
                     InitializeErrorReason::IdentityCertificateSettings,
                 ))?;
-                env::set_var(DPS_DEVICE_ID_CERT_ENV_KEY, path.as_os_str());
+                env::set_var(DEVICE_IDENTITY_CERT_PATH_ENV_KEY, path.as_os_str());
 
                 let path = x509.identity_pk().context(ErrorKind::Initialize(
                     InitializeErrorReason::IdentityCertificateSettings,
                 ))?;
-                env::set_var(DPS_DEVICE_ID_KEY_ENV_KEY, path.as_os_str());
+                env::set_var(DEVICE_IDENTITY_KEY_PATH_ENV_KEY, path.as_os_str());
             }
         }
         Provisioning::Dps(dps) => match dps.attestation() {
@@ -659,12 +662,12 @@ where
                 let path = x509_info.identity_cert().context(ErrorKind::Initialize(
                     InitializeErrorReason::IdentityCertificateSettings,
                 ))?;
-                env::set_var(DPS_DEVICE_ID_CERT_ENV_KEY, path.as_os_str());
+                env::set_var(DEVICE_IDENTITY_CERT_PATH_ENV_KEY, path.as_os_str());
 
                 let path = x509_info.identity_pk().context(ErrorKind::Initialize(
                     InitializeErrorReason::IdentityCertificateSettings,
                 ))?;
-                env::set_var(DPS_DEVICE_ID_KEY_ENV_KEY, path.as_os_str());
+                env::set_var(DEVICE_IDENTITY_KEY_PATH_ENV_KEY, path.as_os_str());
             }
         },
         _ => {}
