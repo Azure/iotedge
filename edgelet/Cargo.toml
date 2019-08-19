@@ -22,6 +22,7 @@ members = [
     "iotedged",
     "iotedged-eventlog-messages",
     "iotedge-diagnostics",
+    "iotedge-proxy",
     "iothubservice",
     "management",
     "mini-sntp",
