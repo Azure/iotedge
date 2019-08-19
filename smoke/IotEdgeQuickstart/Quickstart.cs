@@ -13,6 +13,7 @@ namespace IotEdgeQuickstart
         readonly bool noVerify;
         readonly bool bypassEdgeInstallation;
         readonly string verifyDataFromModule;
+        readonly bool dpsProvisionTest;
 
         public Quickstart(
             IBootstrapper bootstrapper,
@@ -36,14 +37,16 @@ namespace IotEdgeQuickstart
             string deviceCaCerts,
             bool optimizedForPerformance,
             LogLevel runtimeLogLevel,
-            bool cleanUpExistingDeviceOnSuccess)
-            : base(bootstrapper, credentials, iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, upstreamProtocol, proxy, imageTag, deviceId, hostname, deploymentFileName, twinTestFileName, deviceCaCert, deviceCaPk, deviceCaCerts, optimizedForPerformance, runtimeLogLevel, cleanUpExistingDeviceOnSuccess)
+            bool cleanUpExistingDeviceOnSuccess,
+            Option<DPSAttestation> dpsAttestation)
+            : base(bootstrapper, credentials, iothubConnectionString, eventhubCompatibleEndpointWithEntityPath, upstreamProtocol, proxy, imageTag, deviceId, hostname, deploymentFileName, twinTestFileName, deviceCaCert, deviceCaPk, deviceCaCerts, optimizedForPerformance, runtimeLogLevel, cleanUpExistingDeviceOnSuccess, dpsAttestation)
         {
             this.leaveRunning = leaveRunning;
             this.noDeployment = noDeployment;
             this.noVerify = noVerify;
             this.bypassEdgeInstallation = bypassEdgeInstallation;
             this.verifyDataFromModule = verifyDataFromModule;
+            this.dpsProvisionTest = dpsAttestation.HasValue;
         }
 
         public async Task RunAsync()

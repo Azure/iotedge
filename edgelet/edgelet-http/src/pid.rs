@@ -5,13 +5,12 @@ use std::{cmp, fmt, io};
 use futures::prelude::*;
 use hyper::service::Service;
 use hyper::{Body, Error as HyperError, Request};
-use serde_derive::{Deserialize, Serialize};
 #[cfg(unix)]
 use tokio_uds::UnixStream;
 #[cfg(windows)]
 use tokio_uds_windows::UnixStream;
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub enum Pid {
     None,
     Any,
@@ -129,9 +128,12 @@ mod impl_linux {
         };
         let ucred_size = mem::size_of::<ucred>();
 
-        // These paranoid checks should be optimized-out
-        assert!(mem::size_of::<u32>() <= mem::size_of::<usize>());
-        assert!(ucred_size <= u32::max_value() as usize);
+        // This paranoid check should be optimized-out
+        assert_eq!(
+            <usize as std::convert::TryFrom<_>>::try_from(u32::max_value())
+                .map(|max_u32| ucred_size <= max_u32),
+            Ok(true)
+        );
 
         #[allow(clippy::cast_possible_truncation)]
         let mut ucred_size = ucred_size as u32;
@@ -158,8 +160,8 @@ pub use self::impl_macos::get_pid;
 
 #[cfg(target_os = "macos")]
 pub mod impl_macos {
+    use std::io;
     use std::os::unix::io::AsRawFd;
-    use std::{io, mem};
 
     use libc::getpeereid;
     use tokio_uds::UnixStream;

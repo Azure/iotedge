@@ -9,11 +9,10 @@ use edgelet_core::{
 };
 use edgelet_docker::{DockerConfig, DEFAULTS};
 use edgelet_utils::YamlFileSource;
-use serde_derive::{Deserialize, Serialize};
 
 use crate::error::Error;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Settings {
     #[serde(flatten)]
     base: BaseSettings<DockerConfig>,
@@ -24,6 +23,8 @@ pub struct Settings {
     proxy_image: String,
     proxy_config_path: String,
     proxy_config_map_name: String,
+    proxy_trust_bundle_path: String,
+    proxy_trust_bundle_config_map_name: String,
     image_pull_policy: String,
     service_account_name: String,
     device_hub_selector: String,
@@ -86,6 +87,14 @@ impl Settings {
 
     pub fn proxy_config_map_name(&self) -> &str {
         &self.proxy_config_map_name
+    }
+
+    pub fn proxy_trust_bundle_path(&self) -> &str {
+        &self.proxy_trust_bundle_path
+    }
+
+    pub fn proxy_trust_bundle_config_map_name(&self) -> &str {
+        &self.proxy_trust_bundle_config_map_name
     }
 
     pub fn image_pull_policy(&self) -> &str {

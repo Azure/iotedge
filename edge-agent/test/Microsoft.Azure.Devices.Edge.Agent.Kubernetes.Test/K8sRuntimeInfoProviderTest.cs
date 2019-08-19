@@ -22,20 +22,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
     public class K8sRuntimeInfoProviderTest
     {
-        private static readonly TimeSpan TestTimeout = TimeSpan.FromSeconds(150);
         const string PodwatchNamespace = "msiot-dwr-hub-dwr-ha3";
-
-        [Unit]
-        [Fact]
-        public void ConstructorChecksNull()
-        {
-            var client = new Mock<IKubernetes>(MockBehavior.Strict);
-
-            Assert.Throws<ArgumentException>(() => new KubernetesRuntimeInfoProvider(null,null));
-            Assert.Throws<ArgumentNullException>(() => new KubernetesRuntimeInfoProvider("namespace ",null));
-            Assert.Throws<ArgumentException>(() => new KubernetesRuntimeInfoProvider(null,client.Object));
-        }
-
+        static readonly TimeSpan TestTimeout = TimeSpan.FromSeconds(150);
 
         public static IEnumerable<object[]> SystemResponseData()
         {
@@ -48,9 +36,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
         [Unit]
         [Fact]
-        public async void GetModuleLogsTest()
+        public void ConstructorChecksNull()
         {
             var client = new Mock<IKubernetes>(MockBehavior.Strict);
+
+            Assert.Throws<ArgumentException>(() => new KubernetesRuntimeInfoProvider(null, null));
+            Assert.Throws<ArgumentNullException>(() => new KubernetesRuntimeInfoProvider("namespace ", null));
+            Assert.Throws<ArgumentException>(() => new KubernetesRuntimeInfoProvider(null, client.Object));
+        }
+
+        [Unit]
+        [Fact]
+        public async void GetModuleLogsTest()
+        {
+            var response = new HttpOperationResponse<Stream>();
+            response.Request = new System.Net.Http.HttpRequestMessage();
+            response.Body = new MemoryStream();
+
+            var client = new Mock<IKubernetes>(MockBehavior.Strict);
+            client.Setup(kc => kc.ReadNamespacedPodLogWithHttpMessagesAsync(It.IsAny<string>(), It.IsAny<string>(), null, true, null, null, null, null, null, null, null, It.IsAny<CancellationToken>())).ReturnsAsync(() => response);
             var k8sRuntimeInfo = new KubernetesRuntimeInfoProvider(PodwatchNamespace, client.Object);
             var result = await k8sRuntimeInfo.GetModuleLogs("module", true, Option.None<int>(), Option.None<int>(), CancellationToken.None);
             Assert.True(result.Length == 0);
@@ -63,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         {
             var response = new HttpOperationResponse<V1NodeList>();
             response.Body = k8SNodes;
-            var client = new Mock<IKubernetes>(MockBehavior.Strict); //Mock.Of<IKubernetes>(kc => kc.ListNodeAsync() == Task.FromResult(k8SNodes));
+            var client = new Mock<IKubernetes>(MockBehavior.Strict); // Mock.Of<IKubernetes>(kc => kc.ListNodeAsync() == Task.FromResult(k8SNodes));
             client.Setup(
                 kc =>
                     kc.ListNodeWithHttpMessagesAsync(null, null, null, null, null, null, null, null, null, It.IsAny<CancellationToken>())).ReturnsAsync(() => response);
@@ -74,25 +78,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Assert.Equal(expectedInfo.OperatingSystemType, result.OperatingSystemType);
             Assert.Equal(expectedInfo.Version, result.Version);
             client.VerifyAll();
-        }
-
-        private static string BuildWatchEventStreamLine(string podlist, WatchEventType eventType, int podNumber = 0)
-        {
-            var v1PodList = JsonConvert.DeserializeObject<V1PodList>(podlist);
-            return JsonConvert.SerializeObject(new Watcher<V1Pod>.WatchEvent
-            {
-                Type = eventType,
-                Object = v1PodList.Items[podNumber]
-            }, new StringEnumConverter());
-        }
-
-        static string BuildPodStreamLine(V1Pod pod, WatchEventType eventType)
-        {
-            return JsonConvert.SerializeObject(new Watcher<V1Pod>.WatchEvent
-            {
-                Type = eventType,
-                Object = pod
-            }, new StringEnumConverter());
         }
 
         /*
@@ -170,6 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                     {
                         Assert.Equal(ModuleStatus.Failed, i.ModuleStatus);
                     }
+
                     if (string.Equals("edgeHub", i.Name))
                     {
                         Assert.Equal(Option.None<DateTime>(), i.ExitTime);
@@ -180,6 +166,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                         Assert.Equal(new DateTime(2019, 6, 12), i.StartTime.GetOrElse(DateTime.MinValue).Date);
                         Assert.Equal(new DateTime(2019, 6, 12), i.ExitTime.GetOrElse(DateTime.MinValue).Date);
                     }
+
                     if (i is ModuleRuntimeInfo<DockerReportedConfig> d)
                     {
                         Assert.NotEqual("unknown:unknown", d.Config.Image);
@@ -204,7 +191,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             V1Pod modHubPod = v1PodList.Items[1];
             var modHub = BuildPodStreamLine(modHubPod, WatchEventType.Deleted);
 
-            V1Pod tempSensorPod = v1PodList.Items[3]; 
+            V1Pod tempSensorPod = v1PodList.Items[3];
             var modTempSensor = BuildPodStreamLine(tempSensorPod, WatchEventType.Deleted);
 
             using (var server = new MockKubeApiServer(
@@ -238,7 +225,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 var runtimeModules = await k8sRuntimeInfo.GetModules(CancellationToken.None);
                 var moduleRuntimeInfos = runtimeModules as ModuleRuntimeInfo[] ?? runtimeModules.ToArray();
 
-                Assert.Equal(1, moduleRuntimeInfos.Length);
+                Assert.Single(moduleRuntimeInfos);
                 foreach (var i in moduleRuntimeInfos)
                 {
                     Assert.Equal("edgeAgent", i.Name);
@@ -252,7 +239,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 }
             }
         }
-
 
         [Unit]
         [Fact]
@@ -274,10 +260,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                     return false;
                 }))
             {
-                var client = new Kubernetes(new KubernetesClientConfiguration
-                {
-                    Host = server.Uri.ToString()
-                });
+                var client = new Kubernetes(
+                    new KubernetesClientConfiguration
+                    {
+                        Host = server.Uri.ToString()
+                    });
 
                 var k8sRuntimeInfo = new KubernetesRuntimeInfoProvider(PodwatchNamespace, client);
 
@@ -290,7 +277,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 k8sRuntimeInfo.Start();
 
                 await Task.WhenAny(requestHandled.WaitAsync(), Task.Delay(TestTimeout));
-
 
                 var runtimeModules = await k8sRuntimeInfo.GetModules(CancellationToken.None);
                 var moduleRuntimeInfos = runtimeModules as ModuleRuntimeInfo[] ?? runtimeModules.ToArray();
@@ -308,8 +294,32 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                         Assert.NotEqual("unknown:unknown", d.Config.Image);
                     }
                 }
+
                 Assert.Equal(3, uniqueModules.Count);
             }
+        }
+
+        static string BuildWatchEventStreamLine(string podlist, WatchEventType eventType, int podNumber = 0)
+        {
+            var v1PodList = JsonConvert.DeserializeObject<V1PodList>(podlist);
+            return JsonConvert.SerializeObject(
+                new Watcher<V1Pod>.WatchEvent
+                {
+                    Type = eventType,
+                    Object = v1PodList.Items[podNumber]
+                },
+                new StringEnumConverter());
+        }
+
+        static string BuildPodStreamLine(V1Pod pod, WatchEventType eventType)
+        {
+            return JsonConvert.SerializeObject(
+                new Watcher<V1Pod>.WatchEvent
+                {
+                    Type = eventType,
+                    Object = pod
+                },
+                new StringEnumConverter());
         }
     }
 }

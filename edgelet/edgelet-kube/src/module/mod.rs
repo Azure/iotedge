@@ -2,9 +2,11 @@
 
 mod authentication;
 mod create;
+mod trust_bundle;
 
 pub use authentication::authenticate;
 pub use create::create_module;
+pub use trust_bundle::init_trust_bundle;
 
 use edgelet_core::{Module, ModuleRuntimeState, ModuleStatus};
 use edgelet_docker::DockerConfig;

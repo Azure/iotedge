@@ -11,11 +11,12 @@ use http::Uri;
 use hyper::header::{HeaderValue, CONTENT_LENGTH, CONTENT_TYPE, IF_MATCH};
 use hyper::service::Service;
 use hyper::{Body, Error as HyperError, Method, Request};
+use log::{debug, error};
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json;
 use url::{form_urlencoded::Serializer as UrlSerializer, Url};
 
-use error::Error;
+use crate::error::Error;
 
 pub struct Client<S>
 where
@@ -49,15 +50,25 @@ where
         BodyT: Serialize,
     {
         let query = query
-            .unwrap_or_else(HashMap::new)
-            .iter()
-            .fold(&mut UrlSerializer::new(String::new()), |ser, (key, val)| {
-                ser.append_pair(key, val)
+            .and_then(|query| {
+                let query = query
+                    .iter()
+                    .fold(&mut UrlSerializer::new(String::new()), |ser, (key, val)| {
+                        ser.append_pair(key, val)
+                    })
+                    .finish();
+
+                if !query.is_empty() {
+                    Some(format!("?{}", query))
+                } else {
+                    None
+                }
             })
-            .finish();
+            .unwrap_or_else(String::new);
 
         let url_copy = self.host_name.clone();
         let path_copy = path.to_owned();
+
         self.host_name
             // build the full url
             .join(&format!("{}?{}", path, query))
@@ -70,9 +81,11 @@ where
                 // parse operation. At this point the URL has already been parsed
                 // and is known to be good.
                 let mut builder = Request::builder();
-                let req = builder
-                    .method(method)
-                    .uri(url.as_str().parse::<Uri>().expect("Unexpected Url to Uri conversion failure"));
+                let req = builder.method(method).uri(
+                    url.as_str()
+                        .parse::<Uri>()
+                        .expect("Unexpected Url to Uri conversion failure"),
+                );
 
                 // add an `If-Match: "*"` header if we've been asked to
                 if add_if_match {
@@ -91,10 +104,14 @@ where
                 }
             })
             .map(move |req| {
-                let res = self.service.lock().unwrap()
+                let uri = req.uri().clone();
+                let res = self
+                    .service
+                    .lock()
+                    .unwrap()
                     .call(req)
-                    .map_err(|err| {
-                        error!("HTTP request failed with {:?}", err);
+                    .map_err(move |err| {
+                        error!("HTTP request to {:?} failed with {:?}", uri, err);
                         Error::from(err)
                     })
                     .and_then(|resp| {
@@ -102,11 +119,10 @@ where
                         debug!("HTTP request succeeded with status {}", status);
 
                         let (_, body) = resp.into_parts();
-                        body
-                            .concat2()
+                        body.concat2()
                             .and_then(move |body| Ok((status, body)))
                             .map_err(|err| {
-                                error!("Reading response body failed with {:?}", err);
+                                error!("Reading response body, failed with {:?}", err);
                                 Error::from(err)
                             })
                     })
@@ -144,6 +160,8 @@ where
             .and_then(|bytes| {
                 bytes
                     .map(|bytes| {
+                        debug!("Request from bytes: {}", String::from_utf8_lossy(&bytes));
+
                         serde_json::from_slice::<ResponseT>(&bytes)
                             .map_err(Error::from)
                             .map(|resp| future::ok(Some(resp)))

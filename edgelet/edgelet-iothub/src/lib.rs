@@ -15,7 +15,6 @@ use failure::{Fail, ResultExt};
 use futures::future::{self, Either};
 use futures::Future;
 use percent_encoding::{define_encode_set, percent_encode, PATH_SEGMENT_ENCODE_SET};
-use serde_derive::Serialize;
 use url::form_urlencoded::Serializer as UrlSerializer;
 
 use edgelet_core::crypto::{KeyIdentity, KeyStore, Sign, Signature, SignatureAlgorithm};
@@ -35,7 +34,7 @@ define_encode_set! {
     pub IOTHUB_ENCODE_SET = [PATH_SEGMENT_ENCODE_SET] | { '=' }
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+#[derive(Debug, PartialEq, serde_derive::Serialize)]
 pub struct HubIdentity {
     hub_module: Module,
 }
@@ -437,7 +436,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "KeyStore could not fetch keys for module")]
     fn get_key_pair_fails_for_no_module() {
         let key_store = MemoryKeyStore::new();
         let api_version = "2018-04-10".to_string();
@@ -452,11 +450,13 @@ mod tests {
         let device_client = DeviceClient::new(client, "d1".to_string()).unwrap();
 
         let identity_manager = HubIdentityManager::new(key_store, device_client);
-        identity_manager.get_key_pair("m1", "g1").unwrap();
+        let err = identity_manager.get_key_pair("m1", "g1").unwrap_err();
+        assert!(failure::Fail::iter_chain(&err).any(|err| err
+            .to_string()
+            .contains("KeyStore could not fetch keys for module")));
     }
 
     #[test]
-    #[should_panic(expected = "KeyStore could not fetch keys for module")]
     fn get_key_pair_fails_for_no_pkey() {
         let mut key_store = MemoryKeyStore::new();
         key_store.insert(
@@ -477,11 +477,13 @@ mod tests {
         let device_client = DeviceClient::new(client, "d1".to_string()).unwrap();
 
         let identity_manager = HubIdentityManager::new(key_store, device_client);
-        identity_manager.get_key_pair("m1", "g1").unwrap();
+        let err = identity_manager.get_key_pair("m1", "g1").unwrap_err();
+        assert!(failure::Fail::iter_chain(&err).any(|err| err
+            .to_string()
+            .contains("KeyStore could not fetch keys for module")));
     }
 
     #[test]
-    #[should_panic(expected = "KeyStore could not fetch keys for module")]
     fn get_key_pair_fails_for_no_skey() {
         let mut key_store = MemoryKeyStore::new();
         key_store.insert(
@@ -502,7 +504,10 @@ mod tests {
         let device_client = DeviceClient::new(client, "d1".to_string()).unwrap();
 
         let identity_manager = HubIdentityManager::new(key_store, device_client);
-        identity_manager.get_key_pair("m1", "g1").unwrap();
+        let err = identity_manager.get_key_pair("m1", "g1").unwrap_err();
+        assert!(failure::Fail::iter_chain(&err).any(|err| err
+            .to_string()
+            .contains("KeyStore could not fetch keys for module")));
     }
 
     #[test]

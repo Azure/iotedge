@@ -9,11 +9,11 @@
  */
 
 /// EndpointSettings : Configuration for a network endpoint.
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
 pub struct EndpointSettings {
     #[serde(rename = "IPAMConfig", skip_serializing_if = "Option::is_none")]
     ipam_config: Option<crate::models::EndpointIpamConfig>,

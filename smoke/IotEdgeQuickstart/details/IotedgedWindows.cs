@@ -111,7 +111,7 @@ namespace IotEdgeQuickstart.Details
             return Task.CompletedTask;
         }
 
-        public async Task Configure(string connectionString, string image, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
+        public async Task Configure(DeviceProvisioningMethod method, string image, string hostname, string deviceCaCert, string deviceCaPk, string deviceCaCerts, LogLevel runtimeLogLevel)
         {
             const string HidePowerShellProgressBar = "$ProgressPreference='SilentlyContinue'";
 
@@ -138,8 +138,8 @@ namespace IotEdgeQuickstart.Details
                 if (this.requireEdgeInstallation)
                 {
                     Console.WriteLine("Installing iotedge...");
-                    args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Install-SecurityDaemon -Manual " +
-                           $"-ContainerOs Windows -DeviceConnectionString '{connectionString}' -AgentImage '{image}'";
+                    args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Install-SecurityDaemon " +
+                           $"-ContainerOs Windows -AgentImage '{image}'";
 
                     this.proxy.ForEach(proxy => { args += $" -Proxy '{proxy}'"; });
 
@@ -151,9 +151,24 @@ namespace IotEdgeQuickstart.Details
                 else
                 {
                     Console.WriteLine("Initializing iotedge...");
-                    args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Initialize-IoTEdge -Manual " +
-                           $"-ContainerOs Windows -DeviceConnectionString '{connectionString}' -AgentImage '{image}'";
+                    args = $". {this.scriptDir}\\IotEdgeSecurityDaemon.ps1; Initialize-IoTEdge " +
+                           $"-ContainerOs Windows -AgentImage '{image}'";
                 }
+
+                args += method.ManualConnectionString.Map(
+                    cs => { return $" -Manual -DeviceConnectionString '{cs}'"; }).GetOrElse(string.Empty);
+
+                args += method.Dps.Map(
+                    dps =>
+                    {
+                        string dpsArgs = string.Empty;
+                        dpsArgs += $" -Dps -ScopeId '{dps.ScopeId}'";
+                        dps.RegistrationId.ForEach(id => { dpsArgs += $" -RegistrationId '{id}'"; });
+                        dps.DeviceIdentityCertificate.ForEach(certPath => { dpsArgs += $" -X509IdentityCertificate '{certPath}'"; });
+                        dps.DeviceIdentityPrivateKey.ForEach(pkPath => { dpsArgs += $" -X509IdentityPrivateKey '{pkPath}'"; });
+                        dps.SymmetricKey.ForEach(symmKey => { dpsArgs += $" -SymmetricKey '{symmKey}'"; });
+                        return dpsArgs;
+                    }).GetOrElse(string.Empty);
 
                 string commandForDebug = args;
 
@@ -259,6 +274,15 @@ namespace IotEdgeQuickstart.Details
 
         public Task Reset() => Task.CompletedTask;
 
+        static void WriteToConsole(string header, string[] result)
+        {
+            Console.WriteLine(header);
+            foreach (string r in result)
+            {
+                Console.WriteLine(r);
+            }
+        }
+
         void UpdateConfigYamlFile(string deviceCaCert, string deviceCaPk, string trustBundleCerts, LogLevel runtimeLogLevel)
         {
             string config = File.ReadAllText(this.configYamlFile);
@@ -301,15 +325,6 @@ namespace IotEdgeQuickstart.Details
 
             Console.WriteLine($"Explicitly set environment variable [IOTEDGE_HOST={result.Groups[1].Value}]");
             Environment.SetEnvironmentVariable("IOTEDGE_HOST", result.Groups[1].Value);
-        }
-
-        static void WriteToConsole(string header, string[] result)
-        {
-            Console.WriteLine(header);
-            foreach (string r in result)
-            {
-                Console.WriteLine(r);
-            }
         }
     }
 }

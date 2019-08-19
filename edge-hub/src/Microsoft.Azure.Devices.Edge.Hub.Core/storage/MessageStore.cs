@@ -7,8 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-    using App.Metrics;
-    using App.Metrics.Timer;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core;
@@ -92,26 +90,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             // entity store. But that should be rare enough that it might be okay. Also it is better than not being able to forward the message.
             // Alternative is to add retry logic to the pump, but that is more complicated, and could affect performance.
             // TODO - Need to support transactions for these operations. The underlying storage layers support it.
-            using (Metrics.MessageStoreLatency(endpointId))
-            {
-                await this.messageEntityStore.PutOrUpdate(
-                    edgeMessageId,
-                    new MessageWrapper(message),
-                    (m) =>
-                    {
-                        m.RefCount++;
-                        return m;
-                    });
-            }
+            await this.messageEntityStore.PutOrUpdate(
+                edgeMessageId,
+                new MessageWrapper(message),
+                (m) =>
+                {
+                    m.RefCount++;
+                    return m;
+                });
 
             try
             {
-                using (Metrics.SequentialStoreLatency(endpointId))
-                {
-                    long offset = await sequentialStore.Append(new MessageRef(edgeMessageId));
-                    Events.MessageAdded(offset, edgeMessageId, endpointId, this.messageCount);
-                    return offset;
-                }
+                long offset = await sequentialStore.Append(new MessageRef(edgeMessageId));
+                Events.MessageAdded(offset, edgeMessageId, endpointId, this.messageCount);
+                return offset;
             }
             catch (Exception)
             {
@@ -521,34 +513,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             public string EdgeMessageId { get; }
 
             public DateTime TimeStamp { get; }
-        }
-
-        static class Metrics
-        {
-            static readonly TimerOptions MessageEntityStorePutOrUpdateLatencyOptions = new TimerOptions
-            {
-                Name = "MessageEntityStorePutOrUpdateLatencyMs",
-                MeasurementUnit = Unit.None,
-                DurationUnit = TimeUnit.Milliseconds,
-                RateUnit = TimeUnit.Seconds
-            };
-
-            static readonly TimerOptions SequentialStoreAppendLatencyOptions = new TimerOptions
-            {
-                Name = "SequentialStoreAppendLatencyMs",
-                MeasurementUnit = Unit.None,
-                DurationUnit = TimeUnit.Milliseconds,
-                RateUnit = TimeUnit.Seconds
-            };
-
-            public static IDisposable MessageStoreLatency(string identity) => Util.Metrics.Latency(GetTags(identity), MessageEntityStorePutOrUpdateLatencyOptions);
-
-            public static IDisposable SequentialStoreLatency(string identity) => Util.Metrics.Latency(GetTags(identity), SequentialStoreAppendLatencyOptions);
-
-            internal static MetricTags GetTags(string id)
-            {
-                return new MetricTags("EndpointId", id);
-            }
         }
     }
 }

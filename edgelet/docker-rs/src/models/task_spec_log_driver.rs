@@ -9,11 +9,11 @@
  */
 
 /// TaskSpecLogDriver : Specifies the log driver to use for tasks created from this spec. If not present, the default one for the swarm will be used, finally falling back to the engine default if not specified.
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct TaskSpecLogDriver {
     #[serde(rename = "Name", skip_serializing_if = "Option::is_none")]
     name: Option<String>,

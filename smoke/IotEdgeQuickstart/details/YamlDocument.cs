@@ -40,6 +40,34 @@ namespace IotEdgeQuickstart.Details
             node[leaf] = value;
         }
 
+        public void Remove(string dottedKey)
+        {
+            bool keyNotFound = false;
+            Dictionary<object, object> node = this.root;
+            string[] segments = dottedKey.Split('.');
+            foreach (string key in segments.SkipLast(1))
+            {
+                if (node.ContainsKey(key))
+                {
+                    node = (Dictionary<object, object>)node[key];
+                }
+                else
+                {
+                    keyNotFound = true;
+                    break;
+                }
+            }
+
+            if (!keyNotFound)
+            {
+                string leaf = segments.Last();
+                if (node.ContainsKey(leaf))
+                {
+                    node.Remove(leaf);
+                }
+            }
+        }
+
         public override string ToString()
         {
             var serializer = new Serializer();

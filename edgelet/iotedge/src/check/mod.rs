@@ -7,7 +7,7 @@ use std::ffi::{CStr, OsStr, OsString};
 use std::fs::File;
 use std::io::{Read, Write};
 use std::net::TcpStream;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use failure::Fail;
@@ -19,7 +19,7 @@ use libc;
 use regex::Regex;
 use serde_json;
 
-use edgelet_core::{self, MobyNetwork, Provisioning, RuntimeSettings, UrlExt};
+use edgelet_core::{self, AttestationMethod, MobyNetwork, Provisioning, RuntimeSettings, UrlExt};
 use edgelet_docker::Settings;
 use edgelet_http::client::ClientImpl;
 use edgelet_http::MaybeProxyClient;
@@ -70,6 +70,11 @@ static CHECKS: &[(
             ("container-local-time", "container time is close to host time", container_local_time),
             ("container-engine-dns", "DNS server", container_engine_dns),
             ("container-engine-ipv6", "IPv6 network configuration", container_engine_ipv6),
+            (
+                "identity-certificate-expiry",
+                "production readiness: identity certificates expiry",
+                settings_identity_certificates_expiry,
+            ),
             ("certificates-quickstart", "production readiness: certificates", settings_certificates),
             (
                 "certificates-expiry",
@@ -85,6 +90,18 @@ static CHECKS: &[(
                 "container-engine-logrotate",
                 "production readiness: logs policy",
                 container_engine_logrotate,
+            ),
+            (
+                "edge-agent-storage-mounted-from-host",
+                "production readiness: Edge Agent's storage directory is persisted on the host filesystem",
+                // Note: Keep in sync with Microsoft.Azure.Devices.Edge.Agent.Service.Program.GetStoragePath
+                |check| storage_mounted_from_host(check, "edgeAgent", "edgeAgent"),
+            ),
+            (
+                "edge-hub-storage-mounted-from-host",
+                "production readiness: Edge Hub's storage directory is persisted on the host filesystem",
+                // Note: Keep in sync with Microsoft.Azure.Devices.Edge.Hub.Service.DependencyManager.GetStoragePath
+                |check| storage_mounted_from_host(check, "edgeHub", "edgeHub"),
             ),
         ],
     ),
@@ -195,6 +212,7 @@ pub struct Check {
     docker_host_arg: Option<String>,
     docker_server_version: Option<String>,
     iothub_hostname: Option<String>,
+    device_ca_cert_path: Option<PathBuf>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -245,26 +263,23 @@ impl Check {
         } else {
             let proxy = std::env::var("HTTPS_PROXY")
                 .ok()
-                .or_else(|| std::env::var("https_proxy").ok());
-            let proxy = if let Some(proxy) = proxy {
-                let proxy = proxy
-                    .parse::<hyper::Uri>()
-                    .context(ErrorKind::FetchLatestVersions(
-                        FetchLatestVersionsReason::CreateClient,
-                    ));
-                match proxy {
-                    Ok(proxy) => future::ok(Some(proxy)),
-                    Err(err) => future::err(Error::from(err)),
-                }
-            } else {
-                future::ok(None)
-            };
-
+                .or_else(|| std::env::var("https_proxy").ok())
+                .map(|proxy| proxy.parse::<hyper::Uri>())
+                .transpose()
+                .context(ErrorKind::FetchLatestVersions(
+                    FetchLatestVersionsReason::CreateClient,
+                ));
             let hyper_client = proxy.and_then(|proxy| {
-                Ok(MaybeProxyClient::new(proxy, None, None).context(
-                    ErrorKind::FetchLatestVersions(FetchLatestVersionsReason::CreateClient),
-                )?)
+                MaybeProxyClient::new(proxy, None, None).context(ErrorKind::FetchLatestVersions(
+                    FetchLatestVersionsReason::CreateClient,
+                ))
             });
+            let hyper_client = match hyper_client {
+                Ok(hyper_client) => hyper_client,
+                Err(err) => {
+                    return future::Either::A(future::err(err.into()));
+                }
+            };
 
             let request = hyper::Request::get("https://aka.ms/latest-iotedge-stable")
                 .body(hyper::Body::default())
@@ -272,15 +287,14 @@ impl Check {
 
             future::Either::B(
                 hyper_client
-                    .and_then(|hyper_client| {
-                        hyper_client.call(request).then(|response| {
-                            let response = response.context(ErrorKind::FetchLatestVersions(
-                                FetchLatestVersionsReason::GetResponse,
-                            ))?;
-                            Ok((response, hyper_client))
-                        })
+                    .call(request)
+                    .then(|response| -> Result<_, Error> {
+                        let response = response.context(ErrorKind::FetchLatestVersions(
+                            FetchLatestVersionsReason::GetResponse,
+                        ))?;
+                        Ok(response)
                     })
-                    .and_then(move |(response, hyper_client)| match response.status() {
+                    .and_then(move |response| match response.status() {
                         hyper::StatusCode::MOVED_PERMANENTLY => {
                             let uri = response
                                 .headers()
@@ -335,7 +349,7 @@ impl Check {
             )
         };
 
-        latest_versions.then(move |latest_versions| {
+        future::Either::B(latest_versions.then(move |latest_versions| {
             Ok(Check {
                 config_file,
                 container_engine_config_path,
@@ -354,8 +368,9 @@ impl Check {
                 docker_host_arg: None,
                 docker_server_version: None,
                 iothub_hostname,
+                device_ca_cert_path: None,
             })
-        })
+        }))
     }
 
     pub fn possible_ids() -> impl Iterator<Item = &'static str> {
@@ -366,35 +381,39 @@ impl Check {
     }
 
     pub fn print_list() -> Result<(), Error> {
-        // All our text is ASCII, so we can check for number of chars rather than using unicode-segmentation to count graphemes.
+        // All our text is ASCII, so we can measure text width in bytes rather than using unicode-segmentation to count graphemes.
         let widest_section_name_len = CHECKS
             .iter()
             .map(|(section_name, _)| section_name.len())
             .max()
             .expect("Have at least one section");
+        let section_name_column_width = widest_section_name_len + 1;
         let widest_check_id_len = CHECKS
             .iter()
             .flat_map(|(_, section_checks)| *section_checks)
             .map(|(check_id, _, _)| check_id.len())
             .max()
             .expect("Have at least one check");
+        let check_id_column_width = widest_check_id_len + 1;
 
         println!(
-            "CATEGORY{}ID{}DESCRIPTION",
-            " ".repeat(widest_section_name_len - "CATEGORY".len() + 1),
-            " ".repeat(widest_check_id_len - "ID".len() + 1),
+            "{:section_name_column_width$}{:check_id_column_width$}DESCRIPTION",
+            "CATEGORY",
+            "ID",
+            section_name_column_width = section_name_column_width,
+            check_id_column_width = check_id_column_width,
         );
         println!();
 
         for (section_name, section_checks) in CHECKS {
             for (check_id, check_name, _) in *section_checks {
                 println!(
-                    "{}{}{}{}{}",
+                    "{:section_name_column_width$}{:check_id_column_width$}{}",
                     section_name,
-                    " ".repeat(widest_section_name_len - section_name.len() + 1),
                     check_id,
-                    " ".repeat(widest_check_id_len - check_id.len() + 1),
                     check_name,
+                    section_name_column_width = section_name_column_width,
+                    check_id_column_width = check_id_column_width,
                 );
             }
 
@@ -1258,6 +1277,24 @@ fn container_engine_dns(check: &mut Check) -> Result<CheckResult, failure::Error
     Ok(CheckResult::Ok)
 }
 
+fn settings_identity_certificates_expiry(check: &mut Check) -> Result<CheckResult, failure::Error> {
+    let settings = if let Some(settings) = &check.settings {
+        settings
+    } else {
+        return Ok(CheckResult::Skipped);
+    };
+
+    if let Provisioning::Dps(dps) = settings.provisioning() {
+        if let AttestationMethod::X509(x509_info) = dps.attestation() {
+            let path = x509_info.identity_cert()?;
+            return CertificateValidity::parse("DPS identity certificate", &path)?
+                .to_check_result();
+        }
+    }
+
+    Ok(CheckResult::Ignored)
+}
+
 fn settings_certificates(check: &mut Check) -> Result<CheckResult, failure::Error> {
     let settings = if let Some(settings) = &check.settings {
         settings
@@ -1265,124 +1302,83 @@ fn settings_certificates(check: &mut Check) -> Result<CheckResult, failure::Erro
         return Ok(CheckResult::Skipped);
     };
 
+    check.device_ca_cert_path = Some({
+        if let Some(certificates) = settings.certificates() {
+            certificates.device_ca_cert()?
+        } else {
+            let certs_dir = settings.homedir().join("hsm").join("certs");
+
+            let mut device_ca_cert_path = None;
+
+            let entries = std::fs::read_dir(&certs_dir).with_context(|_| {
+                format!("Could not enumerate files under {}", certs_dir.display())
+            })?;
+            for entry in entries {
+                let entry = entry.with_context(|_| {
+                    format!("Could not enumerate files under {}", certs_dir.display())
+                })?;
+                let path = entry.path();
+                if let Some(file_name) = path.file_name().and_then(OsStr::to_str) {
+                    if file_name.starts_with("device_ca_alias") && file_name.ends_with(".cert.pem")
+                    {
+                        device_ca_cert_path = Some(path);
+                        break;
+                    }
+                }
+            }
+
+            device_ca_cert_path.ok_or_else(|| {
+                Context::new(format!(
+                    "Could not find device CA certificate under {}",
+                    certs_dir.display(),
+                ))
+            })?
+        }
+    });
+
     if settings.certificates().is_none() {
-        return Ok(CheckResult::Warning(
-            Context::new(
-                "Device is using self-signed, automatically generated certs.\n\
-                 Please see https://aka.ms/iotedge-prod-checklist-certs for best practices.",
-            )
-            .into(),
-        ));
+        let CertificateValidity { not_after, .. } = CertificateValidity::parse(
+            "Device CA certificate",
+            check.device_ca_cert_path.as_ref().unwrap(),
+        )?;
+
+        let now = chrono::Utc::now();
+
+        if not_after < now {
+            return Ok(CheckResult::Warning(
+                Context::new(format!(
+                    "The Edge device is using self-signed automatically-generated development certificates.\n\
+                     The certs expired at {}. Restart the IoT Edge daemon to generate new development certs with 90-day expiry.\n\
+                     Please consider using production certificates instead. See https://aka.ms/iotedge-prod-checklist-certs for best practices.",
+                    not_after,
+                ))
+                .into(),
+            ));
+        } else {
+            return Ok(CheckResult::Warning(
+                Context::new(format!(
+                    "The Edge device is using self-signed automatically-generated development certificates.\n\
+                     They will expire in {} days (at {}) causing module-to-module and downstream device communication to fail on an active deployment.\n\
+                     After the certs have expired, restarting the IoT Edge daemon will trigger it to generate new development certs with 90-day expiry.\n\
+                     Please consider using production certificates instead. See https://aka.ms/iotedge-prod-checklist-certs for best practices.",
+                    (not_after - now).num_days(), not_after,
+                ))
+                .into(),
+            ));
+        }
     }
 
     Ok(CheckResult::Ok)
 }
 
 fn settings_certificates_expiry(check: &mut Check) -> Result<CheckResult, failure::Error> {
-    fn parse_openssl_time(
-        time: &openssl::asn1::Asn1TimeRef,
-    ) -> chrono::ParseResult<chrono::DateTime<chrono::Utc>> {
-        // openssl::asn1::Asn1TimeRef does not expose any way to convert the ASN1_TIME to a Rust-friendly type
-        //
-        // Its Display impl uses ASN1_TIME_print, so we convert it into a String and parse it back
-        // into a chrono::DateTime<chrono::Utc>
-        let time = time.to_string();
-        let time = chrono::NaiveDateTime::parse_from_str(&time, "%b %e %H:%M:%S %Y GMT")?;
-        Ok(chrono::DateTime::<chrono::Utc>::from_utc(time, chrono::Utc))
-    }
-
-    let settings = if let Some(settings) = &check.settings {
-        settings
+    let device_ca_cert_path = if let Some(device_ca_cert_path) = &check.device_ca_cert_path {
+        device_ca_cert_path
     } else {
         return Ok(CheckResult::Skipped);
     };
 
-    let (device_ca_cert_path, device_ca_cert_path_source) = if let Some(certificates) =
-        settings.certificates()
-    {
-        (
-            certificates.device_ca_cert().to_owned(),
-            Cow::Borrowed("certificates.device_ca_cert"),
-        )
-    } else {
-        let certs_dir = settings.homedir().join("hsm").join("certs");
-
-        let mut device_ca_cert_path = None;
-
-        let entries = std::fs::read_dir(&certs_dir)
-            .with_context(|_| format!("Could not enumerate files under {}", certs_dir.display()))?;
-        for entry in entries {
-            let entry = entry.with_context(|_| {
-                format!("Could not enumerate files under {}", certs_dir.display())
-            })?;
-            let path = entry.path();
-            if let Some(file_name) = path.file_name().and_then(OsStr::to_str) {
-                if file_name.starts_with("device_ca_alias") && file_name.ends_with(".cert.pem") {
-                    device_ca_cert_path = Some(path);
-                    break;
-                }
-            }
-        }
-
-        let device_ca_cert_path = device_ca_cert_path.ok_or_else(|| {
-            Context::new(format!(
-                "Could not find device CA certificate under {}",
-                certs_dir.display(),
-            ))
-        })?;
-        let device_ca_cert_path_source = device_ca_cert_path.to_string_lossy().into_owned();
-        (device_ca_cert_path, Cow::Owned(device_ca_cert_path_source))
-    };
-
-    let (not_after, not_before) = File::open(device_ca_cert_path)
-        .map_err(failure::Error::from)
-        .and_then(|mut device_ca_cert_file| {
-            let mut device_ca_cert = vec![];
-            device_ca_cert_file.read_to_end(&mut device_ca_cert)?;
-            let device_ca_cert = openssl::x509::X509::stack_from_pem(&device_ca_cert)?;
-            let device_ca_cert = &device_ca_cert[0];
-
-            let not_after = parse_openssl_time(device_ca_cert.not_after())?;
-            let not_before = parse_openssl_time(device_ca_cert.not_before())?;
-
-            Ok((not_after, not_before))
-        })
-        .with_context(|_| {
-            format!(
-                "Could not parse {} as a valid certificate file",
-                device_ca_cert_path_source,
-            )
-        })?;
-
-    let now = chrono::Utc::now();
-
-    if not_before > now {
-        return Err(Context::new(format!(
-            "Device CA certificate in {} has not-before time {} which is in the future",
-            device_ca_cert_path_source, not_before,
-        ))
-        .into());
-    }
-
-    if not_after < now {
-        return Err(Context::new(format!(
-            "Device CA certificate in {} expired at {}",
-            device_ca_cert_path_source, not_after,
-        ))
-        .into());
-    }
-
-    if not_after < now + chrono::Duration::days(7) {
-        return Ok(CheckResult::Warning(
-            Context::new(format!(
-                "Device CA certificate in {} will expire soon ({})",
-                device_ca_cert_path_source, not_after,
-            ))
-            .into(),
-        ));
-    }
-
-    Ok(CheckResult::Ok)
+    CertificateValidity::parse("Device CA certificate", &device_ca_cert_path)?.to_check_result()
 }
 
 fn settings_moby_runtime_uri(check: &mut Check) -> Result<CheckResult, failure::Error> {
@@ -1503,6 +1499,80 @@ fn container_engine_logrotate(check: &mut Check) -> Result<CheckResult, failure:
     Ok(CheckResult::Ok)
 }
 
+fn storage_mounted_from_host(
+    check: &mut Check,
+    container_name: &'static str,
+    storage_directory_name: &'static str,
+) -> Result<CheckResult, failure::Error> {
+    lazy_static::lazy_static! {
+        static ref STORAGE_FOLDER_ENV_VAR_KEY_REGEX: Regex =
+            Regex::new("(?i)^storagefolder=(.*)")
+            .expect("This hard-coded regex is expected to be valid.");
+    }
+
+    let docker_host_arg = if let Some(docker_host_arg) = &check.docker_host_arg {
+        docker_host_arg
+    } else {
+        return Ok(CheckResult::Skipped);
+    };
+
+    let inspect_result = inspect_container(docker_host_arg, container_name)?;
+
+    let temp_dir = inspect_result
+        .config()
+        .and_then(docker::models::ContainerConfig::env)
+        .into_iter()
+        .flatten()
+        .find_map(|env| {
+            STORAGE_FOLDER_ENV_VAR_KEY_REGEX
+                .captures(env)
+                .and_then(|capture| capture.get(1))
+                .map(|match_| match_.as_str())
+        })
+        .unwrap_or(
+            // Hard-code the value here rather than using the tempfile crate. It needs to match .Net Core's implementation,
+            // and needs to be in the context of the container user instead of the host running `iotedge check`.
+            if cfg!(windows) {
+                r"C:\Windows\Temp"
+            } else {
+                "/tmp"
+            },
+        );
+
+    let storage_directory = Path::new(&*temp_dir).join(storage_directory_name);
+
+    let mounted_directories = inspect_result
+        .mounts()
+        .into_iter()
+        .flatten()
+        .filter_map(|mount| mount.destination().map(Path::new));
+
+    let volume_directories = inspect_result
+        .config()
+        .and_then(docker::models::ContainerConfig::volumes)
+        .map(std::collections::HashMap::keys)
+        .into_iter()
+        .flatten()
+        .map(Path::new);
+
+    if !mounted_directories
+        .chain(volume_directories)
+        .any(|container_directory| container_directory == storage_directory)
+    {
+        return Ok(CheckResult::Warning(
+            Context::new(format!(
+                "The {} module is not configured to persist its {} directory on the host filesystem.\n\
+                 Data might be lost if the module is deleted or updated.\n\
+                 Please see https://aka.ms/iotedge-storage-host for best practices.",
+                container_name,
+                storage_directory.display(),
+            )).into(),
+        ));
+    }
+
+    Ok(CheckResult::Ok)
+}
+
 fn connection_to_dps_endpoint(check: &mut Check) -> Result<CheckResult, failure::Error> {
     let settings = if let Some(settings) = &check.settings {
         settings
@@ -1614,15 +1684,7 @@ fn edge_hub_ports_on_host(check: &mut Check) -> Result<CheckResult, failure::Err
         return Ok(CheckResult::Skipped);
     };
 
-    let inspect_result = docker(docker_host_arg, vec!["inspect", "edgeHub"])
-        .map_err(|(_, err)| err)
-        .and_then(|output| {
-            let (inspect_result,): (docker::models::InlineResponse200,) =
-                serde_json::from_slice(&output)
-                    .context("could not parse result of docker inspect")?;
-            Ok(inspect_result)
-        })
-        .context("Could not check current state of Edge Hub container")?;
+    let inspect_result = inspect_container(docker_host_arg, "edgeHub")?;
 
     let is_running = inspect_result
         .state()
@@ -1687,6 +1749,90 @@ fn edge_hub_ports_on_host(check: &mut Check) -> Result<CheckResult, failure::Err
     Ok(CheckResult::Ok)
 }
 
+#[derive(Debug)]
+struct CertificateValidity<'a> {
+    cert_name: &'a str,
+    cert_path: &'a Path,
+    not_after: chrono::DateTime<chrono::Utc>,
+    not_before: chrono::DateTime<chrono::Utc>,
+}
+
+impl<'a> CertificateValidity<'a> {
+    fn parse(cert_name: &'a str, cert_path: &'a Path) -> Result<Self, failure::Error> {
+        fn parse_openssl_time(
+            time: &openssl::asn1::Asn1TimeRef,
+        ) -> chrono::ParseResult<chrono::DateTime<chrono::Utc>> {
+            // openssl::asn1::Asn1TimeRef does not expose any way to convert the ASN1_TIME to a Rust-friendly type
+            //
+            // Its Display impl uses ASN1_TIME_print, so we convert it into a String and parse it back
+            // into a chrono::DateTime<chrono::Utc>
+            let time = time.to_string();
+            let time = chrono::NaiveDateTime::parse_from_str(&time, "%b %e %H:%M:%S %Y GMT")?;
+            Ok(chrono::DateTime::<chrono::Utc>::from_utc(time, chrono::Utc))
+        }
+
+        let (not_after, not_before) = File::open(cert_path)
+            .map_err(failure::Error::from)
+            .and_then(|mut device_ca_cert_file| {
+                let mut device_ca_cert = vec![];
+                device_ca_cert_file.read_to_end(&mut device_ca_cert)?;
+                let device_ca_cert = openssl::x509::X509::stack_from_pem(&device_ca_cert)?;
+                let device_ca_cert = &device_ca_cert[0];
+
+                let not_after = parse_openssl_time(device_ca_cert.not_after())?;
+                let not_before = parse_openssl_time(device_ca_cert.not_before())?;
+
+                Ok((not_after, not_before))
+            })
+            .with_context(|_| {
+                format!(
+                    "Could not parse {} as a valid certificate file",
+                    cert_path.display(),
+                )
+            })?;
+
+        Ok(CertificateValidity {
+            cert_name,
+            cert_path,
+            not_after,
+            not_before,
+        })
+    }
+
+    fn to_check_result(&self) -> Result<CheckResult, failure::Error> {
+        let cert_path_displayable = self.cert_path.display();
+
+        let now = chrono::Utc::now();
+
+        if self.not_before > now {
+            Err(Context::new(format!(
+                "{} at {} has not-before time {} which is in the future",
+                self.cert_name, cert_path_displayable, self.not_before,
+            ))
+            .into())
+        } else if self.not_after < now {
+            Err(Context::new(format!(
+                "{} at {} expired at {}",
+                self.cert_name, cert_path_displayable, self.not_after,
+            ))
+            .into())
+        } else if self.not_after < now + chrono::Duration::days(7) {
+            Ok(CheckResult::Warning(
+                Context::new(format!(
+                    "{} at {} will expire soon ({}, in {} days)",
+                    self.cert_name,
+                    cert_path_displayable,
+                    self.not_after,
+                    (self.not_after - now).num_days(),
+                ))
+                .into(),
+            ))
+        } else {
+            Ok(CheckResult::Ok)
+        }
+    }
+}
+
 fn docker<I>(docker_host_arg: &str, args: I) -> Result<Vec<u8>, (Option<String>, failure::Error)>
 where
     I: IntoIterator,
@@ -1716,6 +1862,21 @@ where
     }
 
     Ok(output.stdout)
+}
+
+fn inspect_container(
+    docker_host_arg: &str,
+    name: &str,
+) -> Result<docker::models::InlineResponse200, failure::Error> {
+    Ok(docker(docker_host_arg, &["inspect", name])
+        .map_err(|(_, err)| err)
+        .and_then(|output| {
+            let (inspect_result,): (docker::models::InlineResponse200,) =
+                serde_json::from_slice(&output)
+                    .context("Could not parse result of docker inspect")?;
+            Ok(inspect_result)
+        })
+        .with_context(|_| format!("Could not check current state of {} container", name))?)
 }
 
 // Resolves the given `ToSocketAddrs`, then connects to the first address via TCP and completes a TLS handshake.
@@ -1851,7 +2012,7 @@ mod tests {
     fn config_file_checks_ok() {
         let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
 
-        for filename in &["sample_settings.yaml", "sample_settings.tg.yaml"] {
+        for filename in &["sample_settings.yaml", "sample_settings.tg.filepaths.yaml"] {
             let config_file = format!(
                 "{}/../edgelet-docker/test/{}/{}",
                 env!("CARGO_MANIFEST_DIR"),

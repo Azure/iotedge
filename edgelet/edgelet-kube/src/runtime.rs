@@ -14,9 +14,9 @@ use hyper::{Body, Chunk as HyperChunk, Request};
 use hyper_tls::HttpsConnector;
 
 use edgelet_core::{
-    AuthId, Authenticator, LogOptions, MakeModuleRuntime, ModuleRegistry, ModuleRuntime,
-    ModuleRuntimeState, ModuleSpec, ProvisioningResult as CoreProvisioningResult, RuntimeOperation,
-    SystemInfo,
+    AuthId, Authenticator, GetTrustBundle, LogOptions, MakeModuleRuntime, ModuleRegistry,
+    ModuleRuntime, ModuleRuntimeState, ModuleSpec, ProvisioningResult as CoreProvisioningResult,
+    RuntimeOperation, SystemInfo,
 };
 use edgelet_docker::DockerConfig;
 use kube_client::{
@@ -26,7 +26,7 @@ use provisioning::ProvisioningResult;
 
 use crate::convert::{auth_to_image_pull_secret, pod_to_module};
 use crate::error::{Error, ErrorKind};
-use crate::module::{authenticate, create_module, KubeModule};
+use crate::module::{authenticate, create_module, init_trust_bundle, KubeModule};
 use crate::settings::Settings;
 
 pub struct KubeModuleRuntime<T, S> {
@@ -162,14 +162,18 @@ impl MakeModuleRuntime
     fn make_runtime(
         settings: Self::Settings,
         provisioning_result: Self::ProvisioningResult,
+        crypto: impl GetTrustBundle + 'static,
     ) -> Self::Future {
         let settings = settings
             .with_device_id(provisioning_result.device_id())
             .with_iot_hub_hostname(provisioning_result.hub_name());
+
         let fut = get_config()
             .map(|config| KubeModuleRuntime::new(KubeClient::new(config), settings))
             .map_err(Error::from)
-            .into_future();
+            .map(|runtime| init_trust_bundle(&runtime, &crypto).map(|_| runtime))
+            .into_future()
+            .flatten();
 
         Box::new(fut)
     }

@@ -20,9 +20,9 @@ use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig};
 use edgelet_core::{
-    AuthId, Authenticator, Ipam as CoreIpam, LogOptions, MakeModuleRuntime, MobyNetwork, Module,
-    ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec, RegistryOperation,
-    RuntimeOperation, SystemInfo as CoreSystemInfo, UrlExt,
+    AuthId, Authenticator, GetTrustBundle, Ipam as CoreIpam, LogOptions, MakeModuleRuntime,
+    MobyNetwork, Module, ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
+    RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, UrlExt,
 };
 use edgelet_http::{Pid, UrlConnector};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
@@ -77,6 +77,12 @@ impl DockerModuleRuntime {
             .iter()
             .map(|(key, value)| format!("{}={}", key, value))
             .collect()
+    }
+}
+
+impl std::fmt::Debug for DockerModuleRuntime {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DockerModuleRuntime").finish()
     }
 }
 
@@ -182,7 +188,11 @@ impl MakeModuleRuntime for DockerModuleRuntime {
     type Error = Error;
     type Future = Box<dyn Future<Item = Self, Error = Self::Error> + Send>;
 
-    fn make_runtime(settings: Settings, _: ProvisioningResult) -> Self::Future {
+    fn make_runtime(
+        settings: Settings,
+        _: ProvisioningResult,
+        _: impl GetTrustBundle,
+    ) -> Self::Future {
         info!("Initializing module runtime...");
 
         // Clippy incorrectly flags the use of `.map(..).unwrap_or_else(..)` code as being replaceable
@@ -897,7 +907,7 @@ mod tests {
 
     use std::path::Path;
 
-    use ::config::{Config, File, FileFormat};
+    use config::{Config, File, FileFormat};
     use futures::future::FutureResult;
     use futures::stream::Empty;
     use json_patch::merge;
@@ -907,6 +917,7 @@ mod tests {
         Certificates, Connect, Listen, ModuleRegistry, ModuleTop, Provisioning, RuntimeSettings,
         WatchdogSettings,
     };
+    use edgelet_test_utils::crypto::TestHsm;
     use provisioning::ReprovisioningStatus;
 
     fn provisioning_result() -> ProvisioningResult {
@@ -917,6 +928,10 @@ mod tests {
             ReprovisioningStatus::DeviceDataNotUpdated,
             None,
         )
+    }
+
+    fn crypto() -> impl GetTrustBundle {
+        TestHsm::default()
     }
 
     fn make_settings(merge_json: Option<JsonValue>) -> Settings {
@@ -963,30 +978,33 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "URL does not have a recognized scheme")]
     fn invalid_uri_prefix_fails() {
         let settings = make_settings(Some(json!({
             "moby_runtime": {
                 "uri": "foo:///this/is/not/valid"
             }
         })));
-        let _runtime = DockerModuleRuntime::make_runtime(settings, provisioning_result())
+        let err = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
             .wait()
-            .unwrap();
+            .unwrap_err();
+        assert!(failure::Fail::iter_chain(&err).any(|err| err
+            .to_string()
+            .contains("URL does not have a recognized scheme")));
     }
 
     #[cfg(unix)]
     #[test]
-    #[should_panic(expected = "Socket file could not be found")]
     fn invalid_uds_path_fails() {
         let settings = make_settings(Some(json!({
             "moby_runtime": {
                 "uri": "unix:///this/file/does/not/exist"
             }
         })));
-        let _runtime = DockerModuleRuntime::make_runtime(settings, provisioning_result())
+        let err = DockerModuleRuntime::make_runtime(settings, provisioning_result(), crypto())
             .wait()
-            .unwrap();
+            .unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("Socket file could not be found")));
     }
 
     #[test]
@@ -1306,6 +1324,7 @@ mod tests {
         fn make_runtime(
             _settings: Self::Settings,
             _provisioning_result: Self::ProvisioningResult,
+            _crypto: impl GetTrustBundle,
         ) -> Self::Future {
             unimplemented!()
         }

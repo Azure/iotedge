@@ -127,6 +127,7 @@ mod tests {
 
     use edgelet_core::{MakeModuleRuntime, ModuleRuntimeState, ModuleStatus};
     use edgelet_http::route::Parameters;
+    use edgelet_test_utils::crypto::TestHsm;
     use edgelet_test_utils::module::*;
     use management::models::{Config, ErrorResponse};
 
@@ -144,10 +145,14 @@ mod tests {
                 .with_image_id(Some("image-id".to_string()));
             let config = TestConfig::new("microsoft/test-image".to_string());
             let module = TestModule::new("test-module".to_string(), config, Ok(state));
-            TestRuntime::make_runtime(TestSettings::new(), TestProvisioningResult::new())
-                .wait()
-                .unwrap()
-                .with_module(Ok(module))
+            TestRuntime::make_runtime(
+                TestSettings::new(),
+                TestProvisioningResult::new(),
+                TestHsm::default(),
+            )
+            .wait()
+            .unwrap()
+            .with_module(Ok(module))
         };
     }
 
@@ -220,10 +225,14 @@ mod tests {
 
     #[test]
     fn runtime_error() {
-        let runtime = TestRuntime::make_runtime(TestSettings::new(), TestProvisioningResult::new())
-            .wait()
-            .unwrap()
-            .with_module(Err(Error::General));
+        let runtime = TestRuntime::make_runtime(
+            TestSettings::new(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+        )
+        .wait()
+        .unwrap()
+        .with_module(Err(Error::General));
         let handler = CreateModule::new(runtime);
         let config = Config::new(json!({"image":"microsoft/test-image"}));
         let spec = ModuleSpec::new("image-id".to_string(), "docker".to_string(), config);
@@ -253,10 +262,14 @@ mod tests {
 
     #[test]
     fn bad_settings() {
-        let runtime = TestRuntime::make_runtime(TestSettings::new(), TestProvisioningResult::new())
-            .wait()
-            .unwrap()
-            .with_module(Err(Error::General));
+        let runtime = TestRuntime::make_runtime(
+            TestSettings::new(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+        )
+        .wait()
+        .unwrap()
+        .with_module(Err(Error::General));
         let handler = CreateModule::new(runtime);
         let config = Config::new(json!({}));
         let spec = ModuleSpec::new("image-id".to_string(), "docker".to_string(), config);

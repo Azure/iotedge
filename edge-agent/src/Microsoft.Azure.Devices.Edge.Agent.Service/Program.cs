@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Autofac;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream;
     using Microsoft.Azure.Devices.Edge.Agent.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -107,6 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 bool closeOnIdleTimeout = configuration.GetValue(Constants.CloseOnIdleTimeout, false);
                 int idleTimeoutSecs = configuration.GetValue(Constants.IdleTimeoutSecs, 300);
                 TimeSpan idleTimeout = TimeSpan.FromSeconds(idleTimeoutSecs);
+                ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(configuration.GetSection("experimentalFeatures"), logger);
                 string iothubHostname;
                 string deviceId;
                 switch (mode.ToLowerInvariant())
@@ -142,7 +144,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                     case "twin":
                         bool enableStreams = configuration.GetValue(Constants.EnableStreams, false);
                         int requestTimeoutSecs = configuration.GetValue(Constants.RequestTimeoutSecs, 600);
-                        bool disableSubscriptions = configuration.GetValue(Constants.DisableCloudSubscriptions, false);
                         builder.RegisterModule(
                             new TwinConfigSourceModule(
                                 iothubHostname,
@@ -153,7 +154,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                                 TimeSpan.FromSeconds(configRefreshFrequencySecs),
                                 enableStreams,
                                 TimeSpan.FromSeconds(requestTimeoutSecs),
-                                !disableSubscriptions));
+                                experimentalFeatures));
                         break;
 
                     case "local":
@@ -175,6 +176,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)
                 = ShutdownHandler.Init(ShutdownWaitPeriod, logger);
+
+            // Register request handlers
+            await RegisterRequestHandlers(container);
 
             // Initialize stream request listener
             IStreamRequestListener streamRequestListener = await container.Resolve<Task<IStreamRequestListener>>();
@@ -227,6 +231,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             return returnCode;
         }
 
+        static async Task RegisterRequestHandlers(IContainer container)
+        {
+            var requestHandlerTasks = container.Resolve<IEnumerable<Task<IRequestHandler>>>();
+            IRequestHandler[] requestHandlers = await Task.WhenAll(requestHandlerTasks);
+            IRequestManager requestManager = container.Resolve<IRequestManager>();
+            requestManager.RegisterHandlers(requestHandlers);
+        }
+
         static ILogger SetupLogger(IConfiguration configuration)
         {
             string logLevel = configuration.GetValue($"{Logger.RuntimeLogLevelEnvKey}", "info");
@@ -250,6 +262,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
         }
 
+        // Note: Keep in sync with iotedge-check's edge-agent-storage-mounted-from-host check (edgelet/iotedge/src/check/mod.rs)
         static string GetStoragePath(IConfiguration configuration)
         {
             string baseStoragePath = configuration.GetValue<string>("StorageFolder");

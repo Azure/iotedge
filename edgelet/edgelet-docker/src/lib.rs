@@ -15,4 +15,4 @@ pub use crate::config::DockerConfig;
 pub use error::{Error, ErrorKind};
 pub use module::{DockerModule, MODULE_TYPE};
 pub use runtime::DockerModuleRuntime;
-pub use settings::{Settings, DEFAULTS};
+pub use settings::{LoadSettingsError, Settings, DEFAULTS};

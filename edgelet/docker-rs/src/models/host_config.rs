@@ -9,11 +9,11 @@
  */
 
 /// HostConfig : Container configuration that depends on the host we are running on
-use serde_derive::{Deserialize, Serialize};
+
 #[allow(unused_imports)]
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
 pub struct HostConfig {
     /// An integer value representing this container's relative CPU weight versus other containers.
     #[serde(rename = "CpuShares", skip_serializing_if = "Option::is_none")]
@@ -205,7 +205,7 @@ pub struct HostConfig {
     userns_mode: Option<String>,
     /// Size of `/dev/shm` in bytes. If omitted, the system uses 64MB.
     #[serde(rename = "ShmSize", skip_serializing_if = "Option::is_none")]
-    shm_size: Option<i32>,
+    shm_size: Option<i64>,
     /// A list of kernel parameters (sysctls) to set in the container. For example: `{\"net.ipv4.ip_forward\": \"1\"}`
     #[serde(rename = "Sysctls", skip_serializing_if = "Option::is_none")]
     sysctls: Option<::std::collections::HashMap<String, String>>,
@@ -1360,16 +1360,16 @@ impl HostConfig {
         self.userns_mode = None;
     }
 
-    pub fn set_shm_size(&mut self, shm_size: i32) {
+    pub fn set_shm_size(&mut self, shm_size: i64) {
         self.shm_size = Some(shm_size);
     }
 
-    pub fn with_shm_size(mut self, shm_size: i32) -> Self {
+    pub fn with_shm_size(mut self, shm_size: i64) -> Self {
         self.shm_size = Some(shm_size);
         self
     }
 
-    pub fn shm_size(&self) -> Option<i32> {
+    pub fn shm_size(&self) -> Option<i64> {
         self.shm_size
     }
 
