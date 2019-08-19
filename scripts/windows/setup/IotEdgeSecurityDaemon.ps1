@@ -229,7 +229,7 @@ function Initialize-IoTEdge {
         throw
     }
 
-    Setup-Environment -ContainerOs $ContainerOs -SkipArchCheck -SkipBatteryCheck
+    Setup-Environment -ContainerOs $ContainerOs -SkipBatteryCheck
 
     $configPath = Join-Path -Path $EdgeDataDirectory -ChildPath 'config.yaml'
     if (Test-Path $configPath) {
@@ -331,7 +331,6 @@ function Update-IoTEdge {
         -InvokeWebRequestParameters $InvokeWebRequestParameters `
         -RestartIfNeeded:$RestartIfNeeded `
         -Update `
-        -SkipArchCheck `
         -SkipBatteryCheck
 }
 
@@ -389,9 +388,6 @@ function Deploy-IoTEdge {
         # Restart if needed without prompting.
         [Switch] $RestartIfNeeded,
 
-        # Skip processor architecture check.
-        [Switch] $SkipArchCheck,
-
         # Skip battery check.
         [Switch] $SkipBatteryCheck
     )
@@ -402,7 +398,6 @@ function Deploy-IoTEdge {
         -OfflineInstallationPath $OfflineInstallationPath `
         -InvokeWebRequestParameters $InvokeWebRequestParameters `
         -RestartIfNeeded:$RestartIfNeeded `
-        -SkipArchCheck:$SkipArchCheck `
         -SkipBatteryCheck:$SkipBatteryCheck
 
     Set-SystemPath
@@ -563,9 +558,6 @@ function Install-IoTEdge {
         # Restart if needed without prompting.
         [Switch] $RestartIfNeeded,
 
-        # Skip processor architecture check.
-        [Switch] $SkipArchCheck,
-
         # Skip battery check.
         [Switch] $SkipBatteryCheck
     )
@@ -585,7 +577,6 @@ function Install-IoTEdge {
         -OfflineInstallationPath $OfflineInstallationPath `
         -InvokeWebRequestParameters $InvokeWebRequestParameters `
         -RestartIfNeeded:$RestartIfNeeded `
-        -SkipArchCheck:$SkipArchCheck `
         -SkipBatteryCheck:$SkipBatteryCheck
 
     if (-not $script:installPackagesCompleted) {
@@ -722,7 +713,6 @@ function Install-Packages(
         [HashTable] $InvokeWebRequestParameters,
         [Switch] $RestartIfNeeded,
         [Switch] $Update,
-        [Switch] $SkipArchCheck,
         [Switch] $SkipBatteryCheck
     )
 {
@@ -785,7 +775,7 @@ function Install-Packages(
         }
     }
 
-    Setup-Environment -ContainerOs $ContainerOs -SkipArchCheck:$SkipArchCheck -SkipBatteryCheck:$SkipBatteryCheck
+    Setup-Environment -ContainerOs $ContainerOs -SkipBatteryCheck:$SkipBatteryCheck
 
     $restartNeeded = $false
 
@@ -833,7 +823,7 @@ function Install-Packages(
 
 function Setup-Environment {
     [CmdletBinding()]
-    param ([string] $ContainerOs, [switch] $SkipArchCheck, [switch] $SkipBatteryCheck)
+    param ([string] $ContainerOs, [switch] $SkipBatteryCheck)
 
     $currentWindowsBuild = Get-WindowsBuild
     $preRequisitesMet = switch ($ContainerOs) {
@@ -870,12 +860,6 @@ function Setup-Environment {
                 $true
             }
         }
-    }
-
-    if ((-not $SkipArchCheck) -and ($env:PROCESSOR_ARCHITECTURE -eq 'ARM')) {
-        Write-HostRed ('IoT Edge is currently not supported on Windows ARM32. ' +
-            'See https://aka.ms/iotedge-platsup for more details.')
-        $preRequisitesMet = $false
     }
 
     if (Test-IoTCore) {
@@ -1141,9 +1125,18 @@ function Get-IoTEdge([ref] $RestartNeeded, [bool] $Update) {
             Invoke-Native 'ApplyUpdate -clear'
         }
 
+        $edgeCabUrl = switch ($env:PROCESSOR_ARCHITECTURE) {
+            'AMD64' {
+                'https://aka.ms/iotedged-windows-latest-cab'
+            }
+            'ARM' {
+                'https://aka.ms/iotedged-windows-arm32v7-latest-cab'
+            }
+        }
+
         $edgeArchivePath = Download-File `
             -Description 'IoT Edge' `
-            -Url 'https://aka.ms/iotedged-windows-latest-cab' `
+            -Url $edgeCabUrl `
             -DownloadFilename 'microsoft-azure-iotedge.cab' `
             -LocalCacheGlob 'microsoft-azure-iotedge.cab' `
             -Delete ([ref] $deleteEdgeArchive)
