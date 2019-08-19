@@ -1349,7 +1349,6 @@ fn settings_certificates(check: &mut Check) -> Result<CheckResult, failure::Erro
                 Context::new(format!(
                     "The Edge device is using self-signed automatically-generated development certificates.\n\
                      The certs expired at {}. Restart the IoT Edge daemon to generate new development certs with 90-day expiry.\n\
-                     \n\
                      Please consider using production certificates instead. See https://aka.ms/iotedge-prod-checklist-certs for best practices.",
                     not_after,
                 ))
@@ -1361,7 +1360,6 @@ fn settings_certificates(check: &mut Check) -> Result<CheckResult, failure::Erro
                     "The Edge device is using self-signed automatically-generated development certificates.\n\
                      They will expire in {} days (at {}) causing module-to-module and downstream device communication to fail on an active deployment.\n\
                      After the certs have expired, restarting the IoT Edge daemon will trigger it to generate new development certs with 90-day expiry.\n\
-                     \n\
                      Please consider using production certificates instead. See https://aka.ms/iotedge-prod-checklist-certs for best practices.",
                     (not_after - now).num_days(), not_after,
                 ))
@@ -1565,7 +1563,6 @@ fn storage_mounted_from_host(
             Context::new(format!(
                 "The {} module is not configured to persist its {} directory on the host filesystem.\n\
                  Data might be lost if the module is deleted or updated.\n\
-                 \n\
                  Please see https://aka.ms/iotedge-storage-host for best practices.",
                 container_name,
                 storage_directory.display(),
