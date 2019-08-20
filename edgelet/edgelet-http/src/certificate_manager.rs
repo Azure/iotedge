@@ -73,7 +73,7 @@ impl<C: CreateCertificate + Clone> CertificateManager<C> {
             X509::stack_from_pem(cert).with_context(|_| ErrorKind::CertificateConversionError)?;
 
         let mut ca_certs = Stack::new().with_context(|_| ErrorKind::CertificateConversionError)?;
-        for cert in certs.split_off(1) {
+        for cert in certs.split_off(1).into_iter().rev() {
             ca_certs
                 .push(cert)
                 .with_context(|_| ErrorKind::CertificateConversionError)?;
