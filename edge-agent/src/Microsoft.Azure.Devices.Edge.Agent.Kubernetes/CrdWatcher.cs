@@ -142,7 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             }
         }
 
-        private async Task WatchDeploymentEventsAsync(WatchEventType type, object custom)
+        internal async Task WatchDeploymentEventsAsync(WatchEventType type, object custom)
         {
             EdgeDeploymentDefinition<TConfig> edgeDeploymentDefinition;
             try
