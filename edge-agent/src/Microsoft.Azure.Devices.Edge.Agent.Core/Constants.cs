@@ -103,6 +103,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string EdgeAgentServiceAccountName = "ServiceAccountName";
 
+        public const string IoTEdgeAgentProductInfoIdentifier = "EdgeAgent";
+
         public static class Labels
         {
             public const string Version = "net.azure-devices.edge.version";
