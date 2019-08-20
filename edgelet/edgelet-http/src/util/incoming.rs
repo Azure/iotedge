@@ -72,9 +72,8 @@ impl Stream for Incoming {
                     .expect("Unable to lock the connections mutex");
 
                 loop {
-                    // Look through the connections list for the first connection that is either ready to be
-                    // passed to the stream selector or has failed and needs the error bubbled up.
-                    // Return a tuple containing the index and state.
+                    // Look through the connections list for the first connection that is ready to be
+                    // passed to the stream selector. Return a tuple containing the index and state.
                     let val = connections
                         .iter_mut()
                         .map(|(fut, _)| fut.poll())
@@ -109,6 +108,7 @@ impl Stream for Incoming {
                                 // so this line is unreachable.
                                 Ok(_) => unreachable!(),
                                 Err(err) => {
+                                    // Ignore TLS handshake errors
                                     log_failure(Level::Warn, &err);
                                 }
                             }
