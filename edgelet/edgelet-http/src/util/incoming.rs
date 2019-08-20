@@ -92,19 +92,10 @@ impl Stream for Incoming {
                             let (_, addr) = connections.remove(i);
                             match result {
                                 Ok(Async::Ready(tls_stream)) => {
-                                    #[cfg(not(windows))]
-                                    {
-                                        return Ok(Async::Ready(Some((
-                                            StreamSelector::Tls(tls_stream),
-                                            addr,
-                                        ))));
-                                    }
-                                    #[cfg(windows)]
-                                    {
-                                        return Async::Ready(Some(
-                                            (Box::new(StreamSelector::Tls(tls_stream), addr)),
-                                        ));
-                                    }
+                                    return Ok(Async::Ready(Some((
+                                        StreamSelector::Tls(tls_stream),
+                                        addr,
+                                    ))));
                                 }
                                 // The prior block included a filter that specifically asked for is_ready state,
                                 // so this line is unreachable.
