@@ -5,6 +5,7 @@ use std::io;
 use std::sync::Mutex;
 
 use futures::{Poll, Stream};
+#[cfg(unix)]
 use log::Level;
 #[cfg(windows)]
 use tokio::net::TcpListener;
@@ -19,6 +20,7 @@ use tokio_uds::UnixListener;
 #[cfg(windows)]
 use tokio_uds_windows::UnixListener;
 
+#[cfg(unix)]
 use edgelet_utils::log_failure;
 
 use crate::util::{IncomingSocketAddr, StreamSelector};
