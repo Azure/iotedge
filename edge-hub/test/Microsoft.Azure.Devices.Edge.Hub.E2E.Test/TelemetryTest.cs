@@ -158,5 +158,53 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             // wait for the connection to be closed on the Edge side
             await Task.Delay(TimeSpan.FromSeconds(10));
         }
+
+        [Theory]
+        [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
+        async Task SendTelemetryWithDelayedReceiverTest(ITransportSettings[] transportSettings)
+        {
+            int messagesCount = 10;
+            TestModule sender = null;
+            TestModule receiver = null;
+
+            string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
+            IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
+            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
+
+            try
+            {
+                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", transportSettings);
+                int sentMessagesCount = await sender.SendMessagesByCountAsync("output1", 0, messagesCount, TimeSpan.FromMinutes(2));
+                Assert.Equal(messagesCount, sentMessagesCount);
+
+                receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", transportSettings);
+                await receiver.SetupReceiveMessageHandler();
+
+                await Task.Delay(TimeSpan.FromSeconds(20));
+                ISet<int> receivedMessages = receiver.GetReceivedMessageIndices();
+
+                Assert.Equal(messagesCount, receivedMessages.Count);
+            }
+            finally
+            {
+                if (rm != null)
+                {
+                    await rm.CloseAsync();
+                }
+
+                if (sender != null)
+                {
+                    await sender.Disconnect();
+                }
+
+                if (receiver != null)
+                {
+                    await receiver.Disconnect();
+                }
+            }
+
+            // wait for the connection to be closed on the Edge side
+            await Task.Delay(TimeSpan.FromSeconds(10));
+        }
     }
 }
