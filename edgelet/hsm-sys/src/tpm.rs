@@ -95,7 +95,7 @@ impl Default for HSM_CLIENT_TPM_INTERFACE_TAG {
 #[test]
 fn bindgen_test_layout_HSM_CLIENT_TPM_INTERFACE_TAG() {
     use crate::tpm::HSM_CLIENT_TPM_INTERFACE_TAG;
-    
+
     assert_eq!(
         ::std::mem::size_of::<HSM_CLIENT_TPM_INTERFACE_TAG>(),
         8_usize * ::std::mem::size_of::<usize>(),
