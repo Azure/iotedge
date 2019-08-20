@@ -206,10 +206,8 @@ Param (
     [ValidateNotNullOrEmpty()]
     [string] $EventHubConnectionString = $(Throw "Event hub connection string is required"),
 
-    [ValidateNotNullOrEmpty()]
     [string] $EdgeE2ERootCACertRSAFile = $null,
 
-    [ValidateNotNullOrEmpty()]
     [string] $EdgeE2ERootCAKeyRSAFile = $null,
 
     [ValidateNotNullOrEmpty()]
@@ -1197,14 +1195,6 @@ Function RunTransparentGatewayTest
 {
     PrintHighlightedMessage "Run Transparent Gateway test for $Architecture"
 
-    if ([string]::IsNullOrWhiteSpace($EdgeE2ERootCACertRSAFile))
-    {
-        $EdgeE2ERootCACertRSAFile=$DefaultInstalledRSARootCACert
-    }
-    if ([string]::IsNullOrWhiteSpace($EdgeE2ERootCAKeyRSAFile))
-    {
-        $EdgeE2ERootCAKeyRSAFile=$DefaultInstalledRSARootCAKey
-    }
     TestSetup
 
     $testStartAt = Get-Date
@@ -1470,6 +1460,16 @@ $PackagesWorkingFolder = (Join-Path $TestWorkingFolder "packages")
 $IotEdgeQuickstartExeTestPath = (Join-Path $QuickstartWorkingFolder "IotEdgeQuickstart.exe")
 $LeafDeviceExeTestPath = (Join-Path $LeafDeviceWorkingFolder "LeafDevice.exe")
 $DeploymentWorkingFilePath = Join-Path $TestWorkingFolder "deployment.json"
+
+If ([string]::IsNullOrWhiteSpace($EdgeE2ERootCACertRSAFile))
+{
+    $EdgeE2ERootCACertRSAFile=$DefaultInstalledRSARootCACert
+}
+
+If ([string]::IsNullOrWhiteSpace($EdgeE2ERootCAKeyRSAFile))
+{
+    $EdgeE2ERootCAKeyRSAFile=$DefaultInstalledRSARootCAKey
+}
 
 If ($TestName -eq "LongHaul")
 {
