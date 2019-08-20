@@ -734,7 +734,7 @@ fn settings_connection_string(check: &mut Check) -> Result<CheckResult, failure:
                 )?;
                 hub
             }
-            ManualAuthMethod::X509(x509) => x509.iothub_hostname().to_string(),
+            ManualAuthMethod::X509(x509) => x509.iothub_hostname().to_owned(),
         };
         check.iothub_hostname = Some(hub.to_owned());
     } else if check.iothub_hostname.is_none() {
@@ -1310,7 +1310,7 @@ fn settings_identity_certificates_expiry(check: &mut Check) -> Result<CheckResul
                 .to_check_result();
             }
         }
-        _ => (),
+        Provisioning::External(_) => (),
     }
 
     Ok(CheckResult::Ignored)
