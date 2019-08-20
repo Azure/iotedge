@@ -1460,13 +1460,13 @@ fn prepare_derived_hybrid_key(
     let k = key_store
         .get(&KeyIdentity::Device, "primary")
         .context(ErrorKind::Initialize(
-            InitializeErrorReason::DpsProvisioningClient,
+            InitializeErrorReason::HybridAuthKeyGet,
         ))?;
     let sign_data = format!("{}/devices/{}/{}", hub_name, device_id, cert_thumbprint);
     let digest = k
         .sign(SignatureAlgorithm::HMACSHA256, sign_data.as_bytes())
         .context(ErrorKind::Initialize(
-            InitializeErrorReason::DpsProvisioningClient,
+            InitializeErrorReason::HybridAuthKeySign,
         ))?;
     let hybrid_derived_key = MemoryKey::new(digest.as_bytes());
     let derived_key_store = DerivedKeyStore::new(hybrid_derived_key.clone());
