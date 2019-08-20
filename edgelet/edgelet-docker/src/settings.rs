@@ -238,12 +238,11 @@ mod tests {
     use std::fs::File;
     use std::io::prelude::*;
 
-    use config::{File as ConfigFile, FileFormat};
     use serde_json::json;
     use tempdir::TempDir;
 
     use edgelet_core::{
-        AttestationMethod, IpamConfig, ManualAuthMethod, DEFAULT_CONNECTION_STRING,
+        AttestationMethod, IpamConfig, ManualAuthMethod,
         DEFAULT_NETWORKID,
     };
 
@@ -253,6 +252,10 @@ mod tests {
     static GOOD_SETTINGS_MANUAL_CS_AUTH: &str = "test/linux/sample_settings.manual.auth.cs.yaml";
     #[cfg(unix)]
     static BAD_SETTINGS: &str = "test/linux/bad_sample_settings.yaml";
+    #[cfg(unix)]
+    static BAD_SETTINGS_MANUAL_CS2: &str = "test/linux/bad_sample_settings.cs.2.yaml";
+    #[cfg(unix)]
+    static BAD_SETTINGS_MANUAL_CS3: &str = "test/linux/bad_sample_settings.cs.3.yaml";
     #[cfg(unix)]
     static GOOD_SETTINGS_DPS_SYM_KEY: &str = "test/linux/sample_settings.dps.sym.yaml";
     #[cfg(unix)]
@@ -280,6 +283,10 @@ mod tests {
     #[cfg(unix)]
     static BAD_SETTINGS_MANUAL_CS_AUTH2: &str = "test/linux/bad_settings.manual.cs.2.yaml";
     #[cfg(unix)]
+    static BAD_SETTINGS_MANUAL_CS_AUTH3: &str = "test/linux/bad_settings.manual.cs.3.yaml";
+    #[cfg(unix)]
+    static BAD_SETTINGS_MANUAL_CS_AUTH4: &str = "test/linux/bad_settings.manual.cs.4.yaml";
+    #[cfg(unix)]
     static BAD_SETTINGS_MANUAL_X509_AUTH1: &str = "test/linux/bad_settings.manual.x509.1.yaml";
     #[cfg(unix)]
     static BAD_SETTINGS_MANUAL_X509_AUTH2: &str = "test/linux/bad_settings.manual.x509.2.yaml";
@@ -300,6 +307,10 @@ mod tests {
     static GOOD_SETTINGS_MANUAL_CS_AUTH: &str = "test/windows/sample_settings.manual.auth.cs.yaml";
     #[cfg(windows)]
     static BAD_SETTINGS: &str = "test/windows/bad_sample_settings.yaml";
+    #[cfg(windows)]
+    static BAD_SETTINGS_MANUAL_CS2: &str = "test/windows/bad_sample_settings.cs.2.yaml";
+    #[cfg(windows)]
+    static BAD_SETTINGS_MANUAL_CS3: &str = "test/windows/bad_sample_settings.cs.3.yaml";
     #[cfg(windows)]
     static GOOD_SETTINGS_DPS_SYM_KEY: &str = "test/windows/sample_settings.dps.sym.yaml";
     #[cfg(windows)]
@@ -327,6 +338,10 @@ mod tests {
     #[cfg(windows)]
     static BAD_SETTINGS_MANUAL_CS_AUTH2: &str = "test/windows/bad_settings.manual.cs.2.yaml";
     #[cfg(windows)]
+    static BAD_SETTINGS_MANUAL_CS_AUTH3: &str = "test/windows/bad_settings.manual.cs.3.yaml";
+    #[cfg(windows)]
+    static BAD_SETTINGS_MANUAL_CS_AUTH4: &str = "test/windows/bad_settings.manual.cs.4.yaml";
+    #[cfg(windows)]
     static BAD_SETTINGS_MANUAL_X509_AUTH1: &str = "test/windows/bad_settings.manual.x509.1.yaml";
     #[cfg(windows)]
     static BAD_SETTINGS_MANUAL_X509_AUTH2: &str = "test/windows/bad_settings.manual.x509.2.yaml";
@@ -353,20 +368,6 @@ mod tests {
             }
             _ => "not implemented".to_string(),
         }
-    }
-
-    #[test]
-    fn default_in_yaml_matches_constant() {
-        let mut config = Config::default();
-        config
-            .merge(ConfigFile::from_str(DEFAULTS, FileFormat::Yaml))
-            .unwrap();
-        let settings: Settings = config.try_into().unwrap();
-
-        assert_eq!(
-            unwrap_manual_provisioning(settings.provisioning()),
-            DEFAULT_CONNECTION_STRING
-        );
     }
 
     #[test]
@@ -431,6 +432,9 @@ mod tests {
         let settings = Settings::new(Some(Path::new(BAD_SETTINGS)));
         assert!(settings.is_err());
 
+        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_CS2)));
+        assert!(settings.is_err());
+
         let settings = Settings::new(Some(Path::new(BAD_SETTINGS_DPS_DEFAULT)));
         assert!(settings.is_err());
 
@@ -469,6 +473,9 @@ mod tests {
 
         let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_CS_AUTH1)));
         assert!(settings.is_err());
+
+        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_CS_AUTH3)));
+        assert!(settings.is_err());
     }
 
     #[test]
@@ -500,6 +507,24 @@ mod tests {
     }
 
     #[test]
+    fn manual_empty_connection_string_fails() {
+        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_CS3)));
+        println!("{:?}", settings);
+        assert!(settings.is_ok());
+        let s = settings.unwrap();
+        match s.provisioning() {
+            Provisioning::Manual(manual) => match manual.authentication_method() {
+                ManualAuthMethod::DeviceConnectionString(cs) => {
+                    assert_eq!(cs.device_connection_string(), "");
+                    cs.parse_device_connection_string().unwrap_err();
+                }
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        }
+    }
+
+    #[test]
     fn manual_authentication_bad_connection_string_fails() {
         let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_CS_AUTH2)));
         println!("{:?}", settings);
@@ -509,6 +534,24 @@ mod tests {
             Provisioning::Manual(manual) => match manual.authentication_method() {
                 ManualAuthMethod::DeviceConnectionString(cs) => {
                     assert_eq!(cs.device_connection_string(), "blah");
+                    cs.parse_device_connection_string().unwrap_err();
+                }
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        }
+    }
+
+    #[test]
+    fn manual_authentication_empty_connection_string_fails() {
+        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_CS_AUTH4)));
+        println!("{:?}", settings);
+        assert!(settings.is_ok());
+        let s = settings.unwrap();
+        match s.provisioning() {
+            Provisioning::Manual(manual) => match manual.authentication_method() {
+                ManualAuthMethod::DeviceConnectionString(cs) => {
+                    assert_eq!(cs.device_connection_string(), "");
                     cs.parse_device_connection_string().unwrap_err();
                 }
                 _ => unreachable!(),

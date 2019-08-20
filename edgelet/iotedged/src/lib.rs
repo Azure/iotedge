@@ -54,7 +54,7 @@ use edgelet_core::{
     CertificateType, Dps, MakeModuleRuntime, ManualAuthMethod, ManualDeviceConnectionString,
     ManualX509Auth, Module, ModuleRuntime, ModuleRuntimeErrorReason, ModuleSpec, Provisioning,
     ProvisioningResult as CoreProvisioningResult, RuntimeSettings, SymmetricKeyAttestationInfo,
-    TpmAttestationInfo, WorkloadConfig, DEFAULT_CONNECTION_STRING,
+    TpmAttestationInfo, WorkloadConfig,
 };
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::{Crypto, HsmLock, X509};
@@ -253,7 +253,7 @@ where
 
         if let Provisioning::Manual(ref manual) = settings.provisioning() {
             if let ManualAuthMethod::DeviceConnectionString(cs) = manual.authentication_method() {
-                if cs.device_connection_string() == DEFAULT_CONNECTION_STRING {
+                if cs.device_connection_string().is_empty() {
                     return Err(Error::from(ErrorKind::Initialize(
                         InitializeErrorReason::NotConfigured,
                     )));
@@ -1849,6 +1849,9 @@ mod tests {
     #[cfg(unix)]
     static GOOD_SETTINGS_DPS_DEFAULT: &str =
         "../edgelet-docker/test/linux/sample_settings.dps.default.yaml";
+    #[cfg(unix)]
+    static EMPTY_CONNECTION_STRING_SETTINGS: &str =
+        "../edgelet-docker/test/linux/bad_sample_settings.cs.3.yaml";
 
     #[cfg(windows)]
     static GOOD_SETTINGS: &str = "../edgelet-docker/test/windows/sample_settings.yaml";
@@ -1863,6 +1866,9 @@ mod tests {
     #[cfg(windows)]
     static GOOD_SETTINGS_DPS_DEFAULT: &str =
         "../edgelet-docker/test/windows/sample_settings.dps.default.yaml";
+    #[cfg(windows)]
+    static EMPTY_CONNECTION_STRING_SETTINGS: &str =
+        "../edgelet-docker/test/windows/bad_sample_settings.cs.3.yaml";
 
     #[derive(Clone, Copy, Debug, Fail)]
     pub struct Error;
@@ -1985,8 +1991,8 @@ mod tests {
     }
 
     #[test]
-    fn default_settings_raise_unconfigured_error() {
-        let settings = Settings::new(None).unwrap();
+    fn empty_connection_string_raises_unconfigured_error() {
+        let settings = Settings::new(Some(Path::new(EMPTY_CONNECTION_STRING_SETTINGS))).unwrap();
         let main = Main::<DockerModuleRuntime>::new(settings);
         let result = main.run_until(signal::shutdown);
         match result.unwrap_err().kind() {

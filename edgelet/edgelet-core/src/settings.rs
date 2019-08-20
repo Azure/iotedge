@@ -18,9 +18,6 @@ const SHAREDACCESSKEY_KEY: &str = "SharedAccessKey";
 const DEVICEID_REGEX: &str = r"^[A-Za-z0-9\-:.+%_#*?!(),=@;$']{1,128}$";
 const HOSTNAME_REGEX: &str = r"^[a-zA-Z0-9_\-\.]+$";
 
-/// This is the default connection string
-pub const DEFAULT_CONNECTION_STRING: &str = "<ADD DEVICE CONNECTION STRING HERE>";
-
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub struct ManualX509Auth {
@@ -181,18 +178,10 @@ impl<'de> serde::Deserialize<'de> for Manual {
         let value: Inner = serde::Deserialize::deserialize(deserializer)?;
 
         let authentication = match (value.device_connection_string, value.authentication) {
-            (Some(cs), Some(auth)) => {
-                if cs == DEFAULT_CONNECTION_STRING {
-                    auth
-                } else if let ManualAuthMethod::DeviceConnectionString(_) = auth {
-                    return Err(serde::de::Error::custom(
-                            "Multiple connection strings specified under provisioning.device_connection_string and provisioning.authentication.device_connection_string. Please specify only one connection string in the config.yaml",
-                        ));
-                } else {
-                    return Err(serde::de::Error::custom(
-                        "Both connection string specified under provisioning.device_connection_string and provisioning.authentication configuration may not be set",
+            (Some(_), Some(_)) => {
+                return Err(serde::de::Error::custom(
+                        "One of provisioning.device_connection_string or provisioning.authentication must be set in the config.yaml.",
                     ));
-                }
             }
             (Some(cs), None) => {
                 ManualAuthMethod::DeviceConnectionString(ManualDeviceConnectionString::new(cs))
@@ -200,7 +189,7 @@ impl<'de> serde::Deserialize<'de> for Manual {
             (None, Some(auth)) => auth,
             (None, None) => {
                 return Err(serde::de::Error::custom(
-                    "Device connection string or authentication configuration should be set",
+                    "One of provisioning.device_connection_string or provisioning.authentication must be set in the config.yaml.",
                 ));
             }
         };
