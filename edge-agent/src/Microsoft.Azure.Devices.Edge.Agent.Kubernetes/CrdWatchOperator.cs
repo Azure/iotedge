@@ -26,6 +26,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly string proxyImage;
         readonly string proxyConfigPath;
         readonly string proxyConfigVolumeName;
+        readonly string proxyTrustBundlePath;
+        readonly string proxyTrustBundleVolumeName;
         readonly string serviceAccountName;
         readonly string k8sNamespace;
         readonly string workloadApiVersion;
@@ -43,6 +45,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             string proxyImage,
             string proxyConfigPath,
             string proxyConfigVolumeName,
+            string proxyTrustBundlePath,
+            string proxyTrustBundleVolumeName,
             string serviceAccountName,
             string k8sNamespace,
             string workloadApiVersion,
@@ -58,6 +62,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.proxyImage = Preconditions.CheckNonWhiteSpace(proxyImage, nameof(proxyImage));
             this.proxyConfigPath = Preconditions.CheckNonWhiteSpace(proxyConfigPath, nameof(proxyConfigPath));
             this.proxyConfigVolumeName = Preconditions.CheckNonWhiteSpace(proxyConfigVolumeName, nameof(proxyConfigVolumeName));
+            this.proxyTrustBundlePath = Preconditions.CheckNonWhiteSpace(proxyTrustBundlePath, nameof(proxyTrustBundlePath));
+            this.proxyTrustBundleVolumeName = Preconditions.CheckNonWhiteSpace(proxyTrustBundleVolumeName, nameof(proxyTrustBundleVolumeName));
             this.serviceAccountName = Preconditions.CheckNonWhiteSpace(serviceAccountName, nameof(serviceAccountName));
             this.k8sNamespace = Preconditions.CheckNonWhiteSpace(k8sNamespace, nameof(k8sNamespace));
             this.workloadApiVersion = Preconditions.CheckNonWhiteSpace(workloadApiVersion, nameof(workloadApiVersion));
@@ -100,13 +106,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             // is an acceptable fate if these tasks fail.
 
             // CRD watch
-            CrdWatcher<TConfig> watcher = new CrdWatcher<TConfig>(
+            var watcher = new CrdWatcher<TConfig>(
                 this.iotHubHostname,
                 this.deviceId,
                 this.edgeHostname,
                 this.proxyImage,
                 this.proxyConfigPath,
                 this.proxyConfigVolumeName,
+                this.proxyTrustBundlePath,
+                this.proxyTrustBundleVolumeName,
                 this.serviceAccountName,
                 this.resourceName,
                 this.deploymentSelector,

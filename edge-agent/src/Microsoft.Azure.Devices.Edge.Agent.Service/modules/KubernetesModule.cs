@@ -7,7 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using System.Net;
     using System.Net.Http;
     using System.Threading.Tasks;
-
     using Autofac;
     using k8s;
     using global::Docker.DotNet.Models;
@@ -32,6 +31,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string proxyImage;
         readonly string proxyConfigPath;
         readonly string proxyConfigVolumeName;
+        readonly string proxyTrustBundlePath;
+        readonly string proxyTrustBundleVolumeName;
         readonly string serviceAccountName;
         readonly string apiVersion;
         readonly string k8sNamespace;
@@ -53,6 +54,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             string proxyImage,
             string proxyConfigPath,
             string proxyConfigVolumeName,
+            string proxyTrustBundlePath,
+            string proxyTrustBundleVolumeName,
             string serviceAccountName,
             string apiVersion,
             string k8sNamespace,
@@ -73,6 +76,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.proxyImage = Preconditions.CheckNonWhiteSpace(proxyImage, nameof(proxyImage));
             this.proxyConfigPath = Preconditions.CheckNonWhiteSpace(proxyConfigPath, nameof(proxyConfigPath));
             this.proxyConfigVolumeName = Preconditions.CheckNonWhiteSpace(proxyConfigVolumeName, nameof(proxyConfigVolumeName));
+            this.proxyTrustBundlePath = Preconditions.CheckNonWhiteSpace(proxyTrustBundlePath, nameof(proxyTrustBundlePath));
+            this.proxyTrustBundleVolumeName = Preconditions.CheckNonWhiteSpace(proxyTrustBundleVolumeName, nameof(proxyTrustBundleVolumeName));
             this.serviceAccountName = Preconditions.CheckNonWhiteSpace(serviceAccountName, nameof(serviceAccountName));
             this.apiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
             this.k8sNamespace = Preconditions.CheckNonWhiteSpace(k8sNamespace, nameof(k8sNamespace));
@@ -91,32 +96,33 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         protected override void Load(ContainerBuilder builder)
         {
             // IKubernetesClient
-            builder.Register(c =>
-            {
-                if (this.enableServiceCallTracing)
-                {
-                    // enable tracing of k8s requests made by the client
-                    var loggerFactory = c.Resolve<ILoggerFactory>();
-                    ILogger logger = loggerFactory.CreateLogger(typeof(Kubernetes));
-                    ServiceClientTracing.IsEnabled = true;
-                    ServiceClientTracing.AddTracingInterceptor(new DebugTracer(logger));
-                }
+            builder.Register(
+                    c =>
+                    {
+                        if (this.enableServiceCallTracing)
+                        {
+                            // enable tracing of k8s requests made by the client
+                            var loggerFactory = c.Resolve<ILoggerFactory>();
+                            ILogger logger = loggerFactory.CreateLogger(typeof(Kubernetes));
+                            ServiceClientTracing.IsEnabled = true;
+                            ServiceClientTracing.AddTracingInterceptor(new DebugTracer(logger));
+                        }
 
-                // load the k8s config from $HOME/.kube/config if its available
-                KubernetesClientConfiguration kubeConfig;
-                string kubeConfigPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".kube", "config");
-                if (File.Exists(kubeConfigPath))
-                {
-                    kubeConfig = KubernetesClientConfiguration.BuildConfigFromConfigFile();
-                }
-                else
-                {
-                    kubeConfig = KubernetesClientConfiguration.InClusterConfig();
-                }
+                        // load the k8s config from $HOME/.kube/config if its available
+                        KubernetesClientConfiguration kubeConfig;
+                        string kubeConfigPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".kube", "config");
+                        if (File.Exists(kubeConfigPath))
+                        {
+                            kubeConfig = KubernetesClientConfiguration.BuildConfigFromConfigFile();
+                        }
+                        else
+                        {
+                            kubeConfig = KubernetesClientConfiguration.InClusterConfig();
+                        }
 
-                var client = new Kubernetes(kubeConfig);
-                return client;
-            })
+                        var client = new Kubernetes(kubeConfig);
+                        return client;
+                    })
                 .As<IKubernetes>()
                 .SingleInstance();
 
@@ -170,57 +176,62 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IPlanner
-            builder.Register(async c =>
-            {
-                var commandFactoryTask = c.Resolve<Task<ICommandFactory>>();
-                var combinedConfigProviderTask = c.Resolve<Task<ICombinedConfigProvider<CombinedDockerConfig>>>();
-                ICommandFactory commandFactory = await commandFactoryTask;
-                ICombinedConfigProvider<CombinedDockerConfig> combinedConfigProvider = await combinedConfigProviderTask;
-                return new KubernetesPlanner<CombinedDockerConfig>(this.iotHubHostname, this.gatewayHostname, this.deviceId, c.Resolve<IKubernetes>(), commandFactory, combinedConfigProvider) as IPlanner;
-            })
+            builder.Register(
+                    async c =>
+                    {
+                        var commandFactoryTask = c.Resolve<Task<ICommandFactory>>();
+                        var combinedConfigProviderTask = c.Resolve<Task<ICombinedConfigProvider<CombinedDockerConfig>>>();
+                        ICommandFactory commandFactory = await commandFactoryTask;
+                        ICombinedConfigProvider<CombinedDockerConfig> combinedConfigProvider = await combinedConfigProviderTask;
+                        return new KubernetesPlanner<CombinedDockerConfig>(this.iotHubHostname, this.gatewayHostname, this.deviceId, c.Resolve<IKubernetes>(), commandFactory, combinedConfigProvider) as IPlanner;
+                    })
                 .As<Task<IPlanner>>()
                 .SingleInstance();
 
             // IRuntimeInfoProvider
             builder.Register(
-                c => Task.FromResult(new KubernetesRuntimeInfoProvider(
-                    this.k8sNamespace,
-                    c.Resolve<IKubernetes>())) as IRuntimeInfoProvider)
+                    c => Task.FromResult(
+                        new KubernetesRuntimeInfoProvider(
+                            this.k8sNamespace,
+                            c.Resolve<IKubernetes>())) as IRuntimeInfoProvider)
                 .As<Task<IRuntimeInfoProvider>>()
                 .SingleInstance();
 
             // IKubernetesOperator
             builder.Register(
-                    c => Task.FromResult(new CrdWatchOperator<CombinedDockerConfig>(
-                        this.iotHubHostname,
-                        this.deviceId,
-                        this.gatewayHostname,
-                        this.proxyImage,
-                        this.proxyConfigPath,
-                        this.proxyConfigVolumeName,
-                        this.serviceAccountName,
-                        this.k8sNamespace,
-                        this.apiVersion,
-                        this.workloadUri,
-                        this.managementUri,
-                        this.defaultMapServiceType,
-                        c.Resolve<IKubernetes>(),
-                        c.Resolve<IModuleIdentityLifecycleManager>()) as IKubernetesOperator))
+                    c => Task.FromResult(
+                        new CrdWatchOperator<CombinedDockerConfig>(
+                            this.iotHubHostname,
+                            this.deviceId,
+                            this.gatewayHostname,
+                            this.proxyImage,
+                            this.proxyConfigPath,
+                            this.proxyConfigVolumeName,
+                            this.proxyTrustBundlePath,
+                            this.proxyTrustBundleVolumeName,
+                            this.serviceAccountName,
+                            this.k8sNamespace,
+                            this.apiVersion,
+                            this.workloadUri,
+                            this.managementUri,
+                            this.defaultMapServiceType,
+                            c.Resolve<IKubernetes>(),
+                            c.Resolve<IModuleIdentityLifecycleManager>()) as IKubernetesOperator))
                 .As<Task<IKubernetesOperator>>()
                 .SingleInstance();
 
             // Task<IEnvironmentProvider>
             builder.Register(
-                async c =>
-                {
-                    var moduleStateStore = c.Resolve<IEntityStore<string, ModuleState>>();
-                    var restartPolicyManager = c.Resolve<IRestartPolicyManager>();
-                    IRuntimeInfoProvider runtimeInfoProvider = await c.Resolve<Task<IRuntimeInfoProvider>>();
-                    IEnvironmentProvider dockerEnvironmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, moduleStateStore, restartPolicyManager);
-                    return dockerEnvironmentProvider;
-                })
-             .As<Task<IEnvironmentProvider>>()
-             .SingleInstance();
+                    async c =>
+                    {
+                        var moduleStateStore = c.Resolve<IEntityStore<string, ModuleState>>();
+                        var restartPolicyManager = c.Resolve<IRestartPolicyManager>();
+                        IRuntimeInfoProvider runtimeInfoProvider = await c.Resolve<Task<IRuntimeInfoProvider>>();
+                        IEnvironmentProvider dockerEnvironmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, moduleStateStore, restartPolicyManager);
+                        return dockerEnvironmentProvider;
+                    })
+                .As<Task<IEnvironmentProvider>>()
+                .SingleInstance();
         }
     }
 
