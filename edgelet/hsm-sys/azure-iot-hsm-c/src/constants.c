@@ -30,4 +30,6 @@ const char* const EDGE_CA_ALIAS = "iotedged_ca";
 const char* const EDGE_CA_COMMON_NAME = "Test Iotedge CA";
 const char* const EDGE_DEVICE_ALIAS = "edgelet_device";
 
+// Note: `iotedge check` has a warning message that references the 90-day expiry in `fn settings_certificates`.
+// Update that when changing the value here.
 const uint64_t CA_VALIDITY = 90 * 24 * 3600; // 90 days

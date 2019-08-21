@@ -153,12 +153,12 @@
                 "value": "snitcher=info"
               },
               "MANAGEMENT_URI": {
-                "value": "unix:///C:/ProgramData/iotedge/mgmt/sock"
+                "value": "<Management.Uri>"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/snitcher:<Snitch.BuildNumber>-windows-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Binds\":[\"C:\\\\ProgramData\\\\iotedge\\\\mgmt:C:\\\\ProgramData\\\\iotedge\\\\mgmt\"]}}"
+              "createOptions": "{\"HostConfig\":{\"Binds\":[<Snitch.Binds>]}}"
             }
           },
           "analyzer": {
