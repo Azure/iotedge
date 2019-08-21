@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Watchers
         static readonly DockerConfig Config2 = new DockerConfig("test-image:2");
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
 
-
+/*
         [Fact]
         public async Task FirstTest()
         {
@@ -66,6 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Watchers
                 BuildModuleIdentityLifecycleManager(currentIdentities),
                 this.GetClient());
         }
+*/
 
         private string GetSerializedDeploymentDefinition()
         {
