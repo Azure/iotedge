@@ -261,9 +261,10 @@ impl fmt::Display for InitializeErrorReason {
                 write!(f, "Could not create the hybrid identity key")
             }
 
-            InitializeErrorReason::HybridAuthKeyGet => {
-                write!(f, "Could not get the hybrid identity key from the key store")
-            }
+            InitializeErrorReason::HybridAuthKeyGet => write!(
+                f,
+                "Could not get the hybrid identity key from the key store"
+            ),
 
             InitializeErrorReason::HybridAuthKeyLoad => {
                 write!(f, "Could not load the hybrid identity key")

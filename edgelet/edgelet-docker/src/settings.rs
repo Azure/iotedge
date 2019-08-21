@@ -241,10 +241,7 @@ mod tests {
     use serde_json::json;
     use tempdir::TempDir;
 
-    use edgelet_core::{
-        AttestationMethod, IpamConfig, ManualAuthMethod,
-        DEFAULT_NETWORKID,
-    };
+    use edgelet_core::{AttestationMethod, IpamConfig, ManualAuthMethod, DEFAULT_NETWORKID};
 
     #[cfg(unix)]
     static GOOD_SETTINGS: &str = "test/linux/sample_settings.yaml";
