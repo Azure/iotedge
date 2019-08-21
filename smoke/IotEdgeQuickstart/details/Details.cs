@@ -285,7 +285,7 @@ namespace IotEdgeQuickstart.Details
                 {
                     var settings = new ServiceClientTransportSettings();
                     this.proxy.ForEach(p => settings.HttpProxy = p);
-                    Console.WriteLine($"IoTHubConnectionString {this.context.IotHubConnectionString} TransportType {this.serviceClientTransportType}");
+
                     ServiceClient serviceClient =
                         ServiceClient.CreateFromConnectionString(this.context.IotHubConnectionString, this.serviceClientTransportType, settings);
 
