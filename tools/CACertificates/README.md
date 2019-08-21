@@ -78,13 +78,17 @@ On Azure IoT Hub, navigate to the "Device Explorer".  Add a new device (e.g. `my
 Note that if you're using this certificate as a DPS registration ID, the ID **must be lower case** or the server will reject it.
 
 ### **PowerShell**
-#### IoT Leaf Device
-* Run `New-CACertsDevice mydevice` to create the new device certificate.
+#### IoT Leaf Device Identity Certificate
+* Run `New-CACertsDevice mydevice` to create the new device identity certificate.
   * This will create files ```iot-device-mydevice*``` that each contain the public key, private key, and PFX respectively.
 
-#### IoT Edge Device
-* Run `New-CACertsEdgeDevice mydevice` to create the new IoT Edge device certificate.
-  * This will create files ```iot-edge-device-mydevice*``` that each contain the public key, private key, and PFX respectively.
+#### IoT Edge Device CA Certificate
+* Run `New-CACertsEdgeDeviceCA MyEdgeDeviceCA` to create the new IoT Edge device CA certificate.
+  * This will create files ```iot-edge-device-ca-MyEdgeDeviceCA*``` that each contain the public key, private key, and PFX respectively.
+
+#### IoT Edge Device Identity Certificate
+* Run `New-CACertsEdgeDeviceIdentity MyEdgeDeviceId` to create the new IoT Edge device identity certificate.
+  * This will create files ```iot-edge-device-identity-MyEdgeDeviceId*``` that each contain the public key, private key, and PFX respectively.
 
 ### **Bash**
 #### IoT Leaf Device Identity Certificate
@@ -96,7 +100,7 @@ Note that if you're using this certificate as a DPS registration ID, the ID **mu
   * This will create files ```iot-edge-device-ca-MyEdgeDeviceCA*``` that each contain the public key, private key, and PFX respectively.
 
 #### IoT Edge Device Identity Certificate
-* Run `./certGen.sh create_edge_device_ca_certificate MyEdgeDeviceId` to create the new IoT Edge device identity certificate.
+* Run `./certGen.sh create_edge_device_identity_certificate MyEdgeDeviceId` to create the new IoT Edge device identity certificate.
   * This will create files ```iot-edge-device-identity-MyEdgeDeviceId*``` that each contain the public key, private key, and PFX respectively.
 
 ## Step 5 - Cleanup
