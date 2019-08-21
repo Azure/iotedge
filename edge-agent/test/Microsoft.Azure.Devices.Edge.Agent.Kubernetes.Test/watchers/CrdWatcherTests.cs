@@ -1,3 +1,4 @@
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Watchers
 {
     using System;
@@ -68,8 +69,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Watchers
 
         private string GetSerializedDeploymentDefinition()
         {
-
-
             k8s.Models.V1ObjectMeta metadata = new k8s.Models.V1ObjectMeta();
             List<KubernetesModule<CombinedDockerModule>> kubernetesModules = new List<KubernetesModule<CombinedDockerModule>>();
             EdgeDeploymentDefinition<CombinedDockerModule> definition = new EdgeDeploymentDefinition<CombinedDockerModule>("1.0", "fake", metadata, kubernetesModules);
