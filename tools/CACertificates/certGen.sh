@@ -367,7 +367,7 @@ function generate_verification_certificate()
 ###############################################################################
 # Generates a certificate for a device, chained to the intermediate.
 ###############################################################################
-function generate_identity_device_certificate()
+function generate_device_identity_certificate()
 {
     if [[ $# -ne 1 ]] || [[ -z ${1} ]]; then
         echo "Usage error: Please provide a <subjectName>"
@@ -427,6 +427,10 @@ function generate_edge_server_certificate()
 ###############################################################################
 function generate_edge_device_ca_certificate()
 {
+    if [[ $# -ne 1 ]] || [[ -z ${1} ]]; then
+        echo "Usage error: Please provide a <subjectName>"
+        exit 1
+    fi
     # Note: Appending a '.ca' to the common name is useful in situations
     # where a user names their hostname as the edge device name.
     # By doing so we avoid TLS validation errors where we have a server or
@@ -447,6 +451,10 @@ function generate_edge_device_ca_certificate()
 ###############################################################################
 function generate_edge_device_certificate()
 {
+    if [[ $# -ne 1 ]] || [[ -z ${1} ]]; then
+        echo "Usage error: Please provide a <subjectName>"
+        exit 1
+    fi
     # Note: Appending a '.ca' to the common name is useful in situations
     # where a user names their hostname as the edge device name.
     # By doing so we avoid TLS validation errors where we have a server or
@@ -471,7 +479,7 @@ elif [ "${1}" == "install_root_ca_from_cli" ]; then
 elif [ "${1}" == "create_verification_certificate" ]; then
     generate_verification_certificate "${2}"
 elif [ "${1}" == "create_device_certificate" ]; then
-    generate_identity_device_certificate "${2}"
+    generate_device_identity_certificate "${2}"
 elif [ "${1}" == "create_edge_device_certificate" ]; then
     generate_edge_device_certificate "${2}"
 elif [ "${1}" == "create_edge_device_ca_certificate" ]; then
