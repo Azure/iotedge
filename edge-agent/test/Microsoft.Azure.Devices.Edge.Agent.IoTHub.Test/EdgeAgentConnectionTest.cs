@@ -163,7 +163,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     new SdkModuleClientProvider(),
                     Option.None<UpstreamProtocol>(),
                     Option.None<IWebProxy>(),
-                    Option.None<string>(),
+                    Constants.IoTEdgeAgentProductInfoIdentifier,
                     false,
                     TimeSpan.FromDays(1));
 
@@ -284,7 +284,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     new SdkModuleClientProvider(),
                     Option.None<UpstreamProtocol>(),
                     Option.None<IWebProxy>(),
-                    Option.None<string>(),
+                    Constants.IoTEdgeAgentProductInfoIdentifier,
                     false,
                     TimeSpan.FromDays(1));
 
@@ -853,7 +853,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     new SdkModuleClientProvider(),
                     Option.None<UpstreamProtocol>(),
                     Option.None<IWebProxy>(),
-                    Option.None<string>(),
+                    Constants.IoTEdgeAgentProductInfoIdentifier,
                     false,
                     TimeSpan.FromDays(1));
 
@@ -950,7 +950,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     new SdkModuleClientProvider(),
                     Option.None<UpstreamProtocol>(),
                     Option.None<IWebProxy>(),
-                    Option.None<string>(),
+                    Constants.IoTEdgeAgentProductInfoIdentifier,
                     false,
                     TimeSpan.FromDays(1));
 

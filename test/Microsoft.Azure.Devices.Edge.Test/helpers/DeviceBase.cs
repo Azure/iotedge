@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -29,6 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
                     using (var cts = new CancellationTokenSource(Context.Current.SetupTimeout))
                     {
+                        DateTime startTime = DateTime.Now;
                         CancellationToken token = cts.Token;
 
                         this.iotHub = new IotHub(
@@ -36,32 +38,45 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             Context.Current.EventHubEndpoint,
                             proxy);
 
-                        this.ca = await CertificateAuthority.CreateAsync(
-                            deviceId,
-                            rootCa,
-                            Context.Current.CaCertScriptPath,
-                            token);
+                        try
+                        {
+                            this.ca = await CertificateAuthority.CreateAsync(
+                                deviceId,
+                                rootCa,
+                                Context.Current.CaCertScriptPath,
+                                token);
 
-                        this.daemon = OsPlatform.Current.CreateEdgeDaemon(Context.Current.InstallerPath);
-                        await this.daemon.ConfigureAsync(
-                            config =>
-                            {
-                                config.SetCertificates(this.ca.Certificates);
-                                config.Update();
-                                return Task.FromResult(("with edge certificates", Array.Empty<object>()));
-                            },
-                            token);
+                            this.daemon = OsPlatform.Current.CreateEdgeDaemon(Context.Current.InstallerPath);
+                            await this.daemon.ConfigureAsync(
+                                config =>
+                                {
+                                    config.SetCertificates(this.ca.Certificates);
+                                    config.Update();
+                                    return Task.FromResult(("with edge certificates", Array.Empty<object>()));
+                                },
+                                token);
 
-                        var runtime = new EdgeRuntime(
-                            deviceId,
-                            Context.Current.EdgeAgentImage,
-                            Context.Current.EdgeHubImage,
-                            proxy,
-                            Context.Current.Registries,
-                            Context.Current.OptimizeForPerformance,
-                            this.iotHub);
+                            var runtime = new EdgeRuntime(
+                                deviceId,
+                                Context.Current.EdgeAgentImage,
+                                Context.Current.EdgeHubImage,
+                                proxy,
+                                Context.Current.Registries,
+                                Context.Current.OptimizeForPerformance,
+                                this.iotHub);
 
-                        await runtime.DeployConfigurationAsync(token);
+                            await runtime.DeployConfigurationAsync(token);
+                        }
+
+                        // ReSharper disable once RedundantCatchClause
+                        catch
+                        {
+                            throw;
+                        }
+                        finally
+                        {
+                            await NUnitLogs.CollectAsync(startTime, token);
+                        }
                     }
                 },
                 "Completed custom certificate setup");

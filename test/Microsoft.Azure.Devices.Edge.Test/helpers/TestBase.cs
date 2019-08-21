@@ -39,12 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     {
                         using (var cts = new CancellationTokenSource(Context.Current.TeardownTimeout))
                         {
-                            string prefix = $"{Context.Current.DeviceId}-{TestContext.CurrentContext.Test.NormalizedName()}";
-                            IEnumerable<string> paths = await EdgeLogs.CollectAsync(this.testStartTime, prefix, cts.Token);
-                            foreach (string path in paths)
-                            {
-                                TestContext.AddTestAttachment(path);
-                            }
+                            await NUnitLogs.CollectAsync(this.testStartTime, cts.Token);
                         }
                     }
                 },
