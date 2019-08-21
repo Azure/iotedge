@@ -25,6 +25,8 @@ jobs:
         displayName: Check submodules
       - bash: edgelet/build/linux/build.sh
         displayName: Build
+      - bash: edgelet/build/linux/build-k8s.sh
+        displayName: Build (runtime-kubernetes)
       - bash: edgelet/build/linux/test.sh
         displayName: Test
 
