@@ -367,7 +367,7 @@ function generate_verification_certificate()
 ###############################################################################
 # Generates a certificate for a device, chained to the intermediate.
 ###############################################################################
-function generate_device_certificate()
+function generate_identity_device_certificate()
 {
     if [[ $# -ne 1 ]] || [[ -z ${1} ]]; then
         echo "Usage error: Please provide a <subjectName>"
@@ -378,6 +378,25 @@ function generate_device_certificate()
                                 ${DEFAULT_VALIDITY_DAYS} \
                                 ${common_name} \
                                 "iot-device-${common_name}" \
+                                ${INTERMEDIATE_CA_PREFIX} \
+                                "" \
+                                ${INTERMEDIATE_CA_PASSWORD}
+}
+
+###############################################################################
+# Generates a certificate for an Edge device, chained to the intermediate.
+###############################################################################
+function generate_edge_device_identity_certificate()
+{
+    if [[ $# -ne 1 ]] || [[ -z ${1} ]]; then
+        echo "Usage error: Please provide a <subjectName>"
+        exit 1
+    fi
+    local common_name="${1}"
+    generate_certificate_common "usr_cert" \
+                                ${DEFAULT_VALIDITY_DAYS} \
+                                ${common_name} \
+                                "iot-edge-device-identity-${common_name}" \
                                 ${INTERMEDIATE_CA_PREFIX} \
                                 "" \
                                 ${INTERMEDIATE_CA_PASSWORD}
@@ -452,13 +471,13 @@ elif [ "${1}" == "install_root_ca_from_cli" ]; then
 elif [ "${1}" == "create_verification_certificate" ]; then
     generate_verification_certificate "${2}"
 elif [ "${1}" == "create_device_certificate" ]; then
-    generate_device_certificate "${2}"
+    generate_identity_device_certificate "${2}"
 elif [ "${1}" == "create_edge_device_certificate" ]; then
     generate_edge_device_certificate "${2}"
 elif [ "${1}" == "create_edge_device_ca_certificate" ]; then
     generate_edge_device_ca_certificate "${2}"
 elif [ "${1}" == "create_edge_device_identity_certificate" ]; then
-    generate_device_certificate "${2}"
+    generate_edge_device_identity_certificate "${2}"
 elif [ "${1}" == "create_edge_server_certificate" ]; then
     generate_edge_server_certificate "${2}"
 else

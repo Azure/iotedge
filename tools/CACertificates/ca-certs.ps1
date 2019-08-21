@@ -708,7 +708,12 @@ function New-CACertsVerificationCert([Parameter(Mandatory=$TRUE)][string]$reques
     .PARAMETER isEdgeDevice
         Identifies if this certificate is to be used for Edge runtime. Default is false.
 #>
-function New-CACertsDevice([Parameter(Mandatory=$TRUE)][string]$deviceName, [string]$issuerPrefix=$_intermediatePrefix, [bool]$isEdgeDevice=$false)
+function New-CACertsDevice(
+    [Parameter(Mandatory=$TRUE)]
+    [string]$deviceName,
+    [string]$issuerPrefix=$_intermediatePrefix,
+    [ValidateSet("iot-device","iot-edge-device", "iot-edge-device-ca", "iot-edge-device-identity")]
+    [string]$filePrefix="iot-device")
 {
     if ([string]::IsNullOrWhiteSpace($deviceName))
     {
@@ -716,10 +721,11 @@ function New-CACertsDevice([Parameter(Mandatory=$TRUE)][string]$deviceName, [str
     }
     $deviceName = $deviceName.Trim()
 
+    $devicePrefix = "$filePrefix-$deviceName"
     # Certificates for edge devices need to be able to sign other certs.
-    if ($isEdgeDevice -eq $true)
+    $edgePrefixes = @('iot-edge-device', 'iot-edge-device-ca')
+    if ($edgePrefixes.Contains($filePrefix))
     {
-        $devicePrefix = "iot-edge-device-$deviceName"
         # Note: Appending a '.ca' to the common name is useful in situations
         # where a user names their hostname as the edge device name.
         # By doing so we avoid TLS validation errors where we have a server or
@@ -730,7 +736,6 @@ function New-CACertsDevice([Parameter(Mandatory=$TRUE)][string]$deviceName, [str
     }
     else
     {
-        $devicePrefix = "iot-device-$deviceName"
         New-ClientCertificate $devicePrefix $issuerPrefix $deviceName
     }
 }
@@ -753,9 +758,55 @@ function New-CACertsEdgeDevice([Parameter(Mandatory=$TRUE)][string]$deviceName, 
 {
     if ([string]::IsNullOrWhiteSpace($deviceName))
     {
+        throw "Edge device CA name string parameter is required and cannot be null or empty"
+    }
+    New-CACertsDevice $deviceName $issuerPrefix "iot-edge-device"
+}
+
+<#
+    .SYNOPSIS
+    Generate an IoT Edge device CA certificate, private key and full certificate chain
+    using an issuer's certificate and key
+    .DESCRIPTION
+    Generate a certificate using the supplied common name and have it signed by
+    an issuer certificate and key. Issuer is spcified by its prefix and its corresponding
+    key and certificate will be retrieved from the filesystem.
+    .PARAMETER deviceName
+        Device name will be used as a prefix and as the value of the CN field
+    .PARAMETER issuerPrefix
+        Optional issuer prefix to look up the certifcate and key. If null the default intermediate
+        CA certificate is used.
+#>
+function New-CACertsEdgeDeviceCA([Parameter(Mandatory=$TRUE)][string]$deviceName, [string]$issuerPrefix=$_intermediatePrefix)
+{
+    if ([string]::IsNullOrWhiteSpace($deviceName))
+    {
+        throw "Edge device CA name string parameter is required and cannot be null or empty"
+    }
+    New-CACertsDevice $deviceName $issuerPrefix "iot-edge-device-ca"
+}
+
+<#
+    .SYNOPSIS
+    Generate an IoT Edge device identity certificate, private key and full certificate chain
+    using an issuer's certificate and key
+    .DESCRIPTION
+    Generate a certificate using the supplied common name and have it signed by
+    an issuer certificate and key. Issuer is spcified by its prefix and its corresponding
+    key and certificate will be retrieved from the filesystem.
+    .PARAMETER deviceName
+        Device name will be used as a prefix and as the value of the CN field
+    .PARAMETER issuerPrefix
+        Optional issuer prefix to look up the certifcate and key. If null the default intermediate
+        CA certificate is used.
+#>
+function New-CACertsEdgeDeviceIdentity([Parameter(Mandatory=$TRUE)][string]$deviceName, [string]$issuerPrefix=$_intermediatePrefix)
+{
+    if ([string]::IsNullOrWhiteSpace($deviceName))
+    {
         throw "Edge device name string parameter is required and cannot be null or empty"
     }
-    New-CACertsDevice $deviceName $issuerPrefix $true
+    New-CACertsDevice $deviceName $issuerPrefix "iot-edge-device-identity"
 }
 
 <#
