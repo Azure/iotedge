@@ -76,7 +76,7 @@ provisioning:
   source: "manual"
   device_connection_string: "<ADD DEVICE CONNECTION STRING HERE>"
 
-# Manual provisioning configuration using a X509 identity certificate
+# Manual provisioning configuration using an X.509 identity certificate
 # provisioning:
 #   source: "manual"
 #   authentication:
