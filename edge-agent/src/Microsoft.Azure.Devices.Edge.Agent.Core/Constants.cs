@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
-    using System;
-
     public static class Constants
     {
         public const string OwnerValue = "Microsoft.Azure.Devices.Edge.Agent";
@@ -94,6 +92,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public const string ProxyConfigPathEnvKey = "ProxyConfigPath";
 
         public const string ProxyConfigVolumeEnvKey = "ProxyConfigVolume";
+
+        public const string ProxyTrustBundlePathEnvKey = "ProxyTrustBundlePath";
+
+        public const string ProxyTrustBundleVolumeEnvKey = "ProxyTrustBundleVolume";
 
         public const string DisableCloudSubscriptions = "DisableCloudSubscriptions";
 

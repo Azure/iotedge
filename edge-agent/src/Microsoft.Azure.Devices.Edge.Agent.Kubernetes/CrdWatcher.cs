@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
     using System;
     using System.Collections.Generic;
-    using System.ComponentModel;
     using System.Linq;
     using System.Threading.Tasks;
     using k8s;
@@ -18,14 +17,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
     using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
     using DockerModels = global::Docker.DotNet.Models;
-    using VolumeOptions =
-        Microsoft.Azure.Devices.Edge.Util.Option<(System.Collections.Generic.List<k8s.Models.V1Volume>,
-            System.Collections.Generic.List<k8s.Models.V1VolumeMount>, System.Collections.Generic.List<k8s.Models.V1VolumeMount>)>;
 
     public class CrdWatcher<TConfig>
     {
         const string SocketDir = "/var/run/iotedge";
         const string ConfigVolumeName = "config-volume";
+        const string TrustBundleVolumeName = "trust-bundle-volume";
         const string SocketVolumeName = "workload";
         const string EdgeHubHostname = "edgehub";
 
@@ -40,6 +37,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly string proxyImage;
         readonly string proxyConfigPath;
         readonly string proxyConfigVolumeName;
+        readonly string proxyTrustBundlePath;
+        readonly string proxyTrustBundleVolumeName;
         readonly string serviceAccountName;
         readonly string defaultMapServiceType;
         readonly string workloadApiVersion;
@@ -57,6 +56,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             string proxyImage,
             string proxyConfigPath,
             string proxyConfigVolumeName,
+            string proxyTrustBundlePath,
+            string proxyTrustBundleVolumeName,
             string serviceAccountName,
             string resourceName,
             string deploymentSelector,
@@ -75,6 +76,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.proxyImage = proxyImage;
             this.proxyConfigPath = proxyConfigPath;
             this.proxyConfigVolumeName = proxyConfigVolumeName;
+            this.proxyTrustBundlePath = proxyTrustBundlePath;
+            this.proxyTrustBundleVolumeName = proxyTrustBundleVolumeName;
             this.serviceAccountName = serviceAccountName;
             this.resourceName = resourceName;
             this.deploymentSelector = deploymentSelector;
@@ -313,20 +316,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 });
 
             // remove the old
-            await Task.WhenAll(servicesRemoved.Select(
-                i =>
-                {
-                    Events.DeletingService(i);
-                    return this.client.DeleteNamespacedServiceAsync(i.Metadata.Name, this.k8sNamespace, new V1DeleteOptions());
-                }));
+            await Task.WhenAll(
+                servicesRemoved.Select(
+                    i =>
+                    {
+                        Events.DeletingService(i);
+                        return this.client.DeleteNamespacedServiceAsync(i.Metadata.Name, this.k8sNamespace, new V1DeleteOptions());
+                    }));
 
             // Create the new.
-            await Task.WhenAll(newServices.Select(
-                s =>
-                {
-                    Events.CreatingService(s);
-                    return this.client.CreateNamespacedServiceAsync(s, this.k8sNamespace);
-                }));
+            await Task.WhenAll(
+                newServices.Select(
+                    s =>
+                    {
+                        Events.CreatingService(s);
+                        return this.client.CreateNamespacedServiceAsync(s, this.k8sNamespace);
+                    }));
         }
 
         async Task ManageDeployments(V1DeploymentList currentDeployments, List<V1Deployment> desiredDeployments)
@@ -338,10 +343,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
             var deploymentsRemoved = new List<V1Deployment>(currentDeployments.Items);
             deploymentsRemoved.RemoveAll(
-                removedDeployment =>
-                {
-                    return desiredDeployments.Exists(deployment => string.Equals(deployment.Metadata.Name, removedDeployment.Metadata.Name));
-                });
+                removedDeployment => { return desiredDeployments.Exists(deployment => string.Equals(deployment.Metadata.Name, removedDeployment.Metadata.Name)); });
             var deploymentsUpdated = new List<V1Deployment>();
             var newDeployments = new List<V1Deployment>();
             List<V1Deployment> currentDeploymentsList = currentDeployments.Items.ToList();
@@ -459,130 +461,126 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             // Prune down the list to those found in the passed in prune list.
             var accountsToDelete = currentServiceAccounts.Where(serviceAccount => accountNamesToPrune.Contains(serviceAccount.Metadata.Name));
 
-            var deletionTasks = accountsToDelete.Select(account =>
-            {
-                Events.DeletingServiceAccount(account.Metadata.Name);
-                return this.client.DeleteNamespacedServiceAccountAsync(account.Metadata.Name, this.k8sNamespace);
-            });
+            var deletionTasks = accountsToDelete.Select(
+                account =>
+                {
+                    Events.DeletingServiceAccount(account.Metadata.Name);
+                    return this.client.DeleteNamespacedServiceAccountAsync(account.Metadata.Name, this.k8sNamespace);
+                });
 
             await Task.WhenAll(deletionTasks);
         }
 
         V1PodTemplateSpec GetPodFromModule(Dictionary<string, string> labels, KubernetesModule<TConfig> module, IModuleIdentity moduleIdentity)
         {
-            if (module is IModule<AgentDocker.CombinedDockerConfig> moduleWithDockerConfig)
-            {
-                // pod labels
-                var podLabels = new Dictionary<string, string>(labels);
-
-                // pod annotations
-                var podAnnotations = new Dictionary<string, string>();
-                podAnnotations.Add(Constants.K8sEdgeOriginalModuleId, moduleIdentity.ModuleId);
-                // Convert docker labels to annotations because docker labels don't have the same restrictions as
-                // Kuberenetes labels.
-                if (moduleWithDockerConfig.Config.CreateOptions?.Labels != null)
-                {
-                    foreach (KeyValuePair<string, string> label in moduleWithDockerConfig.Config.CreateOptions?.Labels)
-                    {
-                        podAnnotations.Add(KubeUtils.SanitizeAnnotationKey(label.Key), label.Value);
-                    }
-                }
-
-                // Per container settings:
-                // exposed ports
-                Option<List<V1ContainerPort>> exposedPortsOption = (moduleWithDockerConfig.Config?.CreateOptions?.ExposedPorts != null)
-                    ? this.GetExposedPorts(moduleWithDockerConfig.Config.CreateOptions.ExposedPorts).Map(
-                        servicePorts =>
-                            servicePorts.Select(tuple => new V1ContainerPort(tuple.Port, protocol: tuple.Protocol)).ToList())
-                    : Option.None<List<V1ContainerPort>>();
-
-                // privileged container
-                Option<V1SecurityContext> securityContext = (moduleWithDockerConfig.Config?.CreateOptions?.HostConfig?.Privileged == true) ? Option.Some(new V1SecurityContext(privileged: true)) : Option.None<V1SecurityContext>();
-
-                // Environment Variables.
-                List<V1EnvVar> env = this.CollectEnv(moduleWithDockerConfig, (KubernetesModuleIdentity)moduleIdentity);
-
-                // Bind mounts
-                (List<V1Volume> volumeList, List<V1VolumeMount> proxyMounts, List<V1VolumeMount> volumeMountList) = this.GetVolumesFromModule(moduleWithDockerConfig).GetOrElse((null, null, null));
-
-                // Image
-                string moduleImage = moduleWithDockerConfig.Config.Image;
-
-                var containerList = new List<V1Container>()
-                {
-                    new V1Container(
-                        KubeUtils.SanitizeDNSValue(moduleIdentity.ModuleId),
-                        env: env,
-                        image: moduleImage,
-                        volumeMounts: volumeMountList,
-                        securityContext: securityContext.GetOrElse(() => null),
-                        ports: exposedPortsOption.GetOrElse(() => null)),
-
-                    // TODO: Add Proxy container here - configmap for proxy configuration.
-                    new V1Container(
-                        "proxy",
-                        env: env, // TODO: check these for validity for proxy.
-                        image: this.proxyImage,
-                        volumeMounts: proxyMounts)
-                };
-
-                Option<List<V1LocalObjectReference>> imageSecret = moduleWithDockerConfig.Config.AuthConfig.Map(
-                    auth =>
-                    {
-                        var secret = new ImagePullSecret(auth);
-                        var authList = new List<V1LocalObjectReference>
-                        {
-                            new V1LocalObjectReference(secret.Name)
-                        };
-                        return authList;
-                    });
-
-                var modulePodSpec = new V1PodSpec(containerList, volumes: volumeList, imagePullSecrets: imageSecret.GetOrElse(() => null));
-                var objectMeta = new V1ObjectMeta(labels: podLabels, annotations: podAnnotations);
-                return new V1PodTemplateSpec(metadata: objectMeta, spec: modulePodSpec);
-            }
-            else
+            if (!(module is IModule<AgentDocker.CombinedDockerConfig> moduleWithDockerConfig))
             {
                 Events.InvalidModuleType(module);
+                return new V1PodTemplateSpec();
             }
 
-            return new V1PodTemplateSpec();
+            // pod labels
+            var podLabels = new Dictionary<string, string>(labels);
+
+            // pod annotations
+            var podAnnotations = new Dictionary<string, string>();
+            podAnnotations.Add(Constants.K8sEdgeOriginalModuleId, moduleIdentity.ModuleId);
+
+            // Convert docker labels to annotations because docker labels don't have the same restrictions as
+            // Kuberenetes labels.
+            if (moduleWithDockerConfig.Config.CreateOptions?.Labels != null)
+            {
+                foreach ((string key, string label) in moduleWithDockerConfig.Config.CreateOptions?.Labels)
+                {
+                    podAnnotations.Add(KubeUtils.SanitizeAnnotationKey(key), label);
+                }
+            }
+
+            // Per container settings:
+            // exposed ports
+            Option<List<V1ContainerPort>> exposedPortsOption = Option.Maybe(moduleWithDockerConfig.Config?.CreateOptions?.ExposedPorts)
+                .FlatMap(ports => this.GetExposedPorts(ports))
+                .Map(ports => ports.Select(tuple => new V1ContainerPort(tuple.Port, protocol: tuple.Protocol)).ToList());
+
+            // privileged container
+            Option<V1SecurityContext> securityContext = Option.Maybe(moduleWithDockerConfig.Config?.CreateOptions?.HostConfig?.Privileged)
+                .Map(config => new V1SecurityContext(privileged: true));
+
+            // Environment Variables.
+            List<V1EnvVar> env = this.CollectEnv(moduleWithDockerConfig, (KubernetesModuleIdentity)moduleIdentity);
+
+            // Bind mounts
+            (List<V1Volume> volumeList, List<V1VolumeMount> proxyMounts, List<V1VolumeMount> volumeMountList) = this.GetVolumesFromModule(moduleWithDockerConfig);
+
+            // Image
+            string moduleImage = moduleWithDockerConfig.Config.Image;
+
+            var containerList = new List<V1Container>
+            {
+                new V1Container(
+                    KubeUtils.SanitizeDNSValue(moduleIdentity.ModuleId),
+                    env: env,
+                    image: moduleImage,
+                    volumeMounts: volumeMountList,
+                    securityContext: securityContext.OrDefault(),
+                    ports: exposedPortsOption.OrDefault()),
+
+                // TODO: Add Proxy container here - configmap for proxy configuration.
+                new V1Container(
+                    "proxy",
+                    env: env, // TODO: check these for validity for proxy.
+                    image: this.proxyImage,
+                    volumeMounts: proxyMounts)
+            };
+
+            Option<List<V1LocalObjectReference>> imageSecret = moduleWithDockerConfig.Config.AuthConfig.Map(
+                auth =>
+                {
+                    var secret = new ImagePullSecret(auth);
+                    var authList = new List<V1LocalObjectReference>
+                    {
+                        new V1LocalObjectReference(secret.Name)
+                    };
+                    return authList;
+                });
+
+            var modulePodSpec = new V1PodSpec(containerList, volumes: volumeList, imagePullSecrets: imageSecret.OrDefault());
+            var objectMeta = new V1ObjectMeta(labels: podLabels, annotations: podAnnotations);
+            return new V1PodTemplateSpec(objectMeta, modulePodSpec);
         }
 
-        private VolumeOptions GetVolumesFromModule(IModule<AgentDocker.CombinedDockerConfig> moduleWithDockerConfig)
+        (List<V1Volume>, List<V1VolumeMount>, List<V1VolumeMount>) GetVolumesFromModule(IModule<AgentDocker.CombinedDockerConfig> moduleWithDockerConfig)
         {
-            var v1ConfigMapVolumeSource = new V1ConfigMapVolumeSource(null, null, this.proxyConfigVolumeName, null);
-
             var volumeList = new List<V1Volume>
             {
                 new V1Volume(SocketVolumeName, emptyDir: new V1EmptyDirVolumeSource()),
-                new V1Volume(ConfigVolumeName, configMap: v1ConfigMapVolumeSource)
+                new V1Volume(ConfigVolumeName, configMap: new V1ConfigMapVolumeSource(name: this.proxyConfigVolumeName)),
+                new V1Volume(TrustBundleVolumeName, configMap: new V1ConfigMapVolumeSource(name: this.proxyTrustBundleVolumeName))
             };
+
             var proxyMountList = new List<V1VolumeMount>
             {
-                new V1VolumeMount(SocketDir, SocketVolumeName)
+                new V1VolumeMount(SocketDir, SocketVolumeName),
+                new V1VolumeMount(this.proxyConfigPath, ConfigVolumeName),
+                new V1VolumeMount(this.proxyTrustBundlePath, TrustBundleVolumeName)
             };
-            var volumeMountList = new List<V1VolumeMount>(proxyMountList);
-            proxyMountList.Add(new V1VolumeMount(this.proxyConfigPath, ConfigVolumeName));
 
-            if ((moduleWithDockerConfig.Config?.CreateOptions?.HostConfig?.Binds == null) && (moduleWithDockerConfig.Config?.CreateOptions?.HostConfig?.Mounts == null))
-            {
-                return Option.Some((volumeList, proxyMountList, volumeMountList));
-            }
+            var volumeMountList = new List<V1VolumeMount>(proxyMountList);
 
             if (moduleWithDockerConfig.Config?.CreateOptions?.HostConfig?.Binds != null)
             {
                 foreach (string bind in moduleWithDockerConfig.Config?.CreateOptions?.HostConfig?.Binds)
                 {
                     string[] bindSubstrings = bind.Split(':');
-                    if (bindSubstrings.Count() >= 2)
+                    if (bindSubstrings.Length >= 2)
                     {
                         string name = KubeUtils.SanitizeDNSValue(bindSubstrings[0]);
                         string type = "DirectoryOrCreate";
                         string hostPath = bindSubstrings[0];
-                        string mountPath = bindSubstrings[1];
-                        bool readOnly = (bindSubstrings.Count() > 2) && bindSubstrings[2].Contains("ro");
                         volumeList.Add(new V1Volume(name, hostPath: new V1HostPathVolumeSource(hostPath, type)));
+
+                        string mountPath = bindSubstrings[1];
+                        bool readOnly = bindSubstrings.Length > 2 && bindSubstrings[2].Contains("ro");
                         volumeMountList.Add(new V1VolumeMount(mountPath, name, readOnlyProperty: readOnly));
                     }
                 }
@@ -597,28 +595,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         string name = KubeUtils.SanitizeDNSValue(mount.Source);
                         string type = "DirectoryOrCreate";
                         string hostPath = mount.Source;
+                        volumeList.Add(new V1Volume(name, hostPath: new V1HostPathVolumeSource(hostPath, type)));
+
                         string mountPath = mount.Target;
                         bool readOnly = mount.ReadOnly;
-                        volumeList.Add(new V1Volume(name, hostPath: new V1HostPathVolumeSource(hostPath, type)));
                         volumeMountList.Add(new V1VolumeMount(mountPath, name, readOnlyProperty: readOnly));
                     }
                     else if (mount.Type.Equals("volume", StringComparison.InvariantCultureIgnoreCase))
                     {
                         string name = KubeUtils.SanitizeDNSValue(mount.Source);
                         string mountPath = mount.Target;
-                        bool readOnly = mount.ReadOnly;
                         volumeList.Add(new V1Volume(name, emptyDir: new V1EmptyDirVolumeSource()));
+
+                        bool readOnly = mount.ReadOnly;
                         volumeMountList.Add(new V1VolumeMount(mountPath, name, readOnlyProperty: readOnly));
                     }
                 }
             }
 
-            return volumeList.Count > 0 || volumeMountList.Count > 0
-                ? Option.Some((volumeList, proxyMountList, volumeMountList))
-                : Option.None<(List<V1Volume>, List<V1VolumeMount>, List<V1VolumeMount>)>();
+            return (volumeList, proxyMountList, volumeMountList);
         }
 
-        private List<V1EnvVar> CollectEnv(IModule<AgentDocker.CombinedDockerConfig> moduleWithDockerConfig, KubernetesModuleIdentity identity)
+        List<V1EnvVar> CollectEnv(IModule<AgentDocker.CombinedDockerConfig> moduleWithDockerConfig, KubernetesModuleIdentity identity)
         {
             char[] envSplit = { '=' };
             var envList = new List<V1EnvVar>();
@@ -836,7 +834,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     }
 
                     if (service.Metadata?.Annotations != null
-                            && service.Metadata.Annotations.TryGetValue(Constants.CreationString, out string creationString))
+                        && service.Metadata.Annotations.TryGetValue(Constants.CreationString, out string creationString))
                     {
                         return creationString;
                     }
@@ -870,7 +868,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     }
 
                     if (deployment.Metadata?.Annotations != null
-                            && deployment.Metadata.Annotations.TryGetValue(Constants.CreationString, out string creationString))
+                        && deployment.Metadata.Annotations.TryGetValue(Constants.CreationString, out string creationString))
                     {
                         return creationString;
                     }
