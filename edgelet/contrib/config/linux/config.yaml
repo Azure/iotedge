@@ -16,7 +16,7 @@
 # Configures the identity provisioning mode of the daemon.
 #
 # Supported modes:
-#     manual   - using an iothub connection string or a X.509 identity certificate
+#     manual   - using an iothub connection string or an X.509 identity certificate
 #     dps      - using dps for provisioning
 #     external - the device has been provisioned externally.
 #                Uses an external provisioning endpoint to get device specific information.
