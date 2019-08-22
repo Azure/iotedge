@@ -97,4 +97,30 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 V1DeploymentSpecEx.ImageEquals(self.Spec, other.Spec);
         }
     }
+
+    public static class ProtocolExtensions
+    {
+        public static bool TryValidateProtocol(string dockerProtocol, out string k8SProtocol)
+        {
+            bool result = true;
+            switch (dockerProtocol.ToUpper())
+            {
+                case "TCP":
+                    k8SProtocol = "TCP";
+                    break;
+                case "UDP":
+                    k8SProtocol = "UDP";
+                    break;
+                case "SCTP":
+                    k8SProtocol = "SCTP";
+                    break;
+                default:
+                    k8SProtocol = "TCP";
+                    result = false;
+                    break;
+            }
+
+            return result;
+        }
+    }
 }

@@ -1,18 +1,18 @@
-using k8s.Models;
-using Microsoft.Azure.Devices.Edge.Agent.Core;
-using Microsoft.Azure.Devices.Edge.Util;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
-using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
-using DockerModels = global::Docker.DotNet.Models;
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
-    public class KubernetesModuleBuilder<TConfig>
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using k8s.Models;
+    using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
+    using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
+    using DockerModels = global::Docker.DotNet.Models;
+
+    public class KubernetesPodBuilder<TConfig>
     {
         const string SocketDir = "/var/run/iotedge";
         const string ConfigVolumeName = "config-volume";
@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly string proxyTrustBundlePath;
         readonly string proxyTrustBundleVolumeName;
 
-        public KubernetesModuleBuilder(string proxyImage, string proxyConfigPath, string proxyConfigVolumeName, string proxyTrustBundlePath, string proxyTrustBundleVolumeName)
+        public KubernetesPodBuilder(string proxyImage, string proxyConfigPath, string proxyConfigVolumeName, string proxyTrustBundlePath, string proxyTrustBundleVolumeName)
         {
             this.proxyImage = proxyImage;
             this.proxyConfigPath = proxyConfigPath;
@@ -34,13 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.proxyTrustBundleVolumeName = proxyTrustBundleVolumeName;
         }
 
-        public V1PodTemplateSpec Build(Dictionary<string, string> labels, KubernetesModule<TConfig> module, IModuleIdentity moduleIdentity, List<V1EnvVar> envVars)
-        {
-            return GetPodFromModule(labels, module, moduleIdentity, envVars);
-        }
-
-
-        V1PodTemplateSpec GetPodFromModule(Dictionary<string, string> labels, KubernetesModule<TConfig> module, IModuleIdentity moduleIdentity, List<V1EnvVar> envVars)
+        public V1PodTemplateSpec GetPodFromModule(Dictionary<string, string> labels, KubernetesModule<TConfig> module, IModuleIdentity moduleIdentity, List<V1EnvVar> envVars)
         {
             if (!(module is IModule<AgentDocker.CombinedDockerConfig> moduleWithDockerConfig))
             {
@@ -190,7 +184,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 string[] portProtocol = exposedPort.Key.Split('/');
                 if (portProtocol.Length == 2)
                 {
-                    if (int.TryParse(portProtocol[0], out int port) && this.ValidateProtocol(portProtocol[1], out string protocol))
+                    if (int.TryParse(portProtocol[0], out int port) && ProtocolExtensions.TryValidateProtocol(portProtocol[1], out string protocol))
                     {
                         serviceList.Add((port, protocol));
                     }
@@ -204,33 +198,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             return (serviceList.Count > 0) ? Option.Some(serviceList) : Option.None<List<(int, string)>>();
         }
 
-        private bool ValidateProtocol(string dockerProtocol, out string k8SProtocol)
-        {
-            bool result = true;
-            switch (dockerProtocol.ToUpper())
-            {
-                case "TCP":
-                    k8SProtocol = "TCP";
-                    break;
-                case "UDP":
-                    k8SProtocol = "UDP";
-                    break;
-                case "SCTP":
-                    k8SProtocol = "SCTP";
-                    break;
-                default:
-                    k8SProtocol = "TCP";
-                    result = false;
-                    break;
-            }
-
-            return result;
-        }
-
         static class Events
         {
             const int IdStart = KubernetesEventIds.KubernetesModuleBuilder;
-            private static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesModuleBuilder<TConfig>>();
+            private static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesPodBuilder<TConfig>>();
 
             enum EventIds
             {

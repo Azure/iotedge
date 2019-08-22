@@ -3,6 +3,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Watchers
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.Immutable;
+    using System.Threading.Tasks;
     using System.Text;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
     using Moq;
@@ -10,8 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Watchers
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models;
     using k8s;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using System.Collections.Immutable;
-    using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
@@ -102,7 +103,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Watchers
             ModuleIdentity identity4 = new ModuleIdentity(TestHubHostName, string.Empty, "device1", "module4", new ConnectionStringCredentials(connectionString));
 
             return new List<IModuleIdentity>() { identity1, identity2, identity3, identity4 };
-
         }
 
         private TypeSpecificSerDe<EdgeDeploymentDefinition<CombinedDockerModule>> GetSerDe()
