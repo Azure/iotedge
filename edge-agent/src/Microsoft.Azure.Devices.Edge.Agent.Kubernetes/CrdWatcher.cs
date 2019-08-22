@@ -16,7 +16,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using Newtonsoft.Json;
     using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
     using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
-    using DockerModels = global::Docker.DotNet.Models;
 
     public class CrdWatcher<TConfig>
     {
@@ -215,7 +214,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             var desiredDeployments = new List<V1Deployment>();
 
             // Bootstrap the module builder
-            var kubernetesModelBuilder = new KubernetesModelBuilder<TConfig>(this.proxyImage, this.proxyConfigPath, this.proxyConfigVolumeName, this.proxyTrustBundlePath, this.proxyTrustBundleVolumeName, this.defaultMapServiceType);
+            var kubernetesModelBuilder = new KubernetesModelBuilder(this.proxyImage, this.proxyConfigPath, this.proxyConfigVolumeName, this.proxyTrustBundlePath, this.proxyTrustBundleVolumeName, this.defaultMapServiceType);
 
             foreach (KubernetesModule<TConfig> module in customObject.Spec)
             {
@@ -235,13 +234,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     {
                         Events.InvalidModuleType(module);
                         continue;
-                        // TODO IS THIS RIGHT?!
                     }
 
                     List<V1EnvVar> envVars = this.CollectEnv(moduleWithDockerConfig, (KubernetesModuleIdentity)moduleId);
 
                     // Load the current module
-                    kubernetesModelBuilder.LoadModule(labels, module, moduleId, envVars);
+                    kubernetesModelBuilder.LoadModule(labels, moduleWithDockerConfig, moduleId, envVars);
 
                     // Create a Service for every network interface of each module. (label them with hub, device and module id)
                     Option<V1Service> moduleService = kubernetesModelBuilder.GetService();

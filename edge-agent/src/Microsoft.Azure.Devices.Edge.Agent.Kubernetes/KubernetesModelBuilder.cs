@@ -4,11 +4,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using System.Collections.Generic;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using DockerModels = global::Docker.DotNet.Models;
+    using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
 
-    public class KubernetesModelBuilder<TConfig>
+    public class KubernetesModelBuilder
     {
         readonly string proxyImage;
         readonly string proxyConfigPath;
@@ -17,11 +18,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly string proxyTrustBundleVolumeName;
         readonly string defaultMapServiceType;
 
-        private KubernetesServiceBuilder<TConfig> serviceBuilder;
-        private KubernetesPodBuilder<TConfig> podBuilder;
+        private KubernetesServiceBuilder serviceBuilder;
+        private KubernetesPodBuilder podBuilder;
 
         Dictionary<string, string> currentModuleLabels;
-        KubernetesModule<TConfig> currentModule;
+        IModule<CombinedDockerConfig> currentModule;
         IModuleIdentity currentModuleIdentity;
         List<V1EnvVar> currentModuleEnvVars;
 
@@ -35,15 +36,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.defaultMapServiceType = defaultMapServiceType;
         }
 
-        public void LoadModule(Dictionary<string, string> labels, KubernetesModule<TConfig> module, IModuleIdentity moduleIdentity, List<V1EnvVar> envVars)
+        public void LoadModule(Dictionary<string, string> labels, IModule<AgentDocker.CombinedDockerConfig> module, IModuleIdentity moduleIdentity, List<V1EnvVar> envVars)
         {
             this.currentModuleLabels = labels;
-            this.currentModule = module;
             this.currentModuleIdentity = moduleIdentity;
             this.currentModuleEnvVars = envVars;
+            this.currentModule = module;
 
-            this.serviceBuilder = new KubernetesServiceBuilder<TConfig>(this.defaultMapServiceType);
-            this.podBuilder = new KubernetesPodBuilder<TConfig>(this.proxyImage, this.proxyConfigPath, this.proxyConfigVolumeName, this.proxyTrustBundlePath, this.proxyTrustBundleVolumeName);
+            this.serviceBuilder = new KubernetesServiceBuilder(this.defaultMapServiceType);
+            this.podBuilder = new KubernetesPodBuilder(this.proxyImage, this.proxyConfigPath, this.proxyConfigVolumeName, this.proxyTrustBundlePath, this.proxyTrustBundleVolumeName);
         }
 
         public Option<V1Service> GetService()
@@ -56,41 +57,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             return this.podBuilder.GetPodFromModule(this.currentModuleLabels, this.currentModule, this.currentModuleIdentity, this.currentModuleEnvVars);
         }
 
-        private Option<List<(int Port, string Protocol)>> GetExposedPorts(IDictionary<string, DockerModels.EmptyStruct> exposedPorts)
-        {
-            var serviceList = new List<(int, string)>();
-            foreach (KeyValuePair<string, DockerModels.EmptyStruct> exposedPort in exposedPorts)
-            {
-                string[] portProtocol = exposedPort.Key.Split('/');
-                if (portProtocol.Length == 2)
-                {
-                    if (int.TryParse(portProtocol[0], out int port) && ProtocolExtensions.TryValidateProtocol(portProtocol[1], out string protocol))
-                    {
-                        serviceList.Add((port, protocol));
-                    }
-                    else
-                    {
-                        Events.ExposedPortValue(exposedPort.Key);
-                    }
-                }
-            }
-
-            return (serviceList.Count > 0) ? Option.Some(serviceList) : Option.None<List<(int, string)>>();
-        }
-
         static class Events
         {
             const int IdStart = KubernetesEventIds.KubernetesModelBuilder;
-            private static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesServiceBuilder<TConfig>>();
+            private static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesServiceBuilder>();
 
             enum EventIds
             {
                 ExposedPortValue = IdStart,
+                InvalidModuleType
             }
 
             public static void ExposedPortValue(string portEntry)
             {
                 Log.LogWarning((int)EventIds.ExposedPortValue, $"Received an invalid exposed port value '{portEntry}'.");
+            }
+
+            public static void InvalidModuleType(IModule module)
+            {
+                Log.LogError((int)EventIds.InvalidModuleType, $"Module {module.Name} has an invalid module type '{module.Type}'. Expected type 'docker'");
             }
         }
     }

@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
     using DockerModels = global::Docker.DotNet.Models;
 
-    public class KubernetesServiceBuilder<TConfig>
+    public class KubernetesServiceBuilder
     {
         readonly string defaultMapServiceType;
 
@@ -19,74 +19,73 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.defaultMapServiceType = defaultMapServiceType;
         }
 
-        public Option<V1Service> GetServiceFromModule(Dictionary<string, string> labels, KubernetesModule<TConfig> module, IModuleIdentity moduleIdentity)
+        public Option<V1Service> GetServiceFromModule(Dictionary<string, string> labels, IModule<AgentDocker.CombinedDockerConfig> module, IModuleIdentity moduleIdentity)
         {
             var portList = new List<V1ServicePort>();
             Option<Dictionary<string, string>> serviceAnnotations = Option.None<Dictionary<string, string>>();
             bool onlyExposedPorts = true;
-            if (module is IModule<AgentDocker.CombinedDockerConfig> moduleWithDockerConfig)
+
+            if (module.Config.CreateOptions?.Labels != null)
             {
-                if (moduleWithDockerConfig.Config.CreateOptions?.Labels != null)
+                // Add annotations from Docker labels. This provides the customer a way to assign annotations to services if they want
+                // to tie backend services to load balancers via an Ingress Controller.
+                var annotations = new Dictionary<string, string>();
+                foreach (KeyValuePair<string, string> label in module.Config.CreateOptions?.Labels)
                 {
-                    // Add annotations from Docker labels. This provides the customer a way to assign annotations to services if they want
-                    // to tie backend services to load balancers via an Ingress Controller.
-                    var annotations = new Dictionary<string, string>();
-                    foreach (KeyValuePair<string, string> label in moduleWithDockerConfig.Config.CreateOptions?.Labels)
-                    {
-                        annotations.Add(KubeUtils.SanitizeAnnotationKey(label.Key), label.Value);
-                    }
-
-                    serviceAnnotations = Option.Some(annotations);
+                    annotations.Add(KubeUtils.SanitizeAnnotationKey(label.Key), label.Value);
                 }
 
-                // Handle ExposedPorts entries
-                if (moduleWithDockerConfig.Config?.CreateOptions?.ExposedPorts != null)
-                {
-                    // Entries in the Exposed Port list just tell Docker that this container wants to listen on that port.
-                    // We interpret this as a "ClusterIP" service type listening on that exposed port, backed by this module.
-                    // Users of this Module's exposed port should be able to find the service by connecting to "<module name>:<port>"
-                    this.GetExposedPorts(moduleWithDockerConfig.Config.CreateOptions.ExposedPorts)
-                        .ForEach(
-                            exposedList =>
-                                exposedList.ForEach((item) => portList.Add(new V1ServicePort(item.Port, name: $"ExposedPort-{item.Port}-{item.Protocol.ToLower()}", protocol: item.Protocol))));
-                }
+                serviceAnnotations = Option.Some(annotations);
+            }
 
-                // Handle HostConfig PortBindings entries
-                if (moduleWithDockerConfig.Config?.CreateOptions?.HostConfig?.PortBindings != null)
+            // Handle ExposedPorts entries
+            if (module.Config?.CreateOptions?.ExposedPorts != null)
+            {
+                // Entries in the Exposed Port list just tell Docker that this container wants to listen on that port.
+                // We interpret this as a "ClusterIP" service type listening on that exposed port, backed by this module.
+                // Users of this Module's exposed port should be able to find the service by connecting to "<module name>:<port>"
+                PortExtensions.GetExposedPorts(module.Config.CreateOptions.ExposedPorts)
+                    .ForEach(
+                        exposedList =>
+                            exposedList.ForEach((item) => portList.Add(new V1ServicePort(item.Port, name: $"ExposedPort-{item.Port}-{item.Protocol.ToLower()}", protocol: item.Protocol))));
+            }
+
+            // Handle HostConfig PortBindings entries
+            if (module.Config?.CreateOptions?.HostConfig?.PortBindings != null)
+            {
+                foreach (KeyValuePair<string, IList<DockerModels.PortBinding>> portBinding in module.Config?.CreateOptions?.HostConfig?.PortBindings)
                 {
-                    foreach (KeyValuePair<string, IList<DockerModels.PortBinding>> portBinding in moduleWithDockerConfig.Config?.CreateOptions?.HostConfig?.PortBindings)
+                    string[] portProtocol = portBinding.Key.Split('/');
+                    if (portProtocol.Length == 2)
                     {
-                        string[] portProtocol = portBinding.Key.Split('/');
-                        if (portProtocol.Length == 2)
+                        if (int.TryParse(portProtocol[0], out int port) && ProtocolExtensions.TryValidateProtocol(portProtocol[1], out string protocol))
                         {
-                            if (int.TryParse(portProtocol[0], out int port) && ProtocolExtensions.TryValidateProtocol(portProtocol[1], out string protocol))
+                            // Entries in Docker portMap wants to expose a port on the host (hostPort) and map it to the container's port (port)
+                            // We interpret that as the pod wants the cluster to expose a port on a public IP (hostPort), and target it to the container's port (port)
+                            foreach (DockerModels.PortBinding hostBinding in portBinding.Value)
                             {
-                                // Entries in Docker portMap wants to expose a port on the host (hostPort) and map it to the container's port (port)
-                                // We interpret that as the pod wants the cluster to expose a port on a public IP (hostPort), and target it to the container's port (port)
-                                foreach (DockerModels.PortBinding hostBinding in portBinding.Value)
+                                if (int.TryParse(hostBinding.HostPort, out int hostPort))
                                 {
-                                    if (int.TryParse(hostBinding.HostPort, out int hostPort))
+                                    // If a port entry contains the same "port", then remove it and replace with a new ServicePort that contains a target.
+                                    var duplicate = portList.SingleOrDefault(a => a.Port == hostPort);
+                                    if (duplicate != default(V1ServicePort))
                                     {
-                                        // If a port entry contains the same "port", then remove it and replace with a new ServicePort that contains a target.
-                                        var duplicate = portList.SingleOrDefault(a => a.Port == hostPort);
-                                        if (duplicate != default(V1ServicePort))
-                                        {
-                                            portList.Remove(duplicate);
-                                        }
+                                        portList.Remove(duplicate);
+                                    }
 
-                                        portList.Add(new V1ServicePort(hostPort, name: $"HostPort-{port}-{protocol.ToLower()}", protocol: protocol, targetPort: port));
-                                        onlyExposedPorts = false;
-                                    }
-                                    else
-                                    {
-                                        Events.PortBindingValue(module, portBinding.Key);
-                                    }
+                                    portList.Add(new V1ServicePort(hostPort, name: $"HostPort-{port}-{protocol.ToLower()}", protocol: protocol, targetPort: port));
+                                    onlyExposedPorts = false;
+                                }
+                                else
+                                {
+                                    Events.PortBindingValue(module, portBinding.Key);
                                 }
                             }
                         }
                     }
                 }
             }
+            
 
             if (portList.Count > 0)
             {
@@ -116,42 +115,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             }
         }
 
-        private Option<List<(int Port, string Protocol)>> GetExposedPorts(IDictionary<string, DockerModels.EmptyStruct> exposedPorts)
-        {
-            var serviceList = new List<(int, string)>();
-            foreach (KeyValuePair<string, DockerModels.EmptyStruct> exposedPort in exposedPorts)
-            {
-                string[] portProtocol = exposedPort.Key.Split('/');
-                if (portProtocol.Length == 2)
-                {
-                    if (int.TryParse(portProtocol[0], out int port) && ProtocolExtensions.TryValidateProtocol(portProtocol[1], out string protocol))
-                    {
-                        serviceList.Add((port, protocol));
-                    }
-                    else
-                    {
-                        Events.ExposedPortValue(exposedPort.Key);
-                    }
-                }
-            }
-
-            return (serviceList.Count > 0) ? Option.Some(serviceList) : Option.None<List<(int, string)>>();
-        }
-
         static class Events
         {
             const int IdStart = KubernetesEventIds.KubernetesServiceBuilder;
-            private static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesServiceBuilder<TConfig>>();
+            private static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesServiceBuilder>();
 
             enum EventIds
             {
-                ExposedPortValue = IdStart,
-                PortBindingValue
-            }
-
-            public static void ExposedPortValue(string portEntry)
-            {
-                Log.LogWarning((int)EventIds.ExposedPortValue, $"Received an invalid exposed port value '{portEntry}'.");
+                PortBindingValue = IdStart,
             }
 
             public static void PortBindingValue(IModule module, string portEntry)

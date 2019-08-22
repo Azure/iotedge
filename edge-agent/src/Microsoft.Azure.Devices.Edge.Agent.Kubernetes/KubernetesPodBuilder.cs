@@ -9,10 +9,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
-    using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
     using DockerModels = global::Docker.DotNet.Models;
 
-    public class KubernetesPodBuilder<TConfig>
+    public class KubernetesPodBuilder
     {
         const string SocketDir = "/var/run/iotedge";
         const string ConfigVolumeName = "config-volume";
@@ -34,14 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.proxyTrustBundleVolumeName = proxyTrustBundleVolumeName;
         }
 
-        public V1PodTemplateSpec GetPodFromModule(Dictionary<string, string> labels, KubernetesModule<TConfig> module, IModuleIdentity moduleIdentity, List<V1EnvVar> envVars)
+        public V1PodTemplateSpec GetPodFromModule(Dictionary<string, string> labels, IModule<AgentDocker.CombinedDockerConfig> module, IModuleIdentity moduleIdentity, List<V1EnvVar> envVars)
         {
-            if (!(module is IModule<AgentDocker.CombinedDockerConfig> moduleWithDockerConfig))
-            {
-                Events.InvalidModuleType(module);
-                return new V1PodTemplateSpec();
-            }
-
             // pod labels
             var podLabels = new Dictionary<string, string>(labels);
 
@@ -51,9 +44,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
             // Convert docker labels to annotations because docker labels don't have the same restrictions as
             // Kuberenetes labels.
-            if (moduleWithDockerConfig.Config.CreateOptions?.Labels != null)
+            if (module.Config.CreateOptions?.Labels != null)
             {
-                foreach ((string key, string label) in moduleWithDockerConfig.Config.CreateOptions?.Labels)
+                foreach ((string key, string label) in module.Config.CreateOptions?.Labels)
                 {
                     podAnnotations.Add(KubeUtils.SanitizeAnnotationKey(key), label);
                 }
@@ -61,19 +54,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
             // Per container settings:
             // exposed ports
-            Option<List<V1ContainerPort>> exposedPortsOption = Option.Maybe(moduleWithDockerConfig.Config?.CreateOptions?.ExposedPorts)
-                .FlatMap(ports => this.GetExposedPorts(ports))
+            Option<List<V1ContainerPort>> exposedPortsOption = Option.Maybe(module.Config?.CreateOptions?.ExposedPorts)
+                .FlatMap(ports => PortExtensions.GetExposedPorts(ports))
                 .Map(ports => ports.Select(tuple => new V1ContainerPort(tuple.Port, protocol: tuple.Protocol)).ToList());
 
             // privileged container
-            Option<V1SecurityContext> securityContext = Option.Maybe(moduleWithDockerConfig.Config?.CreateOptions?.HostConfig?.Privileged)
+            Option<V1SecurityContext> securityContext = Option.Maybe(module.Config?.CreateOptions?.HostConfig?.Privileged)
                 .Map(config => new V1SecurityContext(privileged: true));
 
             // Bind mounts
-            (List<V1Volume> volumeList, List<V1VolumeMount> proxyMounts, List<V1VolumeMount> volumeMountList) = this.GetVolumesFromModule(moduleWithDockerConfig);
+            (List<V1Volume> volumeList, List<V1VolumeMount> proxyMounts, List<V1VolumeMount> volumeMountList) = this.GetVolumesFromModule(module);
 
             // Image
-            string moduleImage = moduleWithDockerConfig.Config.Image;
+            string moduleImage = module.Config.Image;
 
             var containerList = new List<V1Container>
             {
@@ -93,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     volumeMounts: proxyMounts)
             };
 
-            Option<List<V1LocalObjectReference>> imageSecret = moduleWithDockerConfig.Config.AuthConfig.Map(
+            Option<List<V1LocalObjectReference>> imageSecret = module.Config.AuthConfig.Map(
                 auth =>
                 {
                     var secret = new ImagePullSecret(auth);
@@ -174,50 +167,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             }
 
             return (volumeList, proxyMountList, volumeMountList);
-        }
-
-        private Option<List<(int Port, string Protocol)>> GetExposedPorts(IDictionary<string, DockerModels.EmptyStruct> exposedPorts)
-        {
-            var serviceList = new List<(int, string)>();
-            foreach (KeyValuePair<string, DockerModels.EmptyStruct> exposedPort in exposedPorts)
-            {
-                string[] portProtocol = exposedPort.Key.Split('/');
-                if (portProtocol.Length == 2)
-                {
-                    if (int.TryParse(portProtocol[0], out int port) && ProtocolExtensions.TryValidateProtocol(portProtocol[1], out string protocol))
-                    {
-                        serviceList.Add((port, protocol));
-                    }
-                    else
-                    {
-                        Events.ExposedPortValue(exposedPort.Key);
-                    }
-                }
-            }
-
-            return (serviceList.Count > 0) ? Option.Some(serviceList) : Option.None<List<(int, string)>>();
-        }
-
-        static class Events
-        {
-            const int IdStart = KubernetesEventIds.KubernetesModuleBuilder;
-            private static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesPodBuilder<TConfig>>();
-
-            enum EventIds
-            {
-                InvalidModuleType = IdStart,
-                ExposedPortValue,
-            }
-
-            public static void InvalidModuleType(IModule module)
-            {
-                Log.LogError((int)EventIds.InvalidModuleType, $"Module {module.Name} has an invalid module type '{module.Type}'. Expected type 'docker'");
-            }
-
-            public static void ExposedPortValue(string portEntry)
-            {
-                Log.LogWarning((int)EventIds.ExposedPortValue, $"Received an invalid exposed port value '{portEntry}'.");
-            }
         }
     }
 }
