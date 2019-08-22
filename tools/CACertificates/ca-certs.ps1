@@ -338,7 +338,7 @@ function New-PrivateKey([string]$prefix, [string]$keyPass=$NULL)
     .DESCRIPTION
     Generate a client certificate using the supplied certificate and key parameters and
     have it signed by an issuer certificate and key.
-    Issuer is spcified by its prefix and its corresponding key and certificate
+    Issuer is specified by its prefix and its corresponding key and certificate
     will be retrieved from the filesystem.
     .PARAMETER x509Ext
         A string to identify which configuration to use to generate a certificate.
@@ -483,7 +483,7 @@ function New-CertFullChain([string]$certFile, [string]$prefix, [string]$issuerPr
     Generate a client certificate using an issuer certificate and key
     .DESCRIPTION
     Generate a client certificate using the supplied common name and have it signed by
-    an issuer certificate and key. Issuer is spcified by its prefix and its corresponding
+    an issuer certificate and key. Issuer is specified by its prefix and its corresponding
     key and certificate will be retrieved from the filesystem.
     .PARAMETER prefix
         Prefix is used to name the file containing the private key
@@ -504,7 +504,7 @@ function New-ClientCertificate([string]$prefix, [string]$issuerPrefix, [string]$
     Generate a server certificate using an issuer certificate and key
     .DESCRIPTION
     Generate a server certificate using the supplied common name and have it signed by
-    an issuer certificate and key. Issuer is spcified by its prefix and its corresponding
+    an issuer certificate and key. Issuer is specified by its prefix and its corresponding
     key and certificate will be retrieved from the filesystem.
     .PARAMETER prefix
         Prefix is used to name the file containing the private key
@@ -525,7 +525,7 @@ function New-ServerCertificate([string]$prefix, [string]$issuerPrefix, [string]$
     Generate an intermediate CA certificate using an issuer certificate and key
     .DESCRIPTION
     Generate an intermediate CA certificate using the supplied common name and have it signed by
-    an issuer certificate and key. Issuer is spcified by its prefix and its corresponding
+    an issuer certificate and key. Issuer is specified by its prefix and its corresponding
     key and certificate will be retrieved from the filesystem.
     .PARAMETER prefix
         Prefix is used to name the file containing the private key
@@ -697,7 +697,7 @@ function New-CACertsVerificationCert([Parameter(Mandatory=$TRUE)][string]$reques
     Generate an IoT Edge/Hub device certificate using an issuer's certificate and key
     .DESCRIPTION
     Generate a certificate using the supplied common name and have it signed by
-    an issuer certificate and key. Issuer is spcified by its prefix and its corresponding
+    an issuer certificate and key. Issuer is specified by its prefix and its corresponding
     key and certificate will be retrieved from the filesystem.
     If parameter isEdgeDevice is true the resulting certificate is a CA certificate else a
     client certificate will be created.
@@ -705,10 +705,15 @@ function New-CACertsVerificationCert([Parameter(Mandatory=$TRUE)][string]$reques
         Device name will be used as a prefix and as the value of the CN field
     .PARAMETER issuerPrefix
         Optional issuer prefix to look up the certifcate and key. If null the root CA is used.
-    .PARAMETER isEdgeDevice
-        Identifies if this certificate is to be used for Edge runtime. Default is false.
+    .PARAMETER filePrefix
+        The file name prefix to be used when creating the certificate and keys
 #>
-function New-CACertsDevice([Parameter(Mandatory=$TRUE)][string]$deviceName, [string]$issuerPrefix=$_intermediatePrefix, [bool]$isEdgeDevice=$false)
+function New-CACertsDevice(
+    [Parameter(Mandatory=$TRUE)]
+    [string]$deviceName,
+    [string]$issuerPrefix=$_intermediatePrefix,
+    [ValidateSet("iot-device","iot-edge-device", "iot-edge-device-ca", "iot-edge-device-identity")]
+    [string]$filePrefix="iot-device")
 {
     if ([string]::IsNullOrWhiteSpace($deviceName))
     {
@@ -716,10 +721,11 @@ function New-CACertsDevice([Parameter(Mandatory=$TRUE)][string]$deviceName, [str
     }
     $deviceName = $deviceName.Trim()
 
+    $devicePrefix = "$filePrefix-$deviceName"
     # Certificates for edge devices need to be able to sign other certs.
-    if ($isEdgeDevice -eq $true)
+    $edgePrefixes = @('iot-edge-device', 'iot-edge-device-ca')
+    if ($edgePrefixes.Contains($filePrefix))
     {
-        $devicePrefix = "iot-edge-device-$deviceName"
         # Note: Appending a '.ca' to the common name is useful in situations
         # where a user names their hostname as the edge device name.
         # By doing so we avoid TLS validation errors where we have a server or
@@ -730,7 +736,6 @@ function New-CACertsDevice([Parameter(Mandatory=$TRUE)][string]$deviceName, [str
     }
     else
     {
-        $devicePrefix = "iot-device-$deviceName"
         New-ClientCertificate $devicePrefix $issuerPrefix $deviceName
     }
 }
@@ -741,7 +746,7 @@ function New-CACertsDevice([Parameter(Mandatory=$TRUE)][string]$deviceName, [str
     using an issuer's certificate and key
     .DESCRIPTION
     Generate a certificate using the supplied common name and have it signed by
-    an issuer certificate and key. Issuer is spcified by its prefix and its corresponding
+    an issuer certificate and key. Issuer is specified by its prefix and its corresponding
     key and certificate will be retrieved from the filesystem.
     .PARAMETER deviceName
         Device name will be used as a prefix and as the value of the CN field
@@ -753,9 +758,55 @@ function New-CACertsEdgeDevice([Parameter(Mandatory=$TRUE)][string]$deviceName, 
 {
     if ([string]::IsNullOrWhiteSpace($deviceName))
     {
+        throw "Edge device CA name string parameter is required and cannot be null or empty"
+    }
+    New-CACertsDevice $deviceName $issuerPrefix "iot-edge-device"
+}
+
+<#
+    .SYNOPSIS
+    Generate an IoT Edge device CA certificate, private key and full certificate chain
+    using an issuer's certificate and key
+    .DESCRIPTION
+    Generate a certificate using the supplied common name and have it signed by
+    an issuer certificate and key. Issuer is specified by its prefix and its corresponding
+    key and certificate will be retrieved from the filesystem.
+    .PARAMETER deviceName
+        Device name will be used as a prefix and as the value of the CN field
+    .PARAMETER issuerPrefix
+        Optional issuer prefix to look up the certifcate and key. If null the default intermediate
+        CA certificate is used.
+#>
+function New-CACertsEdgeDeviceCA([Parameter(Mandatory=$TRUE)][string]$deviceName, [string]$issuerPrefix=$_intermediatePrefix)
+{
+    if ([string]::IsNullOrWhiteSpace($deviceName))
+    {
+        throw "Edge device CA name string parameter is required and cannot be null or empty"
+    }
+    New-CACertsDevice $deviceName $issuerPrefix "iot-edge-device-ca"
+}
+
+<#
+    .SYNOPSIS
+    Generate an IoT Edge device identity certificate, private key and full certificate chain
+    using an issuer's certificate and key
+    .DESCRIPTION
+    Generate a certificate using the supplied common name and have it signed by
+    an issuer certificate and key. Issuer is specified by its prefix and its corresponding
+    key and certificate will be retrieved from the filesystem.
+    .PARAMETER deviceName
+        Device name will be used as a prefix and as the value of the CN field
+    .PARAMETER issuerPrefix
+        Optional issuer prefix to look up the certifcate and key. If null the default intermediate
+        CA certificate is used.
+#>
+function New-CACertsEdgeDeviceIdentity([Parameter(Mandatory=$TRUE)][string]$deviceName, [string]$issuerPrefix=$_intermediatePrefix)
+{
+    if ([string]::IsNullOrWhiteSpace($deviceName))
+    {
         throw "Edge device name string parameter is required and cannot be null or empty"
     }
-    New-CACertsDevice $deviceName $issuerPrefix $true
+    New-CACertsDevice $deviceName $issuerPrefix "iot-edge-device-identity"
 }
 
 <#
@@ -764,7 +815,7 @@ function New-CACertsEdgeDevice([Parameter(Mandatory=$TRUE)][string]$deviceName, 
     using an issuer's certificate and key
     .DESCRIPTION
     Generate a certificate using the supplied common name and have it signed by
-    an issuer certificate and key. Issuer is spcified by its prefix and its corresponding
+    an issuer certificate and key. Issuer is specified by its prefix and its corresponding
     key and certificate will be retrieved from the filesystem.
     .PARAMETER hostName
         Hostname will be used as a prefix and as the value of the CN field
