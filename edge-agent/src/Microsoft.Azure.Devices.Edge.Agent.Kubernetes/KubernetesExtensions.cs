@@ -4,6 +4,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using System.Collections.Generic;
     using System.Linq;
     using k8s.Models;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
+    using DockerModels = global::Docker.DotNet.Models;
 
     public static class V1PodSpecEx
     {
@@ -95,6 +98,73 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
             return string.Equals(self.Kind, other.Kind) &&
                 V1DeploymentSpecEx.ImageEquals(self.Spec, other.Spec);
+        }
+    }
+
+    public static class ProtocolExtensions
+    {
+        public static bool TryValidateProtocol(string dockerProtocol, out string k8SProtocol)
+        {
+            bool result = true;
+            switch (dockerProtocol.ToUpper())
+            {
+                case "TCP":
+                    k8SProtocol = "TCP";
+                    break;
+                case "UDP":
+                    k8SProtocol = "UDP";
+                    break;
+                case "SCTP":
+                    k8SProtocol = "SCTP";
+                    break;
+                default:
+                    k8SProtocol = "TCP";
+                    result = false;
+                    break;
+            }
+
+            return result;
+        }
+    }
+
+    public static class PortExtensions
+    {
+        public static Option<List<(int Port, string Protocol)>> GetExposedPorts(IDictionary<string, DockerModels.EmptyStruct> exposedPorts)
+        {
+            var serviceList = new List<(int, string)>();
+            foreach (KeyValuePair<string, DockerModels.EmptyStruct> exposedPort in exposedPorts)
+            {
+                string[] portProtocol = exposedPort.Key.Split('/');
+                if (portProtocol.Length == 2)
+                {
+                    if (int.TryParse(portProtocol[0], out int port) && ProtocolExtensions.TryValidateProtocol(portProtocol[1], out string protocol))
+                    {
+                        serviceList.Add((port, protocol));
+                    }
+                    else
+                    {
+                        Events.ExposedPortValue(exposedPort.Key);
+                    }
+                }
+            }
+
+            return (serviceList.Count > 0) ? Option.Some(serviceList) : Option.None<List<(int, string)>>();
+        }
+
+        static class Events
+        {
+            const int IdStart = KubernetesEventIds.KubernetesModuleBuilder;
+            private static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesPodBuilder>();
+
+            enum EventIds
+            {
+                ExposedPortValue = IdStart,
+            }
+
+            public static void ExposedPortValue(string portEntry)
+            {
+                Log.LogWarning((int)EventIds.ExposedPortValue, $"Received an invalid exposed port value '{portEntry}'.");
+            }
         }
     }
 }

@@ -16,14 +16,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using Newtonsoft.Json;
     using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
     using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
-    using DockerModels = global::Docker.DotNet.Models;
 
     public class CrdWatcher<TConfig>
     {
-        const string SocketDir = "/var/run/iotedge";
-        const string ConfigVolumeName = "config-volume";
-        const string TrustBundleVolumeName = "trust-bundle-volume";
-        const string SocketVolumeName = "workload";
         const string EdgeHubHostname = "edgehub";
 
         readonly IKubernetes client;
@@ -142,7 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             }
         }
 
-        private async Task WatchDeploymentEventsAsync(WatchEventType type, object custom)
+        internal async Task WatchDeploymentEventsAsync(WatchEventType type, object custom)
         {
             EdgeDeploymentDefinition<TConfig> edgeDeploymentDefinition;
             try
@@ -217,6 +212,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
             var desiredServices = new List<V1Service>();
             var desiredDeployments = new List<V1Deployment>();
+
+            // Bootstrap the module builder
+            var kubernetesModelBuilder = new KubernetesModelBuilder(this.proxyImage, this.proxyConfigPath, this.proxyConfigVolumeName, this.proxyTrustBundlePath, this.proxyTrustBundleVolumeName, this.defaultMapServiceType);
+
             foreach (KubernetesModule<TConfig> module in customObject.Spec)
             {
                 var moduleId = moduleIdentities[module.Name];
@@ -230,12 +229,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         [Constants.K8sEdgeHubNameLabel] = KubeUtils.SanitizeLabelValue(this.iotHubHostname)
                     };
 
+                    // Create a Pod for each module, and a proxy container.
+                    if (!(module is IModule<AgentDocker.CombinedDockerConfig> moduleWithDockerConfig))
+                    {
+                        Events.InvalidModuleType(module);
+                        continue;
+                    }
+
+                    List<V1EnvVar> envVars = this.CollectEnv(moduleWithDockerConfig, (KubernetesModuleIdentity)moduleId);
+
+                    // Load the current module
+                    kubernetesModelBuilder.LoadModule(labels, moduleWithDockerConfig, moduleId, envVars);
+
                     // Create a Service for every network interface of each module. (label them with hub, device and module id)
-                    Option<V1Service> moduleService = this.GetServiceFromModule(labels, module, moduleId);
+                    Option<V1Service> moduleService = kubernetesModelBuilder.GetService();
                     moduleService.ForEach(service => desiredServices.Add(service));
 
-                    // Create a Pod for each module, and a proxy container.
-                    V1PodTemplateSpec v1PodSpec = this.GetPodFromModule(labels, module, moduleId);
+                    // Get the converted pod
+                    V1PodTemplateSpec v1PodSpec = kubernetesModelBuilder.GetPod();
 
                     // if this is the edge agent's deployment then it needs to run under a specific service account
                     if (moduleIdentities[module.Name].ModuleId == CoreConstants.EdgeAgentModuleIdentityName)
@@ -471,151 +482,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             await Task.WhenAll(deletionTasks);
         }
 
-        V1PodTemplateSpec GetPodFromModule(Dictionary<string, string> labels, KubernetesModule<TConfig> module, IModuleIdentity moduleIdentity)
-        {
-            if (!(module is IModule<AgentDocker.CombinedDockerConfig> moduleWithDockerConfig))
-            {
-                Events.InvalidModuleType(module);
-                return new V1PodTemplateSpec();
-            }
-
-            // pod labels
-            var podLabels = new Dictionary<string, string>(labels);
-
-            // pod annotations
-            var podAnnotations = new Dictionary<string, string>();
-            podAnnotations.Add(Constants.K8sEdgeOriginalModuleId, moduleIdentity.ModuleId);
-
-            // Convert docker labels to annotations because docker labels don't have the same restrictions as
-            // Kuberenetes labels.
-            if (moduleWithDockerConfig.Config.CreateOptions?.Labels != null)
-            {
-                foreach ((string key, string label) in moduleWithDockerConfig.Config.CreateOptions?.Labels)
-                {
-                    podAnnotations.Add(KubeUtils.SanitizeAnnotationKey(key), label);
-                }
-            }
-
-            // Per container settings:
-            // exposed ports
-            Option<List<V1ContainerPort>> exposedPortsOption = Option.Maybe(moduleWithDockerConfig.Config?.CreateOptions?.ExposedPorts)
-                .FlatMap(ports => this.GetExposedPorts(ports))
-                .Map(ports => ports.Select(tuple => new V1ContainerPort(tuple.Port, protocol: tuple.Protocol)).ToList());
-
-            // privileged container
-            Option<V1SecurityContext> securityContext = Option.Maybe(moduleWithDockerConfig.Config?.CreateOptions?.HostConfig?.Privileged)
-                .Map(config => new V1SecurityContext(privileged: true));
-
-            // Environment Variables.
-            List<V1EnvVar> env = this.CollectEnv(moduleWithDockerConfig, (KubernetesModuleIdentity)moduleIdentity);
-
-            // Bind mounts
-            (List<V1Volume> volumeList, List<V1VolumeMount> proxyMounts, List<V1VolumeMount> volumeMountList) = this.GetVolumesFromModule(moduleWithDockerConfig);
-
-            // Image
-            string moduleImage = moduleWithDockerConfig.Config.Image;
-
-            var containerList = new List<V1Container>
-            {
-                new V1Container(
-                    KubeUtils.SanitizeDNSValue(moduleIdentity.ModuleId),
-                    env: env,
-                    image: moduleImage,
-                    volumeMounts: volumeMountList,
-                    securityContext: securityContext.OrDefault(),
-                    ports: exposedPortsOption.OrDefault()),
-
-                // TODO: Add Proxy container here - configmap for proxy configuration.
-                new V1Container(
-                    "proxy",
-                    env: env, // TODO: check these for validity for proxy.
-                    image: this.proxyImage,
-                    volumeMounts: proxyMounts)
-            };
-
-            Option<List<V1LocalObjectReference>> imageSecret = moduleWithDockerConfig.Config.AuthConfig.Map(
-                auth =>
-                {
-                    var secret = new ImagePullSecret(auth);
-                    var authList = new List<V1LocalObjectReference>
-                    {
-                        new V1LocalObjectReference(secret.Name)
-                    };
-                    return authList;
-                });
-
-            var modulePodSpec = new V1PodSpec(containerList, volumes: volumeList, imagePullSecrets: imageSecret.OrDefault());
-            var objectMeta = new V1ObjectMeta(labels: podLabels, annotations: podAnnotations);
-            return new V1PodTemplateSpec(objectMeta, modulePodSpec);
-        }
-
-        (List<V1Volume>, List<V1VolumeMount>, List<V1VolumeMount>) GetVolumesFromModule(IModule<AgentDocker.CombinedDockerConfig> moduleWithDockerConfig)
-        {
-            var volumeList = new List<V1Volume>
-            {
-                new V1Volume(SocketVolumeName, emptyDir: new V1EmptyDirVolumeSource()),
-                new V1Volume(ConfigVolumeName, configMap: new V1ConfigMapVolumeSource(name: this.proxyConfigVolumeName)),
-                new V1Volume(TrustBundleVolumeName, configMap: new V1ConfigMapVolumeSource(name: this.proxyTrustBundleVolumeName))
-            };
-
-            var proxyMountList = new List<V1VolumeMount>
-            {
-                new V1VolumeMount(SocketDir, SocketVolumeName),
-                new V1VolumeMount(this.proxyConfigPath, ConfigVolumeName),
-                new V1VolumeMount(this.proxyTrustBundlePath, TrustBundleVolumeName)
-            };
-
-            var volumeMountList = new List<V1VolumeMount>(proxyMountList);
-
-            if (moduleWithDockerConfig.Config?.CreateOptions?.HostConfig?.Binds != null)
-            {
-                foreach (string bind in moduleWithDockerConfig.Config?.CreateOptions?.HostConfig?.Binds)
-                {
-                    string[] bindSubstrings = bind.Split(':');
-                    if (bindSubstrings.Length >= 2)
-                    {
-                        string name = KubeUtils.SanitizeDNSValue(bindSubstrings[0]);
-                        string type = "DirectoryOrCreate";
-                        string hostPath = bindSubstrings[0];
-                        volumeList.Add(new V1Volume(name, hostPath: new V1HostPathVolumeSource(hostPath, type)));
-
-                        string mountPath = bindSubstrings[1];
-                        bool readOnly = bindSubstrings.Length > 2 && bindSubstrings[2].Contains("ro");
-                        volumeMountList.Add(new V1VolumeMount(mountPath, name, readOnlyProperty: readOnly));
-                    }
-                }
-            }
-
-            if (moduleWithDockerConfig.Config?.CreateOptions?.HostConfig?.Mounts != null)
-            {
-                foreach (DockerModels.Mount mount in moduleWithDockerConfig.Config?.CreateOptions?.HostConfig?.Mounts)
-                {
-                    if (mount.Type.Equals("bind", StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        string name = KubeUtils.SanitizeDNSValue(mount.Source);
-                        string type = "DirectoryOrCreate";
-                        string hostPath = mount.Source;
-                        volumeList.Add(new V1Volume(name, hostPath: new V1HostPathVolumeSource(hostPath, type)));
-
-                        string mountPath = mount.Target;
-                        bool readOnly = mount.ReadOnly;
-                        volumeMountList.Add(new V1VolumeMount(mountPath, name, readOnlyProperty: readOnly));
-                    }
-                    else if (mount.Type.Equals("volume", StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        string name = KubeUtils.SanitizeDNSValue(mount.Source);
-                        string mountPath = mount.Target;
-                        volumeList.Add(new V1Volume(name, emptyDir: new V1EmptyDirVolumeSource()));
-
-                        bool readOnly = mount.ReadOnly;
-                        volumeMountList.Add(new V1VolumeMount(mountPath, name, readOnlyProperty: readOnly));
-                    }
-                }
-            }
-
-            return (volumeList, proxyMountList, volumeMountList);
-        }
-
         List<V1EnvVar> CollectEnv(IModule<AgentDocker.CombinedDockerConfig> moduleWithDockerConfig, KubernetesModuleIdentity identity)
         {
             char[] envSplit = { '=' };
@@ -668,148 +534,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             }
 
             return envList;
-        }
-
-        private Option<List<(int Port, string Protocol)>> GetExposedPorts(IDictionary<string, DockerModels.EmptyStruct> exposedPorts)
-        {
-            var serviceList = new List<(int, string)>();
-            foreach (KeyValuePair<string, DockerModels.EmptyStruct> exposedPort in exposedPorts)
-            {
-                string[] portProtocol = exposedPort.Key.Split('/');
-                if (portProtocol.Length == 2)
-                {
-                    if (int.TryParse(portProtocol[0], out int port) && this.ValidateProtocol(portProtocol[1], out string protocol))
-                    {
-                        serviceList.Add((port, protocol));
-                    }
-                    else
-                    {
-                        Events.ExposedPortValue(exposedPort.Key);
-                    }
-                }
-            }
-
-            return (serviceList.Count > 0) ? Option.Some(serviceList) : Option.None<List<(int, string)>>();
-        }
-
-        private Option<V1Service> GetServiceFromModule(Dictionary<string, string> labels, KubernetesModule<TConfig> module, IModuleIdentity moduleIdentity)
-        {
-            var portList = new List<V1ServicePort>();
-            Option<Dictionary<string, string>> serviceAnnotations = Option.None<Dictionary<string, string>>();
-            bool onlyExposedPorts = true;
-            if (module is IModule<AgentDocker.CombinedDockerConfig> moduleWithDockerConfig)
-            {
-                if (moduleWithDockerConfig.Config.CreateOptions?.Labels != null)
-                {
-                    // Add annotations from Docker labels. This provides the customer a way to assign annotations to services if they want
-                    // to tie backend services to load balancers via an Ingress Controller.
-                    var annotations = new Dictionary<string, string>();
-                    foreach (KeyValuePair<string, string> label in moduleWithDockerConfig.Config.CreateOptions?.Labels)
-                    {
-                        annotations.Add(KubeUtils.SanitizeAnnotationKey(label.Key), label.Value);
-                    }
-
-                    serviceAnnotations = Option.Some(annotations);
-                }
-
-                // Handle ExposedPorts entries
-                if (moduleWithDockerConfig.Config?.CreateOptions?.ExposedPorts != null)
-                {
-                    // Entries in the Exposed Port list just tell Docker that this container wants to listen on that port.
-                    // We interpret this as a "ClusterIP" service type listening on that exposed port, backed by this module.
-                    // Users of this Module's exposed port should be able to find the service by connecting to "<module name>:<port>"
-                    this.GetExposedPorts(moduleWithDockerConfig.Config.CreateOptions.ExposedPorts)
-                        .ForEach(
-                            exposedList =>
-                                exposedList.ForEach((item) => portList.Add(new V1ServicePort(item.Port, name: $"ExposedPort-{item.Port}-{item.Protocol.ToLower()}", protocol: item.Protocol))));
-                }
-
-                // Handle HostConfig PortBindings entries
-                if (moduleWithDockerConfig.Config?.CreateOptions?.HostConfig?.PortBindings != null)
-                {
-                    foreach (KeyValuePair<string, IList<DockerModels.PortBinding>> portBinding in moduleWithDockerConfig.Config?.CreateOptions?.HostConfig?.PortBindings)
-                    {
-                        string[] portProtocol = portBinding.Key.Split('/');
-                        if (portProtocol.Length == 2)
-                        {
-                            if (int.TryParse(portProtocol[0], out int port) && this.ValidateProtocol(portProtocol[1], out string protocol))
-                            {
-                                // Entries in Docker portMap wants to expose a port on the host (hostPort) and map it to the container's port (port)
-                                // We interpret that as the pod wants the cluster to expose a port on a public IP (hostPort), and target it to the container's port (port)
-                                foreach (DockerModels.PortBinding hostBinding in portBinding.Value)
-                                {
-                                    if (int.TryParse(hostBinding.HostPort, out int hostPort))
-                                    {
-                                        // If a port entry contains the same "port", then remove it and replace with a new ServicePort that contains a target.
-                                        var duplicate = portList.SingleOrDefault(a => a.Port == hostPort);
-                                        if (duplicate != default(V1ServicePort))
-                                        {
-                                            portList.Remove(duplicate);
-                                        }
-
-                                        portList.Add(new V1ServicePort(hostPort, name: $"HostPort-{port}-{protocol.ToLower()}", protocol: protocol, targetPort: port));
-                                        onlyExposedPorts = false;
-                                    }
-                                    else
-                                    {
-                                        Events.PortBindingValue(module, portBinding.Key);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (portList.Count > 0)
-            {
-                // Selector: by module name and device name, also how we will label this puppy.
-                var objectMeta = new V1ObjectMeta(annotations: serviceAnnotations.GetOrElse(() => null), labels: labels, name: KubeUtils.SanitizeDNSValue(moduleIdentity.ModuleId));
-                // How we manage this service is dependent on the port mappings user asks for.
-                // If the user tells us to only use ClusterIP ports, we will always set the type to ClusterIP.
-                // If all we had were exposed ports, we will assume ClusterIP. Otherwise, we use the given value as the default service type
-                //
-                // If the user wants to expose the ClusterIPs port externally, they should manually create a service to expose it.
-                // This gives the user more control as to how they want this to work.
-                string serviceType;
-                if (onlyExposedPorts)
-                {
-                    serviceType = "ClusterIP";
-                }
-                else
-                {
-                    serviceType = this.defaultMapServiceType;
-                }
-
-                return Option.Some(new V1Service(metadata: objectMeta, spec: new V1ServiceSpec(type: serviceType, ports: portList, selector: labels)));
-            }
-            else
-            {
-                return Option.None<V1Service>();
-            }
-        }
-
-        private bool ValidateProtocol(string dockerProtocol, out string k8SProtocol)
-        {
-            bool result = true;
-            switch (dockerProtocol.ToUpper())
-            {
-                case "TCP":
-                    k8SProtocol = "TCP";
-                    break;
-                case "UDP":
-                    k8SProtocol = "UDP";
-                    break;
-                case "SCTP":
-                    k8SProtocol = "SCTP";
-                    break;
-                default:
-                    k8SProtocol = "TCP";
-                    result = false;
-                    break;
-            }
-
-            return result;
         }
 
         private Dictionary<string, string> GetCurrentServiceConfig(V1ServiceList currentServices)
@@ -889,8 +613,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 InvalidModuleType = IdStart,
                 ExceptionInCustomResourceWatch,
                 InvalidCreationString,
-                ExposedPortValue,
-                PortBindingValue,
                 EdgeDeploymentDeserializeFail,
                 DeploymentStatus,
                 DeploymentError,
@@ -943,16 +665,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             public static void InvalidCreationString(string kind, string name)
             {
                 Log.LogDebug((int)EventIds.InvalidCreationString, $"Expected a valid '{kind}' creation string in k8s Object '{name}'.");
-            }
-
-            public static void ExposedPortValue(string portEntry)
-            {
-                Log.LogWarning((int)EventIds.ExposedPortValue, $"Received an invalid exposed port value '{portEntry}'.");
-            }
-
-            public static void PortBindingValue(IModule module, string portEntry)
-            {
-                Log.LogWarning((int)EventIds.PortBindingValue, $"Module {module.Name} has an invalid port binding value '{portEntry}'.");
             }
 
             public static void EdgeDeploymentDeserializeFail(Exception e)
