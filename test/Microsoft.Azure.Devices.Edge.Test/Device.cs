@@ -18,6 +18,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             CancellationToken token = this.cts.Token;
 
+            await this.runtime.DeployConfigurationAsync(token);
+
             string leafDeviceId = $"{Context.Current.DeviceId}-quickstart-certs";
 
             var leaf = await LeafDevice.CreateAsync(
