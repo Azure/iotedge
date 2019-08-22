@@ -132,7 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         c.Resolve<ISdkModuleClientProvider>(),
                         this.upstreamProtocol,
                         this.proxy,
-                        this.productInfo,
+                        this.productInfo.OrDefault(),
                         this.closeOnIdleTimeout,
                         this.idleTimeout))
                 .As<IModuleClientProvider>()
