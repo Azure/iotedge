@@ -69,19 +69,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return new LeafCertificates(files[0], files[1]);
         }
 
-        protected EdgeCertificates GetEdgeQuickstartCertificates(string basePath)
-        {
-            string[] paths = Directory.GetFiles(Path.Combine(basePath, "certs"), "device_ca_alias*.pem");
-            string cert = paths[0];
-            paths = Directory.GetFiles(Path.Combine(basePath, "cert_keys"), "device_ca_alias*.pem");
-            string key = paths[0];
-            paths = Directory.GetFiles(Path.Combine(basePath, "certs"), "edge_owner_ca*.pem");
-            string chain = paths[0];
-
-            var files = new[] { cert, key, chain };
-
-            return new EdgeCertificates(files[0], files[1], files[2]);
-        }
+        protected EdgeCertificates GetEdgeQuickstartCertificates(string basePath) =>
+            new EdgeCertificates(
+                Directory.GetFiles(Path.Combine(basePath, "certs"), "device_ca_alias*.pem")[0],
+                Directory.GetFiles(Path.Combine(basePath, "cert_keys"), "device_ca_alias*.pem")[0],
+                Directory.GetFiles(Path.Combine(basePath, "certs"), "edge_owner_ca*.pem")[0]);
 
         protected async Task InstallRootCertificateAsync(
             string basePath,
