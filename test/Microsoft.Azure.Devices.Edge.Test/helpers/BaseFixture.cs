@@ -1,8 +1,7 @@
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 {
     using System;
-    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -10,12 +9,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using NUnit.Framework.Interfaces;
     using Serilog;
 
-    public class TestBase
+    public class BaseFixture
     {
         Profiler profiler;
         DateTime testStartTime;
 
         protected CancellationTokenSource cts;
+        protected IotHub iotHub;
+        protected EdgeRuntime runtime;
 
         [SetUp]
         protected void BeforeEachTest()
@@ -23,6 +24,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.cts = new CancellationTokenSource(Context.Current.TestTimeout);
             this.testStartTime = DateTime.Now;
             this.profiler = Profiler.Start();
+            this.iotHub = new IotHub(
+                Context.Current.ConnectionString,
+                Context.Current.EventHubEndpoint,
+                Context.Current.Proxy);
+            this.runtime = new EdgeRuntime(
+                Context.Current.DeviceId,
+                Context.Current.EdgeAgentImage,
+                Context.Current.EdgeHubImage,
+                Context.Current.Proxy,
+                Context.Current.Registries,
+                Context.Current.OptimizeForPerformance,
+                this.iotHub);
             Log.Information("Running test '{Name}'", TestContext.CurrentContext.Test.Name);
         }
 
