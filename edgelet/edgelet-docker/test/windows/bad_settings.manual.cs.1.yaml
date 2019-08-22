@@ -1,6 +1,3 @@
-
-# Configures the provisioning mode
-
 # mulitple connection strings specified
 provisioning:
   source: "manual"

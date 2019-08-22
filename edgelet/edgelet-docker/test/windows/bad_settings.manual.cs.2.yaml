@@ -1,6 +1,3 @@
-
-# Configures the provisioning mode
-
 # invalid connection string specifed
 provisioning:
   source: "manual"

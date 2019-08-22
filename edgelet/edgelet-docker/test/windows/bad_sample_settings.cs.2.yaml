@@ -1,4 +1,3 @@
-
 # no connection string provided or authentication mechanism provided
 provisioning:
   source: "manual"

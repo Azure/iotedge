@@ -1,6 +1,3 @@
-
-# Configures the provisioning mode
-
 # x509 manual provisioning does not have the iothub hostname specified
 provisioning:
   source: "manual"

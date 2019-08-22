@@ -1,6 +1,3 @@
-
-# Configures the provisioning mode
-
 # x509 manual provisioning does not have an identity private key URI specified
 provisioning:
   source: "manual"

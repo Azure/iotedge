@@ -1,6 +1,3 @@
-
-# Configures the provisioning mode
-
 # no connection string specifed
 provisioning:
   source: "manual"

@@ -1,6 +1,3 @@
-
-# Configures the provisioning mode
-
 # x509 manual provisioning does not have the device id specified
 provisioning:
   source: "manual"

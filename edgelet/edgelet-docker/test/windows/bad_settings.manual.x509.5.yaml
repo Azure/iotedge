@@ -1,6 +1,3 @@
-
-# Configures the provisioning mode
-
 # x509 manual provisioning auth mode specifes both a connection string and x509 certificate
 provisioning:
   source: "manual"

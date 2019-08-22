@@ -1,6 +1,3 @@
-
-# Configures the provisioning mode
-
 # x509 manual provisioning does not have an identity cert URI specified
 provisioning:
   source: "manual"
