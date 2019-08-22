@@ -20,10 +20,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
     public class CrdWatcher<TConfig>
     {
-        const string SocketDir = "/var/run/iotedge";
-        const string ConfigVolumeName = "config-volume";
-        const string TrustBundleVolumeName = "trust-bundle-volume";
-        const string SocketVolumeName = "workload";
         const string EdgeHubHostname = "edgehub";
 
         readonly IKubernetes client;
