@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         IEdgeDaemon daemon;
 
         protected CertificateAuthority ca;
+        protected IotHub iotHub;
 
         [OneTimeSetUp]
         public async Task BeforeAllAsync()
@@ -31,6 +32,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     {
                         DateTime startTime = DateTime.Now;
                         CancellationToken token = cts.Token;
+
+                        this.iotHub = new IotHub(
+                            Context.Current.ConnectionString,
+                            Context.Current.EventHubEndpoint,
+                            proxy);
 
                         try
                         {
@@ -50,7 +56,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                                 },
                                 token);
 
-                            await this.runtime.DeployConfigurationAsync(token);
+                            var runtime = new EdgeRuntime(
+                                deviceId,
+                                Context.Current.EdgeAgentImage,
+                                Context.Current.EdgeHubImage,
+                                proxy,
+                                Context.Current.Registries,
+                                Context.Current.OptimizeForPerformance,
+                                this.iotHub);
+
+                            await runtime.DeployConfigurationAsync(token);
                         }
 
                         // ReSharper disable once RedundantCatchClause
