@@ -173,7 +173,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                             new Uri(workloadUri),
                             dockerAuthConfig,
                             upstreamProtocol,
-                            productInfo,
+                            Option.Some<string>(productInfo),
                             mappedServiceDefault,
                             enableServiceCallTracing,
                             proxy,
