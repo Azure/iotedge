@@ -171,7 +171,8 @@ process_args()
         print_help_and_exit
     fi
 
-    EXE_DOCKER_DIR=${PUBLISH_DIR}/${PROJECT}/docker
+    EXE_DOCKER_DIR=${PUBLISH_DIR}/docker
+    # EXE_DOCKER_DIR=${PUBLISH_DIR}/${PROJECT}/docker
 
     if [[ -z ${EXE_DOCKER_DIR} ]] || [[ ! -d ${EXE_DOCKER_DIR} ]]; then
         echo "No docker directory for $PROJECT at $EXE_DOCKER_DIR"
@@ -262,7 +263,7 @@ docker_build_and_tag_and_push \
     "$DOCKER_IMAGENAME" \
     "$ARCH" \
     "$DOCKERFILE" \
-    "$PUBLISH_DIR/$PROJECT" \
+    "$PUBLISH_DIR" \
     "${build_args[@]/#/--build-arg }"
 [[ $? -eq 0 ]] || exit $?
 
