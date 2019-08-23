@@ -175,32 +175,30 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
         // A pump is started as soon as the object is created, and it keeps the messages list populated.
         internal class StoreMessagesProvider
         {
-            static readonly IList<IMessage> EmptyList = new List<IMessage>();
             readonly IMessageIterator iterator;
             readonly int batchSize;
-            readonly AsyncLock messagesLock = new AsyncLock();
-            Option<Task<IList<IMessage>>> getMessagesTask;
+            readonly AsyncLock stateLock = new AsyncLock();
+            Task<IList<IMessage>> getMessagesTask;
 
             public StoreMessagesProvider(IMessageIterator iterator, int batchSize)
             {
                 this.iterator = iterator;
                 this.batchSize = batchSize;
-                this.getMessagesTask = Option.Some(Task.Run(this.GetMessagesFromStore));
+                this.getMessagesTask = Task.Run(this.GetMessagesFromStore);
             }
 
             public async Task<IMessage[]> GetMessages()
             {
-                using (await this.messagesLock.LockAsync())
+                using (await this.stateLock.LockAsync())
                 {
-                    var messages = await this.getMessagesTask
-                        .GetOrElse(() => Task.FromResult(EmptyList));
+                    var messages = await this.getMessagesTask;
                     if (messages.Count == 0)
                     {
                         messages = await this.GetMessagesFromStore();
                     }
                     else
                     {
-                        this.getMessagesTask = Option.Some(Task.Run(this.GetMessagesFromStore));
+                        this.getMessagesTask = Task.Run(this.GetMessagesFromStore);
                     }
 
                     return messages.ToArray();
