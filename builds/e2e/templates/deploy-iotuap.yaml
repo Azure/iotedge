@@ -42,14 +42,19 @@ steps:
       InlineScript: |
         #Requires -RunAsAdministrator
         $ArtifactInfo=convertfrom-stringdata (get-content C:\Data\e2etests\artifacts\${{ parameters['images.artifact.name'] }}\artifactInfo.txt -raw)
-        C:\Data\e2etests\artifacts\${{ parameters['images.artifact.name'] }}\scripts\windows\test\Setup-Env.ps1 -E2ETestFolder "C:\Data\e2etests" -ArtifactImageBuildNumber "$($ArtifactInfo.BuildNumber)" -AttemptUpdate
+        # schedule Cleanup/Install task - reboots the device
+        $ScheduleDatetime = [DateTime]::Now.AddMinutes(2)
+        $ScheduleDate=$ScheduleDatetime.ToString("MM/dd/yyyy")
+        $ScheduleTime=$ScheduleDatetime.ToString("HH:mm")
+        Write-Host "Schedule to stop iotedge service at $ScheduleDate $ScheduleTime"
+        SchTasks.exe /Create /RU "SYSTEM" /SC ONCE /TN “StressTestCleanup” /TR "powershell.exe -File C:\Data\e2etests\artifacts\${{ parameters['images.artifact.name'] }}\scripts\windows\test\Setup-Env.ps1 -E2ETestFolder C:\Data\e2etests -ArtifactImageBuildNumber $($ArtifactInfo.BuildNumber) -AttemptUpdate" /SD $ScheduleDate /ST $ScheduleTime /F
       CommunicationProtocol: Http
   - powershell: |
       $startDateTime = Get-Date
       $timeoutMinutes = 5
       
       # allow for device to go offline (starts rebooting)
-      Sleep 60
+      Sleep 240
       
       Write-Host "Waiting device $(iotuap-x64-machine) to become online (for up to $timeoutMinutes minutes)..."
       
