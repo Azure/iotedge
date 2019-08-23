@@ -207,7 +207,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 ErrorRemovingSubscription,
                 ErrorAddingSubscription,
                 ProcessingSubscriptions,
-                ProcessingSubscription
+                ProcessingSubscription,
                 ClientConnectedProcessingSubscriptions,
             }
 
