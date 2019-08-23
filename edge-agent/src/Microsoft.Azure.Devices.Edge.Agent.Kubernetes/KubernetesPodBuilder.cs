@@ -105,8 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 containerList,
                 volumes: volumeList,
                 imagePullSecrets: imageSecret.OrDefault(),
-                serviceAccountName: podName
-            );
+                serviceAccountName: podName);
 
             return new V1PodTemplateSpec(objectMeta, modulePodSpec);
         }
