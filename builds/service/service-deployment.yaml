@@ -2,6 +2,12 @@
 
 pr: none
 trigger: none
+schedules:
+- cron: 0 3 * * *
+  displayName: Nightly build
+  branches:
+    include: master
+  always: true
 
 pool:
   vmImage: ubuntu-16.04
