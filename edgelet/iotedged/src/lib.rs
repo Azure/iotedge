@@ -251,16 +251,6 @@ where
         let mut tokio_runtime = tokio::runtime::Runtime::new()
             .context(ErrorKind::Initialize(InitializeErrorReason::Tokio))?;
 
-        if let Provisioning::Manual(ref manual) = settings.provisioning() {
-            if let ManualAuthMethod::DeviceConnectionString(cs) = manual.authentication_method() {
-                if cs.device_connection_string().is_empty() {
-                    return Err(Error::from(ErrorKind::Initialize(
-                        InitializeErrorReason::NotConfigured,
-                    )));
-                }
-            }
-        }
-
         if let Provisioning::External(ref external) = settings.provisioning() {
             // Set the external provisioning endpoint environment variable for use by the custom HSM library.
             env::set_var(
@@ -1991,13 +1981,13 @@ mod tests {
     }
 
     #[test]
-    fn empty_connection_string_raises_unconfigured_error() {
+    fn empty_connection_string_raises_manual_provisioning_error() {
         let settings = Settings::new(Some(Path::new(EMPTY_CONNECTION_STRING_SETTINGS))).unwrap();
         let main = Main::<DockerModuleRuntime>::new(settings);
         let result = main.run_until(signal::shutdown);
         match result.unwrap_err().kind() {
-            ErrorKind::Initialize(InitializeErrorReason::NotConfigured) => (),
-            kind => panic!("Expected `NotConfigured` but got {:?}", kind),
+            ErrorKind::Initialize(InitializeErrorReason::ManualProvisioningClient) => (),
+            kind => panic!("Expected `ManualProvisioningClient` but got {:?}", kind),
         }
     }
 
