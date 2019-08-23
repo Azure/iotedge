@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
     using Xunit;
+    using CreateContainerParameters = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.CreateContainerParameters;
 
     [ExcludeFromCodeCoverage]
     [Unit]

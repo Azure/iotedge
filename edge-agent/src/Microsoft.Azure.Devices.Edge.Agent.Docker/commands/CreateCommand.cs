@@ -12,6 +12,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
+    using CreateContainerParameters = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.CreateContainerParameters;
+    using EndpointSettings = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.EndpointSettings;
+    using HostConfig = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.HostConfig;
+    using LogConfig = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.LogConfig;
+    using NetworkingConfig = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.NetworkingConfig;
+    using PortBinding = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.PortBinding;
 
     public class CreateCommand : ICommand
     {
@@ -80,7 +86,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             return new CreateCommand(client, createContainerParameters);
         }
 
-        public Task ExecuteAsync(CancellationToken token) => this.client.Containers.CreateContainerAsync(this.createContainerParameters, token);
+        public Task ExecuteAsync(CancellationToken token)
+        {
+            // Do a serialization roundtrip to convert the Edge.Agent.Docker.Models.CreateContainerParameters to Docker.DotNet.Models.CreateContainerParameters
+            //
+            // This will lose properties in the former that are not defined in the latter, but this code path is only for the old Docker mode anyway.
+            var createContainerParameters =
+                JsonConvert.DeserializeObject<global::Docker.DotNet.Models.CreateContainerParameters>(JsonConvert.SerializeObject(this.createContainerParameters));
+            return this.client.Containers.CreateContainerAsync(createContainerParameters, token);
+        }
 
         public string Show() => $"docker create --name {this.createContainerParameters.Name} {this.createContainerParameters.Image}";
 

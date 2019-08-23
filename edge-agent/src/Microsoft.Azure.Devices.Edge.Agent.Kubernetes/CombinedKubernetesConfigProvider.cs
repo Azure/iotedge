@@ -12,6 +12,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
+    using CreateContainerParameters = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.CreateContainerParameters;
+    using EndpointSettings = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.EndpointSettings;
+    using HostConfig = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.HostConfig;
+    using NetworkingConfig = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.NetworkingConfig;
 
     public class CombinedKubernetesConfigProvider : CombinedDockerConfigProvider
     {

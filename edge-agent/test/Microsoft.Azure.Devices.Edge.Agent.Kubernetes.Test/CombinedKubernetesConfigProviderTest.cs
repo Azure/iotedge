@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     using Moq;
     using Xunit;
     using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
+    using CreateContainerParameters = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.CreateContainerParameters;
 
     public class CombinedKubernetesConfigProviderTest
     {

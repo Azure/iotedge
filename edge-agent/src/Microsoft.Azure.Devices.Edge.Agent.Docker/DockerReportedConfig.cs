@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
+    using CreateContainerParameters = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.CreateContainerParameters;
 
     [JsonConverter(typeof(DockerReportedConfigJsonConverter))]
     public class DockerReportedConfig : DockerConfig, IEquatable<DockerReportedConfig>
