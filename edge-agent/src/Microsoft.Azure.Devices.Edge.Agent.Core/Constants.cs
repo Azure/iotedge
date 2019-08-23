@@ -97,13 +97,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string ProxyTrustBundleVolumeEnvKey = "ProxyTrustBundleVolume";
 
-        public const string DisableCloudSubscriptions = "DisableCloudSubscriptions";
-
         public const string CloseOnIdleTimeout = "CloseCloudConnectionOnIdleTimeout";
 
         public const string IdleTimeoutSecs = "CloudConnectionIdleTimeoutSecs";
-
-        public const string EdgeAgentServiceAccountName = "ServiceAccountName";
 
         public const string IoTEdgeAgentProductInfoIdentifier = "EdgeAgent";
 

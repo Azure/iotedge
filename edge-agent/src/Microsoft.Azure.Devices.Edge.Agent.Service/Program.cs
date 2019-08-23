@@ -151,7 +151,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         string proxyConfigVolumeName = configuration.GetValue<string>(Constants.ProxyConfigVolumeEnvKey);
                         string proxyTrustBundlePath = configuration.GetValue<string>(Constants.ProxyTrustBundlePathEnvKey);
                         string proxyTrustBundleVolumeName = configuration.GetValue<string>(Constants.ProxyTrustBundleVolumeEnvKey);
-                        string serviceAccountName = configuration.GetValue<string>(Constants.EdgeAgentServiceAccountName);
                         Kubernetes.PortMapServiceType mappedServiceDefault = GetDefaultServiceType(configuration);
                         bool enableServiceCallTracing = configuration.GetValue<bool>(K8sConstants.EnableK8sServiceCallTracingName);
                         string k8sNamespace = configuration.GetValue<string>(K8sConstants.K8sNamespaceKey);
@@ -166,7 +165,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                             proxyConfigVolumeName,
                             proxyTrustBundlePath,
                             proxyTrustBundleVolumeName,
-                            serviceAccountName,
                             apiVersion,
                             k8sNamespace,
                             new Uri(managementUri),

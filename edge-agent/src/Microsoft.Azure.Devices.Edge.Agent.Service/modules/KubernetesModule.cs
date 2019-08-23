@@ -33,7 +33,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string proxyConfigVolumeName;
         readonly string proxyTrustBundlePath;
         readonly string proxyTrustBundleVolumeName;
-        readonly string serviceAccountName;
         readonly string apiVersion;
         readonly string k8sNamespace;
         readonly Uri managementUri;
@@ -56,7 +55,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             string proxyConfigVolumeName,
             string proxyTrustBundlePath,
             string proxyTrustBundleVolumeName,
-            string serviceAccountName,
             string apiVersion,
             string k8sNamespace,
             Uri managementUri,
@@ -78,7 +76,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.proxyConfigVolumeName = Preconditions.CheckNonWhiteSpace(proxyConfigVolumeName, nameof(proxyConfigVolumeName));
             this.proxyTrustBundlePath = Preconditions.CheckNonWhiteSpace(proxyTrustBundlePath, nameof(proxyTrustBundlePath));
             this.proxyTrustBundleVolumeName = Preconditions.CheckNonWhiteSpace(proxyTrustBundleVolumeName, nameof(proxyTrustBundleVolumeName));
-            this.serviceAccountName = Preconditions.CheckNonWhiteSpace(serviceAccountName, nameof(serviceAccountName));
             this.apiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
             this.k8sNamespace = Preconditions.CheckNonWhiteSpace(k8sNamespace, nameof(k8sNamespace));
             this.managementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
@@ -209,7 +206,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             this.proxyConfigVolumeName,
                             this.proxyTrustBundlePath,
                             this.proxyTrustBundleVolumeName,
-                            this.serviceAccountName,
                             this.k8sNamespace,
                             this.apiVersion,
                             this.workloadUri,
