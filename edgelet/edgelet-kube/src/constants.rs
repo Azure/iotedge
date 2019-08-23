@@ -18,12 +18,26 @@ pub const PROXY_TRUST_BUNDLE_VOLUME_NAME: &str = "trust-bundle-volume";
 
 pub const PROXY_TRUST_BUNDLE_FILENAME: &str = "trust_bundle.pem";
 
-pub const USE_PERSISTENT_VOLUME_CLAIMS: &str = "USE_PERSISTENT_VOLUMES";
-
 pub const PULL_SECRET_DATA_NAME: &str = ".dockerconfigjson";
 
 pub const PULL_SECRET_DATA_TYPE: &str = "kubernetes.io/dockerconfigjson";
 
-pub const MODE_KEY: &str = "Mode";
+pub const EDGE_AGENT_MODE: &str = "kubernetes";
 
-pub const KUBERNETES_MODE: &str = "kubernetes";
+pub mod env {
+    pub const USE_PERSISTENT_VOLUME_KEY: &str = "USE_PERSISTENT_VOLUMES";
+
+    pub const EDGE_AGENT_MODE_KEY: &str = "Mode";
+
+    pub const PROXY_IMAGE_KEY: &str = "ProxyImage";
+
+    pub const PROXY_CONFIG_VOLUME_KEY: &str = "ProxyConfigVolume";
+
+    pub const PROXY_CONFIG_PATH_KEY: &str = "ProxyConfigPath";
+
+    pub const PROXY_TRUST_BUNDLE_VOLUME_KEY: &str = "ProxyTrustBundleVolume";
+
+    pub const PROXY_TRUST_BUNDLE_PATH_KEY: &str = "ProxyTrustBundlePath";
+
+    pub const NAMESPACE_KEY: &str = "K8sNamespace";
+}

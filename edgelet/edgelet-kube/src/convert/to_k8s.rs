@@ -16,6 +16,7 @@ use k8s_openapi::ByteString;
 use log::warn;
 use serde_json;
 
+use crate::constants::env::*;
 use crate::constants::*;
 use crate::convert::sanitize_dns_value;
 use crate::error::{ErrorKind, Result};
@@ -150,20 +151,22 @@ fn spec_to_podspec(
     // Pass along "USE_PERSISTENT_VOLUMES" to EdgeAgent
     if EDGE_EDGE_AGENT_NAME == module_label_value {
         if settings.use_pvc() {
-            let env_var = api_core::EnvVar {
-                name: USE_PERSISTENT_VOLUME_CLAIMS.to_string(),
-                value: Some("True".to_string()),
-                ..api_core::EnvVar::default()
-            };
-            env_vars.push(env_var);
+            env_vars.push(env(USE_PERSISTENT_VOLUME_KEY, "True"));
         }
 
-        let env_var = api_core::EnvVar {
-            name: MODE_KEY.to_string(),
-            value: Some(KUBERNETES_MODE.to_string()),
-            ..api_core::EnvVar::default()
-        };
-        env_vars.push(env_var);
+        env_vars.push(env(NAMESPACE_KEY, settings.namespace()));
+        env_vars.push(env(EDGE_AGENT_MODE_KEY, EDGE_AGENT_MODE));
+        env_vars.push(env(PROXY_IMAGE_KEY, settings.proxy_image()));
+        env_vars.push(env(PROXY_CONFIG_VOLUME_KEY, PROXY_CONFIG_VOLUME_NAME));
+        env_vars.push(env(PROXY_CONFIG_PATH_KEY, settings.proxy_config_path()));
+        env_vars.push(env(
+            PROXY_TRUST_BUNDLE_VOLUME_KEY,
+            PROXY_TRUST_BUNDLE_VOLUME_NAME,
+        ));
+        env_vars.push(env(
+            PROXY_TRUST_BUNDLE_PATH_KEY,
+            settings.proxy_trust_bundle_path(),
+        ));
     }
 
     // Bind/volume mounts
@@ -372,6 +375,14 @@ fn spec_to_podspec(
     })
 }
 
+fn env<V: Into<String>>(key: &str, value: V) -> api_core::EnvVar {
+    api_core::EnvVar {
+        name: key.to_string(),
+        value: Some(value.into()),
+        ..api_core::EnvVar::default()
+    }
+}
+
 /// Converts Docker Module Spec into a K8S Deployment.
 pub fn spec_to_deployment(
     settings: &Settings,
@@ -575,6 +586,7 @@ mod tests {
     use std::collections::{BTreeMap, HashMap};
     use std::str;
 
+    use k8s_openapi::api::core::v1 as api_core;
     use k8s_openapi::apimachinery::pkg::apis::meta::v1 as api_meta;
 
     use docker::models::AuthConfig;
@@ -585,6 +597,7 @@ mod tests {
     use edgelet_docker::DockerConfig;
     use edgelet_test_utils::cert::TestCert;
 
+    use crate::constants::env::*;
     use crate::constants::*;
     use crate::convert::to_k8s::{Auth, AuthEntry};
     use crate::convert::{
@@ -691,8 +704,7 @@ mod tests {
             if let Some(podspec) = spec.template.spec.as_ref() {
                 assert_eq!(podspec.containers.len(), 2);
                 if let Some(module) = podspec.containers.iter().find(|c| c.name == "edgeagent") {
-                    // 2 from module spec, 1 for use_pvc, 1 for kubernetes mode.
-                    assert_eq!(module.env.as_ref().map(Vec::len).unwrap(), 4);
+                    validate_container_env(module.env.as_ref().unwrap());
                     assert_eq!(module.volume_mounts.as_ref().map(Vec::len).unwrap(), 6);
                     assert_eq!(module.image.as_ref().unwrap(), "my-image:v1.0");
                     assert_eq!(module.image_pull_policy.as_ref().unwrap(), "IfNotPresent");
@@ -702,8 +714,7 @@ mod tests {
                     .iter()
                     .find(|c| c.name == PROXY_CONTAINER_NAME)
                 {
-                    // 2 from module spec, 1 for use_pvc, 1 for kubernetes mode.
-                    assert_eq!(proxy.env.as_ref().map(Vec::len).unwrap(), 4);
+                    validate_container_env(proxy.env.as_ref().unwrap());
                     assert_eq!(proxy.volume_mounts.as_ref().map(Vec::len).unwrap(), 2);
                     assert_eq!(proxy.image.as_ref().unwrap(), "proxy:latest");
                     assert_eq!(proxy.image_pull_policy.as_ref().unwrap(), "IfNotPresent");
@@ -714,6 +725,29 @@ mod tests {
                 assert_eq!(podspec.volumes.as_ref().map(Vec::len).unwrap(), 8);
             }
         }
+    }
+
+    fn validate_container_env(env: &[api_core::EnvVar]) {
+        assert_eq!(env.len(), 10);
+        assert!(env.contains(&super::env("a", "b")));
+        assert!(env.contains(&super::env("C", "D")));
+        assert!(env.contains(&super::env(USE_PERSISTENT_VOLUME_KEY, "True")));
+        assert!(env.contains(&super::env(NAMESPACE_KEY, "default")));
+        assert!(env.contains(&super::env(EDGE_AGENT_MODE_KEY, EDGE_AGENT_MODE)));
+        assert!(env.contains(&super::env(PROXY_IMAGE_KEY, "proxy:latest")));
+        assert!(env.contains(&super::env(
+            PROXY_CONFIG_VOLUME_KEY,
+            PROXY_CONFIG_VOLUME_NAME
+        )));
+        assert!(env.contains(&super::env(PROXY_CONFIG_PATH_KEY, "/etc/traefik")));
+        assert!(env.contains(&super::env(
+            PROXY_TRUST_BUNDLE_VOLUME_KEY,
+            PROXY_TRUST_BUNDLE_VOLUME_NAME,
+        )));
+        assert!(env.contains(&super::env(
+            &PROXY_TRUST_BUNDLE_PATH_KEY,
+            "/etc/trust-bundle"
+        )));
     }
 
     #[test]
