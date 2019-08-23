@@ -6,7 +6,8 @@ schedules:
 - cron: 0 3 * * *
   displayName: Nightly build
   branches:
-    include: master
+    include:
+    - master
   always: true
 
 pool:
