@@ -122,7 +122,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 Events.StartSendMessagesPump(this);
                 IMessageIterator iterator = this.messageStore.GetMessageIterator(this.Endpoint.Id, this.checkpointer.Offset + 1);
                 int batchSize = this.options.BatchSize * this.Endpoint.FanOutFactor;
-                var storeMessagesProvider = new StoreMessagesProvider(iterator, this.options.BatchTimeout, batchSize);
+                var storeMessagesProvider = new StoreMessagesProvider(iterator, batchSize);
                 while (!this.cts.IsCancellationRequested)
                 {
                     try
@@ -175,102 +175,54 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
         // A pump is started as soon as the object is created, and it keeps the messages list populated.
         internal class StoreMessagesProvider
         {
+            static readonly IList<IMessage> EmptyList = new List<IMessage>();
             readonly IMessageIterator iterator;
             readonly int batchSize;
             readonly AsyncLock messagesLock = new AsyncLock();
-            readonly AsyncManualResetEvent messagesResetEvent = new AsyncManualResetEvent(true);
-            readonly TimeSpan timeout;
-            readonly Task populateTask;
-            List<IMessage> messagesList;
-            Option<Task<IList<IMessage>>> getMessagesTask = Option.None<Task<IList<IMessage>>>();
+            Option<Task<IList<IMessage>>> getMessagesTask;
 
-            public StoreMessagesProvider(IMessageIterator iterator, TimeSpan timeout, int batchSize)
+            public StoreMessagesProvider(IMessageIterator iterator, int batchSize)
             {
                 this.iterator = iterator;
                 this.batchSize = batchSize;
-                this.timeout = timeout;
-                this.messagesList = new List<IMessage>(this.batchSize);
-                this.populateTask = this.PopulatePump();
+                this.getMessagesTask = Option.Some(Task.Run(this.GetMessagesFromStore));
             }
 
             public async Task<IMessage[]> GetMessages()
             {
-                var messages = await this.getMessagesTask
-                    .GetOrElse(() => Task.FromResult(new List<IMessage>() as IList<IMessage>));
-                if (messages.Count == 0)
+                using (await this.messagesLock.LockAsync())
                 {
-                    messages = await this.GetMessagesFromStore();
-                }
-                else
-                {
-                    this.getMessagesTask = Option.Some(this.GetMessagesFromStore());
-                }
+                    var messages = await this.getMessagesTask
+                        .GetOrElse(() => Task.FromResult(EmptyList));
+                    if (messages.Count == 0)
+                    {
+                        messages = await this.GetMessagesFromStore();
+                    }
+                    else
+                    {
+                        this.getMessagesTask = Option.Some(Task.Run(this.GetMessagesFromStore));
+                    }
 
-                return messages.ToArray();
+                    return messages.ToArray();
+                }
             }
 
             async Task<IList<IMessage>> GetMessagesFromStore()
             {
-                var messages2 = new List<IMessage>();
-                while (messages2.Count < this.batchSize)
+                var messagesList = new List<IMessage>();
+                while (messagesList.Count < this.batchSize)
                 {
-                    int curBatchSize = this.batchSize - this.messagesList.Count;
+                    int curBatchSize = this.batchSize - messagesList.Count;
                     IList<IMessage> messages = (await this.iterator.GetNext(curBatchSize)).ToList();
                     if (!messages.Any())
                     {
                         break;
                     }
-                    else
-                    {
-                        messages2.AddRange(messages);
-                    }
+
+                    messagesList.AddRange(messages);
                 }
 
-                return messages2;
-            }
-
-            public async Task<IMessage[]> GetMessages2()
-            {
-                List<IMessage> currentMessagesList;
-                using (await this.messagesLock.LockAsync())
-                {
-                    currentMessagesList = this.messagesList;
-                    this.messagesList = new List<IMessage>(this.batchSize);
-                    this.messagesResetEvent.Set();
-                }
-
-                return currentMessagesList.ToArray();
-            }
-
-            async Task PopulatePump()
-            {
-                while (true)
-                {
-                    try
-                    {
-                        await this.messagesResetEvent.WaitAsync(this.timeout);
-                        while (this.messagesList.Count < this.batchSize)
-                        {
-                            int curBatchSize = this.batchSize - this.messagesList.Count;
-                            IList<IMessage> messages = (await this.iterator.GetNext(curBatchSize)).ToList();
-                            if (!messages.Any())
-                            {
-                                break;
-                            }
-
-                            using (await this.messagesLock.LockAsync())
-                            {
-                                this.messagesList.AddRange(messages);
-                            }
-                        }
-
-                        this.messagesResetEvent.Reset();
-                    }
-                    catch (Exception e)
-                    {
-                        Events.ErrorInPopulatePump(e);
-                    }
-                }
+                return messagesList;
             }
         }
 
