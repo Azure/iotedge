@@ -1,5 +1,8 @@
 FROM azureiotedge/azureiotedge-iotedged-base:1.0-linux-arm32v7
 
+RUN addgroup --system iotedged && adduser --system iotedged --group iotedged
+USER iotedged
+
 WORKDIR /app
 ADD ./docker/linux/arm32v7/libiothsm.so* /app/
 ADD ./docker/linux/arm32v7/iotedged /app
