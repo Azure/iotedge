@@ -41,8 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
 
         public Task<LeafCertificates> GenerateLeafCertificatesAsync(string leafDeviceId, CancellationToken token)
         {
-            const string err = "Cannot generate certificates without script";
-            string scriptPath = this.scriptPath.Expect(() => new InvalidOperationException(err));
+            const string Err = "Cannot generate certificates without script";
+            string scriptPath = this.scriptPath.Expect(() => new InvalidOperationException(Err));
             return OsPlatform.Current.GenerateLeafCertificatesAsync(leafDeviceId, scriptPath, token);
         }
     }
