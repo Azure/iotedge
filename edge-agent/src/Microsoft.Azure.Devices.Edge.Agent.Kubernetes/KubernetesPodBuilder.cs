@@ -68,12 +68,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             // Image
             string moduleImage = module.Config.Image;
 
-            var name = KubeUtils.SanitizeDNSValue(moduleIdentity.ModuleId);
+            var podName = KubeUtils.SanitizeDNSValue(moduleIdentity.ModuleId);
 
             var containerList = new List<V1Container>
             {
                 new V1Container(
-                    name,
+                    podName,
                     env: envVars,
                     image: moduleImage,
                     volumeMounts: volumeMountList,
@@ -99,13 +99,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     return authList;
                 });
 
-            var objectMeta = new V1ObjectMeta(name: name, labels: podLabels, annotations: podAnnotations);
+            var objectMeta = new V1ObjectMeta(name: podName, labels: podLabels, annotations: podAnnotations);
 
             var modulePodSpec = new V1PodSpec(
                 containerList,
                 volumes: volumeList,
                 imagePullSecrets: imageSecret.OrDefault(),
-                serviceAccountName: name
+                serviceAccountName: podName
             );
 
             return new V1PodTemplateSpec(objectMeta, modulePodSpec);
