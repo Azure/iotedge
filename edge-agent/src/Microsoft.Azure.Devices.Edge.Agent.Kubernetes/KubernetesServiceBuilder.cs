@@ -85,7 +85,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     }
                 }
             }
-            
 
             if (portList.Count > 0)
             {
