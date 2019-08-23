@@ -395,7 +395,7 @@ function New-IntermediateCertificate
     $cmd += "-config '$_opensslRootConfigFile' "
     $cmd += "-subj $subject "
     $cmd += "-key '$keyFile' "
-    $cmd += "-out '$csrFile' "
+    $cmd += "-out '$csrFile' 2>&1"
     Invoke-External -verbose $cmd
 
     Write-Host ("Signing the certificate for $prefix with issuer certificate $issuerPrefix")
@@ -413,19 +413,19 @@ function New-IntermediateCertificate
     $cmd += "-days $expirationDays -notext -md sha256 "
     $cmd += "-cert '$issuerCertFile' "
     $cmd += "$keyPassUseCmd -keyfile '$issuerKeyFile' -keyform PEM "
-    $cmd += "-in '$csrFile' -out '$certFile' "
+    $cmd += "-in '$csrFile' -out '$certFile' 2>&1"
     Invoke-External -verbose $cmd
 
     Write-Host ("Verifying the certificate for $prefix with issuer certificate $issuerPrefix")
     Write-Host ("---------------------------------")
     $rootCertFile = Get-CertPathForPrefix($_rootCAPrefix)
-    $cmd =  "openssl verify -CAfile '$rootCertFile' -untrusted '$issuerCertFile' '$certFile'"
+    $cmd =  "openssl verify -CAfile '$rootCertFile' -untrusted '$issuerCertFile' '$certFile' 2>&1"
     Invoke-External -verbose $cmd
 
     Write-Host ("Certificate for prefix $prefix generated at:")
     Write-Host ("---------------------------------")
     Write-Host ("    $certFile`r`n")
-    $cmd = "openssl x509 -noout -text -in '$certFile'"
+    $cmd = "openssl x509 -noout -text -in '$certFile' 2>&1"
     Invoke-External $cmd
 
     New-CertFullChain $certFile $prefix $issuerPrefix $subject
@@ -456,7 +456,7 @@ function New-IntermediateCertificate
     $cmd += "-in '$certFile' -certfile '$issuerChain' "
     $cmd += "-inkey '$keyFile' $keyPassUseCmd "
     $cmd += "-name $prefix "
-    $cmd += "-out '$certFilePfx' "
+    $cmd += "-out '$certFilePfx' 2>&1"
     Invoke-External -verbose $cmd
     Write-Host ("$prefix PFX Certificate Generated At:")
     Write-Host ("----------------------------------------")
