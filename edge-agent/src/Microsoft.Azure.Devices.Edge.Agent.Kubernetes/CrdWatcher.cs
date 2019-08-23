@@ -223,7 +223,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     // Default labels
                     var labels = new Dictionary<string, string>
                     {
-                        [Constants.K8sEdgeModuleLabel] = KubeUtils.SanitizeLabelValue(moduleId.ModuleId),
+                        [Constants.K8sEdgeModuleLabel] = deploymentName,
                         [Constants.K8sEdgeDeviceLabel] = KubeUtils.SanitizeLabelValue(this.deviceId),
                         [Constants.K8sEdgeHubNameLabel] = KubeUtils.SanitizeLabelValue(this.iotHubHostname)
                     };
