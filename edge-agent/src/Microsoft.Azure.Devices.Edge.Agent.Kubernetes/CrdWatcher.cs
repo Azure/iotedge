@@ -34,7 +34,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly string proxyConfigVolumeName;
         readonly string proxyTrustBundlePath;
         readonly string proxyTrustBundleVolumeName;
-        readonly string serviceAccountName;
         readonly string defaultMapServiceType;
         readonly string workloadApiVersion;
         readonly string k8sNamespace;
@@ -53,7 +52,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             string proxyConfigVolumeName,
             string proxyTrustBundlePath,
             string proxyTrustBundleVolumeName,
-            string serviceAccountName,
             string resourceName,
             string deploymentSelector,
             string defaultMapServiceType,
@@ -73,7 +71,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.proxyConfigVolumeName = proxyConfigVolumeName;
             this.proxyTrustBundlePath = proxyTrustBundlePath;
             this.proxyTrustBundleVolumeName = proxyTrustBundleVolumeName;
-            this.serviceAccountName = serviceAccountName;
             this.resourceName = resourceName;
             this.deploymentSelector = deploymentSelector;
             this.defaultMapServiceType = defaultMapServiceType;
@@ -219,12 +216,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             foreach (KubernetesModule<TConfig> module in customObject.Spec)
             {
                 var moduleId = moduleIdentities[module.Name];
+
+                string deploymentName = this.DeploymentName(moduleIdentities[module.Name].ModuleId);
                 if (string.Equals(module.Type, "docker"))
                 {
                     // Default labels
                     var labels = new Dictionary<string, string>
                     {
-                        [Constants.K8sEdgeModuleLabel] = KubeUtils.SanitizeLabelValue(moduleId.ModuleId),
+                        [Constants.K8sEdgeModuleLabel] = deploymentName,
                         [Constants.K8sEdgeDeviceLabel] = KubeUtils.SanitizeLabelValue(this.deviceId),
                         [Constants.K8sEdgeHubNameLabel] = KubeUtils.SanitizeLabelValue(this.iotHubHostname)
                     };
@@ -248,14 +247,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     // Get the converted pod
                     V1PodTemplateSpec v1PodSpec = kubernetesModelBuilder.GetPod();
 
-                    // if this is the edge agent's deployment then it needs to run under a specific service account
-                    if (moduleIdentities[module.Name].ModuleId == CoreConstants.EdgeAgentModuleIdentityName)
-                    {
-                        v1PodSpec.Spec.ServiceAccountName = this.serviceAccountName;
-                    }
-
-                    // Bundle into a deployment
-                    string deploymentName = this.DeploymentName(moduleIdentities[module.Name].ModuleId);
                     // Deployment data
                     var deploymentMeta = new V1ObjectMeta(name: deploymentName, labels: labels);
 
@@ -453,7 +444,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
             string moduleId = deployment.Metadata.Labels[Constants.K8sEdgeModuleLabel];
             metadata.Labels = deployment.Metadata.Labels;
-            metadata.Annotations = new Dictionary<string, string>()
+            metadata.Annotations = new Dictionary<string, string>
             {
                 [Constants.K8sEdgeOriginalModuleId] = moduleId
             };
@@ -520,7 +511,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 envList.Add(new V1EnvVar(CoreConstants.ProxyImageEnvKey, this.proxyImage));
                 envList.Add(new V1EnvVar(CoreConstants.ProxyConfigPathEnvKey, this.proxyConfigPath));
                 envList.Add(new V1EnvVar(CoreConstants.ProxyConfigVolumeEnvKey, this.proxyConfigVolumeName));
-                envList.Add(new V1EnvVar(CoreConstants.EdgeAgentServiceAccountName, this.serviceAccountName));
             }
 
             if (string.Equals(identity.ModuleId, CoreConstants.EdgeAgentModuleIdentityName) ||
