@@ -6,13 +6,16 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using App.Metrics;
+    using App.Metrics.Counter;
+    using App.Metrics.Timer;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine;
+    using Microsoft.Azure.Devices.Routing.Core.Util.Concurrency;
     using Microsoft.Extensions.Logging;
     using Nito.AsyncEx;
     using static System.FormattableString;
-    using AsyncLock = Microsoft.Azure.Devices.Edge.Util.Concurrency.AsyncLock;
+    using AsyncLock = Microsoft.Azure.Devices.Routing.Core.Util.Concurrency.AsyncLock;
 
     public class StoringAsyncEndpointExecutor : IEndpointExecutor
     {
@@ -54,11 +57,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                     throw new InvalidOperationException($"Endpoint executor for endpoint {this.Endpoint} is closed.");
                 }
 
-                long offset = await this.messageStore.Add(this.Endpoint.Id, message);
-                this.checkpointer.Propose(message);
-                Events.AddMessageSuccess(this, offset);
+                using (Metrics.StoreLatency(this.Endpoint.Id))
+                {
+                    long offset = await this.messageStore.Add(this.Endpoint.Id, message);
+                    this.checkpointer.Propose(message);
+                    Events.AddMessageSuccess(this, offset);
+                }
 
                 this.hasMessagesInQueue.Set();
+                Metrics.StoredCountIncrement(this.Endpoint.Id);
             }
             catch (Exception ex)
             {
@@ -133,6 +140,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                         {
                             await this.ProcessMessages(messages);
                             Events.SendMessagesSuccess(this, messages);
+                            Metrics.DrainedCountIncrement(this.Endpoint.Id, messages.Length);
                         }
                         else
                         {
@@ -320,6 +328,40 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             public static void ErrorInPopulatePump(Exception ex)
             {
                 Log.LogWarning((int)EventIds.ErrorInPopulatePump, ex, "Error in populate messages pump");
+            }
+        }
+
+        static class Metrics
+        {
+            static readonly CounterOptions EndpointMessageStoredCountOptions = new CounterOptions
+            {
+                Name = "EndpointMessageStoredCount",
+                MeasurementUnit = Unit.Events
+            };
+
+            static readonly CounterOptions EndpointMessageDrainedCountOptions = new CounterOptions
+            {
+                Name = "EndpointMessageDrainedCount",
+                MeasurementUnit = Unit.Events
+            };
+
+            static readonly TimerOptions EndpointMessageLatencyOptions = new TimerOptions
+            {
+                Name = "EndpointMessageStoredLatencyMs",
+                MeasurementUnit = Unit.None,
+                DurationUnit = TimeUnit.Milliseconds,
+                RateUnit = TimeUnit.Seconds
+            };
+
+            public static void StoredCountIncrement(string identity) => Edge.Util.Metrics.CountIncrement(GetTags(identity), EndpointMessageStoredCountOptions, 1);
+
+            public static void DrainedCountIncrement(string identity, long amount) => Edge.Util.Metrics.CountIncrement(GetTags(identity), EndpointMessageDrainedCountOptions, amount);
+
+            public static IDisposable StoreLatency(string identity) => Edge.Util.Metrics.Latency(GetTags(identity), EndpointMessageLatencyOptions);
+
+            internal static MetricTags GetTags(string id)
+            {
+                return new MetricTags("EndpointId", id);
             }
         }
     }
