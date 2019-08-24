@@ -9,11 +9,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
+    using Akka.Streams;
+    using Akka.Streams.Dsl;
     using akka::Akka;
     using akka::Akka.Actor;
     using akka::Akka.IO;
-    using Akka.Streams;
-    using Akka.Streams.Dsl;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
 
