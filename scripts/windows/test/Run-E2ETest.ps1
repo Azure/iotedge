@@ -206,10 +206,8 @@ Param (
     [ValidateNotNullOrEmpty()]
     [string] $EventHubConnectionString = $(Throw "Event hub connection string is required"),
 
-    [ValidateNotNullOrEmpty()]
     [string] $EdgeE2ERootCACertRSAFile = $null,
 
-    [ValidateNotNullOrEmpty()]
     [string] $EdgeE2ERootCAKeyRSAFile = $null,
 
     [ValidateNotNullOrEmpty()]
@@ -442,6 +440,10 @@ Function PrepareTestFromArtifacts
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.StorageAccount>',$SnitchStorageAccount) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.StorageMasterKey>',$SnitchStorageMasterKey) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.TestDurationInSecs>',$SnitchTestDurationInSecs) | Set-Content $DeploymentWorkingFilePath
+                $SnitcherBinds = "\""$($env:ProgramData.Replace("\", "\\\\"))\\\\iotedge\\\\mgmt:$($env:ProgramData.Replace("\", "\\\\"))\\\\iotedge\\\\mgmt\"""
+                (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.Binds>',$SnitcherBinds) | Set-Content $DeploymentWorkingFilePath
+                $ManagementUri = "unix:///$($env:ProgramData.Replace("\", "/"))/iotedge/mgmt/sock"
+                (Get-Content $DeploymentWorkingFilePath).replace('<Management.Uri>',$ManagementUri) | Set-Content $DeploymentWorkingFilePath
             }
             "TempFilter"
             {
@@ -1193,26 +1195,11 @@ Function RunTransparentGatewayTest
 {
     PrintHighlightedMessage "Run Transparent Gateway test for $Architecture"
 
-    if ([string]::IsNullOrWhiteSpace($EdgeE2ERootCACertRSAFile))
-    {
-        $EdgeE2ERootCACertRSAFile=$DefaultInstalledRSARootCACert
-    }
-    if ([string]::IsNullOrWhiteSpace($EdgeE2ERootCAKeyRSAFile))
-    {
-        $EdgeE2ERootCAKeyRSAFile=$DefaultInstalledRSARootCAKey
-    }
     TestSetup
 
     $testStartAt = Get-Date
     $edgeDeviceId = "e2e-${ReleaseLabel}-Windows-${Architecture}-TransGW"
     PrintHighlightedMessage "Run transparent gateway test on device ""$edgeDeviceId"" started at $testStartAt."
-
-    # setup certificate generation tools to create the Edge device and leaf device certificates
-    PrepareCertificateTools
-    # dot source the certificate generation script
-    . "$EdgeCertGenScript"
-    # install the provided root CA to seed the certificate chain
-    Install-RootCACertificate $EdgeE2ERootCACertRSAFile $EdgeE2ERootCAKeyRSAFile "rsa" $EdgeE2ETestRootCAPassword
 
     # generate the edge gateway certs
     New-CACertsEdgeDevice $edgeDeviceId
@@ -1245,7 +1232,7 @@ Function RunTransparentGatewayTest
     Invoke-Expression $testCommand | Out-Host
 
     # if the deployment of edge runtime and modules fails, then return immediately.
-    if($LastExitCode -eq 1) {
+    If($LastExitCode -eq 1) {
       Return $LastExitCode
     }
 
@@ -1276,16 +1263,19 @@ Function RunTest
 {
     $testExitCode = 0
 
-    # setup certificate generation tools to create the Edge device and leaf device certificates
-    PrepareCertificateTools
-
-    # dot source the certificate generation script
-    . "$EdgeCertGenScript"
-
-    # install the provided root CA to seed the certificate chain
-    If ($EdgeE2ERootCACertRSAFile -and $EdgeE2ERootCAKeyRSAFile)
+    If ($TestName.StartsWith("Dps") -Or $TestName -eq "TransparentGateway")
     {
-        Install-RootCACertificate $EdgeE2ERootCACertRSAFile $EdgeE2ERootCAKeyRSAFile "rsa" $EdgeE2ETestRootCAPassword
+        # setup certificate generation tools to create the Edge device and leaf device certificates
+        PrepareCertificateTools
+
+        # dot source the certificate generation script
+        . "$EdgeCertGenScript"
+
+        # install the provided root CA to seed the certificate chain
+        If ($EdgeE2ERootCACertRSAFile -and $EdgeE2ERootCAKeyRSAFile)
+        {
+            Install-RootCACertificate $EdgeE2ERootCACertRSAFile $EdgeE2ERootCAKeyRSAFile "rsa" $EdgeE2ETestRootCAPassword
+        }
     }
 
     Switch ($TestName)
@@ -1470,6 +1460,16 @@ $PackagesWorkingFolder = (Join-Path $TestWorkingFolder "packages")
 $IotEdgeQuickstartExeTestPath = (Join-Path $QuickstartWorkingFolder "IotEdgeQuickstart.exe")
 $LeafDeviceExeTestPath = (Join-Path $LeafDeviceWorkingFolder "LeafDevice.exe")
 $DeploymentWorkingFilePath = Join-Path $TestWorkingFolder "deployment.json"
+
+If ([string]::IsNullOrWhiteSpace($EdgeE2ERootCACertRSAFile))
+{
+    $EdgeE2ERootCACertRSAFile=$DefaultInstalledRSARootCACert
+}
+
+If ([string]::IsNullOrWhiteSpace($EdgeE2ERootCAKeyRSAFile))
+{
+    $EdgeE2ERootCAKeyRSAFile=$DefaultInstalledRSARootCAKey
+}
 
 If ($TestName -eq "LongHaul")
 {
