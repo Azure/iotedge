@@ -18,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
         static readonly ILogger Logger = Util.Logger.Factory.CreateLogger<RemoveCommand>();
         readonly IDockerClient client;
         readonly DockerModule module;
+
         public RemoveCommand(IDockerClient client, DockerModule module)
         {
             this.client = Preconditions.CheckNotNull(client, nameof(client));

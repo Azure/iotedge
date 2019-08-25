@@ -87,14 +87,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         public virtual bool IsOnlyModuleStatusChanged(IModule other)
         {
             return other is DockerModule dockerModule &&
-                string.Equals(this.Name, other.Name) &&
-                string.Equals(this.Version, other.Version) &&
-                string.Equals(this.Type, other.Type) &&
-                this.DesiredStatus != other.DesiredStatus &&
-                this.Config.Equals(dockerModule.Config) &&
-                this.RestartPolicy == other.RestartPolicy &&
-                this.ImagePullPolicy == other.ImagePullPolicy &&
-                EnvDictionaryComparer.Equals(this.Env, other.Env);
+                   string.Equals(this.Name, other.Name) &&
+                   string.Equals(this.Version, other.Version) &&
+                   string.Equals(this.Type, other.Type) &&
+                   this.DesiredStatus != other.DesiredStatus &&
+                   this.Config.Equals(dockerModule.Config) &&
+                   this.RestartPolicy == other.RestartPolicy &&
+                   this.ImagePullPolicy == other.ImagePullPolicy &&
+                   EnvDictionaryComparer.Equals(this.Env, other.Env);
         }
 
         public override int GetHashCode()
