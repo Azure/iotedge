@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
         public async void NullCommandTestAll()
         {
             NullCommand n = NullCommand.Instance;
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
 
             await n.ExecuteAsync(token);
 
