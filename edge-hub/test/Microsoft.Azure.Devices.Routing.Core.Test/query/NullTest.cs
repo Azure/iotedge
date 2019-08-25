@@ -29,8 +29,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             Assert.True(d1 == d2);
             Assert.False(d1 != d2);
 
-            Assert.Equal(Bool.Undefined, Bool.True == d1);
-            Assert.Equal(Bool.Undefined, Bool.False == d1);
             Assert.Equal(Bool.Undefined, d1 == Bool.True);
             Assert.Equal(Bool.Undefined, d1 == Bool.False);
         }
@@ -68,35 +66,35 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Query
             var d2 = default(Null);
 
             Assert.Equal(Bool.Undefined, d1 < 12.34);
-            Assert.Equal(Bool.Undefined, 12.34 < d1);
+            Assert.Equal(Bool.Undefined, d1 > 12.34);
             Assert.Equal(Bool.Undefined, d1 < "string");
-            Assert.Equal(Bool.Undefined, "string" < d1);
+            Assert.Equal(Bool.Undefined, d1 > "string");
             Assert.Equal(Bool.Undefined, d1 < Bool.True);
-            Assert.Equal(Bool.Undefined, Bool.True < d1);
+            Assert.Equal(Bool.Undefined, d1 > Bool.True);
             Assert.Equal(Bool.False, d1 < d2);
 
             Assert.Equal(Bool.Undefined, d1 > 12.34);
-            Assert.Equal(Bool.Undefined, 12.34 > d1);
+            Assert.Equal(Bool.Undefined, d1 < 12.34);
             Assert.Equal(Bool.Undefined, d1 > "string");
-            Assert.Equal(Bool.Undefined, "string" > d1);
+            Assert.Equal(Bool.Undefined, d1 < "string");
             Assert.Equal(Bool.Undefined, d1 > Bool.True);
-            Assert.Equal(Bool.Undefined, Bool.True > d1);
+            Assert.Equal(Bool.Undefined, d1 < Bool.True);
             Assert.Equal(Bool.False, d1 > d2);
 
             Assert.Equal(Bool.Undefined, d1 <= 12.34);
-            Assert.Equal(Bool.Undefined, 12.34 <= d1);
+            Assert.Equal(Bool.Undefined, d1 >= 12.34);
             Assert.Equal(Bool.Undefined, d1 <= "string");
-            Assert.Equal(Bool.Undefined, "string" <= d1);
+            Assert.Equal(Bool.Undefined, d1 >= "string");
             Assert.Equal(Bool.Undefined, d1 <= Bool.True);
-            Assert.Equal(Bool.Undefined, Bool.True <= d1);
+            Assert.Equal(Bool.Undefined, d1 >= Bool.True);
             Assert.Equal(Bool.True, d1 <= d2);
 
             Assert.Equal(Bool.Undefined, d1 >= 12.34);
-            Assert.Equal(Bool.Undefined, 12.34 >= d1);
+            Assert.Equal(Bool.Undefined, d1 <= 12.34);
             Assert.Equal(Bool.Undefined, d1 >= "string");
-            Assert.Equal(Bool.Undefined, "string" >= d1);
+            Assert.Equal(Bool.Undefined, d1 <= "string");
             Assert.Equal(Bool.Undefined, d1 >= Bool.True);
-            Assert.Equal(Bool.Undefined, Bool.True >= d1);
+            Assert.Equal(Bool.Undefined, d1 <= Bool.True);
             Assert.Equal(Bool.True, d1 >= d2);
         }
 
