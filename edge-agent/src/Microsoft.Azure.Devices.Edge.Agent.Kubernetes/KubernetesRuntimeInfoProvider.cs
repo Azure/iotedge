@@ -110,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 cancellationToken: cancellationToken);
         }
 
-        public async Task<SystemInfo> GetSystemInfo()
+        public Task<SystemInfo> GetSystemInfo()
         {
             // Comment this out to unblock testing. 
             //V1NodeList k8SNodes = await this.client.ListNodeAsync();
@@ -135,7 +135,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             string osType = "Kubernetes";
             string arch = "Kubernetes";
             string version = "Kubernetes";
-            return new SystemInfo(osType, arch, version);
+            return Task.FromResult(new SystemInfo(osType, arch, version));
         }
 
         async Task WatchPodEventsAsync(WatchEventType type, V1Pod item)
