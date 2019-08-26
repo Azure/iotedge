@@ -26,7 +26,6 @@ pub struct Settings {
     proxy_trust_bundle_path: String,
     proxy_trust_bundle_config_map_name: String,
     image_pull_policy: String,
-    service_account_name: String,
     device_hub_selector: String,
 }
 
@@ -99,10 +98,6 @@ impl Settings {
 
     pub fn image_pull_policy(&self) -> &str {
         &self.image_pull_policy
-    }
-
-    pub fn service_account_name(&self) -> &str {
-        &self.service_account_name
     }
 
     pub fn device_hub_selector(&self) -> &str {

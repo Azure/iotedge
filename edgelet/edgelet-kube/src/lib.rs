@@ -77,7 +77,6 @@ mod tests {
             "proxy_trust_bundle_path": "/etc/trust-bundle",
             "proxy_trust_bundle_config_map_name": "device1-iotedged-proxy-trust-bundle",
             "image_pull_policy": "IfNotPresent",
-            "service_account_name": "iotedge",
             "device_hub_selector": "",
         });
 
