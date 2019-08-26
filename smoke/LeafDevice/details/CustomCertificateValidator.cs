@@ -85,7 +85,7 @@ namespace LeafDeviceTest
 
             // Allow the chain the chance to rebuild itself with the expected root
             chain.ChainPolicy.ExtraStore.Add(trustedCertificate);
-            // Need to explicitly set RevocationMode to NoCheck, otherwise test with AMQP will fail for certificate validation.
+            // Edge test certificates have no revocation support so explicitly setting revocation mode to NoCheck. Otherwise test with AMQP will fail for certificate validation.
             // Note: we don't know why revocation mode is NoCheck when using MQTT.
             chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
             chain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
