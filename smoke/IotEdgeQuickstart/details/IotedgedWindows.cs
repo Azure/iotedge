@@ -155,9 +155,6 @@ namespace IotEdgeQuickstart.Details
                            $"-ContainerOs Windows -AgentImage '{image}'";
                 }
 
-                args += method.ManualConnectionString.Map(
-                    cs => { return $" -Manual -DeviceConnectionString '{cs}'"; }).GetOrElse(string.Empty);
-
                 args += method.Dps.Map(
                     dps =>
                     {
@@ -171,6 +168,9 @@ namespace IotEdgeQuickstart.Details
                     }).GetOrElse(string.Empty);
 
                 string commandForDebug = args;
+
+                args += method.ManualConnectionString.Map(
+                    cs => { return $" -Manual -DeviceConnectionString '{cs}'"; }).GetOrElse(string.Empty);
 
                 foreach (RegistryCredentials c in this.credentials)
                 {
