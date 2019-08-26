@@ -54,6 +54,7 @@ spec:
               port: {{ .Values.iotedged.ports.management }}
           readinessProbe:
             httpGet:
+              scheme: HTTPS
               path: "/systeminfo?api-version={{ .Values.iotedged.apiVersion }}"
               port: {{ .Values.iotedged.ports.management }}
       serviceAccount: "iotedged"
