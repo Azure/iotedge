@@ -238,9 +238,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             Assert.NotNull(otherProperties);
 
             var reserializedHostConfig = Newtonsoft.Json.JsonConvert.SerializeObject(config.CreateOptions.HostConfig);
-            Assert.Equal(
-                "{\"Binds\":[\"/var/run/iotedgedworkload.sock:/var/run/iotedgedworkload.sock\"],\"Devices\":[],\"DeviceRequests\":[{\"Driver\":\"\",\"Count\":-1,\"DeviceIDs\":null,\"Capabilities\":[[\"gpu\"]],\"Options\":{}}]}",
-                reserializedHostConfig);
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                Assert.Equal(
+                    "{\"Binds\":[\"\\\\var\\\\run:\\\\var\\\\run\"],\"Devices\":[],\"DeviceRequests\":[{\"Driver\":\"\",\"Count\":-1,\"DeviceIDs\":null,\"Capabilities\":[[\"gpu\"]],\"Options\":{}}]}",
+                    reserializedHostConfig
+                );
+            }
+            else
+            {
+                Assert.Equal(
+                    "{\"Binds\":[\"/var/run/iotedgedworkload.sock:/var/run/iotedgedworkload.sock\"],\"Devices\":[],\"DeviceRequests\":[{\"Driver\":\"\",\"Count\":-1,\"DeviceIDs\":null,\"Capabilities\":[[\"gpu\"]],\"Options\":{}}]}",
+                    reserializedHostConfig
+                );
+            }
         }
     }
 }
