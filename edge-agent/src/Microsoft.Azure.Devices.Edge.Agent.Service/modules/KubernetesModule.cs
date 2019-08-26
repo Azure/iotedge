@@ -190,7 +190,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     c => Task.FromResult(
                         new KubernetesRuntimeInfoProvider(
                             this.k8sNamespace,
-                            c.Resolve<IKubernetes>())) as IRuntimeInfoProvider)
+                            c.Resolve<IKubernetes>()) as IRuntimeInfoProvider))
                 .As<Task<IRuntimeInfoProvider>>()
                 .SingleInstance();
 
