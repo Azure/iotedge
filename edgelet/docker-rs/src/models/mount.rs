@@ -55,7 +55,6 @@ pub struct Mount {
     // volume_options: Option<crate::models::MountVolumeOptions>,
     // #[serde(rename = "TmpfsOptions", skip_serializing_if = "Option::is_none")]
     // tmpfs_options: Option<crate::models::MountTmpfsOptions>,
-
     #[serde(flatten)]
     other_properties: std::collections::HashMap<String, serde_json::Value>,
 }
@@ -71,7 +70,6 @@ impl Mount {
             // bind_options: None,
             // volume_options: None,
             // tmpfs_options: None,
-
             other_properties: Default::default(),
         }
     }

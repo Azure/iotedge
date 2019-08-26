@@ -114,7 +114,6 @@ pub struct ContainerCreateBody {
     host_config: Option<crate::models::HostConfig>,
     // #[serde(rename = "NetworkingConfig", skip_serializing_if = "Option::is_none")]
     // networking_config: Option<crate::models::ContainerCreateBodyNetworkingConfig>,
-
     #[serde(flatten)]
     other_properties: std::collections::HashMap<String, serde_json::Value>,
 }
@@ -149,7 +148,6 @@ impl ContainerCreateBody {
             // shell: None,
             host_config: None,
             // networking_config: None,
-
             other_properties: Default::default(),
         }
     }

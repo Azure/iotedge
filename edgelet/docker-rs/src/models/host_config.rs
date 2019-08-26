@@ -239,7 +239,6 @@ pub struct HostConfig {
     // /// Isolation technology of the container. (Windows only)
     // #[serde(rename = "Isolation", skip_serializing_if = "Option::is_none")]
     // isolation: Option<String>,
-
     #[serde(flatten)]
     other_properties: std::collections::HashMap<String, serde_json::Value>,
 }
@@ -313,7 +312,6 @@ impl HostConfig {
             // runtime: None,
             // console_size: None,
             // isolation: None,
-
             other_properties: Default::default(),
         }
     }
