@@ -40,16 +40,16 @@ agent:
     {{ end }}
 hostname: {{ .Values.edgeAgent.hostname }}
 connect:
-  management_uri: "http://localhost:{{ .Values.iotedged.ports.management }}"
-  workload_uri: "http://localhost:{{ .Values.iotedged.ports.workload }}"
+  management_uri: "https://localhost:{{ .Values.iotedged.ports.management }}"
+  workload_uri: "https://localhost:{{ .Values.iotedged.ports.workload }}"
 listen:
-  management_uri: "http://0.0.0.0:{{ .Values.iotedged.ports.management }}"
-  workload_uri: "http://0.0.0.0:{{ .Values.iotedged.ports.workload }}"
+  management_uri: "https://0.0.0.0:{{ .Values.iotedged.ports.management }}"
+  workload_uri: "https://0.0.0.0:{{ .Values.iotedged.ports.workload }}"
 homedir: {{ .Values.iotedged.data.targetPath | quote }}
 namespace: {{ .Release.Namespace | quote }}
 use_pvc: False
 proxy_image:  "{{.Values.iotedgedProxy.image.repository}}:{{.Values.iotedgedProxy.image.tag}}"
-proxy_config_path: "/etc/traefik"
+proxy_config_path: "/etc/iotedge-proxy"
 proxy_config_map_name: "iotedged-proxy-config"
 proxy_trust_bundle_path: "/etc/trust-bundle"
 proxy_trust_bundle_config_map_name: "iotedged-proxy-trust-bundle"

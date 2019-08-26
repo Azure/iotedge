@@ -42,8 +42,8 @@ iotedged:
 
 iotedgedProxy:
   image:
-    repository: traefik
-    tag: v1.7-alpine
+    repository: azureiotedge/azureiotedge-proxy
+    tag: 0.1.0-alpha
     pullPolicy: Always
 
 # Edge Agent image configuration

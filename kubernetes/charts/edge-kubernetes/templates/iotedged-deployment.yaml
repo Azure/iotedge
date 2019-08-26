@@ -49,6 +49,7 @@ spec:
               protocol: TCP
           livenessProbe:
             httpGet:
+              scheme: HTTPS
               path: "/systeminfo?api-version={{ .Values.iotedged.apiVersion }}"
               port: {{ .Values.iotedged.ports.management }}
           readinessProbe:
