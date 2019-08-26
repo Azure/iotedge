@@ -155,9 +155,6 @@ namespace IotEdgeQuickstart.Details
                            $"-ContainerOs Windows -AgentImage '{image}'";
                 }
 
-                args += method.ManualConnectionString.Map(
-                    cs => { return $" -Manual -DeviceConnectionString '{cs}'"; }).GetOrElse(string.Empty);
-
                 args += method.Dps.Map(
                     dps =>
                     {
@@ -170,7 +167,13 @@ namespace IotEdgeQuickstart.Details
                         return dpsArgs;
                     }).GetOrElse(string.Empty);
 
-                string commandForDebug = args;
+                // ***************************************************************
+                // IMPORTANT: All secret/sensitive argument should be place below.
+                // ***************************************************************
+                Console.WriteLine($"Run command arguments to configure: {args}");
+
+                args += method.ManualConnectionString.Map(
+                    cs => { return $" -Manual -DeviceConnectionString '{cs}'"; }).GetOrElse(string.Empty);
 
                 foreach (RegistryCredentials c in this.credentials)
                 {
@@ -178,7 +181,6 @@ namespace IotEdgeQuickstart.Details
                 }
 
                 // note: ignore hostname for now
-                Console.WriteLine($"Run command to configure: {commandForDebug}");
                 string[] result = await Process.RunAsync("powershell", $"{HidePowerShellProgressBar}; {args}", cts.Token);
                 WriteToConsole("Output from Configure iotedge windows service", result);
 
