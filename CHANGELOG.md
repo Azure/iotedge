@@ -1,3 +1,9 @@
+# 1.0.8.1 (2019-08-26)
+## Edge Hub
+### Bug Fixes
+* EdgeHub: Fix delay in module 2 module messages ([06ec89f](https://github.com/Azure/iotedge/commit/06ec89f5220404fe24cea59e4c6241326f2c179a))
+* Set client subscriptions when cloud connection is re-created ([a274ca0](https://github.com/Azure/iotedge/commit/a274ca02bde1bdacc48d76b5b43abaf919c9d4fc))
+
 # 1.0.8 (2019-07-22)
 * Fix Win install setup for symmetric key provisioning mode ([602472f](https://github.com/Azure/iotedge/commit/602472fa2a205e08cf87b345544a364eea09a5dd))
 
