@@ -112,15 +112,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public Task<SystemInfo> GetSystemInfo()
         {
-            // Comment this out to unblock testing. 
-            //V1NodeList k8SNodes = await this.client.ListNodeAsync();
+            // Comment this out to unblock testing.
+            // V1NodeList k8SNodes = await this.client.ListNodeAsync();
             // string osType = string.Empty;
             // string arch = string.Empty;
             // string version = string.Empty;
             // if (k8SNodes.Items != null)
             // {
             //     V1Node firstNode = k8SNodes.Items.FirstOrDefault();
-
             //     if (firstNode?.Status?.NodeInfo != null)
             //     {
             //         osType = firstNode.Status.NodeInfo.OperatingSystem;
