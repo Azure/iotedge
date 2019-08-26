@@ -1,5 +1,4 @@
 # 1.0.8.1 (2019-08-26)
-
 ## Edge Hub
 ### Bug Fixes
 * EdgeHub: Fix delay in module 2 module messages ([06ec89f](https://github.com/Azure/iotedge/commit/06ec89f5220404fe24cea59e4c6241326f2c179a))
