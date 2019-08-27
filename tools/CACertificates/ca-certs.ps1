@@ -326,7 +326,7 @@ function New-PrivateKey([string]$prefix, [string]$keyPass=$NULL)
     }
 
     $keyFile = Get-KeyPathForPrefix($prefix)
-    $cmd = "openssl $algorithm $passwordCreateCmd -out '$keyFile' $cmdEpilog"
+    $cmd = "openssl $algorithm $passwordCreateCmd -out '$keyFile' $cmdEpilog 2>&1"
     Invoke-External -verbose $cmd
     return $keyFile
 }
@@ -557,13 +557,13 @@ function New-RootCACertificate()
     $passwordUseCmd = "-passin pass:$_privateKeyPassword"
     $cmd =  "openssl req -new -x509 -config $_opensslRootConfigFile $passwordUseCmd "
     $cmd += "-key $keyFile -subj $_rootCertSubject -days $_days_until_expiration "
-    $cmd += "-sha256 -extensions v3_ca -out $certFile "
+    $cmd += "-sha256 -extensions v3_ca -out $certFile 2>&1"
     Invoke-External -verbose $cmd
 
     Write-Host ("CA Root Certificate Generated At:")
     Write-Host ("---------------------------------")
     Write-Host ("    $certFile`r`n")
-    $cmd = "openssl x509 -noout -text -in $certFile"
+    $cmd = "openssl x509 -noout -text -in $certFile 2>&1"
     Invoke-External $cmd
 
     # Now use splatting to process this
