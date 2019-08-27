@@ -83,12 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         }
                         finally
                         {
-                            string prefix = $"{Context.Current.DeviceId}-{TestContext.CurrentContext.Test.NormalizedName()}";
-                            IEnumerable<string> paths = await EdgeLogs.CollectAsync(startTime, prefix, token);
-                            foreach (string path in paths)
-                            {
-                                TestContext.AddTestAttachment(path);
-                            }
+                            await NUnitLogs.CollectAsync(startTime, token);
                         }
                     }
                 },
