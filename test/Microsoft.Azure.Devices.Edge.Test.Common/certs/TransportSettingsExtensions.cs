@@ -65,6 +65,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
 
             // Allow the chain the chance to rebuild itself with the expected root
             chain.ChainPolicy.ExtraStore.Add(trustedCertificate);
+            // Transparent gateway tests for CA certs and self-signed certs starting failing for
+            // AMQP only. We discovered that RevocationMode was 'Online' in the AMQP scenario, but
+            // it was 'NoCheck' for MQTT. If we changed RevocationMode in AMQP to match MQTT, the
+            // tests started passing again. We think the correct mode is 'Online', so we still need
+            // to investigate why the MQTT path is setting it this way. Regardless, in a test
+            // environment we don't need revocation.
+            chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
             chain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
 #if NETSTANDARD2_0
             X509Certificate input = certificate;
