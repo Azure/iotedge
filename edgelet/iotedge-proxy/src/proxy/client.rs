@@ -152,7 +152,7 @@ mod tests {
         let task = client.request(req).and_then(|res| {
             let status = res.status();
             res.into_body()
-                .map_err(|_|Error::from(ErrorKind::Generic))
+                .map_err(|_| Error::from(ErrorKind::Generic))
                 .concat2()
                 .map(move |body| (status, body.into_bytes()))
         });
