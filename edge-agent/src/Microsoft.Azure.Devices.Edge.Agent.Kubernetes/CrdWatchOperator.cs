@@ -122,7 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 this.deploymentSerde,
                 this.moduleIdentityLifecycleManager,
                 this.client);
-            this.client.ListClusterCustomObjectWithHttpMessagesAsync(Constants.K8sCrdGroup, Constants.K8sApiVersion, Constants.K8sCrdPlural, watch: true).ContinueWith(watcher.ListCrdComplete);
+            this.client.ListNamespacedCustomObjectWithHttpMessagesAsync(Constants.K8sCrdGroup, Constants.K8sApiVersion, this.k8sNamespace, Constants.K8sCrdPlural, watch: true).ContinueWith(watcher.ListCrdComplete);
         }
     }
 }

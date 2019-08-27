@@ -87,8 +87,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         {
             if (customObjectWatchTask == null)
             {
-                Events.NullListResponse("ListClusterCustomObjectWithHttpMessagesAsync", "task");
-                throw new NullReferenceException("Null Task from ListClusterCustomObjectWithHttpMessagesAsync");
+                Events.NullListResponse("ListNamespacedCustomObjectWithHttpMessagesAsync", "task");
+                throw new NullReferenceException("Null Task from ListNamespacedCustomObjectWithHttpMessagesAsync");
             }
             else
             {
@@ -118,9 +118,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                                 this.operatorWatch = Option.None<Watcher<object>>();
 
                                 // kick off a new watch
-                                this.client.ListClusterCustomObjectWithHttpMessagesAsync(
+                                this.client.ListNamespacedCustomObjectWithHttpMessagesAsync(
                                     Constants.K8sCrdGroup,
                                     Constants.K8sApiVersion,
+                                    this.k8sNamespace,
                                     Constants.K8sCrdPlural,
                                     watch: true).ContinueWith(this.ListCrdComplete);
                             },
@@ -128,8 +129,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 }
                 else
                 {
-                    Events.NullListResponse("ListClusterCustomObjectWithHttpMessagesAsync", "http response");
-                    throw new NullReferenceException("Null response from ListClusterCustomObjectWithHttpMessagesAsync");
+                    Events.NullListResponse("ListNamespacedCustomObjectWithHttpMessagesAsync", "http response");
+                    throw new NullReferenceException("Null response from ListNamespacedCustomObjectWithHttpMessagesAsync");
                 }
             }
         }
