@@ -180,7 +180,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         var combinedConfigProviderTask = c.Resolve<Task<ICombinedConfigProvider<CombinedDockerConfig>>>();
                         ICommandFactory commandFactory = await commandFactoryTask;
                         ICombinedConfigProvider<CombinedDockerConfig> combinedConfigProvider = await combinedConfigProviderTask;
-                        return new KubernetesPlanner<CombinedDockerConfig>(this.iotHubHostname, this.gatewayHostname, this.deviceId, c.Resolve<IKubernetes>(), commandFactory, combinedConfigProvider) as IPlanner;
+                        return new KubernetesPlanner<CombinedDockerConfig>(this.k8sNamespace, this.iotHubHostname, this.deviceId, c.Resolve<IKubernetes>(), commandFactory, combinedConfigProvider) as IPlanner;
                     })
                 .As<Task<IPlanner>>()
                 .SingleInstance();
