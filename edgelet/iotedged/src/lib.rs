@@ -1613,11 +1613,11 @@ where
     let (workload_uri, management_uri) = (
         format!(
             "http://localhost:{}",
-            settings.connect().worload_uri().port()
+            settings.connect().workload_uri().port().unwrap_or(80u16)
         ),
         format!(
             "http://localhost:{}",
-            settings.connect().management_uri().port()
+            settings.connect().management_uri().port().unwrap_or(80u16)
         ),
     );
 
