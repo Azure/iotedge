@@ -38,6 +38,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             return this.GenerateLeafCertificatesAsync(leafDeviceId, scriptPath, ("bash", command), token);
         }
 
+        public EdgeCertificates GetEdgeQuickstartCertificates() =>
+            this.GetEdgeQuickstartCertificates("/var/lib/iotedge/hsm");
+
         public void InstallEdgeCertificates(IEnumerable<X509Certificate2> certs, ITransportSettings _) =>
             this.InstallTrustedCertificates(certs, StoreName.Root);
 
