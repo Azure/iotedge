@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     {
         public const string K8sApi = "microsoft.azure.devices.edge";
 
-        public const string K8sApiVersion = "v1beta1";
+        public const string K8sApiVersion = "v1";
 
         public const string K8sCrdKind = "EdgeDeployment";
 
