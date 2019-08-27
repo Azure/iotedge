@@ -182,7 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         /// Else, generate a notification of token being near expiry and return a task that
         /// can be completed later.
         /// Keep retrying till we get a usable token.
-        /// Note - Don't use this.Identity in this method, as it may not have been set yet.
+        /// Note - Don't use this.Identity in this method, as it may not have been set yet!
         /// </summary>
         async Task<string> GetNewToken(string currentToken)
         {
