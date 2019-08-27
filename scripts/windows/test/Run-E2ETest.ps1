@@ -1246,15 +1246,10 @@ Function RunTransparentGatewayTest
     RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-inscope-leaf" $edgeDeviceId
 
     RunLeafDeviceTest "x509CA" "Mqtt" "$deviceId-mqtt-x509ca-inscope-leaf" $edgeDeviceId
-    # The below test is failing. Commented out for now.
-    # Relevant bug for investigation: https://msazure.visualstudio.com/One/_workitems/edit/4683653
-    #RunLeafDeviceTest "x509CA" "Amqp" "$deviceId-amqp-x509ca-inscope-leaf" $edgeDeviceId
+    RunLeafDeviceTest "x509CA" "Amqp" "$deviceId-amqp-x509ca-inscope-leaf" $edgeDeviceId
 
     RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-x509th-inscope-leaf" $edgeDeviceId
-
-    # The below test is failing. Commented out for now.
-    # Relevant bug for investigation: https://msazure.visualstudio.com/One/_workitems/edit/4683653
-    #RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-x509th-inscope-leaf" $edgeDeviceId
+    RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-x509th-inscope-leaf" $edgeDeviceId
 
     Return $testExitCode
 }

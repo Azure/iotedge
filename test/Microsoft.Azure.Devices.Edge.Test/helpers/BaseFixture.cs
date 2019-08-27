@@ -1,8 +1,7 @@
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 {
     using System;
-    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -10,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using NUnit.Framework.Interfaces;
     using Serilog;
 
-    public class TestBase
+    public class BaseFixture
     {
         Profiler profiler;
         DateTime testStartTime;
