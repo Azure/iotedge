@@ -1,16 +1,16 @@
-// Copyright (c) Microsoft. All rights reserved.
+﻿// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 {
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using NUnit.Framework;
 
-    public class ModuleBase : TestBase
+    public class RuntimeFixture : BaseFixture
     {
         protected IotHub iotHub;
         protected EdgeRuntime runtime;
 
         [SetUp]
-        protected void BeforeEachModuleTest()
+        protected void GetRuntimeBeforeEachTest()
         {
             this.iotHub = new IotHub(
                 Context.Current.ConnectionString,

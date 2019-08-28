@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 {
     using System;
-    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -10,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
 
-    public class DeviceBase : TestBase
+    public class CustomCertificatesFixture : BaseFixture
     {
         IEdgeDaemon daemon;
 

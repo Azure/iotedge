@@ -39,9 +39,10 @@ steps:
     New-Item $logDir -ItemType Directory -Force | Out-Null
     Out-File "$logDir/$(Build.DefinitionName)-$(Build.BuildNumber)"
     Copy-Item "$(Build.SourcesDirectory)/TestResults" "$logDir/" -Recurse
-    # The setup fixture runs outside the scope of any test, so its logs (*-test-*.log) aren't
-    # included in the TRX. Copy them manually here.
+    # The setup fixtures run outside the scope of any test, so their logs (*-[test|device]-*.log)
+    # aren't included in the TRX. Copy them manually here.
     Copy-Item "$(binDir)/*-test-*.log" "$logDir/"
+    Copy-Item "$(binDir)/*-device-*.log" "$logDir/"
     Copy-Item "$(binDir)/testoutput.log" "$logDir/"
   displayName: Collect Logs
   condition: succeededOrFailed()
