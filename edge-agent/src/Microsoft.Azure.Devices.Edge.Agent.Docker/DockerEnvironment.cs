@@ -6,12 +6,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-    using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using CreateContainerParameters = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.CreateContainerParameters;
 
     /// <summary>
     /// This implementation gets the module runtime information from IRuntimeInfoProvider and

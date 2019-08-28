@@ -5,16 +5,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
     using System.Collections.Generic;
     using System.IO;
     using System.Runtime.InteropServices;
-    using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
-    using CreateContainerParameters = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.CreateContainerParameters;
-    using EndpointSettings = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.EndpointSettings;
-    using HostConfig = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.HostConfig;
-    using NetworkingConfig = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.NetworkingConfig;
+    using AuthConfig = global::Docker.DotNet.Models.AuthConfig;
 
     public class CombinedEdgeletConfigProvider : CombinedDockerConfigProvider
     {

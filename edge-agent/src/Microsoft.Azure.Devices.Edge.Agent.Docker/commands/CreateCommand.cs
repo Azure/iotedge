@@ -7,17 +7,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
     using System.Threading;
     using System.Threading.Tasks;
     using global::Docker.DotNet;
-    using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
-    using CreateContainerParameters = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.CreateContainerParameters;
-    using EndpointSettings = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.EndpointSettings;
-    using HostConfig = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.HostConfig;
-    using LogConfig = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.LogConfig;
-    using NetworkingConfig = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.NetworkingConfig;
-    using PortBinding = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.PortBinding;
 
     public class CreateCommand : ICommand
     {
