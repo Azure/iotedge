@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
+    using DockerModels = global::Docker.DotNet.Models;
 
     public class CreateCommand : ICommand
     {
@@ -86,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             //
             // This will lose properties in the former that are not defined in the latter, but this code path is only for the old Docker mode anyway.
             var createContainerParameters =
-                JsonConvert.DeserializeObject<global::Docker.DotNet.Models.CreateContainerParameters>(JsonConvert.SerializeObject(this.createContainerParameters));
+                JsonConvert.DeserializeObject<DockerModels.CreateContainerParameters>(JsonConvert.SerializeObject(this.createContainerParameters));
             return this.client.Containers.CreateContainerAsync(createContainerParameters, token);
         }
 
