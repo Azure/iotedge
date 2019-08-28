@@ -57,7 +57,7 @@ rules:
     verbs: ["create"]
   - apiGroups: ["microsoft.azure.devices.edge"]
     resources: ["edgedeployments"]
-    verbs: ["list", "get", "create", "update", "delete"]
+    verbs: ["list", "get", "create", "update", "delete", "watch"]
 ...
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -83,4 +83,4 @@ rules:
     verbs: ["list", "create"]
   - apiGroups: ["microsoft.azure.devices.edge"]
     resources: ["edgedeployments"]
-    verbs: ["list", "get", "create", "update", "delete"]
+    verbs: ["list", "get", "create", "update", "delete", "watch"]
