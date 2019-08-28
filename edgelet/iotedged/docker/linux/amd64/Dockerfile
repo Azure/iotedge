@@ -7,8 +7,8 @@ RUN apt-get update && apt-get install -y \
   && rm -rf /var/lib/apt/lists/*
 
 # run everything else as system user
-RUN addgroup --system iotedged && adduser --system iotedged --ingroup iotedged
-USER iotedged
+RUN useradd -ms /bin/bash edgeletuser
+USER edgeletuser
 
 WORKDIR /app
 ADD ./docker/linux/amd64/libiothsm.so* /app/
