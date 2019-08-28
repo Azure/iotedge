@@ -118,16 +118,6 @@ Defaults:
                     !string.IsNullOrWhiteSpace(this.X509SecondaryKeyPath))
                 {
                     // use thumbprint auth and perform test for both primary and secondary certificates
-                    var thumbprintCerts = new List<string> { this.X509PrimaryCertPath, this.X509SecondaryCertPath };
-                    builder.SetX509ThumbprintAuthProperties(
-                        this.X509PrimaryCertPath,
-                        this.X509PrimaryKeyPath,
-                        this.X509SecondaryCertPath,
-                        this.X509SecondaryKeyPath,
-                        true);
-                    LeafDevice testPrimaryCertificate = builder.Build();
-                    await testPrimaryCertificate.RunAsync(true);
-
                     builder.SetX509ThumbprintAuthProperties(
                         this.X509PrimaryCertPath,
                         this.X509PrimaryKeyPath,
@@ -136,6 +126,15 @@ Defaults:
                         false);
                     LeafDevice testSeondaryCertificate = builder.Build();
                     await testSeondaryCertificate.RunAsync();
+
+                    builder.SetX509ThumbprintAuthProperties(
+                        this.X509PrimaryCertPath,
+                        this.X509PrimaryKeyPath,
+                        this.X509SecondaryCertPath,
+                        this.X509SecondaryKeyPath,
+                        true);
+                    LeafDevice testPrimaryCertificate = builder.Build();
+                    await testPrimaryCertificate.RunAsync(true);
                 }
                 else if (!string.IsNullOrWhiteSpace(this.X509CACertPath) &&
                          !string.IsNullOrWhiteSpace(this.X509CAKeyPath))
