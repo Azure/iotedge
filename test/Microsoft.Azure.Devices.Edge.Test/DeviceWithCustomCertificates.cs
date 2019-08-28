@@ -17,14 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
             [Values] TestAuthenticationType testAuth,
             [Values(Protocol.Mqtt, Protocol.Amqp)] Protocol protocol)
         {
-            // For CA and self-signed cert tests, temporarily disable AMQP
-            var auth = testAuth.ToAuthenticationType();
-            if (protocol == Protocol.Amqp &&
-                (auth == AuthenticationType.CertificateAuthority || auth == AuthenticationType.SelfSigned))
-            {
-                Assert.Ignore("x509 cert + AMQP tests disabled until bug is resolved");
-            }
-
             CancellationToken token = this.cts.Token;
 
             // Generate a leaf device ID--based on the (edge) device ID--that is at most
@@ -40,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             var leaf = await LeafDevice.CreateAsync(
                 leafDeviceId,
                 protocol,
-                auth,
+                testAuth.ToAuthenticationType(),
                 parentId,
                 testAuth.UseSecondaryCertificate(),
                 this.ca,
