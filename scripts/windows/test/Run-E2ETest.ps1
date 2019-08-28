@@ -618,47 +618,47 @@ Function RunAllTests
 
     $TestName = "DirectMethodAmqpMqtt"
     $testExitCode = RunDirectMethodAmqpMqttTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "DirectMethodMqtt"
     $testExitCode = RunDirectMethodMqttTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "DirectMethodMqttAmqp"
     $testExitCode = RunDirectMethodMqttAmqpTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "DpsSymmetricKeyProvisioning"
     $testExitCode = RunDpsProvisioningTest ([DpsProvisioningType]::SymmetricKey)
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "DpsTpmProvisioning"
     $testExitCode = RunDpsProvisioningTest ([DpsProvisioningType]::Tpm)
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "DpsX509Provisioning"
     $testExitCode = RunDpsProvisioningTest ([DpsProvisioningType]::X509)
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "QuickstartCerts"
     $testExitCode = RunQuickstartCertsTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "TempFilter"
     $testExitCode = RunTempFilterTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "TempFilterFunctions"
     $testExitCode = RunTempFilterFunctionsTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "TempSensor"
     $testExitCode = RunTempSensorTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "TransparentGateway"
     $testExitCode = RunTransparentGatewayTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     Return $lastTestExitCode
 }
