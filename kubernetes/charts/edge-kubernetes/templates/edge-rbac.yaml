@@ -55,6 +55,9 @@ rules:
   - apiGroups: ["authentication.k8s.io"]
     resources: ["tokenreviews"]
     verbs: ["create"]
+  - apiGroups: ["microsoft.azure.devices.edge"]
+    resources: ["edgedeployments"]
+    verbs: ["list", "get", "create", "update", "delete"]
 ...
 ---
 apiVersion: rbac.authorization.k8s.io/v1
