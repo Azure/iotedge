@@ -1095,7 +1095,8 @@ Function RunLeafDeviceTest
     [ValidateSet("sas","x509CA","x509Thumprint")][string]$authType,
     [ValidateSet("Mqtt","MqttWs","Amqp", "AmqpWs")][string]$protocol,
     [ValidateNotNullOrEmpty()][string]$leafDeviceId,
-    [string]$edgeDeviceId
+    [string]$edgeDeviceId,
+    [bool]$verifyPrimaryCertThumbprint = $True
 )
 {
     $testCommand = $null
@@ -1170,6 +1171,11 @@ Function RunLeafDeviceTest
                 -ctsk `"$EdgeCertGenScriptDir\private\iot-device-${leafDeviceId}-sec.key.pem`" ``
                 -ed-id `"$edgeDeviceId`" ``
                 -ed `"$env:computername`""
+
+            If ($verifyPrimaryCertThumbprint) {
+                $testCommand = "$testCommand --verify-primary-cert-thumbprint"
+            }
+
             break
         }
 
@@ -1177,7 +1183,7 @@ Function RunLeafDeviceTest
         {
             $(Throw "Unsupported auth mode $authType")
         }
-     }
+    }
 
     If ($ProxyUri) {
         $testCommand = "$testCommand --proxy `"$ProxyUri`""
@@ -1248,8 +1254,10 @@ Function RunTransparentGatewayTest
     RunLeafDeviceTest "x509CA" "Mqtt" "$deviceId-mqtt-x509ca-inscope-leaf" $edgeDeviceId
     RunLeafDeviceTest "x509CA" "Amqp" "$deviceId-amqp-x509ca-inscope-leaf" $edgeDeviceId
 
-    RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-x509th-inscope-leaf" $edgeDeviceId
-    RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-x509th-inscope-leaf" $edgeDeviceId
+    RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-prix509th-inscope-leaf" $edgeDeviceId
+    RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-secx509th-inscope-leaf" $edgeDeviceId $False
+    RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-prix509th-inscope-leaf" $edgeDeviceId 
+    RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-mqtt-secx509th-inscope-leaf" $edgeDeviceId $False
 
     Return $testExitCode
 }

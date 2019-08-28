@@ -83,6 +83,9 @@ Defaults:
         [Option("-ctsk|--x509-secondary-key-path", Description = "Path to a X.509 leaf certificate key file in PEM format. This is needed for thumbprint auth and used as the secondary certificate's key.")]
         public string X509SecondaryKeyPath { get; } = string.Empty;
 
+        [Option("--verify-primary-cert-thumbprint", Description = "set to true if primary cert thumbprint should be used for verification, otherwise uses secondary cert thumbprint (default).")]
+        public bool VerifyPrimaryCertThumbprint { get; } = false;
+
         // ReSharper disable once UnusedMember.Local
         static int Main(string[] args) => CommandLineApplication.ExecuteAsync<Program>(args).Result;
 
@@ -118,24 +121,14 @@ Defaults:
                     !string.IsNullOrWhiteSpace(this.X509SecondaryKeyPath))
                 {
                     // use thumbprint auth and perform test for both primary and secondary certificates
-                    var thumbprintCerts = new List<string> { this.X509PrimaryCertPath, this.X509SecondaryCertPath };
                     builder.SetX509ThumbprintAuthProperties(
                         this.X509PrimaryCertPath,
                         this.X509PrimaryKeyPath,
                         this.X509SecondaryCertPath,
                         this.X509SecondaryKeyPath,
-                        true);
+                        this.VerifyPrimaryCertThumbprint);
                     LeafDevice testPrimaryCertificate = builder.Build();
-                    await testPrimaryCertificate.RunAsync(true);
-
-                    builder.SetX509ThumbprintAuthProperties(
-                        this.X509PrimaryCertPath,
-                        this.X509PrimaryKeyPath,
-                        this.X509SecondaryCertPath,
-                        this.X509SecondaryKeyPath,
-                        false);
-                    LeafDevice testSeondaryCertificate = builder.Build();
-                    await testSeondaryCertificate.RunAsync();
+                    await testPrimaryCertificate.RunAsync();
                 }
                 else if (!string.IsNullOrWhiteSpace(this.X509CACertPath) &&
                          !string.IsNullOrWhiteSpace(this.X509CAKeyPath))
