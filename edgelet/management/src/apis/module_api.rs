@@ -16,7 +16,7 @@ use futures::{Future, Stream};
 use hyper;
 use serde_json;
 use typed_headers::{self, http, mime, HeaderMapExt};
-use url::percent_encoding::{percent_encode, USERINFO_ENCODE_SET};
+use url::percent_encoding::{percent_encode, PATH_SEGMENT_ENCODE_SET};
 
 use super::{configuration, Error};
 
@@ -165,7 +165,7 @@ where
         let uri_str = format!(
             "/modules/{name}?{}",
             query,
-            name = percent_encode(name.as_bytes(), USERINFO_ENCODE_SET)
+            name = percent_encode(name.as_bytes(), PATH_SEGMENT_ENCODE_SET)
         );
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
@@ -221,7 +221,7 @@ where
         let uri_str = format!(
             "/modules/{name}?{}",
             query,
-            name = percent_encode(name.as_bytes(), USERINFO_ENCODE_SET)
+            name = percent_encode(name.as_bytes(), PATH_SEGMENT_ENCODE_SET)
         );
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
@@ -341,7 +341,7 @@ where
         let uri_str = format!(
             "/modules/{name}/logs?{}",
             query,
-            name = percent_encode(name.as_bytes(), USERINFO_ENCODE_SET)
+            name = percent_encode(name.as_bytes(), PATH_SEGMENT_ENCODE_SET)
         );
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
@@ -391,7 +391,7 @@ where
         let uri_str = format!(
             "/modules/{name}/restart?{}",
             query,
-            name = percent_encode(name.as_bytes(), USERINFO_ENCODE_SET)
+            name = percent_encode(name.as_bytes(), PATH_SEGMENT_ENCODE_SET)
         );
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
@@ -446,7 +446,7 @@ where
         let uri_str = format!(
             "/modules/{name}/start?{}",
             query,
-            name = percent_encode(name.as_bytes(), USERINFO_ENCODE_SET)
+            name = percent_encode(name.as_bytes(), PATH_SEGMENT_ENCODE_SET)
         );
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
@@ -501,7 +501,7 @@ where
         let uri_str = format!(
             "/modules/{name}/stop?{}",
             query,
-            name = percent_encode(name.as_bytes(), USERINFO_ENCODE_SET)
+            name = percent_encode(name.as_bytes(), PATH_SEGMENT_ENCODE_SET)
         );
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
@@ -558,7 +558,7 @@ where
         let uri_str = format!(
             "/modules/{name}?{}",
             query,
-            name = percent_encode(name.as_bytes(), USERINFO_ENCODE_SET)
+            name = percent_encode(name.as_bytes(), PATH_SEGMENT_ENCODE_SET)
         );
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
