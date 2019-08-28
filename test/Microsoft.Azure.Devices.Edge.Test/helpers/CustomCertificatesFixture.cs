@@ -6,46 +6,34 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
-    using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
 
-    public class CustomCertificatesFixture : BaseFixture
+    public class CustomCertificatesFixture : ManualProvisioningFixture
     {
-        IEdgeDaemon daemon;
-
         protected CertificateAuthority ca;
-        protected IotHub iotHub;
 
         [OneTimeSetUp]
-        public async Task BeforeAllAsync()
+        public async Task SetUpCertificatesAsync()
         {
             await Profiler.Run(
                 async () =>
                 {
                     (string, string, string) rootCa =
                         Context.Current.RootCaKeys.Expect(() => new ArgumentException());
-                    Option<Uri> proxy = Context.Current.Proxy;
-                    string deviceId = Context.Current.DeviceId;
 
                     using (var cts = new CancellationTokenSource(Context.Current.SetupTimeout))
                     {
                         DateTime startTime = DateTime.Now;
                         CancellationToken token = cts.Token;
 
-                        this.iotHub = new IotHub(
-                            Context.Current.ConnectionString,
-                            Context.Current.EventHubEndpoint,
-                            proxy);
-
                         try
                         {
                             this.ca = await CertificateAuthority.CreateAsync(
-                                deviceId,
+                                Context.Current.DeviceId,
                                 rootCa,
                                 Context.Current.CaCertScriptPath,
                                 token);
 
-                            this.daemon = OsPlatform.Current.CreateEdgeDaemon(Context.Current.InstallerPath);
                             await this.daemon.ConfigureAsync(
                                 config =>
                                 {
@@ -56,10 +44,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                                 token);
 
                             var runtime = new EdgeRuntime(
-                                deviceId,
+                                Context.Current.DeviceId,
                                 Context.Current.EdgeAgentImage,
                                 Context.Current.EdgeHubImage,
-                                proxy,
+                                Context.Current.Proxy,
                                 Context.Current.Registries,
                                 Context.Current.OptimizeForPerformance,
                                 this.iotHub);
@@ -82,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         }
 
         [OneTimeTearDown]
-        public async Task AfterAllAsync()
+        public async Task RemoveCertificatesAsync()
         {
             await Profiler.Run(
                 async () =>
