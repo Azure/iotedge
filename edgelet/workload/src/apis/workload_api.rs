@@ -13,9 +13,9 @@ use std::sync::Arc;
 
 use futures::{Future, Stream};
 use hyper;
-use percent_encoding::{percent_encode, USERINFO_ENCODE_SET};
 use serde_json;
 use typed_headers::{self, http, mime, HeaderMapExt};
+use url::percent_encoding::{percent_encode, USERINFO_ENCODE_SET};
 
 use super::{configuration, Error};
 
