@@ -2,18 +2,18 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
 {
     using System.Collections.Generic;
-    using System.Runtime.Serialization;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
 
-    [DataContract]
     public class LogConfig
     {
-        [DataMember(Name = "Config", EmitDefaultValue = false)]
+        [JsonProperty("Config", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public IDictionary<string, string> Config { get; set; }
 
-        [DataMember(Name = "Type", EmitDefaultValue = false)]
+        [JsonProperty("Type", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public string Type { get; set; }
 
-        [Newtonsoft.Json.JsonExtensionData]
-        public IDictionary<string, Newtonsoft.Json.Linq.JToken> OtherProperties { get; set; }
+        [JsonExtensionData]
+        public IDictionary<string, JToken> OtherProperties { get; set; }
     }
 }

@@ -2,24 +2,24 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
 {
     using System.Collections.Generic;
-    using System.Runtime.Serialization;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
 
-    [DataContract]
     public class Mount
     {
-        [DataMember(Name = "ReadOnly", EmitDefaultValue = false)]
+        [JsonProperty("ReadOnly", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public bool ReadOnly { get; set; }
 
-        [DataMember(Name = "Source", EmitDefaultValue = false)]
+        [JsonProperty("Source", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public string Source { get; set; }
 
-        [DataMember(Name = "Target", EmitDefaultValue = false)]
+        [JsonProperty("Target", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public string Target { get; set; }
 
-        [DataMember(Name = "Type", EmitDefaultValue = false)]
+        [JsonProperty("Type", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public string Type { get; set; }
 
-        [Newtonsoft.Json.JsonExtensionData]
-        public IDictionary<string, Newtonsoft.Json.Linq.JToken> OtherProperties;
+        [JsonExtensionData]
+        public IDictionary<string, JToken> OtherProperties { get; set; }
     }
 }

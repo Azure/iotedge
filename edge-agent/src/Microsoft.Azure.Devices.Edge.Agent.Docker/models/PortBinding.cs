@@ -2,18 +2,18 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
 {
     using System.Collections.Generic;
-    using System.Runtime.Serialization;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
 
-    [DataContract]
     public class PortBinding
     {
-        [DataMember(Name = "HostIP", EmitDefaultValue = false)]
+        [JsonProperty("HostIP", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public string HostIP { get; set; }
 
-        [DataMember(Name = "HostPort", EmitDefaultValue = false)]
+        [JsonProperty("HostPort", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public string HostPort { get; set; }
 
-        [Newtonsoft.Json.JsonExtensionData]
-        public IDictionary<string, Newtonsoft.Json.Linq.JToken> OtherProperties { get; set; }
+        [JsonExtensionData]
+        public IDictionary<string, JToken> OtherProperties { get; set; }
     }
 }

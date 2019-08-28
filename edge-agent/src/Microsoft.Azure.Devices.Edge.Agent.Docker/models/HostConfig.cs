@@ -2,30 +2,30 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
 {
     using System.Collections.Generic;
-    using System.Runtime.Serialization;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
 
-    [DataContract]
     public class HostConfig
     {
-        [DataMember(Name = "Binds", EmitDefaultValue = false)]
-        public IList<string> Binds;
+        [JsonProperty("Binds", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public IList<string> Binds { get; set; }
 
-        [DataMember(Name = "LogConfig", EmitDefaultValue = false)]
-        public LogConfig LogConfig;
+        [JsonProperty("LogConfig", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public LogConfig LogConfig { get; set; }
 
-        [DataMember(Name = "Mounts", EmitDefaultValue = false)]
-        public IList<Mount> Mounts;
+        [JsonProperty("Mounts", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public IList<Mount> Mounts { get; set; }
 
-        [DataMember(Name = "NetworkMode", EmitDefaultValue = false)]
-        public string NetworkMode;
+        [JsonProperty("NetworkMode", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public string NetworkMode { get; set; }
 
-        [DataMember(Name = "PortBindings", EmitDefaultValue = false)]
-        public IDictionary<string, IList<PortBinding>> PortBindings;
+        [JsonProperty("PortBindings", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public IDictionary<string, IList<PortBinding>> PortBindings { get; set; }
 
-        [DataMember(Name = "Privileged", EmitDefaultValue = false)]
-        public bool Privileged;
+        [JsonProperty("Privileged", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public bool Privileged { get; set; }
 
-        [Newtonsoft.Json.JsonExtensionData]
-        public IDictionary<string, Newtonsoft.Json.Linq.JToken> OtherProperties;
+        [JsonExtensionData]
+        public IDictionary<string, JToken> OtherProperties { get; set; }
     }
 }

@@ -2,33 +2,33 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
 {
     using System.Collections.Generic;
-    using System.Runtime.Serialization;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
 
-    [DataContract]
     public class CreateContainerParameters
     {
-        [DataMember(Name = "Env", EmitDefaultValue = false)]
+        [JsonProperty("Env", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public IList<string> Env { get; set; }
 
-        [DataMember(Name = "ExposedPorts", EmitDefaultValue = false)]
+        [JsonProperty("ExposedPorts", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public IDictionary<string, global::Docker.DotNet.Models.EmptyStruct> ExposedPorts { get; set; }
 
-        [DataMember(Name = "HostConfig", EmitDefaultValue = false)]
+        [JsonProperty("HostConfig", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public HostConfig HostConfig { get; set; }
 
-        [DataMember(Name = "Image", EmitDefaultValue = false)]
+        [JsonProperty("Image", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public string Image { get; set; }
 
-        [DataMember(Name = "Labels", EmitDefaultValue = false)]
+        [JsonProperty("Labels", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public IDictionary<string, string> Labels { get; set; }
 
-        [DataMember(Name = "Name", EmitDefaultValue = false)]
+        [JsonProperty("Name", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public string Name { get; set; }
 
-        [DataMember(Name = "NetworkingConfig", EmitDefaultValue = false)]
+        [JsonProperty("NetworkingConfig", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public NetworkingConfig NetworkingConfig { get; set; }
 
-        [Newtonsoft.Json.JsonExtensionData]
-        public IDictionary<string, Newtonsoft.Json.Linq.JToken> OtherProperties { get; set; }
+        [JsonExtensionData]
+        public IDictionary<string, JToken> OtherProperties { get; set; }
     }
 }
