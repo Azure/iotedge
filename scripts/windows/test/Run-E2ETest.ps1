@@ -1096,7 +1096,7 @@ Function RunLeafDeviceTest
     [ValidateSet("Mqtt","MqttWs","Amqp", "AmqpWs")][string]$protocol,
     [ValidateNotNullOrEmpty()][string]$leafDeviceId,
     [string]$edgeDeviceId,
-    [bool]$useSecondaryCertificate = $False
+    [bool]$useSecondaryCredential = $False
 )
 {
     $testCommand = $null
@@ -1172,8 +1172,8 @@ Function RunLeafDeviceTest
                 -ed-id `"$edgeDeviceId`" ``
                 -ed `"$env:computername`""
 
-            If ($useSecondaryCertificate) {
-                $testCommand = "$testCommand --use-secondary-certificate"
+            If ($useSecondaryCredential) {
+                $testCommand = "$testCommand --use-secondary-credential"
             }
 
             break

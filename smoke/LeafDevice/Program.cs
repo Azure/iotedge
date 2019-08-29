@@ -83,8 +83,8 @@ Defaults:
         [Option("-ctsk|--x509-secondary-key-path", Description = "Path to a X.509 leaf certificate key file in PEM format. This is needed for thumbprint auth and used as the secondary certificate's key.")]
         public string X509SecondaryKeyPath { get; } = string.Empty;
 
-        [Option("--use-secondary-certificate", Description = "Set to true if secondary certificate should be used for thumbprint test, otherwise uses primary certificate (default).")]
-        public bool UseSecondaryCertificate { get; } = false;
+        [Option("--use-secondary-credential", Description = "Set to true if secondary certificate should be used for thumbprint test, otherwise uses primary certificate (default).")]
+        public bool UseSecondaryCredential { get; } = false;
 
         // ReSharper disable once UnusedMember.Local
         static int Main(string[] args) => CommandLineApplication.ExecuteAsync<Program>(args).Result;
@@ -126,7 +126,7 @@ Defaults:
                         this.X509PrimaryKeyPath,
                         this.X509SecondaryCertPath,
                         this.X509SecondaryKeyPath,
-                        !this.UseSecondaryCertificate);
+                        !this.UseSecondaryCredential);
                     LeafDevice testThumbprintCertificate = builder.Build();
                     await testThumbprintCertificate.RunAsync();
                 }
