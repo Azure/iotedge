@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use failure::ResultExt;
+use failure::{Fail, ResultExt};
 use futures::{Future, IntoFuture};
 use hyper::client::connect::Connect;
 use hyper::client::HttpConnector;
 use hyper::header::HeaderValue;
-use hyper::{header, Body, Client as HyperClient, Request, Response};
+use hyper::{header, Body, Client as HyperClient, Request, Response, Uri};
 use hyper_tls::HttpsConnector;
 use log::info;
 
@@ -57,13 +57,21 @@ where
         &self,
         mut req: Request<Body>,
     ) -> impl Future<Item = Response<Body>, Error = Error> {
+        let path = req
+            .uri()
+            .path_and_query()
+            .map_or("", |p| p.as_str())
+            .to_string();
+
         self.config
             .host()
-            .join(req.uri().path_and_query().map_or("", |p| p.as_str()))
-            .map_err(Error::from)
+            .join(&path)
+            .map_err(|err| {
+                Error::from(err.context(ErrorKind::UrlJoin(self.config.host().clone(), path)))
+            })
             .and_then(|url| {
                 // set a full URL to redirect request to
-                *req.uri_mut() = url.as_str().parse()?;
+                *req.uri_mut() = url.as_str().parse::<Uri>().context(ErrorKind::Uri(url))?;
 
                 // set host value in request header
                 if let Ok(host) = req.uri().host().unwrap_or_default().parse() {
@@ -95,17 +103,21 @@ where
     fn request(&self, req: Request<Body>) -> ResponseFuture {
         let request = format!("{} {} {:?}", req.method(), req.uri(), req.version());
 
-        let fut = self.0.request(req).map_err(Error::from).map(move |res| {
-            let body_length = res
-                .headers()
-                .get(header::CONTENT_LENGTH)
-                .and_then(|length| length.to_str().ok().map(ToString::to_string))
-                .unwrap_or_else(|| "-".to_string());
+        let fut = self
+            .0
+            .request(req)
+            .map_err(|err| Error::from(err.context(ErrorKind::Hyper)))
+            .map(move |res| {
+                let body_length = res
+                    .headers()
+                    .get(header::CONTENT_LENGTH)
+                    .and_then(|length| length.to_str().ok().map(ToString::to_string))
+                    .unwrap_or_else(|| "-".to_string());
 
-            info!("\"{}\" {} {}", request, res.status(), body_length);
+                info!("\"{}\" {} {}", request, res.status(), body_length);
 
-            res
-        });
+                res
+            });
 
         Box::new(fut)
     }
@@ -140,7 +152,7 @@ mod tests {
         let task = client.request(req).and_then(|res| {
             let status = res.status();
             res.into_body()
-                .map_err(Error::from)
+                .map_err(|_| Error::from(ErrorKind::Generic))
                 .concat2()
                 .map(move |body| (status, body.into_bytes()))
         });

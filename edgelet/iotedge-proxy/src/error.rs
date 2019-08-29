@@ -2,16 +2,13 @@
 
 use std::fmt;
 use std::fmt::Display;
-use std::io::Error as IoError;
 
 use failure::{Backtrace, Context, Fail};
-use hyper::http::uri::InvalidUri;
-use hyper::{header, Body, Error as HyperError, Response, StatusCode};
-use native_tls::Error as NativeTlsError;
+use hyper::{header, Body, Response, StatusCode};
 use serde_json::json;
-use url::ParseError as UrlParseError;
 
 use crate::IntoResponse;
+use url::Url;
 
 #[derive(Debug)]
 pub struct Error {
@@ -20,44 +17,62 @@ pub struct Error {
 
 #[derive(Debug, Fail, PartialEq)]
 pub enum ErrorKind {
-    #[fail(display = "Could not load settings")]
-    LoadSettings,
-
-    #[fail(display = "Unsupported url schema {:?}", _0)]
-    UnsupportedSchema(String),
-
-    #[fail(display = "Could not initialize tokio runtime")]
-    Tokio,
-
-    #[fail(display = "Invalid URL {:?}", _0)]
-    InvalidUrl(String),
-
-    #[fail(display = "Invalid URL {:?}: {}", _0, _1)]
-    InvalidUrlWithReason(String, String),
+    #[fail(display = "The proxy could not start up successfully: {}", _0)]
+    Initialize(InitializeErrorReason),
 
     #[fail(display = "HTTP connection error")]
     Hyper,
 
-    #[fail(display = "A native TLS error occurred")]
-    NativeTls,
+    #[fail(
+        display = "Could not form well-formed URL by joining {:?} with {:?}",
+        _0, _1
+    )]
+    UrlJoin(Url, String),
 
-    #[fail(display = "Parse error url error")]
-    Parse,
-
-    #[fail(display = "Invalid URI to parse")]
-    Uri,
+    #[fail(display = "Invalid URI to parse: {:?}", _0)]
+    Uri(Url),
 
     #[fail(display = "Invalid HTTP header value {:?}", _0)]
     HeaderValue(String),
 
-    #[fail(display = "An IO error occurred")]
-    Io,
-
-    #[fail(display = "An IO error occurred {:?}", _0)]
-    File(String),
-
+    #[cfg(test)]
     #[fail(display = "Error")]
     Generic,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum InitializeErrorReason {
+    LoadSettings,
+    LoadSettingsUnsupportedSchema(String),
+    InvalidUrl(Url),
+    InvalidUrlWithReason(Url, String),
+    ClientConfig,
+    ClientConfigReadFile(String),
+    Tokio,
+}
+
+impl Display for InitializeErrorReason {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            InitializeErrorReason::LoadSettings => write!(f, "Could not load settings"),
+            InitializeErrorReason::LoadSettingsUnsupportedSchema(x) => {
+                write!(f, "Unsupported URL schema: {}", x)
+            }
+            InitializeErrorReason::InvalidUrl(x) => {
+                write!(f, "Could not resolve address for given URL: {}", x)
+            }
+            InitializeErrorReason::InvalidUrlWithReason(url, reason) => write!(
+                f,
+                "Could not resolve address for given URL: {}. {}",
+                url, reason
+            ),
+            InitializeErrorReason::ClientConfig => write!(f, "Could not load proxy client config"),
+            InitializeErrorReason::ClientConfigReadFile(x) => {
+                write!(f, "Could not read file for proxy client config: {}", x)
+            }
+            InitializeErrorReason::Tokio => write!(f, "Could not initialize tokio runtime"),
+        }
+    }
 }
 
 impl Error {
@@ -120,46 +135,6 @@ impl From<ErrorKind> for Error {
     fn from(kind: ErrorKind) -> Self {
         Error {
             inner: Context::new(kind),
-        }
-    }
-}
-
-impl From<HyperError> for Error {
-    fn from(error: HyperError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Hyper),
-        }
-    }
-}
-
-impl From<NativeTlsError> for Error {
-    fn from(error: NativeTlsError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::NativeTls),
-        }
-    }
-}
-
-impl From<UrlParseError> for Error {
-    fn from(error: UrlParseError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Parse),
-        }
-    }
-}
-
-impl From<InvalidUri> for Error {
-    fn from(error: InvalidUri) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Uri),
-        }
-    }
-}
-
-impl From<IoError> for Error {
-    fn from(error: IoError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Io),
         }
     }
 }
