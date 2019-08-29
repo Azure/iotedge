@@ -64,7 +64,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
 
             var planner = new KubernetesPlanner<CombinedDockerConfig>(Ns, Hostname,  DeviceId, DefaultClient, DefaultCommandFactory, DefaultConfigProvider);
 
-            await Assert.ThrowsAsync<InvalidIdentityException>( () => planner.PlanAsync(addRunning, ModuleSet.Empty, RuntimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty));
+            await Assert.ThrowsAsync<InvalidIdentityException>(
+                () => planner.PlanAsync(addRunning, ModuleSet.Empty, RuntimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty));
         }
 
         [Fact]
