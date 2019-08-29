@@ -40,22 +40,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.ImagePullPolicy = imagePullPolicy;
         }
 
+        [JsonIgnore]
         public string Name { get; set; }
 
-        public string Version { get; set; }
+        [JsonProperty(PropertyName = "version")]
+        public string Version { get; }
 
-        public string Type { get; set; }
+        [JsonProperty(PropertyName = "type")]
+        public string Type { get; }
 
-        public ModuleStatus DesiredStatus { get; set; }
+        [JsonProperty(PropertyName = "status")]
+        public ModuleStatus DesiredStatus { get; }
 
-        public RestartPolicy RestartPolicy { get; set; }
+        [JsonProperty(PropertyName = "restartPolicy")]
+        public RestartPolicy RestartPolicy { get; }
 
-        public ConfigurationInfo ConfigurationInfo { get; set; }
+        [JsonProperty(PropertyName = "imagePullPolicy")]
+        public ImagePullPolicy ImagePullPolicy { get; }
 
-        public IDictionary<string, EnvVal> Env { get; set; }
+        [JsonIgnore]
+        public ConfigurationInfo ConfigurationInfo { get; }
 
-        public ImagePullPolicy ImagePullPolicy { get; set; }
+        [JsonProperty(PropertyName = "env")]
+        public IDictionary<string, EnvVal> Env { get; }
 
+        [JsonProperty(PropertyName = "settings")]
         public TConfig Config { get; set; }
 
         public virtual bool Equals(IModule other) => this.Equals(other as KubernetesModule<TConfig>);
