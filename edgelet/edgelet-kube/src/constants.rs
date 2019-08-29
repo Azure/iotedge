@@ -40,4 +40,6 @@ pub mod env {
     pub const PROXY_TRUST_BUNDLE_PATH_KEY: &str = "ProxyTrustBundlePath";
 
     pub const NAMESPACE_KEY: &str = "K8sNamespace";
+
+    pub const EDGE_NETWORKID_KEY: &str = "NetworkId";
 }

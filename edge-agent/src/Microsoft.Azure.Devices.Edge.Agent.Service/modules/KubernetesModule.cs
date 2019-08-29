@@ -164,10 +164,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         var client = c.Resolve<IKubernetes>();
                         var configSourceTask = c.Resolve<Task<IConfigSource>>();
                         var combinedDockerConfigProviderTask = c.Resolve<Task<ICombinedConfigProvider<CombinedDockerConfig>>>();
+                        var loggerFactory = c.Resolve<ILoggerFactory>();
                         IConfigSource configSource = await configSourceTask;
                         ICombinedConfigProvider<CombinedDockerConfig> combinedDockerConfigProvider = await combinedDockerConfigProviderTask;
                         var kubernetesCommandFactory = new KubernetesCommandFactory();
-                        return new LoggingCommandFactory(kubernetesCommandFactory, c.Resolve<ILoggerFactory>()) as ICommandFactory;
+                        return new LoggingCommandFactory(kubernetesCommandFactory, loggerFactory) as ICommandFactory;
                     })
                 .As<Task<ICommandFactory>>()
                 .SingleInstance();

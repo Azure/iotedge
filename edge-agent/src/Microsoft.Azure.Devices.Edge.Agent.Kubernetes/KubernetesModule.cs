@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Newtonsoft.Json;
 
     public class KubernetesModule<TConfig> : IModule<TConfig>
     {
@@ -22,6 +23,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.ConfigurationInfo = module.ConfigurationInfo;
             this.Env = module.Env?.ToImmutableDictionary() ?? ImmutableDictionary<string, EnvVal>.Empty;
             this.Config = module.Config;
+            this.ImagePullPolicy = module.ImagePullPolicy;
+        }
+
+        [JsonConstructor]
+        public KubernetesModule(string name, string version, string type, ModuleStatus desiredStatus, RestartPolicy restartPolicy, ConfigurationInfo configurationInfo, IDictionary<string, EnvVal> env, TConfig config, ImagePullPolicy imagePullPolicy)
+        {
+            this.Name = name;
+            this.Version = version;
+            this.Type = type;
+            this.DesiredStatus = desiredStatus;
+            this.RestartPolicy = restartPolicy;
+            this.ConfigurationInfo = configurationInfo;
+            this.Env = env?.ToImmutableDictionary() ?? ImmutableDictionary<string, EnvVal>.Empty;
+            this.Config = config;
+            this.ImagePullPolicy = imagePullPolicy;
         }
 
         public string Name { get; set; }

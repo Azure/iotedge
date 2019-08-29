@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Newtonsoft.Json;
@@ -75,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             {
                 [typeof(IModule)] = new Dictionary<string, Type>
                 {
-                    ["docker"] = typeof(CombinedDockerModule)
+                    ["docker"] = typeof(DockerConfig)
                 }
             };
 

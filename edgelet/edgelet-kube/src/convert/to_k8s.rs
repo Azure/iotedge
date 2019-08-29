@@ -154,6 +154,7 @@ fn spec_to_podspec(
             env_vars.push(env(USE_PERSISTENT_VOLUME_KEY, "True"));
         }
 
+        env_vars.push(env(EDGE_NETWORKID_KEY, ""));
         env_vars.push(env(NAMESPACE_KEY, settings.namespace()));
         env_vars.push(env(EDGE_AGENT_MODE_KEY, EDGE_AGENT_MODE));
         env_vars.push(env(PROXY_IMAGE_KEY, settings.proxy_image()));

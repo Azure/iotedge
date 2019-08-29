@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
@@ -141,7 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             try
             {
                 string customString = JsonConvert.SerializeObject(custom);
-                edgeDeploymentDefinition = this.deploymentSerde.Deserialize(customString);
+                edgeDeploymentDefinition = JsonConvert.DeserializeObject<EdgeDeploymentDefinition<DockerConfig>>(customString) as EdgeDeploymentDefinition<TConfig>;
             }
             catch (Exception e)
             {

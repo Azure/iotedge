@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
             {
                 [typeof(IModule)] = new Dictionary<string, Type>
                 {
-                    ["docker"] = typeof(CombinedDockerConfig)
+                    ["docker"] = typeof(DockerConfig)
                 }
             };
 
@@ -152,7 +152,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
                 string body = JsonConvert.SerializeObject(currentDeployment.Body);
 
                 activeDeployment = currentDeployment.Response.IsSuccessStatusCode ?
-                    Option.Some(this.deploymentSerde.Deserialize(body)) :
+                    Option.Some(JsonConvert.DeserializeObject<EdgeDeploymentDefinition<DockerConfig>>(body)) :
                     Option.None<EdgeDeploymentDefinition<DockerConfig>>();
             }
             catch (Exception parseException)
