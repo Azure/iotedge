@@ -5,30 +5,37 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
-    using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
 
-    class Device : RuntimeFixture
+    class DeviceWithCustomCertificates : CustomCertificatesFixture
     {
         [Test]
-        public async Task QuickstartCerts()
+        public async Task TransparentGateway(
+            [Values] TestAuthenticationType testAuth,
+            [Values(Protocol.Mqtt, Protocol.Amqp)] Protocol protocol)
         {
             CancellationToken token = this.cts.Token;
 
-            await this.runtime.DeployConfigurationAsync(token);
+            // Generate a leaf device ID--based on the (edge) device ID--that is at most
+            // (deviceId.Length + 26 chars) long. This gives us a leaf device ID of <= 63
+            // characters, and gives LeafDevice.CreateAsync (called below) some wiggle room to
+            // create certs with unique CNs that don't exceed the 64-char limit.
+            string leafDeviceId = $"{Context.Current.DeviceId}-{protocol.ToString()}-{testAuth.ToString()}";
 
-            string leafDeviceId = $"{Context.Current.DeviceId}-quickstart-certs";
+            Option<string> parentId = testAuth == TestAuthenticationType.SasOutOfScope
+                ? Option.None<string>()
+                : Option.Some(Context.Current.DeviceId);
 
             var leaf = await LeafDevice.CreateAsync(
                 leafDeviceId,
-                Protocol.Amqp,
-                AuthenticationType.Sas,
-                Option.None<string>(),
-                false,
-                CertificateAuthority.GetQuickstart(),
+                protocol,
+                testAuth.ToAuthenticationType(),
+                parentId,
+                testAuth.UseSecondaryCertificate(),
+                this.ca,
                 this.iotHub,
                 token);
 

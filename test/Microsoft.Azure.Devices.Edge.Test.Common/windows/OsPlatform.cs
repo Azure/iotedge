@@ -51,6 +51,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             return this.GenerateLeafCertificatesAsync(leafDeviceId, scriptPath, ("powershell", command), token);
         }
 
+        public EdgeCertificates GetEdgeQuickstartCertificates()
+        {
+            string certsBasePath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                @"iotedge\hsm");
+            return this.GetEdgeQuickstartCertificates(certsBasePath);
+        }
+
         public void InstallEdgeCertificates(IEnumerable<X509Certificate2> certs, ITransportSettings transportSettings) =>
             transportSettings.SetupCertificateValidation(certs.First());
 
