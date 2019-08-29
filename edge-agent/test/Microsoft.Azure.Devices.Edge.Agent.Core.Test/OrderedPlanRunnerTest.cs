@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             Assert.True(Plan.Empty.IsEmpty);
             Assert.True(plan2.IsEmpty);
 
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
 
             var planRunner = new OrderedPlanRunner();
             await planRunner.ExecuteAsync(1, plan1, token);
@@ -85,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 await factory.StopAsync(moduleExecutionList[4].Module),
             };
             var plan1 = new Plan(commandList);
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
             var planRunner = new OrderedPlanRunner();
             await planRunner.ExecuteAsync(1, plan1, token);
             Assert.All(
@@ -129,7 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 await factory.StopAsync(moduleExecutionList[4].Module),
             };
             var plan1 = new Plan(commandList);
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
             var planRunner = new OrderedPlanRunner();
             AggregateException ex = await Assert.ThrowsAsync<AggregateException>(async () => await planRunner.ExecuteAsync(1, plan1, token));
 
