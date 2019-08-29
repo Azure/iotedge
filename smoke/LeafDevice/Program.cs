@@ -83,7 +83,10 @@ Defaults:
         [Option("-ctsk|--x509-secondary-key-path", Description = "Path to a X.509 leaf certificate key file in PEM format. This is needed for thumbprint auth and used as the secondary certificate's key.")]
         public string X509SecondaryKeyPath { get; } = string.Empty;
 
-        [Option("--use-secondary-credential", Description = "Set to true if secondary certificate should be used for thumbprint test, otherwise uses primary certificate (default).")]
+        [Option(
+            "--use-secondary-credential",
+            Description = "Set value to true if secondary credential (either certificate or SharedAccessKey) should be used for authentication, " +
+                          "otherwise the primary credential is used by default. Note: currently this is applicable for certificates tests only.")]
         public bool UseSecondaryCredential { get; } = false;
 
         // ReSharper disable once UnusedMember.Local
