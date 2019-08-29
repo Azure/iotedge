@@ -14,7 +14,7 @@ use tokio::runtime::Runtime;
 use crate::api::ApiService;
 use crate::proxy::{get_config, Client, ProxyService};
 use crate::signal::ShutdownSignal;
-use crate::{ApiSettings, Error, ErrorKind, ServiceSettings, Settings};
+use crate::{ApiSettings, Error, ErrorKind, InitializeErrorReason, ServiceSettings, Settings};
 
 pub struct Routine {
     settings: Settings,
@@ -55,7 +55,9 @@ impl Routine {
                 }
             });
 
-            let mut runtime = Runtime::new().context(ErrorKind::Tokio)?;
+            let mut runtime =
+                Runtime::new().context(ErrorKind::Initialize(InitializeErrorReason::Tokio))?;
+
             runtime.spawn(shutdown_signal);
             runtime.block_on(join_all(servers))?;
         }
@@ -78,15 +80,20 @@ fn start_api(
         .entrypoint()
         .to_socket_addrs()
         .map_err(|err| {
-            Error::from(err.context(ErrorKind::InvalidUrl(settings.entrypoint().to_string())))
+            Error::from(
+                err.context(ErrorKind::Initialize(InitializeErrorReason::InvalidUrl(
+                    settings.entrypoint().clone(),
+                ))),
+            )
         })
         .and_then(|mut addrs| {
             addrs.next().ok_or_else(|| {
-                let err = ErrorKind::InvalidUrlWithReason(
-                    settings.entrypoint().to_string(),
-                    "URL has no address".to_string(),
-                );
-                Error::from(err)
+                Error::from(ErrorKind::Initialize(
+                    InitializeErrorReason::InvalidUrlWithReason(
+                        settings.entrypoint().clone(),
+                        "URL has no address".to_string(),
+                    ),
+                ))
             })
         })
         .and_then(move |addr| {
@@ -95,7 +102,7 @@ fn start_api(
             let server = Server::bind(&addr)
                 .serve(new_service)
                 .with_graceful_shutdown(shutdown)
-                .map_err(Error::from);
+                .map_err(|err| Error::from(err.context(ErrorKind::Hyper)));
 
             info!(
                 "Listening on {} with 1 thread for api",
@@ -124,15 +131,20 @@ fn start_proxy(
         .entrypoint()
         .to_socket_addrs()
         .map_err(|err| {
-            Error::from(err.context(ErrorKind::InvalidUrl(settings.entrypoint().to_string())))
+            Error::from(
+                err.context(ErrorKind::Initialize(InitializeErrorReason::InvalidUrl(
+                    settings.entrypoint().clone(),
+                ))),
+            )
         })
         .and_then(|mut addrs| {
             addrs.next().ok_or_else(|| {
-                let err = ErrorKind::InvalidUrlWithReason(
-                    settings.entrypoint().to_string(),
-                    "URL has no address".to_string(),
-                );
-                Error::from(err)
+                Error::from(ErrorKind::Initialize(
+                    InitializeErrorReason::InvalidUrlWithReason(
+                        settings.entrypoint().clone(),
+                        "URL has no address".to_string(),
+                    ),
+                ))
             })
         })
         .and_then(move |addr| {
@@ -143,7 +155,7 @@ fn start_proxy(
             let server = Server::bind(&addr)
                 .serve(new_service)
                 .with_graceful_shutdown(shutdown)
-                .map_err(Error::from);
+                .map_err(|err| Error::from(err.context(ErrorKind::Hyper)));
 
             info!(
                 "Listening on {} with 1 thread for {}",
@@ -175,7 +187,7 @@ mod tests {
 
     use crate::proxy::test::http::get_unused_tcp_port;
     use crate::routine::{start_api, start_proxy};
-    use crate::{logging, ApiSettings, ErrorKind, ServiceSettings};
+    use crate::{logging, ApiSettings, ErrorKind, InitializeErrorReason, ServiceSettings};
 
     #[test]
     fn it_runs_proxy() {
@@ -227,7 +239,9 @@ mod tests {
 
         assert_eq!(
             err.kind(),
-            &ErrorKind::InvalidUrl(settings.entrypoint().to_string())
+            &ErrorKind::Initialize(InitializeErrorReason::InvalidUrl(
+                settings.entrypoint().clone()
+            ))
         );
     }
 
@@ -248,7 +262,12 @@ mod tests {
         let mut runtime = Runtime::new().unwrap();
         let err = runtime.block_on(proxy).unwrap_err();
 
-        assert_eq!(err.kind(), &ErrorKind::File("token".to_string()));
+        assert_eq!(
+            err.kind(),
+            &ErrorKind::Initialize(InitializeErrorReason::ClientConfigReadFile(
+                "token".to_string()
+            ))
+        );
     }
 
     #[test]
@@ -287,7 +306,9 @@ mod tests {
 
         assert_eq!(
             err.kind(),
-            &ErrorKind::InvalidUrl(settings.entrypoint().to_string())
+            &ErrorKind::Initialize(InitializeErrorReason::InvalidUrl(
+                settings.entrypoint().clone()
+            ))
         );
     }
 }
