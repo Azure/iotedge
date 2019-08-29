@@ -18,7 +18,7 @@ mod routine;
 mod settings;
 pub mod signal;
 
-pub use error::{Error, ErrorKind};
+pub use error::{Error, ErrorKind, InitializeErrorReason};
 pub use routine::Routine;
 pub use settings::{ApiSettings, ServiceSettings, Settings};
 

@@ -6,7 +6,7 @@ use failure::ResultExt;
 use native_tls::{Certificate, TlsConnector};
 use url::Url;
 
-use crate::{Error, ErrorKind, ServiceSettings};
+use crate::{Error, ErrorKind, InitializeErrorReason, ServiceSettings};
 
 #[derive(Clone)]
 pub struct Config<T>
@@ -40,14 +40,19 @@ where
 }
 
 pub fn get_config(settings: &ServiceSettings) -> Result<Config<ValueToken>, Error> {
-    let token = fs::read_to_string(settings.token())
-        .context(ErrorKind::File(settings.token().display().to_string()))?;
+    let token = fs::read_to_string(settings.token()).context(ErrorKind::Initialize(
+        InitializeErrorReason::ClientConfigReadFile(settings.token().display().to_string()),
+    ))?;
 
     let mut tls = TlsConnector::builder();
 
     if let Some(path) = settings.certificate() {
-        let file = fs::read_to_string(path).context(ErrorKind::File(path.display().to_string()))?;
-        let cert = Certificate::from_pem(file.as_bytes())?;
+        let file = fs::read_to_string(path).context(ErrorKind::Initialize(
+            InitializeErrorReason::ClientConfigReadFile(path.display().to_string()),
+        ))?;
+
+        let cert = Certificate::from_pem(file.as_bytes())
+            .context(ErrorKind::Initialize(InitializeErrorReason::ClientConfig))?;
 
         tls.add_root_certificate(cert);
     }
@@ -55,7 +60,8 @@ pub fn get_config(settings: &ServiceSettings) -> Result<Config<ValueToken>, Erro
     Ok(Config::new(
         settings.backend().clone(),
         ValueToken(Some(token)),
-        tls.build()?,
+        tls.build()
+            .context(ErrorKind::Initialize(InitializeErrorReason::ClientConfig))?,
     ))
 }
 
@@ -81,7 +87,7 @@ mod tests {
 
     use crate::proxy::{get_config, TokenSource};
     use crate::tls::CertGenerator;
-    use crate::{ErrorKind, ServiceSettings};
+    use crate::{ErrorKind, InitializeErrorReason, ServiceSettings};
 
     #[test]
     fn it_loads_config_from_filesystem() {
@@ -127,7 +133,12 @@ mod tests {
 
         let err = get_config(&settings).err().unwrap();
 
-        assert_eq!(err.kind(), &ErrorKind::File(token.display().to_string()));
+        assert_eq!(
+            err.kind(),
+            &ErrorKind::Initialize(InitializeErrorReason::ClientConfigReadFile(
+                token.display().to_string()
+            ))
+        );
     }
 
     #[test]
@@ -149,7 +160,12 @@ mod tests {
 
         let err = get_config(&settings).err().unwrap();
 
-        assert_eq!(err.kind(), &ErrorKind::File(cert.display().to_string()));
+        assert_eq!(
+            err.kind(),
+            &ErrorKind::Initialize(InitializeErrorReason::ClientConfigReadFile(
+                cert.display().to_string()
+            ))
+        );
     }
 
     #[test]
@@ -172,7 +188,10 @@ mod tests {
 
         let err = get_config(&settings).err().unwrap();
 
-        assert_eq!(err.kind(), &ErrorKind::NativeTls);
+        assert_eq!(
+            err.kind(),
+            &ErrorKind::Initialize(InitializeErrorReason::ClientConfig)
+        );
     }
 
 }
