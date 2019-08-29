@@ -15,7 +15,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public interface IEdgeDaemon
     {
+        // install with manual provisioning
         Task InstallAsync(string deviceConnectionString, Option<string> packagesPath, Option<Uri> proxy, CancellationToken token);
+
+        // install with DPS symmetric key attestion
+        Task InstallAsync(string scopeId, string registrationId, string symmetricKey, Option<string> packagesPath, Option<Uri> proxy, CancellationToken token);
 
         Task ConfigureAsync(Func<DaemonConfiguration, Task<(string message, object[] properties)>> config, CancellationToken token);
 

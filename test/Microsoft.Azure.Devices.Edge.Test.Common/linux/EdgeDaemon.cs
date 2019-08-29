@@ -21,6 +21,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             await this.ConfigureAsync(deviceConnectionString, proxy, token);
         }
 
+        public async Task InstallAsync(string scopeId, string registrationId, string symmetricKey, Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
+        {
+            await InstallAsync(packagesPath, token);
+            await this.ConfigureAsync(scopeId, registrationId, symmetricKey, proxy, token);
+        }
+
         static async Task InstallAsync(Option<string> packagesPath, CancellationToken token)
         {
             var properties = new object[] { };
@@ -109,28 +115,54 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         Task ConfigureAsync(string deviceConnectionString, Option<Uri> proxy, CancellationToken token)
         {
+            return this.ConfigureCommonAsync(
+                config =>
+                {
+                    config.SetDeviceConnectionString(deviceConnectionString);
+                    IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(deviceConnectionString);
+                    return ("with ID '{Id}'", new object[] { builder.DeviceId });
+                },
+                proxy,
+                token);
+        }
+
+        Task ConfigureAsync(string scopeId, string registrationId, string symmetricKey, Option<Uri> proxy, CancellationToken token)
+        {
+            return this.ConfigureCommonAsync(
+                config =>
+                {
+                    config.SetDpsSymmetricKey(scopeId, registrationId, symmetricKey);
+                    return ("with DPS (symmetric key)", new object[] { });
+                },
+                proxy,
+                token);
+        }
+
+        Task ConfigureCommonAsync(Func<DaemonConfiguration, (string, object[])> config, Option<Uri> proxy, CancellationToken token)
+        {
             return this.ConfigureAsync(
-                async (config) =>
+                async cfg =>
                 {
                     string hostname = (await File.ReadAllTextAsync("/proc/sys/kernel/hostname", token)).Trim();
-                    IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(deviceConnectionString);
+                    var properties = new List<object> { hostname };
+                    var message = new StringBuilder("for device '{Device}'");
 
-                    string message = "for device '{Device}' registered as '{Id}'";
-                    var properties = new object[] { hostname, builder.DeviceId };
+                    (string msg, object[] props) = config(cfg);
+                    message.Append($" {msg}");
+                    properties.AddRange(props);
 
                     proxy.ForEach(
                         p =>
                         {
-                            message += " with proxy '{ProxyUri}'";
-                            properties = properties.Concat(new object[] { p }).ToArray();
+                            message.Append(" with proxy '{ProxyUri}'");
+                            properties.AddRange(new object[] { p });
                         });
 
-                    config.SetDeviceConnectionString(deviceConnectionString);
-                    config.SetDeviceHostname(hostname);
-                    proxy.ForEach(config.AddHttpsProxy);
-                    config.Update();
+                    cfg.SetDeviceHostname(hostname);
+                    proxy.ForEach(cfg.AddHttpsProxy);
+                    cfg.Update();
 
-                    return (message, properties);
+                    return (message.ToString(), properties.ToArray());
                 },
                 token);
         }

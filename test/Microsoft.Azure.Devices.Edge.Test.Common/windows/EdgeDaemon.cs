@@ -22,12 +22,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
 
         public async Task InstallAsync(string deviceConnectionString, Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
         {
-            await this.InstallInternalAsync(deviceConnectionString, packagesPath, proxy, token);
+            string provisioningArgs = $"-Manual -DeviceConnectionString '{deviceConnectionString}'";
+            await this.InstallInternalAsync(provisioningArgs, packagesPath, proxy, token);
             await this.ConfigureAsync(proxy, token);
         }
 
-        async Task InstallInternalAsync(string deviceConnectionString, Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
+        public async Task InstallAsync(string scopeId, string registrationId, string symmetricKey, Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
         {
+            string provisioningArgs = $"-Dps -ScopeId '{scopeId}' -RegistrationId '{registrationId}' -SymmetricKey '{symmetricKey}'";
+            await this.InstallInternalAsync(provisioningArgs, packagesPath, proxy, token);
+            await this.ConfigureAsync(proxy, token);
+        }
+
+        async Task InstallInternalAsync(string provisioningArgs, Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
+        {
+            // TODO: Add provisioning info to profiler message (at least DPS vs. Manual)
             var properties = new object[] { };
             string message = "Installed edge daemon";
             packagesPath.ForEach(
@@ -37,8 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                     properties = new object[] { p };
                 });
 
-            string installCommand = "Install-IoTEdge -Manual -ContainerOs Windows " +
-                                    $"-DeviceConnectionString '{deviceConnectionString}'";
+            string installCommand = $"Install-IoTEdge -ContainerOs Windows {provisioningArgs}";
             packagesPath.ForEach(p => installCommand += $" -OfflineInstallationPath '{p}'");
             proxy.ForEach(
                 p => installCommand += $" -InvokeWebRequestParameters @{{ '-Proxy' = '{p}' }}");

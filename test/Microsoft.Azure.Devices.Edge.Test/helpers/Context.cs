@@ -95,6 +95,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.CaCertScriptPath = Get("caCertScriptPath");
             this.ConnectionString = Get("IOT_HUB_CONNECTION_STRING");
             this.DeviceId = CheckDeviceIdLength(GetOrDefault("deviceId", GenerateDefaultDeviceId()));
+            this.DpsRegistrationId = Option.Maybe(Get("dpsRegistrationId"));
+            this.DpsScopeId = Option.Maybe(Get("dpsScopeId"));
+            this.DpsSymmetricKey = Option.Maybe(Get("dpsSymmetricKey"));
             this.EdgeAgentImage = Option.Maybe(Get("edgeAgentImage"));
             this.EdgeHubImage = Option.Maybe(Get("edgeHubImage"));
             this.EventHubEndpoint = Get("EVENT_HUB_ENDPOINT");
@@ -123,6 +126,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public string ConnectionString { get; }
 
         public string DeviceId { get; }
+
+        public Option<string> DpsRegistrationId { get; }
+
+        public Option<string> DpsScopeId { get; }
+
+        public Option<string> DpsSymmetricKey { get; }
 
         public Option<string> EdgeAgentImage { get; }
 
