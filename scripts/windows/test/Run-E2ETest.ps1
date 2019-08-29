@@ -1257,7 +1257,7 @@ Function RunTransparentGatewayTest
     RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-prix509th-inscope-leaf" $edgeDeviceId
     RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-secx509th-inscope-leaf" $edgeDeviceId $False
     RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-prix509th-inscope-leaf" $edgeDeviceId 
-    RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-mqtt-secx509th-inscope-leaf" $edgeDeviceId $False
+    RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-secx509th-inscope-leaf" $edgeDeviceId $False
 
     Return $testExitCode
 }
