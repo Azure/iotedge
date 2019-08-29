@@ -1096,7 +1096,7 @@ Function RunLeafDeviceTest
     [ValidateSet("Mqtt","MqttWs","Amqp", "AmqpWs")][string]$protocol,
     [ValidateNotNullOrEmpty()][string]$leafDeviceId,
     [string]$edgeDeviceId,
-    [bool]$verifyPrimaryCertThumbprint = $True
+    [bool]$useSecondaryCertificate = $False
 )
 {
     $testCommand = $null
@@ -1172,8 +1172,8 @@ Function RunLeafDeviceTest
                 -ed-id `"$edgeDeviceId`" ``
                 -ed `"$env:computername`""
 
-            If ($verifyPrimaryCertThumbprint) {
-                $testCommand = "$testCommand --verify-primary-cert-thumbprint"
+            If ($useSecondaryCertificate) {
+                $testCommand = "$testCommand --use-secondary-certificate"
             }
 
             break
@@ -1254,10 +1254,14 @@ Function RunTransparentGatewayTest
     RunLeafDeviceTest "x509CA" "Mqtt" "$deviceId-mqtt-x509ca-inscope-leaf" $edgeDeviceId
     RunLeafDeviceTest "x509CA" "Amqp" "$deviceId-amqp-x509ca-inscope-leaf" $edgeDeviceId
 
-    RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-prix509th-inscope-leaf" $edgeDeviceId
-    RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-secx509th-inscope-leaf" $edgeDeviceId $False
-    RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-prix509th-inscope-leaf" $edgeDeviceId 
-    RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-secx509th-inscope-leaf" $edgeDeviceId $False
+    # run thumbprint test using primary cert with MQTT
+    RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-pri-x509th-inscope-leaf" $edgeDeviceId
+    # run thumbprint test using secondary cert with MQTT
+    RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-sec-x509th-inscope-leaf" $edgeDeviceId $True
+    # run thumbprint test using primary cert with AMQP
+    RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-pri-x509th-inscope-leaf" $edgeDeviceId
+    # run thumbprint test using secondary cert with AMQP
+    RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-sec-x509th-inscope-leaf" $edgeDeviceId $True
 
     Return $testExitCode
 }
