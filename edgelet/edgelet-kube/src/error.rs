@@ -5,7 +5,7 @@ use std::fmt::Display;
 
 use failure::{Backtrace, Context, Fail};
 
-use edgelet_core::RuntimeOperation;
+use edgelet_core::{ModuleRuntimeErrorReason, RuntimeOperation};
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
@@ -119,5 +119,14 @@ impl From<ErrorKind> for Error {
 impl From<Context<ErrorKind>> for Error {
     fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
+    }
+}
+
+impl<'a> From<&'a Error> for ModuleRuntimeErrorReason {
+    fn from(err: &'a Error) -> Self {
+        match Fail::find_root_cause(err).downcast_ref::<ErrorKind>() {
+            Some(ErrorKind::NotFound(_)) => ModuleRuntimeErrorReason::NotFound,
+            _ => ModuleRuntimeErrorReason::Other,
+        }
     }
 }
