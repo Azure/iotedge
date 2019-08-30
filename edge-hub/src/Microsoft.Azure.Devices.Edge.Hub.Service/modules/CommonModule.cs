@@ -89,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     c =>
                         this.metricsConfig.Enabled
-                            ? new MetricsListener(this.metricsConfig.ListenerConfig)
+                            ? new MetricsListener(this.metricsConfig.ListenerConfig, c.Resolve<IMetricsProvider>())
                             : new NullMetricsListener() as IMetricsListener)
                 .As<IMetricsListener>()
                 .SingleInstance();
