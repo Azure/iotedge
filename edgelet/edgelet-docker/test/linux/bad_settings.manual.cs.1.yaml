@@ -1,7 +1,10 @@
-# Configures the provisioning mode
+# mulitple connection strings specified
 provisioning:
-  source: 'external'
-  endpoint: 'http://localhost:9999'
+  source: "manual"
+  device_connection_string: "HostName=something.something.com;DeviceId=something;SharedAccessKey=QXp1cmUgSW9UIEVkZ2U="
+  authentication:
+    method: "device_connection_string"
+    device_connection_string: "HostName=something.something.com;DeviceId=something;SharedAccessKey=QXp1cmUgSW9UIEVkZ2U="
 
 agent:
   name: "edgeAgent"
@@ -14,6 +17,9 @@ agent:
     auth: {}
 hostname: "localhost"
 
+watchdog:
+  max_retries: 3
+
 # Sets the connection uris for clients
 connect:
   workload_uri: "http://localhost:8081"
@@ -25,7 +31,7 @@ connect:
 listen:
   workload_uri: "http://0.0.0.0:8081"
   management_uri: "http://0.0.0.0:8080"
-homedir: "C:\\Temp"
+homedir: "/tmp"
 moby_runtime:
-  uri: "npipe://./pipe/iotedge_moby_engine"
+  uri: "http://localhost:2375"
   network: "azure-iot-edge"
