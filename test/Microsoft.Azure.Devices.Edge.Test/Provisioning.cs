@@ -2,6 +2,8 @@
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
+    using System.Security.Cryptography;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -23,6 +25,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Context.Current.Proxy);
         }
 
+        string DeriveDeviceKey(byte[] groupKey, string registrationId)
+        {
+            using (var hmac = new HMACSHA256(groupKey))
+            {
+                return Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes(registrationId)));
+            }
+        }
+
         [Test]
         public async Task DpsSymmetricKey()
         {
@@ -31,7 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 {
                     string scopeId = Context.Current.DpsScopeId.Expect(() => new ArgumentException());
                     string registrationId = Context.Current.DpsRegistrationId.Expect(() => new ArgumentException());
-                    string symmetricKey = Context.Current.DpsSymmetricKey.Expect(() => new ArgumentException());
+                    string groupKey = Context.Current.DpsGroupKey.Expect(() => new ArgumentException());
+                    string deviceKey = this.DeriveDeviceKey(Convert.FromBase64String(groupKey), registrationId);
 
                     CancellationToken token = this.cts.Token;
 
@@ -39,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     await this.daemon.InstallAsync(
                         scopeId,
                         registrationId,
-                        symmetricKey,
+                        deviceKey,
                         Context.Current.PackagePath,
                         Context.Current.Proxy,
                         token);

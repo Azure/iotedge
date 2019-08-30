@@ -97,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.DeviceId = CheckDeviceIdLength(GetOrDefault("deviceId", defaultId));
             this.DpsRegistrationId = Option.Maybe(GetOrDefault("dpsRegistrationId", $"{defaultId}-dps-key"));
             this.DpsScopeId = Option.Maybe(Get("dpsScopeId"));
-            this.DpsSymmetricKey = Option.Maybe(Get("DPS_SYMMETRIC_KEY"));
+            this.DpsGroupKey = Option.Maybe(Get("DPS_GROUP_KEY"));
             this.EdgeAgentImage = Option.Maybe(Get("edgeAgentImage"));
             this.EdgeHubImage = Option.Maybe(Get("edgeHubImage"));
             this.EventHubEndpoint = Get("EVENT_HUB_ENDPOINT");
@@ -131,7 +131,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public Option<string> DpsScopeId { get; }
 
-        public Option<string> DpsSymmetricKey { get; }
+        public Option<string> DpsGroupKey { get; }
 
         public Option<string> EdgeAgentImage { get; }
 
