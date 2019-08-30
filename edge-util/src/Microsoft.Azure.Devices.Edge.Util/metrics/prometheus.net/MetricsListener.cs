@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
 {
     using global::Prometheus;
     using Microsoft.Extensions.Logging;
+    using System;
 
     public class MetricsListener : IMetricsListener
     {
@@ -11,10 +12,14 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
 
         ILogger logger;
 
-        public MetricsListener(MetricsListenerConfig listenerConfig)
+        public MetricsListener(MetricsListenerConfig listenerConfig, IMetricsProvider metricsProvider)
         {
+            if(!(metricsProvider is MetricsProvider prometheusMetricsProvider))
+            {
+                throw new ArgumentException($"IMetricsProvider of type {metricsProvider.GetType()} is incompatible with {this.GetType()}");
+            }
             this.listenerConfig = Preconditions.CheckNotNull(listenerConfig, nameof(listenerConfig));
-            this.metricServer = new MetricServer(listenerConfig.Host, listenerConfig.Port, listenerConfig.Suffix.Trim('/') + '/');
+            this.metricServer = new MetricServer(listenerConfig.Host, listenerConfig.Port, listenerConfig.Suffix.Trim('/') + '/', prometheusMetricsProvider.DefaultRegistry);
         }
 
         public void Dispose()

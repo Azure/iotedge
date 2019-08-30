@@ -55,6 +55,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
             }
         }
 
+        internal CollectorRegistry DefaultRegistry => Metrics.DefaultRegistry;
+
         string GetCounterName(string name) => string.Format(CultureInfo.InvariantCulture, CounterNameFormat, this.namePrefix, name);
 
         string GetName(string name) => string.Format(CultureInfo.InvariantCulture, NameFormat, this.namePrefix, name);
