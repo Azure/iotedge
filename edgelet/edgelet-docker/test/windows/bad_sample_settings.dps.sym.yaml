@@ -1,11 +1,10 @@
-
-# Configures the provisioning mode
+# multiple registration ids with symmetric keys
 provisioning:
   source: "dps"
   global_endpoint: "scheme://jibba-jabba.net"
   scope_id: "i got no time for the jibba-jabba"
   registration_id: "register me fool"
-  attestation: 
+  attestation:
     method: "symmetric_key"
     registration_id: "register me fool"
     symmetric_key: "key"

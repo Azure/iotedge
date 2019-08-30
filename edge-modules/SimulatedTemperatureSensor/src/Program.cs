@@ -8,12 +8,11 @@ namespace SimulatedTemperatureSensor
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
-    using Microsoft.Extensions.Logging;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Newtonsoft.Json;
 
     class Program
