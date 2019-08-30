@@ -8,16 +8,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
     using System.Threading;
     using System.Threading.Tasks;
     using global::Docker.DotNet.Models;
-    using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Docker;
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Moq;
     using k8s;
     using k8s.Models;
+    using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands;
-    using Xunit;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Moq;
     using Newtonsoft.Json;
+    using Xunit;
     using Constants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
     public class KubernetesCrdCommandTest
@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
             var configProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
             configProvider.Setup(cp => cp.GetCombinedConfig(km1, Runtime)).Returns(() => null);
 
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
             var cmd = new KubernetesCrdCommand<CombinedDockerConfig>(Ns, Hostname, DeviceId, DefaultClient, modules, runtimeOption, DefaultConfigProvider);
             await Assert.ThrowsAsync<InvalidModuleException>(() => cmd.ExecuteAsync(token));
         }
@@ -74,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
             IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             var km1 = new KubernetesModule<DockerConfig>((IModule<DockerConfig>)m1);
             KubernetesModule<DockerConfig>[] modules = { km1 };
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
             Option<IRuntimeInfo> runtimeOption = Option.Maybe(Runtime);
             var auth = new AuthConfig() { Username = "username", Password = "password", ServerAddress = "docker.io" };
             var configProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
@@ -145,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
             IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             var km1 = new KubernetesModule<DockerConfig>((IModule<DockerConfig>)m1);
             KubernetesModule<DockerConfig>[] modules = { km1 };
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
             Option<IRuntimeInfo> runtimeOption = Option.Maybe(Runtime);
             var auth = new AuthConfig() { Username = "username", Password = "password", ServerAddress = "docker.io" };
             var configProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
@@ -217,7 +217,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
             IModule m2 = new DockerModule("module2", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config2, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             var km2 = new KubernetesModule<DockerConfig>((IModule<DockerConfig>)m2);
             KubernetesModule<DockerConfig>[] modules = { km1, km2 };
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
             Option<IRuntimeInfo> runtimeOption = Option.Maybe(Runtime);
             var auth = new AuthConfig() { Username = "username", Password = "password", ServerAddress = "docker.io" };
             var configProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();

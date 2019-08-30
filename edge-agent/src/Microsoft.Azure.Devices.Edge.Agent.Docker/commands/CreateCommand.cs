@@ -15,14 +15,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
 
     public class CreateCommand : ICommand
     {
-        readonly CreateContainerParameters createContainerParameters;
-        readonly IDockerClient client;
-
         static readonly Dictionary<string, PortBinding> EdgeHubPortBinding = new Dictionary<string, PortBinding>
         {
             { "8883/tcp", new PortBinding { HostPort = "8883" } },
             { "443/tcp", new PortBinding { HostPort = "443" } }
         };
+
+        readonly CreateContainerParameters createContainerParameters;
+        readonly IDockerClient client;
 
         readonly Lazy<string> id;
 
