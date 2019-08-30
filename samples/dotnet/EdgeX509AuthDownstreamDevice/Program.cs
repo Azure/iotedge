@@ -273,23 +273,22 @@ namespace Microsoft.Azure.Devices.Client.Samples
         /// </summary>
         static void InstallCACert()
         {
-            string certPath = Environment.GetEnvironmentVariable("IOTEDGE_TRUSTED_CA_CERTIFICATE_PEM_PATH");
-            if (!string.IsNullOrWhiteSpace(certPath))
+            if (!string.IsNullOrWhiteSpace(TrustedCACertPath))
             {
-                Console.WriteLine("User configured CA certificate path: {0}", certPath);
-                if (!File.Exists(certPath))
+                Console.WriteLine("User configured CA certificate path: {0}", TrustedCACertPath);
+                if (!File.Exists(TrustedCACertPath))
                 {
                     // cannot proceed further without a proper cert file
-                    Console.WriteLine("Invalid certificate file: {0}", certPath);
+                    Console.WriteLine("Invalid certificate file: {0}", TrustedCACertPath);
                     throw new InvalidOperationException("Invalid certificate file.");
                 }
                 else
                 {
-                    Console.WriteLine("Attempting to install CA certificate: {0}", certPath);
+                    Console.WriteLine("Attempting to install CA certificate: {0}", TrustedCACertPath);
                     X509Store store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
                     store.Open(OpenFlags.ReadWrite);
-                    store.Add(new X509Certificate2(System.Security.Cryptography.X509Certificates.X509Certificate.CreateFromCertFile(certPath)));
-                    Console.WriteLine("Successfully added certificate: {0}", certPath);
+                    store.Add(new X509Certificate2(System.Security.Cryptography.X509Certificates.X509Certificate.CreateFromCertFile(TrustedCACertPath)));
+                    Console.WriteLine("Successfully added certificate: {0}", TrustedCACertPath);
                     store.Close();
                 }
             }
