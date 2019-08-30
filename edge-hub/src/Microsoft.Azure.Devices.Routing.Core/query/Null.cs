@@ -3,7 +3,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Query
 {
     public struct Null
     {
-        public static Null Instance { get; } = new Null();
+        public static Null Instance { get; } = default(Null);
 
         // Equal
         public static Bool operator ==(Null x, Null y) => Bool.True;

@@ -91,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Unit]
         public async void ReconcileAsyncOnEmptyPlan()
         {
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
             var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
             var mockConfigSource = new Mock<IConfigSource>();
             var mockEnvironment = new Mock<IEnvironment>();
@@ -146,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockPlanner = new Mock<IPlanner>();
             var mockPlanRunner = new Mock<IPlanRunner>();
             var mockReporter = new Mock<IReporter>();
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
             var currentSet = ModuleSet.Empty;
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
             var configStore = Mock.Of<IEntityStore<string, string>>();
@@ -182,7 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockPlanner = new Mock<IPlanner>();
             var mockPlanRunner = new Mock<IPlanRunner>();
             var mockReporter = new Mock<IReporter>();
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
             var currentSet = ModuleSet.Empty;
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
             var configStore = Mock.Of<IEntityStore<string, string>>();
@@ -217,7 +217,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockPlanner = new Mock<IPlanner>();
             var mockPlanRunner = new Mock<IPlanRunner>();
             var mockReporter = new Mock<IReporter>();
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
             var configStore = Mock.Of<IEntityStore<string, string>>();
             var mockEnvironmentProvider = Mock.Of<IEnvironmentProvider>(m => m.Create(It.IsAny<DeploymentConfig>()) == mockEnvironment.Object);
@@ -251,7 +251,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockPlanner = new Mock<IPlanner>();
             var mockPlanRunner = new Mock<IPlanRunner>();
             var mockReporter = new Mock<IReporter>();
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
             var configStore = Mock.Of<IEntityStore<string, string>>();
             var mockEnvironmentProvider = Mock.Of<IEnvironmentProvider>(m => m.Create(It.IsAny<DeploymentConfig>()) == mockEnvironment.Object);
@@ -290,7 +290,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [Unit]
         public async void ReconcileAsyncReportsFailedWhenEncryptProviderThrows()
         {
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
             var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
             var mockConfigSource = new Mock<IConfigSource>();
             var mockEnvironment = new Mock<IEnvironment>();
@@ -364,9 +364,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                 new TestCommand(TestCommandType.TestRemove, currentModule, recordKeeper)
             };
             var testPlan = new Plan(commandList);
-
-            var token = new CancellationToken();
-
+            var token = default(CancellationToken);
             var runtimeInfo = Mock.Of<IRuntimeInfo>();
             var deploymentConfig = new DeploymentConfig("1.0", runtimeInfo, new SystemModules(null, null), new Dictionary<string, IModule> { ["desired"] = desiredModule });
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
@@ -418,7 +416,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockReporter = new Mock<IReporter>();
             var runtimeInfo = new Mock<IRuntimeInfo>();
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
             var configStore = Mock.Of<IEntityStore<string, string>>();
             var mockEnvironmentProvider = Mock.Of<IEnvironmentProvider>(m => m.Create(It.IsAny<DeploymentConfig>()) == mockEnvironment.Object);
             var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
@@ -449,7 +447,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var mockPlanRunner = new Mock<IPlanRunner>();
             var mockReporter = new Mock<IReporter>();
             var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
             var configStore = Mock.Of<IEntityStore<string, string>>();
             var mockEnvironmentProvider = Mock.Of<IEnvironmentProvider>(m => m.Create(It.IsAny<DeploymentConfig>()) == mockEnvironment.Object);
             var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
@@ -492,7 +490,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
                     { "mod1", new TestModule("mod1", "1.0", "docker", ModuleStatus.Running, new TestConfig("boo"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, new ConfigurationInfo("1"), null) }
                 });
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
 
             mockConfigSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
                 .ReturnsAsync(deploymentConfigInfo);
@@ -555,7 +553,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             var encryptionDecryptionProvider = Mock.Of<IEncryptionProvider>();
             var deploymentConfig = new DeploymentConfig("1.0", Mock.Of<IRuntimeInfo>(), new SystemModules(null, null), modules);
             var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
 
             mockConfigSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
                 .ReturnsAsync(deploymentConfigInfo);

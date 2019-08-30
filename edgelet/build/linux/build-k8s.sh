@@ -7,11 +7,6 @@
 set -e
 
 ###############################################################################
-# These are the packages this script will build.
-###############################################################################
-packages=(iotedge iotedged iotedge-diagnostics iotedge-proxy)
-
-###############################################################################
 # Define Environment Variables
 ###############################################################################
 # Get directory of running script
@@ -19,6 +14,7 @@ DIR=$(cd "$(dirname "$0")" && pwd)
 
 BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}
 PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/edgelet
+IOTEDGED_MANIFEST=${PROJECT_ROOT}/iotedged/Cargo.toml
 SCRIPT_NAME=$(basename "$0")
 CARGO="${CARGO_HOME:-"$HOME/.cargo"}/bin/cargo"
 TOOLCHAIN="stable-x86_64-unknown-linux-gnu"
@@ -65,32 +61,8 @@ process_args()
 
 process_args "$@"
 
-# ld crashes in the VSTS CI's Linux amd64 job while trying to link iotedged
-# with a generic exit code 1 and no indicative error message. It seems to
-# work fine if we reduce the number of objects given to the linker,
-# by disabling parallel codegen and incremental compile.
-#
-# We don't want to disable these for everyone else, so only do it in this script
-# that the CI uses.
->> "$PROJECT_ROOT/Cargo.toml" cat <<-EOF
-
-[profile.dev]
-codegen-units = 1
-incremental = false
-
-[profile.test]
-codegen-units = 1
-incremental = false
-EOF
-
-PACKAGES=
-for p in "${packages[@]}"
-do
-    PACKAGES="${PACKAGES} -p ${p}"
-done
-
 if [[ -z ${RELEASE} ]]; then
-    cd "$PROJECT_ROOT" && $CARGO "+$TOOLCHAIN" build ${PACKAGES}
+    cd "$PROJECT_ROOT" && $CARGO "+$TOOLCHAIN" build --manifest-path=${IOTEDGED_MANIFEST} --no-default-features --features runtime-kubernetes
 else
-    cd "$PROJECT_ROOT" && $CARGO "+$TOOLCHAIN" build ${PACKAGES} --release
+    cd "$PROJECT_ROOT" && $CARGO "+$TOOLCHAIN" build --manifest-path=${IOTEDGED_MANIFEST} --no-default-features --features runtime-kubernetes --release
 fi
