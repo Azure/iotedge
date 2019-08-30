@@ -121,7 +121,7 @@ impl Display for KubeConfigErrorReason {
             Self::MissingData => write!(f, "Both file and data missing."),
             Self::Base64Decode => write!(f, "Base64 decode error."),
             Self::UrlParse(x) => write!(f, "Unable to parse valid URL from: {}.", x),
-            Self::Tls => write!(f, "Could create TLS connector."),
+            Self::Tls => write!(f, "Could not create TLS connector."),
             Self::MissingEnvVar(x) => write!(f, "Missing ENV: {}.", x),
         }
     }
@@ -153,4 +153,3 @@ impl Display for RequestType {
         write!(f, "{:#}", self)
     }
 }
-
