@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
-    using System.Collections.Generic;
     using System.Security.Cryptography;
     using System.Text;
     using System.Threading;
@@ -12,14 +11,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
 
-    public class Provisioning : BaseFixture
+    public class Provisioning : DeviceProvisioningFixture
     {
-        protected readonly IEdgeDaemon daemon;
         protected readonly IotHub iotHub;
 
         public Provisioning()
         {
-            this.daemon = OsPlatform.Current.CreateEdgeDaemon(Context.Current.InstallerPath);
             this.iotHub = new IotHub(
                 Context.Current.ConnectionString,
                 Context.Current.EventHubEndpoint,
@@ -58,32 +55,17 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             await this.daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
 
-            Option<EdgeDevice> device = Option.None<EdgeDevice>();
-            try
-            {
-                var agent = new EdgeAgent(registrationId, this.iotHub);
-                await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
+            var agent = new EdgeAgent(registrationId, this.iotHub);
+            await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
 
-                device = await EdgeDevice.GetIdentityAsync(
-                    registrationId,
-                    this.iotHub,
-                    token,
-                    takeOwnership: true);
-                device.Expect(() => new ArgumentException());
+            this.device = await EdgeDevice.GetIdentityAsync(
+                registrationId,
+                this.iotHub,
+                token,
+                takeOwnership: true);
+            this.device.Expect(() => new ArgumentException());
 
-                await agent.PingAsync(token);
-            }
-
-            // ReSharper disable once RedundantCatchClause
-            catch
-            {
-                throw;
-            }
-            finally
-            {
-                await this.daemon.StopAsync(token);
-                await device.ForEachAsync(dev => dev.MaybeDeleteIdentityAsync(token));
-            }
+            await agent.PingAsync(token);
         }
     }
 }
