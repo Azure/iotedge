@@ -159,12 +159,6 @@ function Initialize-IoTEdge {
         [Parameter(ParameterSetName = 'ManualX509')]
         [Switch] $ManualX509,
 
-        # Specified the daemon will be configured using DPS. The choice of attestation depends on the other DPS input parameters.
-        [Parameter(ParameterSetName = 'DpsTpm')]
-        [Parameter(ParameterSetName = 'DpsSymmetricKey')]
-        [Parameter(ParameterSetName = 'DpsX509')]
-        [Switch] $Dps,
-
         # Specifies that the daemon will be configured using DPS TPM attestation.
         [Parameter(ParameterSetName = 'DpsTpm')]
         [Switch] $DpsTpm,
@@ -178,18 +172,24 @@ function Initialize-IoTEdge {
         [Switch] $DpsX509,
 
         # The device connection string.
-        [Parameter(Mandatory=$true, ParameterSetName = 'ManualConnectionString')]
+        [Parameter(Mandatory = $true, ParameterSetName = 'ManualConnectionString')]
         [String] $DeviceConnectionString,
 
         # The IoT Hub hostname the Edge device is a part of
-        [Parameter(Mandatory=$true, ParameterSetName ='ManualX509')]
+        [Parameter(Mandatory = $true, ParameterSetName ='ManualX509')]
         [ValidateNotNullOrEmpty()]
         [String] $IotHubHostName,
 
         # The Edge device Id
-        [Parameter(Mandatory=$true, ParameterSetName = 'ManualX509')]
+        [Parameter(Mandatory = $true, ParameterSetName = 'ManualX509')]
         [ValidateNotNullOrEmpty()]
         [String] $DeviceId,
+
+        # Specifies that the daemon will be configured using DPS. The choice of attestation depends on the other DPS input parameters.
+        [Parameter(ParameterSetName = 'DpsTpm')]
+        [Parameter(ParameterSetName = 'DpsSymmetricKey')]
+        [Parameter(ParameterSetName = 'DpsX509')]
+        [Switch] $Dps,
 
         # The DPS scope ID.
         [Parameter(Mandatory = $true, ParameterSetName = 'DpsTpm')]
@@ -254,6 +254,32 @@ function Initialize-IoTEdge {
         # Password used to access the container registry and pull the IoT Edge Agent image.
         [SecureString] $Password
     )
+
+    switch ($PSCmdlet.ParameterSetName) {
+        'DpsSymmetricKey' {
+            $DpsSymmetricKey = $true
+        }
+
+        'DpsTpm' {
+            $DpsTpm = $true
+        }
+
+        'DpsX509' {
+            $DpsX509 = $true
+        }
+
+        'External' {
+            $External = $true
+        }
+
+        'ManualConnectionString' {
+            $ManualConnectionString = $true
+        }
+
+        'ManualX509' {
+            $ManualX509 = $true
+        }
+    }
 
     $ErrorActionPreference = 'Stop'
     Set-StrictMode -Version 5
