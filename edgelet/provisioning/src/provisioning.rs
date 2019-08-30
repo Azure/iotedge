@@ -707,7 +707,7 @@ where
 mod tests {
     use super::*;
 
-    use edgelet_core::{Manual, ParseManualDeviceConnectionStringError};
+    use edgelet_core::{Error as CoreError, ManualDeviceConnectionString};
     use external_provisioning::models::{Credentials, DeviceProvisioningInfo};
     use failure::Fail;
     use std::fmt::{self, Display};
@@ -767,10 +767,9 @@ mod tests {
         }
     }
 
-    fn parse_connection_string(
-        s: &str,
-    ) -> Result<ManualProvisioning, ParseManualDeviceConnectionStringError> {
-        let (key, device_id, hub) = Manual::new(s.to_string()).parse_device_connection_string()?;
+    fn parse_connection_string(s: &str) -> Result<ManualProvisioning, CoreError> {
+        let (key, device_id, hub) =
+            ManualDeviceConnectionString::new(s.to_string()).parse_device_connection_string()?;
         Ok(ManualProvisioning::new(key, device_id, hub))
     }
 

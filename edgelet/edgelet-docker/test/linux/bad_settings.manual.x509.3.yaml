@@ -1,13 +1,11 @@
-# x509 provisioning does not have a valid identity certificate URI specified
+# x509 manual provisioning does not have the device id specified
 provisioning:
-  source: "dps"
-  global_endpoint: "scheme://jibba-jabba.net"
-  scope_id: "i got no time for the jibba-jabba"
-  attestation:
+  source: "manual"
+  authentication:
     method: "x509"
-    registration_id: "register me fool"
-    identity_cert: "some/path/mr.t.cer.pem"
-    identity_pk: "file:///some/path/mr.t.pk.pem"
+    iothub_hostname: "something.something.com"
+    identity_cert: "file:///some/path/identity.cert.pem"
+    identity_pk: "file:///some/path/identity.key.pem"
 
 agent:
   name: "edgeAgent"
