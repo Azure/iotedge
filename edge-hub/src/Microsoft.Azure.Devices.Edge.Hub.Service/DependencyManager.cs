@@ -80,7 +80,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             IConfiguration configuration = this.configuration.GetSection("experimentalFeatures");
             ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(configuration);
 
-            this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward);
+            MetricsListenerConfig listenerConfig = experimentalFeatures.EnableMetrics
+                ? MetricsListenerConfig.Create(this.configuration.GetSection("metrics:listener"))
+                : new MetricsListenerConfig();
+            MetricsConfig metricsConfig = new MetricsConfig(experimentalFeatures.Enabled, listenerConfig);
+
+            this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward, metricsConfig);
             this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures);
             this.RegisterMqttModule(builder, storeAndForward, optimizeForPerformance);
             this.RegisterAmqpModule(builder);
@@ -171,7 +176,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     experimentalFeatures));
         }
 
-        void RegisterCommonModule(ContainerBuilder builder, bool optimizeForPerformance, (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward)
+        void RegisterCommonModule(
+            ContainerBuilder builder,
+            bool optimizeForPerformance,
+            (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward,
+            MetricsConfig metricsConfig)
         {
             bool cacheTokens = this.configuration.GetValue("CacheTokens", false);
             Option<string> workloadUri = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadUri);
@@ -185,8 +194,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             int scopeCacheRefreshRateSecs = this.configuration.GetValue("DeviceScopeCacheRefreshRateSecs", 3600);
             TimeSpan scopeCacheRefreshRate = TimeSpan.FromSeconds(scopeCacheRefreshRateSecs);
-
-            MetricsConfig metricsConfig = MetricsConfig.Create(this.configuration.GetSection("metrics"));
 
             string proxy = this.configuration.GetValue("https_proxy", string.Empty);
             string productInfo = GetProductInfo();
