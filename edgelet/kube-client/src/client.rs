@@ -545,7 +545,7 @@ where
             api_core::ReplaceNamespacedServiceAccountOptional::default(),
         )
         .map_err(|err| {
-            Error::from(err.context(ErrorKind::Request(RequestType::ServiceAccountCreate)))
+            Error::from(err.context(ErrorKind::Request(RequestType::ServiceAccountReplace)))
         })
         .map(|req| {
             self.request(req)
