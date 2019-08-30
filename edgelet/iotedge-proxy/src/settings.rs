@@ -2,14 +2,14 @@
 
 use std::path::{Path, PathBuf};
 
-use config::{Config, ConfigError, File, FileFormat};
-use failure::Fail;
+use config::{Config, File, FileFormat};
+use failure::ResultExt;
 use log::info;
 use serde_derive::Deserialize;
 use url::Url;
 use url_serde;
 
-use crate::{Error, ErrorKind};
+use crate::{Error, ErrorKind, InitializeErrorReason};
 
 pub const DEFAULTS: &str = include_str!("../config/default.yaml");
 
@@ -26,11 +26,15 @@ pub struct Settings {
 impl Settings {
     pub fn new(path: Option<&Path>) -> Result<Settings, Error> {
         let mut config = Config::default();
-        config.merge(File::from_str(DEFAULTS, FileFormat::Yaml))?;
+        config
+            .merge(File::from_str(DEFAULTS, FileFormat::Yaml))
+            .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
 
         if let Some(path) = path {
             info!("Using config file: {}", path.display());
-            config.merge(File::from(path))?;
+            config
+                .merge(File::from(path))
+                .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
         } else {
             info!("Using default configuration");
         }
@@ -49,19 +53,27 @@ impl Settings {
 }
 
 fn convert(config: Config) -> Result<Settings, Error> {
-    let settings: Settings = config.try_into()?;
+    let settings: Settings = config
+        .try_into()
+        .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
 
     for settings in settings.services() {
         if settings.entrypoint().scheme() != "http" {
-            return Err(Error::from(ErrorKind::UnsupportedSchema(
-                settings.entrypoint().as_str().to_owned(),
-            )));
+            return Err(ErrorKind::Initialize(
+                InitializeErrorReason::LoadSettingsUnsupportedSchema(
+                    settings.entrypoint().as_str().to_owned(),
+                ),
+            )
+            .into());
         }
 
         if settings.backend().scheme() != "https" {
-            return Err(Error::from(ErrorKind::UnsupportedSchema(
-                settings.backend().as_str().to_owned(),
-            )));
+            return Err(ErrorKind::Initialize(
+                InitializeErrorReason::LoadSettingsUnsupportedSchema(
+                    settings.backend().as_str().to_owned(),
+                ),
+            )
+            .into());
         }
     }
 
@@ -142,12 +154,6 @@ impl ApiSettings {
     }
 }
 
-impl From<ConfigError> for Error {
-    fn from(error: ConfigError) -> Self {
-        Error::from(error.context(ErrorKind::LoadSettings))
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::path::Path;
@@ -155,7 +161,7 @@ mod tests {
     use url::Url;
 
     use crate::settings::TOKEN_FILEPATH;
-    use crate::{ErrorKind, Settings};
+    use crate::{ErrorKind, InitializeErrorReason, Settings};
 
     #[test]
     fn it_loads_defaults() {
@@ -220,14 +226,20 @@ mod tests {
     fn it_fails_to_load_invalid_settings() {
         let err = Settings::new(Some(Path::new("test/invalid.yaml"))).unwrap_err();
 
-        assert_eq!(err.kind(), &ErrorKind::LoadSettings);
+        assert_eq!(
+            err.kind(),
+            &ErrorKind::Initialize(InitializeErrorReason::LoadSettings)
+        );
     }
 
     #[test]
     fn it_fails_to_load_settings_with_invalid_url() {
         let err = Settings::new(Some(Path::new("test/invalid.url.yaml"))).unwrap_err();
 
-        assert_eq!(err.kind(), &ErrorKind::LoadSettings);
+        assert_eq!(
+            err.kind(),
+            &ErrorKind::Initialize(InitializeErrorReason::LoadSettings)
+        );
     }
 
     #[test]
@@ -236,7 +248,9 @@ mod tests {
 
         assert_eq!(
             err.kind(),
-            &ErrorKind::UnsupportedSchema("https://localhost:3000/".to_owned())
+            &ErrorKind::Initialize(InitializeErrorReason::LoadSettingsUnsupportedSchema(
+                "https://localhost:3000/".to_owned()
+            ))
         );
     }
 
@@ -246,7 +260,9 @@ mod tests {
 
         assert_eq!(
             err.kind(),
-            &ErrorKind::UnsupportedSchema("http://iotedged:35000/".to_owned())
+            &ErrorKind::Initialize(InitializeErrorReason::LoadSettingsUnsupportedSchema(
+                "http://iotedged:35000/".to_owned()
+            ))
         );
     }
 }

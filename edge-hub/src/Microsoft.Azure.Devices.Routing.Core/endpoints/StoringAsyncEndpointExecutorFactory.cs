@@ -2,8 +2,8 @@
 namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 {
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
 
     public class StoringAsyncEndpointExecutorFactory : IEndpointExecutorFactory
     {
