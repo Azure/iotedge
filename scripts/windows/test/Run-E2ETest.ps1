@@ -618,47 +618,47 @@ Function RunAllTests
 
     $TestName = "DirectMethodAmqpMqtt"
     $testExitCode = RunDirectMethodAmqpMqttTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "DirectMethodMqtt"
     $testExitCode = RunDirectMethodMqttTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "DirectMethodMqttAmqp"
     $testExitCode = RunDirectMethodMqttAmqpTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "DpsSymmetricKeyProvisioning"
     $testExitCode = RunDpsProvisioningTest ([DpsProvisioningType]::SymmetricKey)
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "DpsTpmProvisioning"
     $testExitCode = RunDpsProvisioningTest ([DpsProvisioningType]::Tpm)
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "DpsX509Provisioning"
     $testExitCode = RunDpsProvisioningTest ([DpsProvisioningType]::X509)
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "QuickstartCerts"
     $testExitCode = RunQuickstartCertsTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "TempFilter"
     $testExitCode = RunTempFilterTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "TempFilterFunctions"
     $testExitCode = RunTempFilterFunctionsTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "TempSensor"
     $testExitCode = RunTempSensorTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "TransparentGateway"
     $testExitCode = RunTransparentGatewayTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     Return $lastTestExitCode
 }
@@ -1095,7 +1095,8 @@ Function RunLeafDeviceTest
     [ValidateSet("sas","x509CA","x509Thumprint")][string]$authType,
     [ValidateSet("Mqtt","MqttWs","Amqp", "AmqpWs")][string]$protocol,
     [ValidateNotNullOrEmpty()][string]$leafDeviceId,
-    [string]$edgeDeviceId
+    [string]$edgeDeviceId,
+    [bool]$useSecondaryCredential = $False
 )
 {
     $testCommand = $null
@@ -1170,6 +1171,11 @@ Function RunLeafDeviceTest
                 -ctsk `"$EdgeCertGenScriptDir\private\iot-device-${leafDeviceId}-sec.key.pem`" ``
                 -ed-id `"$edgeDeviceId`" ``
                 -ed `"$env:computername`""
+
+            If ($useSecondaryCredential) {
+                $testCommand = "$testCommand --use-secondary-credential"
+            }
+
             break
         }
 
@@ -1177,7 +1183,7 @@ Function RunLeafDeviceTest
         {
             $(Throw "Unsupported auth mode $authType")
         }
-     }
+    }
 
     If ($ProxyUri) {
         $testCommand = "$testCommand --proxy `"$ProxyUri`""
@@ -1248,8 +1254,14 @@ Function RunTransparentGatewayTest
     RunLeafDeviceTest "x509CA" "Mqtt" "$deviceId-mqtt-x509ca-inscope-leaf" $edgeDeviceId
     RunLeafDeviceTest "x509CA" "Amqp" "$deviceId-amqp-x509ca-inscope-leaf" $edgeDeviceId
 
-    RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-x509th-inscope-leaf" $edgeDeviceId
-    RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-x509th-inscope-leaf" $edgeDeviceId
+    # run thumbprint test using primary cert with MQTT
+    RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-pri-x509th-inscope-leaf" $edgeDeviceId
+    # run thumbprint test using secondary cert with MQTT
+    RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-sec-x509th-inscope-leaf" $edgeDeviceId $True
+    # run thumbprint test using primary cert with AMQP
+    RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-pri-x509th-inscope-leaf" $edgeDeviceId
+    # run thumbprint test using secondary cert with AMQP
+    RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-sec-x509th-inscope-leaf" $edgeDeviceId $True
 
     Return $testExitCode
 }
