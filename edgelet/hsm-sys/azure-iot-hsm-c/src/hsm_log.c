@@ -73,7 +73,8 @@ void log_msg(int level, const char* file, const char* function, int line, const 
             char* event_log_buffer = malloc(log_length);
 
             if (snprintf(event_log_buffer, log_length, "libiothsm -- (%s:%s:%d) %s", file, function, line, buffer) > 0) {
-                char* event_log_strings[] = { event_log_buffer };
+                char* event_log_strings[] = { NULL };
+                event_log_strings[0] = event_log_buffer;
                 ReportEventA(
                     event_log_handle,
                     event_log_levels[level],
