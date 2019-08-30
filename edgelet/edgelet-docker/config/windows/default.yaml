@@ -1,6 +1,5 @@
 provisioning:
   source: "manual"
-  device_connection_string: "<ADD DEVICE CONNECTION STRING HERE>"
 
 agent:
   name: "edgeAgent"
