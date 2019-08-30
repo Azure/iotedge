@@ -1,18 +1,23 @@
-# mising registration id for default DPS flow which is TPM
+# empty connection string specifed
 provisioning:
-  source: "dps"
-  global_endpoint: "scheme://jibba-jabba.net"
-  scope_id: "i got no time for the jibba-jabba"
+  source: "manual"
+  authentication:
+    method: "device_connection_string"
+    device_connection_string: ""
 
 agent:
   name: "edgeAgent"
   type: "docker"
-  env: {}
+  env:
+    abc: "value1"
+    acd: "value2"
   config:
-    image: "microsoft/azureiotedge-agent:1.0-preview"
-    create_options: {}
+    image: "microsoft/azureiotedge-agent:1.0"
     auth: {}
 hostname: "localhost"
+
+watchdog:
+  max_retries: 3
 
 # Sets the connection uris for clients
 connect:
