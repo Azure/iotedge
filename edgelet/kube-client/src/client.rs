@@ -128,7 +128,7 @@ where
                     ))),
                 })
                 .map_err(|err| {
-                    Error::from(err.context(ErrorKind::Response(RequestType::ConfigMapList)))
+                    Error::from(err.context(ErrorKind::Response(RequestType::ConfigMapCreate)))
                 })
         })
         .into_future()
@@ -147,7 +147,7 @@ where
             config_map,
             api_core::ReplaceNamespacedConfigMapOptional::default(),
         )
-        .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::ConfigMapCreate))))
+        .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::ConfigMapReplace))))
         .map(|req| {
             self.request(req)
                 .and_then(|response| match response {
@@ -160,7 +160,7 @@ where
                     ))),
                 })
                 .map_err(|err| {
-                    Error::from(err.context(ErrorKind::Response(RequestType::ConfigMapList)))
+                    Error::from(err.context(ErrorKind::Response(RequestType::ConfigMapReplace)))
                 })
         })
         .into_future()
@@ -188,7 +188,7 @@ where
                     ))),
                 })
                 .map_err(|err| {
-                    Error::from(err.context(ErrorKind::Response(RequestType::ConfigMapList)))
+                    Error::from(err.context(ErrorKind::Response(RequestType::ConfigMapDelete)))
                 })
         })
         .into_future()
@@ -223,7 +223,7 @@ where
                         ))),
                     })
                     .map_err(|err| {
-                        Error::from(err.context(ErrorKind::Response(RequestType::ConfigMapList)))
+                        Error::from(err.context(ErrorKind::Response(RequestType::DeploymentList)))
                     })
             })
             .into_future()
@@ -254,7 +254,7 @@ where
                     ))),
                 })
                 .map_err(|err| {
-                    Error::from(err.context(ErrorKind::Response(RequestType::ConfigMapList)))
+                    Error::from(err.context(ErrorKind::Response(RequestType::DeploymentCreate)))
                 })
         })
         .into_future()
@@ -286,7 +286,7 @@ where
                     ))),
                 })
                 .map_err(|err| {
-                    Error::from(err.context(ErrorKind::Response(RequestType::ConfigMapList)))
+                    Error::from(err.context(ErrorKind::Response(RequestType::DeploymentReplace)))
                 })
         })
         .into_future()
@@ -311,7 +311,7 @@ where
                         _ => Err(Error::from(ErrorKind::Response(RequestType::PodList))),
                     })
                     .map_err(|err| {
-                        Error::from(err.context(ErrorKind::Response(RequestType::ConfigMapList)))
+                        Error::from(err.context(ErrorKind::Response(RequestType::PodList)))
                     })
             })
             .into_future()
@@ -337,7 +337,7 @@ where
                         _ => Err(Error::from(ErrorKind::Response(RequestType::SecretList))),
                     })
                     .map_err(|err| {
-                        Error::from(err.context(ErrorKind::Response(RequestType::ConfigMapList)))
+                        Error::from(err.context(ErrorKind::Response(RequestType::SecretList)))
                     })
             })
             .into_future()
@@ -364,7 +364,7 @@ where
                     _ => Err(Error::from(ErrorKind::Response(RequestType::SecretCreate))),
                 })
                 .map_err(|err| {
-                    Error::from(err.context(ErrorKind::Response(RequestType::ConfigMapList)))
+                    Error::from(err.context(ErrorKind::Response(RequestType::SecretCreate)))
                 })
         })
         .into_future()
@@ -392,7 +392,7 @@ where
                     _ => Err(Error::from(ErrorKind::Response(RequestType::SecretReplace))),
                 })
                 .map_err(|err| {
-                    Error::from(err.context(ErrorKind::Response(RequestType::ConfigMapList)))
+                    Error::from(err.context(ErrorKind::Response(RequestType::SecretReplace)))
                 })
         })
         .into_future()
@@ -428,7 +428,7 @@ where
                     _ => Err(Error::from(ErrorKind::Response(RequestType::TokenReview))),
                 })
                 .map_err(|err| {
-                    Error::from(err.context(ErrorKind::Response(RequestType::ConfigMapList)))
+                    Error::from(err.context(ErrorKind::Response(RequestType::TokenReview)))
                 })
         })
         .into_future()
@@ -461,7 +461,9 @@ where
                         ))),
                     })
                     .map_err(|err| {
-                        Error::from(err.context(ErrorKind::Response(RequestType::ConfigMapList)))
+                        Error::from(
+                            err.context(ErrorKind::Response(RequestType::ServiceAccountList)),
+                        )
                     })
             })
             .into_future()
@@ -494,7 +496,7 @@ where
                     ))),
                 })
                 .map_err(|err| {
-                    Error::from(err.context(ErrorKind::Response(RequestType::ConfigMapList)))
+                    Error::from(err.context(ErrorKind::Response(RequestType::ServiceAccountCreate)))
                 })
         })
         .into_future()
@@ -523,7 +525,7 @@ where
                     ))),
                 })
                 .map_err(|err| {
-                    Error::from(err.context(ErrorKind::Response(RequestType::ConfigMapList)))
+                    Error::from(err.context(ErrorKind::Response(RequestType::ServiceAccountGet)))
                 })
         })
         .into_future()
@@ -553,11 +555,13 @@ where
                         Ok(service_account)
                     }
                     _ => Err(Error::from(ErrorKind::Response(
-                        RequestType::ServiceAccountCreate,
+                        RequestType::ServiceAccountReplace,
                     ))),
                 })
                 .map_err(|err| {
-                    Error::from(err.context(ErrorKind::Response(RequestType::ConfigMapList)))
+                    Error::from(
+                        err.context(ErrorKind::Response(RequestType::ServiceAccountReplace)),
+                    )
                 })
         })
         .into_future()
@@ -587,7 +591,7 @@ where
                     _ => Err(Error::from(ErrorKind::Response(RequestType::RoleReplace))),
                 })
                 .map_err(|err| {
-                    Error::from(err.context(ErrorKind::Response(RequestType::ConfigMapList)))
+                    Error::from(err.context(ErrorKind::Response(RequestType::RoleReplace)))
                 })
         })
         .into_future()
