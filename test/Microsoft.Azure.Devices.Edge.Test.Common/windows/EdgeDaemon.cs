@@ -2,10 +2,9 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
 {
     using System;
-    using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.ServiceProcess;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -29,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                 p =>
                 {
                     message += " from packages in '{InstallPackagePath}'";
-                    properties = new object[] { p };
+                    properties = properties.Append(p).ToArray();
                 });
 
             string installCommand = $"Deploy-IoTEdge -ContainerOs Windows";
@@ -61,8 +60,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
 
         public Task ConfigureAsync(Func<DaemonConfiguration, Task<(string, object[])>> config, CancellationToken token)
         {
-            var properties = new List<object>();
-            var message = new StringBuilder("Configured edge daemon");
+            var properties = new object[] { };
+            var message = "Configured edge daemon";
             string configYamlPath =
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData) + @"\iotedge\config.yaml";
 
@@ -72,10 +71,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                     await this.InternalStopAsync(token);
 
                     var yaml = new DaemonConfiguration(configYamlPath);
-                    (string m, object[] p) = await config(yaml);
+                    (string msg, object[] props) = await config(yaml);
 
-                    message.Append($" {m}");
-                    properties.AddRange(p);
+                    message += $" {msg}";
+                    properties = properties.Concat(props).ToArray();
 
                     await this.InternalStartAsync(token);
                 },

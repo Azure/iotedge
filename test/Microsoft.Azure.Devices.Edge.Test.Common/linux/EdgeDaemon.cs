@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 p =>
                 {
                     message += " from packages in '{InstallPackagePath}'";
-                    properties = new object[] { p };
+                    properties = properties.Append(p).ToArray();
                 });
 
             string[] commands = await packagesPath.Match(
@@ -85,8 +85,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public Task ConfigureAsync(Func<DaemonConfiguration, Task<(string, object[])>> config, CancellationToken token)
         {
-            var properties = new List<object>();
-            var message = new StringBuilder("Configured edge daemon");
+            var properties = new object[] { };
+            var message = "Configured edge daemon";
 
             return Profiler.Run(
                 async () =>
@@ -96,8 +96,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     var yaml = new DaemonConfiguration("/etc/iotedge/config.yaml");
                     (string msg, object[] props) = await config(yaml);
 
-                    message.Append($" {msg}");
-                    properties.AddRange(props);
+                    message += $" {msg}";
+                    properties = properties.Concat(props).ToArray();
 
                     await this.InternalStartAsync(token);
                 },
