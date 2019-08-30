@@ -72,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         await device.ForEachAsync(dev => dev.MaybeDeleteIdentityAsync(token));
                     }
                 },
-                "Completed edge installation and provisioning with DPS");
+                "Completed edge installation and provisioned with DPS");
         }
     }
 }
