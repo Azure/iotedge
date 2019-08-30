@@ -53,6 +53,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                     string[] output =
                         await Process.RunAsync("powershell", string.Join(";", commands), token);
                     Log.Verbose(string.Join("\n", output));
+
+                    const string suffix = @"\iotedge\config.yaml";
+                    File.Copy(
+                        Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + suffix,
+                        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData) + suffix);
                 },
                 message,
                 properties);
