@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         }
 
         [OneTimeSetUp]
-        public async Task InstallAndProvisionEdgeAsync()
+        public async Task ManuallyProvisionEdgeAsync()
         {
             await Profiler.Run(
                 async () =>
@@ -44,11 +44,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             this.iotHub,
                             token);
 
-                        await this.daemon.UninstallAsync(token);
-                        await this.daemon.InstallAsync(
-                            this.device.ConnectionString,
-                            Context.Current.PackagePath,
-                            Context.Current.Proxy,
+                        IotHubConnectionStringBuilder builder =
+                            IotHubConnectionStringBuilder.Create(this.device.ConnectionString);
+
+                        await this.daemon.ConfigureAsync(
+                            config =>
+                            {
+                                config.SetDeviceConnectionString(this.device.ConnectionString);
+                                config.Update();
+                                return Task.FromResult((
+                                    "with connection string for device '{Identity}'",
+                                    new object[] { builder.DeviceId }));
+                            },
                             token);
 
                         try
@@ -71,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         }
                     }
                 },
-                "Completed edge installation and manual provisioning");
+                "Completed edge manual provisioning");
         }
 
         [OneTimeTearDown]

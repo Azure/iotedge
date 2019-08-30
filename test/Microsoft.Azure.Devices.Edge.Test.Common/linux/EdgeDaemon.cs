@@ -15,22 +15,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
     public class EdgeDaemon : IEdgeDaemon
     {
-        public async Task InstallAsync(string deviceConnectionString, Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
+        public async Task InstallAsync(Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
         {
-            await InstallAsync(packagesPath, token);
-            await this.ConfigureAsync(deviceConnectionString, proxy, token);
-        }
-
-        public async Task InstallAsync(string scopeId, string registrationId, string symmetricKey, Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
-        {
-            await InstallAsync(packagesPath, token);
-            await this.ConfigureAsync(scopeId, registrationId, symmetricKey, proxy, token);
-        }
-
-        static async Task InstallAsync(Option<string> packagesPath, CancellationToken token)
-        {
-            var properties = new object[] { };
-            string message = "Installed edge daemon";
+            string hostname = (await File.ReadAllTextAsync("/proc/sys/kernel/hostname", token)).Trim();
+            var properties = new object[] { hostname };
+            string message = "Installed edge daemon on '{Device}'";
             packagesPath.ForEach(
                 p =>
                 {
@@ -52,6 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 },
                 async () =>
                 {
+                    // TODO: support curl behind a proxy
                     string[] platformInfo = await Process.RunAsync("lsb_release", "-sir", token);
                     string os = platformInfo[0].Trim();
                     string version = platformInfo[1].Trim();
@@ -86,6 +76,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 {
                     string[] output = await Process.RunAsync("bash", $"-c \"{string.Join("; ", commands)}\"", token);
                     Log.Verbose(string.Join("\n", output));
+
+                    await this.InternalStopAsync(token);
                 },
                 message,
                 properties);
@@ -111,60 +103,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 },
                 message.ToString(),
                 properties);
-        }
-
-        Task ConfigureAsync(string deviceConnectionString, Option<Uri> proxy, CancellationToken token)
-        {
-            return this.ConfigureCommonAsync(
-                config =>
-                {
-                    config.SetDeviceConnectionString(deviceConnectionString);
-                    IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(deviceConnectionString);
-                    return ("with ID '{Id}'", new object[] { builder.DeviceId });
-                },
-                proxy,
-                token);
-        }
-
-        Task ConfigureAsync(string scopeId, string registrationId, string symmetricKey, Option<Uri> proxy, CancellationToken token)
-        {
-            return this.ConfigureCommonAsync(
-                config =>
-                {
-                    config.SetDpsSymmetricKey(scopeId, registrationId, symmetricKey);
-                    return ("with DPS (symmetric key)", new object[] { });
-                },
-                proxy,
-                token);
-        }
-
-        Task ConfigureCommonAsync(Func<DaemonConfiguration, (string, object[])> config, Option<Uri> proxy, CancellationToken token)
-        {
-            return this.ConfigureAsync(
-                async cfg =>
-                {
-                    string hostname = (await File.ReadAllTextAsync("/proc/sys/kernel/hostname", token)).Trim();
-                    var properties = new List<object> { hostname };
-                    var message = new StringBuilder("for device '{Device}'");
-
-                    (string msg, object[] props) = config(cfg);
-                    message.Append($" {msg}");
-                    properties.AddRange(props);
-
-                    proxy.ForEach(
-                        p =>
-                        {
-                            message.Append(" with proxy '{ProxyUri}'");
-                            properties.AddRange(new object[] { p });
-                        });
-
-                    cfg.SetDeviceHostname(hostname);
-                    proxy.ForEach(cfg.AddHttpsProxy);
-                    cfg.Update();
-
-                    return (message.ToString(), properties.ToArray());
-                },
-                token);
         }
 
         public Task StartAsync(CancellationToken token) => Profiler.Run(

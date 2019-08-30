@@ -47,7 +47,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         public static async Task<Option<EdgeDevice>> GetIdentityAsync(
             string deviceId,
             IotHub iotHub,
-            CancellationToken token)
+            CancellationToken token,
+            bool takeOwnership = false)
         {
             Device device = await iotHub.GetDeviceIdentityAsync(deviceId, token);
             if (device != null)
@@ -57,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     throw new InvalidOperationException($"Device '{device.Id}' exists, but is not an edge device");
                 }
 
-                return Option.Some(new EdgeDevice(device, false, iotHub));
+                return Option.Some(new EdgeDevice(device, takeOwnership, iotHub));
             }
             else
             {

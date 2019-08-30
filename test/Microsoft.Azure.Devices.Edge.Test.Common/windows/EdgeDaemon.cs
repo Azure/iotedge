@@ -20,25 +20,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             this.scriptDir = scriptDir;
         }
 
-        public async Task InstallAsync(string deviceConnectionString, Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
+        public async Task InstallAsync(Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
         {
-            string provisioningArgs = $"-Manual -DeviceConnectionString '{deviceConnectionString}'";
-            await this.InstallInternalAsync(provisioningArgs, packagesPath, proxy, token);
-            await this.ConfigureAsync(proxy, token);
-        }
-
-        public async Task InstallAsync(string scopeId, string registrationId, string symmetricKey, Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
-        {
-            string provisioningArgs = $"-Dps -ScopeId '{scopeId}' -RegistrationId '{registrationId}' -SymmetricKey '{symmetricKey}'";
-            await this.InstallInternalAsync(provisioningArgs, packagesPath, proxy, token);
-            await this.ConfigureAsync(proxy, token);
-        }
-
-        async Task InstallInternalAsync(string provisioningArgs, Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
-        {
-            // TODO: Add provisioning info to profiler message (at least DPS vs. Manual)
-            var properties = new object[] { };
-            string message = "Installed edge daemon";
+            string hostname = Environment.MachineName;
+            var properties = new object[] { hostname };
+            string message = "Installed edge daemon on '{Device}'";
             packagesPath.ForEach(
                 p =>
                 {
@@ -46,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                     properties = new object[] { p };
                 });
 
-            string installCommand = $"Install-IoTEdge -ContainerOs Windows {provisioningArgs}";
+            string installCommand = $"Deploy-IoTEdge -ContainerOs Windows";
             packagesPath.ForEach(p => installCommand += $" -OfflineInstallationPath '{p}'");
             proxy.ForEach(
                 p => installCommand += $" -InvokeWebRequestParameters @{{ '-Proxy' = '{p}' }}");
@@ -95,23 +81,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                 },
                 message.ToString(),
                 properties);
-        }
-
-        Task ConfigureAsync(Option<Uri> proxy, CancellationToken token)
-        {
-            return proxy.ForEachAsync(
-                p =>
-                {
-                    return this.ConfigureAsync(
-                        config =>
-                        {
-                            config.AddHttpsProxy(p);
-                            config.Update();
-
-                            return Task.FromResult(("with proxy '{ProxyUri}'", new object[] { p.ToString() }));
-                        },
-                        token);
-                });
         }
 
         public Task StartAsync(CancellationToken token)

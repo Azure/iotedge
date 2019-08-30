@@ -35,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config.ReplaceOrAdd("provisioning.device_connection_string", value);
         }
 
-        public void SetDpsSymmetricKey(string scopeId, string registrationId, string symmetricKey)
+        public void SetDpsSymmetricKey(string scopeId, string registrationId, string deviceKey)
         {
             this.config.RemoveIfExists("provisioning");
             this.config.ReplaceOrAdd("provisioning.source", "dps");
@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config.ReplaceOrAdd("provisioning.scope_id", scopeId);
             this.config.ReplaceOrAdd("provisioning.attestation.method", "symmetric_key");
             this.config.ReplaceOrAdd("provisioning.attestation.registration_id", registrationId);
-            this.config.ReplaceOrAdd("provisioning.attestation.symmetric_key", symmetricKey);
+            this.config.ReplaceOrAdd("provisioning.attestation.symmetric_key", deviceKey);
         }
 
         public void SetDeviceHostname(string value)

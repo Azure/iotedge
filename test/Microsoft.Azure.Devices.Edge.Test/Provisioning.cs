@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
+    using System.Collections.Generic;
     using System.Security.Cryptography;
     using System.Text;
     using System.Threading;
@@ -36,54 +37,53 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task DpsSymmetricKey()
         {
-            await Profiler.Run(
-                async () =>
+            string scopeId = Context.Current.DpsScopeId.Expect(() => new ArgumentException());
+            string registrationId = Context.Current.DpsRegistrationId.Expect(() => new ArgumentException());
+            string groupKey = Context.Current.DpsGroupKey.Expect(() => new ArgumentException());
+
+            string deviceKey = this.DeriveDeviceKey(Convert.FromBase64String(groupKey), registrationId);
+
+            CancellationToken token = this.cts.Token;
+
+            await this.daemon.ConfigureAsync(
+                config =>
                 {
-                    string scopeId = Context.Current.DpsScopeId.Expect(() => new ArgumentException());
-                    string registrationId = Context.Current.DpsRegistrationId.Expect(() => new ArgumentException());
-                    string groupKey = Context.Current.DpsGroupKey.Expect(() => new ArgumentException());
-                    string deviceKey = this.DeriveDeviceKey(Convert.FromBase64String(groupKey), registrationId);
-
-                    CancellationToken token = this.cts.Token;
-
-                    await this.daemon.UninstallAsync(token);
-                    await this.daemon.InstallAsync(
-                        scopeId,
-                        registrationId,
-                        deviceKey,
-                        Context.Current.PackagePath,
-                        Context.Current.Proxy,
-                        token);
-
-                    await this.daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
-
-                    Option<EdgeDevice> device = Option.None<EdgeDevice>();
-                    try
-                    {
-                        var agent = new EdgeAgent(registrationId, this.iotHub);
-                        await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
-
-                        device = await EdgeDevice.GetIdentityAsync(
-                            registrationId,
-                            this.iotHub,
-                            token);
-                        device.Expect(() => new ArgumentException());
-
-                        await agent.PingAsync(token);
-                    }
-
-                    // ReSharper disable once RedundantCatchClause
-                    catch
-                    {
-                        throw;
-                    }
-                    finally
-                    {
-                        await this.daemon.StopAsync(token);
-                        await device.ForEachAsync(dev => dev.MaybeDeleteIdentityAsync(token));
-                    }
+                    config.SetDpsSymmetricKey(scopeId, registrationId, deviceKey);
+                    config.Update();
+                    return Task.FromResult((
+                        "with DPS symmetric key attestation for '{Identity}'",
+                        new object[] { registrationId }));
                 },
-                "Completed edge installation and provisioned with DPS");
+                token);
+
+            await this.daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
+
+            Option<EdgeDevice> device = Option.None<EdgeDevice>();
+            try
+            {
+                var agent = new EdgeAgent(registrationId, this.iotHub);
+                await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
+
+                device = await EdgeDevice.GetIdentityAsync(
+                    registrationId,
+                    this.iotHub,
+                    token,
+                    takeOwnership: true);
+                device.Expect(() => new ArgumentException());
+
+                await agent.PingAsync(token);
+            }
+
+            // ReSharper disable once RedundantCatchClause
+            catch
+            {
+                throw;
+            }
+            finally
+            {
+                await this.daemon.StopAsync(token);
+                await device.ForEachAsync(dev => dev.MaybeDeleteIdentityAsync(token));
+            }
         }
     }
 }
