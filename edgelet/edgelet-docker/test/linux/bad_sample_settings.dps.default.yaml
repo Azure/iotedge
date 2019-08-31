@@ -1,5 +1,4 @@
-
-# Configures the provisioning mode
+# mising registration id for default DPS flow which is TPM
 provisioning:
   source: "dps"
   global_endpoint: "scheme://jibba-jabba.net"
