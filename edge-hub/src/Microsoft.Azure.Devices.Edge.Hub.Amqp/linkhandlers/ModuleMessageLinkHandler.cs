@@ -45,13 +45,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             static readonly IMetricsCounter MessagesMeter = Util.Metrics.Metrics.Instance.CreateCounter(
                 "messages_sent",
                 "Messages sent to module",
-                new List<string> { "protocol", "from", "to" });
+                new List<string> { "from", "to" });
 
             public static void AddMessage(IIdentity identity, IMessage message)
             {
                 string from = message.GetSenderId();
                 string to = identity.Id;
-                MessagesMeter.Increment(1, new[] { "amqp", from, to });
+                MessagesMeter.Increment(1, new[] { from, to });
             }
         }
     }
