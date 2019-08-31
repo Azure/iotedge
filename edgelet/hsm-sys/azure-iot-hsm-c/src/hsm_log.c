@@ -69,7 +69,8 @@ void log_msg(int level, const char* file, const char* function, int line, const 
 
 #if defined __WINDOWS__ || defined _WIN32 || defined _WIN64 || defined _Windows
         if (event_log_handle != NULL) {
-            size_t log_length = strlen(file) + strlen(function) + strlen(buffer) + 50;
+            size_t log_length = strlen(file) + strlen(function) + strlen(buffer);
+            log_length += 50; // Extra bytes for prefix, punctuation and whitespace
             char* event_log_buffer = malloc(log_length);
 
             if (snprintf(event_log_buffer, log_length, "libiothsm -- (%s:%s:%d) %s", file, function, line, buffer) > 0) {
