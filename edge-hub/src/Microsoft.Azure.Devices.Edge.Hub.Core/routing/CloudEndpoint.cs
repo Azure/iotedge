@@ -8,6 +8,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using App.Metrics;
+    using App.Metrics.Counter;
+    using App.Metrics.Timer;
     using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -223,14 +226,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                                 .Select(r => this.cloudEndpoint.messageConverter.ToMessage(r))
                                 .ToList();
 
-                            if (messages.Count == 1)
+                            using (MetricsV0.CloudLatency(id))
                             {
-                                await cp.SendMessageAsync(messages[0]);
+                                if (messages.Count == 1)
+                                {
+                                    await cp.SendMessageAsync(messages[0]);
+                                }
+                                else
+                                {
+                                    await cp.SendMessageBatchAsync(messages);
+                                }
                             }
-                            else
-                            {
-                                await cp.SendMessageBatchAsync(messages);
-                            }
+
+                            MetricsV0.MessageCount(id, messages.Count);
 
                             return new SinkResult<IRoutingMessage>(routingMessages);
                         }
@@ -363,6 +371,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             internal static void InvalidMessage(string id, Exception ex)
             {
                 Log.LogWarning((int)EventIds.InvalidMessage, ex, Invariant($"Non retryable exception occurred while sending message for client {id}."));
+            }
+        }
+
+        static class MetricsV0
+        {
+            static readonly CounterOptions EdgeHubToCloudMessageCountOptions = new CounterOptions
+            {
+                Name = "EdgeHubToCloudMessageSentCount",
+                MeasurementUnit = Unit.Events,
+                ResetOnReporting = true,
+            };
+
+            static readonly TimerOptions EdgeHubToCloudMessageLatencyOptions = new TimerOptions
+            {
+                Name = "EdgeHubToCloudMessageLatencyMs",
+                MeasurementUnit = Unit.None,
+                DurationUnit = TimeUnit.Milliseconds,
+                RateUnit = TimeUnit.Seconds
+            };
+
+            public static void MessageCount(string identity, int count)
+                => Util.Metrics.MetricsV0.CountIncrement(GetTags(identity), EdgeHubToCloudMessageCountOptions, count);
+
+            public static IDisposable CloudLatency(string identity)
+                => Util.Metrics.MetricsV0.Latency(GetTags(identity), EdgeHubToCloudMessageLatencyOptions);
+
+            static MetricTags GetTags(string id)
+            {
+                return new MetricTags("DeviceId", id);
             }
         }
     }
