@@ -19,6 +19,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
     using Microsoft.Extensions.Configuration;
     using Moq;
     using Xunit;
+    using CreateContainerParameters = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.CreateContainerParameters;
+    using HostConfig = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.HostConfig;
+    using PortBinding = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.PortBinding;
 
     [ExcludeFromCodeCoverage]
     [Collection("Docker")]
@@ -349,10 +352,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             const string VolumeName = "vol1";
             const string VolumePath = "/azure-edge/vol1";
 
-            CreateContainerParameters createContainerParameters = null;
+            global::Docker.DotNet.Models.CreateContainerParameters createContainerParameters = null;
             var containerOperations = new Mock<IContainerOperations>();
-            containerOperations.Setup(co => co.CreateContainerAsync(It.IsAny<CreateContainerParameters>(), It.IsAny<CancellationToken>()))
-                .Callback((CreateContainerParameters ccp, CancellationToken tok) => createContainerParameters = ccp)
+            containerOperations
+                .Setup(co => co.CreateContainerAsync(It.IsAny<global::Docker.DotNet.Models.CreateContainerParameters>(), It.IsAny<CancellationToken>()))
+                .Callback((global::Docker.DotNet.Models.CreateContainerParameters ccp, CancellationToken tok) => createContainerParameters = ccp)
                 .ReturnsAsync(new CreateContainerResponse());
 
             var dockerClient = new Mock<IDockerClient>();
@@ -421,10 +425,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             const string VolumeName = "vol1";
             const string VolumePath = "/azure-edge/vol1";
 
-            CreateContainerParameters createContainerParameters = null;
+            global::Docker.DotNet.Models.CreateContainerParameters createContainerParameters = null;
             var containerOperations = new Mock<IContainerOperations>();
-            containerOperations.Setup(co => co.CreateContainerAsync(It.IsAny<CreateContainerParameters>(), It.IsAny<CancellationToken>()))
-                .Callback((CreateContainerParameters ccp, CancellationToken tok) => createContainerParameters = ccp)
+            containerOperations
+                .Setup(co => co.CreateContainerAsync(It.IsAny<global::Docker.DotNet.Models.CreateContainerParameters>(), It.IsAny<CancellationToken>()))
+                .Callback((global::Docker.DotNet.Models.CreateContainerParameters ccp, CancellationToken tok) => createContainerParameters = ccp)
                 .ReturnsAsync(new CreateContainerResponse());
 
             var dockerClient = new Mock<IDockerClient>();
