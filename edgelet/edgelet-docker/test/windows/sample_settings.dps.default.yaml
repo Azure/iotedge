@@ -1,4 +1,3 @@
-
 # Configures the provisioning mode
 provisioning:
   source: "dps"

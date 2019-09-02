@@ -12,7 +12,6 @@ use edgelet_http::route::{Builder, Parameters, RegexRoutesBuilder, Router};
 use edgelet_http::Error as HttpError;
 use edgelet_http::HyperExt;
 use edgelet_http::{Run, Version};
-use edgelet_test_utils::get_unused_tcp_port;
 
 use futures::{future, Future};
 use hyper::server::conn::Http;
@@ -42,9 +41,9 @@ fn tls_functional_test() {
 
     let client = hyper::Client::builder().build::<_, hyper::Body>(https_connector);
 
-    let port = get_unused_tcp_port();
+    let (server, port) = configure_test("https://localhost:0");
+    let server = server.map_err(|err| eprintln!("{}", err));
     let addr = format!("https://localhost:{}", port);
-    let server = configure_test(&addr).map_err(|err| eprintln!("{}", err));
 
     let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
     runtime.spawn(server);
@@ -57,7 +56,7 @@ fn tls_functional_test() {
     assert_eq!(res.status(), 200);
 }
 
-pub fn configure_test(address: &str) -> Run {
+pub fn configure_test(address: &str) -> (Run, u16) {
     // setup the IOTEDGE_HOMEDIR folder where certs can be generated and stored
     let home_dir = TempDir::new("tls_integration_test").unwrap();
     env::set_var(HOMEDIR_KEY, &home_dir.path());
@@ -92,10 +91,11 @@ pub fn configure_test(address: &str) -> Run {
         .finish();
     let router = Router::from(recognizer);
 
-    Http::new()
+    let server = Http::new()
         .bind_url(Url::parse(address).unwrap(), router, Some(&manager))
-        .unwrap()
-        .run()
+        .unwrap();
+    let port = server.port().expect("HTTP server must have port");
+    (server.run(), port)
 }
 
 #[allow(clippy::needless_pass_by_value)]

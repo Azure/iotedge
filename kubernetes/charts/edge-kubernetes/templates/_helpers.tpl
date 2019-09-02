@@ -48,10 +48,11 @@ agent:
   env: {}
   config:
     image: "{{ .Values.edgeAgent.image.repository }}:{{ .Values.edgeAgent.image.tag }}"
-    {{- if .Values.registryCredentials }}
+  {{- if .Values.edgeAgent.registryCredentials }}
     auth:
-      username: {{ .Values.registryCredentials.username | quote }}
-      password: {{ .Values.registryCredentials.password | quote }}
+      username: {{ .Values.edgeAgent.registryCredentials.username | quote }}
+      password: {{ .Values.edgeAgent.registryCredentials.password | quote }}
+      serveraddress: {{ .Values.edgeAgent.registryCredentials.serveraddress | quote }}
     {{ else }}
     auth: {}
     {{ end }}
@@ -63,6 +64,16 @@ listen:
   management_uri: "http://0.0.0.0:{{ .Values.iotedged.ports.management }}"
   workload_uri: "http://0.0.0.0:{{ .Values.iotedged.ports.workload }}"
 homedir: {{ .Values.iotedged.data.targetPath | quote }}
+namespace: {{ .Release.Namespace | quote }}
+use_pvc: False
+proxy_image:  "{{.Values.iotedgedProxy.image.repository}}:{{.Values.iotedgedProxy.image.tag}}"
+proxy_config_path: "/etc/traefik"
+proxy_config_map_name: "iotedged-proxy-config"
+proxy_trust_bundle_path: "/etc/trust-bundle"
+proxy_trust_bundle_config_map_name: "iotedged-proxy-trust-bundle"
+image_pull_policy: {{ .Values.iotedgedProxy.image.pullPolicy | quote }}
+service_account_name: "iotedge"
+device_hub_selector: ""
 {{ end }}
 
 {{/* Template for rendering registry credentials. */}}

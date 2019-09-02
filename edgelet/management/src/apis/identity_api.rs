@@ -16,6 +16,7 @@ use futures::{Future, Stream};
 use hyper;
 use serde_json;
 use typed_headers::{self, http, mime, HeaderMapExt};
+use url::percent_encoding::{percent_encode, PATH_SEGMENT_ENCODE_SET};
 
 use super::{configuration, Error};
 
@@ -66,7 +67,11 @@ where
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("api-version", &api_version.to_string())
             .finish();
-        let uri_str = format!("/identities/{name}?{}", query, name = name);
+        let uri_str = format!(
+            "/identities/{name}?{}",
+            query,
+            name = percent_encode(name.as_bytes(), PATH_SEGMENT_ENCODE_SET)
+        );
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
         // TODO(farcaller): handle error
@@ -127,7 +132,11 @@ where
         let query = ::url::form_urlencoded::Serializer::new(String::new())
             .append_pair("api-version", &api_version.to_string())
             .finish();
-        let uri_str = format!("/identities/{name}?{}", query, name = name);
+        let uri_str = format!(
+            "/identities/{name}?{}",
+            query,
+            name = percent_encode(name.as_bytes(), PATH_SEGMENT_ENCODE_SET)
+        );
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
         // TODO(farcaller): handle error

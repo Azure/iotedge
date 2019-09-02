@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
         public async Task CreateFromEnvironmentTest(
             Option<UpstreamProtocol> upstreamProtocol,
             Option<IWebProxy> webProxy,
-            Option<string> productInfo)
+            string productInfo)
         {
             // Arrange
             ITransportSettings receivedTransportSettings = null;
@@ -52,14 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Assert.NotNull(moduleClient);
             sdkModuleClientProvider.Verify(s => s.GetSdkModuleClient(It.IsAny<ITransportSettings>()), Times.Once);
 
-            if (productInfo.HasValue)
-            {
-                productInfo.ForEach(p => sdkModuleClient.Verify(s => s.SetProductInfo(p), Times.Once));
-            }
-            else
-            {
-                sdkModuleClient.Verify(s => s.SetProductInfo(It.IsAny<string>()), Times.Never);
-            }
+            sdkModuleClient.Verify(s => s.SetProductInfo(productInfo), Times.Once);
 
             Assert.NotNull(receivedTransportSettings);
             UpstreamProtocol up = upstreamProtocol.GetOrElse(UpstreamProtocol.Amqp);
@@ -83,12 +76,39 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             sdkModuleClient.Verify(s => s.OpenAsync(), Times.Once);
         }
 
+        [Fact]
+        public void CreateFromEnvironment_NullProductInfo_ShouldThrow()
+        {
+            // Arrange
+            ITransportSettings receivedTransportSettings = null;
+
+            var sdkModuleClient = new Mock<ISdkModuleClient>();
+
+            var sdkModuleClientProvider = new Mock<ISdkModuleClientProvider>();
+            sdkModuleClientProvider.Setup(s => s.GetSdkModuleClient(It.IsAny<ITransportSettings>()))
+                .Callback<ITransportSettings>(t => receivedTransportSettings = t)
+                .ReturnsAsync(sdkModuleClient.Object);
+
+            bool closeOnIdleTimeout = false;
+            TimeSpan idleTimeout = TimeSpan.FromMinutes(5);
+            ConnectionStatusChangesHandler handler = (status, reason) => { };
+
+            // Assert
+            Assert.Throws<ArgumentNullException>(() => new ModuleClientProvider(
+                sdkModuleClientProvider.Object,
+                Option.None<UpstreamProtocol>(),
+                Option.None<IWebProxy>(),
+                null,
+                closeOnIdleTimeout,
+                idleTimeout));
+        }
+
         [Theory]
         [MemberData(nameof(GetTestData))]
         public async Task CreateFromConnectionStringTest(
             Option<UpstreamProtocol> upstreamProtocol,
             Option<IWebProxy> webProxy,
-            Option<string> productInfo)
+            string productInfo)
         {
             // Arrange
             string connectionString = "DummyConnectionString";
@@ -120,14 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Assert.NotNull(moduleClient);
             sdkModuleClientProvider.Verify(s => s.GetSdkModuleClient(connectionString, It.IsAny<ITransportSettings>()), Times.Once);
 
-            if (productInfo.HasValue)
-            {
-                productInfo.ForEach(p => sdkModuleClient.Verify(s => s.SetProductInfo(p), Times.Once));
-            }
-            else
-            {
-                sdkModuleClient.Verify(s => s.SetProductInfo(It.IsAny<string>()), Times.Never);
-            }
+            sdkModuleClient.Verify(s => s.SetProductInfo(productInfo), Times.Once);
 
             Assert.NotNull(receivedTransportSettings);
             UpstreamProtocol up = upstreamProtocol.GetOrElse(UpstreamProtocol.Amqp);
@@ -157,21 +170,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             {
                 Option.None<UpstreamProtocol>(),
                 Option.None<IWebProxy>(),
-                Option.None<string>()
+                Constants.IoTEdgeAgentProductInfoIdentifier
             };
 
             yield return new object[]
             {
                 Option.Some(UpstreamProtocol.Amqp),
                 Option.None<IWebProxy>(),
-                Option.None<string>()
+                Constants.IoTEdgeAgentProductInfoIdentifier
             };
 
             yield return new object[]
             {
                 Option.Some(UpstreamProtocol.Amqp),
                 Option.Some(Mock.Of<IWebProxy>()),
-                Option.Some("dummy product info")
+                Constants.IoTEdgeAgentProductInfoIdentifier + "/1.0.0"
             };
         }
     }

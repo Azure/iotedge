@@ -7,7 +7,10 @@ use failure::ResultExt;
 use log::info;
 
 use edgelet_core;
+#[cfg(feature = "runtime-docker")]
 use edgelet_docker::Settings;
+#[cfg(feature = "runtime-kubernetes")]
+use edgelet_kube::Settings;
 
 use crate::error::{Error, ErrorKind, InitializeErrorReason};
 use crate::logging;
@@ -54,7 +57,11 @@ fn init_common(running_as_windows_service: bool) -> Result<Settings, Error> {
         }
     }
 
-    info!("Starting Azure IoT Edge Security Daemon");
+    if cfg!(feature = "runtime-kubernetes") {
+        info!("Starting Azure IoT Edge Security Daemon - Kubernetes mode");
+    } else {
+        info!("Starting Azure IoT Edge Security Daemon");
+    };
     info!("Version - {}", edgelet_core::version_with_source_version());
 
     let config_file = matches

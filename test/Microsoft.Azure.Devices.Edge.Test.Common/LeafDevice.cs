@@ -314,6 +314,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         data.SystemProperties.TryGetValue("iothub-connection-device-id", out object devId);
                         data.Properties.TryGetValue("leaf-message-id", out object msgId);
 
+                        Log.Verbose($"Received event for '{devId}' with message ID '{msgId}' and body '{Encoding.UTF8.GetString(data.Body)}'");
+
                         return devId != null && devId.ToString().Equals(this.device.Id)
                                              && msgId != null && msgId.ToString().Equals(this.messageId);
                     },

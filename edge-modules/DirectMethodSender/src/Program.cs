@@ -8,10 +8,10 @@ namespace DirectMethodSender
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil;
 
     class Program
     {
@@ -45,6 +45,7 @@ namespace DirectMethodSender
 
             await CallDirectMethod(moduleClient, dmDelay, targetDeviceId, targetModuleId, cts);
             await moduleClient.CloseAsync();
+            await cts.Token.WhenCanceled();
 
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
@@ -72,6 +73,7 @@ namespace DirectMethodSender
                     if (response.Status == (int)HttpStatusCode.OK)
                     {
                         await moduleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method Call succeeded.")));
+                        break;
                     }
                 }
                 catch (Exception e)
