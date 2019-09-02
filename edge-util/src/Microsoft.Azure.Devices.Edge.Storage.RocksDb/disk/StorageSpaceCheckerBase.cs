@@ -6,25 +6,25 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public abstract class DiskSpaceCheckerBase
+    public abstract class StorageSpaceCheckerBase
     {
-        readonly PeriodicTask diskSpaceChecker;
+        readonly PeriodicTask storageSpaceChecker;
         readonly object updateLock = new object();
 
-        DiskStatus diskStatus;
+        StorageStatus diskStatus;
 
-        protected DiskSpaceCheckerBase(TimeSpan checkFrequency, ILogger logger)
+        protected StorageSpaceCheckerBase(TimeSpan checkFrequency, ILogger logger)
         {
             this.Logger = Preconditions.CheckNotNull(logger);
-            this.diskSpaceChecker = new PeriodicTask(this.PeriodicTaskCallback, checkFrequency, checkFrequency, logger, "Disk space check");
+            this.storageSpaceChecker = new PeriodicTask(this.PeriodicTaskCallback, checkFrequency, checkFrequency, logger, "Disk space check");
         }
 
-        public DiskStatus DiskStatus
+        public StorageStatus DiskStatus
         {
             get
             {
                 // If disk status is Critical / Full, check disk status every time
-                if (this.diskStatus > DiskStatus.Available)
+                if (this.diskStatus > StorageStatus.Available)
                 {
                     this.UpdateCurrentDiskSpaceStatus();
                 }
@@ -35,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
 
         protected ILogger Logger { get; }
 
-        protected abstract DiskStatus GetDiskStatus();
+        protected abstract StorageStatus GetDiskStatus();
 
         Task PeriodicTaskCallback()
         {

@@ -5,7 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
     using System.IO;
     using Microsoft.Extensions.Logging;
 
-    class FixedSizeSpaceChecker : DiskSpaceCheckerBase
+    class FixedSizeSpaceChecker : StorageSpaceCheckerBase
     {
         readonly string storageFolder;
         readonly long maxSizeBytes;
@@ -18,12 +18,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             logger?.LogInformation($"Created fixed size space checker with max capacity of {maxSizeBytes} bytes on folder {storageFolder}");
         }
 
-        protected override DiskStatus GetDiskStatus()
+        protected override StorageStatus GetDiskStatus()
         {
             long bytes = GetDirectorySize(this.storageFolder);
             double usagePercentage = (double)bytes * 100 / this.maxSizeBytes;
-            DiskStatus diskStatus = GetDiskStatus(usagePercentage);
-            if (diskStatus != DiskStatus.Available)
+            StorageStatus diskStatus = GetDiskStatus(usagePercentage);
+            if (diskStatus != StorageStatus.Available)
             {
                 this.Logger?.LogWarning($"High disk usage detected - using {usagePercentage}% of {this.maxSizeBytes} bytes");
             }
@@ -31,19 +31,19 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             return diskStatus;
         }
 
-        static DiskStatus GetDiskStatus(double usagePercentage)
+        static StorageStatus GetDiskStatus(double usagePercentage)
         {
             if (usagePercentage < 90)
             {
-                return DiskStatus.Available;
+                return StorageStatus.Available;
             }
 
             if (usagePercentage < 100)
             {
-                return DiskStatus.Critical;
+                return StorageStatus.Critical;
             }
 
-            return DiskStatus.Full;
+            return StorageStatus.Full;
         }
 
         static long GetDirectorySize(string directoryPath)
@@ -57,17 +57,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             long size = 0;
 
             // Get size for all files in directory
-            FileInfo[] files = directory.GetFiles();
+            FileInfo[] files = directory.GetFiles("*", SearchOption.AllDirectories);
             foreach (FileInfo file in files)
             {
                 size += file.Length;
-            }
-
-            // Recursively get size for all directories in current directory
-            DirectoryInfo[] dis = directory.GetDirectories();
-            foreach (DirectoryInfo di in dis)
-            {
-                size += GetDirectorySize(di);
             }
 
             return size;

@@ -19,8 +19,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         Task<bool> RemoveFirst(Func<long, T, Task<bool>> predicate);
 
-        Task<int> RemovePercentFromHead(Func<long, T, Task> callback, int percentage, CancellationToken cancellationToken);
-
         Task<IEnumerable<(long, T)>> GetBatch(long startingOffset, int batchSize);
 
         Task<long> Append(T item, CancellationToken cancellationToken);

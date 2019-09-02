@@ -6,12 +6,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    class ThresholdDiskSpaceChecker : DiskSpaceCheckerBase
+    class ThresholdStorageSpaceChecker : StorageSpaceCheckerBase
     {
         readonly string drive;
         readonly double thresholdPercentage;
 
-        public ThresholdDiskSpaceChecker(string drive, double thresholdPercentage, TimeSpan checkFrequency, ILogger logger)
+        public ThresholdStorageSpaceChecker(string drive, double thresholdPercentage, TimeSpan checkFrequency, ILogger logger)
             : base(checkFrequency, logger)
         {
             Preconditions.CheckArgument(thresholdPercentage >= 0 && thresholdPercentage <= 100, $"Invalid thresholdPercentage value {thresholdPercentage}");
@@ -20,12 +20,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             logger?.LogInformation($"Created threshold percentage disk space checker with threshold of {thresholdPercentage}% of drive {drive}");
         }
 
-        protected override DiskStatus GetDiskStatus()
+        protected override StorageStatus GetDiskStatus()
         {
             var driveInfo = new DriveInfo(this.drive);
             double percentDiskUsed = 100 - (double)driveInfo.AvailableFreeSpace * 100 / driveInfo.TotalSize;
-            DiskStatus diskStatus = GetDiskStatus(percentDiskUsed, this.thresholdPercentage);
-            if (diskStatus != DiskStatus.Available)
+            StorageStatus diskStatus = GetDiskStatus(percentDiskUsed, this.thresholdPercentage);
+            if (diskStatus != StorageStatus.Available)
             {
                 this.Logger?.LogWarning($"High disk usage detected - using {percentDiskUsed}% of a maximum of {this.thresholdPercentage}% of drive {this.drive}");
             }
@@ -33,20 +33,20 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             return diskStatus;
         }
 
-        static DiskStatus GetDiskStatus(double percentDiskUsed, double thresholdPercentage)
+        static StorageStatus GetDiskStatus(double percentDiskUsed, double thresholdPercentage)
         {
             double usagePercentage = percentDiskUsed * 100 / thresholdPercentage;
             if (usagePercentage < 85)
             {
-                return DiskStatus.Available;
+                return StorageStatus.Available;
             }
 
             if (usagePercentage < 100)
             {
-                return DiskStatus.Critical;
+                return StorageStatus.Critical;
             }
 
-            return DiskStatus.Full;
+            return StorageStatus.Full;
         }
     }
 }

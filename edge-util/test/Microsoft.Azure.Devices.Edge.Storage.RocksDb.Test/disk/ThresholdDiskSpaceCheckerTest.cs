@@ -29,16 +29,16 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
 
             try
             {
-                DriveInfo driveInfo = DiskSpaceChecker.GetMatchingDrive(testStorageFolder)
+                DriveInfo driveInfo = StorageSpaceChecker.GetMatchingDrive(testStorageFolder)
                     .Expect(() => new ArgumentException("Should find drive for temp folder"));
                 double thresholdPercentage = 100 - ((double)driveInfo.AvailableFreeSpace - (50 * 1024 * 1024)) * 100 / driveInfo.TotalSize;
-                var thresholdDiskSpaceChecker = new ThresholdDiskSpaceChecker(testStorageFolder, thresholdPercentage, TimeSpan.FromSeconds(3), logger);
+                var thresholdDiskSpaceChecker = new ThresholdStorageSpaceChecker(testStorageFolder, thresholdPercentage, TimeSpan.FromSeconds(3), logger);
 
                 // Assert
-                Assert.Equal(DiskStatus.Unknown, thresholdDiskSpaceChecker.DiskStatus);
+                Assert.Equal(StorageStatus.Unknown, thresholdDiskSpaceChecker.DiskStatus);
                 await Task.Delay(TimeSpan.FromSeconds(4));
-                DiskStatus currentDiskStatus = thresholdDiskSpaceChecker.DiskStatus;
-                Assert.True(currentDiskStatus == DiskStatus.Available || currentDiskStatus == DiskStatus.Critical);
+                StorageStatus currentDiskStatus = thresholdDiskSpaceChecker.DiskStatus;
+                Assert.True(currentDiskStatus == StorageStatus.Available || currentDiskStatus == StorageStatus.Critical);
 
                 // Act
                 string filePath = Path.Combine(testStorageFolder, "file0");
@@ -47,17 +47,17 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
                 {
                     await File.AppendAllTextAsync(filePath, dummyFileContents);
                     await Task.Delay(TimeSpan.FromSeconds(3));
-                    DiskStatus diskStatus = thresholdDiskSpaceChecker.DiskStatus;
-                    if (diskStatus > DiskStatus.Available)
+                    StorageStatus diskStatus = thresholdDiskSpaceChecker.DiskStatus;
+                    if (diskStatus > StorageStatus.Available)
                     {
                         double percentDiskUsed = 100 - (double)driveInfo.AvailableFreeSpace * 100 / driveInfo.TotalSize;
                         double usagePercentage = percentDiskUsed * 100 / thresholdPercentage;
-                        if (diskStatus == DiskStatus.Critical)
+                        if (diskStatus == StorageStatus.Critical)
                         {
                             Assert.True(usagePercentage >= 85);
                             Assert.True(usagePercentage < 100);
                         }
-                        else if (diskStatus == DiskStatus.Full)
+                        else if (diskStatus == StorageStatus.Full)
                         {
                             Assert.True(usagePercentage >= 100);
                             break;
@@ -71,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
                 // Assert
                 await Task.Delay(TimeSpan.FromSeconds(4));
                 currentDiskStatus = thresholdDiskSpaceChecker.DiskStatus;
-                Assert.True(currentDiskStatus == DiskStatus.Available || currentDiskStatus == DiskStatus.Critical);
+                Assert.True(currentDiskStatus == StorageStatus.Available || currentDiskStatus == StorageStatus.Critical);
             }
             finally
             {

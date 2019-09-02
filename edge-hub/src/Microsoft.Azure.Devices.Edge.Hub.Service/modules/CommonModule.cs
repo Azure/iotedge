@@ -155,7 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 c =>
                 {
                     IDiskSpaceChecker dickSpaceChecker = this.experimentalFeatures.EnableDiskSpaceCheck && this.usePersistentStorage
-                        ? DiskSpaceChecker.Create(this.storagePath, this.storageLimitThresholdPercentage, this.diskSpaceCheckFrequency)
+                        ? StorageSpaceChecker.Create(this.storagePath, this.storageLimitThresholdPercentage, this.diskSpaceCheckFrequency)
                         : new NullDiskSpaceChecker() as IDiskSpaceChecker;
                     return dickSpaceChecker;
                 })

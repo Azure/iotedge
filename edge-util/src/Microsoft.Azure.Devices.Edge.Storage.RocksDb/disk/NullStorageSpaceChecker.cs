@@ -4,13 +4,13 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
     using System;
     using Microsoft.Extensions.Logging;
 
-    public class DummyDiskSpaceChecker : DiskSpaceCheckerBase
+    public class NullStorageSpaceChecker : StorageSpaceCheckerBase
     {
-        public DummyDiskSpaceChecker(TimeSpan checkFrequency, ILogger logger)
+        public NullStorageSpaceChecker(TimeSpan checkFrequency, ILogger logger)
             : base(checkFrequency, logger)
         {
         }
 
-        protected override DiskStatus GetDiskStatus() => DiskStatus.Available;
+        protected override StorageStatus GetDiskStatus() => StorageStatus.Available;
     }
 }

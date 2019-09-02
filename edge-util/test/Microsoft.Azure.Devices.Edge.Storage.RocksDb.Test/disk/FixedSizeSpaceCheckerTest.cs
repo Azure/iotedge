@@ -35,9 +35,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
                 var rand = new Random();
 
                 // Assert
-                Assert.Equal(DiskStatus.Unknown, fixedSizeSpaceChecker.DiskStatus);
+                Assert.Equal(StorageStatus.Unknown, fixedSizeSpaceChecker.DiskStatus);
                 await Task.Delay(TimeSpan.FromSeconds(4));
-                Assert.Equal(DiskStatus.Available, fixedSizeSpaceChecker.DiskStatus);
+                Assert.Equal(StorageStatus.Available, fixedSizeSpaceChecker.DiskStatus);
 
                 // Act
                 string filePath = Path.Combine(testStorageFolder, "file0");
@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
 
                 // Assert
                 await Task.Delay(TimeSpan.FromSeconds(3));
-                Assert.Equal(DiskStatus.Available, fixedSizeSpaceChecker.DiskStatus);
+                Assert.Equal(StorageStatus.Available, fixedSizeSpaceChecker.DiskStatus);
 
                 // Act
                 filePath = Path.Combine(testStorageFolder, "file1");
@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
 
                 // Assert
                 await Task.Delay(TimeSpan.FromSeconds(3));
-                Assert.Equal(DiskStatus.Critical, fixedSizeSpaceChecker.DiskStatus);
+                Assert.Equal(StorageStatus.Critical, fixedSizeSpaceChecker.DiskStatus);
 
                 // Act
                 filePath = Path.Combine(testStorageFolder, "file2");
@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
 
                 // Assert
                 await Task.Delay(TimeSpan.FromSeconds(3));
-                Assert.Equal(DiskStatus.Full, fixedSizeSpaceChecker.DiskStatus);
+                Assert.Equal(StorageStatus.Full, fixedSizeSpaceChecker.DiskStatus);
             }
             finally
             {
