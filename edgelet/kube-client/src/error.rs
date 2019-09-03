@@ -13,7 +13,7 @@ pub struct Error {
     inner: Context<ErrorKind>,
 }
 
-#[derive(Debug, Fail)]
+#[derive(Debug, Fail, PartialEq)]
 pub enum ErrorKind {
     #[fail(display = "Unable to load a kubernetes configuration file: {}", _0)]
     KubeConfig(KubeConfigErrorReason),

@@ -693,7 +693,8 @@ mod tests {
     use url::Url;
 
     use crate::config::{Config, TokenSource};
-    use crate::Client;
+    use crate::error::RequestType;
+    use crate::{Client, ErrorKind};
 
     #[derive(Clone)]
     struct TestTokenSource();
@@ -818,8 +819,10 @@ mod tests {
         const LABEL_SELECTOR: &str = "x=y";
         let service = service_fn(
             |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
-                let mut res = Response::new(Body::empty());
-                *res.status_mut() = StatusCode::SERVICE_UNAVAILABLE;
+                let res = Response::builder()
+                    .status(StatusCode::SERVICE_UNAVAILABLE)
+                    .body(Body::empty())
+                    .unwrap();
                 Ok(res)
             },
         );
@@ -827,15 +830,12 @@ mod tests {
         let mut client = make_test_client(service);
 
         let fut = client.list_pods(NAMESPACE, Some(LABEL_SELECTOR));
-        let _ = Runtime::new()
-            .unwrap()
-            .block_on(fut)
-            .map_err(|e| {
-                assert!(e.to_string().contains("HTTP response error"));
-            })
-            .map(|r| {
-                panic!("expected an error result {:?}", r);
-            });
+
+        if let Err(err) = Runtime::new().unwrap().block_on(fut) {
+            assert_eq!(err.kind(), &ErrorKind::Response(RequestType::PodList))
+        } else {
+            panic!("Expected and error result")
+        }
     }
 
     #[test]
@@ -851,16 +851,14 @@ mod tests {
         let mut client = make_test_client(service);
 
         let fut = client.list_pods(NAMESPACE, Some(LABEL_SELECTOR));
-        let _ = Runtime::new()
-            .unwrap()
-            .block_on(fut)
-            .map_err(|e| {
-                assert!(e.to_string().contains("HTTP test error"));
-            })
-            .map(|r| {
-                panic!("expected an error result {:?}", r);
-            });
+
+        if let Err(err) = Runtime::new().unwrap().block_on(fut) {
+            assert_eq!(err.kind(), &ErrorKind::Response(RequestType::PodList))
+        } else {
+            panic!("Expected and error result")
+        }
     }
+
     #[test]
     fn replace_deployment_error_response() {
         const NAMESPACE: &str = "custom-namespace";
