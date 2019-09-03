@@ -44,6 +44,10 @@ pub struct SymmetricKeyCredential {
 }
 
 impl SymmetricKeyCredential {
+    pub fn new(key: Vec<u8>) -> Self {
+        SymmetricKeyCredential { key: Some(key) }
+    }
+
     pub fn key(&self) -> Option<&[u8]> {
         self.key.as_ref().map(AsRef::as_ref)
     }
@@ -91,6 +95,10 @@ pub struct Credentials {
 }
 
 impl Credentials {
+    pub fn new(auth_type: AuthType, source: CredentialSource) -> Self {
+        Credentials { auth_type, source }
+    }
+
     pub fn auth_type(&self) -> &AuthType {
         &self.auth_type
     }

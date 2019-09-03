@@ -612,8 +612,8 @@ fn get_external_provisioning_info<S>(
     settings: &S,
     mut tokio_runtime: &mut tokio::runtime::Runtime,
 ) -> Result<Option<ProvisioningResult>, Error>
-    where
-        S: RuntimeSettings,
+where
+    S: RuntimeSettings,
 {
     if let Provisioning::External(ref external) = settings.provisioning() {
         // Set the external provisioning endpoint environment variable for use by the custom HSM library.
@@ -640,18 +640,15 @@ fn get_external_provisioning_info<S>(
                             InitializeErrorReason::HybridAuthDirCreate,
                         ))?;
 
-                    let cert_bytes =
-                        base64::decode(x509.identity_cert()).context(ErrorKind::Initialize(
-                            InitializeErrorReason::ExternalProvisioningClient(
-                                ExternalProvisioningErrorReason::InvalidIdentityCertificate,
-                            ),
-                        ))?;
+                    let cert_bytes = base64::decode(x509.identity_cert()).context(
+                        ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient(
+                            ExternalProvisioningErrorReason::InvalidIdentityCertificate,
+                        )),
+                    )?;
                     let pk_bytes = base64::decode(x509.identity_private_key()).context(
-                        ErrorKind::Initialize(
-                            InitializeErrorReason::ExternalProvisioningClient(
-                                ExternalProvisioningErrorReason::InvalidIdentityPrivateKey,
-                            ),
-                        ),
+                        ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient(
+                            ExternalProvisioningErrorReason::InvalidIdentityPrivateKey,
+                        )),
                     )?;
 
                     let path = subdir_path.join(EDGE_EXTERNAL_PROVISIONING_ID_CERT_FILENAME);
@@ -674,8 +671,7 @@ fn get_external_provisioning_info<S>(
         };
 
         Ok(Some(prov_info))
-    }
-    else{
+    } else {
         Ok(None)
     }
 }
@@ -755,7 +751,10 @@ where
                     match credentials.source() {
                         CredentialSource::Hsm => {
                             env::set_var(DEVICE_IDENTITY_CERT_PATH_ENV_KEY, x509.identity_cert());
-                            env::set_var(DEVICE_IDENTITY_KEY_PATH_ENV_KEY, x509.identity_private_key());
+                            env::set_var(
+                                DEVICE_IDENTITY_KEY_PATH_ENV_KEY,
+                                x509.identity_private_key(),
+                            );
                         }
                         CredentialSource::Payload => {
                             let external_prov_subdir_path = Path::new(&settings.homedir())
@@ -2004,12 +2003,16 @@ mod tests {
     use serde_json::json;
     use tempdir::TempDir;
 
-    use edgelet_core::ModuleRuntimeState;
-    use edgelet_core::{KeyBytes, PrivateKey};
+    use edgelet_core::{KeyBytes, ModuleRuntimeState, PrivateKey};
     use edgelet_docker::{DockerConfig, DockerModuleRuntime, Settings};
     use edgelet_test_utils::cert::TestCert;
     use edgelet_test_utils::crypto::TestHsm;
     use edgelet_test_utils::module::*;
+
+    use provisioning::provisioning::{
+        AuthType, CredentialSource, Credentials, ProvisioningResult, ReprovisioningStatus,
+        SymmetricKeyCredential, X509Credential,
+    };
 
     use super::*;
     use docker::models::ContainerCreateBody;
@@ -2030,6 +2033,9 @@ mod tests {
     #[cfg(unix)]
     static EMPTY_CONNECTION_STRING_SETTINGS: &str =
         "../edgelet-docker/test/linux/bad_sample_settings.cs.3.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_EXTERNAL: &str =
+        "../edgelet-docker/test/linux/sample_settings.external.yaml";
 
     #[cfg(windows)]
     static GOOD_SETTINGS: &str = "../edgelet-docker/test/windows/sample_settings.yaml";
@@ -2047,6 +2053,9 @@ mod tests {
     #[cfg(windows)]
     static EMPTY_CONNECTION_STRING_SETTINGS: &str =
         "../edgelet-docker/test/windows/bad_sample_settings.cs.3.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_EXTERNAL: &str =
+        "../edgelet-docker/test/windows/sample_settings.external.yaml";
 
     #[derive(Clone, Copy, Debug, Fail)]
     pub struct Error;
@@ -2643,7 +2652,7 @@ mod tests {
         let settings = Settings::new(Some(Path::new(GOOD_SETTINGS1))).unwrap();
         assert_eq!(
             ProvisioningAuthMethod::SharedAccessKey,
-            get_provisioning_auth_method(&settings)
+            get_provisioning_auth_method(&settings, &None).unwrap()
         );
     }
 
@@ -2652,7 +2661,7 @@ mod tests {
         let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_TPM1))).unwrap();
         assert_eq!(
             ProvisioningAuthMethod::SharedAccessKey,
-            get_provisioning_auth_method(&settings)
+            get_provisioning_auth_method(&settings, &None).unwrap()
         );
     }
 
@@ -2661,7 +2670,71 @@ mod tests {
         let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_SYMM_KEY))).unwrap();
         assert_eq!(
             ProvisioningAuthMethod::SharedAccessKey,
-            get_provisioning_auth_method(&settings)
+            get_provisioning_auth_method(&settings, &None).unwrap()
+        );
+    }
+
+    #[test]
+    fn get_provisioning_auth_method_returns_x509_for_external_provisioning_with_x509_auth_type() {
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_EXTERNAL))).unwrap();
+
+        let x509_credential = X509Credential::new("".to_string(), "".to_string());
+        let credentials =
+            Credentials::new(AuthType::X509(x509_credential), CredentialSource::Payload);
+
+        let hub_name = "TestHub";
+        let device_id = "TestDevice";
+
+        let provisioning_result = Some(ProvisioningResult::new(
+            device_id,
+            hub_name,
+            None,
+            ReprovisioningStatus::InitialAssignment,
+            Some(credentials),
+        ));
+        assert_eq!(
+            ProvisioningAuthMethod::X509,
+            get_provisioning_auth_method(&settings, &provisioning_result).unwrap()
+        );
+    }
+
+    #[test]
+    fn get_provisioning_auth_method_returns_sas_key_for_external_provisioning_with_sas_key_auth_type(
+    ) {
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_EXTERNAL))).unwrap();
+
+        let symmetric_key_credential = SymmetricKeyCredential::new(vec![0_u8; 10]);
+        let credentials = Credentials::new(
+            AuthType::SymmetricKey(symmetric_key_credential),
+            CredentialSource::Payload,
+        );
+
+        let hub_name = "TestHub";
+        let device_id = "TestDevice";
+
+        let provisioning_result = Some(ProvisioningResult::new(
+            device_id,
+            hub_name,
+            None,
+            ReprovisioningStatus::InitialAssignment,
+            Some(credentials),
+        ));
+        assert_eq!(
+            ProvisioningAuthMethod::SharedAccessKey,
+            get_provisioning_auth_method(&settings, &provisioning_result).unwrap()
+        );
+    }
+
+    #[test]
+    fn get_provisioning_auth_method_returns_error_with_no_provisioning_result_in_external_provisioning(
+    ) {
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_EXTERNAL))).unwrap();
+
+        assert_eq!(
+            &ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient(
+                ExternalProvisioningErrorReason::Provisioning,
+            )),
+            get_provisioning_auth_method(&settings, &None).expect_err("An error is expected when no provisioning result is specified with the external provisioning mode.").kind()
         );
     }
 
@@ -2719,7 +2792,7 @@ mod tests {
         let settings = Settings::new(Some(&settings_path)).unwrap();
         assert_eq!(
             ProvisioningAuthMethod::X509,
-            get_provisioning_auth_method(&settings)
+            get_provisioning_auth_method(&settings, &None).unwrap()
         );
     }
 
@@ -2775,6 +2848,7 @@ mod tests {
             tmp_dir.path(),
             EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
             EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+            &None,
         )
         .unwrap();
 
@@ -2829,6 +2903,7 @@ mod tests {
                 tmp_dir.path(),
                 EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
                 EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+                &None,
             )
             .unwrap();
 
@@ -2866,6 +2941,7 @@ mod tests {
             tmp_dir.path(),
             EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
             EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+            &None,
         )
         .unwrap();
 
@@ -2934,6 +3010,7 @@ mod tests {
             tmp_dir.path(),
             EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
             EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+            &None,
         )
         .unwrap();
 
@@ -2988,6 +3065,7 @@ mod tests {
             tmp_dir.path(),
             EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
             EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+            &None,
         )
         .unwrap_err();
     }
@@ -3016,6 +3094,7 @@ mod tests {
                 tmp_dir.path(),
                 EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
                 EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+                &None,
             )
             .unwrap();
 
@@ -3064,6 +3143,7 @@ mod tests {
                 tmp_dir.path(),
                 EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
                 EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+                &None,
             )
             .unwrap();
 
@@ -3124,6 +3204,7 @@ mod tests {
                 tmp_dir.path(),
                 EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
                 EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+                &None,
             )
             .unwrap();
 
@@ -3172,6 +3253,7 @@ mod tests {
                 tmp_dir.path(),
                 EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
                 EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+                &None,
             )
             .unwrap();
 
@@ -3244,6 +3326,7 @@ mod tests {
             tmp_dir.path(),
             EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
             EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+            &None,
         )
         .unwrap();
 
