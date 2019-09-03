@@ -339,7 +339,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         static Task DeleteIdentityAsync(Device device, IotHub iotHub, CancellationToken token) =>
             Profiler.Run(
                 () => iotHub.DeleteDeviceIdentityAsync(device, token),
-                "Deleted device '{Device}'",
+                "Deleted leaf device '{Device}'",
                 device.Id);
 
         static Task<MethodResponse> DirectMethod(MethodRequest request, object context)
