@@ -53,12 +53,12 @@ pub fn pod_to_module(pod: &api_core::Pod) -> Option<Result<KubeModule>> {
                                     ContainerCreateBody::new(),
                                     None,
                                 )
-                                .map_err(|err| Error::from(err.context(ErrorKind::Docker)))
+                                .map_err(|err| Error::from(err.context(ErrorKind::PodToModule)))
                             },
                         )
                     },
                 )
-                .map_err(|err| Error::from(err.context(ErrorKind::Docker)))
+                .map_err(|err| Error::from(err.context(ErrorKind::PodToModule)))
                 .and_then(|config| KubeModule::new(module_id.to_string(), config))
         })
 }

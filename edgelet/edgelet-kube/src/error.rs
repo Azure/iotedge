@@ -52,8 +52,8 @@ pub enum ErrorKind {
     #[fail(display = "Kubernetes client error")]
     KubeClient,
 
-    #[fail(display = "Docker crate error")]
-    Docker,
+    #[fail(display = "Could not convert pod definition to kubernetes module")]
+    PodToModule,
 
     #[fail(display = "{}", _0)]
     NotFound(String),
