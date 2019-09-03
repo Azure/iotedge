@@ -202,5 +202,54 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker.Test
             Assert.Null(config.CreateOptions.NetworkingConfig.EndpointsConfig["host"].Aliases);
             Assert.Equal("host", config.CreateOptions.HostConfig.NetworkMode);
         }
+
+        [Fact]
+        public void ExtensionDataFields()
+        {
+            // Arrange
+            var runtimeInfo = new Mock<IRuntimeInfo<DockerRuntimeConfig>>();
+            runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
+
+            string createOptions = "{\"HostConfig\":{\"Devices\":[],\"DeviceRequests\":[{\"Driver\":\"\",\"Count\":-1,\"DeviceIDs\":null,\"Capabilities\":[[\"gpu\"]],\"Options\":{}}]}}";
+            var module = new Mock<IModule<DockerConfig>>();
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", createOptions));
+            module.SetupGet(m => m.Name).Returns("mod1");
+
+            IConfigurationRoot configRoot = new ConfigurationBuilder().AddInMemoryCollection(
+                new Dictionary<string, string>
+                {
+                    { Constants.EdgeletWorkloadUriVariableName, "unix:///var/run/iotedgedworkload.sock" },
+                    { Constants.EdgeletManagementUriVariableName, "unix:///var/run/iotedgedmgmt.sock" },
+                    { Constants.NetworkIdKey, "testnetwork1" },
+                    { Constants.EdgeDeviceHostNameKey, "edhk1" }
+                }).Build();
+            var configSource = Mock.Of<IConfigSource>(s => s.Configuration == configRoot);
+
+            ICombinedConfigProvider<CombinedDockerConfig> provider = new CombinedEdgeletConfigProvider(new[] { new AuthConfig() }, configSource);
+
+            // Act
+            CombinedDockerConfig config = provider.GetCombinedConfig(module.Object, runtimeInfo.Object);
+
+            // Assert
+            Assert.NotNull(config.CreateOptions);
+            Assert.NotNull(config.CreateOptions.HostConfig);
+
+            var otherProperties = config.CreateOptions.HostConfig.OtherProperties;
+            Assert.NotNull(otherProperties);
+
+            var reserializedHostConfig = Newtonsoft.Json.JsonConvert.SerializeObject(config.CreateOptions.HostConfig);
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                Assert.Equal(
+                    "{\"Binds\":[\"\\\\var\\\\run:\\\\var\\\\run\"],\"Devices\":[],\"DeviceRequests\":[{\"Driver\":\"\",\"Count\":-1,\"DeviceIDs\":null,\"Capabilities\":[[\"gpu\"]],\"Options\":{}}]}",
+                    reserializedHostConfig);
+            }
+            else
+            {
+                Assert.Equal(
+                    "{\"Binds\":[\"/var/run/iotedgedworkload.sock:/var/run/iotedgedworkload.sock\"],\"Devices\":[],\"DeviceRequests\":[{\"Driver\":\"\",\"Count\":-1,\"DeviceIDs\":null,\"Capabilities\":[[\"gpu\"]],\"Options\":{}}]}",
+                    reserializedHostConfig);
+            }
+        }
     }
 }
