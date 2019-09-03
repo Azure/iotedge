@@ -1,3 +1,15 @@
+# 1.0.9-rc2 (2019-09-03)
+
+## Edge Hub
+### Bug fixes
+* Fix delay in module 2 module messages ([6907bef](https://github.com/Azure/iotedge/commit/6907bef066479cbdda2325722e7715e02966c4d1))
+* Add back V0 metrics ([0301448](https://github.com/Azure/iotedge/commit/03014487cd8b096afc81fbd63b12f0958faa9a45))
+* Change tags for messages_sent metric ([6376d92](https://github.com/Azure/iotedge/commit/6376d92412a1d4b6ea97b8c43669458df95cd48e))
+
+## iotedged
+### Bug fixes
+* Show certificate expiry in self-signed certs warning ([bb9b40c](https://github.com/Azure/iotedge/commit/bb9b40c5ac0311de060d9b85808651d0fb670230))
+
 # 1.0.9-rc1 (2019-08-09)
 * Support running the Windows installer script in 32-bit PS host on 64-bit Windows ([76eacaf](https://github.com/Azure/iotedge/commit/76eacaf988e7d421b4e45c70a45d8160f1feaaa1))
 * `iotedge check` improvements ([8090d6c](https://github.com/Azure/iotedge/commit/8090d6c7fc47a377787d5d9ff15ed5fea894112c))
