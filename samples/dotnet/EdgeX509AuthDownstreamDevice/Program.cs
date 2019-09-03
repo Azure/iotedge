@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Client.Samples
     using System.Linq;
     using System.Runtime.InteropServices;
     using System.Security.Cryptography.X509Certificates;
+    using System.Net.Security;
     using System.Text;
     using System.Threading.Tasks;
     using Org.BouncyCastle.Crypto;
@@ -179,19 +180,19 @@ namespace Microsoft.Azure.Devices.Client.Samples
                 throw new ArgumentException("Invalid protocol");
             }
 
-            if (string.Compare("Amqp", protocol, StringComparison.OrdinalIgnoreCase) == 0)
+            X509Certificate2 trustedCACert = GetTrustedCACertFromFile(TrustedCACertPath);
+            RemoteCertificateValidationCallback certificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => CustomCertificateValidator.ValidateCertificate(trustedCACert, (X509Certificate2) certificate, chain, sslPolicyErrors);
+            if (string.Compare("Amqp", protocol, StringComparison.OrdinalIgnoreCase) == 0 || string.Compare("AmqpWs", protocol, StringComparison.OrdinalIgnoreCase) == 0)
             {
                 transportSettings[0] = new AmqpTransportSettings(transportType);
-                AmqpTransportSettings amqpTransportSettings = (AmqpTransportSettings)transportSettings[0];
-                X509Certificate2 trustedCACert = getTrustedCACertFromFile(TrustedCACertPath);
-                amqpTransportSettings.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => CustomCertificateValidator.ValidateCertificate(trustedCACert, (X509Certificate2) certificate, chain, sslPolicyErrors);
-            }
-            else if (string.Compare("AmqpWs", protocol, StringComparison.OrdinalIgnoreCase) == 0) {
-                transportSettings[0] = new AmqpTransportSettings(transportType);
+                AmqpTransportSettings amqpTransportSettings = (AmqpTransportSettings) transportSettings[0];
+                amqpTransportSettings.RemoteCertificateValidationCallback = certificateValidationCallback;
             }
             else
             {
-                transportSettings[0] = new MqttTransportSettings(transportType);
+                transportSettings[0] = new MqttTransportSettings (transportType);
+                MqttTransportSettings mqttTransportSettings = (MqttTransportSettings) transportSettings[0];
+                mqttTransportSettings.RemoteCertificateValidationCallback = certificateValidationCallback;
             }
 
             return transportSettings;
@@ -309,7 +310,7 @@ namespace Microsoft.Azure.Devices.Client.Samples
                     Console.WriteLine("Attempting to install CA certificate: {0}", TrustedCACertPath);
                     X509Store store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
                     store.Open(OpenFlags.ReadWrite);
-                    X509Certificate2 trustedCACert = getTrustedCACertFromFile(TrustedCACertPath);
+                    X509Certificate2 trustedCACert = GetTrustedCACertFromFile(TrustedCACertPath);
                     store.Add(trustedCACert);
                     Console.WriteLine("Successfully added certificate: {0}", TrustedCACertPath);
                     store.Close();
@@ -321,7 +322,7 @@ namespace Microsoft.Azure.Devices.Client.Samples
             }
         }
 
-        static X509Certificate2 getTrustedCACertFromFile(string trustedCACertPath) {
+        static X509Certificate2 GetTrustedCACertFromFile(string trustedCACertPath) {
             return new X509Certificate2(System.Security.Cryptography.X509Certificates.X509Certificate.CreateFromCertFile(TrustedCACertPath));
         }
 
