@@ -142,7 +142,7 @@ pub trait ContainerApi: Send + Sync {
     fn container_restart(
         &self,
         id: &str,
-        t: i32,
+        t: Option<i32>,
     ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send>;
     fn container_start(
         &self,
@@ -157,7 +157,7 @@ pub trait ContainerApi: Send + Sync {
     fn container_stop(
         &self,
         id: &str,
-        t: i32,
+        t: Option<i32>,
     ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send>;
     fn container_top(
         &self,
@@ -1077,15 +1077,18 @@ where
     fn container_restart(
         &self,
         id: &str,
-        t: i32,
+        t: Option<i32>,
     ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
+        let mut query = ::url::form_urlencoded::Serializer::new(String::new());
+        if let Some(ref timeout) = t {
+            query.append_pair("t", &timeout.to_string());
+        }
 
-        let query = ::url::form_urlencoded::Serializer::new(String::new())
-            .append_pair("t", &t.to_string())
-            .finish();
+        let query = query.finish();
+
         let uri_str = format!("/containers/{id}/restart?{}", query, id = id);
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
@@ -1233,15 +1236,18 @@ where
     fn container_stop(
         &self,
         id: &str,
-        t: i32,
+        t: Option<i32>,
     ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
 
-        let query = ::url::form_urlencoded::Serializer::new(String::new())
-            .append_pair("t", &t.to_string())
-            .finish();
+        let mut query = ::url::form_urlencoded::Serializer::new(String::new());
+        if let Some(ref timeout) = t {
+            query.append_pair("t", &timeout.to_string());
+        }
+
+        let query = query.finish();
         let uri_str = format!("/containers/{id}/stop?{}", query, id = id);
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
