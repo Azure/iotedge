@@ -161,7 +161,7 @@ namespace Microsoft.Azure.Devices.Client.Samples
 
             if (string.Compare("Mqtt", protocol, StringComparison.OrdinalIgnoreCase) == 0)
             {
-                transportType = TransportType.Mqtt_WebSocket_Only;
+                transportType = TransportType.Mqtt_Tcp_Only;
             }
             else if (string.Compare("MqttWs", protocol, StringComparison.OrdinalIgnoreCase) == 0)
             {
