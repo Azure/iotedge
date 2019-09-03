@@ -23,3 +23,7 @@ set(${theseTestsName}_h_files
 )
 
 build_c_test_artifacts(${theseTestsName} ON "tests/azure_c_shared_utility_tests")
+
+if(WIN32)
+    target_link_libraries(${theseTestsName}_exe advapi32)
+endif(WIN32)
