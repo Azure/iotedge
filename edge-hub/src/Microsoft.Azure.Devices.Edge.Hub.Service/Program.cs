@@ -62,6 +62,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             var metricsProvider = container.Resolve<IMetricsProvider>();
             Metrics.Init(metricsProvider, metricsListener, logger);
 
+            // Init V0 Metrics
+            MetricsV0.BuildMetricsCollector(configuration);
+
             // EdgeHub and CloudConnectionProvider have a circular dependency. So need to Bind the EdgeHub to the CloudConnectionProvider.
             IEdgeHub edgeHub = await container.Resolve<Task<IEdgeHub>>();
             ICloudConnectionProvider cloudConnectionProvider = await container.Resolve<Task<ICloudConnectionProvider>>();
