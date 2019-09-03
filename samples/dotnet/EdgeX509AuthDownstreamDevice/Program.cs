@@ -153,7 +153,7 @@ namespace Microsoft.Azure.Devices.Client.Samples
             return ParseCertificateAndKey(cert, privateKey);
         }
 
-        static ITransportSettings[] GetTransport(string protocol, X509Certificate2 trustedCACert)
+        static ITransportSettings[] GetTransport(string protocol)
         {
             TransportType transportType = TransportType.Mqtt_Tcp_Only;
             ITransportSettings[] transportSettings = new ITransportSettings[1];
@@ -183,6 +183,7 @@ namespace Microsoft.Azure.Devices.Client.Samples
             {
                 transportSettings[0] = new AmqpTransportSettings(transportType);
                 AmqpTransportSettings amqpTransportSettings = (AmqpTransportSettings)transportSettings[0];
+                X509Certificate2 trustedCACert = getTrustedCACertFromFile(TrustedCACertPath);
                 amqpTransportSettings.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => CustomCertificateValidator.ValidateCertificate(trustedCACert, (X509Certificate2) certificate, chain, sslPolicyErrors);
             }
             else if (string.Compare("AmqpWs", protocol, StringComparison.OrdinalIgnoreCase) == 0) {
@@ -241,14 +242,12 @@ namespace Microsoft.Azure.Devices.Client.Samples
 
             InstallCACert();
 
-            X509Certificate2 trustedCACert = getTrustedCACertFromFile(TrustedCACertPath);
-
             Console.WriteLine("Creating device client using identity certificate...\n");
 
             var (cert, certChain) = GetClientCertificateAndChainFromFile(DeviceIdentityCertPath, DeviceIdentityPrivateKeyPath);
             InstallChainCertificates(certChain);
 
-            ITransportSettings[] transportSettings = GetTransport(ClientTransportType, trustedCACert);
+            ITransportSettings[] transportSettings = GetTransport(ClientTransportType);
 
             var auth = new DeviceAuthenticationWithX509Certificate(DownstreamDeviceId, cert);
             DeviceClient deviceClient = DeviceClient.Create(IothubHostname, IotEdgeGatewayHostname, auth, transportSettings);
