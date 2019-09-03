@@ -46,7 +46,6 @@ namespace Microsoft.Azure.Devices.Client.Samples
                 return false;
             }
 
-            Console.WriteLine("CustomCertificateValidator.ValidateCertificate is passed.");
             return true;
         }
     }
