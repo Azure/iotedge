@@ -112,29 +112,54 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public Task<SystemInfo> GetSystemInfo()
         {
-            // Comment this out to unblock testing.
-            // V1NodeList k8SNodes = await this.client.ListNodeAsync();
-            // string osType = string.Empty;
-            // string arch = string.Empty;
-            // string version = string.Empty;
-            // if (k8SNodes.Items != null)
-            // {
-            //     V1Node firstNode = k8SNodes.Items.FirstOrDefault();
-            //     if (firstNode?.Status?.NodeInfo != null)
-            //     {
-            //         osType = firstNode.Status.NodeInfo.OperatingSystem;
-            //         arch = firstNode.Status.NodeInfo.Architecture;
-            //         version = firstNode.Status.NodeInfo.OsImage;
-            //     }
-            //     else
-            //     {
-            //         Events.NullNodeInfoResponse(firstNode?.Metadata?.Name ?? "UNKNOWN");
-            //     }
-            // }
+            V1NodeList k8sNodes = await this.client.ListNodeAsync();
+            string accumulatedArch = string.Empty;
+
+            // Use "Kubernetes" and the current API version as analogy to device OS/version
             string osType = "Kubernetes";
-            string arch = "Kubernetes";
-            string version = "Kubernetes";
-            return Task.FromResult(new SystemInfo(osType, arch, version));
+            string version = k8sNodes.ApiVersion;
+
+            // Enumerate each node and count the unique architectures
+            var archList = new List<(string arch, int count)>();
+            foreach (V1Node node in k8sNodes)
+            {
+                if (node?.Status?.NodeInfo != null)
+                {
+                    bool haveSeen = false;
+
+                    // Check to see if we've already seen this architecture
+                    foreach (var entry in archList)
+                    {
+                        if (firstNode.Status.NodeInfo.Architecture == entry.arch)
+                        {
+                            // Just increase the node count
+                            entry.count++;
+                            haveSeen = true;
+                            break;
+                        }
+                    }
+
+                    // Add an entry if this is a new arch
+                    if (!haveSeen)
+                    {
+                        archList.Add((firstNode.Status.NodeInfo.Architecture, 1));
+                    }
+                }
+                else
+                {
+                    Events.NullNodeInfoResponse(firstNode?.Metadata?.Name ?? "UNKNOWN");
+                    break;
+                }
+            }
+
+            // Construct the accumulated architecture string
+            foreach (var entry in archList)
+            {
+                accumulatedArch += entry.arch + "(" + entry.count + ")\t";
+            }
+
+
+            return new SystemInfo(osType, accumulatedArch, version);
         }
 
         async Task WatchPodEventsAsync(WatchEventType type, V1Pod item)
