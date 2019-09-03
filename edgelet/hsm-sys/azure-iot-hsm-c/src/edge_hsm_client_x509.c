@@ -36,6 +36,8 @@ int hsm_client_x509_init()
 
     if (!g_is_x509_initialized)
     {
+        log_init(LVL_INFO);
+
         result = hsm_client_crypto_init();
         if (result == 0)
         {
