@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Client.Samples
     using Org.BouncyCastle.Pkcs;
     using Org.BouncyCastle.Security;
     using X509Certificate = Org.BouncyCastle.X509.X509Certificate;
+    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
 
     class Program
     {
@@ -152,27 +153,47 @@ namespace Microsoft.Azure.Devices.Client.Samples
             return ParseCertificateAndKey(cert, privateKey);
         }
 
-        static TransportType GetTransport(string protocol)
+        static ITransportSettings[] GetTransport(string protocol, X509Certificate2 trustedCACert)
         {
-            TransportType result = TransportType.Mqtt_Tcp_Only;
+            TransportType transportType = TransportType.Mqtt_Tcp_Only;
+            ITransportSettings[] transportSettings = new ITransportSettings[1];
 
-            if (!string.IsNullOrWhiteSpace(protocol))
+            if (string.Compare("Mqtt", protocol, StringComparison.OrdinalIgnoreCase) == 0)
             {
-                if (string.Compare("MqttWs", protocol, StringComparison.OrdinalIgnoreCase) == 0)
-                {
-                    result = TransportType.Mqtt_WebSocket_Only;
-                }
-                else if (string.Compare("Amqp", protocol, StringComparison.OrdinalIgnoreCase) == 0)
-                {
-                    result = TransportType.Amqp_Tcp_Only;
-                }
-                else if (string.Compare("AmqpWs", protocol, StringComparison.OrdinalIgnoreCase) == 0)
-                {
-                    result = TransportType.Amqp_WebSocket_Only;
-                }
+                transportType = TransportType.Mqtt_WebSocket_Only;
+            }
+            else if (string.Compare("MqttWs", protocol, StringComparison.OrdinalIgnoreCase) == 0)
+            {
+                transportType = TransportType.Mqtt_WebSocket_Only;
+            }
+            else if (string.Compare("Amqp", protocol, StringComparison.OrdinalIgnoreCase) == 0)
+            {
+                transportType = TransportType.Amqp_Tcp_Only;
+            }
+            else if (string.Compare("AmqpWs", protocol, StringComparison.OrdinalIgnoreCase) == 0)
+            {
+                transportType = TransportType.Amqp_WebSocket_Only;
+            }
+            else
+            {
+                throw new ArgumentException("Invalid protocol");
             }
 
-            return result;
+            if (string.Compare("Amqp", protocol, StringComparison.OrdinalIgnoreCase) == 0)
+            {
+                transportSettings[0] = new AmqpTransportSettings(transportType);
+                AmqpTransportSettings amqpTransportSettings = (AmqpTransportSettings)transportSettings[0];
+                amqpTransportSettings.RemoteCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => CustomCertificateValidator.ValidateCertificate(trustedCACert, (X509Certificate2) certificate, chain, sslPolicyErrors);
+            }
+            else if (string.Compare("AmqpWs", protocol, StringComparison.OrdinalIgnoreCase) == 0) {
+                transportSettings[0] = new AmqpTransportSettings(transportType);
+            }
+            else
+            {
+                transportSettings[0] = new MqttTransportSettings(transportType);
+            }
+
+            return transportSettings;
         }
 
         /// <summary>
@@ -218,17 +239,19 @@ namespace Microsoft.Azure.Devices.Client.Samples
                 }
             }
 
-            TransportType transport = GetTransport(ClientTransportType);
-
             InstallCACert();
+
+            X509Certificate2 trustedCACert = getTrustedCACertFromFile(TrustedCACertPath);
 
             Console.WriteLine("Creating device client using identity certificate...\n");
 
             var (cert, certChain) = GetClientCertificateAndChainFromFile(DeviceIdentityCertPath, DeviceIdentityPrivateKeyPath);
             InstallChainCertificates(certChain);
-            var auth = new DeviceAuthenticationWithX509Certificate(DownstreamDeviceId, cert);
 
-            DeviceClient deviceClient = DeviceClient.Create(IothubHostname, IotEdgeGatewayHostname, auth, transport);
+            ITransportSettings[] transportSettings = GetTransport(ClientTransportType, trustedCACert);
+
+            var auth = new DeviceAuthenticationWithX509Certificate(DownstreamDeviceId, cert);
+            DeviceClient deviceClient = DeviceClient.Create(IothubHostname, IotEdgeGatewayHostname, auth, transportSettings);
 
             if (deviceClient == null)
             {
@@ -287,7 +310,8 @@ namespace Microsoft.Azure.Devices.Client.Samples
                     Console.WriteLine("Attempting to install CA certificate: {0}", TrustedCACertPath);
                     X509Store store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
                     store.Open(OpenFlags.ReadWrite);
-                    store.Add(new X509Certificate2(System.Security.Cryptography.X509Certificates.X509Certificate.CreateFromCertFile(TrustedCACertPath)));
+                    X509Certificate2 trustedCACert = getTrustedCACertFromFile(TrustedCACertPath);
+                    store.Add(trustedCACert);
                     Console.WriteLine("Successfully added certificate: {0}", TrustedCACertPath);
                     store.Close();
                 }
@@ -296,6 +320,10 @@ namespace Microsoft.Azure.Devices.Client.Samples
             {
                 Console.WriteLine("IOTEDGE_TRUSTED_CA_CERTIFICATE_PEM_PATH was not set or null, not installing any CA certificate");
             }
+        }
+
+        static X509Certificate2 getTrustedCACertFromFile(string trustedCACertPath) {
+            return new X509Certificate2(System.Security.Cryptography.X509Certificates.X509Certificate.CreateFromCertFile(TrustedCACertPath));
         }
 
         /// <summary>
