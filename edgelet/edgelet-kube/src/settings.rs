@@ -9,8 +9,10 @@ use edgelet_core::{
 };
 use edgelet_docker::{DockerConfig, DEFAULTS};
 use edgelet_utils::YamlFileSource;
+use failure::ResultExt;
 
 use crate::error::Error;
+use crate::ErrorKind;
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Settings {
@@ -41,14 +43,23 @@ impl Settings {
             })
         });
         let mut config = Config::default();
-        config.merge(YamlFileSource::String(DEFAULTS))?;
+        config
+            .merge(YamlFileSource::String(DEFAULTS))
+            .context(ErrorKind::Config)?;
+
         if let Some(file) = filename {
-            config.merge(YamlFileSource::File(file.into()))?;
+            config
+                .merge(YamlFileSource::File(file.into()))
+                .context(ErrorKind::Config)?;
         }
 
-        config.merge(Environment::with_prefix("iotedge"))?;
+        config
+            .merge(Environment::with_prefix("iotedge"))
+            .context(ErrorKind::Config)?;
 
-        Ok(config.try_into()?)
+        let settings = config.try_into().context(ErrorKind::Config)?;
+
+        Ok(settings)
     }
 
     pub fn with_device_id(mut self, device_id: &str) -> Self {
