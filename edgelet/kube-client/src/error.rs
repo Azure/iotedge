@@ -1,21 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::env::VarError;
 use std::fmt;
 use std::fmt::Display;
-use std::io::Error as IoError;
-use std::num::ParseIntError;
 
-use base64::DecodeError;
 use failure::{Backtrace, Context, Fail};
-use hyper::header::InvalidHeaderValue;
-use hyper::Error as HyperError;
-use k8s_openapi::http::uri::InvalidUri;
-use k8s_openapi::{RequestError, ResponseError};
-use native_tls::Error as NativeTlsError;
-use openssl::error::ErrorStack;
-use serde_yaml::Error as SerdeYamlError;
-use url::ParseError as UrlParseError;
+use url::Url;
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
@@ -24,40 +13,35 @@ pub struct Error {
     inner: Context<ErrorKind>,
 }
 
-#[derive(Debug, Fail)]
+#[derive(Debug, Fail, PartialEq)]
 pub enum ErrorKind {
-    #[fail(display = "An IO error occurred.")]
-    Io,
-    #[fail(display = "A native TLS error occurred.")]
-    NativeTls,
-    #[fail(display = "An error occurred while reading an environment variable.")]
-    EnvVar,
-    #[fail(display = "Parse error")]
-    Parse,
-    #[fail(display = "Serde error")]
-    Serde,
-    #[fail(display = "Could not locate a kubernetes configuration file.")]
-    MissingKubeConfig,
-    #[fail(display = "Missing or invalid Kubernetes context in .kube/config file.")]
-    MissingOrInvalidKubeContext,
-    #[fail(display = "Missing user configuration in .kube/config file.")]
-    MissingUser,
-    #[fail(display = "Base64 decode error")]
-    Base64Decode,
-    #[fail(display = "Openssl error")]
-    Openssl,
-    #[fail(display = "Both file and data missing")]
-    MissingData,
+    #[fail(display = "Unable to load a kubernetes configuration file: {}", _0)]
+    KubeConfig(KubeConfigErrorReason),
+
+    #[fail(
+        display = "Could not form well-formed URL by joining {:?} with {:?}",
+        _0, _1
+    )]
+    UrlJoin(Url, String),
+
+    #[fail(display = "Invalid URI to parse: {:?}", _0)]
+    Uri(Url),
+
+    #[fail(display = "Invalid HTTP header value {:?}", _0)]
+    HeaderValue(String),
+
+    #[fail(display = "A kubernetes client error occurred.")]
+    KubeOpenApi,
+
     #[fail(display = "Hyper HTTP error")]
     Hyper,
-    #[fail(display = "Invalid URI")]
-    Uri,
-    #[fail(display = "Invalid HTTP header value")]
-    HeaderValue,
-    #[fail(display = "HTTP request error")]
-    Request,
-    #[fail(display = "HTTP response error")]
-    Response,
+
+    #[fail(display = "HTTP request error: {}", _0)]
+    Request(RequestType),
+
+    #[fail(display = "HTTP response error: {}", _0)]
+    Response(RequestType),
+
     #[cfg(test)]
     #[fail(display = "HTTP test error")]
     HttpTest,
@@ -103,113 +87,69 @@ impl From<Context<ErrorKind>> for Error {
     }
 }
 
-impl From<IoError> for Error {
-    fn from(error: IoError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Io),
+#[derive(Clone, Debug, PartialEq)]
+pub enum KubeConfigErrorReason {
+    LoadConfig(String),
+    LoadToken,
+    LoadCertificate,
+    MissingKubeConfig,
+    MissingOrInvalidKubeContext,
+    MissingUser,
+    MissingData,
+    Base64Decode,
+    UrlParse(String),
+    Tls,
+    MissingEnvVar(String),
+}
+
+impl Display for KubeConfigErrorReason {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::LoadConfig(x) => {
+                write!(f, "Could not load kubernetes configuration file: {}.", x)
+            }
+            Self::LoadToken => write!(f, "Could not load kubernetes authorization token."),
+            Self::LoadCertificate => write!(f, "Could not load kubernetes root CA from."),
+            Self::MissingKubeConfig => {
+                write!(f, "Could not locate a kubernetes configuration file.")
+            }
+            Self::MissingOrInvalidKubeContext => write!(
+                f,
+                "Missing or invalid Kubernetes context in .kube/config file."
+            ),
+            Self::MissingUser => write!(f, "Missing user configuration in .kube/config file."),
+            Self::MissingData => write!(f, "Both file and data missing."),
+            Self::Base64Decode => write!(f, "Base64 decode error."),
+            Self::UrlParse(x) => write!(f, "Unable to parse valid URL from: {}.", x),
+            Self::Tls => write!(f, "Could not create TLS connector."),
+            Self::MissingEnvVar(x) => write!(f, "Missing ENV: {}.", x),
         }
     }
 }
 
-impl From<NativeTlsError> for Error {
-    fn from(error: NativeTlsError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::NativeTls),
-        }
-    }
+#[derive(Clone, Debug, PartialEq)]
+pub enum RequestType {
+    ConfigMapList,
+    ConfigMapCreate,
+    ConfigMapReplace,
+    ConfigMapDelete,
+    DeploymentList,
+    DeploymentCreate,
+    DeploymentReplace,
+    PodList,
+    SecretList,
+    SecretCreate,
+    SecretReplace,
+    TokenReview,
+    ServiceAccountList,
+    ServiceAccountCreate,
+    ServiceAccountReplace,
+    ServiceAccountGet,
+    RoleReplace,
 }
 
-impl From<VarError> for Error {
-    fn from(error: VarError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::EnvVar),
-        }
-    }
-}
-
-impl From<ParseIntError> for Error {
-    fn from(error: ParseIntError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Parse),
-        }
-    }
-}
-
-impl From<UrlParseError> for Error {
-    fn from(error: UrlParseError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Parse),
-        }
-    }
-}
-
-impl From<SerdeYamlError> for Error {
-    fn from(error: SerdeYamlError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Serde),
-        }
-    }
-}
-
-impl From<DecodeError> for Error {
-    fn from(error: DecodeError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Base64Decode),
-        }
-    }
-}
-
-impl From<ErrorStack> for Error {
-    fn from(error: ErrorStack) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Openssl),
-        }
-    }
-}
-
-impl From<HyperError> for Error {
-    fn from(error: HyperError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Hyper),
-        }
-    }
-}
-
-impl From<InvalidUri> for Error {
-    fn from(error: InvalidUri) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Uri),
-        }
-    }
-}
-
-impl From<InvalidHeaderValue> for Error {
-    fn from(error: InvalidHeaderValue) -> Self {
-        Error {
-            inner: error.context(ErrorKind::HeaderValue),
-        }
-    }
-}
-
-impl From<RequestError> for Error {
-    fn from(error: RequestError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Request),
-        }
-    }
-}
-
-impl From<ResponseError> for Error {
-    fn from(error: ResponseError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Response),
-        }
-    }
-}
-
-#[cfg(test)]
-impl From<&str> for Error {
-    fn from(_error: &str) -> Self {
-        Error::new(Context::new(ErrorKind::HttpTest))
+impl Display for RequestType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:#}", self)
     }
 }
