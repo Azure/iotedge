@@ -89,16 +89,16 @@ where
         if let Some(auth) = config.auth() {
             // Have authorization for this module spec, create this if it doesn't exist.
             let fut = auth_to_image_pull_secret(self.settings().namespace(), auth)
-                .map_err(Error::from)
                 .map(|(secret_name, pull_secret)| {
                     let client_copy = self.client.clone();
                     let namespace_copy = self.settings().namespace().to_owned();
+
                     self.client
                         .lock()
                         .expect("Unexpected lock error")
                         .borrow_mut()
                         .list_secrets(self.settings().namespace(), Some(secret_name.as_str()))
-                        .map_err(Error::from)
+                        .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                         .and_then(move |secrets| {
                             if let Some(current_secret) = secrets.items.into_iter().find(|secret| {
                                 secret.metadata.as_ref().map_or(false, |meta| {
@@ -117,7 +117,9 @@ where
                                             secret_name.as_str(),
                                             &pull_secret,
                                         )
-                                        .map_err(Error::from)
+                                        .map_err(|err| {
+                                            Error::from(err.context(ErrorKind::KubeClient))
+                                        })
                                         .map(|_| ());
 
                                     Either::A(Either::B(f))
@@ -128,7 +130,7 @@ where
                                     .expect("Unexpected lock error")
                                     .borrow_mut()
                                     .create_secret(namespace_copy.as_str(), &pull_secret)
-                                    .map_err(Error::from)
+                                    .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                                     .map(|_| ());
 
                                 Either::B(f)
@@ -136,7 +138,8 @@ where
                         })
                 })
                 .into_future()
-                .flatten();
+                .flatten()
+                .map_err(|err| Error::from(err.context(ErrorKind::RegistryOperation)));
 
             Box::new(fut)
         } else {
@@ -170,7 +173,7 @@ impl MakeModuleRuntime
 
         let fut = get_config()
             .map(|config| KubeModuleRuntime::new(KubeClient::new(config), settings))
-            .map_err(Error::from)
+            .map_err(|err| Error::from(err.context(ErrorKind::Initialization)))
             .map(|runtime| init_trust_bundle(&runtime, &crypto).map(|_| runtime))
             .into_future()
             .flatten();
@@ -252,7 +255,9 @@ where
                 self.settings().namespace(),
                 Some(&self.settings().device_hub_selector()),
             )
-            .map_err(Error::from)
+            .map_err(|err| {
+                Error::from(err.context(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules)))
+            })
             .and_then(|pods| {
                 pods.items
                     .into_iter()
