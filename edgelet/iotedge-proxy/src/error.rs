@@ -54,23 +54,19 @@ pub enum InitializeErrorReason {
 impl Display for InitializeErrorReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            InitializeErrorReason::LoadSettings => write!(f, "Could not load settings"),
-            InitializeErrorReason::LoadSettingsUnsupportedSchema(x) => {
-                write!(f, "Unsupported URL schema: {}", x)
-            }
-            InitializeErrorReason::InvalidUrl(x) => {
-                write!(f, "Could not resolve address for given URL: {}", x)
-            }
-            InitializeErrorReason::InvalidUrlWithReason(url, reason) => write!(
+            Self::LoadSettings => write!(f, "Could not load settings"),
+            Self::LoadSettingsUnsupportedSchema(x) => write!(f, "Unsupported URL schema: {}", x),
+            Self::InvalidUrl(x) => write!(f, "Could not resolve address for given URL: {}", x),
+            Self::InvalidUrlWithReason(url, reason) => write!(
                 f,
                 "Could not resolve address for given URL: {}. {}",
                 url, reason
             ),
-            InitializeErrorReason::ClientConfig => write!(f, "Could not load proxy client config"),
-            InitializeErrorReason::ClientConfigReadFile(x) => {
+            Self::ClientConfig => write!(f, "Could not load proxy client config"),
+            Self::ClientConfigReadFile(x) => {
                 write!(f, "Could not read file for proxy client config: {}", x)
             }
-            InitializeErrorReason::Tokio => write!(f, "Could not initialize tokio runtime"),
+            Self::Tokio => write!(f, "Could not initialize tokio runtime"),
         }
     }
 }
