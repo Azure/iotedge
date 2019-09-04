@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
         static int GetContentLength(MethodResult methodResult)
         {
             string json = JsonConvert.SerializeObject(methodResult);
-            return json.Length;
+            return Encoding.UTF8.GetByteCount(json);
         }
 
         async Task<IActionResult> InvokeMethodAsync(DirectMethodRequest directMethodRequest)
