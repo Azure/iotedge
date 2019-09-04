@@ -7,7 +7,7 @@ use hyper::service::Service;
 use hyper::Body;
 
 use edgelet_core::GetTrustBundle;
-use kube_client::{Error as KubeClientError, TokenSource};
+use kube_client::TokenSource;
 
 use crate::convert::trust_bundle_to_config_map;
 use crate::{Error, ErrorKind, KubeModuleRuntime};
@@ -22,7 +22,7 @@ where
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
 {
     crypto
         .get_trust_bundle()

@@ -13,7 +13,7 @@ use typed_headers::{Authorization, HeaderMapExt};
 
 use edgelet_core::AuthId;
 use edgelet_utils::log_failure;
-use kube_client::{Client as KubeClient, Error as KubeClientError, TokenSource};
+use kube_client::{Client as KubeClient, TokenSource};
 
 use crate::constants::EDGE_ORIGINAL_MODULEID;
 use crate::error::Error;
@@ -29,7 +29,7 @@ where
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
     S::Future: Send,
 {
     req.headers()
@@ -87,7 +87,7 @@ where
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
     S::Future: Send,
 {
     match username.split(':').last() {

@@ -9,7 +9,7 @@ use hyper::Body;
 
 use edgelet_core::{ModuleSpec, RuntimeOperation};
 use edgelet_docker::DockerConfig;
-use kube_client::{Error as KubeClientError, TokenSource};
+use kube_client::TokenSource;
 
 use crate::constants::EDGE_EDGE_AGENT_NAME;
 use crate::convert::{spec_to_deployment, spec_to_role_binding, spec_to_service_account};
@@ -26,7 +26,7 @@ where
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
     S::Future: Send,
 {
     let runtime_for_sa = runtime.clone();
@@ -61,7 +61,7 @@ where
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
     S::Future: Send,
 {
     spec_to_service_account(runtime.settings(), module)
@@ -133,7 +133,7 @@ where
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
     S::Future: Send,
 {
     spec_to_role_binding(runtime.settings(), module)
@@ -173,7 +173,7 @@ where
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
     S::Future: Send,
 {
     spec_to_deployment(runtime.settings(), module)

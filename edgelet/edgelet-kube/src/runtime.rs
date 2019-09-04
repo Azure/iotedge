@@ -19,9 +19,7 @@ use edgelet_core::{
     RuntimeOperation, SystemInfo,
 };
 use edgelet_docker::DockerConfig;
-use kube_client::{
-    get_config, Client as KubeClient, Error as KubeClientError, HttpClient, TokenSource, ValueToken,
-};
+use kube_client::{get_config, Client as KubeClient, HttpClient, TokenSource, ValueToken};
 use provisioning::ProvisioningResult;
 
 use crate::convert::{auth_to_image_pull_secret, pod_to_module};
@@ -76,7 +74,7 @@ where
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
     S::Future: Send,
 {
     type Error = Error;
@@ -189,7 +187,7 @@ where
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
     S::Future: Send,
 {
     type Error = Error;
@@ -298,7 +296,7 @@ where
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
     S::Future: Send,
 {
     type Error = Error;
