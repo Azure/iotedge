@@ -80,21 +80,5 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 },
                 "Completed edge manual provisioning");
         }
-
-        [OneTimeTearDown]
-        public Task StopEdgeAsync() => Profiler.Run(
-            async () =>
-            {
-                using (var cts = new CancellationTokenSource(Context.Current.TeardownTimeout))
-                {
-                    CancellationToken token = cts.Token;
-
-                    await this.daemon.StopAsync(token);
-
-                    Assert.IsNotNull(this.device);
-                    await this.device.MaybeDeleteIdentityAsync(token);
-                }
-            },
-            "Completed end-to-end test teardown");
     }
 }

@@ -18,18 +18,5 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.daemon = OsPlatform.Current.CreateEdgeDaemon(Context.Current.InstallerPath);
             this.device = Option.None<EdgeDevice>();
         }
-
-        [OneTimeTearDown]
-        public Task StopEdgeAsync() => Profiler.Run(
-            async () =>
-            {
-                using (var cts = new CancellationTokenSource(Context.Current.TeardownTimeout))
-                {
-                    CancellationToken token = cts.Token;
-                    await this.daemon.StopAsync(token);
-                    await this.device.ForEachAsync(dev => dev.MaybeDeleteIdentityAsync(token));
-                }
-            },
-            "Completed end-to-end test teardown");
     }
 }
