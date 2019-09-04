@@ -2,6 +2,7 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
+    using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -12,6 +13,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     public class KubernetesModule<TConfig> : IModule<TConfig>
     {
         static readonly DictionaryComparer<string, EnvVal> EnvDictionaryComparer = new DictionaryComparer<string, EnvVal>();
+
+        public KubernetesModule(IModule module)
+        {
+            this.Name = module.Name;
+            this.Version = module.Version;
+            this.Type = module.Type;
+            this.DesiredStatus = module.DesiredStatus;
+            this.RestartPolicy = module.RestartPolicy;
+            this.ConfigurationInfo = module.ConfigurationInfo;
+            this.Env = module.Env?.ToImmutableDictionary() ?? ImmutableDictionary<string, EnvVal>.Empty;
+            this.ImagePullPolicy = module.ImagePullPolicy;
+        }
 
         public KubernetesModule(IModule<TConfig> module)
         {
@@ -27,21 +40,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         }
 
         [JsonConstructor]
-        public KubernetesModule(string name, string version, string type, ModuleStatus desiredStatus, RestartPolicy restartPolicy, ConfigurationInfo configurationInfo, IDictionary<string, EnvVal> env, TConfig config, ImagePullPolicy imagePullPolicy)
+        public KubernetesModule(string moduleName, string version, string type, ModuleStatus status, RestartPolicy restartPolicy, ConfigurationInfo configurationInfo, IDictionary<string, EnvVal> env, TConfig settings, ImagePullPolicy imagePullPolicy)
         {
-            this.Name = name;
+            this.Name = moduleName;
             this.Version = version;
             this.Type = type;
-            this.DesiredStatus = desiredStatus;
+            this.DesiredStatus = status;
             this.RestartPolicy = restartPolicy;
             this.ConfigurationInfo = configurationInfo;
             this.Env = env?.ToImmutableDictionary() ?? ImmutableDictionary<string, EnvVal>.Empty;
-            this.Config = config;
+            this.Config = settings;
             this.ImagePullPolicy = imagePullPolicy;
         }
 
-        [JsonIgnore]
-        public string Name { get; set; }
+        [JsonProperty(PropertyName = "moduleName")]
+        public string ModuleName {get{return this.Name;}set{this.Name=value;}}
+
+        public string Name {get;set;}
 
         [JsonProperty(PropertyName = "version")]
         public string Version { get; }
@@ -84,8 +99,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 this.RestartPolicy == other.RestartPolicy &&
                 this.ConfigurationInfo == other.ConfigurationInfo &&
                 this.ImagePullPolicy == other.ImagePullPolicy &&
-                this.Config is DockerConfig &&
-                this.Config as DockerConfig == other.Config as DockerConfig &&
+                this.Config is CombinedDockerConfig &&
+                this.Config as CombinedDockerConfig == other.Config as CombinedDockerConfig &&
+                this.Config is string &&
+                this.Config as string == other.Config as string &&
                 EnvDictionaryComparer.Equals(this.Env, other.Env);
         }
 

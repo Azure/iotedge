@@ -189,6 +189,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<Task<IRuntimeInfoProvider>>()
                 .SingleInstance();
 
+            // IKubernetesSpecFactory
+            builder.Register(c => new KubernetesSpecFactory<CombinedDockerConfig>())
+                .As<IKubernetesSpecFactory<CombinedDockerConfig>>()
+                .SingleInstance();
+
             // IKubernetesOperator
             builder.Register(
                     c => Task.FromResult(
@@ -207,6 +212,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             this.managementUri,
                             this.defaultMapServiceType,
                             c.Resolve<IKubernetes>(),
+                            c.Resolve<IKubernetesSpecFactory<CombinedDockerConfig>>(),
                             c.Resolve<IModuleIdentityLifecycleManager>()) as IKubernetesOperator))
                 .As<Task<IKubernetesOperator>>()
                 .SingleInstance();

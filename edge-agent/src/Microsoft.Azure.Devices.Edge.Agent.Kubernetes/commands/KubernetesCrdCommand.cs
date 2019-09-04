@@ -18,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
     using Microsoft.Extensions.Logging;
     using Microsoft.Rest;
     using Newtonsoft.Json;
+    using Newtonsoft.Json.Serialization;
 
     using Constants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
@@ -31,7 +32,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
         readonly string deviceNamespace;
         readonly string iotHubHostname;
         readonly string deviceId;
-        readonly TypeSpecificSerDe<EdgeDeploymentDefinition<DockerConfig>> deploymentSerde;
+        readonly JsonSerializerSettings serializerSettings;
+
         // We use the sum of the IDs of the underlying commands as the id for this group
         // command.
         public string Id => this.id.Value;
@@ -46,15 +48,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
             this.runtimeInfo = Preconditions.CheckNotNull(runtimeInfo, nameof(runtimeInfo));
             this.combinedConfigProvider = Preconditions.CheckNotNull(combinedConfigProvider, nameof(combinedConfigProvider));
             this.id = new Lazy<string>(() => this.modules.Aggregate(string.Empty, (prev, module) => module.Name + prev));
-            var deserializerTypesMap = new Dictionary<Type, IDictionary<string, Type>>
+            this.serializerSettings = new JsonSerializerSettings
             {
-                [typeof(IModule)] = new Dictionary<string, Type>
-                {
-                    ["docker"] = typeof(DockerConfig)
-                }
+                ContractResolver = new CamelCasePropertyNamesContractResolver(),
             };
-
-            this.deploymentSerde = new TypeSpecificSerDe<EdgeDeploymentDefinition<DockerConfig>>(deserializerTypesMap);
         }
 
         async Task UpdateImagePullSecrets(Dictionary<string, ImagePullSecret> imagePullSecrets, CancellationToken token)
@@ -110,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
             string resourceName = this.iotHubHostname + Constants.K8sNameDivider + this.deviceId;
             string metaApiVersion = Constants.K8sApi + "/" + Constants.K8sApiVersion;
 
-            var modulesList = new List<KubernetesModule<DockerConfig>>();
+            var modulesList = new List<KubernetesModule<string>>();
             var secrets = new Dictionary<string, ImagePullSecret>();
             foreach (var runtime in this.runtimeInfo)
             {
@@ -120,9 +117,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
                     CombinedDockerConfig dockerConfig = combinedConfig as CombinedDockerConfig;
                     if (dockerConfig != null)
                     {
-                        var combinedModule = new KubernetesModule<DockerConfig>(m)
-                        {
-                            Config = new DockerConfig(dockerConfig.Image, dockerConfig.CreateOptions)
+                        var configString = JsonConvert.SerializeObject(dockerConfig);
+
+                        var combinedModule = new KubernetesModule<string>(m as IModule){
+                            Config = configString
                         };
                         modulesList.Add(combinedModule);
                         dockerConfig.AuthConfig.ForEach(
@@ -139,7 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
                 }
             }
 
-            Option<EdgeDeploymentDefinition<DockerConfig>> activeDeployment;
+            Option<EdgeDeploymentDefinition<string>> activeDeployment;
             try
             {
                 HttpOperationResponse<object> currentDeployment = await this.client.GetNamespacedCustomObjectWithHttpMessagesAsync(
@@ -152,13 +150,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
                 string body = JsonConvert.SerializeObject(currentDeployment.Body);
 
                 activeDeployment = currentDeployment.Response.IsSuccessStatusCode ?
-                    Option.Some(JsonConvert.DeserializeObject<EdgeDeploymentDefinition<DockerConfig>>(body)) :
-                    Option.None<EdgeDeploymentDefinition<DockerConfig>>();
+                    Option.Some(JsonConvert.DeserializeObject<EdgeDeploymentDefinition<string>>(body, this.serializerSettings)) :
+                    Option.None<EdgeDeploymentDefinition<string>>();
             }
             catch (Exception parseException)
             {
                 Events.FindActiveDeploymentFailed(resourceName, parseException);
-                activeDeployment = Option.None<EdgeDeploymentDefinition<DockerConfig>>();
+                activeDeployment = Option.None<EdgeDeploymentDefinition<string>>();
             }
 
             await this.UpdateImagePullSecrets(secrets, token);
@@ -166,8 +164,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
             var metadata = new V1ObjectMeta(name: resourceName, namespaceProperty: this.deviceNamespace);
             // need resourceVersion for Replace.
             activeDeployment.ForEach(deployment => metadata.ResourceVersion = deployment.Metadata.ResourceVersion);
-            var customObjectDefinition = new EdgeDeploymentDefinition<DockerConfig>(metaApiVersion, Constants.K8sCrdKind, metadata, modulesList);
-            string customObjectString = this.deploymentSerde.Serialize(customObjectDefinition);
+            var customObjectDefinition = new EdgeDeploymentDefinition<string>(metaApiVersion, Constants.K8sCrdKind, metadata, modulesList);
+            string customObjectString = JsonConvert.SerializeObject(customObjectDefinition, Formatting.None, this.serializerSettings);
 
             // the dotnet client is apparently really picky about all names being camelCase,
             object crdObject = JsonConvert.DeserializeObject(customObjectString);

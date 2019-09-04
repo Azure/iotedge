@@ -70,7 +70,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
                 // The "Plan" here is very simple - if we have any change, publish all desired modules to a CRD.
                 // The CRD allows us to give the customer a Kubernetes-centric way to see the deployment
                 // and the status of that deployment through the "edgedeployments" API.
-                var k8sModules = desired.Modules.Select(m => new KubernetesModule<DockerConfig>(m.Value as IModule<DockerConfig>));
+                var k8sModules = desired.Modules.Select(m => {
+                    var km = new KubernetesModule<DockerConfig>(m.Value as IModule<DockerConfig>);
+                    km.Name = m.Key;
+                    return km;
+                    });
 
                 var crdCommand = new KubernetesCrdCommand<CombinedDockerConfig>(this.deviceNamespace, this.iotHubHostname, this.deviceId, this.client, k8sModules.ToArray(), Option.Some(runtimeInfo), this.combinedConfigProvider as ICombinedConfigProvider<CombinedDockerConfig>);
                 var planCommand = await this.commandFactory.WrapAsync(crdCommand);

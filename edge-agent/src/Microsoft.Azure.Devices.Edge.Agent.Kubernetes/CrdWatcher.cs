@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using Microsoft.Extensions.Logging;
     using Microsoft.Rest;
     using Newtonsoft.Json;
+    using Newtonsoft.Json.Serialization;
     using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
     using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
 
@@ -23,8 +24,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         const string EdgeHubHostname = "edgehub";
 
         readonly IKubernetes client;
+        readonly IKubernetesSpecFactory<TConfig> specFactory;
         readonly AsyncLock watchLock = new AsyncLock();
-        readonly TypeSpecificSerDe<EdgeDeploymentDefinition<TConfig>> deploymentSerde;
+
+        readonly JsonSerializerSettings serializerSettings;
         readonly string iotHubHostname;
         readonly string deviceId;
         readonly string edgeHostname;
@@ -60,9 +63,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             string workloadApiVersion,
             Uri workloadUri,
             Uri managementUri,
-            TypeSpecificSerDe<EdgeDeploymentDefinition<TConfig>> deploymentSerde,
             IModuleIdentityLifecycleManager moduleIdentityLifecycleManager,
-            IKubernetes client)
+            IKubernetes client,
+            IKubernetesSpecFactory<TConfig> specFactory)
         {
             this.iotHubHostname = iotHubHostname;
             this.deviceId = deviceId;
@@ -79,9 +82,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.workloadApiVersion = workloadApiVersion;
             this.workloadUri = workloadUri;
             this.managementUri = managementUri;
-            this.deploymentSerde = deploymentSerde;
             this.moduleIdentityLifecycleManager = moduleIdentityLifecycleManager;
             this.client = client;
+            this.specFactory = specFactory;
+            this.serializerSettings = new JsonSerializerSettings
+            {
+                ContractResolver = new CamelCasePropertyNamesContractResolver(),
+            };
         }
 
         public async Task ListCrdComplete(Task<HttpOperationResponse<object>> customObjectWatchTask)
@@ -136,13 +143,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             }
         }
 
+
         internal async Task WatchDeploymentEventsAsync(WatchEventType type, object custom)
         {
-            EdgeDeploymentDefinition<TConfig> edgeDeploymentDefinition;
+            EdgeDeploymentDefinition<string> edgeDeploymentDefinition;
             try
             {
                 string customString = JsonConvert.SerializeObject(custom);
-                edgeDeploymentDefinition = JsonConvert.DeserializeObject<EdgeDeploymentDefinition<DockerConfig>>(customString) as EdgeDeploymentDefinition<TConfig>;
+                edgeDeploymentDefinition = JsonConvert.DeserializeObject<EdgeDeploymentDefinition<string>>(customString, this.serializerSettings);
             }
             catch (Exception e)
             {
@@ -162,7 +170,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     {
                         case WatchEventType.Added:
                         case WatchEventType.Modified:
-                            await this.UpsertDeployments(currentServices, currentDeployments, edgeDeploymentDefinition);
+                            var spec = this.specFactory.GetSpec(edgeDeploymentDefinition.Spec);
+                            await this.UpsertDeployments(currentServices, currentDeployments, spec);
                             break;
 
                         case WatchEventType.Deleted:
@@ -204,9 +213,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.currentModules = ModuleSet.Empty;
         }
 
-        private async Task UpsertDeployments(V1ServiceList currentServices, V1DeploymentList currentDeployments, EdgeDeploymentDefinition<TConfig> customObject)
+        private async Task UpsertDeployments(V1ServiceList currentServices, V1DeploymentList currentDeployments, IList<KubernetesModule<TConfig>> spec)
         {
-            var desiredModules = ModuleSet.Create(customObject.Spec.ToArray());
+            var desiredModules = ModuleSet.Create(spec.ToArray());
+            Console.WriteLine($"DESIRED MODULES:\n {desiredModules}");
             var moduleIdentities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desiredModules, this.currentModules);
 
             var desiredServices = new List<V1Service>();
@@ -215,7 +225,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             // Bootstrap the module builder
             var kubernetesModelBuilder = new KubernetesModelBuilder(this.proxyImage, this.proxyConfigPath, this.proxyConfigVolumeName, this.proxyTrustBundlePath, this.proxyTrustBundleVolumeName, this.defaultMapServiceType);
 
-            foreach (KubernetesModule<TConfig> module in customObject.Spec)
+            foreach (KubernetesModule<TConfig> module in spec)
             {
                 var moduleId = moduleIdentities[module.Name];
 
