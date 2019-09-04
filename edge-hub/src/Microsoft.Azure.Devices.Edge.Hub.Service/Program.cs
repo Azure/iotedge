@@ -102,7 +102,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             {
                 await protocolHead.StartAsync();
                 await Task.WhenAny(cts.Token.WhenCanceled(), renewal.Token.WhenCanceled());
-
                 logger.LogInformation("Stopping the protocol heads...");
                 await protocolHead.CloseAsync(CancellationToken.None);
                 logger.LogInformation("Protocol heads stopped.");

@@ -230,12 +230,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             {
                 StartingBackup = IdStart,
                 BackupComplete,
+                BackupDirectoryNotFound,
                 BackupInformation,
                 BackupFailure,
                 RestoringFromBackup,
                 NoBackupsForRestore,
                 RestoreComplete,
-                BackupDirectoryNotFound,
                 RestoreFailure
             }
 
@@ -247,6 +247,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             internal static void BackupComplete()
             {
                 Log.LogInformation((int)EventIds.BackupComplete, $"Backup of database complete.");
+            }
+
+            internal static void BackupDirectoryNotFound(string backupDirectoryPath)
+            {
+                Log.LogInformation((int)EventIds.BackupDirectoryNotFound, $"The database backup directory {backupDirectoryPath} doesn't exist.");
             }
 
             internal static void BackupInformation(int backupIndex, long backupTimestamp, uint backupId, ulong backupSize, uint numberOfFilesInBackup)
@@ -272,11 +277,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             internal static void RestoreComplete()
             {
                 Log.LogInformation((int)EventIds.RestoreComplete, "Database restore from backup complete.");
-            }
-
-            internal static void BackupDirectoryNotFound(string backupDirectoryPath)
-            {
-                Log.LogInformation((int)EventIds.BackupDirectoryNotFound, $"The database backup directory {backupDirectoryPath} doesn't exist.");
             }
 
             internal static void RestoreFailure(string details = null)

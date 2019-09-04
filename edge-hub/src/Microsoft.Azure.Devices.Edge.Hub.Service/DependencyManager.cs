@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 : new MetricsListenerConfig();
             MetricsConfig metricsConfig = new MetricsConfig(experimentalFeatures.Enabled, listenerConfig);
 
-            this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward, metricsConfig);
+            this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward, metricsConfig, experimentalFeatures);
             this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures);
             this.RegisterMqttModule(builder, storeAndForward, optimizeForPerformance);
             this.RegisterAmqpModule(builder);
@@ -180,8 +180,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         void RegisterCommonModule(
             ContainerBuilder builder,
             bool optimizeForPerformance,
-            (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward,
-            MetricsConfig metricsConfig, ExperimentalFeatures experimentalFeatures)
+            (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath, string storageBackupPath) storeAndForward,
+            MetricsConfig metricsConfig,
+            ExperimentalFeatures experimentalFeatures)
         {
             bool cacheTokens = this.configuration.GetValue("CacheTokens", false);
             Option<string> workloadUri = this.GetConfigurationValueIfExists<string>(Constants.ConfigKey.WorkloadUri);
@@ -220,7 +221,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     this.trustBundle,
                     proxy,
                     metricsConfig,
-                    experimentalFeatures));
+                    experimentalFeatures,
+                    storeAndForward.storageBackupPath));
         }
 
         static string GetProductInfo()

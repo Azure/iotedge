@@ -30,9 +30,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         public static DbStoreProvider Create(IRocksDbOptionsProvider optionsProvider, string path, IEnumerable<string> partitionsList)
             => Create(optionsProvider, path, partitionsList, Option.None<string>(), false);
 
-        public static DbStoreProvider Create(IRocksDbOptionsProvider optionsProvider, string path, IEnumerable<string> partitionsList, Option<string> storageBackupPath, bool useBackupAndRestore)
-            => Create(optionsProvider, path, partitionsList, storageBackupPath, useBackupAndRestore);
-
         public static DbStoreProvider Create(
             IRocksDbOptionsProvider optionsProvider,
             string path,
