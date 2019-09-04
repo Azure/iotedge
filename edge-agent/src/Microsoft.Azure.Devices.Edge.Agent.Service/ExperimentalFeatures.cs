@@ -7,12 +7,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
     public class ExperimentalFeatures
     {
-        ExperimentalFeatures(bool enabled, bool disableCloudSubscriptions, bool enableUploadLogs, bool enableGetLogs)
+        ExperimentalFeatures(bool enabled, bool disableCloudSubscriptions, bool enableUploadLogs, bool enableGetLogs, bool enableStorageBackupAndRestore)
         {
             this.Enabled = enabled;
             this.DisableCloudSubscriptions = disableCloudSubscriptions;
             this.EnableUploadLogs = enableUploadLogs;
             this.EnableGetLogs = enableGetLogs;
+            this.EnableStorageBackupAndRestore = enableStorageBackupAndRestore;
         }
 
         public static ExperimentalFeatures Create(IConfiguration experimentalFeaturesConfig, ILogger logger)
@@ -21,7 +22,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             bool disableCloudSubscriptions = enabled && experimentalFeaturesConfig.GetValue("disableCloudSubscriptions", false);
             bool enableUploadLogs = enabled && experimentalFeaturesConfig.GetValue("enableUploadLogs", false);
             bool enableGetLogs = enabled && experimentalFeaturesConfig.GetValue("enableGetLogs", false);
-            var experimentalFeatures = new ExperimentalFeatures(enabled, disableCloudSubscriptions, enableUploadLogs, enableGetLogs);
+            bool enableStorageBackupAndRestore = enabled && experimentalFeaturesConfig.GetValue("enableStorageBackupAndRestore", false);
+            var experimentalFeatures = new ExperimentalFeatures(enabled, disableCloudSubscriptions, enableUploadLogs, enableGetLogs, enableStorageBackupAndRestore);
             logger.LogInformation($"Experimental features configuration: {experimentalFeatures.ToJson()}");
             return experimentalFeatures;
         }
@@ -33,5 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
         public bool EnableUploadLogs { get; }
 
         public bool EnableGetLogs { get; }
+
+        public bool EnableStorageBackupAndRestore { get; }
     }
 }

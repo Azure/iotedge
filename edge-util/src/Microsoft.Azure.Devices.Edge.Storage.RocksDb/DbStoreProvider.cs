@@ -27,9 +27,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             this.compactionTimer = new Timer(this.RunCompaction, null, CompactionPeriod, CompactionPeriod);
         }
 
-        public static DbStoreProvider Create(IRocksDbOptionsProvider optionsProvider, string path, IEnumerable<string> partitionsList)
-            => Create(optionsProvider, path, partitionsList, Option.None<string>(), false);
-
         public static DbStoreProvider Create(
             IRocksDbOptionsProvider optionsProvider,
             string path,
