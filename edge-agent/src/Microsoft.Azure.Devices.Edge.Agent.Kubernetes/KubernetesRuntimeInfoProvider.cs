@@ -121,19 +121,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
             // Enumerate each node and count the unique architectures
             var archList = new List<(string arch, int count)>();
-            foreach (V1Node node in k8sNodes)
+            foreach (V1Node node in k8sNodes.Items)
             {
                 if (node?.Status?.NodeInfo != null)
                 {
                     bool haveSeen = false;
 
                     // Check to see if we've already seen this architecture
-                    foreach (var entry in archList)
+                    for (int i = 0; i < archList.Count; i++)
                     {
-                        if (firstNode.Status.NodeInfo.Architecture == entry.arch)
+                        if (archList[i].arch == node.Status.NodeInfo.Architecture)
                         {
                             // Just increase the node count
-                            entry.count++;
+                            archList[i] = (archList[i].arch, archList[i].count+1);
                             haveSeen = true;
                             break;
                         }
@@ -142,12 +142,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     // Add an entry if this is a new arch
                     if (!haveSeen)
                     {
-                        archList.Add((firstNode.Status.NodeInfo.Architecture, 1));
+                        archList.Add((node.Status.NodeInfo.Architecture, 1));
                     }
                 }
                 else
                 {
-                    Events.NullNodeInfoResponse(firstNode?.Metadata?.Name ?? "UNKNOWN");
+                    Events.NullNodeInfoResponse(node?.Metadata?.Name ?? "UNKNOWN");
                     break;
                 }
             }
