@@ -58,14 +58,20 @@ namespace Microsoft.Azure.Devices.Edge.Test
             var agent = new EdgeAgent(registrationId, this.iotHub);
             await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
 
-            this.device = await EdgeDevice.GetIdentityAsync(
+            Option<EdgeDevice> device = await EdgeDevice.GetIdentityAsync(
                 registrationId,
                 this.iotHub,
                 token,
                 takeOwnership: true);
-            this.device.Expect(() => new ArgumentException());
+            device.Expect(() => new ArgumentException());
 
-            await agent.PingAsync(token);
+            await TryFinally.DoAsync(
+                () => agent.PingAsync(token),
+                async () =>
+                {
+                    await this.daemon.StopAsync(token);
+                    await device.ForEachAsync(d => d.DeleteIdentityAsync(token));
+                });
         }
     }
 }
