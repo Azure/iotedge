@@ -1082,14 +1082,21 @@ where
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
-        let mut query = ::url::form_urlencoded::Serializer::new(String::new());
-        if let Some(ref timeout) = t {
-            query.append_pair("t", &timeout.to_string());
-        }
+        let query = if let Some(ref timeout) = t {
+            Some(
+                ::url::form_urlencoded::Serializer::new(String::new())
+                    .append_pair("t", &timeout.to_string())
+                    .finish(),
+            )
+        } else {
+            None
+        };
 
-        let query = query.finish();
-
-        let uri_str = format!("/containers/{id}/restart?{}", query, id = id);
+        let uri_str = format!(
+            "/containers/{id}/restart?{}",
+            query.unwrap_or_else(|| "".to_string()),
+            id = id
+        );
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
         // TODO(farcaller): handle error
@@ -1242,13 +1249,21 @@ where
 
         let method = hyper::Method::POST;
 
-        let mut query = ::url::form_urlencoded::Serializer::new(String::new());
-        if let Some(ref timeout) = t {
-            query.append_pair("t", &timeout.to_string());
-        }
+        let query = if let Some(ref timeout) = t {
+            Some(
+                ::url::form_urlencoded::Serializer::new(String::new())
+                    .append_pair("t", &timeout.to_string())
+                    .finish(),
+            )
+        } else {
+            None
+        };
 
-        let query = query.finish();
-        let uri_str = format!("/containers/{id}/stop?{}", query, id = id);
+        let uri_str = format!(
+            "/containers/{id}/stop?{}",
+            query.unwrap_or_else(|| "".to_string()),
+            id = id
+        );
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
         // TODO(farcaller): handle error
