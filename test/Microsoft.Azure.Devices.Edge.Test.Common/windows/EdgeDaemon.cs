@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
     using System;
     using System.IO;
     using System.Linq;
+    using System.Net;
     using System.ServiceProcess;
     using System.Threading;
     using System.Threading.Tasks;
@@ -21,8 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
 
         public async Task InstallAsync(Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
         {
-            string hostname = Environment.MachineName;
-            var properties = new object[] { hostname };
+            var properties = new object[] { Dns.GetHostName() };
             string message = "Installed edge daemon on '{Device}'";
             packagesPath.ForEach(
                 p =>

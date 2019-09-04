@@ -2,12 +2,11 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 {
     using System;
-    using System.Collections.Generic;
     using System.ComponentModel;
     using System.IO;
     using System.Linq;
+    using System.Net;
     using System.ServiceProcess;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -17,8 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
     {
         public async Task InstallAsync(Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
         {
-            string hostname = (await File.ReadAllTextAsync("/proc/sys/kernel/hostname", token)).Trim();
-            var properties = new object[] { hostname };
+            var properties = new object[] { Dns.GetHostName() };
             string message = "Installed edge daemon on '{Device}'";
             packagesPath.ForEach(
                 p =>

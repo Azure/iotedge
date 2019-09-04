@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test
 {
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -67,6 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 await this.daemon.ConfigureAsync(
                                     config =>
                                     {
+                                        config.SetDeviceHostname(Dns.GetHostName());
                                         config.AddHttpsProxy(proxy);
                                         config.Update();
                                         return Task.FromResult((
