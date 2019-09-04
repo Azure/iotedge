@@ -105,20 +105,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             ServiceClientTracing.AddTracingInterceptor(new DebugTracer(logger));
                         }
 
-                        // load the k8s config from $HOME/.kube/config if its available
-                        KubernetesClientConfiguration kubeConfig;
-                        string kubeConfigPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".kube", "config");
-                        if (File.Exists(kubeConfigPath))
-                        {
-                            kubeConfig = KubernetesClientConfiguration.BuildConfigFromConfigFile();
-                        }
-                        else
-                        {
-                            kubeConfig = KubernetesClientConfiguration.InClusterConfig();
-                        }
+                        // load the k8s config from KUBECONFIG or $HOME/.kube/config or in-cluster if its available
+                        KubernetesClientConfiguration kubeConfig = Option.Maybe(Environment.GetEnvironmentVariable("KUBECONFIG"))
+                            .Else(() => Option.Maybe(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".kube", "config")))
+                            .Filter(File.Exists)
+                            .Map(path => KubernetesClientConfiguration.BuildConfigFromConfigFile(path))
+                            .GetOrElse(KubernetesClientConfiguration.InClusterConfig);
 
-                        var client = new Kubernetes(kubeConfig);
-                        return client;
+                        return new Kubernetes(kubeConfig);
                     })
                 .As<IKubernetes>()
                 .SingleInstance();
