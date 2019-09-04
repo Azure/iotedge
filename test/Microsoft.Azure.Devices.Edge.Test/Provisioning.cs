@@ -35,8 +35,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
         public async Task DpsSymmetricKey()
         {
             string idScope = Context.Current.DpsIdScope.Expect(() => new ArgumentException());
-            string registrationId = $"{Context.Current.DeviceId}-{TestContext.CurrentContext.Test.NormalizedName()}";
             string groupKey = Context.Current.DpsGroupKey.Expect(() => new ArgumentException());
+            string registrationId = $"{Context.Current.DeviceId}-{TestContext.CurrentContext.Test.NormalizedName()}";
 
             string deviceKey = this.DeriveDeviceKey(Convert.FromBase64String(groupKey), registrationId);
 
