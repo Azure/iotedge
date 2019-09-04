@@ -6,10 +6,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using System.Linq;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Logging;
     using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
-    using DockerModels = global::Docker.DotNet.Models;
 
     public class KubernetesPodBuilder
     {
@@ -149,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
             if (moduleWithDockerConfig.Config?.CreateOptions?.HostConfig?.Mounts != null)
             {
-                foreach (DockerModels.Mount mount in moduleWithDockerConfig.Config?.CreateOptions?.HostConfig?.Mounts)
+                foreach (Mount mount in moduleWithDockerConfig.Config?.CreateOptions?.HostConfig?.Mounts)
                 {
                     if (mount.Type.Equals("bind", StringComparison.InvariantCultureIgnoreCase))
                     {

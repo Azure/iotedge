@@ -5,10 +5,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using System.Linq;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
-    using DockerModels = global::Docker.DotNet.Models;
 
     public class KubernetesServiceBuilder
     {
@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             // Handle HostConfig PortBindings entries
             if (module.Config?.CreateOptions?.HostConfig?.PortBindings != null)
             {
-                foreach (KeyValuePair<string, IList<DockerModels.PortBinding>> portBinding in module.Config?.CreateOptions?.HostConfig?.PortBindings)
+                foreach (KeyValuePair<string, IList<PortBinding>> portBinding in module.Config?.CreateOptions?.HostConfig?.PortBindings)
                 {
                     string[] portProtocol = portBinding.Key.Split('/');
                     if (portProtocol.Length == 2)
@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         {
                             // Entries in Docker portMap wants to expose a port on the host (hostPort) and map it to the container's port (port)
                             // We interpret that as the pod wants the cluster to expose a port on a public IP (hostPort), and target it to the container's port (port)
-                            foreach (DockerModels.PortBinding hostBinding in portBinding.Value)
+                            foreach (PortBinding hostBinding in portBinding.Value)
                             {
                                 if (int.TryParse(hostBinding.HostPort, out int hostPort))
                                 {
