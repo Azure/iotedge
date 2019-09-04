@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         [JsonConstructor]
         public KubernetesModule(string moduleName, string version, string type, ModuleStatus status, RestartPolicy restartPolicy, ConfigurationInfo configurationInfo, IDictionary<string, EnvVal> env, TConfig settings, ImagePullPolicy imagePullPolicy)
         {
-            this.Name = moduleName;
+            this.ModuleName = moduleName;
             this.Version = version;
             this.Type = type;
             this.DesiredStatus = status;
