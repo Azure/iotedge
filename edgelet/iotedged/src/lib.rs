@@ -2652,7 +2652,7 @@ mod tests {
         let settings = Settings::new(Some(Path::new(GOOD_SETTINGS1))).unwrap();
         assert_eq!(
             ProvisioningAuthMethod::SharedAccessKey,
-            get_provisioning_auth_method(&settings, &None).unwrap()
+            get_provisioning_auth_method(&settings, None).unwrap()
         );
     }
 
@@ -2661,7 +2661,7 @@ mod tests {
         let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_TPM1))).unwrap();
         assert_eq!(
             ProvisioningAuthMethod::SharedAccessKey,
-            get_provisioning_auth_method(&settings, &None).unwrap()
+            get_provisioning_auth_method(&settings, None).unwrap()
         );
     }
 
@@ -2670,7 +2670,7 @@ mod tests {
         let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_SYMM_KEY))).unwrap();
         assert_eq!(
             ProvisioningAuthMethod::SharedAccessKey,
-            get_provisioning_auth_method(&settings, &None).unwrap()
+            get_provisioning_auth_method(&settings, None).unwrap()
         );
     }
 
@@ -2694,7 +2694,7 @@ mod tests {
         ));
         assert_eq!(
             ProvisioningAuthMethod::X509,
-            get_provisioning_auth_method(&settings, &provisioning_result).unwrap()
+            get_provisioning_auth_method(&settings, provisioning_result.as_ref()).unwrap()
         );
     }
 
@@ -2721,7 +2721,7 @@ mod tests {
         ));
         assert_eq!(
             ProvisioningAuthMethod::SharedAccessKey,
-            get_provisioning_auth_method(&settings, &provisioning_result).unwrap()
+            get_provisioning_auth_method(&settings, provisioning_result.as_ref()).unwrap()
         );
     }
 
@@ -2734,7 +2734,7 @@ mod tests {
             &ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient(
                 ExternalProvisioningErrorReason::Provisioning,
             )),
-            get_provisioning_auth_method(&settings, &None).expect_err("An error is expected when no provisioning result is specified with the external provisioning mode.").kind()
+            get_provisioning_auth_method(&settings, None).expect_err("An error is expected when no provisioning result is specified with the external provisioning mode.").kind()
         );
     }
 
@@ -2792,7 +2792,7 @@ mod tests {
         let settings = Settings::new(Some(&settings_path)).unwrap();
         assert_eq!(
             ProvisioningAuthMethod::X509,
-            get_provisioning_auth_method(&settings, &None).unwrap()
+            get_provisioning_auth_method(&settings, None).unwrap()
         );
     }
 
