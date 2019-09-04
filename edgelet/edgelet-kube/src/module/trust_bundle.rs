@@ -7,7 +7,7 @@ use hyper::service::Service;
 use hyper::Body;
 
 use edgelet_core::GetTrustBundle;
-use kube_client::{Error as KubeClientError, TokenSource};
+use kube_client::TokenSource;
 
 use crate::convert::trust_bundle_to_config_map;
 use crate::{Error, ErrorKind, KubeModuleRuntime};
@@ -22,12 +22,12 @@ where
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
 {
     crypto
         .get_trust_bundle()
         .map_err(|err| Error::from(err.context(ErrorKind::IdentityCertificate)))
-        .and_then(|cert| trust_bundle_to_config_map(runtime.settings(), &cert).map_err(Error::from))
+        .and_then(|cert| trust_bundle_to_config_map(runtime.settings(), &cert))
         .map(|(name, new_config_map)| {
             let client_copy = runtime.client().clone();
             let namespace_copy = runtime.settings().namespace().to_owned();
@@ -42,7 +42,7 @@ where
                     Some(&name),
                     Some(&runtime.settings().device_hub_selector()),
                 )
-                .map_err(Error::from)
+                .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                 .and_then(move |config_maps| {
                     if let Some(current) = config_maps.items.into_iter().find(|config_map| {
                         config_map.metadata.as_ref().map_or(false, |meta| {
@@ -57,7 +57,7 @@ where
                                 .expect("Unexpected lock error")
                                 .borrow_mut()
                                 .replace_config_map(namespace_copy.as_str(), &name, &new_config_map)
-                                .map_err(Error::from)
+                                .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                                 .map(|_| ());
 
                             Either::A(Either::B(fut))
@@ -68,19 +68,24 @@ where
                             .expect("Unexpected lock error")
                             .borrow_mut()
                             .create_config_map(namespace_copy.as_str(), &new_config_map)
-                            .map_err(Error::from)
+                            .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                             .map(|_| ());
 
                         Either::B(fut)
                     }
                 })
+                .map_err(|err| Error::from(err.context(ErrorKind::Initialization)))
         })
+        .map_err(|err| Error::from(err.context(ErrorKind::Initialization)))
         .into_future()
         .flatten()
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::Error;
+
+    use failure::Fail;
     use hyper::service::service_fn;
     use hyper::{Body, Error as HyperError, Method, Request, Response, StatusCode};
     use maplit::btreemap;
@@ -116,7 +121,13 @@ mod tests {
         let mut runtime = Runtime::new().unwrap();
         let err = runtime.block_on(task).unwrap_err();
 
-        assert_eq!(err.kind(), &ErrorKind::IdentityCertificate)
+        assert_eq!(err.kind(), &ErrorKind::Initialization);
+
+        let cause = Fail::iter_causes(&err)
+            .next()
+            .and_then(|cause| cause.downcast_ref::<Error>())
+            .map(Error::kind);
+        assert_eq!(cause, Some(&ErrorKind::IdentityCertificate))
     }
 
     #[test]
@@ -135,7 +146,13 @@ mod tests {
         let mut runtime = Runtime::new().unwrap();
         let err = runtime.block_on(task).unwrap_err();
 
-        assert_eq!(err.kind(), &ErrorKind::IdentityCertificate)
+        assert_eq!(err.kind(), &ErrorKind::Initialization);
+
+        let cause = Fail::iter_causes(&err)
+            .next()
+            .and_then(|cause| cause.downcast_ref::<Error>())
+            .map(Error::kind);
+        assert_eq!(cause, Some(&ErrorKind::IdentityCertificate))
     }
 
     #[test]
@@ -154,7 +171,13 @@ mod tests {
         let mut runtime = Runtime::new().unwrap();
         let err = runtime.block_on(task).unwrap_err();
 
-        assert_eq!(err.kind(), &ErrorKind::KubeClient)
+        assert_eq!(err.kind(), &ErrorKind::Initialization);
+
+        let cause = Fail::iter_causes(&err)
+            .next()
+            .and_then(|cause| cause.downcast_ref::<Error>())
+            .map(Error::kind);
+        assert_eq!(cause, Some(&ErrorKind::KubeClient))
     }
 
     #[test]
