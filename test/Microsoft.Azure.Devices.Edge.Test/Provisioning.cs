@@ -34,8 +34,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task DpsSymmetricKey()
         {
-            string scopeId = Context.Current.DpsScopeId.Expect(() => new ArgumentException());
-            string registrationId = Context.Current.DpsRegistrationId.Expect(() => new ArgumentException());
+            string idScope = Context.Current.DpsIdScope.Expect(() => new ArgumentException());
+            string registrationId = $"{Context.Current.DeviceId}-{TestContext.CurrentContext.Test.NormalizedName()}";
             string groupKey = Context.Current.DpsGroupKey.Expect(() => new ArgumentException());
 
             string deviceKey = this.DeriveDeviceKey(Convert.FromBase64String(groupKey), registrationId);
@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await this.daemon.ConfigureAsync(
                 config =>
                 {
-                    config.SetDpsSymmetricKey(scopeId, registrationId, deviceKey);
+                    config.SetDpsSymmetricKey(idScope, registrationId, deviceKey);
                     config.Update();
                     return Task.FromResult((
                         "with DPS symmetric key attestation for '{Identity}'",
