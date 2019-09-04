@@ -63,28 +63,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                 properties);
         }
 
-        public Task ConfigureAsync(Func<DaemonConfiguration, Task<(string, object[])>> config, CancellationToken token)
+        public async Task ConfigureAsync(Func<DaemonConfiguration, Task<(string, object[])>> config, CancellationToken token)
         {
-            var properties = new object[] { };
-            var message = "Configured edge daemon";
             string configYamlPath =
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData) + @"\iotedge\config.yaml";
 
-            return Profiler.Run(
-                async () =>
-                {
-                    await this.InternalStopAsync(token);
+            Profiler profiler = Profiler.Start();
 
-                    var yaml = new DaemonConfiguration(configYamlPath);
-                    (string msg, object[] props) = await config(yaml);
+            await this.InternalStopAsync(token);
 
-                    message += $" {msg}";
-                    properties = properties.Concat(props).ToArray();
+            var yaml = new DaemonConfiguration(configYamlPath);
+            (string message, object[] properties) = await config(yaml);
 
-                    await this.InternalStartAsync(token);
-                },
-                message.ToString(),
-                properties);
+            await this.InternalStartAsync(token);
+
+            profiler.Stop($"Configured edge daemon {message}", properties);
         }
 
         public Task StartAsync(CancellationToken token)
