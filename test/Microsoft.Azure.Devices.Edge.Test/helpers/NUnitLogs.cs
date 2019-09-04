@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using NUnit.Framework;
+    using Serilog;
 
     public static class NUnitLogs
     {
@@ -23,8 +24,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     TestContext.AddTestAttachment(path);
                 }
             }
-            catch
+            catch (Exception e)
             {
+                Log.Warning("Log collection failed for context " +
+                    $"'{TestContext.CurrentContext.Test.Name}' with exception:\n{e.ToString()}");
             }
         }
     }
