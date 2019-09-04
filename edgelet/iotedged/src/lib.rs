@@ -610,7 +610,7 @@ fn retrieve_external_provisioning_info(
 
 fn get_external_provisioning_info<S>(
     settings: &S,
-    mut tokio_runtime: &mut tokio::runtime::Runtime,
+    tokio_runtime: &mut tokio::runtime::Runtime,
 ) -> Result<Option<ProvisioningResult>, Error>
 where
     S: RuntimeSettings,
@@ -622,7 +622,7 @@ where
             external.endpoint().as_str(),
         );
 
-        let prov_info = retrieve_external_provisioning_info(external, &mut tokio_runtime)?;
+        let prov_info = retrieve_external_provisioning_info(external, tokio_runtime)?;
 
         if let Some(credentials) = prov_info.credentials() {
             if let CredentialSource::Payload = credentials.source() {
