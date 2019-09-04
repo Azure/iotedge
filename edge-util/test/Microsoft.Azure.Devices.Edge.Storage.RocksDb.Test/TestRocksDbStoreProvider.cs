@@ -38,5 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
         public IDbStore GetDbStore() => this.rocksDbStoreProvider.GetDbStore("default");
 
         public void RemoveDbStore(string partitionName) => throw new NotImplementedException();
+
+        public void Close() => this.rocksDbStoreProvider.Close();
     }
 }

@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
     {
         public const int HttpUdsMessageHandler = EventIdStart;
         public const int EdgeletWorkloadClient = EventIdStart + 100;
+        public const int RocksDb = EventIdStart + 100;
         const int EventIdStart = 100000;
     }
 }

@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         public const int CertificateValidityDays = 90;
         public const string ConfigFileName = "appsettings_hub.json";
         public const string EdgeHubStorageFolder = "edgeHub";
+        public const string EdgeHubStorageBackupFolder = "edgeHub_backup";
         public const string InitializationVectorFileName = "EdgeHubIV";
         public const string TopicNameConversionSectionName = "mqttTopicNameConversion";
         public const string VersionInfoFileName = "versionInfo.json";
