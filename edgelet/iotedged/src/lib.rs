@@ -2848,7 +2848,7 @@ mod tests {
             tmp_dir.path(),
             EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
             EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
-            &None,
+            None,
         )
         .unwrap();
 
@@ -2903,7 +2903,7 @@ mod tests {
                 tmp_dir.path(),
                 EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
                 EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
-                &None,
+                None,
             )
             .unwrap();
 
@@ -2941,7 +2941,7 @@ mod tests {
             tmp_dir.path(),
             EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
             EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
-            &None,
+            None,
         )
         .unwrap();
 
@@ -3010,7 +3010,7 @@ mod tests {
             tmp_dir.path(),
             EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
             EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
-            &None,
+            None,
         )
         .unwrap();
 
@@ -3065,7 +3065,7 @@ mod tests {
             tmp_dir.path(),
             EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
             EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
-            &None,
+            None,
         )
         .unwrap_err();
     }
@@ -3094,7 +3094,7 @@ mod tests {
                 tmp_dir.path(),
                 EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
                 EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
-                &None,
+                None,
             )
             .unwrap();
 
@@ -3143,7 +3143,7 @@ mod tests {
                 tmp_dir.path(),
                 EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
                 EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
-                &None,
+                None,
             )
             .unwrap();
 
@@ -3204,7 +3204,7 @@ mod tests {
                 tmp_dir.path(),
                 EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
                 EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
-                &None,
+                None,
             )
             .unwrap();
 
@@ -3253,7 +3253,7 @@ mod tests {
                 tmp_dir.path(),
                 EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
                 EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
-                &None,
+                None,
             )
             .unwrap();
 
@@ -3326,7 +3326,7 @@ mod tests {
             tmp_dir.path(),
             EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
             EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
-            &None,
+            None,
         )
         .unwrap();
 
