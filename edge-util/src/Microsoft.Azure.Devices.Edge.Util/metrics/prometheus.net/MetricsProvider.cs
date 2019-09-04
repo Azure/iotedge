@@ -21,6 +21,14 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
             Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.defaultLabelNames = new List<string> { iotHubName, deviceId };
+
+            // TODO:
+            // By default, the Prometheus.Net library emits some default metrics.
+            // While useful, these are emitted without any tags. This will make it hard to
+            // consume and make sense of these metrics. So suppressing the default metrics for
+            // now. We can look at ways to add tags to the default metrics, or emiting the
+            // metrics manually.
+            Metrics.SuppressDefaultMetrics();
         }
 
         public IMetricsGauge CreateGauge(string name, string description, List<string> labelNames)
@@ -46,6 +54,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
                 return ms.ToArray();
             }
         }
+
+        internal CollectorRegistry DefaultRegistry => Metrics.DefaultRegistry;
 
         string GetCounterName(string name) => string.Format(CultureInfo.InvariantCulture, CounterNameFormat, this.namePrefix, name);
 

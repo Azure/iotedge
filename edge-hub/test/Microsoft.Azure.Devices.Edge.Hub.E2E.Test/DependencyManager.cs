@@ -85,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var mqttSettingsConfiguration = new Mock<IConfiguration>();
             mqttSettingsConfiguration.Setup(c => c.GetSection(It.IsAny<string>())).Returns(Mock.Of<IConfigurationSection>(s => s.Value == null));
 
-            var experimentalFeatures = new ExperimentalFeatures(true, false, false);
+            var experimentalFeatures = new ExperimentalFeatures(true, false, false, true);
 
             builder.RegisterBuildCallback(
                 c =>
@@ -100,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             var versionInfo = new VersionInfo("v1", "b1", "c1");
             var storeAndForwardConfiguration = new StoreAndForwardConfiguration(-1);
-            var metricsConfig = new MetricsConfig(false, new MetricsListenerConfig());
+            var metricsConfig = new MetricsConfig(true, new MetricsListenerConfig());
 
             builder.RegisterModule(
                 new CommonModule(
