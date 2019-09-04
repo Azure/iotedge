@@ -11,7 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     {
         protected readonly IEdgeDaemon daemon;
         protected readonly IotHub iotHub;
-        EdgeDevice device;
 
         public ManualProvisioningFixture()
         {
@@ -38,19 +37,19 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         DateTime startTime = DateTime.Now;
                         CancellationToken token = cts.Token;
 
-                        Assert.IsNull(this.device);
-                        this.device = await EdgeDevice.GetOrCreateIdentityAsync(
+                        EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
                             Context.Current.DeviceId,
                             this.iotHub,
                             token);
+                        Context.Current.DeleteList.Add(device);
 
                         IotHubConnectionStringBuilder builder =
-                            IotHubConnectionStringBuilder.Create(this.device.ConnectionString);
+                            IotHubConnectionStringBuilder.Create(device.ConnectionString);
 
                         await this.daemon.ConfigureAsync(
                             config =>
                             {
-                                config.SetDeviceConnectionString(this.device.ConnectionString);
+                                config.SetDeviceConnectionString(device.ConnectionString);
                                 config.Update();
                                 return Task.FromResult((
                                     "with connection string for device '{Identity}'",
@@ -62,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         {
                             await this.daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
 
-                            var agent = new EdgeAgent(this.device.Id, this.iotHub);
+                            var agent = new EdgeAgent(device.Id, this.iotHub);
                             await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
                             await agent.PingAsync(token);
                         }

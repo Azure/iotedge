@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using System.IO;
     using System.Linq;
     using System.Net;
+    using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
 
@@ -123,6 +124,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public string CaCertScriptPath { get; }
 
         public string ConnectionString { get; }
+
+        public List<EdgeDevice> DeleteList { get; } = new List<EdgeDevice>();
 
         public string DeviceId { get; }
 

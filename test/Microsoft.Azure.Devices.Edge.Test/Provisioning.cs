@@ -63,15 +63,9 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 this.iotHub,
                 token,
                 takeOwnership: true);
-            device.Expect(() => new ArgumentException());
+            Context.Current.DeleteList.Add(device.Expect(() => new ArgumentException()));
 
-            await TryFinally.DoAsync(
-                () => agent.PingAsync(token),
-                async () =>
-                {
-                    await this.daemon.StopAsync(token);
-                    await device.ForEachAsync(d => d.DeleteIdentityAsync(token));
-                });
+            await agent.PingAsync(token);
         }
     }
 }
