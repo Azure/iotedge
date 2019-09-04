@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 this.iotHub,
                 token,
                 takeOwnership: true);
-            Context.Current.DeleteList.Add(device.Expect(() => new ArgumentException()));
+            Context.Current.DeleteList.TryAdd(registrationId, device.Expect(() => new ArgumentException()));
 
             await agent.PingAsync(token);
         }

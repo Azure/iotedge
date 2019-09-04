@@ -85,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     {
                         CancellationToken token = cts.Token;
                         await this.daemon.StopAsync(token);
-                        foreach (EdgeDevice device in Context.Current.DeleteList)
+                        foreach (EdgeDevice device in Context.Current.DeleteList.Values)
                         {
                             await device.MaybeDeleteIdentityAsync(token);
                         }

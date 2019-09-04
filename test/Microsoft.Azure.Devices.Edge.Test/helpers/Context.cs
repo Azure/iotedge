@@ -125,7 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public string ConnectionString { get; }
 
-        public List<EdgeDevice> DeleteList { get; } = new List<EdgeDevice>();
+        public Dictionary<string, EdgeDevice> DeleteList { get; } = new Dictionary<string, EdgeDevice>();
 
         public string DeviceId { get; }
 

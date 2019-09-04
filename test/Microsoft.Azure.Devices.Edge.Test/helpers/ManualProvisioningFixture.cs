@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             Context.Current.DeviceId,
                             this.iotHub,
                             token);
-                        Context.Current.DeleteList.Add(device);
+                        Context.Current.DeleteList.TryAdd(device.Id, device);
 
                         IotHubConnectionStringBuilder builder =
                             IotHubConnectionStringBuilder.Create(device.ConnectionString);
