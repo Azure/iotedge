@@ -177,13 +177,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             var validator = new Mock<IValidator<MethodRequest>>();
             validator.Setup(v => v.Validate(It.IsAny<MethodRequest>()));
-            
+
             var httpContext = new DefaultHttpContext(); // or mock a `HttpContext`
             var controllerContext = new ControllerContext()
             {
                 HttpContext = httpContext,
             };
-            var testController = new TwinsController(Task.FromResult(edgeHub.Object), validator.Object) 
+            var testController = new TwinsController(Task.FromResult(edgeHub.Object), validator.Object)
             {
                 ControllerContext = controllerContext
             };
@@ -228,7 +228,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             {
                 HttpContext = httpContext,
             };
-            var testController = new TwinsController(Task.FromResult(edgeHub.Object), validator.Object) 
+            var testController = new TwinsController(Task.FromResult(edgeHub.Object), validator.Object)
             {
                 ControllerContext = controllerContext
             };
@@ -269,13 +269,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
 
             var validator = new Mock<IValidator<MethodRequest>>();
             validator.Setup(v => v.Validate(It.IsAny<MethodRequest>()));
-            
+
             var httpContext = new DefaultHttpContext(); // or mock a `HttpContext`
             var controllerContext = new ControllerContext()
             {
                 HttpContext = httpContext,
             };
-            var testController = new TwinsController(Task.FromResult(edgeHub.Object), validator.Object) 
+            var testController = new TwinsController(Task.FromResult(edgeHub.Object), validator.Object)
             {
                 ControllerContext = controllerContext
             };
@@ -320,7 +320,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             {
                 HttpContext = httpContext,
             };
-            var testController = new TwinsController(Task.FromResult(edgeHub.Object), validator.Object) 
+            var testController = new TwinsController(Task.FromResult(edgeHub.Object), validator.Object)
             {
                 ControllerContext = controllerContext
             };
