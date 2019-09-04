@@ -142,7 +142,7 @@ pub trait ContainerApi: Send + Sync {
     fn container_restart(
         &self,
         id: &str,
-        t: Option<&i32>,
+        t: Option<i32>,
     ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send>;
     fn container_start(
         &self,
@@ -157,7 +157,7 @@ pub trait ContainerApi: Send + Sync {
     fn container_stop(
         &self,
         id: &str,
-        t: Option<&i32>,
+        t: Option<i32>,
     ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send>;
     fn container_top(
         &self,
@@ -1077,26 +1077,20 @@ where
     fn container_restart(
         &self,
         id: &str,
-        t: Option<&i32>,
+        t: Option<i32>,
     ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
-        let query = if let Some(ref timeout) = t {
-            Some(
+        let query = t.map_or(std::borrow::Cow::Borrowed(""), |t| {
+            std::borrow::Cow::Owned(
                 ::url::form_urlencoded::Serializer::new(String::new())
-                    .append_pair("t", &timeout.to_string())
+                    .append_pair("t", &t.to_string())
                     .finish(),
             )
-        } else {
-            None
-        };
+        });
 
-        let uri_str = format!(
-            "/containers/{id}/restart?{}",
-            query.unwrap_or_else(|| "".to_string()),
-            id = id
-        );
+        let uri_str = format!("/containers/{id}/restart?{}", query, id = id);
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
         // TODO(farcaller): handle error
@@ -1243,27 +1237,20 @@ where
     fn container_stop(
         &self,
         id: &str,
-        t: Option<&i32>,
+        t: Option<i32>,
     ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::POST;
-
-        let query = if let Some(ref timeout) = t {
-            Some(
+        let query = t.map_or(std::borrow::Cow::Borrowed(""), |t| {
+            std::borrow::Cow::Owned(
                 ::url::form_urlencoded::Serializer::new(String::new())
-                    .append_pair("t", &timeout.to_string())
+                    .append_pair("t", &t.to_string())
                     .finish(),
             )
-        } else {
-            None
-        };
+        });
 
-        let uri_str = format!(
-            "/containers/{id}/stop?{}",
-            query.unwrap_or_else(|| "".to_string()),
-            id = id
-        );
+        let uri_str = format!("/containers/{id}/stop?{}", query, id = id);
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
         // TODO(farcaller): handle error

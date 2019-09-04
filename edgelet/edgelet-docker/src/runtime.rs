@@ -472,7 +472,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         Box::new(
             self.client
                 .container_api()
-                .container_stop(&id, wait_timeout.as_ref())
+                .container_stop(&id, wait_timeout)
                 .then(|result| match result {
                     Ok(_) => {
                         info!("Successfully stopped module {}", id);
