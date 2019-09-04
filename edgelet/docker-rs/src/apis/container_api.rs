@@ -142,7 +142,7 @@ pub trait ContainerApi: Send + Sync {
     fn container_restart(
         &self,
         id: &str,
-        t: Option<i32>,
+        t: Option<&i32>,
     ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send>;
     fn container_start(
         &self,
@@ -157,7 +157,7 @@ pub trait ContainerApi: Send + Sync {
     fn container_stop(
         &self,
         id: &str,
-        t: Option<i32>,
+        t: Option<&i32>,
     ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send>;
     fn container_top(
         &self,
@@ -1077,7 +1077,7 @@ where
     fn container_restart(
         &self,
         id: &str,
-        t: Option<i32>,
+        t: Option<&i32>,
     ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
@@ -1243,7 +1243,7 @@ where
     fn container_stop(
         &self,
         id: &str,
-        t: Option<i32>,
+        t: Option<&i32>,
     ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
