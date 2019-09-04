@@ -62,21 +62,24 @@ namespace Microsoft.Azure.Devices.Edge.Test
                             Context.Current.Proxy,
                             token);
 
-                        await Context.Current.Proxy.ForEachAsync(
-                            async proxy =>
+                        await this.daemon.ConfigureAsync(
+                            config =>
                             {
-                                await this.daemon.ConfigureAsync(
-                                    config =>
-                                    {
-                                        config.SetDeviceHostname(Dns.GetHostName());
-                                        config.AddHttpsProxy(proxy);
-                                        config.Update();
-                                        return Task.FromResult((
-                                            "with proxy '{ProxyUri}'",
-                                            new object[] { proxy.ToString() }));
-                                    },
-                                    token);
-                            });
+                                var msg = string.Empty;
+                                var props = new object[] { };
+
+                                config.SetDeviceHostname(Dns.GetHostName());
+                                Context.Current.Proxy.ForEach(proxy =>
+                                {
+                                    config.AddHttpsProxy(proxy);
+                                    msg = "with proxy '{ProxyUri}'";
+                                    props = new object[] { proxy.ToString() };
+                                });
+                                config.Update();
+
+                                return Task.FromResult((msg, props));
+                            },
+                            token);
                     }
                 },
                 "Completed end-to-end test setup");
