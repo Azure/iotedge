@@ -294,7 +294,7 @@ where
         let (hyper_client, device_cert_identity_data) = prepare_httpclient_and_identity_data(
             hsm_lock.clone(),
             &settings,
-            &external_provisioning_info,
+            external_provisioning_info.as_ref(),
         )?;
 
         let cache_subdir_path = Path::new(&settings.homedir()).join(EDGE_SETTINGS_SUBDIR);
@@ -383,7 +383,7 @@ where
             &hybrid_id_subdir_path,
             EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
             EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
-            &external_provisioning_info,
+            external_provisioning_info.as_ref(),
         )?;
 
         match settings.provisioning() {
@@ -615,7 +615,7 @@ fn get_external_provisioning_info<S>(
 where
     S: RuntimeSettings,
 {
-    if let Provisioning::External(ref external) = settings.provisioning() {
+    if let Provisioning::External(external) = settings.provisioning() {
         // Set the external provisioning endpoint environment variable for use by the custom HSM library.
         env::set_var(
             EXTERNAL_PROVISIONING_ENDPOINT_KEY,
@@ -809,7 +809,7 @@ where
 fn prepare_httpclient_and_identity_data<S>(
     hsm_lock: Arc<HsmLock>,
     settings: &S,
-    provisioning_result: &Option<ProvisioningResult>,
+    provisioning_result: Option<&ProvisioningResult>,
 ) -> Result<(MaybeProxyClient, Option<IdentityCertificateData>), Error>
 where
     S: RuntimeSettings,
@@ -977,7 +977,7 @@ fn prepare_master_hybrid_identity_key<S, C>(
     subdir: &Path,
     hybrid_id_filename: &str,
     iv_filename: &str,
-    provisioning_result: &Option<ProvisioningResult>,
+    provisioning_result: Option<&ProvisioningResult>,
 ) -> Result<(bool, Option<Vec<u8>>), Error>
 where
     S: RuntimeSettings,
@@ -1235,7 +1235,7 @@ where
 
 fn get_provisioning_auth_method<S>(
     settings: &S,
-    provisioning_result: &Option<ProvisioningResult>,
+    provisioning_result: Option<&ProvisioningResult>,
 ) -> Result<ProvisioningAuthMethod, Error>
 where
     S: RuntimeSettings,
