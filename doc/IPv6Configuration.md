@@ -122,8 +122,8 @@ The [ndppd installation][4] script installs and configures the NDP proxying daem
 Sample usage:
 
 ```
-  sudo chmod +x .\installNdppd.sh
-  sudo .\installNdppd.sh "2021:ffff:e0:3b1:0::/80" "2021:ffff:e0:3b1:1::/80" eth0
+  sudo chmod +x ./installNdppd.sh
+  sudo ./installNdppd.sh "2021:ffff:e0:3b1:0::/80" "2021:ffff:e0:3b1:1::/80" eth0
 ```
 
 The [Configure docker IPv6][3] script configures docker for IPv4/IPv6 dual-stack support, enables router advertisements and NDP proxying on the specified public network interface by editing the /etc/sysctl.conf file and 
@@ -138,8 +138,8 @@ also executes the [ndppd installation][4] script. The script takes the following
 Sample usage:
 
 ```
-  sudo chmod +x .\configureDockerIPv6.sh
-  sudo .\configureDockerIPv6.sh "2021:ffff:e0:3b1:0::/80" "2021:ffff:e0:3b1:1::/80" eth0
+  sudo chmod +x ./configureDockerIPv6.sh
+  sudo ./configureDockerIPv6.sh "2021:ffff:e0:3b1:0::/80" "2021:ffff:e0:3b1:1::/80" eth0
 ```
 
 # IoT Edge Configuration
