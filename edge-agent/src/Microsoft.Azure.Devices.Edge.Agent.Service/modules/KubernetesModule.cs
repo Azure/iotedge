@@ -197,7 +197,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             // IKubernetesOperator
             builder.Register(
                     c => Task.FromResult(
-                        new CrdWatchOperator<CombinedDockerConfig>(
+                        new CrdWatchOperator(
                             this.iotHubHostname,
                             this.deviceId,
                             this.gatewayHostname,
