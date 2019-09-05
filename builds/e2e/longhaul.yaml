@@ -34,6 +34,7 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
+        - agent-group: $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
         - run-long-haul -equals true
@@ -97,6 +98,7 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
+        - agent-group: $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals ARM
         - agent-osbits -equals 32
@@ -161,6 +163,7 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
+        - agent-group: $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals ARM
         - agent-osbits -equals 64
@@ -225,6 +228,7 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
+        - agent-group: $(agent.group)
         - Agent.OS -equals Windows_NT
         - Agent.OSArchitecture -equals X64
         - agent-os-name -equals WinPro_x64
@@ -291,6 +295,7 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
+        - agent-group: $(agent.group)
         - Agent.OS -equals Windows_NT
         - Agent.OSArchitecture -equals X64
         - agent-os-name -equals WinServerCore_x64
@@ -357,7 +362,7 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
-        #- longhaul_iotuap_x64 -equals true
+        - agent-group: $(agent.group)
         - run-long-haul -equals true
         - runner-os-name -equals WinIoTCore_x64
     variables:
