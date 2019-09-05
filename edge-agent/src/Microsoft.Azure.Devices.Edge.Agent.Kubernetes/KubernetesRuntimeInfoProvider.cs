@@ -153,9 +153,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             }
 
             // Construct the accumulated architecture string
-            foreach (var entry in archList)
+            foreach (var (arch, count) in archList)
             {
-                accumulatedArch += entry.arch + "(" + entry.count + ")\t";
+                accumulatedArch += arch + "(" + count + ")\t";
             }
 
 
