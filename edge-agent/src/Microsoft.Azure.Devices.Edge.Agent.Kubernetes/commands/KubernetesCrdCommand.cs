@@ -22,13 +22,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
 
     using Constants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
-    public class KubernetesCrdCommand<T> : ICommand
+    public class KubernetesCrdCommand : ICommand
     {
         readonly IKubernetes client;
-        readonly KubernetesModule<DockerConfig>[] modules;
+        readonly List<IModule> modules;
         readonly Option<IRuntimeInfo> runtimeInfo;
         readonly Lazy<string> id;
-        readonly ICombinedConfigProvider<T> combinedConfigProvider;
+        readonly ICombinedConfigProvider<CombinedDockerConfig> combinedConfigProvider;
         readonly string deviceNamespace;
         readonly string iotHubHostname;
         readonly string deviceId;
@@ -38,13 +38,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
         // command.
         public string Id => this.id.Value;
 
-        public KubernetesCrdCommand(string deviceNamespace, string iotHubHostname, string deviceId, IKubernetes client, KubernetesModule<DockerConfig>[] modules, Option<IRuntimeInfo> runtimeInfo, ICombinedConfigProvider<T> combinedConfigProvider)
+        public KubernetesCrdCommand(string deviceNamespace, string iotHubHostname, string deviceId, IKubernetes client, IEnumerable<IModule> modules
+        , Option<IRuntimeInfo> runtimeInfo, ICombinedConfigProvider<CombinedDockerConfig> combinedConfigProvider)
         {
             this.deviceNamespace = KubeUtils.SanitizeK8sValue(Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace)));
             this.iotHubHostname = KubeUtils.SanitizeK8sValue(Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname)));
             this.deviceId = KubeUtils.SanitizeK8sValue(Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId)));
             this.client = Preconditions.CheckNotNull(client, nameof(client));
-            this.modules = Preconditions.CheckNotNull(modules, nameof(modules));
+            this.modules = Preconditions.CheckNotNull(modules, nameof(modules)).ToList();
             this.runtimeInfo = Preconditions.CheckNotNull(runtimeInfo, nameof(runtimeInfo));
             this.combinedConfigProvider = Preconditions.CheckNotNull(combinedConfigProvider, nameof(combinedConfigProvider));
             this.id = new Lazy<string>(() => this.modules.Aggregate(string.Empty, (prev, module) => module.Name + prev));
@@ -114,26 +115,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
                 foreach (var m in this.modules)
                 {
                     var combinedConfig = this.combinedConfigProvider.GetCombinedConfig(m, runtime);
-                    CombinedDockerConfig dockerConfig = combinedConfig as CombinedDockerConfig;
-                    if (dockerConfig != null)
-                    {
-                        var configString = JsonConvert.SerializeObject(dockerConfig);
+                    var config = JsonConvert.SerializeObject(combinedConfig);
 
-                        var combinedModule = new KubernetesModule<string>(m as IModule){
-                            Config = configString
-                        };
-                        modulesList.Add(combinedModule);
-                        dockerConfig.AuthConfig.ForEach(
-                            auth =>
-                            {
-                                var kubernetesAuth = new ImagePullSecret(auth);
-                                secrets[kubernetesAuth.Name] = kubernetesAuth;
-                            });
-                    }
-                    else
-                    {
-                        throw new InvalidModuleException("Cannot convert combined config into KubernetesModule.");
-                    }
+                    var combinedModule = new KubernetesModule<string>(m, config);
+                    modulesList.Add(combinedModule);
+                    combinedConfig.AuthConfig.ForEach(
+                        auth =>
+                        {
+                            var kubernetesAuth = new ImagePullSecret(auth);
+                            secrets[kubernetesAuth.Name] = kubernetesAuth;
+                        });
                 }
             }
 
@@ -212,7 +203,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
         static class Events
         {
             const int IdStart = KubernetesEventIds.KubernetesCommand;
-            static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesCrdCommand<T>>();
+            static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesCrdCommand>();
 
             enum EventIds
             {

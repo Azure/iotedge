@@ -15,10 +15,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using Newtonsoft.Json;
     using Newtonsoft.Json.Serialization;
 
-    public class CrdWatchOperator<TConfig> : IKubernetesOperator
+    public class CrdWatchOperator : IKubernetesOperator
     {
         readonly IKubernetes client;
-        readonly IKubernetesSpecFactory<TConfig> specFactory;
+        readonly IKubernetesSpecFactory<CombinedDockerConfig> specFactory;
         readonly string iotHubHostname;
         readonly string deviceId;
         readonly string edgeHostname;
@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             Uri managementUri,
             PortMapServiceType defaultMapServiceType,
             IKubernetes client,
-            IKubernetesSpecFactory<TConfig> specFactory,
+            IKubernetesSpecFactory<CombinedDockerConfig> specFactory,
             IModuleIdentityLifecycleManager moduleIdentityLifecycleManager)
         {
             this.iotHubHostname = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
@@ -96,7 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             // is an acceptable fate if these tasks fail.
 
             // CRD watch
-            var watcher = new CrdWatcher<TConfig>(
+            var watcher = new CrdWatcher(
                 this.iotHubHostname,
                 this.deviceId,
                 this.edgeHostname,

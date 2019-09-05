@@ -19,12 +19,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
     using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
 
-    public class CrdWatcher<TConfig>
+    public class CrdWatcher
     {
         const string EdgeHubHostname = "edgehub";
 
         readonly IKubernetes client;
-        readonly IKubernetesSpecFactory<TConfig> specFactory;
+        readonly IKubernetesSpecFactory<CombinedDockerConfig> specFactory;
         readonly AsyncLock watchLock = new AsyncLock();
 
         readonly JsonSerializerSettings serializerSettings;
@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             Uri managementUri,
             IModuleIdentityLifecycleManager moduleIdentityLifecycleManager,
             IKubernetes client,
-            IKubernetesSpecFactory<TConfig> specFactory)
+            IKubernetesSpecFactory<CombinedDockerConfig> specFactory)
         {
             this.iotHubHostname = iotHubHostname;
             this.deviceId = deviceId;
@@ -213,10 +213,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.currentModules = ModuleSet.Empty;
         }
 
-        private async Task UpsertDeployments(V1ServiceList currentServices, V1DeploymentList currentDeployments, IList<KubernetesModule<TConfig>> spec)
+        private async Task UpsertDeployments(V1ServiceList currentServices, V1DeploymentList currentDeployments, IList<KubernetesModule<CombinedDockerConfig>> spec)
         {
             var desiredModules = ModuleSet.Create(spec.ToArray());
-            Console.WriteLine($"DESIRED MODULES:\n {desiredModules}");
             var moduleIdentities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desiredModules, this.currentModules);
 
             var desiredServices = new List<V1Service>();
@@ -225,7 +224,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             // Bootstrap the module builder
             var kubernetesModelBuilder = new KubernetesModelBuilder(this.proxyImage, this.proxyConfigPath, this.proxyConfigVolumeName, this.proxyTrustBundlePath, this.proxyTrustBundleVolumeName, this.defaultMapServiceType);
 
-            foreach (KubernetesModule<TConfig> module in spec)
+            foreach (KubernetesModule<CombinedDockerConfig> module in spec)
             {
                 var moduleId = moduleIdentities[module.Name];
 
@@ -608,7 +607,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         static class Events
         {
             const int IdStart = KubernetesEventIds.KubernetesCrdWatcher;
-            private static readonly ILogger Log = Logger.Factory.CreateLogger<CrdWatcher<TConfig>>();
+            private static readonly ILogger Log = Logger.Factory.CreateLogger<CrdWatcher>();
 
             enum EventIds
             {

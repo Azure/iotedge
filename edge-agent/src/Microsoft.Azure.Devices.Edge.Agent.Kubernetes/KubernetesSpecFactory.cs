@@ -2,6 +2,7 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
+    using System;
     using System.Collections.Generic;
     using Newtonsoft.Json;
 
@@ -14,12 +15,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
              var newList = new List<KubernetesModule<CombinedDockerConfig>>();
              foreach (var crdModule in crdSpec)
              {
-                 if (crdModule.Type == DockerType)
+                 if (string.Equals(crdModule.Type,DockerType, StringComparison.OrdinalIgnoreCase))
                  {
                     var dockerConfig = JsonConvert.DeserializeObject<CombinedDockerConfig>(crdModule.Config);
-                    var newModule = new KubernetesModule<CombinedDockerConfig>(crdModule) {
-                        Config = dockerConfig
-                    };
+                    var newModule = new KubernetesModule<CombinedDockerConfig>(crdModule, dockerConfig);
                     newList.Add(newModule);
                  }
                  else
