@@ -76,7 +76,7 @@ jobs:
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
         parameters:
-          release.label: 'lh'
+          release.label: 'lh$(agent.group)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
@@ -141,7 +141,7 @@ jobs:
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
         parameters:
-          release.label: 'lh'
+          release.label: 'lh$(agent.group)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
@@ -206,7 +206,7 @@ jobs:
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
         parameters:
-          release.label: 'lh'
+          release.label: 'lh$(agent.group)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
@@ -273,7 +273,7 @@ jobs:
       # Deploy long haul
       - template: templates/longhaul-deploy-windows.yaml
         parameters:
-          release.label: 'winpro-lh'
+          release.label: 'winpro-lh$(agent.group)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.windows)'
           container.registry: '$(container.registry)'
@@ -340,7 +340,7 @@ jobs:
       # Deploy long haul
       - template: templates/longhaul-deploy-windows.yaml
         parameters:
-          release.label: 'servercore-lh'
+          release.label: 'servercore-lh$(agent.group)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.windows)'
           container.registry: '$(container.registry)'
@@ -406,7 +406,7 @@ jobs:
       - template: templates/deploy-iotuap.yaml
         parameters:
           testName: 'LongHaul'
-          release.label: 'iotuap-lh'
+          release.label: 'iotuap-lh$(agent.group)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.windows)'
           container.registry: '$(container.registry)'
