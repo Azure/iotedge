@@ -159,19 +159,19 @@ namespace Microsoft.Azure.Devices.Client.Samples
             TransportType transportType = TransportType.Mqtt_Tcp_Only;
             ITransportSettings[] transportSettings = new ITransportSettings[1];
 
-            if (string.Compare("Mqtt", protocol, StringComparison.OrdinalIgnoreCase) == 0)
+            if (string.Equals("Mqtt", protocol, StringComparison.OrdinalIgnoreCase))
             {
                 transportType = TransportType.Mqtt_Tcp_Only;
             }
-            else if (string.Compare("MqttWs", protocol, StringComparison.OrdinalIgnoreCase) == 0)
+            else if (string.Equals("MqttWs", protocol, StringComparison.OrdinalIgnoreCase))
             {
                 transportType = TransportType.Mqtt_WebSocket_Only;
             }
-            else if (string.Compare("Amqp", protocol, StringComparison.OrdinalIgnoreCase) == 0)
+            else if (string.Equals("Amqp", protocol, StringComparison.OrdinalIgnoreCase))
             {
                 transportType = TransportType.Amqp_Tcp_Only;
             }
-            else if (string.Compare("AmqpWs", protocol, StringComparison.OrdinalIgnoreCase) == 0)
+            else if (string.Equals("AmqpWs", protocol, StringComparison.OrdinalIgnoreCase))
             {
                 transportType = TransportType.Amqp_WebSocket_Only;
             }
@@ -182,7 +182,7 @@ namespace Microsoft.Azure.Devices.Client.Samples
 
             X509Certificate2 trustedCACert = GetTrustedCACertFromFile(TrustedCACertPath);
             RemoteCertificateValidationCallback certificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) => CustomCertificateValidator.ValidateCertificate(trustedCACert, (X509Certificate2) certificate, chain, sslPolicyErrors);
-            if (string.Compare("Amqp", protocol, StringComparison.OrdinalIgnoreCase) == 0 || string.Compare("AmqpWs", protocol, StringComparison.OrdinalIgnoreCase) == 0)
+            if (transportType == TransportType.Amqp_Tcp_Only || transportType == TransportType.Amqp_WebSocket_Only)
             {
                 transportSettings[0] = new AmqpTransportSettings(transportType);
                 AmqpTransportSettings amqpTransportSettings = (AmqpTransportSettings) transportSettings[0];
@@ -249,7 +249,6 @@ namespace Microsoft.Azure.Devices.Client.Samples
             InstallChainCertificates(certChain);
 
             ITransportSettings[] transportSettings = GetTransport(ClientTransportType);
-
             var auth = new DeviceAuthenticationWithX509Certificate(DownstreamDeviceId, cert);
             DeviceClient deviceClient = DeviceClient.Create(IothubHostname, IotEdgeGatewayHostname, auth, transportSettings);
 
@@ -296,33 +295,22 @@ namespace Microsoft.Azure.Devices.Client.Samples
         /// </summary>
         static void InstallCACert()
         {
-            if (!string.IsNullOrWhiteSpace(TrustedCACertPath))
-            {
-                Console.WriteLine("User configured CA certificate path: {0}", TrustedCACertPath);
-                if (!File.Exists(TrustedCACertPath))
-                {
-                    // cannot proceed further without a proper cert file
-                    Console.WriteLine("Invalid certificate file: {0}", TrustedCACertPath);
-                    throw new InvalidOperationException("Invalid certificate file.");
-                }
-                else
-                {
-                    Console.WriteLine("Attempting to install CA certificate: {0}", TrustedCACertPath);
-                    X509Store store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
-                    store.Open(OpenFlags.ReadWrite);
-                    X509Certificate2 trustedCACert = GetTrustedCACertFromFile(TrustedCACertPath);
-                    store.Add(trustedCACert);
-                    Console.WriteLine("Successfully added certificate: {0}", TrustedCACertPath);
-                    store.Close();
-                }
-            }
-            else
-            {
-                Console.WriteLine("IOTEDGE_TRUSTED_CA_CERTIFICATE_PEM_PATH was not set or null, not installing any CA certificate");
-            }
+            X509Certificate2 trustedCACert = GetTrustedCACertFromFile(TrustedCACertPath);
+            Console.WriteLine("User configured CA certificate path: {0}", TrustedCACertPath);
+            Console.WriteLine("Attempting to install CA certificate: {0}", TrustedCACertPath);
+            X509Store store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
+            store.Open(OpenFlags.ReadWrite);
+            store.Add(trustedCACert);
+            Console.WriteLine("Successfully added certificate: {0}", TrustedCACertPath);
+            store.Close();
         }
 
         static X509Certificate2 GetTrustedCACertFromFile(string trustedCACertPath) {
+            if (string.IsNullOrWhiteSpace(TrustedCACertPath) || !File.Exists(TrustedCACertPath))
+            {
+                Console.WriteLine("Invalid certificate file: {0}", TrustedCACertPath);
+                throw new InvalidOperationException("Invalid certificate file.");
+            }
             return new X509Certificate2(System.Security.Cryptography.X509Certificates.X509Certificate.CreateFromCertFile(TrustedCACertPath));
         }
 
