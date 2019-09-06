@@ -8,18 +8,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using System.Net.Http;
     using System.Threading.Tasks;
     using Autofac;
-    using k8s;
     using global::Docker.DotNet.Models;
+    using k8s;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
+    using Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using Microsoft.Azure.Devices.Edge.Agent.Docker;
-    using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
-    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners;
-    using Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient;
     using Microsoft.Rest;
     using ModuleIdentityLifecycleManager = Microsoft.Azure.Devices.Edge.Agent.Edgelet.ModuleIdentityLifecycleManager;
 
