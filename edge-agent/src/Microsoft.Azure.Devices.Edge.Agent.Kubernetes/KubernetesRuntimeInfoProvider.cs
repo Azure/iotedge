@@ -110,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 cancellationToken: cancellationToken);
         }
 
-        public Task<SystemInfo> GetSystemInfo()
+        public async Task<SystemInfo> GetSystemInfo()
         {
             V1NodeList k8sNodes = await this.client.ListNodeAsync();
             string accumulatedArch = string.Empty;
