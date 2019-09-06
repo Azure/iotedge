@@ -13,6 +13,7 @@ jobs:
   - job: linux
 ################################################################################
     displayName: Linux
+    timeoutInMinutes: 90
     pool:
       vmImage: 'ubuntu-16.04'
     strategy:
@@ -136,6 +137,7 @@ jobs:
   - job: windows_amd64
 ################################################################################
     displayName: Windows amd64
+    timeoutInMinutes: 90
     pool:
       vmImage: 'vs2017-win2016'
     steps:
@@ -200,6 +202,7 @@ jobs:
   - job: windows_arm32
 ################################################################################
     displayName: Windows arm32
+    timeoutInMinutes: 90
     pool:
       vmImage: 'vs2017-win2016'
     steps:
