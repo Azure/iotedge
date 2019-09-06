@@ -158,7 +158,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 accumulatedArch += arch + "(" + count + ")\t";
             }
 
-
             return new SystemInfo(osType, accumulatedArch, version);
         }
 
