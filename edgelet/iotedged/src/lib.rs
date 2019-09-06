@@ -637,34 +637,44 @@ where
                         .recursive(true)
                         .create(&subdir_path)
                         .context(ErrorKind::Initialize(
-                            InitializeErrorReason::HybridAuthDirCreate,
+                            InitializeErrorReason::ExternalProvisioningClient(
+                                ExternalProvisioningErrorReason::ExternalProvisioningDirCreate,
+                            ),
                         ))?;
 
                     let cert_bytes = base64::decode(x509.identity_cert()).context(
                         ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient(
-                            ExternalProvisioningErrorReason::InvalidIdentityCertificate,
+                            ExternalProvisioningErrorReason::DownloadIdentityCertificate,
                         )),
                     )?;
                     let pk_bytes = base64::decode(x509.identity_private_key()).context(
                         ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient(
-                            ExternalProvisioningErrorReason::InvalidIdentityPrivateKey,
+                            ExternalProvisioningErrorReason::DownloadIdentityPrivateKey,
                         )),
                     )?;
 
                     let path = subdir_path.join(EDGE_EXTERNAL_PROVISIONING_ID_CERT_FILENAME);
                     let mut file = File::create(path).context(ErrorKind::Initialize(
-                        InitializeErrorReason::HybridAuthKeyCreate,
+                        InitializeErrorReason::ExternalProvisioningClient(
+                            ExternalProvisioningErrorReason::DownloadIdentityCertificate,
+                        ),
                     ))?;
                     file.write_all(&cert_bytes).context(ErrorKind::Initialize(
-                        InitializeErrorReason::HybridAuthKeyCreate,
+                        InitializeErrorReason::ExternalProvisioningClient(
+                            ExternalProvisioningErrorReason::DownloadIdentityCertificate,
+                        ),
                     ))?;
 
                     let path = subdir_path.join(EDGE_EXTERNAL_PROVISIONING_ID_KEY_FILENAME);
                     let mut file = File::create(path).context(ErrorKind::Initialize(
-                        InitializeErrorReason::HybridAuthKeyCreate,
+                        InitializeErrorReason::ExternalProvisioningClient(
+                            ExternalProvisioningErrorReason::DownloadIdentityPrivateKey,
+                        ),
                     ))?;
                     file.write_all(&pk_bytes).context(ErrorKind::Initialize(
-                        InitializeErrorReason::HybridAuthKeyCreate,
+                        InitializeErrorReason::ExternalProvisioningClient(
+                            ExternalProvisioningErrorReason::DownloadIdentityPrivateKey,
+                        ),
                     ))?;
                 }
             }

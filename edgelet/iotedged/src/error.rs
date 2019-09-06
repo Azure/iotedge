@@ -197,13 +197,14 @@ pub enum InitializeErrorReason {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ExternalProvisioningErrorReason {
     ClientInitialization,
+    ExternalProvisioningDirCreate,
     HsmInitialization,
     HsmKeyRetrieval,
     HybridKeyPreparation,
     InvalidAuthenticationType,
     InvalidCredentials,
-    InvalidIdentityCertificate,
-    InvalidIdentityPrivateKey,
+    DownloadIdentityCertificate,
+    DownloadIdentityPrivateKey,
     Provisioning,
 }
 
@@ -367,6 +368,10 @@ impl fmt::Display for ExternalProvisioningErrorReason {
                 write!(f, "Could not create the external provisioning client.")
             }
 
+            ExternalProvisioningErrorReason::ExternalProvisioningDirCreate => {
+                write!(f, "Could not create the external provisioning directory.")
+            }
+
             ExternalProvisioningErrorReason::HsmInitialization => {
                 write!(f, "Could not initialize the HSM interface.")
             }
@@ -388,14 +393,14 @@ impl fmt::Display for ExternalProvisioningErrorReason {
                 "Invalid credentials retrieved from the external environment."
             ),
 
-            ExternalProvisioningErrorReason::InvalidIdentityCertificate => write!(
+            ExternalProvisioningErrorReason::DownloadIdentityCertificate => write!(
                 f,
-                "Invalid identity certificate retrieved from the external environment."
+                "The download of the identity certificate from the external environment failed."
             ),
 
-            ExternalProvisioningErrorReason::InvalidIdentityPrivateKey => write!(
+            ExternalProvisioningErrorReason::DownloadIdentityPrivateKey => write!(
                 f,
-                "Invalid identity private key retrieved from the external environment."
+                "The download of the identity private key from the external environment failed."
             ),
 
             ExternalProvisioningErrorReason::Provisioning => {
