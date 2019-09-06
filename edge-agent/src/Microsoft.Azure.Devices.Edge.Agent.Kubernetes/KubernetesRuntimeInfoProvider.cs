@@ -133,7 +133,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         if (archList[i].arch == node.Status.NodeInfo.Architecture)
                         {
                             // Just increase the node count
-                            archList[i] = (archList[i].arch, archList[i].count+1);
+                            archList[i] = (archList[i].arch, archList[i].count + 1);
                             haveSeen = true;
                             break;
                         }
