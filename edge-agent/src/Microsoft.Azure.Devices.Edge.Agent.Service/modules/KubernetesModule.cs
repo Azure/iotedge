@@ -8,18 +8,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using System.Net.Http;
     using System.Threading.Tasks;
     using Autofac;
-    using k8s;
     using global::Docker.DotNet.Models;
+    using k8s;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
+    using Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using Microsoft.Azure.Devices.Edge.Agent.Docker;
-    using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
-    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners;
-    using Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient;
     using Microsoft.Rest;
     using ModuleIdentityLifecycleManager = Microsoft.Azure.Devices.Edge.Agent.Edgelet.ModuleIdentityLifecycleManager;
 
@@ -181,23 +181,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IRuntimeInfoProvider
-            builder.Register(
-                    c => Task.FromResult(
-                        new KubernetesRuntimeInfoProvider(
-                            this.k8sNamespace,
-                            c.Resolve<IKubernetes>()) as IRuntimeInfoProvider))
+            builder.Register(c => Task.FromResult(new KubernetesRuntimeInfoProvider(this.k8sNamespace, c.Resolve<IKubernetes>()) as IRuntimeInfoProvider))
                 .As<Task<IRuntimeInfoProvider>>()
-                .SingleInstance();
-
-            // IKubernetesSpecFactory
-            builder.Register(c => new KubernetesSpecFactory<CombinedDockerConfig>())
-                .As<IKubernetesSpecFactory<CombinedDockerConfig>>()
                 .SingleInstance();
 
             // IKubernetesOperator
             builder.Register(
                     c => Task.FromResult(
-                        new CrdWatchOperator<CombinedDockerConfig>(
+                        new CrdWatchOperator(
                             this.iotHubHostname,
                             this.deviceId,
                             this.gatewayHostname,
@@ -212,7 +203,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             this.managementUri,
                             this.defaultMapServiceType,
                             c.Resolve<IKubernetes>(),
-                            c.Resolve<IKubernetesSpecFactory<CombinedDockerConfig>>(),
                             c.Resolve<IModuleIdentityLifecycleManager>()) as IKubernetesOperator))
                 .As<Task<IKubernetesOperator>>()
                 .SingleInstance();

@@ -71,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
                 // // The CRD allows us to give the customer a Kubernetes-centric way to see the deployment
                 // // and the status of that deployment through the "edgedeployments" API.
 
-                var crdCommand = new KubernetesCrdCommand(this.deviceNamespace, this.iotHubHostname, this.deviceId, this.client, desired.Modules.Values, Option.Some(runtimeInfo), this.combinedConfigProvider);
+                var crdCommand = new KubernetesCrdCommand(this.deviceNamespace, this.iotHubHostname, this.deviceId, this.client, desired.Modules.Values, runtimeInfo, this.combinedConfigProvider);
                 var planCommand = await this.commandFactory.WrapAsync(crdCommand);
                 var planList = new List<ICommand>
                 {

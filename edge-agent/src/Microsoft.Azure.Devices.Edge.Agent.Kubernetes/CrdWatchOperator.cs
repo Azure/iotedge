@@ -2,23 +2,16 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
     using System;
-    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using k8s;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
-    using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Serialization;
 
     public class CrdWatchOperator : IKubernetesOperator
     {
         readonly IKubernetes client;
-        readonly IKubernetesSpecFactory<CombinedDockerConfig> specFactory;
         readonly string iotHubHostname;
         readonly string deviceId;
         readonly string edgeHostname;
@@ -52,7 +45,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             Uri managementUri,
             PortMapServiceType defaultMapServiceType,
             IKubernetes client,
-            IKubernetesSpecFactory<CombinedDockerConfig> specFactory,
             IModuleIdentityLifecycleManager moduleIdentityLifecycleManager)
         {
             this.iotHubHostname = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
@@ -69,7 +61,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.managementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
             this.defaultMapServiceType = Preconditions.CheckNotNull(defaultMapServiceType, nameof(defaultMapServiceType)).ToString();
             this.client = Preconditions.CheckNotNull(client, nameof(client));
-            this.specFactory = specFactory;
             this.podWatch = Option.None<Watcher<V1Pod>>();
             this.resourceName = KubeUtils.SanitizeK8sValue(this.iotHubHostname) + Constants.K8sNameDivider + KubeUtils.SanitizeK8sValue(this.deviceId);
             this.deploymentSelector = Constants.K8sEdgeDeviceLabel + " = " + KubeUtils.SanitizeK8sValue(this.deviceId) + "," + Constants.K8sEdgeHubNameLabel + "=" + KubeUtils.SanitizeK8sValue(this.iotHubHostname);
@@ -113,8 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 this.workloadUri,
                 this.managementUri,
                 this.moduleIdentityLifecycleManager,
-                this.client,
-                this.specFactory);
+                this.client);
             this.client.ListNamespacedCustomObjectWithHttpMessagesAsync(Constants.K8sCrdGroup, Constants.K8sApiVersion, this.k8sNamespace, Constants.K8sCrdPlural, watch: true).ContinueWith(watcher.ListCrdComplete);
         }
     }

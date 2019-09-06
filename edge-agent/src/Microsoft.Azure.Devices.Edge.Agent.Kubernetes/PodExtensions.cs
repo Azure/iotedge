@@ -37,10 +37,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         private static Option<V1ContainerStatus> GetContainerByName(string name, V1Pod pod)
         {
             string containerName = KubeUtils.SanitizeDNSValue(name);
-            return pod.Status?.ContainerStatuses
-                       .Where(status => string.Equals(status.Name, containerName, StringComparison.OrdinalIgnoreCase))
-                       .Select(status => Option.Some(status))
-                       .FirstOrDefault() ?? Option.None<V1ContainerStatus>();
+            V1ContainerStatus status = pod.Status?.ContainerStatuses?
+                .FirstOrDefault(container => string.Equals(container.Name, containerName, StringComparison.OrdinalIgnoreCase));
+            return Option.Maybe(status);
         }
 
         private static ReportedModuleStatus ConvertPodStatusToModuleStatus(Option<V1ContainerStatus> podStatus)

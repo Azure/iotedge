@@ -4,6 +4,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
     public static class Constants
     {
+        public const string K8sMetaApiVersion = K8sApi + "/" + K8sApiVersion;
+
         public const string K8sApi = "microsoft.azure.devices.edge";
 
         public const string K8sApiVersion = "v1";

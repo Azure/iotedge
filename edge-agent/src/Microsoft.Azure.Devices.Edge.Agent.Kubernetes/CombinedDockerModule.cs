@@ -68,14 +68,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public virtual bool Equals(IModule<CombinedDockerConfig> other)
         {
             if (ReferenceEquals(null, other))
+            {
                 return false;
+            }
+
             if (ReferenceEquals(this, other))
+            {
                 return true;
+            }
+
             return string.Equals(this.Name, other.Name) &&
                 string.Equals(this.Version, other.Version) &&
                 string.Equals(this.Type, other.Type) &&
                 this.DesiredStatus == other.DesiredStatus &&
-                this.Config.Equals(other.Config) &&
+                this.Config.Equals(other.Config) && // TODO will compare only reference equality. Is this what we want?
                 this.RestartPolicy == other.RestartPolicy &&
                 EnvDictionaryComparer.Equals(this.Env, other.Env);
         }
@@ -99,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             }
         }
 
-        public bool IsOnlyModuleStatusChanged(IModule other)
+        public bool IsOnlyModuleStatusChanged(IModule other) // TODO Should we care about Config here?
         {
             return other is CombinedDockerModule &&
                 string.Equals(this.Name, other.Name) &&

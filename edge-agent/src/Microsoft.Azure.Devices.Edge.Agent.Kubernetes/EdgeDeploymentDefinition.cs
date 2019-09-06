@@ -3,12 +3,13 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
     using System.Collections.Generic;
+    using System.IO;
     using k8s.Models;
-    using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
 
-    public class EdgeDeploymentDefinition<TConfig> : IEdgeDeploymentDefinition<TConfig>
+    public class EdgeDeploymentDefinition : IEdgeDeploymentDefinition
     {
         [JsonProperty(PropertyName = "apiVersion")]
         public string ApiVersion { get; set; }
@@ -20,9 +21,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public V1ObjectMeta Metadata { get; }
 
         [JsonProperty(PropertyName = "spec")]
-        public IList<KubernetesModule<TConfig>> Spec { get; }
+        public IList<KubernetesModule> Spec { get; }
 
-        public EdgeDeploymentDefinition(string apiVersion, string kind, V1ObjectMeta metadata, IList<KubernetesModule<TConfig>> spec)
+        public EdgeDeploymentDefinition(string apiVersion, string kind, V1ObjectMeta metadata, IList<KubernetesModule> spec)
         {
             this.ApiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
             this.Kind = Preconditions.CheckNonWhiteSpace(kind, nameof(kind));

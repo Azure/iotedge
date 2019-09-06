@@ -2,7 +2,6 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
-    using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -10,11 +9,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
-    public class KubernetesModule<TConfig>: IModule<TConfig>
+    public class KubernetesModule : IModule<CombinedDockerConfig>
     {
         static readonly DictionaryComparer<string, EnvVal> EnvDictionaryComparer = new DictionaryComparer<string, EnvVal>();
 
-        public KubernetesModule(IModule module, TConfig config)
+        public KubernetesModule(IModule module, CombinedDockerConfig config)
         {
             this.Name = module.Name;
             this.Version = module.Version;
@@ -27,21 +26,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.Config = config;
         }
 
-        // public KubernetesModule(IModule<TConfig> module)
-        // {
-        //     this.Name = module.Name;
-        //     this.Version = module.Version;
-        //     this.Type = module.Type;
-        //     this.DesiredStatus = module.DesiredStatus;
-        //     this.RestartPolicy = module.RestartPolicy;
-        //     this.ConfigurationInfo = module.ConfigurationInfo;
-        //     this.Env = module.Env?.ToImmutableDictionary() ?? ImmutableDictionary<string, EnvVal>.Empty;
-        //     this.Config = module.Config;
-        //     this.ImagePullPolicy = module.ImagePullPolicy;
-        // }
-
         [JsonConstructor]
-        public KubernetesModule(string name, string version, string type, ModuleStatus status, RestartPolicy restartPolicy, ConfigurationInfo configurationInfo, IDictionary<string, EnvVal> env, TConfig settings, ImagePullPolicy imagePullPolicy)
+        public KubernetesModule(
+            string name,
+            string version,
+            string type,
+            ModuleStatus status,
+            RestartPolicy restartPolicy,
+            ConfigurationInfo configurationInfo,
+            IDictionary<string, EnvVal> env,
+            CombinedDockerConfig settings,
+            ImagePullPolicy imagePullPolicy)
         {
             this.Name = name;
             this.Version = version;
@@ -54,14 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.ImagePullPolicy = imagePullPolicy;
         }
 
-        // [JsonProperty(PropertyName = "moduleName")]
-        // public string ModuleName
-        // {
-        //     get { return this.Name; }
-        //     set { this.Name = value; }
-        // }
-
-        [JsonProperty(PropertyName = "name")]
+        [JsonProperty(PropertyName = "name", Required = Required.Always)]
         public string Name { get; set; }
 
         [JsonProperty(PropertyName = "version")]
@@ -86,31 +74,38 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public IDictionary<string, EnvVal> Env { get; }
 
         [JsonProperty(PropertyName = "settings")]
-        public TConfig Config { get; }
+        [JsonConverter(typeof(CombinedDockerConfigToStringConverter))]
+        public CombinedDockerConfig Config { get; }
 
-        public virtual bool Equals(IModule other) => this.Equals(other as KubernetesModule<TConfig>);
+        public virtual bool Equals(IModule other) => this.Equals(other as KubernetesModule);
 
-        public bool Equals(IModule<TConfig> other) => this.Equals(other as KubernetesModule<TConfig>);
+        public bool Equals(IModule<CombinedDockerConfig> other) => this.Equals(other as KubernetesModule);
 
-        public bool Equals(KubernetesModule<TConfig> other)
+        public bool Equals(KubernetesModule other)
         {
             if (ReferenceEquals(null, other))
+            {
                 return false;
+            }
+
             if (ReferenceEquals(this, other))
+            {
                 return true;
+            }
+
             return string.Equals(this.Name, other.Name) &&
                 string.Equals(this.Version, other.Version) &&
                 string.Equals(this.Type, other.Type) &&
                 this.DesiredStatus == other.DesiredStatus &&
                 this.RestartPolicy == other.RestartPolicy &&
-                this.ConfigurationInfo == other.ConfigurationInfo &&
+                Equals(this.ConfigurationInfo, other.ConfigurationInfo) &&
                 this.ImagePullPolicy == other.ImagePullPolicy &&
                 EnvDictionaryComparer.Equals(this.Env, other.Env);
         }
 
         public bool IsOnlyModuleStatusChanged(IModule other)
         {
-            return other is KubernetesModule<TConfig> &&
+            return other is KubernetesModule &&
                 string.Equals(this.Name, other.Name) &&
                 string.Equals(this.Version, other.Version) &&
                 string.Equals(this.Type, other.Type) &&
