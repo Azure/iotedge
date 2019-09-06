@@ -1,0 +1,123 @@
+swagger: "2.0"
+info:
+  description: "analyzer API"
+  version: "1.0.0"
+  title: "Analyzer API swagger"
+schemes:
+- "https"
+paths:
+  /api/directmethodstatus:
+    post:
+      tags:
+      - "dm"
+      summary: "Add a new direct method responsense"
+      description: ""
+      operationId: "addDirectMethodResponse"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "Direct method response details"
+        required: true
+        schema:
+          $ref: "#/definitions/DirectMethodStatus"
+      responses:
+        200:
+          description: "Ok"
+  /api/report:
+    get:
+      tags:
+      - "report"
+      summary: "Get report"
+      operationId: "getReport"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/DeviceReport"
+        400:
+          description: "Invalid status value"
+definitions:
+  DeviceReport:
+    type: "object"
+    properties:
+      messagesReport:
+          type: "array"
+          items:
+            $ref: "#/definitions/MessagesReport"
+      dmReport:
+          type: "array"
+          items:
+            $ref: "#/definitions/DmsReport"
+  MessagesReport:
+    type: "object"
+    properties:
+      moduleId:
+        type: "string"
+      statusCode:
+        type: "string"
+      statusMessage:
+        type: "string"
+      receivedMessagesCount:
+        type: "number"
+      lastMessageReceivedAt:
+        type: "string"
+        format: date-time
+      missedMessages:
+        type: "array"
+        items:
+          $ref: "#/definitions/MissingMessage"
+  MissingMessage:
+    type: "object"
+    properties:
+      MissedMessagesCount:
+        type: "number"
+      StartDateTime:
+        type: "string"
+        format: date-time
+      EndDateTime:
+        type: "string"
+        format: date-time
+  DmsReport:
+    type: "object"
+    properties:
+      moduleId:
+        type: "string"
+      statuses:
+        type: "array"
+        items:
+          $ref: "#/definitions/DmsStatusReport"
+  DmsStatusReport:
+    type: "object"
+    properties:
+      statusCode:
+        type: "string"
+      count:
+        type: "number"
+      lastReceivedAt:
+        type: "string"
+        format: date-time
+  DirectMethodStatus:
+    type: "object"
+    required:
+    - "moduleId"
+    - "statusCode"
+    - "enqueuedDateTime"
+    - "resultAsJson"
+    properties:
+      moduleId:
+        type: "string"
+      statusCode:
+        type: "string"
+        example: "200"
+      enqueuedDateTime:
+        type: "string"
+        format: date-time
+      resultAsJson:
+        type: "string"
+        

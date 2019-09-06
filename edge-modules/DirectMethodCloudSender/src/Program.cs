@@ -40,10 +40,13 @@ namespace DirectMethodCloudSender
             string targetModuleId = configuration.GetValue("TargetModuleId", "DirectMethodReceiver");
             TransportType transportType = configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only);
             TimeSpan dmDelay = configuration.GetValue("DirectMethodDelay", TimeSpan.FromSeconds(5));
+            string analyzerUrl = configuration.GetValue("AnalyzerUrl", "http://analyzer:15000");
+
+            var analyzerClient = new AnalyzerClient { BaseUrl = analyzerUrl };
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
-            await CallDirectMethodFromCloud(serviceClientConnectionString, targetDeviceId, targetModuleId, transportType, dmDelay, cts);
+            await CallDirectMethodFromCloud(serviceClientConnectionString, targetDeviceId, targetModuleId, transportType, dmDelay, analyzerClient, cts);
 
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
@@ -57,15 +60,14 @@ namespace DirectMethodCloudSender
             string moduleId,
             TransportType transportType,
             TimeSpan delay,
+            AnalyzerClient analyzerClient,
             CancellationTokenSource cts)
         {
             Logger.LogInformation("CallDirectMethodFromCloud started.");
-            ModuleClient moduleClient = null;
             ServiceClient serviceClient = null;
 
             try
             {
-                Guid batchId = Guid.NewGuid();
                 int count = 1;
 
                 IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(serviceClientConnectionString);
@@ -73,12 +75,6 @@ namespace DirectMethodCloudSender
 
                 serviceClient = ServiceClient.CreateFromConnectionString(serviceClientConnectionString, Microsoft.Azure.Devices.TransportType.Amqp);
                 var cloudToDeviceMethod = new CloudToDeviceMethod("HelloWorldMethod").SetPayloadJson("{ \"Message\": \"Hello\" }");
-
-                moduleClient = await ModuleUtil.CreateModuleClientAsync(
-                    transportType,
-                    ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                    ModuleUtil.DefaultTransientRetryStrategy,
-                    Logger);
 
                 while (!cts.Token.IsCancellationRequested)
                 {
@@ -90,16 +86,14 @@ namespace DirectMethodCloudSender
 
                         if (result.Status == (int)HttpStatusCode.OK)
                         {
-                            var eventMessage = new Message(Encoding.UTF8.GetBytes($"Direct Method [{transportType}] Call succeeded."));
-                            eventMessage.Properties.Add("sequenceNumber", count.ToString());
-                            eventMessage.Properties.Add("batchId", batchId.ToString());
-                            Logger.LogInformation($"Calling Direct Method from cloud with count {count} succeeded.");
-                            await moduleClient.SendEventAsync(RouteOutputName, eventMessage);
+                            Logger.LogDebug($"Calling Direct Method from cloud with count {count} returned with status code {result.Status}.");
                         }
                         else
                         {
                             Logger.LogError($"Calling Direct Method from cloud with count {count} failed with status code {result.Status}.");
                         }
+
+                        CallAnalyzerToReportStatus(moduleId, result, analyzerClient);
 
                         count++;
                     }
@@ -123,14 +117,21 @@ namespace DirectMethodCloudSender
                 {
                     await serviceClient.CloseAsync();
                 }
-
-                if (moduleClient != null)
-                {
-                    await moduleClient.CloseAsync();
-                }
             }
 
             Logger.LogInformation("CallDirectMethodFromCloud finished.");
+        }
+
+        static void CallAnalyzerToReportStatus(string moduleId, CloudToDeviceMethodResult result, AnalyzerClient analyzerClient)
+        {
+            try
+            {
+                analyzerClient.AddDirectMethodResponseAsync(new DirectMethodStatus { ModuleId = moduleId, StatusCode = result.Status.ToString(), ResultAsJson = result.GetPayloadAsJson(), EnqueuedDateTime = DateTime.UtcNow });
+            }
+            catch (Exception e)
+            {
+                Logger.LogError(e.ToString());
+            }
         }
     }
 }

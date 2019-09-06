@@ -11,23 +11,43 @@ namespace MessagesAnalyzer
     {
         static readonly ILogger Log = Logger.Factory.CreateLogger<Reporter>();
 
-        public static DeviceReport GetReceivedMessagesReport(double toleranceInMilliseconds)
+        public static DeviceReport GetDeviceReport(double toleranceInMilliseconds)
+        {
+            return new DeviceReport(GetReceivedMessagesReport(toleranceInMilliseconds), GetDmReport());
+        }
+
+        static IList<ModuleDmReport> GetDmReport()
+        {
+            IDictionary<string, IDictionary<string, IList<DirectMethodStatus>>> dms = MessagesCache.Instance.GetDmSnapshot();
+            IList<ModuleDmReport> report = new List<ModuleDmReport>();
+
+            foreach (KeyValuePair<string, IDictionary<string, IList<DirectMethodStatus>>> dm in dms)
+            {
+                Log.LogInformation($"Dm report for {dm.Key}");
+                report.Add(new ModuleDmReport(dm.Key, dm.Value));
+
+            }
+
+            return report;
+        }
+
+        static IList<ModuleMessagesReport> GetReceivedMessagesReport(double toleranceInMilliseconds)
         {
             DateTime enDateTime = DateTime.UtcNow;
             IDictionary<string, IList<SortedSet<MessageDetails>>> messages = MessagesCache.Instance.GetMessagesSnapshot();
-            IList<ModuleReport> report = new List<ModuleReport>();
+            IList<ModuleMessagesReport> report = new List<ModuleMessagesReport>();
 
             foreach (KeyValuePair<string, IList<SortedSet<MessageDetails>>> moduleMessages in messages)
             {
                 report.Add(GetReceivedMessagesReport(moduleMessages.Key, toleranceInMilliseconds, moduleMessages.Value, enDateTime));
             }
 
-            return new DeviceReport(report);
+            return report;
         }
 
-        static ModuleReport GetReceivedMessagesReport(string moduleId, double toleranceInMilliseconds, IList<SortedSet<MessageDetails>> batchesSnapshot, DateTime endDateTime)
+        static ModuleMessagesReport GetReceivedMessagesReport(string moduleId, double toleranceInMilliseconds, IList<SortedSet<MessageDetails>> batchesSnapshot, DateTime endDateTime)
         {
-            Log.LogInformation($"Report for {moduleId}");
+            Log.LogInformation($"Messages report for {moduleId}");
 
             long missingCounter = 0;
             long totalMessagesCounter = 0;
@@ -35,7 +55,7 @@ namespace MessagesAnalyzer
 
             if (batchesSnapshot.Count == 0)
             {
-                return new ModuleReport(moduleId, StatusCode.NoMessages, totalMessagesCounter, "No messages received for module");
+                return new ModuleMessagesReport(moduleId, StatusCode.NoMessages, totalMessagesCounter, "No messages received for module");
             }
 
             DateTime lastMessageDateTime = DateTime.MinValue;
@@ -73,12 +93,12 @@ namespace MessagesAnalyzer
             if (DateTime.Compare(lastMessageDateTime.AddMilliseconds(toleranceInMilliseconds), endDateTime) < 0)
             {
                 Log.LogInformation($"Module {moduleId}: last message datetime={lastMessageDateTime} and end datetime={endDateTime}");
-                return new ModuleReport(moduleId, StatusCode.OldMessages, totalMessagesCounter, $"Missing messages: {missingCounter}. No messages received for the past {toleranceInMilliseconds} milliseconds.", lastMessageDateTime, missedMessages);
+                return new ModuleMessagesReport(moduleId, StatusCode.OldMessages, totalMessagesCounter, $"Missing messages: {missingCounter}. No messages received for the past {toleranceInMilliseconds} milliseconds.", lastMessageDateTime, missedMessages);
             }
 
             return missingCounter > 0
-                ? new ModuleReport(moduleId, StatusCode.SkippedMessages, totalMessagesCounter, $"Missing messages: {missingCounter}.", lastMessageDateTime, missedMessages)
-                : new ModuleReport(moduleId, StatusCode.AllMessages, totalMessagesCounter, "All messages received.", lastMessageDateTime);
+                ? new ModuleMessagesReport(moduleId, StatusCode.SkippedMessages, totalMessagesCounter, $"Missing messages: {missingCounter}.", lastMessageDateTime, missedMessages)
+                : new ModuleMessagesReport(moduleId, StatusCode.AllMessages, totalMessagesCounter, "All messages received.", lastMessageDateTime);
         }
     }
 }

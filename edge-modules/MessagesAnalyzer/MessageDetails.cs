@@ -3,7 +3,7 @@ namespace MessagesAnalyzer
 {
     using System;
 
-    class MessageDetails
+    public class MessageDetails
     {
         public MessageDetails(long seqNumber, DateTime enqueuedDateTime)
         {
@@ -11,8 +11,8 @@ namespace MessagesAnalyzer
             this.EnqueuedDateTime = enqueuedDateTime;
         }
 
-        public long SequenceNumber { get; }
+        public long SequenceNumber { get; set; }
 
-        public DateTime EnqueuedDateTime { get; }
+        public DateTime EnqueuedDateTime { get; set; }
     }
 }

@@ -8,16 +8,19 @@ namespace MessagesAnalyzer
     [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
     class DeviceReport
     {
-        public DeviceReport(IList<ModuleReport> report)
+        public DeviceReport(IList<ModuleMessagesReport> messagesReport, IList<ModuleDmReport> dmReport)
         {
-            this.Report = report;
+            this.MessagesReport = messagesReport;
+            this.DmReport = dmReport;
         }
 
-        IList<ModuleReport> Report { get; }
+        public IList<ModuleDmReport> DmReport { get; }
+
+        public IList<ModuleMessagesReport> MessagesReport { get; }
 
         public override string ToString()
         {
-            return JsonConvert.SerializeObject(this.Report, Formatting.Indented);
+            return JsonConvert.SerializeObject(this, Formatting.Indented);
         }
     }
 }

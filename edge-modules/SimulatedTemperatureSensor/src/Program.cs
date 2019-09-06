@@ -74,19 +74,20 @@ namespace SimulatedTemperatureSensor
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
 
             Twin currentTwinProperties = await moduleClient.GetTwinAsync();
-            if (currentTwinProperties.Properties.Desired.Contains(SendIntervalConfigKey))
-            {
-                messageDelay = TimeSpan.FromSeconds((int)currentTwinProperties.Properties.Desired[SendIntervalConfigKey]);
-            }
+            //currentTwinProperties.Properties.Desired.Version
+            //if (currentTwinProperties.Properties.Desired.Contains(SendIntervalConfigKey))
+            //{
+            //    messageDelay = TimeSpan.FromSeconds((int)currentTwinProperties.Properties.Desired[SendIntervalConfigKey]);
+            //}
 
-            if (currentTwinProperties.Properties.Desired.Contains(SendDataConfigKey))
-            {
-                sendData = (bool)currentTwinProperties.Properties.Desired[SendDataConfigKey];
-                if (!sendData)
-                {
-                    Console.WriteLine("Sending data disabled. Change twin configuration to start sending again.");
-                }
-            }
+            //if (currentTwinProperties.Properties.Desired.Contains(SendDataConfigKey))
+            //{
+            //    sendData = (bool)currentTwinProperties.Properties.Desired[SendDataConfigKey];
+            //    if (!sendData)
+            //    {
+            //        Console.WriteLine("Sending data disabled. Change twin configuration to start sending again.");
+            //    }
+            //}
 
             ModuleClient userContext = moduleClient;
             await moduleClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertiesUpdated, userContext);
@@ -228,6 +229,7 @@ namespace SimulatedTemperatureSensor
         static async Task OnDesiredPropertiesUpdated(TwinCollection desiredPropertiesPatch, object userContext)
         {
             // At this point just update the configure configuration.
+            Console.WriteLine(desiredPropertiesPatch.ToJson());
             if (desiredPropertiesPatch.Contains(SendIntervalConfigKey))
             {
                 messageDelay = TimeSpan.FromSeconds((int)desiredPropertiesPatch[SendIntervalConfigKey]);
@@ -238,7 +240,7 @@ namespace SimulatedTemperatureSensor
                 bool desiredSendDataValue = (bool)desiredPropertiesPatch[SendDataConfigKey];
                 if (desiredSendDataValue != sendData && !desiredSendDataValue)
                 {
-                    Console.WriteLine("Sending data disabled. Change twin configuration to start sending again.");
+                    Console.WriteLine("Twin update sending data disabled. Change twin configuration to start sending again.");
                 }
 
                 sendData = desiredSendDataValue;

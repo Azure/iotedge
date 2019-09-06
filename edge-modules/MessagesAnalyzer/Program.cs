@@ -36,7 +36,7 @@ namespace MessagesAnalyzer
             WebHost.CreateDefaultBuilder(args)
                 .UseUrls($"http://*:{Settings.Current.WebhostPort}")
                 .UseStartup<Startup>();
-
+        
         static async Task ReceiveMessages()
         {
             var builder = new EventHubsConnectionStringBuilder(Settings.Current.EventHubConnectionString);

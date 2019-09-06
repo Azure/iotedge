@@ -11,7 +11,7 @@ namespace MessagesAnalyzer.Controllers
         [HttpGet]
         public ActionResult<string> Get()
         {
-            return Reporter.GetReceivedMessagesReport(Settings.Current.ToleranceInMilliseconds).ToString();
+            return Reporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds).ToString();
         }
     }
 }

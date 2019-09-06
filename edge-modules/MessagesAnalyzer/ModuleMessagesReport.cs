@@ -7,19 +7,19 @@ namespace MessagesAnalyzer
     using Newtonsoft.Json.Serialization;
 
     [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
-    class ModuleReport
+    class ModuleMessagesReport
     {
-        public ModuleReport(string moduleId, StatusCode statusCode, long receivedMessagesCount, string statusMessage)
+        public ModuleMessagesReport(string moduleId, StatusCode statusCode, long receivedMessagesCount, string statusMessage)
             : this(moduleId, statusCode, receivedMessagesCount, statusMessage, DateTime.MinValue, new List<MissedMessagesDetails>())
         {
         }
 
-        public ModuleReport(string moduleId, StatusCode statusCode, long receivedMessagesCount, string statusMessage, DateTime lastMessageReceivedAt)
+        public ModuleMessagesReport(string moduleId, StatusCode statusCode, long receivedMessagesCount, string statusMessage, DateTime lastMessageReceivedAt)
             : this(moduleId, statusCode, receivedMessagesCount, statusMessage, lastMessageReceivedAt, new List<MissedMessagesDetails>())
         {
         }
 
-        public ModuleReport(string moduleId, StatusCode statusCode, long receivedMessagesCount, string statusMessage, DateTime lastMessageReceivedAt, IList<MissedMessagesDetails> missedMessages)
+        public ModuleMessagesReport(string moduleId, StatusCode statusCode, long receivedMessagesCount, string statusMessage, DateTime lastMessageReceivedAt, IList<MissedMessagesDetails> missedMessages)
         {
             this.ModuleId = moduleId;
             this.StatusCode = statusCode;
