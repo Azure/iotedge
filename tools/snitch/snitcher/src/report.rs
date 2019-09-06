@@ -59,7 +59,7 @@ pub struct Report {
     #[serde(skip)]
     files: Vec<(String, Bytes)>,
     notes: Vec<String>,
-    message_analysis: Option<Vec<MessageAnalysis>>,
+    device_analysis: Option<DeviceAnalysis>,
     attachments: HashMap<String, String>,
 }
 
@@ -78,8 +78,8 @@ impl Report {
         &self.id
     }
 
-    pub fn set_message_analysis(&mut self, analysis: Vec<MessageAnalysis>) {
-        self.message_analysis = Some(analysis);
+    pub fn set_device_analysis(&mut self, analysis: DeviceAnalysis) {
+        self.device_analysis = Some(analysis);
     }
 
     pub fn add_file(&mut self, name: &str, data: &[u8]) -> &Self {
