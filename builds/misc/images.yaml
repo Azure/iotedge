@@ -10,6 +10,7 @@ jobs:
   - job: linuxARM64
 ################################################################################
     displayName: LinuxARM64
+    timeoutInMinutes: 90
     pool:
       vmImage: 'ubuntu-16.04'
     steps:
@@ -146,6 +147,7 @@ jobs:
   - job: linux
 ################################################################################
     displayName: Linux
+    timeoutInMinutes: 90
     pool:
       vmImage: 'ubuntu-16.04'
     variables:
@@ -298,6 +300,7 @@ jobs:
   - job: windows
 ################################################################################
     displayName: Windows
+    timeoutInMinutes: 90
     pool:
       name: Azure-IoT-Edge-Core
       demands:
