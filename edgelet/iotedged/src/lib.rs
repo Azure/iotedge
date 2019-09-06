@@ -1499,7 +1499,7 @@ fn manual_provision_connection_string(
     let (key, device_id, hub) =
         cs.parse_device_connection_string()
             .context(ErrorKind::Initialize(
-                InitializeErrorReason::ManualProvisioningClient,
+                InitializeErrorReason::LoadSettings,
             ))?;
     let manual = ManualProvisioning::new(key, device_id, hub);
     let memory_hsm = MemoryKeyStore::new();
