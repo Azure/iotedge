@@ -197,14 +197,14 @@ pub enum InitializeErrorReason {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ExternalProvisioningErrorReason {
     ClientInitialization,
+    DownloadIdentityCertificate,
+    DownloadIdentityPrivateKey,
     ExternalProvisioningDirCreate,
     HsmInitialization,
     HsmKeyRetrieval,
     HybridKeyPreparation,
     InvalidAuthenticationType,
     InvalidCredentials,
-    DownloadIdentityCertificate,
-    DownloadIdentityPrivateKey,
     Provisioning,
 }
 
@@ -368,6 +368,16 @@ impl fmt::Display for ExternalProvisioningErrorReason {
                 write!(f, "Could not create the external provisioning client.")
             }
 
+            ExternalProvisioningErrorReason::DownloadIdentityCertificate => write!(
+                f,
+                "The download of the identity certificate from the external environment failed."
+            ),
+
+            ExternalProvisioningErrorReason::DownloadIdentityPrivateKey => write!(
+                f,
+                "The download of the identity private key from the external environment failed."
+            ),
+
             ExternalProvisioningErrorReason::ExternalProvisioningDirCreate => {
                 write!(f, "Could not create the external provisioning directory.")
             }
@@ -391,16 +401,6 @@ impl fmt::Display for ExternalProvisioningErrorReason {
             ExternalProvisioningErrorReason::InvalidCredentials => write!(
                 f,
                 "Invalid credentials retrieved from the external environment."
-            ),
-
-            ExternalProvisioningErrorReason::DownloadIdentityCertificate => write!(
-                f,
-                "The download of the identity certificate from the external environment failed."
-            ),
-
-            ExternalProvisioningErrorReason::DownloadIdentityPrivateKey => write!(
-                f,
-                "The download of the identity private key from the external environment failed."
             ),
 
             ExternalProvisioningErrorReason::Provisioning => {
