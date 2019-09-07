@@ -13,11 +13,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public class KubernetesPlanner<T> : IPlanner
+    public class KubernetesPlanner : IPlanner
     {
         readonly IKubernetes client;
         readonly ICommandFactory commandFactory;
-        readonly ICombinedConfigProvider<T> combinedConfigProvider;
+        readonly ICombinedConfigProvider<CombinedDockerConfig> combinedConfigProvider;
         readonly string deviceNamespace;
         readonly string iotHubHostname;
         readonly string deviceId;
@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
             string deviceId,
             IKubernetes client,
             ICommandFactory commandFactory,
-            ICombinedConfigProvider<T> combinedConfigProvider)
+            ICombinedConfigProvider<CombinedDockerConfig> combinedConfigProvider)
         {
             this.deviceNamespace = Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace));
             this.iotHubHostname = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
             // TODO: improve this so it is generic for all potential module types.
             if (!desired.Modules.Values.All(p => p is IModule<DockerConfig>))
             {
-                throw new InvalidModuleException($"Kubernetes deployment currently only handles type={typeof(T).FullName}");
+                throw new InvalidModuleException($"Kubernetes deployment currently only handles type={typeof(DockerConfig).FullName}");
             }
 
             Diff moduleDifference = desired.Diff(current);
@@ -70,9 +70,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
                 // The "Plan" here is very simple - if we have any change, publish all desired modules to a CRD.
                 // The CRD allows us to give the customer a Kubernetes-centric way to see the deployment
                 // and the status of that deployment through the "edgedeployments" API.
-                var k8sModules = desired.Modules.Select(m => new KubernetesModule<DockerConfig>(m.Value as IModule<DockerConfig>));
 
-                var crdCommand = new KubernetesCrdCommand<CombinedDockerConfig>(this.deviceNamespace, this.iotHubHostname, this.deviceId, this.client, k8sModules.ToArray(), Option.Some(runtimeInfo), this.combinedConfigProvider as ICombinedConfigProvider<CombinedDockerConfig>);
+                var crdCommand = new KubernetesCrdCommand(this.deviceNamespace, this.iotHubHostname, this.deviceId, this.client, desired.Modules.Values, runtimeInfo, this.combinedConfigProvider);
                 var planCommand = await this.commandFactory.WrapAsync(crdCommand);
                 var planList = new List<ICommand>
                 {
@@ -94,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
         static class Events
         {
             const int IdStart = KubernetesEventIds.KubernetesPlanner;
-            static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesPlanner<T>>();
+            static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesPlanner>();
 
             enum EventIds
             {

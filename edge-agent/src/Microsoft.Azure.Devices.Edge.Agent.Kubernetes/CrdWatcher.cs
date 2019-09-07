@@ -8,8 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using k8s;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
-    using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
@@ -18,13 +16,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
     using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
 
-    public class CrdWatcher<TConfig>
+    public class CrdWatcher
     {
         const string EdgeHubHostname = "edgehub";
 
         readonly IKubernetes client;
         readonly AsyncLock watchLock = new AsyncLock();
-        readonly TypeSpecificSerDe<EdgeDeploymentDefinition<TConfig>> deploymentSerde;
+
         readonly string iotHubHostname;
         readonly string deviceId;
         readonly string edgeHostname;
@@ -42,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly Uri managementUri;
         readonly IModuleIdentityLifecycleManager moduleIdentityLifecycleManager;
         ModuleSet currentModules;
-        Option<Watcher<object>> operatorWatch;
+        Option<Watcher<EdgeDeploymentDefinition>> operatorWatch;
 
         public CrdWatcher(
             string iotHubHostname,
@@ -60,7 +58,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             string workloadApiVersion,
             Uri workloadUri,
             Uri managementUri,
-            TypeSpecificSerDe<EdgeDeploymentDefinition<TConfig>> deploymentSerde,
             IModuleIdentityLifecycleManager moduleIdentityLifecycleManager,
             IKubernetes client)
         {
@@ -79,9 +76,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.workloadApiVersion = workloadApiVersion;
             this.workloadUri = workloadUri;
             this.managementUri = managementUri;
-            this.deploymentSerde = deploymentSerde;
             this.moduleIdentityLifecycleManager = moduleIdentityLifecycleManager;
             this.client = client;
+            this.currentModules = ModuleSet.Empty;
         }
 
         public async Task ListCrdComplete(Task<HttpOperationResponse<object>> customObjectWatchTask)
@@ -98,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 {
                     // We can add events to a watch once created, like if connection is closed, etc.
                     this.operatorWatch = Option.Some(
-                        customObjectWatch.Watch<object>(
+                        customObjectWatch.Watch<EdgeDeploymentDefinition>(
                             onEvent: async (type, item) =>
                             {
                                 try
@@ -116,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
                                 // get rid of the current crd watch object since we got closed
                                 this.operatorWatch.ForEach(watch => watch.Dispose());
-                                this.operatorWatch = Option.None<Watcher<object>>();
+                                this.operatorWatch = Option.None<Watcher<EdgeDeploymentDefinition>>();
 
                                 // kick off a new watch
                                 this.client.ListNamespacedCustomObjectWithHttpMessagesAsync(
@@ -136,20 +133,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             }
         }
 
-        internal async Task WatchDeploymentEventsAsync(WatchEventType type, object custom)
-        {
-            EdgeDeploymentDefinition<TConfig> edgeDeploymentDefinition;
-            try
-            {
-                string customString = JsonConvert.SerializeObject(custom);
-                edgeDeploymentDefinition = JsonConvert.DeserializeObject<EdgeDeploymentDefinition<DockerConfig>>(customString) as EdgeDeploymentDefinition<TConfig>;
-            }
-            catch (Exception e)
-            {
-                Events.EdgeDeploymentDeserializeFail(e);
-                return;
-            }
 
+        internal async Task WatchDeploymentEventsAsync(WatchEventType type, EdgeDeploymentDefinition edgeDeploymentDefinition)
+        {
             // only operate on the device that matches this operator.
             if (string.Equals(edgeDeploymentDefinition.Metadata.Name, this.resourceName, StringComparison.OrdinalIgnoreCase))
             {
@@ -162,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     {
                         case WatchEventType.Added:
                         case WatchEventType.Modified:
-                            await this.UpsertDeployments(currentServices, currentDeployments, edgeDeploymentDefinition);
+                            await this.UpsertDeployments(currentServices, currentDeployments, edgeDeploymentDefinition.Spec);
                             break;
 
                         case WatchEventType.Deleted:
@@ -204,9 +190,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.currentModules = ModuleSet.Empty;
         }
 
-        private async Task UpsertDeployments(V1ServiceList currentServices, V1DeploymentList currentDeployments, EdgeDeploymentDefinition<TConfig> customObject)
+        private async Task UpsertDeployments(V1ServiceList currentServices, V1DeploymentList currentDeployments, IList<KubernetesModule> spec)
         {
-            var desiredModules = ModuleSet.Create(customObject.Spec.ToArray());
+            var desiredModules = ModuleSet.Create(spec.ToArray());
             var moduleIdentities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desiredModules, this.currentModules);
 
             var desiredServices = new List<V1Service>();
@@ -215,7 +201,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             // Bootstrap the module builder
             var kubernetesModelBuilder = new KubernetesModelBuilder(this.proxyImage, this.proxyConfigPath, this.proxyConfigVolumeName, this.proxyTrustBundlePath, this.proxyTrustBundleVolumeName, this.defaultMapServiceType);
 
-            foreach (KubernetesModule<TConfig> module in customObject.Spec)
+            foreach (KubernetesModule module in spec)
             {
                 var moduleId = moduleIdentities[module.Name];
 
@@ -231,16 +217,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     };
 
                     // Create a Pod for each module, and a proxy container.
-                    if (!(module is IModule<AgentDocker.CombinedDockerConfig> moduleWithDockerConfig))
-                    {
-                        Events.InvalidModuleType(module);
-                        continue;
-                    }
 
-                    List<V1EnvVar> envVars = this.CollectEnv(moduleWithDockerConfig, (KubernetesModuleIdentity)moduleId);
+                    List<V1EnvVar> envVars = this.CollectEnv(module, moduleId);
 
                     // Load the current module
-                    kubernetesModelBuilder.LoadModule(labels, moduleWithDockerConfig, moduleId, envVars);
+                    kubernetesModelBuilder.LoadModule(labels, module, moduleId, envVars);
 
                     // Create a Service for every network interface of each module. (label them with hub, device and module id)
                     Option<V1Service> moduleService = kubernetesModelBuilder.GetService();
@@ -475,7 +456,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             await Task.WhenAll(deletionTasks);
         }
 
-        List<V1EnvVar> CollectEnv(IModule<AgentDocker.CombinedDockerConfig> moduleWithDockerConfig, KubernetesModuleIdentity identity)
+        List<V1EnvVar> CollectEnv(IModule<AgentDocker.CombinedDockerConfig> moduleWithDockerConfig, IModuleIdentity identity)
         {
             char[] envSplit = { '=' };
             var envList = new List<V1EnvVar>();
@@ -500,7 +481,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             envList.Add(new V1EnvVar(CoreConstants.EdgeletAuthSchemeVariableName, "sasToken"));
             envList.Add(new V1EnvVar(Logger.RuntimeLogLevelEnvKey, Logger.GetLogLevel().ToString()));
             envList.Add(new V1EnvVar(CoreConstants.EdgeletWorkloadUriVariableName, this.workloadUri.ToString()));
-            envList.Add(new V1EnvVar(CoreConstants.EdgeletModuleGenerationIdVariableName, identity.Credentials.ModuleGenerationId));
+            if (identity.Credentials is IdentityProviderServiceCredentials creds)
+            {
+                envList.Add(new V1EnvVar(CoreConstants.EdgeletModuleGenerationIdVariableName, creds.ModuleGenerationId));
+            }
             envList.Add(new V1EnvVar(CoreConstants.DeviceIdVariableName, this.deviceId)); // could also get this from module identity
             envList.Add(new V1EnvVar(CoreConstants.ModuleIdVariableName, identity.ModuleId));
             envList.Add(new V1EnvVar(CoreConstants.EdgeletApiVersionVariableName, this.workloadApiVersion));
@@ -598,7 +582,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         static class Events
         {
             const int IdStart = KubernetesEventIds.KubernetesCrdWatcher;
-            private static readonly ILogger Log = Logger.Factory.CreateLogger<CrdWatcher<TConfig>>();
+            private static readonly ILogger Log = Logger.Factory.CreateLogger<CrdWatcher>();
 
             enum EventIds
             {

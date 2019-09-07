@@ -73,7 +73,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                                         portList.Remove(duplicate);
                                     }
 
-                                    portList.Add(new V1ServicePort(hostPort, name: $"HostPort-{port}-{protocol.ToLower()}", protocol: protocol, targetPort: port));
+                                    var name = $"hostport-{port}-{protocol.ToLower()}";
+                                    portList.Add(new V1ServicePort(hostPort, name, null, protocol, port));
                                     onlyExposedPorts = false;
                                 }
                                 else
@@ -89,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             if (portList.Count > 0)
             {
                 // Selector: by module name and device name, also how we will label this puppy.
-                var objectMeta = new V1ObjectMeta(annotations: serviceAnnotations.GetOrElse(() => null), labels: labels, name: KubeUtils.SanitizeDNSValue(moduleIdentity.ModuleId));
+                var objectMeta = new V1ObjectMeta(annotations: serviceAnnotations.OrDefault(), labels: labels, name: KubeUtils.SanitizeDNSValue(moduleIdentity.ModuleId));
                 // How we manage this service is dependent on the port mappings user asks for.
                 // If the user tells us to only use ClusterIP ports, we will always set the type to ClusterIP.
                 // If all we had were exposed ports, we will assume ClusterIP. Otherwise, we use the given value as the default service type
