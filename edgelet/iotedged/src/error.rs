@@ -182,6 +182,7 @@ pub enum InitializeErrorReason {
     ManagementService,
     ManualProvisioningClient,
     ModuleRuntime,
+    NotConfigured,
     PrepareWorkloadCa,
     #[cfg(windows)]
     RegisterWindowsService,
@@ -320,6 +321,18 @@ impl fmt::Display for InitializeErrorReason {
             InitializeErrorReason::ModuleRuntime => {
                 write!(f, "Could not initialize module runtime")
             }
+
+            InitializeErrorReason::NotConfigured => write!(
+                f,
+                "Edge device information is required.\n\
+                 Please update the config.yaml and provide the IoTHub connection information.\n\
+                 See {} for more details.",
+                if cfg!(windows) {
+                    "https://aka.ms/iot-edge-configure-windows"
+                } else {
+                    "https://aka.ms/iot-edge-configure-linux"
+                }
+            ),
 
             InitializeErrorReason::PrepareWorkloadCa => {
                 write!(f, "Could not prepare workload CA certificate")
