@@ -35,14 +35,14 @@ RESPONSE PAYLOAD:
 
 ```json
   {
-    "hubName": "<IoT Hub Name>",
-    "deviceId": "<Device ID>",
+    "hubName": "IoT Hub Name",
+    "deviceId": "Device ID",
     "credentials": {
-        "authType": "symmetric-key/x509",
-        "source": "payload/hsm",
-        "key": "<The symmetric key used. Only populated for the `symmetric-key` authType>",
-        "identityCert": "PEM encoded identity certificate (for the x509 and payload mode) in base64 representation/Path to identity certificate (for the x509 and hsm mode)",
-        "identityPrivateKey": "PEM encoded identity private key (for the x509 and payload mode) in base64 representation/Path to identity private key (for the x509 and hsm mode)"
+        "authType": "symmetric-key | x509",
+        "source": "payload | hsm",
+        "key": "The symmetric key used. Only populated for the `symmetric-key` authType",
+        "identityCert": "PEM encoded identity certificate (for the x509 and payload mode) in base64 representation | Path to identity certificate (for the x509 and hsm mode)",
+        "identityPrivateKey": "PEM encoded identity private key (for the x509 and payload mode) in base64 representation | Path to identity private key (for the x509 and hsm mode)"
      }
   }
 ```
