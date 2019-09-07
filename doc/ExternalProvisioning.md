@@ -1,6 +1,6 @@
-# External Provisioning in IoT edge
+# External provisioning in IoT Edge
 
-IoT edge supports a provisioning mode called `external` whereby the `iotedged` obtains the device's provisioning information by calling a REST API hosted on an HTTP endpoint.
+IoT Edge supports a provisioning mode called `external` whereby the `iotedged` obtains the device's provisioning information by calling a REST API hosted on an HTTP endpoint.
 The endpoint that is targeted by the `iotedged` is specified in IoT Edge's config.yaml file as follows:
 
 ```yaml
@@ -23,7 +23,7 @@ When this provisioning mode is used, `iotedged` calls an API on the `endpoint` s
 
 ## REST API specification
 
-The REST API called by the `iotedged` on the external endpoint to retrieve the device's provisioning information has the following specification-
+The REST API called by the `iotedged` on the external endpoint to retrieve the device's provisioning information has the following specification:
 
 VERB: GET
 
@@ -35,14 +35,14 @@ RESPONSE PAYLOAD:
 
 ```json
   {
-	"hubName": "<IoT Hub Name>",
-	"deviceId": "<Device ID>",
-	"credentials": {
-		"authType": "symmetric-key/x509",
-		"source": "payload/hsm",
-		"key": "<The symmetric key used. Only populated for the `symmetric-key` authType>",
-		"identityCert": "PEM encoded identity certificate (for the x509 and payload mode) in base64 representation/Path to identity certificate (for the x509 and hsm mode)",
-		"identityPrivateKey": "PEM encoded identity private key (for the x509 and payload mode) in base64 representation/Path to identity private key (for the x509 and hsm mode)"
+    "hubName": "<IoT Hub Name>",
+    "deviceId": "<Device ID>",
+    "credentials": {
+        "authType": "symmetric-key/x509",
+        "source": "payload/hsm",
+        "key": "<The symmetric key used. Only populated for the `symmetric-key` authType>",
+        "identityCert": "PEM encoded identity certificate (for the x509 and payload mode) in base64 representation/Path to identity certificate (for the x509 and hsm mode)",
+        "identityPrivateKey": "PEM encoded identity private key (for the x509 and payload mode) in base64 representation/Path to identity private key (for the x509 and hsm mode)"
      }
   }
 ```
@@ -51,12 +51,12 @@ A sample response for the `symmetric-key` `authType` with the `payload` specifie
 
 ```json
   {
-	"hubName": "myHub1.azure-devices.net",
-	"deviceId": "myDevice1",
-	"credentials": {
-		"authType": "symmetric-key",
-		"source": "payload",
-		"key": "bXlLZXkxMjM0NQ=="
+    "hubName": "myHub1.azure-devices.net",
+    "deviceId": "myDevice1",
+    "credentials": {
+        "authType": "symmetric-key",
+        "source": "payload",
+        "key": "bXlLZXkxMjM0NQ=="
      }
   }
 ```
