@@ -2188,6 +2188,17 @@ mod tests {
     }
 
     #[test]
+    fn default_settings_raise_unconfigured_error() {
+        let settings = Settings::new(None).unwrap();
+        let main = Main::<DockerModuleRuntime>::new(settings);
+        let result = main.run_until(signal::shutdown);
+        match result.unwrap_err().kind() {
+            ErrorKind::Initialize(InitializeErrorReason::NotConfigured) => (),
+            kind => panic!("Expected `NotConfigured` but got {:?}", kind),
+        }
+    }
+
+    #[test]
     fn empty_connection_string_raises_manual_provisioning_error() {
         let settings = Settings::new(Some(Path::new(EMPTY_CONNECTION_STRING_SETTINGS))).unwrap();
         let main = Main::<DockerModuleRuntime>::new(settings);
