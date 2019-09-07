@@ -11,5 +11,5 @@ pub use crate::error::Error;
 pub use crate::provisioning::{
     AuthType, BackupProvisioning, Credentials, DpsSymmetricKeyProvisioning, DpsTpmProvisioning,
     DpsX509Provisioning, Provision, ProvisioningResult, ReprovisioningStatus,
-    SymmetricKeyCredential,
+    SymmetricKeyCredential, X509Credential,
 };
