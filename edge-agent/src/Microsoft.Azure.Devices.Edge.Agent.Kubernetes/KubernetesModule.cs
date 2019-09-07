@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.ImagePullPolicy = imagePullPolicy;
         }
 
-        [JsonProperty(PropertyName = "name", Required = Required.Always)]
+        [JsonProperty(PropertyName = "name")]
         public string Name { get; set; }
 
         [JsonProperty(PropertyName = "version")]

@@ -67,9 +67,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
             Plan plan;
             if (!moduleDifference.IsEmpty)
             {
-                // // The "Plan" here is very simple - if we have any change, publish all desired modules to a CRD.
-                // // The CRD allows us to give the customer a Kubernetes-centric way to see the deployment
-                // // and the status of that deployment through the "edgedeployments" API.
+                // The "Plan" here is very simple - if we have any change, publish all desired modules to a CRD.
+                // The CRD allows us to give the customer a Kubernetes-centric way to see the deployment
+                // and the status of that deployment through the "edgedeployments" API.
 
                 var crdCommand = new KubernetesCrdCommand(this.deviceNamespace, this.iotHubHostname, this.deviceId, this.client, desired.Modules.Values, runtimeInfo, this.combinedConfigProvider);
                 var planCommand = await this.commandFactory.WrapAsync(crdCommand);
