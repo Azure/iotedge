@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::path::Path;
+use std::borrow::Cow;
+use std::path::{Path, PathBuf};
 
 use clap::{crate_authors, crate_description, crate_name, App, Arg};
 use failure::ResultExt;
@@ -64,17 +65,29 @@ fn init_common(running_as_windows_service: bool) -> Result<Settings, Error> {
     };
     info!("Version - {}", edgelet_core::version_with_source_version());
 
+    let default_config_file =
+        if cfg!(windows) {
+            let program_data: PathBuf = std::env::var_os("PROGRAMDATA")
+                .map_or_else(|| r"C:\ProgramData".into(), Into::into);
+
+            let mut default_config_file = program_data.clone();
+            default_config_file.push("iotedge");
+            default_config_file.push("config.yaml");
+            let default_config_file = Cow::Owned(default_config_file);
+
+            default_config_file
+        } else {
+            Cow::Borrowed(Path::new("/etc/iotedge/config.yaml"))
+        };
+
     let config_file = matches
         .value_of_os("config-file")
         .and_then(|name| {
             let name = Path::new(name);
-            info!("Using config file: {}", name.display());
             Some(name)
         })
-        .or_else(|| {
-            info!("Using default configuration");
-            None
-        });
+        .unwrap_or(&*default_config_file);
+    info!("Using config file: {}", config_file.display());
 
     let settings = Settings::new(config_file)
         .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;

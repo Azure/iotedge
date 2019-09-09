@@ -2195,7 +2195,7 @@ mod tests {
 
     #[test]
     fn default_settings_raise_unconfigured_error() {
-        let settings = Settings::new(Some(Path::new(DEFAULT_CONNECTION_STRING_SETTINGS))).unwrap();
+        let settings = Settings::new(Path::new(DEFAULT_CONNECTION_STRING_SETTINGS)).unwrap();
         let main = Main::<DockerModuleRuntime>::new(settings);
         let result = main.run_until(signal::shutdown);
         match result.unwrap_err().kind() {
@@ -2206,7 +2206,7 @@ mod tests {
 
     #[test]
     fn empty_connection_string_raises_manual_provisioning_error() {
-        let settings = Settings::new(Some(Path::new(EMPTY_CONNECTION_STRING_SETTINGS))).unwrap();
+        let settings = Settings::new(Path::new(EMPTY_CONNECTION_STRING_SETTINGS)).unwrap();
         let main = Main::<DockerModuleRuntime>::new(settings);
         let result = main.run_until(signal::shutdown);
         match result.unwrap_err().kind() {
@@ -2218,7 +2218,7 @@ mod tests {
     #[test]
     fn settings_with_invalid_issuer_ca_fails() {
         let tmp_dir = TempDir::new("blah").unwrap();
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
         let config = DockerConfig::new(
             "microsoft/test-image".to_string(),
             ContainerCreateBody::new(),
@@ -2261,7 +2261,7 @@ mod tests {
     #[test]
     fn settings_with_expired_issuer_ca_fails() {
         let tmp_dir = TempDir::new("blah").unwrap();
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
         let config = DockerConfig::new(
             "microsoft/test-image".to_string(),
             ContainerCreateBody::new(),
@@ -2304,7 +2304,7 @@ mod tests {
     #[test]
     fn settings_manual_connection_string_auth_first_time_creates_backup() {
         let tmp_dir = TempDir::new("blah").unwrap();
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
         let config = DockerConfig::new(
             "microsoft/test-image".to_string(),
             ContainerCreateBody::new(),
@@ -2364,7 +2364,7 @@ mod tests {
     #[test]
     fn settings_dps_symm_key_auth_first_time_creates_backup() {
         let tmp_dir = TempDir::new("blah").unwrap();
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_SYMM_KEY))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_DPS_SYMM_KEY)).unwrap();
         let config = DockerConfig::new(
             "microsoft/test-image".to_string(),
             ContainerCreateBody::new(),
@@ -2424,7 +2424,7 @@ mod tests {
     #[test]
     fn settings_dps_tpm_auth_first_time_creates_backup() {
         let tmp_dir = TempDir::new("blah").unwrap();
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_TPM1))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_DPS_TPM1)).unwrap();
         let config = DockerConfig::new(
             "microsoft/test-image".to_string(),
             ContainerCreateBody::new(),
@@ -2484,7 +2484,7 @@ mod tests {
     #[test]
     fn settings_change_creates_new_backup() {
         let tmp_dir = TempDir::new("blah").unwrap();
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
         let config = DockerConfig::new(
             "microsoft/test-image".to_string(),
             ContainerCreateBody::new(),
@@ -2525,7 +2525,7 @@ mod tests {
             .read_to_string(&mut written)
             .unwrap();
 
-        let settings1 = Settings::new(Some(Path::new(GOOD_SETTINGS1))).unwrap();
+        let settings1 = Settings::new(Path::new(GOOD_SETTINGS1)).unwrap();
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
         check_settings_state::<TestRuntime<_, Settings>, _>(
             tmp_dir.path(),
@@ -2593,7 +2593,7 @@ mod tests {
     fn diff_with_same_cached_returns_false() {
         let tmp_dir = TempDir::new("blah").unwrap();
         let path = tmp_dir.path().join("cache");
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
         let settings_to_write = serde_json::to_string(&settings).unwrap();
         let sha_to_write = Sha256::digest_str(&settings_to_write);
         let base64_to_write = base64::encode(&sha_to_write);
@@ -2608,7 +2608,7 @@ mod tests {
     fn diff_with_tpm_default_and_explicit_returns_false() {
         let tmp_dir = TempDir::new("blah").unwrap();
         let path = tmp_dir.path().join("cache");
-        let settings1 = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_DEFAULT))).unwrap();
+        let settings1 = Settings::new(Path::new(GOOD_SETTINGS_DPS_DEFAULT)).unwrap();
         let settings_to_write = serde_json::to_string(&settings1).unwrap();
         let sha_to_write = Sha256::digest_str(&settings_to_write);
         let base64_to_write = base64::encode(&sha_to_write);
@@ -2616,7 +2616,7 @@ mod tests {
             .unwrap()
             .write_all(base64_to_write.as_bytes())
             .unwrap();
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_TPM1))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_DPS_TPM1)).unwrap();
         assert!(!diff_with_cached(&settings, &path, None));
     }
 
@@ -2624,7 +2624,7 @@ mod tests {
     fn diff_with_tpm_explicit_and_default_returns_false() {
         let tmp_dir = TempDir::new("blah").unwrap();
         let path = tmp_dir.path().join("cache");
-        let settings1 = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_TPM1))).unwrap();
+        let settings1 = Settings::new(Path::new(GOOD_SETTINGS_DPS_TPM1)).unwrap();
         let settings_to_write = serde_json::to_string(&settings1).unwrap();
         let sha_to_write = Sha256::digest_str(&settings_to_write);
         let base64_to_write = base64::encode(&sha_to_write);
@@ -2632,7 +2632,7 @@ mod tests {
             .unwrap()
             .write_all(base64_to_write.as_bytes())
             .unwrap();
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_DEFAULT))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_DPS_DEFAULT)).unwrap();
         assert!(!diff_with_cached(&settings, &path, None));
     }
 
@@ -2640,7 +2640,7 @@ mod tests {
     fn diff_with_same_cached_env_var_unordered_returns_false() {
         let tmp_dir = TempDir::new("blah").unwrap();
         let path = tmp_dir.path().join("cache");
-        let settings1 = Settings::new(Some(Path::new(GOOD_SETTINGS2))).unwrap();
+        let settings1 = Settings::new(Path::new(GOOD_SETTINGS2)).unwrap();
         let settings_to_write = serde_json::to_string(&settings1).unwrap();
         let sha_to_write = Sha256::digest_str(&settings_to_write);
         let base64_to_write = base64::encode(&sha_to_write);
@@ -2648,7 +2648,7 @@ mod tests {
             .unwrap()
             .write_all(base64_to_write.as_bytes())
             .unwrap();
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
         assert!(!diff_with_cached(&settings, &path, None));
     }
 
@@ -2656,7 +2656,7 @@ mod tests {
     fn diff_with_different_cached_returns_true() {
         let tmp_dir = TempDir::new("blah").unwrap();
         let path = tmp_dir.path().join("cache");
-        let settings1 = Settings::new(Some(Path::new(GOOD_SETTINGS1))).unwrap();
+        let settings1 = Settings::new(Path::new(GOOD_SETTINGS1)).unwrap();
         let settings_to_write = serde_json::to_string(&settings1).unwrap();
         let sha_to_write = Sha256::digest_str(&settings_to_write);
         let base64_to_write = base64::encode(&sha_to_write);
@@ -2664,19 +2664,19 @@ mod tests {
             .unwrap()
             .write_all(base64_to_write.as_bytes())
             .unwrap();
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
         assert!(diff_with_cached(&settings, &path, None));
     }
 
     #[test]
     fn diff_with_no_file_returns_true() {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
         assert!(diff_with_cached(&settings, Path::new("i dont exist"), None));
     }
 
     #[test]
     fn get_provisioning_auth_method_returns_sas_key_for_manual_connection_string() {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS1))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS1)).unwrap();
         assert_eq!(
             ProvisioningAuthMethod::SharedAccessKey,
             get_provisioning_auth_method(&settings, None).unwrap()
@@ -2685,7 +2685,7 @@ mod tests {
 
     #[test]
     fn get_provisioning_auth_method_returns_saskey_for_dps_tpm_provisioning() {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_TPM1))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_DPS_TPM1)).unwrap();
         assert_eq!(
             ProvisioningAuthMethod::SharedAccessKey,
             get_provisioning_auth_method(&settings, None).unwrap()
@@ -2694,7 +2694,7 @@ mod tests {
 
     #[test]
     fn get_provisioning_auth_method_returns_saskey_for_dps_symm_key_provisioning() {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_SYMM_KEY))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_DPS_SYMM_KEY)).unwrap();
         assert_eq!(
             ProvisioningAuthMethod::SharedAccessKey,
             get_provisioning_auth_method(&settings, None).unwrap()
@@ -2816,7 +2816,7 @@ mod tests {
         let settings_path = tmp_dir.path().join("test_settings.yaml");
 
         prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
-        let settings = Settings::new(Some(&settings_path)).unwrap();
+        let settings = Settings::new(&settings_path).unwrap();
         assert_eq!(
             ProvisioningAuthMethod::X509,
             get_provisioning_auth_method(&settings, None).unwrap()
@@ -2831,7 +2831,7 @@ mod tests {
         let settings_path = tmp_dir.path().join("test_settings.yaml");
 
         prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
-        let settings = Settings::new(Some(&settings_path)).unwrap();
+        let settings = Settings::new(&settings_path).unwrap();
 
         let path = tmp_dir.path().join("cache");
         let base64_to_write = compute_settings_digest(&settings, Some("thumbprint-1")).unwrap();
@@ -2861,7 +2861,7 @@ mod tests {
         let settings_path = tmp_dir.path().join("test_settings.yaml");
 
         prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
-        let settings = Settings::new(Some(&settings_path)).unwrap();
+        let settings = Settings::new(&settings_path).unwrap();
 
         let crypto = TestCrypto {
             use_expired_ca: false,
@@ -2915,7 +2915,7 @@ mod tests {
         let settings_path = tmp_dir.path().join("test_settings.yaml");
 
         prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
-        let settings = Settings::new(Some(&settings_path)).unwrap();
+        let settings = Settings::new(&settings_path).unwrap();
 
         let crypto = TestCrypto {
             use_expired_ca: false,
@@ -3022,7 +3022,7 @@ mod tests {
         let settings_path = tmp_dir.path().join("test_settings.yaml");
 
         prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &cert_key_path);
-        let settings = Settings::new(Some(&settings_path)).unwrap();
+        let settings = Settings::new(&settings_path).unwrap();
 
         let crypto = TestCrypto {
             use_expired_ca: false,
@@ -3076,7 +3076,7 @@ mod tests {
         let settings_path = tmp_dir.path().join("test_settings.yaml");
 
         prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
-        let settings = Settings::new(Some(&settings_path)).unwrap();
+        let settings = Settings::new(&settings_path).unwrap();
 
         let crypto = TestCrypto {
             use_expired_ca: false,
@@ -3105,7 +3105,7 @@ mod tests {
         let settings_path = tmp_dir.path().join("test_settings.yaml");
 
         prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
-        let settings = Settings::new(Some(&settings_path)).unwrap();
+        let settings = Settings::new(&settings_path).unwrap();
 
         let crypto = TestCrypto {
             use_expired_ca: false,
@@ -3215,7 +3215,7 @@ mod tests {
         let settings_path = tmp_dir.path().join("test_settings.yaml");
 
         prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
-        let settings = Settings::new(Some(&settings_path)).unwrap();
+        let settings = Settings::new(&settings_path).unwrap();
 
         let crypto = TestCrypto {
             use_expired_ca: false,
@@ -3338,7 +3338,7 @@ mod tests {
             .expect("Stale iv file could not be written");
 
         // prepare a non x509 provisioning configuration
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
 
         let crypto = TestCrypto {
             use_expired_ca: false,
