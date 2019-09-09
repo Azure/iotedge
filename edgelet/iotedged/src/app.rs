@@ -72,9 +72,7 @@ fn init_common(running_as_windows_service: bool) -> Result<Settings, Error> {
         let mut default_config_file = program_data.clone();
         default_config_file.push("iotedge");
         default_config_file.push("config.yaml");
-        let default_config_file = Cow::Owned(default_config_file);
-
-        default_config_file
+        Cow::Owned(default_config_file)
     } else {
         Cow::Borrowed(Path::new("/etc/iotedge/config.yaml"))
     };
