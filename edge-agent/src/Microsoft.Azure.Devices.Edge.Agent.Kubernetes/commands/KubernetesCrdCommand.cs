@@ -120,10 +120,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
                     })
                 .ToList();
 
-            var foo = modulesList
-                    .Select(module => module.Config.AuthConfig.Map(auth => new ImagePullSecret(auth)).OrDefault())
-                    .Where(secret => secret != null);
-
             Dictionary<string, ImagePullSecret> secrets = modulesList
                 .Select(module => module.Config.AuthConfig.Map(auth => new ImagePullSecret(auth)).OrDefault())
                 .Where(secret => secret != null)
