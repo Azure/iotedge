@@ -98,15 +98,13 @@ impl ManualDeviceConnectionString {
         }
 
         if self.device_connection_string == DEFAULT_CONNECTION_STRING {
-            return Err(Error::from(
-                ErrorKind::ConnectionStringNotConfigured(
-                    if cfg!(windows) {
-                        "https://aka.ms/iot-edge-configure-windows"
-                    } else {
-                        "https://aka.ms/iot-edge-configure-linux"
-                    }
-                ),
-            ));
+            return Err(Error::from(ErrorKind::ConnectionStringNotConfigured(
+                if cfg!(windows) {
+                    "https://aka.ms/iot-edge-configure-windows"
+                } else {
+                    "https://aka.ms/iot-edge-configure-linux"
+                },
+            )));
         }
 
         let mut key = None;

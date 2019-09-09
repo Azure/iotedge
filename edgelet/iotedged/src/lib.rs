@@ -1496,11 +1496,9 @@ fn manual_provision_connection_string(
     cs: &ManualDeviceConnectionString,
     tokio_runtime: &mut tokio::runtime::Runtime,
 ) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey), Error> {
-    let (key, device_id, hub) =
-        cs.parse_device_connection_string()
-            .context(ErrorKind::Initialize(
-                InitializeErrorReason::LoadSettings,
-            ))?;
+    let (key, device_id, hub) = cs
+        .parse_device_connection_string()
+        .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
     let manual = ManualProvisioning::new(key, device_id, hub);
     let memory_hsm = MemoryKeyStore::new();
     let provision = manual
