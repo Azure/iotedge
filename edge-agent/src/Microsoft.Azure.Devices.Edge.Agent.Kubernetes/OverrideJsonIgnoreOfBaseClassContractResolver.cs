@@ -10,7 +10,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     // TODO add unit tests
     public class OverrideJsonIgnoreOfBaseClassContractResolver : CamelCasePropertyNamesContractResolver
     {
-        public OverrideJsonIgnoreOfBaseClassContractResolver(Dictionary<Type, string[]> names) {
+        public OverrideJsonIgnoreOfBaseClassContractResolver(Dictionary<Type, string[]> names)
+        {
             this.names = new Dictionary<Type, HashSet<string>>();
 
             foreach (var (type, properties) in names)

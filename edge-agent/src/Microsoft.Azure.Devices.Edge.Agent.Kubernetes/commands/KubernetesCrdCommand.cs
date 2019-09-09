@@ -35,8 +35,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
         // command.
         public string Id => this.id.Value;
 
-        public KubernetesCrdCommand(string deviceNamespace, string iotHubHostname, string deviceId, IKubernetes client, IEnumerable<IModule> modules,
-            IRuntimeInfo runtimeInfo, ICombinedConfigProvider<CombinedDockerConfig> combinedConfigProvider)
+        public KubernetesCrdCommand(
+                                    string deviceNamespace,
+                                    string iotHubHostname,
+                                    string deviceId,
+                                    IKubernetes client,
+                                    IEnumerable<IModule> modules,
+                                    IRuntimeInfo runtimeInfo,
+                                    ICombinedConfigProvider<CombinedDockerConfig> combinedConfigProvider)
         {
             this.deviceNamespace = KubeUtils.SanitizeK8sValue(Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace)));
             this.iotHubHostname = KubeUtils.SanitizeK8sValue(Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname)));
