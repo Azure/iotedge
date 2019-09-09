@@ -34,6 +34,7 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
+        - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
         - run-long-haul -equals true
@@ -75,7 +76,7 @@ jobs:
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
         parameters:
-          release.label: 'lh'
+          release.label: 'lh$(agent.group)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
@@ -97,6 +98,7 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
+        - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals ARM
         - agent-osbits -equals 32
@@ -139,7 +141,7 @@ jobs:
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
         parameters:
-          release.label: 'lh'
+          release.label: 'lh$(agent.group)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
@@ -161,6 +163,7 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
+        - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals ARM
         - agent-osbits -equals 64
@@ -203,7 +206,7 @@ jobs:
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
         parameters:
-          release.label: 'lh'
+          release.label: 'lh$(agent.group)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
@@ -225,6 +228,7 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
+        - agent-group -equals $(agent.group)
         - Agent.OS -equals Windows_NT
         - Agent.OSArchitecture -equals X64
         - agent-os-name -equals WinPro_x64
@@ -269,7 +273,7 @@ jobs:
       # Deploy long haul
       - template: templates/longhaul-deploy-windows.yaml
         parameters:
-          release.label: 'winpro-lh'
+          release.label: 'winpro-lh$(agent.group)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.windows)'
           container.registry: '$(container.registry)'
@@ -291,6 +295,7 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
+        - agent-group -equals $(agent.group)
         - Agent.OS -equals Windows_NT
         - Agent.OSArchitecture -equals X64
         - agent-os-name -equals WinServerCore_x64
@@ -335,7 +340,7 @@ jobs:
       # Deploy long haul
       - template: templates/longhaul-deploy-windows.yaml
         parameters:
-          release.label: 'servercore-lh'
+          release.label: 'servercore-lh$(agent.group)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.windows)'
           container.registry: '$(container.registry)'
@@ -357,7 +362,7 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
-        #- longhaul_iotuap_x64 -equals true
+        - agent-group -equals $(agent.group)
         - run-long-haul -equals true
         - runner-os-name -equals WinIoTCore_x64
     variables:
@@ -401,7 +406,7 @@ jobs:
       - template: templates/deploy-iotuap.yaml
         parameters:
           testName: 'LongHaul'
-          release.label: 'iotuap-lh'
+          release.label: 'iotuap-lh$(agent.group)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.windows)'
           container.registry: '$(container.registry)'
