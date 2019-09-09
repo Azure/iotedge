@@ -2194,7 +2194,7 @@ mod tests {
     }
 
     #[test]
-    fn default_settings_raise_unconfigured_error() {
+    fn default_settings_raise_load_error() {
         let settings = Settings::new(Path::new(DEFAULT_CONNECTION_STRING_SETTINGS)).unwrap();
         let main = Main::<DockerModuleRuntime>::new(settings);
         let result = main.run_until(signal::shutdown);
@@ -2205,7 +2205,7 @@ mod tests {
     }
 
     #[test]
-    fn empty_connection_string_raises_manual_provisioning_error() {
+    fn empty_connection_string_raises_load_error() {
         let settings = Settings::new(Path::new(EMPTY_CONNECTION_STRING_SETTINGS)).unwrap();
         let main = Main::<DockerModuleRuntime>::new(settings);
         let result = main.run_until(signal::shutdown);
