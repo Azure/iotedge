@@ -54,25 +54,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
 
         [Fact]
         [Unit]
-        public async void CrdCommandExecuteAsyncInvalidModule()
-        {
-            AuthConfig auth = new AuthConfig();
-            auth.Username = "foo";
-            auth.ServerAddress = "bar";
-            CombinedDockerConfig config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.Some(auth));
-            IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            var km1 = new KubernetesModule(m1 as IModule<DockerConfig>, config);
-            KubernetesModule[] modules = { km1 };
-            var configProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
-            configProvider.Setup(cp => cp.GetCombinedConfig(km1, Runtime)).Returns(() => null);
-
-            var token = default(CancellationToken);
-            var cmd = new KubernetesCrdCommand(Ns, Hostname, DeviceId, DefaultClient, modules, Runtime, DefaultConfigProvider);
-            await Assert.ThrowsAsync<InvalidModuleException>(() => cmd.ExecuteAsync(token));
-        }
-
-        [Fact]
-        [Unit]
         public async void CrdCommandExecuteWithAuthCreateNewObjects()
         {
             CombinedDockerConfig config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
