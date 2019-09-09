@@ -29,9 +29,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         {
             var nodeFilled = new V1Node(status: new V1NodeStatus(nodeInfo: new V1NodeSystemInfo("architecture", "bootID", "containerRuntimeVersion", "kernelVersion", "kubeProxyVersion", "kubeletVersion", "machineID", "operatingSystem", "osImage", "systemUUID")));
             var emptyNode = new V1Node();
-            yield return new object[] { new V1NodeList(), new SystemInfo(string.Empty, string.Empty, string.Empty) };
-            yield return new object[] { new V1NodeList(new List<V1Node> { emptyNode }), new SystemInfo(string.Empty, string.Empty, string.Empty) };
-            yield return new object[] { new V1NodeList(new List<V1Node> { nodeFilled }), new SystemInfo("operatingSystem", "architecture", "osImage") };
+            yield return new object[] { new V1NodeList(), new SystemInfo("Kubernetes", "Kubernetes", "Kubernetes") };
+            yield return new object[] { new V1NodeList(new List<V1Node> { emptyNode }), new SystemInfo("Kubernetes", "Kubernetes", "Kubernetes") };
+            yield return new object[] { new V1NodeList(new List<V1Node> { nodeFilled }), new SystemInfo("Kubernetes", "Kubernetes", "Kubernetes") };
         }
 
         [Unit]
@@ -68,9 +68,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var response = new HttpOperationResponse<V1NodeList>();
             response.Body = k8SNodes;
             var client = new Mock<IKubernetes>(MockBehavior.Strict); // Mock.Of<IKubernetes>(kc => kc.ListNodeAsync() == Task.FromResult(k8SNodes));
-            client.Setup(
-                kc =>
-                    kc.ListNodeWithHttpMessagesAsync(null, null, null, null, null, null, null, null, null, It.IsAny<CancellationToken>())).ReturnsAsync(() => response);
             var k8sRuntimeInfo = new KubernetesRuntimeInfoProvider(PodwatchNamespace, client.Object);
 
             var result = await k8sRuntimeInfo.GetSystemInfo();
