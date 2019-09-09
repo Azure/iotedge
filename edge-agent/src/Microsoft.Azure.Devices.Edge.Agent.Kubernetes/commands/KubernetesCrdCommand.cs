@@ -120,9 +120,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
                     })
                 .ToList();
 
+            // Modules may share an impage pull secret, so only pick unique ones to add to the dictionary.
             Dictionary<string, ImagePullSecret> secrets = modulesList
                 .Select(module => module.Config.AuthConfig.Map(auth => new ImagePullSecret(auth)).OrDefault())
                 .Where(secret => secret != null)
+                .GroupBy(secret => secret.Name)
+                .Select(secretGroup => secretGroup.First())
                 .ToDictionary(secret => secret.Name);
 
             string resourceName = this.iotHubHostname + Constants.K8sNameDivider + this.deviceId;
