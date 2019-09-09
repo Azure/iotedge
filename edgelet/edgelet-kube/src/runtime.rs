@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -236,11 +237,39 @@ where
     }
 
     fn system_info(&self) -> Self::SystemInfoFuture {
-        // TODO: Implement this.
-        Box::new(future::ok(SystemInfo::new(
-            "linux".to_string(),
-            "x86_64".to_string(),
-        )))
+        let result = self
+            .client
+            .lock()
+            .expect("Unexpected lock error")
+            .borrow_mut()
+            .list_nodes()
+            .map_err(|err| {
+                Error::from(err.context(ErrorKind::RuntimeOperation(RuntimeOperation::ListNodes)))
+            })
+            .map(|nodes| {
+                // Accumulate the architectures and their node counts into a hashmap
+                let mut arch_map: HashMap<String, u32> = HashMap::new();
+                for node in nodes.items.into_iter() {
+                    *(arch_map
+                        .entry(node.status.unwrap().node_info.unwrap().architecture)
+                        .or_insert(1)) += 1;
+                }
+
+                // Flatten the hashmap into a formatted string
+                let mut arch_string = String::from("[\n");
+                for arch_entry in arch_map.into_iter() {
+                    arch_string.push_str(&*format!(
+                            "{{Name: \"{}\", NodesCount: \"{}\"}},\n",
+                            &arch_entry.0,
+                            &arch_entry.1.to_string()
+                        ));
+                }
+                arch_string.push_str("]");
+
+                SystemInfo::new("Kubernetes".to_string(), arch_string)
+            });
+
+        Box::new(result)
     }
 
     fn list(&self) -> Self::ListFuture {

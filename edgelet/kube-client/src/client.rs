@@ -318,6 +318,23 @@ where
             .flatten()
     }
 
+    pub fn list_nodes(&mut self) -> impl Future<Item = api_core::NodeList, Error = Error> {
+        api_core::Node::list_node(Default::default())
+            .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::NodeList))))
+            .map(|req| {
+                self.request(req)
+                    .and_then(|response| match response {
+                        api_core::ListNodeResponse::Ok(list) => Ok(list),
+                        _ => Err(Error::from(ErrorKind::Response(RequestType::NodeList))),
+                    })
+                    .map_err(|err| {
+                        Error::from(err.context(ErrorKind::Response(RequestType::NodeList)))
+                    })
+            })
+            .into_future()
+            .flatten()
+    }
+
     pub fn list_secrets(
         &mut self,
         namespace: &str,

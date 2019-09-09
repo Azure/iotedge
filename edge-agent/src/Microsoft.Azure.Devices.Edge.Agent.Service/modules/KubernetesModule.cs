@@ -135,7 +135,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IModuleManager
-            builder.Register(c => new ModuleManagementHttpClient(this.managementUri, this.apiVersion, Core.Constants.EdgeletClientApiVersion))
+            var moduleManager = new ModuleManagementHttpClient(this.managementUri, this.apiVersion, Core.Constants.EdgeletClientApiVersion);
+            builder.Register(c => moduleManager)
                 .As<IModuleManager>()
                 .As<IIdentityManager>()
                 .SingleInstance();
@@ -183,7 +184,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // KubernetesRuntimeInfoProvider
-            builder.Register(c => new KubernetesRuntimeInfoProvider(this.deviceNamespace, c.Resolve<IKubernetes>()))
+            builder.Register(c => new KubernetesRuntimeInfoProvider(this.deviceNamespace, c.Resolve<IKubernetes>(), c.Resolve<IModuleManager>()))
                 .As<IRuntimeInfoProvider>()
                 .As<IRuntimeInfoSource>();
 
