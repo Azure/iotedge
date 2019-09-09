@@ -133,7 +133,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             }
         }
 
-
         internal async Task WatchDeploymentEventsAsync(WatchEventType type, EdgeDeploymentDefinition edgeDeploymentDefinition)
         {
             // only operate on the device that matches this operator.
@@ -217,7 +216,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     };
 
                     // Create a Pod for each module, and a proxy container.
-
                     List<V1EnvVar> envVars = this.CollectEnv(module, moduleId);
 
                     // Load the current module
@@ -485,6 +483,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             {
                 envList.Add(new V1EnvVar(CoreConstants.EdgeletModuleGenerationIdVariableName, creds.ModuleGenerationId));
             }
+
             envList.Add(new V1EnvVar(CoreConstants.DeviceIdVariableName, this.deviceId)); // could also get this from module identity
             envList.Add(new V1EnvVar(CoreConstants.ModuleIdVariableName, identity.ModuleId));
             envList.Add(new V1EnvVar(CoreConstants.EdgeletApiVersionVariableName, this.workloadApiVersion));
