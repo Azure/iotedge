@@ -28,8 +28,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
             {
                 DriveInfo driveInfo = DiskSpaceChecker.GetMatchingDrive(testStorageFolder)
                     .Expect(() => new ArgumentException("Should find drive for temp folder"));
-                double thresholdPercentage = 98;
-                DiskSpaceChecker diskSpaceChecker = DiskSpaceChecker.Create(testStorageFolder, thresholdPercentage, TimeSpan.FromSeconds(3));
+                long maxStorageSize = 6 * 1024 * 1024;
+                DiskSpaceChecker diskSpaceChecker = DiskSpaceChecker.Create(testStorageFolder, maxStorageSize, TimeSpan.FromSeconds(3));
 
                 // Assert
                 await Task.Delay(TimeSpan.FromSeconds(4));
@@ -45,14 +45,14 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
                 Assert.False(diskSpaceChecker.IsFull);
 
                 // Act
-                diskSpaceChecker.SetMaxDiskUsageSize(4 * 1024 * 1024);
+                diskSpaceChecker.SetMaxStorageSize(4 * 1024 * 1024);
 
                 // Assert
                 await Task.Delay(TimeSpan.FromSeconds(4));
                 Assert.True(diskSpaceChecker.IsFull);
 
                 // Act
-                diskSpaceChecker.SetMaxDiskUsageSize(8 * 1024 * 1024);
+                diskSpaceChecker.SetMaxStorageSize(8 * 1024 * 1024);
 
                 // Assert
                 await Task.Delay(TimeSpan.FromSeconds(4));
@@ -71,20 +71,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
                 // Assert
                 await Task.Delay(TimeSpan.FromSeconds(4));
                 Assert.False(diskSpaceChecker.IsFull);
-
-                // Act
-                diskSpaceChecker.SetThresholdPercentage(98);
-
-                // Assert
-                await Task.Delay(TimeSpan.FromSeconds(4));
-                Assert.False(diskSpaceChecker.IsFull);
-
-                // Act
-                diskSpaceChecker.SetThresholdPercentage(2);
-
-                // Assert
-                await Task.Delay(TimeSpan.FromSeconds(4));
-                Assert.True(diskSpaceChecker.IsFull);
             }
             finally
             {
