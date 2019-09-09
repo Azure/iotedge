@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var mqttSettingsConfiguration = new Mock<IConfiguration>();
             mqttSettingsConfiguration.Setup(c => c.GetSection(It.IsAny<string>())).Returns(Mock.Of<IConfigurationSection>(s => s.Value == null));
 
-            var experimentalFeatures = new ExperimentalFeatures(true, false, false, true, true);
+            var experimentalFeatures = new ExperimentalFeatures(true, false, false, true, new StorageSpaceCheckConfiguration(true));
 
             builder.RegisterBuildCallback(
                 c =>
@@ -123,8 +123,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     this.trustBundle,
                     string.Empty,
                     metricsConfig,
-                    90,
-                    TimeSpan.FromSeconds(120),
                     experimentalFeatures,
                     TimeSpan.FromHours(2)));
 

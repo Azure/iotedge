@@ -44,9 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly IList<X509Certificate2> trustBundle;
         readonly string proxy;
         readonly MetricsConfig metricsConfig;
-        readonly TimeSpan diskSpaceCheckFrequency;
         readonly ExperimentalFeatures experimentalFeatures;
-        readonly int storageLimitThresholdPercentage;
         readonly TimeSpan rocksDbCompactionPeriod;
 
         public CommonModule(
@@ -68,8 +66,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             IList<X509Certificate2> trustBundle,
             string proxy,
             MetricsConfig metricsConfig,
-            int storageLimitThresholdPercentage,
-            TimeSpan diskSpaceCheckFrequency,
             ExperimentalFeatures experimentalFeatures,
             TimeSpan rocksDbCompactionPeriod)
         {
@@ -91,8 +87,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.trustBundle = Preconditions.CheckNotNull(trustBundle, nameof(trustBundle));
             this.proxy = Preconditions.CheckNotNull(proxy, nameof(proxy));
             this.metricsConfig = Preconditions.CheckNotNull(metricsConfig, nameof(metricsConfig));
-            this.storageLimitThresholdPercentage = storageLimitThresholdPercentage;
-            this.diskSpaceCheckFrequency = diskSpaceCheckFrequency;
             this.experimentalFeatures = experimentalFeatures;
             this.rocksDbCompactionPeriod = rocksDbCompactionPeriod;
         }
@@ -154,12 +148,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                 c =>
                 {
-                    IDiskSpaceChecker dickSpaceChecker = this.experimentalFeatures.EnableDiskSpaceCheck && this.usePersistentStorage
-                        ? StorageSpaceChecker.Create(this.storagePath, this.storageLimitThresholdPercentage, this.diskSpaceCheckFrequency)
-                        : new NullDiskSpaceChecker() as IDiskSpaceChecker;
+                    StorageSpaceCheckConfiguration storageSpaceCheckConfiguration = this.experimentalFeatures.StorageSpaceCheckConfiguration;
+                    IStorageSpaceChecker dickSpaceChecker = storageSpaceCheckConfiguration.Enabled && this.usePersistentStorage
+                        ? DiskSpaceChecker.Create(this.storagePath, storageSpaceCheckConfiguration.MaxStorageBytes, storageSpaceCheckConfiguration.CheckFrequency)
+                        : new NullStorageSpaceChecker() as IStorageSpaceChecker;
                     return dickSpaceChecker;
                 })
-                .As<IDiskSpaceChecker>()
+                .As<IStorageSpaceChecker>()
                 .SingleInstance();
 
             // IDbStoreProvider
@@ -175,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             var partitionsList = new List<string> { Core.Constants.MessageStorePartitionKey, Core.Constants.TwinStorePartitionKey, Core.Constants.CheckpointStorePartitionKey };
                             try
                             {
-                                var diskSpaceChecker = c.Resolve<IDiskSpaceChecker>();
+                                var diskSpaceChecker = c.Resolve<IStorageSpaceChecker>();
                                 IDbStoreProvider dbStoreProvider = DbStoreProvider.Create(
                                     c.Resolve<IRocksDbOptionsProvider>(),
                                     this.storagePath,

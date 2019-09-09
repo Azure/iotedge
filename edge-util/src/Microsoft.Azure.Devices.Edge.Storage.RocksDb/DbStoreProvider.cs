@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         readonly IRocksDbOptionsProvider optionsProvider;
         readonly IRocksDb db;
         readonly ConcurrentDictionary<string, IDbStore> entityDbStoreDictionary;
-        readonly Option<IDiskSpaceChecker> diskSpaceChecker;
+        readonly Option<IStorageSpaceChecker> diskSpaceChecker;
         readonly object compactionLock = new object();
         readonly Timer compactionTimer; // TODO: Bug logged to be fixed to proper dispose and test.
 
@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             IRocksDbOptionsProvider optionsProvider,
             IRocksDb db,
             IDictionary<string, IDbStore> entityDbStoreDictionary,
-            Option<IDiskSpaceChecker> diskSpaceChecker,
+            Option<IStorageSpaceChecker> diskSpaceChecker,
             TimeSpan compactionPeriod)
         {
             this.db = db;
@@ -35,16 +35,16 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
         }
 
         public static DbStoreProvider Create(IRocksDbOptionsProvider optionsProvider, string path, IEnumerable<string> partitionsList)
-            => Create(optionsProvider, path, partitionsList, Option.None<IDiskSpaceChecker>(), TimeSpan.FromHours(2));
+            => Create(optionsProvider, path, partitionsList, Option.None<IStorageSpaceChecker>(), TimeSpan.FromHours(2));
 
         public static DbStoreProvider Create(IRocksDbOptionsProvider optionsProvider, string path, IEnumerable<string> partitionsList, TimeSpan compactionPeriod)
-            => Create(optionsProvider, path, partitionsList, Option.None<IDiskSpaceChecker>(), compactionPeriod);
+            => Create(optionsProvider, path, partitionsList, Option.None<IStorageSpaceChecker>(), compactionPeriod);
 
         public static DbStoreProvider Create(
             IRocksDbOptionsProvider optionsProvider,
             string path,
             IEnumerable<string> partitionsList,
-            Option<IDiskSpaceChecker> diskSpaceChecker,
+            Option<IStorageSpaceChecker> diskSpaceChecker,
             TimeSpan compactionPeriod)
         {
             IRocksDb db = RocksDbWrapper.Create(optionsProvider, path, partitionsList);
@@ -74,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             return entityDbStore;
         }
 
-        static IDbStore BuildColumnFamilyStore(IRocksDb db, ColumnFamilyHandle handle, Option<IDiskSpaceChecker> diskSpaceChecker)
+        static IDbStore BuildColumnFamilyStore(IRocksDb db, ColumnFamilyHandle handle, Option<IStorageSpaceChecker> diskSpaceChecker)
             => diskSpaceChecker
                 .Map(d => new DiskSpaceAwareColumnFamilyDbStore(db, handle, d) as IDbStore)
                 .GetOrElse(new ColumnFamilyDbStore(db, handle));

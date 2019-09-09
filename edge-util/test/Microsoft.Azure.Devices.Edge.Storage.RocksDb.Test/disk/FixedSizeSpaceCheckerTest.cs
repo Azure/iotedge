@@ -30,14 +30,14 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
             try
             {
                 long maxBytes = 2 * 1024 * 1024;
-                var fixedSizeSpaceChecker = new FixedSizeSpaceChecker(testStorageFolder, maxBytes, TimeSpan.FromSeconds(3), logger);
+                var fixedSizeSpaceChecker = new FixedSizeDiskSpaceChecker(testStorageFolder, maxBytes, TimeSpan.FromSeconds(3), logger);
 
                 var rand = new Random();
 
                 // Assert
-                Assert.Equal(StorageStatus.Unknown, fixedSizeSpaceChecker.DiskStatus);
+                Assert.Equal(DiskSpaceStatus.Unknown, fixedSizeSpaceChecker.DiskStatus);
                 await Task.Delay(TimeSpan.FromSeconds(4));
-                Assert.Equal(StorageStatus.Available, fixedSizeSpaceChecker.DiskStatus);
+                Assert.Equal(DiskSpaceStatus.Available, fixedSizeSpaceChecker.DiskStatus);
 
                 // Act
                 string filePath = Path.Combine(testStorageFolder, "file0");
@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
 
                 // Assert
                 await Task.Delay(TimeSpan.FromSeconds(3));
-                Assert.Equal(StorageStatus.Available, fixedSizeSpaceChecker.DiskStatus);
+                Assert.Equal(DiskSpaceStatus.Available, fixedSizeSpaceChecker.DiskStatus);
 
                 // Act
                 filePath = Path.Combine(testStorageFolder, "file1");
@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
 
                 // Assert
                 await Task.Delay(TimeSpan.FromSeconds(3));
-                Assert.Equal(StorageStatus.Critical, fixedSizeSpaceChecker.DiskStatus);
+                Assert.Equal(DiskSpaceStatus.Critical, fixedSizeSpaceChecker.DiskStatus);
 
                 // Act
                 filePath = Path.Combine(testStorageFolder, "file2");
@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
 
                 // Assert
                 await Task.Delay(TimeSpan.FromSeconds(3));
-                Assert.Equal(StorageStatus.Full, fixedSizeSpaceChecker.DiskStatus);
+                Assert.Equal(DiskSpaceStatus.Full, fixedSizeSpaceChecker.DiskStatus);
             }
             finally
             {

@@ -198,9 +198,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             string proxy = this.configuration.GetValue("https_proxy", string.Empty);
             string productInfo = GetProductInfo();
-            int storageLimitThresholdPercentage = this.configuration.GetValue("MaxDiskUsagePercentage", 98);
-            long diskSpaceCheckFrequencySecs = this.configuration.GetValue("DiskSpaceCheckFrequencySecs", 120);
-            TimeSpan diskSpaceCheckFrequency = TimeSpan.FromSeconds(diskSpaceCheckFrequencySecs);
             long rocksDbCompactionPeriodSecs = this.configuration.GetValue("RocksDbCompactionPeriodSecs", 7200);
             TimeSpan rocksDbCompactionPeriod = TimeSpan.FromSeconds(rocksDbCompactionPeriodSecs);
 
@@ -225,8 +222,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     this.trustBundle,
                     proxy,
                     metricsConfig,
-                    storageLimitThresholdPercentage,
-                    diskSpaceCheckFrequency,
                     experimentalFeatures,
                     rocksDbCompactionPeriod));
         }

@@ -8,58 +8,43 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public class StorageSpaceChecker : IDiskSpaceChecker
+    public class DiskSpaceChecker : IStorageSpaceChecker
     {
         readonly string storageFolder;
-        readonly Option<string> drive;
         readonly TimeSpan checkFrequency;
         readonly object updateLock = new object();
-        StorageSpaceCheckerBase inner;
+        DiskSpaceCheckerBase inner;
 
-        StorageSpaceChecker(string storageFolder, Option<string> drive, TimeSpan checkFrequency, StorageSpaceCheckerBase inner)
+        DiskSpaceChecker(string storageFolder, TimeSpan checkFrequency, DiskSpaceCheckerBase inner)
         {
             this.storageFolder = Preconditions.CheckNonWhiteSpace(storageFolder, nameof(storageFolder));
-            this.drive = drive;
             this.checkFrequency = checkFrequency;
             this.inner = Preconditions.CheckNotNull(inner, nameof(inner));
         }
 
-        public bool IsFull => this.inner.DiskStatus == StorageStatus.Full;
-
-        public static StorageSpaceChecker Create(string storageFolder, double thresholdPercentage, TimeSpan checkFrequency)
+        public bool IsFull => this.inner.DiskStatus == DiskSpaceStatus.Full;
+        
+        public static DiskSpaceChecker Create(string storageFolder, long maxStorageBytes, TimeSpan checkFrequency)
         {
-            Option<DriveInfo> drive = GetMatchingDrive(storageFolder);
-            Option<string> driveName = drive.Map(d => d.Name);
-            StorageSpaceCheckerBase inner = driveName.Map(d => new ThresholdStorageSpaceChecker(d, thresholdPercentage, checkFrequency, Events.Log) as StorageSpaceCheckerBase)
-                .GetOrElse(() => new NullStorageSpaceChecker(checkFrequency, Events.Log));
-            var diskSpaceChecker = new StorageSpaceChecker(storageFolder, driveName, checkFrequency, inner);
+            DiskSpaceCheckerBase inner = new FixedSizeDiskSpaceChecker(storageFolder, maxStorageBytes, checkFrequency, Events.Log);
+            var diskSpaceChecker = new DiskSpaceChecker(storageFolder, checkFrequency, inner);
             Events.Created(storageFolder);
             return diskSpaceChecker;
         }
 
-        public void SetThresholdPercentage(int thresholdPercentage)
+        public void SetMaxStorageSize(long maxStorageBytes)
         {
             lock (this.updateLock)
             {
-                this.drive.ForEach(d =>
-                {
-                    Events.SetMaxPercentageUsage(thresholdPercentage, d);
-                    this.inner = new ThresholdStorageSpaceChecker(d, thresholdPercentage, this.checkFrequency, Events.Log);
-                });
-            }
-        }
-
-        public void SetMaxDiskUsageSize(long maxDiskUsageBytes)
-        {
-            lock (this.updateLock)
-            {
-                Events.SetMaxSizeDiskSpaceUsage(maxDiskUsageBytes, this.storageFolder);
-                this.inner = new FixedSizeSpaceChecker(this.storageFolder, maxDiskUsageBytes, this.checkFrequency, Events.Log);
+                Events.SetMaxSizeDiskSpaceUsage(maxStorageBytes, this.storageFolder);
+                this.inner = new FixedSizeDiskSpaceChecker(this.storageFolder, maxStorageBytes, this.checkFrequency, Events.Log);
             }
         }
 
         internal static Option<DriveInfo> GetMatchingDrive(string storageFolder)
         {
+            // TODO - This does not work when a different volume is mounted to a folder in a Windows Container
+            // Because of this, Threshold space checker is currently not used.
             DriveInfo match = null;
             var drives = new DriveInfo[0];
             try
@@ -99,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
 
         static class Events
         {
-            public static readonly ILogger Log = Logger.Factory.CreateLogger<StorageSpaceChecker>();
+            public static readonly ILogger Log = Logger.Factory.CreateLogger<DiskSpaceChecker>();
             const int IdStart = 50000;
 
             enum EventIds

@@ -5,12 +5,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
     public class ExperimentalFeatures
     {
-        public ExperimentalFeatures(bool enabled, bool disableCloudSubscriptions, bool disableConnectivityCheck, bool enableMetrics, bool enableDiskSpaceCheck)
+        public ExperimentalFeatures(bool enabled, bool disableCloudSubscriptions, bool disableConnectivityCheck, bool enableMetrics, StorageSpaceCheckConfiguration storageSpaceCheckConfiguration)
         {
             this.Enabled = enabled;
             this.DisableCloudSubscriptions = disableCloudSubscriptions;
             this.DisableConnectivityCheck = disableConnectivityCheck;
-            this.EnableDiskSpaceCheck = enableDiskSpaceCheck;
+            this.StorageSpaceCheckConfiguration = StorageSpaceCheckConfiguration;
             this.EnableMetrics = enableMetrics;
         }
 
@@ -18,10 +18,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         {
             bool enabled = experimentalFeaturesConfig.GetValue("enabled", false);
             bool disableCloudSubscriptions = enabled && experimentalFeaturesConfig.GetValue("disableCloudSubscriptions", false);
-            bool disableConnectivityCheck = enabled && experimentalFeaturesConfig.GetValue("disableConnectivityCheck", false);
-            bool enableDiskSpaceCheck = enabled && experimentalFeaturesConfig.GetValue("enableDiskSpaceCheck", false);
+            bool disableConnectivityCheck = enabled && experimentalFeaturesConfig.GetValue("disableConnectivityCheck", false);            
             bool enableMetrics = enabled && experimentalFeaturesConfig.GetValue("enableMetrics", false);
-            return new ExperimentalFeatures(enabled, disableCloudSubscriptions, disableConnectivityCheck, enableMetrics, enableDiskSpaceCheck);
+            StorageSpaceCheckConfiguration storageSpaceCheckConfiguration = StorageSpaceCheckConfiguration.Create(enabled, experimentalFeaturesConfig.GetSection("storageSpaceCheckConfiguration"));
+            return new ExperimentalFeatures(enabled, disableCloudSubscriptions, disableConnectivityCheck, enableMetrics, storageSpaceCheckConfiguration);
         }
 
         public bool Enabled { get; }
@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         public bool DisableConnectivityCheck { get; }
 
-        public bool EnableDiskSpaceCheck { get; }
+        public StorageSpaceCheckConfiguration StorageSpaceCheckConfiguration { get; }
 
         public bool EnableMetrics { get; }
     }

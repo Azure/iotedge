@@ -9,9 +9,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
     class DiskSpaceAwareColumnFamilyDbStore : ColumnFamilyDbStore
     {
-        readonly IDiskSpaceChecker diskSpaceChecker;
+        readonly IStorageSpaceChecker diskSpaceChecker;
 
-        public DiskSpaceAwareColumnFamilyDbStore(IRocksDb db, ColumnFamilyHandle handle, IDiskSpaceChecker diskSpaceChecker)
+        public DiskSpaceAwareColumnFamilyDbStore(IRocksDb db, ColumnFamilyHandle handle, IStorageSpaceChecker diskSpaceChecker)
             : base(db, handle)
         {
             this.diskSpaceChecker = Preconditions.CheckNotNull(diskSpaceChecker, nameof(diskSpaceChecker));

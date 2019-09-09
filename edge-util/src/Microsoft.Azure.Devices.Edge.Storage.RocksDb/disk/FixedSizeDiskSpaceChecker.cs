@@ -5,12 +5,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
     using System.IO;
     using Microsoft.Extensions.Logging;
 
-    class FixedSizeSpaceChecker : StorageSpaceCheckerBase
+    class FixedSizeDiskSpaceChecker : DiskSpaceCheckerBase
     {
         readonly string storageFolder;
         readonly long maxSizeBytes;
 
-        public FixedSizeSpaceChecker(string storageFolder, long maxSizeBytes, TimeSpan checkFrequency, ILogger logger)
+        public FixedSizeDiskSpaceChecker(string storageFolder, long maxSizeBytes, TimeSpan checkFrequency, ILogger logger)
             : base(checkFrequency, logger)
         {
             this.storageFolder = storageFolder;
@@ -18,12 +18,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             logger?.LogInformation($"Created fixed size space checker with max capacity of {maxSizeBytes} bytes on folder {storageFolder}");
         }
 
-        protected override StorageStatus GetDiskStatus()
+        protected override DiskSpaceStatus GetDiskStatus()
         {
             long bytes = GetDirectorySize(this.storageFolder);
             double usagePercentage = (double)bytes * 100 / this.maxSizeBytes;
-            StorageStatus diskStatus = GetDiskStatus(usagePercentage);
-            if (diskStatus != StorageStatus.Available)
+            DiskSpaceStatus diskStatus = GetDiskStatus(usagePercentage);
+            if (diskStatus != DiskSpaceStatus.Available)
             {
                 this.Logger?.LogWarning($"High disk usage detected - using {usagePercentage}% of {this.maxSizeBytes} bytes");
             }
@@ -31,19 +31,19 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             return diskStatus;
         }
 
-        static StorageStatus GetDiskStatus(double usagePercentage)
+        static DiskSpaceStatus GetDiskStatus(double usagePercentage)
         {
             if (usagePercentage < 90)
             {
-                return StorageStatus.Available;
+                return DiskSpaceStatus.Available;
             }
 
             if (usagePercentage < 100)
             {
-                return StorageStatus.Critical;
+                return DiskSpaceStatus.Critical;
             }
 
-            return StorageStatus.Full;
+            return DiskSpaceStatus.Full;
         }
 
         static long GetDirectorySize(string directoryPath)

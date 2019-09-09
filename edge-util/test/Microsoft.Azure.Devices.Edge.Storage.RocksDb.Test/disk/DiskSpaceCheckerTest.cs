@@ -26,10 +26,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
 
             try
             {
-                DriveInfo driveInfo = StorageSpaceChecker.GetMatchingDrive(testStorageFolder)
+                DriveInfo driveInfo = DiskSpaceChecker.GetMatchingDrive(testStorageFolder)
                     .Expect(() => new ArgumentException("Should find drive for temp folder"));
                 double thresholdPercentage = 98;
-                StorageSpaceChecker diskSpaceChecker = StorageSpaceChecker.Create(testStorageFolder, thresholdPercentage, TimeSpan.FromSeconds(3));
+                DiskSpaceChecker diskSpaceChecker = DiskSpaceChecker.Create(testStorageFolder, thresholdPercentage, TimeSpan.FromSeconds(3));
 
                 // Assert
                 await Task.Delay(TimeSpan.FromSeconds(4));
