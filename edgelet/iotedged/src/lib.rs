@@ -2044,6 +2044,9 @@ mod tests {
     static EMPTY_CONNECTION_STRING_SETTINGS: &str =
         "../edgelet-docker/test/linux/bad_sample_settings.cs.3.yaml";
     #[cfg(unix)]
+    static DEFAULT_CONNECTION_STRING_SETTINGS: &str =
+        "../edgelet-docker/test/linux/bad_sample_settings.cs.4.yaml";
+    #[cfg(unix)]
     static GOOD_SETTINGS_EXTERNAL: &str =
         "../edgelet-docker/test/linux/sample_settings.external.yaml";
 
@@ -2063,6 +2066,9 @@ mod tests {
     #[cfg(windows)]
     static EMPTY_CONNECTION_STRING_SETTINGS: &str =
         "../edgelet-docker/test/windows/bad_sample_settings.cs.3.yaml";
+    #[cfg(windows)]
+    static DEFAULT_CONNECTION_STRING_SETTINGS: &str =
+        "../edgelet-docker/test/windows/bad_sample_settings.cs.4.yaml";
     #[cfg(windows)]
     static GOOD_SETTINGS_EXTERNAL: &str =
         "../edgelet-docker/test/windows/sample_settings.external.yaml";
@@ -2189,12 +2195,12 @@ mod tests {
 
     #[test]
     fn default_settings_raise_unconfigured_error() {
-        let settings = Settings::new(None).unwrap();
+        let settings = Settings::new(Some(Path::new(DEFAULT_CONNECTION_STRING_SETTINGS))).unwrap();
         let main = Main::<DockerModuleRuntime>::new(settings);
         let result = main.run_until(signal::shutdown);
         match result.unwrap_err().kind() {
-            ErrorKind::Initialize(InitializeErrorReason::NotConfigured) => (),
-            kind => panic!("Expected `NotConfigured` but got {:?}", kind),
+            ErrorKind::Initialize(InitializeErrorReason::LoadSettings) => (),
+            kind => panic!("Expected `LoadSettings` but got {:?}", kind),
         }
     }
 
@@ -2204,8 +2210,8 @@ mod tests {
         let main = Main::<DockerModuleRuntime>::new(settings);
         let result = main.run_until(signal::shutdown);
         match result.unwrap_err().kind() {
-            ErrorKind::Initialize(InitializeErrorReason::ManualProvisioningClient) => (),
-            kind => panic!("Expected `ManualProvisioningClient` but got {:?}", kind),
+            ErrorKind::Initialize(InitializeErrorReason::LoadSettings) => (),
+            kind => panic!("Expected `LoadSettings` but got {:?}", kind),
         }
     }
 
