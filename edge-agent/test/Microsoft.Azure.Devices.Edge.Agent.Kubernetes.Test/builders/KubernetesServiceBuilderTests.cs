@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             CombinedDockerConfig config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
             ModuleIdentity identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
 
-            config.CreateOptions.ExposedPorts = new Dictionary<string, EmptyStruct>() { { "aa/TCP", new EmptyStruct() } };
+            config.CreateOptions.ExposedPorts = new Dictionary<string, EmptyStruct>() { { "aa/TCP", default(EmptyStruct) } };
 
             IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             KubernetesModule km1 = new KubernetesModule(m1 as IModule<DockerConfig>, config);
@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             CombinedDockerConfig config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
             ModuleIdentity identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
 
-            config.CreateOptions.ExposedPorts = new Dictionary<string, EmptyStruct>() { { "123/XXX", new EmptyStruct() } };
+            config.CreateOptions.ExposedPorts = new Dictionary<string, EmptyStruct>() { { "123/XXX", default(EmptyStruct) } };
 
             IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             KubernetesModule km1 = new KubernetesModule(m1 as IModule<DockerConfig>, config);
@@ -98,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             ModuleIdentity identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
 
             // Add a port to be exposed
-            config.CreateOptions.ExposedPorts = new Dictionary<string, EmptyStruct>() { { "10/TCP", new EmptyStruct() } };
+            config.CreateOptions.ExposedPorts = new Dictionary<string, EmptyStruct>() { { "10/TCP", default(EmptyStruct) } };
 
             IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             KubernetesModule km1 = new KubernetesModule(m1 as IModule<DockerConfig>, config);
@@ -120,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Dictionary<string, string> moduleLabels = new Dictionary<string, string>() { { "label1", "value1" } };
 
             // Add a port to be exposed
-            config.CreateOptions.ExposedPorts = new Dictionary<string, EmptyStruct>() { { "10/TCP", new EmptyStruct() } };
+            config.CreateOptions.ExposedPorts = new Dictionary<string, EmptyStruct>() { { "10/TCP", default(EmptyStruct) } };
 
             IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             KubernetesModule km1 = new KubernetesModule(m1 as IModule<DockerConfig>, config);
