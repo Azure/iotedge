@@ -3,10 +3,20 @@
 IoT Edge supports a provisioning mode called `external` whereby the `iotedged` obtains the device's provisioning information by calling a REST API hosted on an HTTP endpoint.
 The endpoint that is targeted by the `iotedged` is specified in IoT Edge's config.yaml file as follows:
 
-```yaml
+TCP:
+
+```yaml TCP
 provisioning:
   source: "external"
   endpoint: "http://localhost:9999"
+```
+
+Unix sockets:
+
+```yaml
+provisioning:
+  source: "external"
+  endpoint: "unix:///var/run/external/external.sock"
 ```
 
 **Please note that HTTPS is currently not supported for this external endpoint.**
@@ -34,31 +44,31 @@ REQUEST PAYLOAD: None
 RESPONSE PAYLOAD:
 
 ```json
-  {
-    "hubName": "IoT Hub Name",
-    "deviceId": "Device ID",
-    "credentials": {
-        "authType": "symmetric-key | x509",
-        "source": "payload | hsm",
-        "key": "The symmetric key used. Only populated for the `symmetric-key` authType",
-        "identityCert": "PEM encoded identity certificate (for the x509 and payload mode) in base64 representation | Path to identity certificate (for the x509 and hsm mode)",
-        "identityPrivateKey": "PEM encoded identity private key (for the x509 and payload mode) in base64 representation | Path to identity private key (for the x509 and hsm mode)"
-     }
-  }
+{
+  "hubName": "IoT Hub Name",
+  "deviceId": "Device ID",
+  "credentials": {
+      "authType": "symmetric-key | x509",
+      "source": "payload | hsm",
+      "key": "The symmetric key used. Only populated for the `symmetric-key` authType",
+      "identityCert": "PEM encoded identity certificate (for the x509 and payload mode) in base64 representation | Path to identity certificate (for the x509 and hsm mode)",
+      "identityPrivateKey": "PEM encoded identity private key (for the x509 and payload mode) in base64 representation | Path to identity private key (for the x509 and hsm mode)"
+    }
+}
 ```
 
 A sample response for the `symmetric-key` `authType` with the `payload` specified as the credential's `source` would look like the following:
 
 ```json
-  {
-    "hubName": "myHub1.azure-devices.net",
-    "deviceId": "myDevice1",
-    "credentials": {
-        "authType": "symmetric-key",
-        "source": "payload",
-        "key": "bXlLZXkxMjM0NQ=="
-     }
-  }
+{
+  "hubName": "myHub1.azure-devices.net",
+  "deviceId": "myDevice1",
+  "credentials": {
+      "authType": "symmetric-key",
+      "source": "payload",
+      "key": "bXlLZXkxMjM0NQ=="
+    }
+}
 ```
 
-For more information about the REST API's specification, please refer to the [endpoint's swagger specification](..\edgelet\api\externalProvisioningVersion_2019_04_10.yaml)
+For more information about the REST API's specification, please refer to the [endpoint's swagger specification](../edgelet/api/externalProvisioningVersion_2019_04_10.yaml)
