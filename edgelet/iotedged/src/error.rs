@@ -197,8 +197,12 @@ pub enum InitializeErrorReason {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ExternalProvisioningErrorReason {
     ClientInitialization,
+    DownloadIdentityCertificate,
+    DownloadIdentityPrivateKey,
+    ExternalProvisioningDirCreate,
     HsmInitialization,
     HsmKeyRetrieval,
+    HybridKeyPreparation,
     InvalidAuthenticationType,
     InvalidCredentials,
     Provisioning,
@@ -364,12 +368,30 @@ impl fmt::Display for ExternalProvisioningErrorReason {
                 write!(f, "Could not create the external provisioning client.")
             }
 
+            ExternalProvisioningErrorReason::DownloadIdentityCertificate => write!(
+                f,
+                "The download of the identity certificate from the external environment failed."
+            ),
+
+            ExternalProvisioningErrorReason::DownloadIdentityPrivateKey => write!(
+                f,
+                "The download of the identity private key from the external environment failed."
+            ),
+
+            ExternalProvisioningErrorReason::ExternalProvisioningDirCreate => {
+                write!(f, "Could not create the external provisioning directory.")
+            }
+
             ExternalProvisioningErrorReason::HsmInitialization => {
                 write!(f, "Could not initialize the HSM interface.")
             }
 
             ExternalProvisioningErrorReason::HsmKeyRetrieval => {
                 write!(f, "Could not retrieve the device's key from the HSM.")
+            }
+
+            ExternalProvisioningErrorReason::HybridKeyPreparation => {
+                write!(f, "Could not prepare the hybrid key.")
             }
 
             ExternalProvisioningErrorReason::InvalidAuthenticationType => {
