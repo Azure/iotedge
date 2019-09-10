@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 [ -z "$1" ] && echo "Please specify the ipv6 subnet for the docker0 bridge network." && exit 1
 [ -z "$2" ] && echo "Please specify the ipv6 subnet for the azure-iot-edge bridge network." && exit 1
 [ -z "$3" ] && echo "Please specify the network interface" && exit 1
@@ -11,7 +13,7 @@ NETWORK_INTERFACE=$3
 echo "Installing jq and grep..."
 apt-get update -y
 apt-get install -y jq grep
-echo "Jq and grep installed."
+echo "jq and grep installed."
 
 DOCKER_CONFIG_PATH=$4
 SYSCTL_CONF_PATH=$5
@@ -67,4 +69,3 @@ echo "Running ndppd configuration script."
 chmod +x ./installNdppd.sh
 sh ./installNdppd.sh $DOCKER0_BRIDGE_SUBNET $IOT_EDGE_SUBNET $NETWORK_INTERFACE
 echo "ndppd configuration script executed."
-
