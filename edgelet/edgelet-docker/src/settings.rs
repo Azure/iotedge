@@ -57,12 +57,6 @@ pub struct Settings {
 
 impl Settings {
     pub fn new(filename: &Path) -> Result<Self, LoadSettingsError> {
-        let filename = filename.to_str().unwrap_or_else(|| {
-            panic!(
-                "cannot load config from {} because it is not a utf-8 path",
-                filename.display()
-            )
-        });
         let mut config = Config::default();
         config.merge(YamlFileSource::String(DEFAULTS))?;
         config.merge(YamlFileSource::File(filename.into()))?;
