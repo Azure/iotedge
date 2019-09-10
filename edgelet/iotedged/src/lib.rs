@@ -2701,7 +2701,7 @@ mod tests {
 
     #[test]
     fn get_provisioning_auth_method_returns_x509_for_external_provisioning_with_x509_auth_type() {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_EXTERNAL))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_EXTERNAL)).unwrap();
 
         let x509_credential = X509Credential::new("".to_string(), "".to_string());
         let credentials =
@@ -2726,7 +2726,7 @@ mod tests {
     #[test]
     fn get_provisioning_auth_method_returns_sas_key_for_external_provisioning_with_sas_key_auth_type(
     ) {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_EXTERNAL))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_EXTERNAL)).unwrap();
 
         let symmetric_key_credential = SymmetricKeyCredential::new(vec![0_u8; 10]);
         let credentials = Credentials::new(
@@ -2753,7 +2753,7 @@ mod tests {
     #[test]
     fn get_provisioning_auth_method_returns_error_with_no_provisioning_result_in_external_provisioning(
     ) {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_EXTERNAL))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_EXTERNAL)).unwrap();
 
         assert_eq!(
             &ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient(
