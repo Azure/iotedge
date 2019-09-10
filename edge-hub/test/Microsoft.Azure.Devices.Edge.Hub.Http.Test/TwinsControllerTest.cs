@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             Assert.NotNull(methodResult);
             Assert.Equal(200, methodResult.Status);
             Assert.Null(methodResult.Payload);
-            Assert.Equal(objectResult.StatusCode, (int)HttpStatusCode.OK);
+            Assert.Equal((int)HttpStatusCode.OK, objectResult.StatusCode);
         }
 
         [Fact]
@@ -89,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             Assert.NotNull(methodResult);
             Assert.Equal(200, methodResult.Status);
             Assert.Null(methodResult.Payload);
-            Assert.Equal(objectResult.StatusCode, (int)HttpStatusCode.OK);
+            Assert.Equal((int)HttpStatusCode.OK, objectResult.StatusCode);
         }
 
         [Fact]
@@ -134,7 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             Assert.Equal(new JRaw(responsePayload), methodResult.Payload);
             long methodResultByteCount = Encoding.UTF8.GetByteCount(JsonConvert.SerializeObject(methodResult));
             Assert.Equal(methodResultByteCount, testController.Response.ContentLength);
-            Assert.Equal(objectResult.StatusCode, (int)HttpStatusCode.OK);
+            Assert.Equal((int)HttpStatusCode.OK, objectResult.StatusCode);
         }
 
         [Fact]
@@ -162,7 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
                 ControllerContext = controllerContext
             };
             testController.OnActionExecuting(actionExecutingContext);
-            
+
             string toDeviceId = "edgedevice";
             string toModuleId = "module2";
             string command = "showdown";
@@ -181,7 +181,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             Assert.Equal(new JRaw(responsePayload), methodResult.Payload);
             long methodResultByteCount = Encoding.UTF8.GetByteCount(JsonConvert.SerializeObject(methodResult));
             Assert.Equal(methodResultByteCount, testController.Response.ContentLength);
-            Assert.Equal(objectResult.StatusCode, (int)HttpStatusCode.OK);
+            Assert.Equal((int)HttpStatusCode.OK, objectResult.StatusCode);
         }
 
         [Fact]
@@ -226,7 +226,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             Assert.Equal(new JRaw(responsePayload), methodResult.Payload);
             long methodResultByteCount = Encoding.UTF8.GetByteCount(JsonConvert.SerializeObject(methodResult));
             Assert.Equal(methodResultByteCount, testController.Response.ContentLength);
-            Assert.Equal(objectResult.StatusCode, (int)HttpStatusCode.OK);
+            Assert.Equal((int)HttpStatusCode.OK, objectResult.StatusCode);
         }
 
         [Fact]
@@ -272,7 +272,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             Assert.Equal(new JRaw(responsePayload), methodResult.Payload);
             long methodResultByteCount = Encoding.UTF8.GetByteCount(JsonConvert.SerializeObject(methodResult));
             Assert.Equal(methodResultByteCount, testController.Response.ContentLength);
-            Assert.Equal(objectResult.StatusCode, (int)HttpStatusCode.OK);
+            Assert.Equal((int)HttpStatusCode.OK, objectResult.StatusCode);
         }
 
         [Fact]
@@ -308,7 +308,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             Assert.Equal(0, methodResult.Status);
             Assert.Null(methodResult.Payload);
             Assert.Equal(timeoutException.Message, methodResult.Message);
-            Assert.Equal(objectResult.StatusCode, (int)HttpStatusCode.GatewayTimeout);
+            Assert.Equal((int)HttpStatusCode.GatewayTimeout, objectResult.StatusCode);
         }
 
         [Unit]
