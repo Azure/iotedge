@@ -125,7 +125,7 @@ jobs:
     variables:
       coverage.excludes: "docker-rs*"
       coverage.goal: 68
-      rust.toolchain: nightly-2019-06-07
+      rust.toolchain: nightly-2019-07-05
     pool:
       vmImage: 'ubuntu-16.04'
     steps:

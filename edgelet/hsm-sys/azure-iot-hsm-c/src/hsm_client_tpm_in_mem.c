@@ -30,6 +30,9 @@ int hsm_client_tpm_store_init(void)
     {
         const HSM_CLIENT_STORE_INTERFACE* store_if;
         const HSM_CLIENT_KEY_INTERFACE* key_if;
+
+        log_init(LVL_INFO);
+
         if ((store_if = hsm_client_store_interface()) == NULL)
         {
             LOG_ERROR("HSM store interface not available");

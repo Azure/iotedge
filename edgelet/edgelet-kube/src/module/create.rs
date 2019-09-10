@@ -1,19 +1,20 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use failure::Fail;
 use futures::future::Either;
 use futures::prelude::*;
 use futures::{future, Future, Stream};
 use hyper::service::Service;
 use hyper::Body;
 
-use edgelet_core::ModuleSpec;
+use edgelet_core::{ModuleSpec, RuntimeOperation};
 use edgelet_docker::DockerConfig;
-use kube_client::{Error as KubeClientError, TokenSource};
+use kube_client::TokenSource;
 
 use crate::constants::EDGE_EDGE_AGENT_NAME;
 use crate::convert::{spec_to_deployment, spec_to_role_binding, spec_to_service_account};
 use crate::error::Error;
-use crate::KubeModuleRuntime;
+use crate::{ErrorKind, KubeModuleRuntime};
 
 pub fn create_module<T, S>(
     runtime: &KubeModuleRuntime<T, S>,
@@ -25,7 +26,7 @@ where
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
     S::Future: Send,
 {
     let runtime_for_sa = runtime.clone();
@@ -34,10 +35,19 @@ where
     let runtime_for_deployment = runtime.clone();
     let module_for_deployment = module.clone();
 
+    let module_name = module.name().to_string();
+
     create_or_update_service_account(&runtime, &module)
         .and_then(move |_| create_or_update_role_binding(&runtime_for_sa, &module_for_sa))
         .and_then(move |_| {
             create_or_update_deployment(&runtime_for_deployment, &module_for_deployment)
+        })
+        .map_err(|err| {
+            Error::from(
+                err.context(ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
+                    module_name,
+                ))),
+            )
         })
 }
 
@@ -51,11 +61,11 @@ where
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
     S::Future: Send,
 {
     spec_to_service_account(runtime.settings(), module)
-        .map_err(Error::from)
+        .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
         .map(|(name, new_service_account)| {
             let client_copy = runtime.client().clone();
             let namespace_copy = runtime.settings().namespace().to_owned();
@@ -70,7 +80,7 @@ where
                     Some(&name),
                     Some(&runtime.settings().device_hub_selector()),
                 )
-                .map_err(Error::from)
+                .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                 .and_then(move |service_accounts| {
                     if let Some(current) =
                         service_accounts.items.into_iter().find(|service_account| {
@@ -87,11 +97,11 @@ where
                                 .expect("Unexpected lock error")
                                 .borrow_mut()
                                 .replace_service_account(
-                                    namespace_copy.as_str(),
+                                    &namespace_copy,
                                     &name,
                                     &new_service_account,
                                 )
-                                .map_err(Error::from)
+                                .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                                 .map(|_| ());
 
                             Either::A(Either::B(fut))
@@ -101,8 +111,8 @@ where
                             .lock()
                             .expect("Unexpected lock error")
                             .borrow_mut()
-                            .create_service_account(namespace_copy.as_str(), &new_service_account)
-                            .map_err(Error::from)
+                            .create_service_account(&namespace_copy, &new_service_account)
+                            .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                             .map(|_| ());
 
                         Either::B(fut)
@@ -123,11 +133,11 @@ where
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
     S::Future: Send,
 {
     spec_to_role_binding(runtime.settings(), module)
-        .map_err(Error::from)
+        .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
         .map(|(name, new_role_binding)| {
             // create new role only for edge agent
             if name == EDGE_EDGE_AGENT_NAME {
@@ -142,7 +152,7 @@ where
                             &name,
                             &new_role_binding,
                         )
-                        .map_err(Error::from)
+                        .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                         .map(|_| ()),
                 )
             } else {
@@ -163,11 +173,11 @@ where
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
     S::Future: Send,
 {
     spec_to_deployment(runtime.settings(), module)
-        .map_err(Error::from)
+        .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
         .map(|(name, new_deployment)| {
             let client_copy = runtime.client().clone();
             let namespace_copy = runtime.settings().namespace().to_owned();
@@ -182,7 +192,7 @@ where
                     Some(&name),
                     Some(&runtime.settings().device_hub_selector()),
                 )
-                .map_err(Error::from)
+                .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                 .and_then(move |deployments| {
                     if let Some(current) = deployments.items.into_iter().find(|deployment| {
                         deployment.metadata.as_ref().map_or(false, |meta| {
@@ -197,7 +207,7 @@ where
                                 .expect("Unexpected lock error")
                                 .borrow_mut()
                                 .replace_deployment(namespace_copy.as_str(), &name, &new_deployment)
-                                .map_err(Error::from)
+                                .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                                 .map(|_| ());
 
                             Either::A(Either::B(fut))
@@ -208,7 +218,7 @@ where
                             .expect("Unexpected lock error")
                             .borrow_mut()
                             .create_deployment(namespace_copy.as_str(), &new_deployment)
-                            .map_err(Error::from)
+                            .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                             .map(|_| ());
 
                         Either::B(fut)
