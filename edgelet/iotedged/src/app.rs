@@ -16,7 +16,7 @@ use edgelet_kube::Settings;
 use crate::error::{Error, ErrorKind, InitializeErrorReason};
 use crate::logging;
 
-fn create_app<'a>(default_config_file: &'a OsStr) -> App<'a, 'a> {
+fn create_app(default_config_file: &OsStr) -> App<'_, '_> {
     let app = App::new(crate_name!())
         .version(edgelet_core::version_with_source_version())
         .author(crate_authors!("\n"))
