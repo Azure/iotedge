@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
         }
 
         public bool IsFull => this.inner.DiskStatus == DiskSpaceStatus.Full;
-        
+
         public static DiskSpaceChecker Create(string storageFolder, long maxStorageBytes, TimeSpan checkFrequency)
         {
             DiskSpaceCheckerBase inner = new FixedSizeDiskSpaceChecker(storageFolder, maxStorageBytes, checkFrequency, Events.Log);

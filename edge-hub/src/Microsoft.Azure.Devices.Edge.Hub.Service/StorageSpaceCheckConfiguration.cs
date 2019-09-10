@@ -16,9 +16,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
         public StorageSpaceCheckConfiguration(bool enabled, TimeSpan checkFrequency, long maxStorageBytes)
         {
-            Enabled = enabled;
-            CheckFrequency = checkFrequency;
-            MaxStorageBytes = maxStorageBytes;
+            this.Enabled = enabled;
+            this.CheckFrequency = checkFrequency;
+            this.MaxStorageBytes = maxStorageBytes;
         }
 
         public static StorageSpaceCheckConfiguration Create(bool enabled, IConfiguration storageSpaceCheckConfiguration)
