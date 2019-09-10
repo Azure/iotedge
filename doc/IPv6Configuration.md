@@ -80,11 +80,11 @@ This can be achieved by either of the following two methods:
 
    * Create /etc/ndppd.conf. You will need to define two rule sections for the eth0 network interface (or the public network interface on your device) for the two subnets:
 
-     a. 'docker0' bridge network: This is the network with subnet defined in the daemon.json file.
+      a. 'docker0' bridge network: This is the network with subnet defined in the daemon.json file.
 
-     b. 'azure-iot-edge' user defined network: The subnet configuration for this network is specified in the config.yaml file of IoT Edge later.
+      b. 'azure-iot-edge' user defined network: The subnet configuration for this network is specified in the config.yaml file of IoT Edge later.
 
-     ```conf
+      ```conf
       route-ttl 5000
       proxy eth0 {
         router yes
@@ -99,7 +99,7 @@ This can be achieved by either of the following two methods:
           auto
         }
       }
-     ```
+      ```
 
    * Restart the `ndppd` service
 
@@ -175,5 +175,5 @@ IoT Edge will subsequently start up and create the `azure-iot-edge` network with
 
 [1]: https://docs.docker.com/v17.09/engine/userguide/networking/default_network/ipv6/
 [2]: https://github.com/DanielAdolfsson/ndppd
-[3]: ..\scripts\linux\configureDockerIPv6.sh
-[4]: ..\scripts\linux\installNdppd.sh
+[3]: ../scripts/linux/configureDockerIPv6.sh
+[4]: ../scripts/linux/installNdppd.sh
