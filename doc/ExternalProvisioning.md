@@ -5,7 +5,7 @@ The endpoint that is targeted by the `iotedged` is specified in IoT Edge's confi
 
 TCP:
 
-```yaml TCP
+```yaml
 provisioning:
   source: "external"
   endpoint: "http://localhost:9999"
