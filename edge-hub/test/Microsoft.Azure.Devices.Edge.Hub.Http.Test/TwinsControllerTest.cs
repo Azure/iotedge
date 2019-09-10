@@ -178,7 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var validator = new Mock<IValidator<MethodRequest>>();
             validator.Setup(v => v.Validate(It.IsAny<MethodRequest>()));
 
-            var httpContext = new DefaultHttpContext(); // or mock a `HttpContext`
+            var httpContext = new DefaultHttpContext();
             var controllerContext = new ControllerContext()
             {
                 HttpContext = httpContext,
@@ -223,7 +223,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var validator = new Mock<IValidator<MethodRequest>>();
             validator.Setup(v => v.Validate(It.IsAny<MethodRequest>()));
 
-            var httpContext = new DefaultHttpContext(); // or mock a `HttpContext`
+            var httpContext = new DefaultHttpContext();
             var controllerContext = new ControllerContext()
             {
                 HttpContext = httpContext,
@@ -270,7 +270,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var validator = new Mock<IValidator<MethodRequest>>();
             validator.Setup(v => v.Validate(It.IsAny<MethodRequest>()));
 
-            var httpContext = new DefaultHttpContext(); // or mock a `HttpContext`
+            var httpContext = new DefaultHttpContext();
             var controllerContext = new ControllerContext()
             {
                 HttpContext = httpContext,
@@ -315,7 +315,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var validator = new Mock<IValidator<MethodRequest>>();
             validator.Setup(v => v.Validate(It.IsAny<MethodRequest>()));
 
-            var httpContext = new DefaultHttpContext(); // or mock a `HttpContext`
+            var httpContext = new DefaultHttpContext();
             var controllerContext = new ControllerContext()
             {
                 HttpContext = httpContext,
@@ -340,7 +340,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Test
             var methodResult = objectResult.Value as MethodResult;
             Assert.NotNull(methodResult);
             Assert.Equal(200, methodResult.Status);
-            Assert.Equal(new JRaw(responsePayload), methodResult.Payload);
             Assert.Equal(new JRaw(responsePayload), methodResult.Payload);
             long methodResultByteCount = Encoding.UTF8.GetByteCount(JsonConvert.SerializeObject(methodResult));
             Assert.Equal(methodResultByteCount, testController.Response.ContentLength);
