@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
@@ -52,6 +53,62 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     }
                 },
                 token);
+        }
+
+        [Test]
+        public async Task TempFilter()
+        {
+            const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
+            string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
+            string filterImage = Context.Current.TempFilterImage.Expect(() => new ArgumentException());
+
+            CancellationToken token = this.cts.Token;
+
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+                builder => { builder.GetModuleBuilder("edgeHub")
+                                    .WithDesiredProperties( new Dictionary<string, object> {
+                                        ["routes"] = new { route1 = "from alertOutput INTO input1" }
+                                    } );
+                             builder.AddModule("tempSensor", sensorImage);
+                             builder.AddModule("tempFilter", filterImage)
+                                    .WithEnvironment( new[] { ("TemperatureThreshold", "19" ) } ); 
+                            },
+                token);
+
+            EdgeModule sensor = deployment.Modules["tempSensor"];
+            await sensor.WaitForEventsReceivedAsync(deployment.StartTime, token);
+            await sensor.UpdateDesiredPropertiesAsync(
+                new
+                {
+                    properties = new
+                    {
+                        desired = new
+                        {
+                            SendData = true,
+                            SendInterval = 10
+                        }
+                    }
+                },
+                token);
+            await sensor.WaitForReportedPropertyUpdatesAsync(
+                new
+                {
+                    properties = new
+                    {
+                        reported = new
+                        {
+                            SendData = true,
+                            SendInterval = 10
+                        }
+                    }
+                },
+                token);
+
+
+            EdgeModule filter = deployment.Modules["tempFilter"];
+            await filter.WaitForEventsReceivedAsync(deployment.StartTime, token);
+
+
         }
 
         [Test]

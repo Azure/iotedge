@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
     public class EdgeDaemon : IEdgeDaemon
     {
+
         public async Task InstallAsync(string deviceConnectionString, Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
         {
             await InstallAsync(packagesPath, token);
@@ -94,7 +95,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 async () =>
                 {
                     await this.InternalStopAsync(token);
-
                     var yaml = new DaemonConfiguration("/etc/iotedge/config.yaml");
                     (string msg, object[] props) = await config(yaml);
 
@@ -141,6 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         async Task InternalStartAsync(CancellationToken token)
         {
+
             string[] output = await Process.RunAsync("systemctl", "start iotedge", token);
             Log.Verbose(string.Join("\n", output));
             await WaitForStatusAsync(ServiceControllerStatus.Running, token);
@@ -174,7 +175,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     async () =>
                     {
                         string[] output =
-                            await Process.RunAsync("apt-get", "purge --yes libiothsm-std", token);
+                            await Process.RunAsync("sudo apt-get", "purge --yes libiothsm-std", token);
                         Log.Verbose(string.Join("\n", output));
                     },
                     "Uninstalled edge daemon");
