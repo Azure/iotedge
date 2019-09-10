@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             this.Enabled = enabled;
             this.DisableCloudSubscriptions = disableCloudSubscriptions;
             this.DisableConnectivityCheck = disableConnectivityCheck;
-            this.StorageSpaceCheckConfiguration = StorageSpaceCheckConfiguration;
+            this.StorageSpaceCheckConfiguration = storageSpaceCheckConfiguration;
             this.EnableMetrics = enableMetrics;
         }
 

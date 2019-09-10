@@ -509,8 +509,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     async c =>
                     {
                         IMessageStore messageStore = this.isStoreAndForwardEnabled ? c.Resolve<IMessageStore>() : null;
+                        var storageSpaceChecker = c.Resolve<IStorageSpaceChecker>();
                         Router router = await c.Resolve<Task<Router>>();
-                        var configUpdater = new ConfigUpdater(router, messageStore, this.configUpdateFrequency);
+                        var configUpdater = new ConfigUpdater(router, messageStore, this.configUpdateFrequency, storageSpaceChecker);
                         return configUpdater;
                     })
                 .As<Task<ConfigUpdater>>()

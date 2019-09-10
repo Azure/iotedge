@@ -7,7 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     public class StorageSpaceCheckConfiguration
     {
         const long DefaultMaxStorageBytes = long.MaxValue;
-        const long DefaultCheckFrequencySecs = 600;
+        const long DefaultCheckFrequencySecs = 120;
 
         public StorageSpaceCheckConfiguration(bool enabled)
             : this(enabled, TimeSpan.FromSeconds(DefaultCheckFrequencySecs), DefaultMaxStorageBytes)

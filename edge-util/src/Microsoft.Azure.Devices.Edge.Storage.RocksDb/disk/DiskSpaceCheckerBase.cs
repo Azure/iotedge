@@ -16,7 +16,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
         protected DiskSpaceCheckerBase(TimeSpan checkFrequency, ILogger logger)
         {
             this.Logger = Preconditions.CheckNotNull(logger);
-            this.storageSpaceChecker = new PeriodicTask(this.PeriodicTaskCallback, checkFrequency, checkFrequency, logger, "Disk space check");
+
+            // Start after 5secs to allow initialization to finish
+            this.storageSpaceChecker = new PeriodicTask(this.PeriodicTaskCallback, checkFrequency, TimeSpan.FromSeconds(5), logger, "Disk space check");
         }
 
         public DiskSpaceStatus DiskStatus

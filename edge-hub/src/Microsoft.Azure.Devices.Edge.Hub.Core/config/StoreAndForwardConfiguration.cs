@@ -8,8 +8,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
     public class StoreAndForwardConfiguration : IEquatable<StoreAndForwardConfiguration>
     {
+        [JsonConstructor]
         public StoreAndForwardConfiguration(int timeToLiveSecs)
-            : this(timeToLiveSecs, null)
+            : this(timeToLiveSecs, Option.None<long>())
         {
         }
 
@@ -18,12 +19,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             this.TimeToLiveSecs = timeToLiveSecs;
             this.TimeToLive = timeToLiveSecs < 0 ? TimeSpan.MaxValue : TimeSpan.FromSeconds(timeToLiveSecs);
             this.MaxStorageSpaceBytes = maxStorageSpaceBytes;
-        }
-
-        [JsonConstructor]
-        StoreAndForwardConfiguration(int timeToLiveSecs, long? maxStorageSpaceBytes)
-            : this(timeToLiveSecs, Option.Maybe(maxStorageSpaceBytes))
-        {
         }
 
         [JsonProperty(PropertyName = "timeToLiveSecs")]
