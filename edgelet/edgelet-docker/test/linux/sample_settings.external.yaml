@@ -1,9 +1,8 @@
-
 # Configures the provisioning mode
 provisioning:
   source: 'external'
   endpoint: 'http://localhost:9999'
-  
+
 agent:
   name: "edgeAgent"
   type: "docker"

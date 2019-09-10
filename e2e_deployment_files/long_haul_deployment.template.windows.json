@@ -183,7 +183,7 @@
                 "value": "snitcher=info"
               },
               "MANAGEMENT_URI": {
-                "value": "unix:///C:/ProgramData/iotedge/mgmt/sock"
+                "value": "<Management.Uri>"
               }
             },
             "settings": {

@@ -1,36 +1,29 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <RuleSet Name="Azure IoT Edge StyleCop Ruleset" Description="These StyleCop rules are customized for Azure IoT Edge projects." ToolsVersion="15.0">
   <Rules AnalyzerId="StyleCop.Analyzers" RuleNamespace="StyleCop.Analyzers">
     <Rule Id="SA0001" Action="None" />
-	<Rule Id="SA1008" Action="None" />
-	<Rule Id="SA1009" Action="None" />
+    <Rule Id="SA1009" Action="None" />
     <Rule Id="SA1108" Action="None" />
-	<Rule Id="SA1118" Action="None" />
-	<Rule Id="SA1124" Action="None" />
-	<Rule Id="SA1129" Action="None" />
-	<Rule Id="SA1131" Action="None" />
-	<Rule Id="SA1201" Action="None" />
-	<Rule Id="SA1202" Action="None" />
-	<Rule Id="SA1204" Action="None" />
-	<Rule Id="SA1210" Action="None" />
-	<Rule Id="SA1308" Action="None" />
-	<Rule Id="SA1309" Action="None" />
-	<Rule Id="SA1310" Action="None" />
-	<Rule Id="SA1311" Action="None" />
-	<Rule Id="SA1313" Action="None" />
-	<Rule Id="SA1313" Action="None" />
+    <Rule Id="SA1118" Action="None" />
+    <Rule Id="SA1124" Action="None" />
+    <Rule Id="SA1201" Action="None" />
+    <Rule Id="SA1202" Action="None" />
+    <Rule Id="SA1204" Action="None" />
+    <Rule Id="SA1310" Action="None" />
+    <Rule Id="SA1311" Action="None" />
+    <Rule Id="SA1313" Action="None" />
     <Rule Id="SA1400" Action="None" />
-	<Rule Id="SA1401" Action="None" />
+    <Rule Id="SA1401" Action="None" />
     <Rule Id="SA1402" Action="None" />
-	<Rule Id="SA1405" Action="None" />
+    <Rule Id="SA1405" Action="None" />
     <Rule Id="SA1407" Action="None" />
     <Rule Id="SA1413" Action="None" />
     <Rule Id="SA1503" Action="None" />
     <Rule Id="SA1515" Action="None" />
-	<Rule Id="SA1516" Action="None" />
+    <Rule Id="SA1516" Action="None" />
     <Rule Id="SA1600" Action="None" />
     <Rule Id="SA1602" Action="None" />
-	<Rule Id="SA1649" Action="None" />
+    <Rule Id="SA1649" Action="None" />
     <Rule Id="SA1652" Action="None" />
   </Rules>
 </RuleSet>

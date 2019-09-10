@@ -7,6 +7,11 @@
 set -e
 
 ###############################################################################
+# These are the packages this script will build.
+###############################################################################
+packages=(iotedge iotedged iotedge-diagnostics iotedge-proxy)
+
+###############################################################################
 # Define Environment Variables
 ###############################################################################
 # Get directory of running script
@@ -78,8 +83,14 @@ codegen-units = 1
 incremental = false
 EOF
 
+PACKAGES=
+for p in "${packages[@]}"
+do
+    PACKAGES="${PACKAGES} -p ${p}"
+done
+
 if [[ -z ${RELEASE} ]]; then
-    cd "$PROJECT_ROOT" && $CARGO "+$TOOLCHAIN" build --all
+    cd "$PROJECT_ROOT" && $CARGO "+$TOOLCHAIN" build ${PACKAGES}
 else
-    cd "$PROJECT_ROOT" && $CARGO "+$TOOLCHAIN" build --all --release
+    cd "$PROJECT_ROOT" && $CARGO "+$TOOLCHAIN" build ${PACKAGES} --release
 fi

@@ -9,10 +9,10 @@ namespace DirectMethodCloudSender
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using IotHubConnectionStringBuilder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder;
     using Message = Microsoft.Azure.Devices.Client.Message;
     using TransportType = Microsoft.Azure.Devices.Client.TransportType;

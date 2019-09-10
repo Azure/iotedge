@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly Option<string> connectionString;
         readonly Option<UpstreamProtocol> upstreamProtocol;
         readonly Option<IWebProxy> proxy;
-        readonly Option<string> productInfo;
+        readonly string productInfo;
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan idleTimeout;
         readonly ISdkModuleClientProvider sdkModuleClientProvider;
@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             ISdkModuleClientProvider sdkModuleClientProvider,
             Option<UpstreamProtocol> upstreamProtocol,
             Option<IWebProxy> proxy,
-            Option<string> productInfo,
+            string productInfo,
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout)
             : this(Option.Maybe(connectionString), sdkModuleClientProvider, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout)
@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             ISdkModuleClientProvider sdkModuleClientProvider,
             Option<UpstreamProtocol> upstreamProtocol,
             Option<IWebProxy> proxy,
-            Option<string> productInfo,
+            string productInfo,
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout)
             : this(Option.None<string>(), sdkModuleClientProvider, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout)
@@ -61,14 +61,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             ISdkModuleClientProvider sdkModuleClientProvider,
             Option<UpstreamProtocol> upstreamProtocol,
             Option<IWebProxy> proxy,
-            Option<string> productInfo,
+            string productInfo,
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout)
         {
             this.connectionString = connectionString;
             this.sdkModuleClientProvider = sdkModuleClientProvider;
             this.upstreamProtocol = upstreamProtocol;
-            this.productInfo = productInfo;
+            this.productInfo = Preconditions.CheckNotNull(productInfo, nameof(productInfo));
             this.proxy = proxy;
             this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.idleTimeout = idleTimeout;
@@ -175,7 +175,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 .Map(cs => Task.FromResult(this.sdkModuleClientProvider.GetSdkModuleClient(cs, settings)))
                 .GetOrElse(this.sdkModuleClientProvider.GetSdkModuleClient(settings));
 
-            this.productInfo.ForEach(p => moduleClient.SetProductInfo(p));
+            moduleClient.SetProductInfo(this.productInfo);
 
             // note: it's important to set the status-changed handler and
             // timeout value *before* we open a connection to the hub

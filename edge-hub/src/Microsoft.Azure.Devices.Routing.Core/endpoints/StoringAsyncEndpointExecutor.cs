@@ -6,6 +6,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using App.Metrics;
+    using App.Metrics.Counter;
+    using App.Metrics.Timer;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine;
@@ -54,11 +57,15 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                     throw new InvalidOperationException($"Endpoint executor for endpoint {this.Endpoint} is closed.");
                 }
 
-                long offset = await this.messageStore.Add(this.Endpoint.Id, message);
-                this.checkpointer.Propose(message);
-                Events.AddMessageSuccess(this, offset);
+                using (MetricsV0.StoreLatency(this.Endpoint.Id))
+                {
+                    long offset = await this.messageStore.Add(this.Endpoint.Id, message);
+                    this.checkpointer.Propose(message);
+                    Events.AddMessageSuccess(this, offset);
+                }
 
                 this.hasMessagesInQueue.Set();
+                MetricsV0.StoredCountIncrement(this.Endpoint.Id);
             }
             catch (Exception ex)
             {
@@ -122,7 +129,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 Events.StartSendMessagesPump(this);
                 IMessageIterator iterator = this.messageStore.GetMessageIterator(this.Endpoint.Id, this.checkpointer.Offset + 1);
                 int batchSize = this.options.BatchSize * this.Endpoint.FanOutFactor;
-                var storeMessagesProvider = new StoreMessagesProvider(iterator, this.options.BatchTimeout, batchSize);
+                var storeMessagesProvider = new StoreMessagesProvider(iterator, batchSize);
                 while (!this.cts.IsCancellationRequested)
                 {
                     try
@@ -133,6 +140,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                         {
                             await this.ProcessMessages(messages);
                             Events.SendMessagesSuccess(this, messages);
+                            MetricsV0.DrainedCountIncrement(this.Endpoint.Id, messages.Length);
                         }
                         else
                         {
@@ -177,63 +185,50 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
         {
             readonly IMessageIterator iterator;
             readonly int batchSize;
-            readonly AsyncLock messagesLock = new AsyncLock();
-            readonly AsyncManualResetEvent messagesResetEvent = new AsyncManualResetEvent(true);
-            readonly TimeSpan timeout;
-            readonly Task populateTask;
-            List<IMessage> messagesList;
+            readonly AsyncLock stateLock = new AsyncLock();
+            Task<IList<IMessage>> getMessagesTask;
 
-            public StoreMessagesProvider(IMessageIterator iterator, TimeSpan timeout, int batchSize)
+            public StoreMessagesProvider(IMessageIterator iterator, int batchSize)
             {
                 this.iterator = iterator;
                 this.batchSize = batchSize;
-                this.timeout = timeout;
-                this.messagesList = new List<IMessage>(this.batchSize);
-                this.populateTask = this.PopulatePump();
+                this.getMessagesTask = Task.Run(this.GetMessagesFromStore);
             }
 
             public async Task<IMessage[]> GetMessages()
             {
-                List<IMessage> currentMessagesList;
-                using (await this.messagesLock.LockAsync())
+                using (await this.stateLock.LockAsync())
                 {
-                    currentMessagesList = this.messagesList;
-                    this.messagesList = new List<IMessage>(this.batchSize);
-                    this.messagesResetEvent.Set();
-                }
+                    var messages = await this.getMessagesTask;
+                    if (messages.Count == 0)
+                    {
+                        messages = await this.GetMessagesFromStore();
+                    }
+                    else
+                    {
+                        this.getMessagesTask = Task.Run(this.GetMessagesFromStore);
+                    }
 
-                return currentMessagesList.ToArray();
+                    return messages.ToArray();
+                }
             }
 
-            async Task PopulatePump()
+            async Task<IList<IMessage>> GetMessagesFromStore()
             {
-                while (true)
+                var messagesList = new List<IMessage>();
+                while (messagesList.Count < this.batchSize)
                 {
-                    try
+                    int curBatchSize = this.batchSize - messagesList.Count;
+                    IList<IMessage> messages = (await this.iterator.GetNext(curBatchSize)).ToList();
+                    if (!messages.Any())
                     {
-                        await this.messagesResetEvent.WaitAsync(this.timeout);
-                        while (this.messagesList.Count < this.batchSize)
-                        {
-                            int curBatchSize = this.batchSize - this.messagesList.Count;
-                            IList<IMessage> messages = (await this.iterator.GetNext(curBatchSize)).ToList();
-                            if (!messages.Any())
-                            {
-                                break;
-                            }
-
-                            using (await this.messagesLock.LockAsync())
-                            {
-                                this.messagesList.AddRange(messages);
-                            }
-                        }
-
-                        this.messagesResetEvent.Reset();
+                        break;
                     }
-                    catch (Exception e)
-                    {
-                        Events.ErrorInPopulatePump(e);
-                    }
+
+                    messagesList.AddRange(messages);
                 }
+
+                return messagesList;
             }
         }
 
@@ -333,6 +328,40 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             public static void ErrorInPopulatePump(Exception ex)
             {
                 Log.LogWarning((int)EventIds.ErrorInPopulatePump, ex, "Error in populate messages pump");
+            }
+        }
+
+        static class MetricsV0
+        {
+            static readonly CounterOptions EndpointMessageStoredCountOptions = new CounterOptions
+            {
+                Name = "EndpointMessageStoredCount",
+                MeasurementUnit = Unit.Events
+            };
+
+            static readonly CounterOptions EndpointMessageDrainedCountOptions = new CounterOptions
+            {
+                Name = "EndpointMessageDrainedCount",
+                MeasurementUnit = Unit.Events
+            };
+
+            static readonly TimerOptions EndpointMessageLatencyOptions = new TimerOptions
+            {
+                Name = "EndpointMessageStoredLatencyMs",
+                MeasurementUnit = Unit.None,
+                DurationUnit = TimeUnit.Milliseconds,
+                RateUnit = TimeUnit.Seconds
+            };
+
+            public static void StoredCountIncrement(string identity) => Edge.Util.Metrics.MetricsV0.CountIncrement(GetTags(identity), EndpointMessageStoredCountOptions, 1);
+
+            public static void DrainedCountIncrement(string identity, long amount) => Edge.Util.Metrics.MetricsV0.CountIncrement(GetTags(identity), EndpointMessageDrainedCountOptions, amount);
+
+            public static IDisposable StoreLatency(string identity) => Edge.Util.Metrics.MetricsV0.Latency(GetTags(identity), EndpointMessageLatencyOptions);
+
+            internal static MetricTags GetTags(string id)
+            {
+                return new MetricTags("EndpointId", id);
             }
         }
     }

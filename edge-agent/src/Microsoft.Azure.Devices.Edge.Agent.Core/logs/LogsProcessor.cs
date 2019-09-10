@@ -9,13 +9,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
-    using akka::Akka;
-    using akka::Akka.Actor;
-    using akka::Akka.IO;
     using Akka.Streams;
     using Akka.Streams.Dsl;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
+    using AkkaActor = akka::Akka.Actor;
+    using AkkaIO = akka::Akka.IO;
+    using AkkaNet = akka::Akka;
 
     // Processes incoming logs stream and converts to the required format
     //
@@ -29,20 +29,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
     //         unused
     public class LogsProcessor : ILogsProcessor, IDisposable
     {
-        static readonly Flow<ByteString, ByteString, NotUsed> FramingFlow
-            = Framing.LengthField(4, int.MaxValue, 4, ByteOrder.BigEndian);
+        static readonly Flow<AkkaIO.ByteString, AkkaIO.ByteString, AkkaNet.NotUsed> FramingFlow
+            = Framing.LengthField(4, int.MaxValue, 4, AkkaIO.ByteOrder.BigEndian);
 
-        static readonly Flow<ByteString, ByteString, NotUsed> SimpleLengthFraming
+        static readonly Flow<AkkaIO.ByteString, AkkaIO.ByteString, AkkaNet.NotUsed> SimpleLengthFraming
             = Framing.SimpleFramingProtocolEncoder(int.MaxValue);
 
-        readonly ActorSystem system;
+        readonly AkkaActor.ActorSystem system;
         readonly ActorMaterializer materializer;
         readonly ILogMessageParser logMessageParser;
 
         public LogsProcessor(ILogMessageParser logMessageParser)
         {
             this.logMessageParser = Preconditions.CheckNotNull(logMessageParser, nameof(logMessageParser));
-            this.system = ActorSystem.Create("LogsProcessor");
+            this.system = AkkaActor.ActorSystem.Create("LogsProcessor");
             this.materializer = this.system.Materializer();
         }
 
@@ -106,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
                     ? new ArraySegment<byte>(l.FullText.ToBytes())
                     : new ArraySegment<byte>(l.ToBytes());
 
-            var sourceMappers = new List<Func<Source<ArraySegment<byte>, NotUsed>, Source<ArraySegment<byte>, NotUsed>>>();
+            var sourceMappers = new List<Func<Source<ArraySegment<byte>, AkkaNet.NotUsed>, Source<ArraySegment<byte>, AkkaNet.NotUsed>>>();
 
             if (logOptions.ContentEncoding == LogsContentEncoding.Gzip)
             {
@@ -134,15 +134,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             this.materializer?.Dispose();
         }
 
-        static Source<ArraySegment<byte>, NotUsed> SimpleLengthFramingMapper(Source<ArraySegment<byte>, NotUsed> s) =>
-            s.Select(ByteString.FromBytes)
+        static Source<ArraySegment<byte>, AkkaNet.NotUsed> SimpleLengthFramingMapper(Source<ArraySegment<byte>, AkkaNet.NotUsed> s) =>
+            s.Select(AkkaIO.ByteString.FromBytes)
                 .Via(SimpleLengthFraming)
                 .Select(b => new ArraySegment<byte>(b.ToArray()));
 
-        static Source<ArraySegment<byte>, NotUsed> NonGroupingGzipMapper(Source<ArraySegment<byte>, NotUsed> s) =>
+        static Source<ArraySegment<byte>, AkkaNet.NotUsed> NonGroupingGzipMapper(Source<ArraySegment<byte>, AkkaNet.NotUsed> s) =>
             s.Select(m => new ArraySegment<byte>(Compression.CompressToGzip(m.Array)));
 
-        static Source<ArraySegment<byte>, NotUsed> GroupingGzipMapper(Source<ArraySegment<byte>, NotUsed> s, LogsOutputGroupingConfig outputGroupingConfig) =>
+        static Source<ArraySegment<byte>, AkkaNet.NotUsed> GroupingGzipMapper(Source<ArraySegment<byte>, AkkaNet.NotUsed> s, LogsOutputGroupingConfig outputGroupingConfig) =>
             s.GroupedWithin(outputGroupingConfig.MaxFrames, outputGroupingConfig.MaxDuration)
                 .Select(
                     b =>
@@ -154,20 +154,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
 
         class GraphBuilder
         {
-            Source<ModuleLogMessageData, NotUsed> parsingGraphSource;
+            Source<ModuleLogMessageData, AkkaNet.NotUsed> parsingGraphSource;
 
-            GraphBuilder(Source<ModuleLogMessageData, NotUsed> parsingGraphSource)
+            GraphBuilder(Source<ModuleLogMessageData, AkkaNet.NotUsed> parsingGraphSource)
             {
                 this.parsingGraphSource = parsingGraphSource;
             }
 
-            public static GraphBuilder CreateParsingGraphBuilder(Stream stream, Func<ByteString, ModuleLogMessageData> parserFunc)
+            public static GraphBuilder CreateParsingGraphBuilder(Stream stream, Func<AkkaIO.ByteString, ModuleLogMessageData> parserFunc)
             {
                 var source = StreamConverters.FromInputStream(() => stream);
                 var graph = source
                     .Via(FramingFlow)
                     .Select(parserFunc)
-                    .MapMaterializedValue(_ => NotUsed.Instance);
+                    .MapMaterializedValue(_ => AkkaNet.NotUsed.Instance);
                 return new GraphBuilder(graph);
             }
 
@@ -199,14 +199,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
             public IRunnableGraph<Task> GetStreamingGraph<TU, TV>(
                 Func<TV, Task<TU>> callback,
                 Func<ModuleLogMessageData, TV> basicMapper,
-                List<Func<Source<TV, NotUsed>, Source<TV, NotUsed>>> mappers)
+                List<Func<Source<TV, AkkaNet.NotUsed>, Source<TV, AkkaNet.NotUsed>>> mappers)
             {
-                Source<TV, NotUsed> streamingGraphSource = this.parsingGraphSource
+                Source<TV, AkkaNet.NotUsed> streamingGraphSource = this.parsingGraphSource
                     .Select(basicMapper);
 
                 if (mappers?.Count > 0)
                 {
-                    foreach (Func<Source<TV, NotUsed>, Source<TV, NotUsed>> mapper in mappers)
+                    foreach (Func<Source<TV, AkkaNet.NotUsed>, Source<TV, AkkaNet.NotUsed>> mapper in mappers)
                     {
                         streamingGraphSource = mapper(streamingGraphSource);
                     }

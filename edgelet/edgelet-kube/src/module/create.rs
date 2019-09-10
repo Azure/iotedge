@@ -1,19 +1,20 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use failure::Fail;
 use futures::future::Either;
 use futures::prelude::*;
 use futures::{future, Future, Stream};
 use hyper::service::Service;
 use hyper::Body;
 
-use edgelet_core::ModuleSpec;
+use edgelet_core::{ModuleSpec, RuntimeOperation};
 use edgelet_docker::DockerConfig;
-use kube_client::{Error as KubeClientError, TokenSource};
+use kube_client::TokenSource;
 
 use crate::constants::EDGE_EDGE_AGENT_NAME;
 use crate::convert::{spec_to_deployment, spec_to_role_binding, spec_to_service_account};
 use crate::error::Error;
-use crate::KubeModuleRuntime;
+use crate::{ErrorKind, KubeModuleRuntime};
 
 pub fn create_module<T, S>(
     runtime: &KubeModuleRuntime<T, S>,
@@ -25,7 +26,7 @@ where
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
     S::Future: Send,
 {
     let runtime_for_sa = runtime.clone();
@@ -34,10 +35,19 @@ where
     let runtime_for_deployment = runtime.clone();
     let module_for_deployment = module.clone();
 
+    let module_name = module.name().to_string();
+
     create_or_update_service_account(&runtime, &module)
         .and_then(move |_| create_or_update_role_binding(&runtime_for_sa, &module_for_sa))
         .and_then(move |_| {
             create_or_update_deployment(&runtime_for_deployment, &module_for_deployment)
+        })
+        .map_err(|err| {
+            Error::from(
+                err.context(ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
+                    module_name,
+                ))),
+            )
         })
 }
 
@@ -51,11 +61,11 @@ where
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
     S::Future: Send,
 {
     spec_to_service_account(runtime.settings(), module)
-        .map_err(Error::from)
+        .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
         .map(|(name, new_service_account)| {
             let client_copy = runtime.client().clone();
             let namespace_copy = runtime.settings().namespace().to_owned();
@@ -70,7 +80,7 @@ where
                     Some(&name),
                     Some(&runtime.settings().device_hub_selector()),
                 )
-                .map_err(Error::from)
+                .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                 .and_then(move |service_accounts| {
                     if let Some(current) =
                         service_accounts.items.into_iter().find(|service_account| {
@@ -87,11 +97,11 @@ where
                                 .expect("Unexpected lock error")
                                 .borrow_mut()
                                 .replace_service_account(
-                                    namespace_copy.as_str(),
+                                    &namespace_copy,
                                     &name,
                                     &new_service_account,
                                 )
-                                .map_err(Error::from)
+                                .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                                 .map(|_| ());
 
                             Either::A(Either::B(fut))
@@ -101,8 +111,8 @@ where
                             .lock()
                             .expect("Unexpected lock error")
                             .borrow_mut()
-                            .create_service_account(namespace_copy.as_str(), &new_service_account)
-                            .map_err(Error::from)
+                            .create_service_account(&namespace_copy, &new_service_account)
+                            .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                             .map(|_| ());
 
                         Either::B(fut)
@@ -123,11 +133,11 @@ where
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
     S::Future: Send,
 {
     spec_to_role_binding(runtime.settings(), module)
-        .map_err(Error::from)
+        .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
         .map(|(name, new_role_binding)| {
             // create new role only for edge agent
             if name == EDGE_EDGE_AGENT_NAME {
@@ -142,7 +152,7 @@ where
                             &name,
                             &new_role_binding,
                         )
-                        .map_err(Error::from)
+                        .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                         .map(|_| ()),
                 )
             } else {
@@ -163,11 +173,11 @@ where
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
     S::Future: Send,
 {
     spec_to_deployment(runtime.settings(), module)
-        .map_err(Error::from)
+        .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
         .map(|(name, new_deployment)| {
             let client_copy = runtime.client().clone();
             let namespace_copy = runtime.settings().namespace().to_owned();
@@ -182,7 +192,7 @@ where
                     Some(&name),
                     Some(&runtime.settings().device_hub_selector()),
                 )
-                .map_err(Error::from)
+                .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                 .and_then(move |deployments| {
                     if let Some(current) = deployments.items.into_iter().find(|deployment| {
                         deployment.metadata.as_ref().map_or(false, |meta| {
@@ -197,7 +207,7 @@ where
                                 .expect("Unexpected lock error")
                                 .borrow_mut()
                                 .replace_deployment(namespace_copy.as_str(), &name, &new_deployment)
-                                .map_err(Error::from)
+                                .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                                 .map(|_| ());
 
                             Either::A(Either::B(fut))
@@ -208,7 +218,7 @@ where
                             .expect("Unexpected lock error")
                             .borrow_mut()
                             .create_deployment(namespace_copy.as_str(), &new_deployment)
-                            .map_err(Error::from)
+                            .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                             .map(|_| ());
 
                         Either::B(fut)
@@ -223,15 +233,11 @@ where
 mod tests {
     use std::collections::HashMap;
 
-    use futures::future;
-    use hyper::service::{service_fn, Service};
-    use hyper::{Body, Method, Request, Response, StatusCode};
+    use hyper::service::service_fn;
+    use hyper::{Body, Method, Request, StatusCode};
     use maplit::btreemap;
-    use native_tls::TlsConnector;
     use serde_json::json;
     use tokio::runtime::Runtime;
-    use typed_headers::{mime, ContentLength, ContentType, HeaderMapExt};
-    use url::Url;
 
     use docker::models::{AuthConfig, ContainerCreateBody, HostConfig, Mount};
     use edgelet_core::{ImagePullPolicy, ModuleSpec};
@@ -240,15 +246,13 @@ mod tests {
     use edgelet_test_utils::web::{
         make_req_dispatcher, HttpMethod, RequestHandler, RequestPath, ResponseFuture,
     };
-    use kube_client::{Client as KubeClient, Config as KubeConfig, TokenSource};
 
     use crate::module::create::{
         create_or_update_deployment, create_or_update_role_binding,
         create_or_update_service_account,
     };
     use crate::module::create_module;
-    use crate::tests::make_settings;
-    use crate::{Error, KubeModuleRuntime, Settings};
+    use crate::tests::{create_runtime, make_settings, not_found_handler, response};
 
     #[test]
     fn it_creates_new_deployment_if_does_not_exist() {
@@ -547,34 +551,6 @@ mod tests {
         }
     }
 
-    fn response(
-        status_code: StatusCode,
-        response: impl Fn() -> String + Clone + Send + 'static,
-    ) -> ResponseFuture {
-        let response = response();
-        let response_len = response.len();
-
-        let mut response = Response::new(response.into());
-        *response.status_mut() = status_code;
-        response
-            .headers_mut()
-            .typed_insert(&ContentLength(response_len as u64));
-        response
-            .headers_mut()
-            .typed_insert(&ContentType(mime::APPLICATION_JSON));
-
-        Box::new(future::ok(response)) as ResponseFuture
-    }
-
-    fn not_found_handler(_: Request<Body>) -> ResponseFuture {
-        let response = Response::builder()
-            .status(StatusCode::NOT_FOUND)
-            .body(Body::default())
-            .unwrap();
-
-        Box::new(future::ok(response))
-    }
-
     fn create_module_spec(name: &str) -> ModuleSpec<DockerConfig> {
         let create_body = ContainerCreateBody::new()
             .with_host_config(
@@ -625,33 +601,5 @@ mod tests {
             ImagePullPolicy::default(),
         )
         .unwrap()
-    }
-
-    fn create_runtime<S: Service>(
-        settings: Settings,
-        service: S,
-    ) -> KubeModuleRuntime<TestTokenSource, S> {
-        let client = KubeClient::with_client(get_config(), service);
-        KubeModuleRuntime::new(client, settings)
-    }
-
-    fn get_config() -> KubeConfig<TestTokenSource> {
-        KubeConfig::new(
-            Url::parse("https://localhost:443").unwrap(),
-            "/api".to_string(),
-            TestTokenSource,
-            TlsConnector::new().unwrap(),
-        )
-    }
-
-    #[derive(Clone)]
-    struct TestTokenSource;
-
-    impl TokenSource for TestTokenSource {
-        type Error = Error;
-
-        fn get(&self) -> kube_client::error::Result<Option<String>> {
-            Ok(None)
-        }
     }
 }

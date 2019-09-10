@@ -3,7 +3,6 @@
 use std::cmp::Ordering;
 use std::path::{Path, PathBuf};
 
-use failure::Fail;
 use regex::Regex;
 use url::Url;
 use url_serde;
@@ -19,18 +18,69 @@ const SHAREDACCESSKEY_KEY: &str = "SharedAccessKey";
 const DEVICEID_REGEX: &str = r"^[A-Za-z0-9\-:.+%_#*?!(),=@;$']{1,128}$";
 const HOSTNAME_REGEX: &str = r"^[a-zA-Z0-9_\-\.]+$";
 
-/// This is the default connection string
-pub const DEFAULT_CONNECTION_STRING: &str = "<ADD DEVICE CONNECTION STRING HERE>";
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+#[serde(rename_all = "lowercase")]
+pub struct ManualX509Auth {
+    iothub_hostname: String,
+    device_id: String,
+    #[serde(with = "url_serde")]
+    identity_cert: Url,
+    #[serde(with = "url_serde")]
+    identity_pk: Url,
+}
+
+impl ManualX509Auth {
+    pub fn iothub_hostname(&self) -> &str {
+        &self.iothub_hostname
+    }
+
+    pub fn device_id(&self) -> &str {
+        &self.device_id
+    }
+
+    pub fn identity_cert(&self) -> Result<PathBuf, Error> {
+        get_path_from_uri(
+            &self.identity_cert,
+            "provisioning.authentication.identity_cert",
+        )
+    }
+
+    pub fn identity_pk(&self) -> Result<PathBuf, Error> {
+        get_path_from_uri(&self.identity_pk, "provisioning.authentication.identity_pk")
+    }
+
+    pub fn identity_pk_uri(&self) -> Result<&Url, Error> {
+        if is_supported_uri(&self.identity_pk) {
+            Ok(&self.identity_pk)
+        } else {
+            Err(Error::from(ErrorKind::UnsupportedSettingsUri(
+                self.identity_pk.to_string(),
+                "provisioning.authentication.identity_pk",
+            )))
+        }
+    }
+
+    pub fn identity_cert_uri(&self) -> Result<&Url, Error> {
+        if is_supported_uri(&self.identity_cert) {
+            Ok(&self.identity_cert)
+        } else {
+            Err(Error::from(ErrorKind::UnsupportedSettingsUri(
+                self.identity_cert.to_string(),
+                "provisioning.authentication.identity_cert",
+            )))
+        }
+    }
+}
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 #[serde(rename_all = "lowercase")]
-pub struct Manual {
+pub struct ManualDeviceConnectionString {
     device_connection_string: String,
 }
 
-impl Manual {
+impl ManualDeviceConnectionString {
     pub fn new(device_connection_string: String) -> Self {
-        Manual {
+        ManualDeviceConnectionString {
             device_connection_string,
         }
     }
@@ -39,11 +89,9 @@ impl Manual {
         &self.device_connection_string
     }
 
-    pub fn parse_device_connection_string(
-        &self,
-    ) -> Result<(MemoryKey, String, String), ParseManualDeviceConnectionStringError> {
+    pub fn parse_device_connection_string(&self) -> Result<(MemoryKey, String, String), Error> {
         if self.device_connection_string.is_empty() {
-            return Err(ParseManualDeviceConnectionStringError::Empty);
+            return Err(Error::from(ErrorKind::ConnectionStringEmpty));
         }
 
         let mut key = None;
@@ -61,41 +109,102 @@ impl Manual {
             }
         }
 
-        let key = key.ok_or(
-            ParseManualDeviceConnectionStringError::MissingRequiredParameter(SHAREDACCESSKEY_KEY),
-        )?;
+        let key = key.ok_or(ErrorKind::ConnectionStringMissingRequiredParameter(
+            SHAREDACCESSKEY_KEY,
+        ))?;
         if key.is_empty() {
-            return Err(ParseManualDeviceConnectionStringError::MalformedParameter(
+            return Err(Error::from(ErrorKind::ConnectionStringMalformedParameter(
                 SHAREDACCESSKEY_KEY,
-            ));
+            )));
         }
-        let key = MemoryKey::new(base64::decode(&key).map_err(|_| {
-            ParseManualDeviceConnectionStringError::MalformedParameter(SHAREDACCESSKEY_KEY)
-        })?);
+        let key = MemoryKey::new(
+            base64::decode(&key)
+                .map_err(|_| ErrorKind::ConnectionStringMalformedParameter(SHAREDACCESSKEY_KEY))?,
+        );
 
-        let device_id = device_id.ok_or(
-            ParseManualDeviceConnectionStringError::MissingRequiredParameter(DEVICEID_KEY),
-        )?;
+        let device_id =
+            device_id.ok_or(ErrorKind::ConnectionStringMalformedParameter(DEVICEID_KEY))?;
         let device_id_regex =
             Regex::new(DEVICEID_REGEX).expect("This hard-coded regex is expected to be valid.");
         if !device_id_regex.is_match(&device_id) {
-            return Err(ParseManualDeviceConnectionStringError::MalformedParameter(
+            return Err(Error::from(ErrorKind::ConnectionStringMalformedParameter(
                 DEVICEID_KEY,
-            ));
+            )));
         }
 
-        let hub = hub.ok_or(
-            ParseManualDeviceConnectionStringError::MissingRequiredParameter(HOSTNAME_KEY),
-        )?;
+        let hub = hub.ok_or(ErrorKind::ConnectionStringMissingRequiredParameter(
+            HOSTNAME_KEY,
+        ))?;
         let hub_regex =
             Regex::new(HOSTNAME_REGEX).expect("This hard-coded regex is expected to be valid.");
         if !hub_regex.is_match(&hub) {
-            return Err(ParseManualDeviceConnectionStringError::MalformedParameter(
+            return Err(Error::from(ErrorKind::ConnectionStringMalformedParameter(
                 HOSTNAME_KEY,
-            ));
+            )));
         }
 
         Ok((key, device_id.to_owned(), hub.to_owned()))
+    }
+}
+
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+#[serde(tag = "method")]
+#[serde(rename_all = "lowercase")]
+pub enum ManualAuthMethod {
+    #[serde(rename = "device_connection_string")]
+    DeviceConnectionString(ManualDeviceConnectionString),
+    X509(ManualX509Auth),
+}
+
+#[derive(Clone, Debug, serde_derive::Serialize)]
+#[serde(rename_all = "lowercase")]
+pub struct Manual {
+    authentication: ManualAuthMethod,
+}
+
+impl<'de> serde::Deserialize<'de> for Manual {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Debug, serde_derive::Deserialize)]
+        struct Inner {
+            #[serde(skip_serializing_if = "Option::is_none")]
+            device_connection_string: Option<String>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            authentication: Option<ManualAuthMethod>,
+        }
+
+        let value: Inner = serde::Deserialize::deserialize(deserializer)?;
+
+        let authentication = match (value.device_connection_string, value.authentication) {
+            (Some(_), Some(_)) => {
+                return Err(serde::de::Error::custom(
+                        "Only one of provisioning.device_connection_string or provisioning.authentication must be set in the config.yaml.",
+                    ));
+            }
+            (Some(cs), None) => {
+                ManualAuthMethod::DeviceConnectionString(ManualDeviceConnectionString::new(cs))
+            }
+            (None, Some(auth)) => auth,
+            (None, None) => {
+                return Err(serde::de::Error::custom(
+                    "One of provisioning.device_connection_string or provisioning.authentication must be set in the config.yaml.",
+                ));
+            }
+        };
+
+        Ok(Manual { authentication })
+    }
+}
+
+impl Manual {
+    pub fn new(authentication: ManualAuthMethod) -> Self {
+        Manual { authentication }
+    }
+
+    pub fn authentication_method(&self) -> &ManualAuthMethod {
+        &self.authentication
     }
 }
 
@@ -277,7 +386,7 @@ impl External {
 #[serde(tag = "source")]
 #[serde(rename_all = "lowercase")]
 pub enum Provisioning {
-    Manual(Manual),
+    Manual(Box<Manual>),
     Dps(Box<Dps>),
     External(External),
 }
@@ -415,23 +524,6 @@ impl Certificates {
     pub fn trusted_ca_certs_uri(&self) -> Result<Url, Error> {
         convert_to_uri(&self.trusted_ca_certs, "certificates.trusted_ca_certs")
     }
-}
-
-#[derive(Clone, Copy, Debug, Fail)]
-pub enum ParseManualDeviceConnectionStringError {
-    #[fail(
-        display = "The Connection String is empty. Please update the config.yaml and provide the IoTHub connection information."
-    )]
-    Empty,
-
-    #[fail(display = "The Connection String is missing required parameter {}", _0)]
-    MissingRequiredParameter(&'static str),
-
-    #[fail(
-        display = "The Connection String has a malformed value for parameter {}.",
-        _0
-    )]
-    MalformedParameter(&'static str),
 }
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]

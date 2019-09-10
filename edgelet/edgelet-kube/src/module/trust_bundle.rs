@@ -7,7 +7,7 @@ use hyper::service::Service;
 use hyper::Body;
 
 use edgelet_core::GetTrustBundle;
-use kube_client::{Error as KubeClientError, TokenSource};
+use kube_client::TokenSource;
 
 use crate::convert::trust_bundle_to_config_map;
 use crate::{Error, ErrorKind, KubeModuleRuntime};
@@ -22,12 +22,12 @@ where
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
 {
     crypto
         .get_trust_bundle()
         .map_err(|err| Error::from(err.context(ErrorKind::IdentityCertificate)))
-        .and_then(|cert| trust_bundle_to_config_map(runtime.settings(), &cert).map_err(Error::from))
+        .and_then(|cert| trust_bundle_to_config_map(runtime.settings(), &cert))
         .map(|(name, new_config_map)| {
             let client_copy = runtime.client().clone();
             let namespace_copy = runtime.settings().namespace().to_owned();
@@ -42,7 +42,7 @@ where
                     Some(&name),
                     Some(&runtime.settings().device_hub_selector()),
                 )
-                .map_err(Error::from)
+                .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                 .and_then(move |config_maps| {
                     if let Some(current) = config_maps.items.into_iter().find(|config_map| {
                         config_map.metadata.as_ref().map_or(false, |meta| {
@@ -57,7 +57,7 @@ where
                                 .expect("Unexpected lock error")
                                 .borrow_mut()
                                 .replace_config_map(namespace_copy.as_str(), &name, &new_config_map)
-                                .map_err(Error::from)
+                                .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                                 .map(|_| ());
 
                             Either::A(Either::B(fut))
@@ -68,28 +68,29 @@ where
                             .expect("Unexpected lock error")
                             .borrow_mut()
                             .create_config_map(namespace_copy.as_str(), &new_config_map)
-                            .map_err(Error::from)
+                            .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                             .map(|_| ());
 
                         Either::B(fut)
                     }
                 })
+                .map_err(|err| Error::from(err.context(ErrorKind::Initialization)))
         })
+        .map_err(|err| Error::from(err.context(ErrorKind::Initialization)))
         .into_future()
         .flatten()
 }
 
 #[cfg(test)]
 mod tests {
-    use futures::future;
-    use hyper::service::{service_fn, Service};
+    use crate::Error;
+
+    use failure::Fail;
+    use hyper::service::service_fn;
     use hyper::{Body, Error as HyperError, Method, Request, Response, StatusCode};
     use maplit::btreemap;
-    use native_tls::TlsConnector;
     use serde_json::json;
     use tokio::runtime::Runtime;
-    use typed_headers::{mime, ContentLength, ContentType, HeaderMapExt};
-    use url::Url;
 
     use edgelet_test_utils::cert::TestCert;
     use edgelet_test_utils::crypto::TestHsm;
@@ -97,12 +98,13 @@ mod tests {
     use edgelet_test_utils::web::{
         make_req_dispatcher, HttpMethod, RequestHandler, RequestPath, ResponseFuture,
     };
-    use kube_client::{Client as KubeClient, Config as KubeConfig, Error, TokenSource};
 
     use crate::module::init_trust_bundle;
-    use crate::tests::{make_settings, PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME};
-    use crate::Settings;
-    use crate::{ErrorKind, KubeModuleRuntime};
+    use crate::tests::{
+        create_runtime, make_settings, not_found_handler, response,
+        PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME,
+    };
+    use crate::ErrorKind;
 
     #[test]
     fn it_fails_when_trust_bundle_unavailable() {
@@ -119,7 +121,13 @@ mod tests {
         let mut runtime = Runtime::new().unwrap();
         let err = runtime.block_on(task).unwrap_err();
 
-        assert_eq!(err.kind(), &ErrorKind::IdentityCertificate)
+        assert_eq!(err.kind(), &ErrorKind::Initialization);
+
+        let cause = Fail::iter_causes(&err)
+            .next()
+            .and_then(|cause| cause.downcast_ref::<Error>())
+            .map(Error::kind);
+        assert_eq!(cause, Some(&ErrorKind::IdentityCertificate))
     }
 
     #[test]
@@ -138,7 +146,13 @@ mod tests {
         let mut runtime = Runtime::new().unwrap();
         let err = runtime.block_on(task).unwrap_err();
 
-        assert_eq!(err.kind(), &ErrorKind::IdentityCertificate)
+        assert_eq!(err.kind(), &ErrorKind::Initialization);
+
+        let cause = Fail::iter_causes(&err)
+            .next()
+            .and_then(|cause| cause.downcast_ref::<Error>())
+            .map(Error::kind);
+        assert_eq!(cause, Some(&ErrorKind::IdentityCertificate))
     }
 
     #[test]
@@ -157,7 +171,13 @@ mod tests {
         let mut runtime = Runtime::new().unwrap();
         let err = runtime.block_on(task).unwrap_err();
 
-        assert_eq!(err.kind(), &ErrorKind::KubeClient)
+        assert_eq!(err.kind(), &ErrorKind::Initialization);
+
+        let cause = Fail::iter_causes(&err)
+            .next()
+            .and_then(|cause| cause.downcast_ref::<Error>())
+            .map(Error::kind);
+        assert_eq!(cause, Some(&ErrorKind::KubeClient))
     }
 
     #[test]
@@ -268,63 +288,6 @@ mod tests {
                 })
                 .to_string()
             })
-        }
-    }
-
-    fn response(
-        status_code: StatusCode,
-        response: impl Fn() -> String + Clone + Send + 'static,
-    ) -> ResponseFuture {
-        let response = response();
-        let response_len = response.len();
-
-        let mut response = Response::new(response.into());
-        *response.status_mut() = status_code;
-        response
-            .headers_mut()
-            .typed_insert(&ContentLength(response_len as u64));
-        response
-            .headers_mut()
-            .typed_insert(&ContentType(mime::APPLICATION_JSON));
-
-        Box::new(future::ok(response)) as ResponseFuture
-    }
-
-    fn not_found_handler(_: Request<Body>) -> ResponseFuture {
-        let response = Response::builder()
-            .status(StatusCode::NOT_FOUND)
-            .body(Body::default())
-            .unwrap();
-
-        Box::new(future::ok(response))
-    }
-
-    fn create_runtime<S: Service>(
-        settings: Settings,
-        service: S,
-    ) -> KubeModuleRuntime<TestTokenSource, S> {
-        let client = KubeClient::with_client(get_config(), service);
-
-        KubeModuleRuntime::new(client, settings)
-    }
-
-    fn get_config() -> KubeConfig<TestTokenSource> {
-        KubeConfig::new(
-            Url::parse("https://localhost:443").unwrap(),
-            "/api".to_string(),
-            TestTokenSource,
-            TlsConnector::new().unwrap(),
-        )
-    }
-
-    #[derive(Clone)]
-    struct TestTokenSource;
-
-    impl TokenSource for TestTokenSource {
-        type Error = Error;
-
-        fn get(&self) -> kube_client::error::Result<Option<String>> {
-            Ok(None)
         }
     }
 }
