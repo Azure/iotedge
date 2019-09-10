@@ -845,6 +845,7 @@ Function RunDpsProvisioningTest
             $installCACommand = "Import-Certificate -CertStoreLocation 'cert:\LocalMachine\Root' -FilePath $EdgeCertGenScriptDir\certs\azure-iot-test-only.intermediate.cert.pem"
             Invoke-Expression $installCACommand | Out-Host
 
+            New-CACertsDevice "$registrationId"
             $identityPkPath = "$EdgeCertGenScriptDir\private\iot-device-${registrationId}.key.pem"
             $identityCertPath = "$EdgeCertGenScriptDir\certs\iot-device-${registrationId}-full-chain.cert.pem"
 
@@ -1270,7 +1271,7 @@ Function RunTest
 {
     $testExitCode = 0
 
-    If ($TestName.StartsWith("Dps") -Or $TestName -eq "TransparentGateway")
+    If ($TestName -eq "DpsX509Provisioning" -Or $TestName -eq "TransparentGateway")
     {
         # setup certificate generation tools to create the Edge device and leaf device certificates
         PrepareCertificateTools
@@ -1326,7 +1327,7 @@ Function TestSetup
         $testCommand = "&$EnvSetupScriptPath ``
             -ArtifactImageBuildNumber `"$ArtifactImageBuildNumber`" ``
             -E2ETestFolder `"$E2ETestFolder`""
-            
+
         Invoke-Expression $testCommand | Out-Host
     }
     InitializeWorkingFolder

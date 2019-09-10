@@ -19,7 +19,9 @@ use libc;
 use regex::Regex;
 use serde_json;
 
-use edgelet_core::{self, AttestationMethod, MobyNetwork, Provisioning, RuntimeSettings, UrlExt};
+use edgelet_core::{
+    self, AttestationMethod, ManualAuthMethod, MobyNetwork, Provisioning, RuntimeSettings, UrlExt,
+};
 use edgelet_docker::Settings;
 use edgelet_http::client::ClientImpl;
 use edgelet_http::MaybeProxyClient;
@@ -724,10 +726,16 @@ fn settings_connection_string(check: &mut Check) -> Result<CheckResult, failure:
     };
 
     if let Provisioning::Manual(manual) = settings.provisioning() {
-        let (_, _, hub) = manual.parse_device_connection_string().context(
-            "Invalid connection string format detected.\n\
-             Please check the value of the provisioning.device_connection_string parameter.",
-        )?;
+        let hub = match manual.authentication_method() {
+            ManualAuthMethod::DeviceConnectionString(cs) => {
+                let (_, _, hub) = cs.parse_device_connection_string().context(
+                                "Invalid connection string format detected.\n\
+                                Please check the value of the provisioning.device_connection_string parameter.",
+                )?;
+                hub
+            }
+            ManualAuthMethod::X509(x509) => x509.iothub_hostname().to_owned(),
+        };
         check.iothub_hostname = Some(hub.to_owned());
     } else if check.iothub_hostname.is_none() {
         return Err(Context::new("Device is not using manual provisioning, so Azure IoT Hub hostname needs to be specified with --iothub-hostname").into());
@@ -1284,12 +1292,25 @@ fn settings_identity_certificates_expiry(check: &mut Check) -> Result<CheckResul
         return Ok(CheckResult::Skipped);
     };
 
-    if let Provisioning::Dps(dps) = settings.provisioning() {
-        if let AttestationMethod::X509(x509_info) = dps.attestation() {
-            let path = x509_info.identity_cert()?;
-            return CertificateValidity::parse("DPS identity certificate", &path)?
-                .to_check_result();
+    match settings.provisioning() {
+        Provisioning::Dps(dps) => {
+            if let AttestationMethod::X509(x509_info) = dps.attestation() {
+                let path = x509_info.identity_cert()?;
+                return CertificateValidity::parse("DPS identity certificate", &path)?
+                    .to_check_result();
+            }
         }
+        Provisioning::Manual(manual) => {
+            if let ManualAuthMethod::X509(x509) = manual.authentication_method() {
+                let path = x509.identity_cert()?;
+                return CertificateValidity::parse(
+                    "Manual authentication identity certificate",
+                    &path,
+                )?
+                .to_check_result();
+            }
+        }
+        Provisioning::External(_) => (),
     }
 
     Ok(CheckResult::Ignored)

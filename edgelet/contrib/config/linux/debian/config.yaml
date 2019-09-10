@@ -16,10 +16,32 @@
 # Configures the identity provisioning mode of the daemon.
 #
 # Supported modes:
-#     manual   - using an iothub connection string
+#     manual   - using an iothub connection string or an X.509 identity certificate
 #     dps      - using dps for provisioning
 #     external - the device has been provisioned externally.
 #                Uses an external provisioning endpoint to get device specific information.
+#
+# Manual settings when using IoT Hub connection string
+#     device_connection_string - Required. The Edge device connection string
+#                                when using SharedAccessKey authentication mode.
+#                                Ex. "HostName=<hub-name>.azure-devices.net;DeviceId=<device-id>;SharedAccessKey=<key>
+#
+# Manual authentication settings when using an X.509 identity certificate
+#     iothub_hostname - Required. The Azure Iot Hub hostname.
+#                       Ex. <hub-name>.azure-devices.net
+#     device_id       - Required. The Edge device id.
+#     identity_cert   - Required. The Edge device identity X.509 certificate
+#                       entry should only be specified when provisioning
+#                       an Edge device configured for X.509 attestation.
+#                       The value should be specified as a URI.
+#                       Ex. when specifying a PEM encoded certificate file, the URI
+#                       should be specified as file:///path/identity_certificate.pem
+#     identity_pk     - Required. The Edge device identity private key
+#                       entry should only be specified when provisioning
+#                       an Edge device configured for X.509 attestation.
+#                       The value should be specified as a URI.
+#                       Ex. when specifying a PEM encoded private key file, the URI
+#                       should be specified as file:///path/identity_key.pem
 #
 # DPS Settings
 #     scope_id        - Required. Value of a specific DPS instance's ID scope
@@ -32,14 +54,14 @@
 #                       provisioning devices configured for symmetric key
 #                       attestation. Device specific symmetric key.
 #     identity_cert   - Optional. The Edge device identity X.509 certificate
-#                       entry should only be specified when provisioning
-#                       an Edge device configured for X.509 attestation.
+#                       entry should only be specified when an Edge device
+#                       is configured for X.509 authentication.
 #                       The value should be specified as a URI.
 #                       Ex. when specifying a PEM encoded certificate file, the URI
 #                       should be specified as file:///path/identity_certificate.pem
 #     identity_pk     - Optional. The Edge device identity private key
-#                       entry should only be specified when provisioning
-#                       an Edge device configured for X.509 attestation.
+#                       entry should only be specified when an Edge device
+#                       is configured for X.509 authentication.
 #                       The value should be specified as a URI.
 #                       Ex. when specifying a PEM encoded private key file, the URI
 #                       should be specified as file:///path/identity_key.pem
@@ -49,10 +71,20 @@
 #                information such as its IoT hub connection information.
 ###############################################################################
 
-# Manual provisioning configuration
+# Manual provisioning configuration using a connection string
 provisioning:
   source: "manual"
   device_connection_string: "<ADD DEVICE CONNECTION STRING HERE>"
+
+# Manual provisioning configuration using an X.509 identity certificate
+# provisioning:
+#   source: "manual"
+#   authentication:
+#     method: "x509"
+#     iothub_hostname: "<REQUIRED IOTHUB HOSTNAME>"
+#     device_id: "<REQUIRED DEVICE ID PROVISIONED IN IOTHUB>"
+#     identity_cert: "<REQUIRED URI TO DEVICE IDENTITY CERTIFICATE>"
+#     identity_pk: "<REQUIRED URI TO DEVICE IDENTITY PRIVATE KEY>"
 
 # DPS TPM provisioning configuration
 # provisioning:
@@ -207,7 +239,7 @@ hostname: "<ADD HOSTNAME HERE>"
 ###############################################################################
 #
 #
-#Configures URIs used by clients of the management and workload APIs
+# Configures URIs used by clients of the management and workload APIs
 #     management_uri - used by the Edge Agent and 'iotedge' CLI to start,
 #                      stop, and manage modules
 #     workload_uri   - used by modules to retrieve tokens and certificates

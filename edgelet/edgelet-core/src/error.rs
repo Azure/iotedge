@@ -37,6 +37,20 @@ pub enum ErrorKind {
     #[fail(display = "An error occurred obtaining the certificate's key")]
     CertificateKey,
 
+    #[fail(
+        display = "The Connection String is empty. Please update the config.yaml and provide the IoTHub connection information."
+    )]
+    ConnectionStringEmpty,
+
+    #[fail(display = "The Connection String is missing required parameter {}", _0)]
+    ConnectionStringMissingRequiredParameter(&'static str),
+
+    #[fail(
+        display = "The Connection String has a malformed value for parameter {}.",
+        _0
+    )]
+    ConnectionStringMalformedParameter(&'static str),
+
     #[fail(display = "An error occurred when obtaining the device identity certificate.")]
     DeviceIdentityCertificate,
 
