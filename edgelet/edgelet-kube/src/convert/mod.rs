@@ -16,7 +16,7 @@ const DNS_DOMAIN_MAX_SIZE: usize = 253;
 
 pub fn sanitize_dns_domain(domain: &str) -> Result<String> {
     let sanitized = domain
-        .split('.')
+        .split(".")
         .map(|label| sanitize_dns_value(label))
         .collect::<Result<Vec<String>>>()?
         .join(".");
