@@ -24,18 +24,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void EmptyIsNotAllowedAsPodAnnotation()
         {
-            ModuleIdentity identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
-            CombinedDockerConfig config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
-
-            // string.Empty is an invalid label name
-            config.CreateOptions.Labels = new Dictionary<string, string>() { { string.Empty, "test" } };
-
-            IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
-            KubernetesModule km1 = new KubernetesModule(m1 as IModule<DockerConfig>, config);
-
-            KubernetesPodBuilder builder = new KubernetesPodBuilder("image", "configPath", "configVolumeName", "trustBundlePAth", "trustBundleVolumeName");
-
-            Dictionary<string, string> labels = new Dictionary<string, string>();
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
+            var config = new CombinedDockerConfig("image", new global::Microsoft.Azure.Devices.Edge.Agent.Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
+            config.CreateOptions.Labels = new Dictionary<string, string>
+            {
+                // string.Empty is an invalid label name
+                { string.Empty, "test" }
+            };
+            var m1 = new DockerModule("module1", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
+            var km1 = new KubernetesModule(m1, config);
+            var builder = new KubernetesPodBuilder("image", "configPath", "configVolumeName", "configMapName", "trustBundlePAth", "trustBundleVolumeName", "trustBindleConfigMapName");
+            var labels = new Dictionary<string, string>();
 
             Assert.Throws<InvalidKubernetesNameException>(() => builder.GetPodFromModule(labels, km1, identity, EnvVars));
         }
@@ -44,17 +43,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void SimplePodCreationHappyPath()
         {
-            ModuleIdentity identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
-            CombinedDockerConfig config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
-
-            IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
-            KubernetesModule km1 = new KubernetesModule(m1 as IModule<DockerConfig>, config);
-
-            KubernetesPodBuilder builder = new KubernetesPodBuilder("image", "configPath", "configVolumeName", "trustBundlePAth", "trustBundleVolumeName");
-
-            Dictionary<string, string> labels = new Dictionary<string, string>();
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
+            var config = new CombinedDockerConfig("image", new global::Microsoft.Azure.Devices.Edge.Agent.Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
+            var m1 = new DockerModule("module1", "v1", ModuleStatus.Running, global::Microsoft.Azure.Devices.Edge.Agent.Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
+            var km1 = new KubernetesModule(m1, config);
+            var builder = new KubernetesPodBuilder("image", "configPath", "configVolumeName", "configMapName", "trustBundlePAth", "trustBundleVolumeName", "trustBindleConfigMapName");
+            var labels = new Dictionary<string, string>();
 
             var pod = builder.GetPodFromModule(labels, km1, identity, EnvVars);
+
             Assert.True(pod != null);
         }
 
@@ -62,49 +59,41 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void ValidatePodPropertyTranslation()
         {
-            ModuleIdentity identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
-            CombinedDockerConfig config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
-
-            // Add a label
-            config.CreateOptions.Labels = new Dictionary<string, string>() { { "demo", "test" } };
-
-            // Make container privileged
-            // Add a readonly mount
-            config.CreateOptions.HostConfig = new Docker.Models.HostConfig()
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
+            var config = new CombinedDockerConfig("image", new global::Microsoft.Azure.Devices.Edge.Agent.Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
+            config.CreateOptions.Labels = new Dictionary<string, string>
             {
-                Privileged = true,
-                Binds = new List<string>() { "/home/blah:/home/blah2:ro" }
+                // Add a label
+                { "demo", "test" }
             };
-
-            IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
-            KubernetesModule km1 = new KubernetesModule(m1 as IModule<DockerConfig>, config);
-
-            KubernetesPodBuilder builder = new KubernetesPodBuilder("image", "configPath", "configVolumeName", "trustBundlePAth", "trustBundleVolumeName");
-
-            Dictionary<string, string> labels = new Dictionary<string, string>();
+            config.CreateOptions.HostConfig = new global::Microsoft.Azure.Devices.Edge.Agent.Docker.Models.HostConfig
+            {
+                // Make container privileged
+                Privileged = true,
+                // Add a readonly mount
+                Binds = new List<string> { "/home/blah:/home/blah2:ro" }
+            };
+            var m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
+            var km1 = new KubernetesModule(m1, config);
+            var builder = new KubernetesPodBuilder("image", "configPath", "configVolumeName", "configMapName", "trustBundlePAth", "trustBundleVolumeName", "trustBindleConfigMapName");
+            var labels = new Dictionary<string, string>();
 
             var pod = builder.GetPodFromModule(labels, km1, identity, EnvVars);
-            Assert.True(pod != null);
 
+            Assert.True(pod != null);
             // Validate annotation
             Assert.True(pod.Metadata.Annotations.ContainsKey("demo"));
-
             // Two containers should exist - proxy and the module
             Assert.True(pod.Spec.Containers.Count == 2);
-
             // There should only be one container
-            var moduleContainer = pod.Spec.Containers.Where(p => p.Name != "proxy").Single();
-
+            var moduleContainer = pod.Spec.Containers.Single(p => p.Name != "proxy");
             // We made this container priviledged
             Assert.True(moduleContainer.SecurityContext.Privileged);
-
             // Validate that there are 4 mounts
             Assert.True(moduleContainer.VolumeMounts.Count == 4);
-
             // Validate the custom mount that we added
             Assert.Contains(moduleContainer.VolumeMounts, vm => vm.Name.Equals("homeblah"));
             var mount = moduleContainer.VolumeMounts.Single(vm => vm.Name.Equals("homeblah"));
-
             // Lets make sure that it is read only
             Assert.True(mount.ReadOnlyProperty);
         }

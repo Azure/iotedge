@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 {
-    using System;
     using System.Collections.Generic;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -10,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
+    using Xunit.Sdk;
 
     [Unit]
     public class KubernetesServiceBuilderTests
@@ -22,17 +22,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void EmptyIsNotAllowedAsServiceAnnotation()
         {
-            CombinedDockerConfig config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
-            IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-
-            // string.Empty is an invalid label name
-            config.CreateOptions.Labels = new Dictionary<string, string>() { { string.Empty, "test" } };
-
-            KubernetesModule km1 = new KubernetesModule(m1 as IModule<DockerConfig>, config);
-
-            KubernetesServiceBuilder builder = new KubernetesServiceBuilder("TestMapServiceType");
-
-            Dictionary<string, string> moduleLabels = new Dictionary<string, string>();
+            var config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
+            var m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            config.CreateOptions.Labels = new Dictionary<string, string>
+            {
+                // string.Empty is an invalid label name
+                { string.Empty, "test" }
+            };
+            var km1 = new KubernetesModule(m1, config);
+            var builder = new KubernetesServiceBuilder("TestMapServiceType");
+            var moduleLabels = new Dictionary<string, string>();
 
             Assert.Throws<InvalidKubernetesNameException>(() => builder.GetServiceFromModule(moduleLabels, km1, null));
         }
@@ -41,95 +40,99 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void NoPortsExposedMeansNoServiceCreated()
         {
-            CombinedDockerConfig config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
-            IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            KubernetesModule km1 = new KubernetesModule(m1 as IModule<DockerConfig>, config);
+            var config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
+            var m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            var km1 = new KubernetesModule(m1, config);
+            var builder = new KubernetesServiceBuilder("TestMapServiceType");
+            var moduleLabels = new Dictionary<string, string>();
 
-            KubernetesServiceBuilder builder = new KubernetesServiceBuilder("TestMapServiceType");
+            var service = builder.GetServiceFromModule(moduleLabels, km1, null);
 
-            Dictionary<string, string> moduleLabels = new Dictionary<string, string>();
-
-            Assert.False(builder.GetServiceFromModule(moduleLabels, km1, null).HasValue);
+            Assert.False(service.HasValue);
         }
 
         [Unit]
         [Fact]
         public void InvalidPortBindingDoesNotCreateAService()
         {
-            CombinedDockerConfig config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
-            ModuleIdentity identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
+            var config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
+            config.CreateOptions.ExposedPorts = new Dictionary<string, EmptyStruct>
+            {
+                // Add invalid port
+                { "aa/TCP", default(EmptyStruct) }
+            };
+            var m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            var km1 = new KubernetesModule(m1, config);
+            var builder = new KubernetesServiceBuilder("TestMapServiceType");
+            var moduleLabels = new Dictionary<string, string>();
 
-            config.CreateOptions.ExposedPorts = new Dictionary<string, EmptyStruct>() { { "aa/TCP", default(EmptyStruct) } };
+            var service = builder.GetServiceFromModule(moduleLabels, km1, identity);
 
-            IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            KubernetesModule km1 = new KubernetesModule(m1 as IModule<DockerConfig>, config);
-
-            KubernetesServiceBuilder builder = new KubernetesServiceBuilder("TestMapServiceType");
-
-            Dictionary<string, string> moduleLabels = new Dictionary<string, string>();
-
-            Assert.False(builder.GetServiceFromModule(moduleLabels, km1, identity).HasValue);
+            Assert.False(service.HasValue);
         }
 
         [Unit]
         [Fact]
         public void UnknownProtocolDoesNotCreateService()
         {
-            CombinedDockerConfig config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
-            ModuleIdentity identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
+            var config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
+            config.CreateOptions.ExposedPorts = new Dictionary<string, EmptyStruct>
+            {
+                // Add unknown protocol
+                { "123/XXX", default(EmptyStruct) }
+            };
+            var m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            var km1 = new KubernetesModule(m1, config);
+            var builder = new KubernetesServiceBuilder("TestMapServiceType");
+            var moduleLabels = new Dictionary<string, string>();
 
-            config.CreateOptions.ExposedPorts = new Dictionary<string, EmptyStruct>() { { "123/XXX", default(EmptyStruct) } };
+            var service = builder.GetServiceFromModule(moduleLabels, km1, identity);
 
-            IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            KubernetesModule km1 = new KubernetesModule(m1 as IModule<DockerConfig>, config);
-
-            KubernetesServiceBuilder builder = new KubernetesServiceBuilder("TestMapServiceType");
-
-            Dictionary<string, string> moduleLabels = new Dictionary<string, string>();
-
-            Assert.False(builder.GetServiceFromModule(moduleLabels, km1, identity).HasValue);
+            Assert.False(service.HasValue);
         }
 
         [Unit]
         [Fact]
         public void ExposingPortsCreatesAServiceHappyPath()
         {
-            CombinedDockerConfig config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
-            ModuleIdentity identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
+            var config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
+            config.CreateOptions.ExposedPorts = new Dictionary<string, EmptyStruct>
+            {
+                // Add a port to be exposed
+                { "10/TCP", default(EmptyStruct) }
+            };
+            var m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            var km1 = new KubernetesModule(m1, config);
+            var builder = new KubernetesServiceBuilder("TestMapServiceType");
+            var moduleLabels = new Dictionary<string, string>();
 
-            // Add a port to be exposed
-            config.CreateOptions.ExposedPorts = new Dictionary<string, EmptyStruct>() { { "10/TCP", default(EmptyStruct) } };
+            var service = builder.GetServiceFromModule(moduleLabels, km1, identity);
 
-            IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            KubernetesModule km1 = new KubernetesModule(m1 as IModule<DockerConfig>, config);
-
-            KubernetesServiceBuilder builder = new KubernetesServiceBuilder("TestMapServiceType");
-
-            Dictionary<string, string> moduleLabels = new Dictionary<string, string>();
-
-            Assert.True(builder.GetServiceFromModule(moduleLabels, km1, identity).HasValue);
+            Assert.True(service.HasValue);
         }
 
         [Unit]
         [Fact]
         public void ServiceCreationHappyPath()
         {
-            CombinedDockerConfig config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
-            ModuleIdentity identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
+            var config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
+            var moduleLabels = new Dictionary<string, string> { { "label1", "value1" } };
+            config.CreateOptions.ExposedPorts = new Dictionary<string, EmptyStruct>
+            {
+                // Add a port to be exposed
+                { "10/TCP", default(EmptyStruct) }
+            };
+            var m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            var km1 = new KubernetesModule(m1, config);
+            var builder = new KubernetesServiceBuilder("TestMapServiceType");
 
-            Dictionary<string, string> moduleLabels = new Dictionary<string, string>() { { "label1", "value1" } };
-
-            // Add a port to be exposed
-            config.CreateOptions.ExposedPorts = new Dictionary<string, EmptyStruct>() { { "10/TCP", default(EmptyStruct) } };
-
-            IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            KubernetesModule km1 = new KubernetesModule(m1 as IModule<DockerConfig>, config);
-
-            KubernetesServiceBuilder builder = new KubernetesServiceBuilder("TestMapServiceType");
-
-            var createdService = builder.GetServiceFromModule(moduleLabels, km1, identity);
-            Assert.True(createdService.HasValue);
-            var service = createdService.OrDefault();
+            var converted = builder.GetServiceFromModule(moduleLabels, km1, identity);
+            Assert.True(converted.HasValue);
+            var service = converted.OrDefault();
             Assert.True(service.Spec.Ports.Count == 1);
             Assert.Equal("ClusterIP", service.Spec.Type);
             Assert.True(service.Spec.Selector.Keys.Count == 1);
