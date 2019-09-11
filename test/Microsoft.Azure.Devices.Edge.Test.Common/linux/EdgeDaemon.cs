@@ -175,7 +175,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     async () =>
                     {
                         string[] output =
-                            await Process.RunAsync("sudo apt-get", "purge --yes libiothsm-std", token);
+                            await Process.RunAsync("apt-get", "purge --yes libiothsm-std", token);
                         Log.Verbose(string.Join("\n", output));
                     },
                     "Uninstalled edge daemon");
