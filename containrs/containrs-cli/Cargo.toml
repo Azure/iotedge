@@ -1,0 +1,15 @@
+[package]
+name = "containrs-cli"
+version = "0.1.0"
+authors = ["Daniel Prilik <danielprilik@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+containrs = { path = "../containrs" }
+
+clap = "~2.33.0"
+hyper = "0.13.0-alpha.1"
+hyper-tls = "0.4.0-alpha.1"
+log = "0.4"
+pretty_env_logger = "0.3"
+tokio = "0.2.0-alpha.4"
