@@ -406,7 +406,7 @@ pub fn spec_to_deployment(
     let module_label_value = sanitize_dns_value(spec.name())?;
     let device_label_value =
         sanitize_dns_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?)?;
-    let hubname_label = sanitize_dns_value(
+    let hubname_label = sanitize_dns_domain(
         settings
             .iot_hub_hostname()
             .ok_or(ErrorKind::MissingHubName)?,
@@ -515,7 +515,7 @@ pub fn spec_to_role_binding(
     let module_label_value = sanitize_dns_value(spec.name())?;
     let device_label_value =
         sanitize_dns_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?)?;
-    let hubname_label = sanitize_dns_value(
+    let hubname_label = sanitize_dns_domain(
         settings
             .iot_hub_hostname()
             .ok_or(ErrorKind::MissingHubName)?,
@@ -564,7 +564,7 @@ pub fn trust_bundle_to_config_map(
 ) -> Result<(String, api_core::ConfigMap)> {
     let device_label_value =
         sanitize_dns_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?)?;
-    let hubname_label = sanitize_dns_value(
+    let hubname_label = sanitize_dns_domain(
         settings
             .iot_hub_hostname()
             .ok_or(ErrorKind::MissingHubName)?,
