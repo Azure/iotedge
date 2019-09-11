@@ -23,7 +23,7 @@ pub fn sanitize_dns_domain(domain: &str) -> Result<String> {
     if sanitized.len() <= DNS_DOMAIN_MAX_SIZE {
         Ok(sanitized)
     } else {
-        Err(ErrorKind::InvalidDnsName(domain.to_owned()))?
+        Err(ErrorKind::InvalidDnsName(domain.to_owned()))
     }
 }
 
