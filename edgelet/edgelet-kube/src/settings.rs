@@ -33,25 +33,15 @@ pub struct Settings {
 }
 
 impl Settings {
-    pub fn new(filename: Option<&Path>) -> Result<Self, Error> {
-        let filename = filename.map(|filename| {
-            filename.to_str().unwrap_or_else(|| {
-                panic!(
-                    "cannot load config from {} because it is not a utf-8 path",
-                    filename.display()
-                )
-            })
-        });
+    pub fn new(filename: &Path) -> Result<Self, Error> {
         let mut config = Config::default();
         config
             .merge(YamlFileSource::String(DEFAULTS))
             .context(ErrorKind::Config)?;
 
-        if let Some(file) = filename {
-            config
-                .merge(YamlFileSource::File(file.into()))
-                .context(ErrorKind::Config)?;
-        }
+        config
+            .merge(YamlFileSource::File(filename.into()))
+            .context(ErrorKind::Config)?;
 
         config
             .merge(Environment::with_prefix("iotedge"))

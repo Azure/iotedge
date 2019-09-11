@@ -56,21 +56,10 @@ pub struct Settings {
 }
 
 impl Settings {
-    pub fn new(filename: Option<&Path>) -> Result<Self, LoadSettingsError> {
-        let filename = filename.map(|filename| {
-            filename.to_str().unwrap_or_else(|| {
-                panic!(
-                    "cannot load config from {} because it is not a utf-8 path",
-                    filename.display()
-                )
-            })
-        });
+    pub fn new(filename: &Path) -> Result<Self, LoadSettingsError> {
         let mut config = Config::default();
         config.merge(YamlFileSource::String(DEFAULTS))?;
-        if let Some(file) = filename {
-            config.merge(YamlFileSource::File(file.into()))?;
-        }
-
+        config.merge(YamlFileSource::File(filename.into()))?;
         config.merge(Environment::with_prefix("iotedge"))?;
 
         let mut settings: Self = config.try_into()?;
@@ -384,7 +373,7 @@ mod tests {
 
     #[test]
     fn network_get_settings() {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_NETWORK)));
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_NETWORK));
         assert!(settings.is_ok());
         let s = settings.unwrap();
         let moby_runtime = s.moby_runtime();
@@ -420,64 +409,64 @@ mod tests {
 
     #[test]
     fn no_file_gets_error() {
-        let settings = Settings::new(Some(Path::new("garbage")));
+        let settings = Settings::new(Path::new("garbage"));
         assert!(settings.is_err());
     }
 
     #[test]
     fn bad_file_gets_error() {
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS));
         assert!(settings.is_err());
 
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_CS2)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_MANUAL_CS2));
         assert!(settings.is_err());
 
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_DPS_DEFAULT)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_DPS_DEFAULT));
         assert!(settings.is_err());
 
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_DPS_TPM)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_DPS_TPM));
         assert!(settings.is_err());
 
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_DPS_SYM_KEY)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_DPS_SYM_KEY));
         assert!(settings.is_err());
 
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_DPS_X5091)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_DPS_X5091));
         assert!(settings.is_err());
 
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_DPS_X5092)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_DPS_X5092));
         assert!(settings.is_err());
 
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_DPS_X5093)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_DPS_X5093));
         assert!(settings.is_err());
 
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_DPS_X5094)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_DPS_X5094));
         assert!(settings.is_err());
 
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_X509_AUTH1)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_MANUAL_X509_AUTH1));
         assert!(settings.is_err());
 
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_X509_AUTH2)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_MANUAL_X509_AUTH2));
         assert!(settings.is_err());
 
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_X509_AUTH3)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_MANUAL_X509_AUTH3));
         assert!(settings.is_err());
 
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_X509_AUTH4)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_MANUAL_X509_AUTH4));
         assert!(settings.is_err());
 
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_X509_AUTH5)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_MANUAL_X509_AUTH5));
         assert!(settings.is_err());
 
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_CS_AUTH1)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_MANUAL_CS_AUTH1));
         assert!(settings.is_err());
 
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_CS_AUTH3)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_MANUAL_CS_AUTH3));
         assert!(settings.is_err());
     }
 
     #[test]
     fn manual_file_gets_sample_connection_string() {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS)));
+        let settings = Settings::new(Path::new(GOOD_SETTINGS));
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
@@ -491,7 +480,7 @@ mod tests {
 
     #[test]
     fn manual_authentication_connection_string() {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_MANUAL_CS_AUTH)));
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_MANUAL_CS_AUTH));
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
@@ -505,7 +494,7 @@ mod tests {
 
     #[test]
     fn manual_empty_connection_string_fails() {
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_CS3)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_MANUAL_CS3));
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
@@ -523,7 +512,7 @@ mod tests {
 
     #[test]
     fn manual_authentication_bad_connection_string_fails() {
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_CS_AUTH2)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_MANUAL_CS_AUTH2));
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
@@ -541,7 +530,7 @@ mod tests {
 
     #[test]
     fn manual_authentication_empty_connection_string_fails() {
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_CS_AUTH4)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_MANUAL_CS_AUTH4));
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
@@ -663,7 +652,7 @@ mod tests {
             &trust_bundle_path,
             false,
         );
-        let settings = Settings::new(Some(&settings_path)).expect("Settings create failed");
+        let settings = Settings::new(&settings_path).expect("Settings create failed");
         println!("{:?}", settings);
         let certificates = settings.certificates();
         certificates
@@ -694,7 +683,7 @@ mod tests {
             &trust_bundle_path,
             true,
         );
-        let settings = Settings::new(Some(&settings_path)).unwrap();
+        let settings = Settings::new(&settings_path).unwrap();
         println!("{:?}", settings);
         let certificates = settings.certificates();
         certificates
@@ -722,7 +711,7 @@ mod tests {
             &id_cert_path,
             &id_key_path,
         );
-        let settings = Settings::new(Some(&settings_path)).unwrap();
+        let settings = Settings::new(&settings_path).unwrap();
         println!("{:?}", settings);
         match settings.provisioning() {
             Provisioning::Manual(manual) => match manual.authentication_method() {
@@ -754,7 +743,7 @@ mod tests {
 
     #[test]
     fn dps_prov_default_get_settings() {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_DEFAULT)));
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_DPS_DEFAULT));
         assert!(settings.is_ok());
         let s = settings.unwrap();
         match s.provisioning() {
@@ -775,7 +764,7 @@ mod tests {
 
     #[test]
     fn dps_prov_tpm_get_settings() {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_TPM)));
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_DPS_TPM));
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
@@ -797,7 +786,7 @@ mod tests {
 
     #[test]
     fn dps_prov_symmetric_key_get_settings() {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_SYM_KEY)));
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_DPS_SYM_KEY));
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
@@ -862,7 +851,7 @@ mod tests {
         let key_path = tmp_dir.path().join("test_key");
         let settings_path = tmp_dir.path().join("test_settings.yaml");
         prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
-        let settings = Settings::new(Some(&settings_path)).unwrap();
+        let settings = Settings::new(&settings_path).unwrap();
         println!("{:?}", settings);
         match settings.provisioning() {
             Provisioning::Dps(ref dps) => {
@@ -904,7 +893,7 @@ mod tests {
         let key_path = tmp_dir.path().join("test_key");
         let settings_path = tmp_dir.path().join("test_settings.yaml");
         prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
-        let settings = Settings::new(Some(&settings_path)).unwrap();
+        let settings = Settings::new(&settings_path).unwrap();
         println!("{:?}", settings);
         match settings.provisioning() {
             Provisioning::Dps(ref dps) => {
@@ -941,7 +930,7 @@ mod tests {
 
     #[test]
     fn external_prov_get_settings() {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_EXTERNAL)));
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_EXTERNAL));
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
@@ -955,7 +944,7 @@ mod tests {
 
     #[test]
     fn case_of_names_of_keys_is_preserved() {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_CASE_SENSITIVE))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_CASE_SENSITIVE)).unwrap();
 
         let env = settings.agent().env();
         assert_eq!(env.get("AbC").map(AsRef::as_ref), Some("VAluE1"));
@@ -967,7 +956,7 @@ mod tests {
 
     #[test]
     fn watchdog_settings_are_read() {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS)));
+        let settings = Settings::new(Path::new(GOOD_SETTINGS));
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
