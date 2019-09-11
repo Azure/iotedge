@@ -93,9 +93,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string ProxyConfigVolumeEnvKey = "ProxyConfigVolume";
 
+        public const string ProxyConfigMapNameEnvKey = "ProxyConfigMapName";
+
         public const string ProxyTrustBundlePathEnvKey = "ProxyTrustBundlePath";
 
         public const string ProxyTrustBundleVolumeEnvKey = "ProxyTrustBundleVolume";
+
+        public const string ProxyTrustBundleConfigMapEnvKey = "ProxyTrustBundleConfigMapName";
 
         public const string CloseOnIdleTimeout = "CloseCloudConnectionOnIdleTimeout";
 
