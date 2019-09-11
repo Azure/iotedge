@@ -2005,8 +2005,10 @@ mod tests {
     use std::fmt;
     use std::io::Read;
     use std::path::Path;
+    use std::sync::Mutex;
 
     use chrono::{Duration, Utc};
+    use lazy_static::lazy_static;
     use rand::RngCore;
     use serde_json::json;
     use tempdir::TempDir;
@@ -2191,8 +2193,16 @@ mod tests {
         }
     }
 
+    lazy_static! {
+        // Main::new tests cannot run in parallel because they initialize hsm-sys (such as hsm_client_crypto_init)
+        // which is not thread-safe.
+        static ref LOCK: Mutex<()> = Mutex::new(());
+    }
+
     #[test]
     fn default_settings_raise_load_error() {
+        let _guard = LOCK.lock().unwrap();
+
         let settings = Settings::new(Path::new(DEFAULT_CONNECTION_STRING_SETTINGS)).unwrap();
         let main = Main::<DockerModuleRuntime>::new(settings);
         let result = main.run_until(signal::shutdown);
@@ -2204,6 +2214,8 @@ mod tests {
 
     #[test]
     fn empty_connection_string_raises_load_error() {
+        let _guard = LOCK.lock().unwrap();
+
         let settings = Settings::new(Path::new(EMPTY_CONNECTION_STRING_SETTINGS)).unwrap();
         let main = Main::<DockerModuleRuntime>::new(settings);
         let result = main.run_until(signal::shutdown);
