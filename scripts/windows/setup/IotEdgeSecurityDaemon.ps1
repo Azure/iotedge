@@ -336,6 +336,7 @@ function Initialize-IoTEdge {
     }
 
     New-Sockets $EdgeDataDirectory
+    Set-SystemPath
 
     # config.yaml
     Write-Host 'Generating config.yaml...'
