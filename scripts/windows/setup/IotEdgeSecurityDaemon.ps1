@@ -307,6 +307,12 @@ function Initialize-IoTEdge {
         throw
     }
 
+    if (-not (Test-VcRuntimePresent)) {
+        Write-HostRed 'VC Runtime must be installed before IoT Edge can be initialized.'
+        throw
+    }
+
+
     if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
         Write-HostRed
         Write-HostRed ('IoT Edge is installed in an invalid location. ' + $ReinstallMessage)
@@ -974,8 +980,8 @@ function Install-Packages(
                 }
             }
         }
-        Get-VcRuntime
     }
+    Get-VcRuntime # does nothing if vcruntime already installed
 
     # Download
     Get-IoTEdge -RestartNeeded ([ref] $restartNeeded) -Update $Update
@@ -1564,13 +1570,16 @@ function Reset-SystemPath {
     Write-Verbose 'Removed IoT Edge directories from system PATH'
 }
 
+function Test-VcRuntimePresent {
+    return Test-Path 'C:\Windows\System32\vcruntime140.dll'
+}
 function Get-VcRuntime {
     if (Test-IotCore) {
         Write-HostGreen 'Skipping VC Runtime installation on IoT Core.'
         return
     }
 
-    if (Test-Path 'C:\Windows\System32\vcruntime140.dll') {
+    if (Test-VcRuntimePresent) {
         Write-HostGreen 'Skipping VC Runtime installation because it is already installed.'
         return
     }
