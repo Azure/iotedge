@@ -620,7 +620,7 @@ function run_longhaul_test() {
 
     local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-longhaul"
 
-    sed -i -e "s@<Analyzer.DeviceID>@$device_id@g" "$deployment_working_file"
+    sed -i -e "s@<DeviceID>@$device_id@g" "$deployment_working_file"
     sed -i -e "s@<IoTHubConnectionString>@$IOTHUB_CONNECTION_STRING@g" "$deployment_working_file"
 
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
@@ -699,7 +699,7 @@ function run_stress_test() {
 
     local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-stress"
 
-    sed -i -e "s@<Analyzer.DeviceID>@$device_id@g" "$deployment_working_file"
+    sed -i -e "s@<DeviceID>@$device_id@g" "$deployment_working_file"
 
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run Stress test with -d '$device_id' started at $test_start_time"
