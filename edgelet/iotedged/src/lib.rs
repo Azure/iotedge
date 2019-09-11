@@ -2194,8 +2194,8 @@ mod tests {
     }
 
     lazy_static! {
-        // Main::new tests cannot run in parallel because they initialize hsm-sys (such as hsm_client_crypto_init)
-        // which is not thread-safe.
+        // Tests that call Main::new cannot run in parallel because they initialize hsm-sys
+        // (via hsm_client_crypto_init) which is not thread-safe.
         static ref LOCK: Mutex<()> = Mutex::new(());
     }
 
