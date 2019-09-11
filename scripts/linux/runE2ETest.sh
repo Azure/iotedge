@@ -351,6 +351,9 @@ function process_args() {
         elif [ $saveNextArg -eq 29 ]; then
             DPS_MASTER_SYMMETRIC_KEY="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 30 ]; then
+            RANDOM_RESTART_INTERVAL_IN_MINS="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -383,6 +386,7 @@ function process_args() {
                 '-installRootCAKeyPassword' ) saveNextArg=27;;
                 '-dpsScopeId' ) saveNextArg=28;;
                 '-dpsMasterSymmetricKey' ) saveNextArg=29;;
+                '-randomRestartIntervalInMins' ) saveNextArg=30;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -622,6 +626,7 @@ function run_longhaul_test() {
 
     sed -i -e "s@<DeviceID>@$device_id@g" "$deployment_working_file"
     sed -i -e "s@<IoTHubConnectionString>@$IOTHUB_CONNECTION_STRING@g" "$deployment_working_file"
+    sed -i -e "s@<RandomRestartIntervalInMins>@$RANDOM_RESTART_INTERVAL_IN_MINS@g" "$deployment_working_file"
 
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run Long Haul test with -d '$device_id' started at $test_start_time"
@@ -965,6 +970,7 @@ function usage() {
     echo ' -installRootCACertPath          Optional path to root CA certificate to be used for certificate generation'
     echo ' -installRootCAKeyPath           Optional path to root CA certificate private key to be used for certificate generation'
     echo ' -installRootCAKeyPassword       Optional password to access the root CA certificate private key to be used for certificate generation'
+    echo ' -randomRestartIntervalInMins    Optional value specifying how often a random module will restart'
     exit 1;
 }
 
