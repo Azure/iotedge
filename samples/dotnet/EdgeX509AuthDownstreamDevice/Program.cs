@@ -241,6 +241,11 @@ namespace Microsoft.Azure.Devices.Client.Samples
                 }
             }
 
+            if (!string.IsNullOrWhiteSpace(ClientTransportType))
+            {
+                throw new ArgumentException("Device client protocol cannot be null or empty");
+            }
+
             InstallCACert();
 
             Console.WriteLine("Creating device client using identity certificate...\n");
