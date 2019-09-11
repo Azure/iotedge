@@ -377,11 +377,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     }
                 });
 
-            // First we must delete existing service accounts since service account does not support an update operation.
-            // This needs to block so that we can re-create the new accounts below without a collision.
-            // We will also take this opportunity to delete the accounts that have their deployment being deleted.
-            var deletedOrUpdatedDeploymentNames = deploymentsRemoved.Concat(newDeployments).Select(deployment => deployment.Metadata.Name);
-            await this.PruneServiceAccounts(deletedOrUpdatedDeploymentNames.ToList());
+            // Delete the service accounts that have their deployment being deleted.
+            var deletedDeploymentNames = deploymentsRemoved.Select(deployment => deployment.Metadata.Name);
 
             // Remove the old
             var removeDeploymentsTasks = deploymentsRemoved.Select(
@@ -411,8 +408,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             var updateDeploymentsTasks = deploymentsUpdated.Select(deployment => this.client.ReplaceNamespacedDeploymentAsync(deployment, deployment.Metadata.Name, this.k8sNamespace));
 
             await Task.WhenAll(removeDeploymentsTasks);
-            await Task.WhenAll(createDeploymentsTasks);
+            await this.PruneServiceAccounts(deletedDeploymentNames.ToList());
             await Task.WhenAll(createServiceAccounts);
+            await Task.WhenAll(createDeploymentsTasks);
             await Task.WhenAll(updateDeploymentsTasks);
 
             return;
