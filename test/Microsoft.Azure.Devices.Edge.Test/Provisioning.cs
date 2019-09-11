@@ -57,6 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             var agent = new EdgeAgent(registrationId, this.iotHub);
             await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
+            await agent.PingAsync(token);
 
             Option<EdgeDevice> device = await EdgeDevice.GetIdentityAsync(
                 registrationId,
@@ -64,8 +65,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 token,
                 takeOwnership: true);
             Context.Current.DeleteList.TryAdd(registrationId, device.Expect(() => new ArgumentException()));
-
-            await agent.PingAsync(token);
         }
     }
 }
