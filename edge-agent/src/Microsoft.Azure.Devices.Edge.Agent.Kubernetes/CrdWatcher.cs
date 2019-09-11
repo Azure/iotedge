@@ -31,8 +31,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly string proxyImage;
         readonly string proxyConfigPath;
         readonly string proxyConfigVolumeName;
+        readonly string proxyConfigMapName;
         readonly string proxyTrustBundlePath;
         readonly string proxyTrustBundleVolumeName;
+        readonly string proxyTrustBundleConfigMapName;
         readonly string defaultMapServiceType;
         readonly string workloadApiVersion;
         readonly string k8sNamespace;
@@ -49,8 +51,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             string proxyImage,
             string proxyConfigPath,
             string proxyConfigVolumeName,
+            string proxyConfigMapName,
             string proxyTrustBundlePath,
             string proxyTrustBundleVolumeName,
+            string proxyTrustBundleConfigMapName,
             string resourceName,
             string deploymentSelector,
             string defaultMapServiceType,
@@ -67,8 +71,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.proxyImage = proxyImage;
             this.proxyConfigPath = proxyConfigPath;
             this.proxyConfigVolumeName = proxyConfigVolumeName;
+            this.proxyConfigMapName = proxyConfigMapName;
             this.proxyTrustBundlePath = proxyTrustBundlePath;
             this.proxyTrustBundleVolumeName = proxyTrustBundleVolumeName;
+            this.proxyTrustBundleConfigMapName = proxyTrustBundleConfigMapName;
             this.resourceName = resourceName;
             this.deploymentSelector = deploymentSelector;
             this.defaultMapServiceType = defaultMapServiceType;
@@ -198,7 +204,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             var desiredDeployments = new List<V1Deployment>();
 
             // Bootstrap the module builder
-            var kubernetesModelBuilder = new KubernetesModelBuilder(this.proxyImage, this.proxyConfigPath, this.proxyConfigVolumeName, this.proxyTrustBundlePath, this.proxyTrustBundleVolumeName, this.defaultMapServiceType);
+            var kubernetesModelBuilder = new KubernetesModelBuilder(this.proxyImage, this.proxyConfigPath, this.proxyConfigVolumeName, this.proxyConfigMapName, this.proxyTrustBundlePath, this.proxyTrustBundleVolumeName, this.proxyTrustBundleConfigMapName, this.defaultMapServiceType);
 
             foreach (KubernetesModule module in spec)
             {
@@ -425,7 +431,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             metadata.Labels = deployment.Metadata.Labels;
             metadata.Annotations = new Dictionary<string, string>
             {
-                [Constants.K8sEdgeOriginalModuleId] = moduleId
+                [Constants.K8sEdgeOriginalModuleId] = deployment.Spec.Template.Metadata.Annotations[Constants.K8sEdgeOriginalModuleId]
             };
 
             metadata.Name = moduleId;
@@ -494,6 +500,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 envList.Add(new V1EnvVar(CoreConstants.ProxyImageEnvKey, this.proxyImage));
                 envList.Add(new V1EnvVar(CoreConstants.ProxyConfigPathEnvKey, this.proxyConfigPath));
                 envList.Add(new V1EnvVar(CoreConstants.ProxyConfigVolumeEnvKey, this.proxyConfigVolumeName));
+                envList.Add(new V1EnvVar(CoreConstants.ProxyConfigMapNameEnvKey, this.proxyConfigMapName));
+                envList.Add(new V1EnvVar(CoreConstants.ProxyTrustBundlePathEnvKey, this.proxyTrustBundlePath));
+                envList.Add(new V1EnvVar(CoreConstants.ProxyTrustBundleVolumeEnvKey, this.proxyTrustBundleVolumeName));
+                envList.Add(new V1EnvVar(CoreConstants.ProxyTrustBundleConfigMapEnvKey, this.proxyTrustBundleConfigMapName));
             }
 
             if (string.Equals(identity.ModuleId, CoreConstants.EdgeAgentModuleIdentityName) ||

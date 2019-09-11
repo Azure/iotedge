@@ -31,8 +31,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string proxyImage;
         readonly string proxyConfigPath;
         readonly string proxyConfigVolumeName;
+        readonly string proxyConfigMapName;
         readonly string proxyTrustBundlePath;
         readonly string proxyTrustBundleVolumeName;
+        readonly string proxyTrustBundleConfigMapName;
         readonly string apiVersion;
         readonly string k8sNamespace;
         readonly Uri managementUri;
@@ -53,8 +55,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             string proxyImage,
             string proxyConfigPath,
             string proxyConfigVolumeName,
+            string proxyConfigMapName,
             string proxyTrustBundlePath,
             string proxyTrustBundleVolumeName,
+            string proxyTrustBundleConfigMapName,
             string apiVersion,
             string k8sNamespace,
             Uri managementUri,
@@ -74,8 +78,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.proxyImage = Preconditions.CheckNonWhiteSpace(proxyImage, nameof(proxyImage));
             this.proxyConfigPath = Preconditions.CheckNonWhiteSpace(proxyConfigPath, nameof(proxyConfigPath));
             this.proxyConfigVolumeName = Preconditions.CheckNonWhiteSpace(proxyConfigVolumeName, nameof(proxyConfigVolumeName));
+            this.proxyConfigMapName = Preconditions.CheckNonWhiteSpace(proxyConfigMapName, nameof(proxyConfigMapName));
             this.proxyTrustBundlePath = Preconditions.CheckNonWhiteSpace(proxyTrustBundlePath, nameof(proxyTrustBundlePath));
             this.proxyTrustBundleVolumeName = Preconditions.CheckNonWhiteSpace(proxyTrustBundleVolumeName, nameof(proxyTrustBundleVolumeName));
+            this.proxyTrustBundleConfigMapName = Preconditions.CheckNonWhiteSpace(proxyTrustBundleConfigMapName, nameof(proxyTrustBundleConfigMapName));
             this.apiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
             this.k8sNamespace = Preconditions.CheckNonWhiteSpace(k8sNamespace, nameof(k8sNamespace));
             this.managementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
@@ -195,8 +201,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             this.proxyImage,
                             this.proxyConfigPath,
                             this.proxyConfigVolumeName,
+                            this.proxyConfigMapName,
                             this.proxyTrustBundlePath,
                             this.proxyTrustBundleVolumeName,
+                            this.proxyTrustBundleConfigMapName,
                             this.k8sNamespace,
                             this.apiVersion,
                             this.workloadUri,

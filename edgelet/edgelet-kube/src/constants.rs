@@ -33,9 +33,13 @@ pub mod env {
 
     pub const PROXY_CONFIG_VOLUME_KEY: &str = "ProxyConfigVolume";
 
+    pub const PROXY_CONFIG_MAP_NAME_KEY: &str = "ProxyConfigMapName";
+
     pub const PROXY_CONFIG_PATH_KEY: &str = "ProxyConfigPath";
 
     pub const PROXY_TRUST_BUNDLE_VOLUME_KEY: &str = "ProxyTrustBundleVolume";
+
+    pub const PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME_KEY: &str = "ProxyTrustBundleConfigMapName";
 
     pub const PROXY_TRUST_BUNDLE_PATH_KEY: &str = "ProxyTrustBundlePath";
 

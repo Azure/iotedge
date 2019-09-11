@@ -14,8 +14,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly string proxyImage;
         readonly string proxyConfigPath;
         readonly string proxyConfigVolumeName;
+        readonly string proxyConfigMapName;
         readonly string proxyTrustBundlePath;
         readonly string proxyTrustBundleVolumeName;
+        readonly string proxyTrustBundleConfigMapName;
         readonly string defaultMapServiceType;
 
         private KubernetesServiceBuilder serviceBuilder;
@@ -26,13 +28,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         IModuleIdentity currentModuleIdentity;
         List<V1EnvVar> currentModuleEnvVars;
 
-        public KubernetesModelBuilder(string proxyImage, string proxyConfigPath, string proxyConfigVolumeName, string proxyTrustBundlePath, string proxyTrustBundleVolumeName, string defaultMapServiceType)
+        public KubernetesModelBuilder(
+            string proxyImage,
+            string proxyConfigPath,
+            string proxyConfigVolumeName,
+            string proxyConfigMapName,
+            string proxyTrustBundlePath,
+            string proxyTrustBundleVolumeName,
+            string proxyTrustBundleConfigMapName,
+            string defaultMapServiceType)
         {
             this.proxyImage = proxyImage;
             this.proxyConfigPath = proxyConfigPath;
             this.proxyConfigVolumeName = proxyConfigVolumeName;
+            this.proxyConfigMapName = proxyConfigMapName;
             this.proxyTrustBundlePath = proxyTrustBundlePath;
             this.proxyTrustBundleVolumeName = proxyTrustBundleVolumeName;
+            this.proxyTrustBundleConfigMapName = proxyTrustBundleConfigMapName;
             this.defaultMapServiceType = defaultMapServiceType;
         }
 
@@ -44,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.currentModule = module;
 
             this.serviceBuilder = new KubernetesServiceBuilder(this.defaultMapServiceType);
-            this.podBuilder = new KubernetesPodBuilder(this.proxyImage, this.proxyConfigPath, this.proxyConfigVolumeName, this.proxyTrustBundlePath, this.proxyTrustBundleVolumeName);
+            this.podBuilder = new KubernetesPodBuilder(this.proxyImage, this.proxyConfigPath, this.proxyConfigVolumeName, this.proxyConfigMapName, this.proxyTrustBundlePath, this.proxyTrustBundleVolumeName, this.proxyTrustBundleConfigMapName);
         }
 
         public Option<V1Service> GetService()

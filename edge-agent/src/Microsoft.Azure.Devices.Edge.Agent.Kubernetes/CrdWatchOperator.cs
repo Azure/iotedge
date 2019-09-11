@@ -20,8 +20,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly string proxyImage;
         readonly string proxyConfigPath;
         readonly string proxyConfigVolumeName;
+        readonly string proxyConfigMapName;
         readonly string proxyTrustBundlePath;
         readonly string proxyTrustBundleVolumeName;
+        readonly string proxyTrustBundleConfigMapName;
         readonly string k8sNamespace;
         readonly string workloadApiVersion;
         readonly Uri workloadUri;
@@ -37,8 +39,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             string proxyImage,
             string proxyConfigPath,
             string proxyConfigVolumeName,
+            string proxyConfigMapName,
             string proxyTrustBundlePath,
             string proxyTrustBundleVolumeName,
+            string proxyTrustBundleConfigMapName,
             string k8sNamespace,
             string workloadApiVersion,
             Uri workloadUri,
@@ -53,8 +57,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.proxyImage = Preconditions.CheckNonWhiteSpace(proxyImage, nameof(proxyImage));
             this.proxyConfigPath = Preconditions.CheckNonWhiteSpace(proxyConfigPath, nameof(proxyConfigPath));
             this.proxyConfigVolumeName = Preconditions.CheckNonWhiteSpace(proxyConfigVolumeName, nameof(proxyConfigVolumeName));
+            this.proxyConfigMapName = Preconditions.CheckNonWhiteSpace(proxyConfigMapName, nameof(proxyConfigMapName));
             this.proxyTrustBundlePath = Preconditions.CheckNonWhiteSpace(proxyTrustBundlePath, nameof(proxyTrustBundlePath));
             this.proxyTrustBundleVolumeName = Preconditions.CheckNonWhiteSpace(proxyTrustBundleVolumeName, nameof(proxyTrustBundleVolumeName));
+            this.proxyTrustBundleConfigMapName = Preconditions.CheckNonWhiteSpace(proxyTrustBundleConfigMapName, nameof(proxyTrustBundleConfigMapName));
             this.k8sNamespace = Preconditions.CheckNonWhiteSpace(k8sNamespace, nameof(k8sNamespace));
             this.workloadApiVersion = Preconditions.CheckNonWhiteSpace(workloadApiVersion, nameof(workloadApiVersion));
             this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
@@ -94,8 +100,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 this.proxyImage,
                 this.proxyConfigPath,
                 this.proxyConfigVolumeName,
+                this.proxyConfigMapName,
                 this.proxyTrustBundlePath,
                 this.proxyTrustBundleVolumeName,
+                this.proxyTrustBundleConfigMapName,
                 this.resourceName,
                 this.deploymentSelector,
                 this.defaultMapServiceType,

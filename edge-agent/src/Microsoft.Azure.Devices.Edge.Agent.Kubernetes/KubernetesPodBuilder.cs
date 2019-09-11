@@ -20,16 +20,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly string proxyImage;
         readonly string proxyConfigPath;
         readonly string proxyConfigVolumeName;
+        readonly string proxyConfigMapName;
         readonly string proxyTrustBundlePath;
         readonly string proxyTrustBundleVolumeName;
+        readonly string proxyTrustBundleConfigMapName;
 
-        public KubernetesPodBuilder(string proxyImage, string proxyConfigPath, string proxyConfigVolumeName, string proxyTrustBundlePath, string proxyTrustBundleVolumeName)
+        public KubernetesPodBuilder(
+            string proxyImage,
+            string proxyConfigPath,
+            string proxyConfigVolumeName,
+            string proxyConfigMapName,
+            string proxyTrustBundlePath,
+            string proxyTrustBundleVolumeName,
+            string proxyTrustBundleConfigMapName)
         {
             this.proxyImage = proxyImage;
             this.proxyConfigPath = proxyConfigPath;
             this.proxyConfigVolumeName = proxyConfigVolumeName;
+            this.proxyConfigMapName = proxyConfigMapName;
             this.proxyTrustBundlePath = proxyTrustBundlePath;
             this.proxyTrustBundleVolumeName = proxyTrustBundleVolumeName;
+            this.proxyTrustBundleConfigMapName = proxyTrustBundleConfigMapName;
         }
 
         public V1PodTemplateSpec GetPodFromModule(Dictionary<string, string> labels, IModule<AgentDocker.CombinedDockerConfig> module, IModuleIdentity moduleIdentity, List<V1EnvVar> envVars)
@@ -39,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
             // pod annotations
             var podAnnotations = new Dictionary<string, string>();
-            podAnnotations.Add(Constants.K8sEdgeOriginalModuleId, moduleIdentity.ModuleId);
+            podAnnotations.Add(Constants.K8sEdgeOriginalModuleId, ModuleIdentityHelper.GetModuleName(moduleIdentity.ModuleId));
 
             // Convert docker labels to annotations because docker labels don't have the same restrictions as
             // Kuberenetes labels.
@@ -114,8 +125,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             var volumeList = new List<V1Volume>
             {
                 new V1Volume(SocketVolumeName, emptyDir: new V1EmptyDirVolumeSource()),
-                new V1Volume(ConfigVolumeName, configMap: new V1ConfigMapVolumeSource(name: this.proxyConfigVolumeName)),
-                new V1Volume(TrustBundleVolumeName, configMap: new V1ConfigMapVolumeSource(name: this.proxyTrustBundleVolumeName))
+                new V1Volume(ConfigVolumeName, configMap: new V1ConfigMapVolumeSource(name: this.proxyConfigMapName)),
+                new V1Volume(TrustBundleVolumeName, configMap: new V1ConfigMapVolumeSource(name: this.proxyTrustBundleConfigMapName))
             };
 
             var proxyMountList = new List<V1VolumeMount>
