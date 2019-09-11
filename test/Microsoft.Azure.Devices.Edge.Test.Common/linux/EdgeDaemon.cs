@@ -153,7 +153,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         async Task InternalStopAsync(CancellationToken token)
         {
-            string[] output = await Process.RunAsync("systemctl", "stop iotedge", token);
+            string[] output = await Process.RunAsync("systemctl", "stop iotedge.service iotedge.socket iotedge.mgmt.socket", token);
             Log.Verbose(string.Join("\n", output));
             await WaitForStatusAsync(ServiceControllerStatus.Stopped, token);
         }
@@ -174,8 +174,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 await Profiler.Run(
                     async () =>
                     {
+                        try
+                        {
+                            File.Delete("/etc/iotedge/config.yaml");
+                        }
+                        catch (System.IO.IOException ex)
+                        {
+                            Log.Error($"Could not delete /etc/iotedge/config.yaml: {ex}");
+                        }
                         string[] output =
-                            await Process.RunAsync("apt-get", "purge --yes libiothsm-std", token);
+                            await Process.RunAsync("apt-get", "purge --yes libiothsm-std iotedge", token);
                         Log.Verbose(string.Join("\n", output));
                     },
                     "Uninstalled edge daemon");
