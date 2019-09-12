@@ -18,7 +18,7 @@ use serde_json;
 
 use crate::constants::*;
 use crate::convert::sanitize_dns_value;
-use crate::error::{ErrorKind, Result};
+use crate::error::{ErrorKind, PullImageErrorReason, Result};
 use crate::settings::Settings;
 
 // Use username and server from Docker AuthConfig to construct an image pull secret name.
@@ -72,7 +72,9 @@ impl Auth {
     }
 
     pub fn secret_data(&self) -> Result<ByteString> {
-        Ok(ByteString(serde_json::to_string(self)?.bytes().collect()))
+        let data =
+            serde_json::to_vec(self).context(ErrorKind::PullImage(PullImageErrorReason::Json))?;
+        Ok(ByteString(data))
     }
 }
 
@@ -81,19 +83,30 @@ pub fn auth_to_image_pull_secret(
     namespace: &str,
     auth: &AuthConfig,
 ) -> Result<(String, api_core::Secret)> {
-    let secret_name = auth_to_pull_secret_name(auth).ok_or_else(|| ErrorKind::AuthName)?;
+    let secret_name = auth_to_pull_secret_name(auth)
+        .ok_or_else(|| ErrorKind::PullImage(PullImageErrorReason::AuthName))?;
+
     let registry = auth
         .serveraddress()
-        .ok_or_else(|| ErrorKind::AuthServerAddress)?;
-    let user = auth.username().ok_or_else(|| ErrorKind::AuthUser)?;
-    let password = auth.password().ok_or_else(|| ErrorKind::AuthPassword)?;
+        .ok_or_else(|| ErrorKind::PullImage(PullImageErrorReason::AuthServerAddress))?;
+
+    let user = auth
+        .username()
+        .ok_or_else(|| ErrorKind::PullImage(PullImageErrorReason::AuthUser))?;
+
+    let password = auth
+        .password()
+        .ok_or_else(|| ErrorKind::PullImage(PullImageErrorReason::AuthPassword))?;
+
     let mut auths = BTreeMap::new();
     auths.insert(
         registry.to_string(),
         AuthEntry::new(user.to_string(), password.to_string()),
     );
+
     // construct a JSON string from "auths" structure
     let auth_string = Auth::new(auths).secret_data()?;
+
     // create a pull secret from auths string.
     let mut secret_data = BTreeMap::new();
     secret_data.insert(PULL_SECRET_DATA_NAME.to_string(), auth_string);

@@ -88,6 +88,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Commands
             // This will lose properties in the former that are not defined in the latter, but this code path is only for the old Docker mode anyway.
             var createContainerParameters =
                 JsonConvert.DeserializeObject<DockerModels.CreateContainerParameters>(JsonConvert.SerializeObject(this.createContainerParameters));
+
+            // Copy the Name property manually. See the docs of Edge.Agent.Docker.Models.CreateContainerParameters' Name property for an explanation.
+            createContainerParameters.Name = this.createContainerParameters.Name;
+
             return this.client.Containers.CreateContainerAsync(createContainerParameters, token);
         }
 

@@ -51,6 +51,12 @@ pub enum ErrorKind {
     )]
     ConnectionStringMalformedParameter(&'static str),
 
+    #[fail(
+        display = "Edge device information is required.\nPlease update config.yaml with the IoT Hub connection information.\nSee {} for more details.",
+        _0
+    )]
+    ConnectionStringNotConfigured(&'static str),
+
     #[fail(display = "An error occurred when obtaining the device identity certificate.")]
     DeviceIdentityCertificate,
 

@@ -845,6 +845,7 @@ Function RunDpsProvisioningTest
             $installCACommand = "Import-Certificate -CertStoreLocation 'cert:\LocalMachine\Root' -FilePath $EdgeCertGenScriptDir\certs\azure-iot-test-only.intermediate.cert.pem"
             Invoke-Expression $installCACommand | Out-Host
 
+            New-CACertsDevice "$registrationId"
             $identityPkPath = "$EdgeCertGenScriptDir\private\iot-device-${registrationId}.key.pem"
             $identityCertPath = "$EdgeCertGenScriptDir\certs\iot-device-${registrationId}-full-chain.cert.pem"
 
@@ -1099,6 +1100,11 @@ Function RunLeafDeviceTest
     [bool]$useSecondaryCredential = $False
 )
 {
+
+    if ($leafDeviceId.Length -gt 64) {
+        throw "can't generate cert. asn1 device name length of 64 exceeded. $leafDeviceId"
+    }
+    
     $testCommand = $null
     switch ($authType) {
         "sas"
@@ -1245,23 +1251,25 @@ Function RunTransparentGatewayTest
     # run the various leaf device tests
     $deviceId = "e2e-${ReleaseLabel}-Win-${Architecture}"
 
-    RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-noscope-leaf" $null
-    RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-noscope-leaf" $null
+    # NOTE: device name cannot be > 64 chars because of asn1 limits for certs
+    # thus we're abbreviating noscope/inscope as no/in and leaf as lf, x509ca as x5c, x509th as x5t, pri as p, sec as s.
+    RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-no-lf" $null
+    RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-no-lf" $null
 
-    RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-inscope-leaf" $edgeDeviceId
-    RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-inscope-leaf" $edgeDeviceId
+    RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-in-lf" $edgeDeviceId
+    RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-in-lf" $edgeDeviceId
 
-    RunLeafDeviceTest "x509CA" "Mqtt" "$deviceId-mqtt-x509ca-inscope-leaf" $edgeDeviceId
-    RunLeafDeviceTest "x509CA" "Amqp" "$deviceId-amqp-x509ca-inscope-leaf" $edgeDeviceId
+    RunLeafDeviceTest "x509CA" "Mqtt" "$deviceId-mqtt-x5c-in-lf" $edgeDeviceId
+    RunLeafDeviceTest "x509CA" "Amqp" "$deviceId-amqp-x5c-in-lf" $edgeDeviceId
 
     # run thumbprint test using primary cert with MQTT
-    RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-pri-x509th-inscope-leaf" $edgeDeviceId
+    RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-p-x5t-in-lf" $edgeDeviceId
     # run thumbprint test using secondary cert with MQTT
-    RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-sec-x509th-inscope-leaf" $edgeDeviceId $True
+    RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-s-x5t-in-lf" $edgeDeviceId $True
     # run thumbprint test using primary cert with AMQP
-    RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-pri-x509th-inscope-leaf" $edgeDeviceId
+    RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-p-x5t-in-lf" $edgeDeviceId
     # run thumbprint test using secondary cert with AMQP
-    RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-sec-x509th-inscope-leaf" $edgeDeviceId $True
+    RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-s-x5t-in-lf" $edgeDeviceId $True
 
     Return $testExitCode
 }
@@ -1270,7 +1278,7 @@ Function RunTest
 {
     $testExitCode = 0
 
-    If ($TestName.StartsWith("Dps") -Or $TestName -eq "TransparentGateway")
+    If ($TestName -eq "DpsX509Provisioning" -Or $TestName -eq "TransparentGateway")
     {
         # setup certificate generation tools to create the Edge device and leaf device certificates
         PrepareCertificateTools
@@ -1326,7 +1334,7 @@ Function TestSetup
         $testCommand = "&$EnvSetupScriptPath ``
             -ArtifactImageBuildNumber `"$ArtifactImageBuildNumber`" ``
             -E2ETestFolder `"$E2ETestFolder`""
-            
+
         Invoke-Expression $testCommand | Out-Host
     }
     InitializeWorkingFolder
