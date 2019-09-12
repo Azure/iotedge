@@ -19,11 +19,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 RedirectStandardInput = true,
             };
 
-            Log.Information($">>> '{name} {args}'");
-
             using (ProcessResults result = await ProcessEx.RunAsync(info, token))
             {
-                Log.Information($">>> '{name}' completed.'");
 
                 if (result.ExitCode != 0)
                 {
