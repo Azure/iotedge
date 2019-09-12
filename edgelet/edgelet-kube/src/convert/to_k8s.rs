@@ -172,9 +172,15 @@ fn spec_to_podspec(
         env_vars.push(env(EDGE_AGENT_MODE_KEY, EDGE_AGENT_MODE));
         env_vars.push(env(PROXY_IMAGE_KEY, settings.proxy_image()));
         env_vars.push(env(PROXY_CONFIG_VOLUME_KEY, PROXY_CONFIG_VOLUME_NAME));
-        env_vars.push(env(PROXY_CONFIG_MAP_NAME_KEY, settings.proxy_config_map_name()));
+        env_vars.push(env(
+            PROXY_CONFIG_MAP_NAME_KEY,
+            settings.proxy_config_map_name(),
+        ));
         env_vars.push(env(PROXY_CONFIG_PATH_KEY, settings.proxy_config_path()));
-        env_vars.push(env(PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME_KEY, settings.proxy_trust_bundle_config_map_name()));
+        env_vars.push(env(
+            PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME_KEY,
+            settings.proxy_trust_bundle_config_map_name(),
+        ));
         env_vars.push(env(
             PROXY_TRUST_BUNDLE_VOLUME_KEY,
             PROXY_TRUST_BUNDLE_VOLUME_NAME,
@@ -620,7 +626,7 @@ mod tests {
         auth_to_image_pull_secret, spec_to_deployment, spec_to_role_binding,
         spec_to_service_account, trust_bundle_to_config_map,
     };
-    use crate::tests::make_settings;
+    use crate::tests::{make_settings, PROXY_CONFIG_MAP_NAME, PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME};
     use crate::ErrorKind;
 
     fn create_module_spec() -> ModuleSpec<DockerConfig> {
@@ -757,12 +763,20 @@ mod tests {
         )));
         assert!(env.contains(&super::env(PROXY_CONFIG_PATH_KEY, "/etc/traefik")));
         assert!(env.contains(&super::env(
+            PROXY_CONFIG_MAP_NAME_KEY,
+            PROXY_CONFIG_MAP_NAME
+        )));
+        assert!(env.contains(&super::env(
             PROXY_TRUST_BUNDLE_VOLUME_KEY,
             PROXY_TRUST_BUNDLE_VOLUME_NAME,
         )));
         assert!(env.contains(&super::env(
             &PROXY_TRUST_BUNDLE_PATH_KEY,
             "/etc/trust-bundle"
+        )));
+        assert!(env.contains(&super::env(
+            &PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME_KEY,
+            PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME
         )));
     }
 
