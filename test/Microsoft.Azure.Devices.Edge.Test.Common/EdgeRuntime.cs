@@ -10,8 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using Microsoft.Azure.Devices.Edge.Util;
     using Registries = System.Collections.Generic.IEnumerable<(string address, string username, string password)>;
 
-    using Serilog;
-
     public class EdgeRuntime
     {
         readonly Option<string> agentImage;

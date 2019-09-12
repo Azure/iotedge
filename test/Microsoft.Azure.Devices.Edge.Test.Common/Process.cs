@@ -21,7 +21,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             using (ProcessResults result = await ProcessEx.RunAsync(info, token))
             {
-
                 if (result.ExitCode != 0)
                 {
                     throw new Win32Exception(result.ExitCode, $"'{name}' failed with: {string.Join("\n", result.StandardError)}");
