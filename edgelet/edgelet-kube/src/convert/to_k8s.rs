@@ -744,7 +744,7 @@ mod tests {
     }
 
     fn validate_container_env(env: &[api_core::EnvVar]) {
-        assert_eq!(env.len(), 10);
+        assert_eq!(env.len(), 13);
         assert!(env.contains(&super::env("a", "b")));
         assert!(env.contains(&super::env("C", "D")));
         assert!(env.contains(&super::env(USE_PERSISTENT_VOLUME_KEY, "True")));
