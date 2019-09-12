@@ -9,24 +9,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
-    using Microsoft.Rest;
     using Newtonsoft.Json;
     using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
     using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
 
-    public class CrdWatcher
+    public class EdgeDeploymentController : IEdgeDeploymentController
     {
         const string EdgeHubHostname = "edgehub";
 
         readonly IKubernetes client;
-        readonly AsyncLock watchLock = new AsyncLock();
 
         readonly string iotHubHostname;
         readonly string deviceId;
         readonly string edgeHostname;
-        readonly string resourceName;
         readonly string deploymentSelector;
         readonly string proxyImage;
         readonly string proxyConfigPath;
@@ -35,16 +31,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly string proxyTrustBundlePath;
         readonly string proxyTrustBundleVolumeName;
         readonly string proxyTrustBundleConfigMapName;
-        readonly string defaultMapServiceType;
+        readonly PortMapServiceType defaultMapServiceType;
         readonly string workloadApiVersion;
         readonly string k8sNamespace;
         readonly Uri workloadUri;
         readonly Uri managementUri;
         readonly IModuleIdentityLifecycleManager moduleIdentityLifecycleManager;
-        ModuleSet currentModules;
-        Option<Watcher<EdgeDeploymentDefinition>> operatorWatch;
 
-        public CrdWatcher(
+        public EdgeDeploymentController(
             string iotHubHostname,
             string deviceId,
             string edgeHostname,
@@ -55,15 +49,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             string proxyTrustBundlePath,
             string proxyTrustBundleVolumeName,
             string proxyTrustBundleConfigMapName,
-            string resourceName,
             string deploymentSelector,
-            string defaultMapServiceType,
+            PortMapServiceType defaultMapServiceType,
             string k8sNamespace,
             string workloadApiVersion,
             Uri workloadUri,
             Uri managementUri,
-            IModuleIdentityLifecycleManager moduleIdentityLifecycleManager,
-            IKubernetes client)
+            IKubernetes client,
+            IModuleIdentityLifecycleManager moduleIdentityLifecycleManager)
         {
             this.iotHubHostname = iotHubHostname;
             this.deviceId = deviceId;
@@ -75,7 +68,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.proxyTrustBundlePath = proxyTrustBundlePath;
             this.proxyTrustBundleVolumeName = proxyTrustBundleVolumeName;
             this.proxyTrustBundleConfigMapName = proxyTrustBundleConfigMapName;
-            this.resourceName = resourceName;
             this.deploymentSelector = deploymentSelector;
             this.defaultMapServiceType = defaultMapServiceType;
             this.k8sNamespace = k8sNamespace;
@@ -84,121 +76,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.managementUri = managementUri;
             this.moduleIdentityLifecycleManager = moduleIdentityLifecycleManager;
             this.client = client;
-            this.currentModules = ModuleSet.Empty;
         }
 
-        public async Task ListCrdComplete(Task<HttpOperationResponse<object>> customObjectWatchTask)
+        string DeploymentName(string moduleId) => KubeUtils.SanitizeK8sValue(moduleId);
+
+        public async Task<ModuleSet> DeployModulesAsync(IList<KubernetesModule> modules, ModuleSet currentModules)
         {
-            if (customObjectWatchTask == null)
-            {
-                Events.NullListResponse("ListNamespacedCustomObjectWithHttpMessagesAsync", "task");
-                throw new NullReferenceException("Null Task from ListNamespacedCustomObjectWithHttpMessagesAsync");
-            }
-            else
-            {
-                HttpOperationResponse<object> customObjectWatch = await customObjectWatchTask;
-                if (customObjectWatch != null)
-                {
-                    // We can add events to a watch once created, like if connection is closed, etc.
-                    this.operatorWatch = Option.Some(
-                        customObjectWatch.Watch<EdgeDeploymentDefinition>(
-                            onEvent: async (type, item) =>
-                            {
-                                try
-                                {
-                                    await this.WatchDeploymentEventsAsync(type, item);
-                                }
-                                catch (Exception ex) when (!ex.IsFatal())
-                                {
-                                    Events.ExceptionInCustomResourceWatch(ex);
-                                }
-                            },
-                            onClosed: () =>
-                            {
-                                Events.CrdWatchClosed();
-
-                                // get rid of the current crd watch object since we got closed
-                                this.operatorWatch.ForEach(watch => watch.Dispose());
-                                this.operatorWatch = Option.None<Watcher<EdgeDeploymentDefinition>>();
-
-                                // kick off a new watch
-                                this.client.ListNamespacedCustomObjectWithHttpMessagesAsync(
-                                    Constants.K8sCrdGroup,
-                                    Constants.K8sApiVersion,
-                                    this.k8sNamespace,
-                                    Constants.K8sCrdPlural,
-                                    watch: true).ContinueWith(this.ListCrdComplete);
-                            },
-                            onError: Events.ExceptionInCustomResourceWatch));
-                }
-                else
-                {
-                    Events.NullListResponse("ListNamespacedCustomObjectWithHttpMessagesAsync", "http response");
-                    throw new NullReferenceException("Null response from ListNamespacedCustomObjectWithHttpMessagesAsync");
-                }
-            }
-        }
-
-        internal async Task WatchDeploymentEventsAsync(WatchEventType type, EdgeDeploymentDefinition edgeDeploymentDefinition)
-        {
-            // only operate on the device that matches this operator.
-            if (string.Equals(edgeDeploymentDefinition.Metadata.Name, this.resourceName, StringComparison.OrdinalIgnoreCase))
-            {
-                using (await this.watchLock.LockAsync())
-                {
-                    V1ServiceList currentServices = await this.client.ListNamespacedServiceAsync(this.k8sNamespace, labelSelector: this.deploymentSelector);
-                    V1DeploymentList currentDeployments = await this.client.ListNamespacedDeploymentAsync(this.k8sNamespace, labelSelector: this.deploymentSelector);
-                    Events.DeploymentStatus(type, this.resourceName);
-                    switch (type)
-                    {
-                        case WatchEventType.Added:
-                        case WatchEventType.Modified:
-                            await this.UpsertDeployments(currentServices, currentDeployments, edgeDeploymentDefinition.Spec);
-                            break;
-
-                        case WatchEventType.Deleted:
-                            await this.HandleEdgeDeploymentDeleted(currentServices, currentDeployments);
-                            break;
-
-                        case WatchEventType.Error:
-                            Events.DeploymentError();
-                            break;
-                    }
-                }
-            }
-            else
-            {
-                Events.DeploymentNameMismatch(edgeDeploymentDefinition.Metadata.Name, this.resourceName);
-            }
-        }
-
-        private string DeploymentName(string moduleId) => KubeUtils.SanitizeK8sValue(moduleId);
-
-        private async Task HandleEdgeDeploymentDeleted(V1ServiceList currentServices, V1DeploymentList currentDeployments)
-        {
-            // Delete the deployment.
-            // Delete any services.
-            IEnumerable<Task<V1Status>> removeServiceTasks = currentServices.Items.Select(i => this.client.DeleteNamespacedServiceAsync(i.Metadata.Name, this.k8sNamespace, new V1DeleteOptions()));
-            await Task.WhenAll(removeServiceTasks);
-            IEnumerable<Task<V1Status>> removeDeploymentTasks = currentDeployments.Items.Select(
-                d => this.client.DeleteNamespacedDeployment1Async(
-                    d.Metadata.Name,
-                    this.k8sNamespace,
-                    new V1DeleteOptions(propagationPolicy: "Foreground"),
-                    propagationPolicy: "Foreground"));
-
-            // Remove the service account for all deployments
-            var serviceAccountNames = currentDeployments.Items.Select(deployment => deployment.Metadata.Name);
-            await this.PruneServiceAccounts(serviceAccountNames.ToList());
-
-            await Task.WhenAll(removeDeploymentTasks);
-            this.currentModules = ModuleSet.Empty;
-        }
-
-        private async Task UpsertDeployments(V1ServiceList currentServices, V1DeploymentList currentDeployments, IList<KubernetesModule> spec)
-        {
-            var desiredModules = ModuleSet.Create(spec.ToArray());
-            var moduleIdentities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desiredModules, this.currentModules);
+            var desiredModules = ModuleSet.Create(modules.ToArray());
+            var moduleIdentities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desiredModules, currentModules);
 
             var desiredServices = new List<V1Service>();
             var desiredDeployments = new List<V1Deployment>();
@@ -206,53 +91,54 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             // Bootstrap the module builder
             var kubernetesModelBuilder = new KubernetesModelBuilder(this.proxyImage, this.proxyConfigPath, this.proxyConfigVolumeName, this.proxyConfigMapName, this.proxyTrustBundlePath, this.proxyTrustBundleVolumeName, this.proxyTrustBundleConfigMapName, this.defaultMapServiceType);
 
-            foreach (KubernetesModule module in spec)
+            foreach (KubernetesModule module in modules)
             {
-                var moduleId = moduleIdentities[module.Name];
-
-                string deploymentName = this.DeploymentName(moduleIdentities[module.Name].ModuleId);
-                if (string.Equals(module.Type, "docker"))
-                {
-                    // Default labels
-                    var labels = new Dictionary<string, string>
-                    {
-                        [Constants.K8sEdgeModuleLabel] = deploymentName,
-                        [Constants.K8sEdgeDeviceLabel] = KubeUtils.SanitizeLabelValue(this.deviceId),
-                        [Constants.K8sEdgeHubNameLabel] = KubeUtils.SanitizeLabelValue(this.iotHubHostname)
-                    };
-
-                    // Create a Pod for each module, and a proxy container.
-                    List<V1EnvVar> envVars = this.CollectEnv(module, moduleId);
-
-                    // Load the current module
-                    kubernetesModelBuilder.LoadModule(labels, module, moduleId, envVars);
-
-                    // Create a Service for every network interface of each module. (label them with hub, device and module id)
-                    Option<V1Service> moduleService = kubernetesModelBuilder.GetService();
-                    moduleService.ForEach(service => desiredServices.Add(service));
-
-                    // Get the converted pod
-                    V1PodTemplateSpec v1PodSpec = kubernetesModelBuilder.GetPod();
-
-                    // Deployment data
-                    var deploymentMeta = new V1ObjectMeta(name: deploymentName, labels: labels);
-
-                    var selector = new V1LabelSelector(matchLabels: labels);
-                    var deploymentSpec = new V1DeploymentSpec(replicas: 1, selector: selector, template: v1PodSpec);
-
-                    desiredDeployments.Add(new V1Deployment(metadata: deploymentMeta, spec: deploymentSpec));
-                }
-                else
+                if (!string.Equals(module.Type, "docker"))
                 {
                     Events.InvalidModuleType(module);
+                    continue;
                 }
+
+                var moduleId = moduleIdentities[module.Name];
+                string deploymentName = this.DeploymentName(moduleIdentities[module.Name].ModuleId);
+
+                // Default labels
+                var labels = new Dictionary<string, string>
+                {
+                    [Constants.K8sEdgeModuleLabel] = deploymentName,
+                    [Constants.K8sEdgeDeviceLabel] = KubeUtils.SanitizeLabelValue(this.deviceId),
+                    [Constants.K8sEdgeHubNameLabel] = KubeUtils.SanitizeLabelValue(this.iotHubHostname)
+                };
+
+                // Create a Pod for each module, and a proxy container.
+                List<V1EnvVar> envVars = this.CollectEnv(module, moduleId);
+
+                // Load the current module
+                kubernetesModelBuilder.LoadModule(labels, module, moduleId, envVars);
+
+                // Create a Service for every network interface of each module. (label them with hub, device and module id)
+                Option<V1Service> moduleService = kubernetesModelBuilder.GetService();
+                moduleService.ForEach(service => desiredServices.Add(service));
+
+                // Get the converted pod
+                V1PodTemplateSpec v1PodSpec = kubernetesModelBuilder.GetPod();
+
+                // Deployment data
+                var deploymentMeta = new V1ObjectMeta(name: deploymentName, labels: labels);
+
+                var selector = new V1LabelSelector(matchLabels: labels);
+                var deploymentSpec = new V1DeploymentSpec(replicas: 1, selector: selector, template: v1PodSpec);
+
+                desiredDeployments.Add(new V1Deployment(metadata: deploymentMeta, spec: deploymentSpec));
             }
 
+            V1ServiceList currentServices = await this.client.ListNamespacedServiceAsync(this.k8sNamespace, labelSelector: this.deploymentSelector);
             await this.ManageServices(currentServices, desiredServices);
 
+            V1DeploymentList currentDeployments = await this.client.ListNamespacedDeploymentAsync(this.k8sNamespace, labelSelector: this.deploymentSelector);
             await this.ManageDeployments(currentDeployments, desiredDeployments);
 
-            this.currentModules = desiredModules;
+            return desiredModules;
         }
 
         async Task ManageServices(V1ServiceList currentServices, List<V1Service> desiredServices)
@@ -325,10 +211,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         async Task ManageDeployments(V1DeploymentList currentDeployments, List<V1Deployment> desiredDeployments)
         {
-            Dictionary<string, string> currentDeploymentsFromAnnotations = this.GetCurrentDeploymentConfig(currentDeployments)
-                .ToDictionary(
-                    pair => pair.Key,
-                    pair => pair.Value);
+            Dictionary<string, string> currentDeploymentsFromAnnotations = this.GetCurrentDeploymentConfig(currentDeployments);
 
             var deploymentsRemoved = new List<V1Deployment>(currentDeployments.Items);
             deploymentsRemoved.RemoveAll(
@@ -418,8 +301,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             await Task.WhenAll(createServiceAccounts);
             await Task.WhenAll(createDeploymentsTasks);
             await Task.WhenAll(updateDeploymentsTasks);
-
-            return;
         }
 
         Task<V1ServiceAccount> CreateServiceAccount(V1Deployment deployment)
@@ -519,7 +400,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             return envList;
         }
 
-        private Dictionary<string, string> GetCurrentServiceConfig(V1ServiceList currentServices)
+        Dictionary<string, string> GetCurrentServiceConfig(V1ServiceList currentServices)
         {
             return currentServices.Items.ToDictionary(
                 service =>
@@ -553,7 +434,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 });
         }
 
-        private Dictionary<string, string> GetCurrentDeploymentConfig(V1DeploymentList currentDeployments)
+        Dictionary<string, string> GetCurrentDeploymentConfig(V1DeploymentList currentDeployments)
         {
             return currentDeployments.Items.ToDictionary(
                 deployment =>
@@ -586,10 +467,33 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 });
         }
 
+        public async Task PurgeModulesAsync()
+        {
+            // Delete all services for current edge deployment
+            V1ServiceList currentServices = await this.client.ListNamespacedServiceAsync(this.k8sNamespace, labelSelector: this.deploymentSelector);
+            IEnumerable<Task<V1Status>> removeServiceTasks = currentServices.Items.Select(
+                service => this.client.DeleteNamespacedServiceAsync(service.Metadata.Name, this.k8sNamespace, new V1DeleteOptions()));
+            await Task.WhenAll(removeServiceTasks);
+
+            // Delete all deployments for current edge deployment
+            V1DeploymentList currentDeployments = await this.client.ListNamespacedDeploymentAsync(this.k8sNamespace, labelSelector: this.deploymentSelector);
+            IEnumerable<Task<V1Status>> removeDeploymentTasks = currentDeployments.Items.Select(
+                deployment => this.client.DeleteNamespacedDeployment1Async(
+                    deployment.Metadata.Name,
+                    this.k8sNamespace,
+                    new V1DeleteOptions(propagationPolicy: "Foreground"),
+                    propagationPolicy: "Foreground"));
+            await Task.WhenAll(removeDeploymentTasks);
+
+            // Remove the service account for all deployments
+            var serviceAccountNames = currentDeployments.Items.Select(deployment => deployment.Metadata.Name);
+            await this.PruneServiceAccounts(serviceAccountNames.ToList());
+        }
+
         static class Events
         {
             const int IdStart = KubernetesEventIds.KubernetesCrdWatcher;
-            private static readonly ILogger Log = Logger.Factory.CreateLogger<CrdWatcher>();
+            private static readonly ILogger Log = Logger.Factory.CreateLogger<EdgeDeploymentController>();
 
             enum EventIds
             {

@@ -84,9 +84,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public void Start() => this.client.ListNamespacedPodWithHttpMessagesAsync(this.deviceNamespace, watch: true).ContinueWith(this.ListPodComplete);
 
-        public Task CloseAsync(CancellationToken token) => Task.CompletedTask;
+        public void Stop() => this.podWatch.ForEach(watch => watch.Dispose());
 
-        public void Dispose() => this.podWatch.ForEach(watch => watch.Dispose());
+        public void Dispose() => this.Stop();
 
         public async Task<IEnumerable<ModuleRuntimeInfo>> GetModules(CancellationToken cancellationToken)
         {
@@ -105,8 +105,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 module,
                 Constants.K8sNamespace,
                 follow: follow,
-                tailLines: tailLines == default(int) ? default(int?) : (int?)tailLines,
-                sinceSeconds: sinceSec == default(int) ? default(int?) : (int?)sinceSec,
+                tailLines: tailLines == default(int) ? default(int?) : tailLines,
+                sinceSeconds: sinceSec == default(int) ? default(int?) : sinceSec,
                 cancellationToken: cancellationToken);
         }
 
@@ -162,8 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 case WatchEventType.Deleted:
                     using (await this.moduleLock.LockAsync())
                     {
-                        ModuleRuntimeInfo removedRuntimeInfo;
-                        if (!this.moduleRuntimeInfos.TryRemove(podName, out removedRuntimeInfo))
+                        if (!this.moduleRuntimeInfos.TryRemove(podName, out _))
                         {
                             Events.PodStatusRemoveError(podName);
                         }
@@ -175,50 +174,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             }
         }
 
-        static RuntimeData GetTerminatedRuntimedata(V1ContainerStateTerminated term, string imageName)
-        {
-            if (term.StartedAt.HasValue &&
-                term.FinishedAt.HasValue)
-            {
-                return new RuntimeData(term.ExitCode, Option.Some(term.StartedAt.Value), Option.Some(term.FinishedAt.Value), imageName);
-            }
-
-            return new RuntimeData(0, Option.None<DateTime>(), Option.None<DateTime>(), imageName);
-        }
-
+        // TODO consider to delete. Now it is used only for tests
         public event PropertyChangedEventHandler PropertyChanged;
 
         protected virtual void OnModulesChanged()
         {
             this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Modules"));
-        }
-
-        class ReportedModuleStatus
-        {
-            public readonly ModuleStatus Status;
-            public readonly string Description;
-
-            public ReportedModuleStatus(ModuleStatus status, string description)
-            {
-                this.Status = status;
-                this.Description = description;
-            }
-        }
-
-        class RuntimeData
-        {
-            public readonly int ExitStatus;
-            public readonly Option<DateTime> StartTime;
-            public readonly Option<DateTime> EndTime;
-            public readonly string ImageName;
-
-            public RuntimeData(int exitStatus, Option<DateTime> startTime, Option<DateTime> endTime, string image)
-            {
-                this.ExitStatus = exitStatus;
-                this.StartTime = startTime;
-                this.EndTime = endTime;
-                this.ImageName = image;
-            }
         }
 
         static class Events
