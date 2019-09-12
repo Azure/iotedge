@@ -1,9 +1,9 @@
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Client.Samples
 {
-
+    using System;
     using System.Net.Security;
     using System.Security.Cryptography.X509Certificates;
-    using System;
 
     static class CustomCertificateValidator
     {
