@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             [Values] TestAuthenticationType testAuth,
             [Values(Protocol.Mqtt, Protocol.Amqp)] Protocol protocol)
         {
-            CancellationToken token = this.cts.Token;
+            CancellationToken token = this.TestToken;
 
             // Generate a leaf device ID--based on the (edge) device ID--that is at most
             // (deviceId.Length + 26 chars) long. This gives us a leaf device ID of <= 63

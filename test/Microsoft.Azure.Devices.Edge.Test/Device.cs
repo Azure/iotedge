@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task QuickstartCerts()
         {
-            CancellationToken token = this.cts.Token;
+            CancellationToken token = this.TestToken;
 
             await this.runtime.DeployConfigurationAsync(token);
 

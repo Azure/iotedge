@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             const string DefaultImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
             string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultImage);
 
-            CancellationToken token = this.cts.Token;
+            CancellationToken token = this.TestToken;
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                 builder => { builder.AddModule("tempSensor", sensorImage); },
@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string methodSender = $"methodSender-{protocol.ToString()}";
             string methodReceiver = $"methodReceiver-{protocol.ToString()}";
 
-            CancellationToken token = this.cts.Token;
+            CancellationToken token = this.TestToken;
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                 builder =>

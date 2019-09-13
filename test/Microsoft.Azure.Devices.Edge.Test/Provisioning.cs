@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             string deviceKey = this.DeriveDeviceKey(Convert.FromBase64String(groupKey), registrationId);
 
-            CancellationToken token = this.cts.Token;
+            CancellationToken token = this.TestToken;
 
             await this.daemon.ConfigureAsync(
                 config =>
