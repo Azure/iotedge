@@ -144,7 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 Assert.True(moduleRuntimeInfos.Count() == 3);
                 foreach (var i in moduleRuntimeInfos)
                 {
-                    if (!string.Equals("$edgeAgent", i.Name))
+                    if (!string.Equals("edgeAgent", i.Name))
                     {
                         Assert.Equal(ModuleStatus.Unknown, i.ModuleStatus);
                     }
@@ -153,7 +153,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                         Assert.Equal(ModuleStatus.Failed, i.ModuleStatus);
                     }
 
-                    if (string.Equals("$edgeHub", i.Name))
+                    if (string.Equals("edgeHub", i.Name))
                     {
                         Assert.Equal(Option.None<DateTime>(), i.ExitTime);
                         Assert.Equal(Option.None<DateTime>(), i.StartTime);
@@ -225,7 +225,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 Assert.Single(moduleRuntimeInfos);
                 foreach (var i in moduleRuntimeInfos)
                 {
-                    Assert.Equal("$edgeAgent", i.Name);
+                    Assert.Equal("edgeAgent", i.Name);
                     Assert.Equal(ModuleStatus.Running, i.ModuleStatus);
                     Assert.Equal(new DateTime(2019, 6, 12), i.StartTime.GetOrElse(DateTime.MinValue).Date);
                     Assert.Equal("docker", i.Type);
