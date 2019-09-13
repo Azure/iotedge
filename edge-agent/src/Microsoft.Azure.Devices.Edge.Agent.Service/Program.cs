@@ -5,7 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using System.Collections.Generic;
     using System.IO;
     using System.Net;
-    using System.Runtime.CompilerServices;
     using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
@@ -175,7 +174,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                             new Uri(workloadUri),
                             dockerAuthConfig,
                             upstreamProtocol,
-                            Option.Some<string>(productInfo),
+                            Option.Some(productInfo),
                             mappedServiceDefault,
                             enableServiceCallTracing,
                             proxy,
@@ -223,6 +222,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 return 1;
             }
 
+            // TODO move this code to Agent
             if (mode.ToLowerInvariant().Equals(Constants.KubernetesMode))
             {
                 // Start the runtime info provider

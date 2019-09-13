@@ -21,6 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Microsoft.Rest;
+    using Constants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
     using ModuleIdentityLifecycleManager = Microsoft.Azure.Devices.Edge.Agent.Edgelet.ModuleIdentityLifecycleManager;
 
     public class KubernetesModule : Module
@@ -152,23 +153,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     async c =>
                     {
                         IConfigSource configSource = await c.Resolve<Task<IConfigSource>>();
-                        return new CombinedKubernetesConfigProvider(this.dockerAuthConfig, configSource) as ICombinedConfigProvider<CombinedDockerConfig>;
+                        ICombinedConfigProvider<CombinedDockerConfig> provider = new CombinedKubernetesConfigProvider(this.dockerAuthConfig, configSource);
+                        return provider;
                     })
                 .As<Task<ICombinedConfigProvider<CombinedDockerConfig>>>()
                 .SingleInstance();
 
+            // TODO why it doesn't have any implementation?
             // ICommandFactory
             builder.Register(
-                    async c =>
+                    c =>
                     {
-                        var client = c.Resolve<IKubernetes>();
-                        var configSourceTask = c.Resolve<Task<IConfigSource>>();
-                        var combinedDockerConfigProviderTask = c.Resolve<Task<ICombinedConfigProvider<CombinedDockerConfig>>>();
                         var loggerFactory = c.Resolve<ILoggerFactory>();
-                        IConfigSource configSource = await configSourceTask;
-                        ICombinedConfigProvider<CombinedDockerConfig> combinedDockerConfigProvider = await combinedDockerConfigProviderTask;
                         var kubernetesCommandFactory = new KubernetesCommandFactory();
-                        return new LoggingCommandFactory(kubernetesCommandFactory, loggerFactory) as ICommandFactory;
+                        ICommandFactory factory = new LoggingCommandFactory(kubernetesCommandFactory, loggerFactory);
+                        return Task.FromResult(factory);
                     })
                 .As<Task<ICommandFactory>>()
                 .SingleInstance();
@@ -177,11 +176,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                     async c =>
                     {
-                        var commandFactoryTask = c.Resolve<Task<ICommandFactory>>();
-                        var combinedConfigProviderTask = c.Resolve<Task<ICombinedConfigProvider<CombinedDockerConfig>>>();
-                        ICommandFactory commandFactory = await commandFactoryTask;
-                        ICombinedConfigProvider<CombinedDockerConfig> combinedConfigProvider = await combinedConfigProviderTask;
-                        return new KubernetesPlanner(this.k8sNamespace, this.iotHubHostname, this.deviceId, c.Resolve<IKubernetes>(), commandFactory, combinedConfigProvider) as IPlanner;
+                        var combinedConfigProvider = await c.Resolve<Task<ICombinedConfigProvider<CombinedDockerConfig>>>();
+                        ICommandFactory commandFactory = await c.Resolve<Task<ICommandFactory>>();
+                        IPlanner planner = new KubernetesPlanner(this.k8sNamespace, this.iotHubHostname, this.deviceId, c.Resolve<IKubernetes>(), commandFactory, combinedConfigProvider);
+                        return planner;
                     })
                 .As<Task<IPlanner>>()
                 .SingleInstance();
@@ -191,10 +189,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<Task<IRuntimeInfoProvider>>()
                 .SingleInstance();
 
-            // IKubernetesOperator
+            // EdgeDeploymentController
             builder.Register(
-                    c => Task.FromResult(
-                        new CrdWatchOperator(
+                    c =>
+                    {
+                        var deploymentSelector = $"{Constants.K8sEdgeDeviceLabel}={KubeUtils.SanitizeK8sValue(this.deviceId)},{Constants.K8sEdgeHubNameLabel}={KubeUtils.SanitizeK8sValue(this.iotHubHostname)}";
+                        IEdgeDeploymentController watchOperator = new EdgeDeploymentController(
                             this.iotHubHostname,
                             this.deviceId,
                             this.gatewayHostname,
@@ -205,13 +205,33 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             this.proxyTrustBundlePath,
                             this.proxyTrustBundleVolumeName,
                             this.proxyTrustBundleConfigMapName,
+                            deploymentSelector,
+                            this.defaultMapServiceType,
                             this.k8sNamespace,
                             this.apiVersion,
                             this.workloadUri,
                             this.managementUri,
-                            this.defaultMapServiceType,
                             c.Resolve<IKubernetes>(),
-                            c.Resolve<IModuleIdentityLifecycleManager>()) as IKubernetesOperator))
+                            c.Resolve<IModuleIdentityLifecycleManager>());
+
+                        return watchOperator;
+                    })
+                .As<IEdgeDeploymentController>()
+                .SingleInstance();
+
+            // EdgeDeploymentOperator
+            builder.Register(
+                    c =>
+                    {
+                        IKubernetesOperator watchOperator = new EdgeDeploymentOperator(
+                            this.iotHubHostname,
+                            this.deviceId,
+                            this.k8sNamespace,
+                            c.Resolve<IKubernetes>(),
+                            c.Resolve<IEdgeDeploymentController>());
+
+                        return Task.FromResult(watchOperator);
+                    })
                 .As<Task<IKubernetesOperator>>()
                 .SingleInstance();
 
@@ -232,7 +252,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
     class DebugTracer : IServiceClientTracingInterceptor
     {
-        ILogger logger;
+        readonly ILogger logger;
 
         public DebugTracer(ILogger logger)
         {

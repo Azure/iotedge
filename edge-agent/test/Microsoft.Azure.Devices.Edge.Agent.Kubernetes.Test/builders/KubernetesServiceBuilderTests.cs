@@ -9,7 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
-    using Xunit.Sdk;
 
     [Unit]
     public class KubernetesServiceBuilderTests
@@ -30,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 { string.Empty, "test" }
             };
             var km1 = new KubernetesModule(m1, config);
-            var builder = new KubernetesServiceBuilder("TestMapServiceType");
+            var builder = new KubernetesServiceBuilder(PortMapServiceType.ClusterIP);
             var moduleLabels = new Dictionary<string, string>();
 
             Assert.Throws<InvalidKubernetesNameException>(() => builder.GetServiceFromModule(moduleLabels, km1, null));
@@ -43,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
             var m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             var km1 = new KubernetesModule(m1, config);
-            var builder = new KubernetesServiceBuilder("TestMapServiceType");
+            var builder = new KubernetesServiceBuilder(PortMapServiceType.ClusterIP);
             var moduleLabels = new Dictionary<string, string>();
 
             var service = builder.GetServiceFromModule(moduleLabels, km1, null);
@@ -64,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             };
             var m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             var km1 = new KubernetesModule(m1, config);
-            var builder = new KubernetesServiceBuilder("TestMapServiceType");
+            var builder = new KubernetesServiceBuilder(PortMapServiceType.ClusterIP);
             var moduleLabels = new Dictionary<string, string>();
 
             var service = builder.GetServiceFromModule(moduleLabels, km1, identity);
@@ -85,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             };
             var m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             var km1 = new KubernetesModule(m1, config);
-            var builder = new KubernetesServiceBuilder("TestMapServiceType");
+            var builder = new KubernetesServiceBuilder(PortMapServiceType.ClusterIP);
             var moduleLabels = new Dictionary<string, string>();
 
             var service = builder.GetServiceFromModule(moduleLabels, km1, identity);
@@ -106,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             };
             var m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             var km1 = new KubernetesModule(m1, config);
-            var builder = new KubernetesServiceBuilder("TestMapServiceType");
+            var builder = new KubernetesServiceBuilder(PortMapServiceType.ClusterIP);
             var moduleLabels = new Dictionary<string, string>();
 
             var service = builder.GetServiceFromModule(moduleLabels, km1, identity);
@@ -128,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             };
             var m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             var km1 = new KubernetesModule(m1, config);
-            var builder = new KubernetesServiceBuilder("TestMapServiceType");
+            var builder = new KubernetesServiceBuilder(PortMapServiceType.ClusterIP);
 
             var converted = builder.GetServiceFromModule(moduleLabels, km1, identity);
             Assert.True(converted.HasValue);

@@ -6,8 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Logging;
-    using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
 
     public class KubernetesModelBuilder
     {
@@ -18,10 +16,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly string proxyTrustBundlePath;
         readonly string proxyTrustBundleVolumeName;
         readonly string proxyTrustBundleConfigMapName;
-        readonly string defaultMapServiceType;
+        readonly PortMapServiceType defaultMapServiceType;
 
-        private KubernetesServiceBuilder serviceBuilder;
-        private KubernetesPodBuilder podBuilder;
+        KubernetesServiceBuilder serviceBuilder;
+        KubernetesPodBuilder podBuilder;
 
         Dictionary<string, string> currentModuleLabels;
         IModule<CombinedDockerConfig> currentModule;
@@ -36,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             string proxyTrustBundlePath,
             string proxyTrustBundleVolumeName,
             string proxyTrustBundleConfigMapName,
-            string defaultMapServiceType)
+            PortMapServiceType defaultMapServiceType)
         {
             this.proxyImage = proxyImage;
             this.proxyConfigPath = proxyConfigPath;
@@ -48,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.defaultMapServiceType = defaultMapServiceType;
         }
 
-        public void LoadModule(Dictionary<string, string> labels, IModule<AgentDocker.CombinedDockerConfig> module, IModuleIdentity moduleIdentity, List<V1EnvVar> envVars)
+        public void LoadModule(Dictionary<string, string> labels, IModule<CombinedDockerConfig> module, IModuleIdentity moduleIdentity, List<V1EnvVar> envVars)
         {
             this.currentModuleLabels = labels;
             this.currentModuleIdentity = moduleIdentity;
@@ -67,28 +65,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public V1PodTemplateSpec GetPod()
         {
             return this.podBuilder.GetPodFromModule(this.currentModuleLabels, this.currentModule, this.currentModuleIdentity, this.currentModuleEnvVars);
-        }
-
-        static class Events
-        {
-            const int IdStart = KubernetesEventIds.KubernetesModelBuilder;
-            private static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesServiceBuilder>();
-
-            enum EventIds
-            {
-                ExposedPortValue = IdStart,
-                InvalidModuleType
-            }
-
-            public static void ExposedPortValue(string portEntry)
-            {
-                Log.LogWarning((int)EventIds.ExposedPortValue, $"Received an invalid exposed port value '{portEntry}'.");
-            }
-
-            public static void InvalidModuleType(IModule module)
-            {
-                Log.LogError((int)EventIds.InvalidModuleType, $"Module {module.Name} has an invalid module type '{module.Type}'. Expected type 'docker'");
-            }
         }
     }
 }

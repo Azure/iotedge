@@ -12,9 +12,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
     public class KubernetesServiceBuilder
     {
-        readonly string defaultMapServiceType;
+        readonly PortMapServiceType defaultMapServiceType;
 
-        public KubernetesServiceBuilder(string defaultMapServiceType)
+        public KubernetesServiceBuilder(PortMapServiceType defaultMapServiceType)
         {
             this.defaultMapServiceType = defaultMapServiceType;
         }
@@ -97,22 +97,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 //
                 // If the user wants to expose the ClusterIPs port externally, they should manually create a service to expose it.
                 // This gives the user more control as to how they want this to work.
-                string serviceType;
-                if (onlyExposedPorts)
-                {
-                    serviceType = "ClusterIP";
-                }
-                else
-                {
-                    serviceType = this.defaultMapServiceType;
-                }
+                var serviceType = onlyExposedPorts
+                    ? PortMapServiceType.ClusterIP
+                    : this.defaultMapServiceType;
 
-                return Option.Some(new V1Service(metadata: objectMeta, spec: new V1ServiceSpec(type: serviceType, ports: portList, selector: labels)));
+                return Option.Some(new V1Service(metadata: objectMeta, spec: new V1ServiceSpec(type: serviceType.ToString(), ports: portList, selector: labels)));
             }
-            else
-            {
-                return Option.None<V1Service>();
-            }
+
+            return Option.None<V1Service>();
         }
 
         static class Events
