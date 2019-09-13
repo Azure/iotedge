@@ -69,7 +69,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                                 return Task.FromResult((msg, props));
                             },
-                            token);
+                            token,
+                            restart: false);
                     }
                 },
                 "Completed end-to-end test setup");

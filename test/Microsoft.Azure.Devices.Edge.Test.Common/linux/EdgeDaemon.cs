@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 properties);
         }
 
-        public Task ConfigureAsync(Func<DaemonConfiguration, Task<(string, object[])>> config, CancellationToken token)
+        public Task ConfigureAsync(Func<DaemonConfiguration, Task<(string, object[])>> config, CancellationToken token, bool restart)
         {
             var properties = new object[] { };
             var message = "Configured edge daemon";
@@ -97,7 +97,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     message += $" {msg}";
                     properties = properties.Concat(props).ToArray();
 
-                    await this.InternalStartAsync(token);
+                    if (restart)
+                    {
+                        await this.InternalStartAsync(token);
+                    }
                 },
                 message.ToString(),
                 properties);

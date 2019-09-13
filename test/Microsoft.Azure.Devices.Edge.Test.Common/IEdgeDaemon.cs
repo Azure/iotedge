@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     {
         Task InstallAsync(Option<string> packagesPath, Option<Uri> proxy, CancellationToken token);
 
-        Task ConfigureAsync(Func<DaemonConfiguration, Task<(string message, object[] properties)>> config, CancellationToken token);
+        Task ConfigureAsync(Func<DaemonConfiguration, Task<(string message, object[] properties)>> config, CancellationToken token, bool restart = true);
 
         Task StartAsync(CancellationToken token);
 
