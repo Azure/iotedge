@@ -500,6 +500,8 @@ function Deploy-IoTEdge {
         [Switch] $SkipBatteryCheck
     )
 
+    Set-StrictMode -Version 5
+
     Install-Packages `
         -ContainerOs $ContainerOs `
         -Proxy $Proxy `
@@ -722,6 +724,8 @@ function Install-IoTEdge {
         [Switch] $SkipBatteryCheck
     )
 
+    Set-StrictMode -Version 5
+
     # Set by Deploy-IoTEdge if it succeeded, so we can abort early in case of failure.
     #
     # We use a script-scope var instead of having Deploy-IoTEdge return a boolean or take a [ref] parameter
@@ -890,6 +894,8 @@ function Get-IoTEdgeLog {
         # What time to start the log from.
         [DateTime] $StartTime = [datetime]::Now.AddMinutes(-5)
     )
+
+    Set-StrictMode -Version 5
 
     Get-WinEvent -ea SilentlyContinue -FilterHashtable @{ProviderName='iotedged';LogName='application';StartTime=$StartTime} |
         Select TimeCreated, Message |
@@ -1622,12 +1628,12 @@ function Uninstall-Services([ref] $RestartNeeded, [bool] $LegacyInstaller) {
     if (Get-Service $EdgeServiceName -ErrorAction SilentlyContinue) {
         Set-Service -StartupType Disabled $EdgeServiceName -ErrorAction SilentlyContinue
         Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable cmdErr $EdgeServiceName
-        if ($?) {
+        if ($? -and $LASTEXITCODE -eq 0) {
             Start-Sleep -Seconds 7
-            Write-Verbose 'Stopped the IoT Edge service'
+            Write-Verbose "Stopped the IoT Edge service $EdgeServiceName"
         }
         else {
-            Write-Verbose "$cmdErr"
+            Write-Verbose "stopping IoT Edge service $EdgeServiceName failed.  exitcode: $LASTEXITCODE error: $cmdErr"
         }
     }
 
@@ -1637,10 +1643,10 @@ function Uninstall-Services([ref] $RestartNeeded, [bool] $LegacyInstaller) {
         Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable cmdErr $MobyServiceName
         if ($?) {
             Start-Sleep -Seconds 7
-            Write-Verbose 'Stopped the IoT Edge Moby Engine service'
+            Write-Verbose "'Stopped the IoT Edge Moby Engine service $MobyServiceName"
         }
         else {
-            Write-Verbose "$cmdErr"
+            Write-Verbose "stopping IoT Edge Moby Engine service $MobyServiceName failed.  exitcode: $LASTEXITCODE error: $cmdErr"
         }
     }
 
