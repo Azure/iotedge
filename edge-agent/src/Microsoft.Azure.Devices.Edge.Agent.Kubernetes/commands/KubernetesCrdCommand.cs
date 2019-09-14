@@ -27,8 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
         readonly Lazy<string> id;
         readonly ICombinedConfigProvider<CombinedDockerConfig> combinedConfigProvider;
         readonly string deviceNamespace;
-        readonly string iotHubHostname;
-        readonly string deviceId;
+        readonly ResourceName resourceName;
         readonly JsonSerializerSettings serializerSettings;
 
         // We use the sum of the IDs of the underlying commands as the id for this group
@@ -36,17 +35,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
         public string Id => this.id.Value;
 
         public KubernetesCrdCommand(
-                                    string deviceNamespace,
-                                    string iotHubHostname,
-                                    string deviceId,
-                                    IKubernetes client,
-                                    IEnumerable<IModule> modules,
-                                    IRuntimeInfo runtimeInfo,
-                                    ICombinedConfigProvider<CombinedDockerConfig> combinedConfigProvider)
+            string deviceNamespace,
+            ResourceName resourceName,
+            IKubernetes client,
+            IEnumerable<IModule> modules,
+            IRuntimeInfo runtimeInfo,
+            ICombinedConfigProvider<CombinedDockerConfig> combinedConfigProvider)
         {
             this.deviceNamespace = KubeUtils.SanitizeK8sValue(Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace)));
-            this.iotHubHostname = KubeUtils.SanitizeK8sValue(Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname)));
-            this.deviceId = KubeUtils.SanitizeK8sValue(Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId)));
+            this.resourceName = resourceName;
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.modules = Preconditions.CheckNotNull(modules, nameof(modules)).ToList();
             this.runtimeInfo = Preconditions.CheckNotNull(runtimeInfo, nameof(runtimeInfo));
@@ -128,8 +125,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
                 .Select(secretGroup => secretGroup.First())
                 .ToDictionary(secret => secret.Name);
 
-            string resourceName = this.iotHubHostname + Constants.K8sNameDivider + this.deviceId;
-
             Option<EdgeDeploymentDefinition> activeDeployment;
             try
             {
@@ -138,21 +133,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
                     Constants.K8sApiVersion,
                     this.deviceNamespace,
                     Constants.K8sCrdPlural,
-                    resourceName,
-                    cancellationToken: token) as JObject;
+                    this.resourceName,
+                    token) as JObject;
 
                 activeDeployment = Option.Maybe(currentDeployment)
                     .Map(deployment => deployment.ToObject<EdgeDeploymentDefinition>(JsonSerializer.Create(this.serializerSettings)));
             }
             catch (Exception parseException)
             {
-                Events.FindActiveDeploymentFailed(resourceName, parseException);
+                Events.FindActiveDeploymentFailed(this.resourceName, parseException);
                 activeDeployment = Option.None<EdgeDeploymentDefinition>();
             }
 
             await this.UpdateImagePullSecrets(secrets, token);
 
-            var metadata = new V1ObjectMeta(name: resourceName, namespaceProperty: this.deviceNamespace);
+            var metadata = new V1ObjectMeta(name: this.resourceName, namespaceProperty: this.deviceNamespace);
 
             // need resourceVersion for Replace.
             activeDeployment.ForEach(deployment => metadata.ResourceVersion = deployment.Metadata.ResourceVersion);
@@ -170,7 +165,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
                         Constants.K8sApiVersion,
                         this.deviceNamespace,
                         Constants.K8sCrdPlural,
-                        resourceName,
+                        this.resourceName,
                         cancellationToken: token);
                 },
                 async () =>
@@ -228,7 +223,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
                 Log.LogError((int)EventIds.SecretCreateUpdateFailed, exception, $"Failed to create or update image pull secret ${key}");
             }
 
-            public static void FindActiveDeploymentFailed(string resourceName, Exception parseException)
+            public static void FindActiveDeploymentFailed(ResourceName resourceName, Exception parseException)
             {
                 Log.LogDebug((int)EventIds.FindActiveDeploymentFailed, parseException, $"Failed to find active edge deployment ${resourceName}");
             }

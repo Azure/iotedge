@@ -15,24 +15,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly IKubernetes client;
         readonly AsyncLock watchLock = new AsyncLock();
         readonly IEdgeDeploymentController controller;
-        readonly string iotHubHostname;
-        readonly string deviceId;
-        readonly string resourceName;
-        readonly string k8sNamespace;
+        readonly ResourceName resourceName;
+        readonly string deviceNamespace;
         Option<Watcher<EdgeDeploymentDefinition>> operatorWatch;
         ModuleSet currentModules;
 
         public EdgeDeploymentOperator(
-            string iotHubHostname,
-            string deviceId,
-            string k8sNamespace,
+            ResourceName resourceName,
+            string deviceNamespace,
             IKubernetes client,
             IEdgeDeploymentController controller)
         {
-            this.iotHubHostname = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
-            this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
-            this.k8sNamespace = Preconditions.CheckNonWhiteSpace(k8sNamespace, nameof(k8sNamespace));
-            this.resourceName = KubeUtils.SanitizeK8sValue(this.iotHubHostname) + Constants.K8sNameDivider + KubeUtils.SanitizeK8sValue(this.deviceId);
+            this.deviceNamespace = Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace));
+            this.resourceName = resourceName;
 
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.operatorWatch = Option.None<Watcher<EdgeDeploymentDefinition>>();
@@ -41,20 +36,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.currentModules = ModuleSet.Empty;
         }
 
-        public void Start()
+        public void Start() => this.StartListEdgeDeployments();
+
+        public void Stop()
         {
-            // The following "List..." requests do not return until there is something to return, so if we "await" here,
-            // there is a chance that one or both of these requests will block forever - we won't start creating these pods and CRDs
-            // until we receive a deployment.
-            // Considering setting up these watches is critical to the operation of EdgeAgent, throwing an exception and letting the process crash
-            // is an acceptable fate if these tasks fail.
-            this.client.ListNamespacedCustomObjectWithHttpMessagesAsync(Constants.K8sCrdGroup, Constants.K8sApiVersion, this.k8sNamespace, Constants.K8sCrdPlural, watch: true)
-                .ContinueWith(this.OnListEdgeDeploymentsCompleted);
+            // TODO do we need lock here?
+            this.operatorWatch.ForEach(watch => watch.Dispose());
         }
+
+        public void Dispose() => this.Stop();
+
+        void StartListEdgeDeployments() =>
+            this.client.ListNamespacedCustomObjectWithHttpMessagesAsync(Constants.K8sCrdGroup, Constants.K8sApiVersion, this.deviceNamespace, Constants.K8sCrdPlural, watch: true)
+                .ContinueWith(this.OnListEdgeDeploymentsCompleted);
 
         async Task OnListEdgeDeploymentsCompleted(Task<HttpOperationResponse<object>> task)
         {
-            var response = await task;
+            HttpOperationResponse<object> response = await task;
 
             this.operatorWatch = Option.Some(
                 response.Watch<EdgeDeploymentDefinition>(
@@ -62,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     {
                         try
                         {
-                            await this.HandleEdgeDeploymentsChangedAsync(type, item);
+                            await this.HandleEdgeDeploymentChangedAsync(type, item);
                         }
                         catch (Exception ex) when (!ex.IsFatal())
                         {
@@ -78,15 +76,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         this.operatorWatch = Option.None<Watcher<EdgeDeploymentDefinition>>();
 
                         // kick off a new watch
-                        this.Start();
+                        this.StartListEdgeDeployments();
                     },
                     onError: Events.ExceptionInCustomResourceWatch));
         }
 
-        async Task HandleEdgeDeploymentsChangedAsync(WatchEventType type, EdgeDeploymentDefinition edgeDeploymentDefinition)
+        async Task HandleEdgeDeploymentChangedAsync(WatchEventType type, EdgeDeploymentDefinition edgeDeploymentDefinition)
         {
             // only operate on the device that matches this operator.
-            if (!string.Equals(edgeDeploymentDefinition.Metadata.Name, this.resourceName, StringComparison.OrdinalIgnoreCase))
+            if (!this.resourceName.Equals(edgeDeploymentDefinition.Metadata.Name))
             {
                 Events.DeploymentNameMismatch(edgeDeploymentDefinition.Metadata.Name, this.resourceName);
                 return;
@@ -111,17 +109,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     case WatchEventType.Error:
                         Events.DeploymentError();
                         break;
+
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(type), type, null);
                 }
             }
         }
-
-        public void Stop()
-        {
-            // TODO do we need lock here?
-            this.operatorWatch.ForEach(watch => watch.Dispose());
-        }
-
-        public void Dispose() => this.Stop();
 
         static class Events
         {
@@ -142,7 +135,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 Log.LogError((int)EventIds.ExceptionInCustomResourceWatch, ex, "Exception caught in Custom Resource Watch task.");
             }
 
-            public static void DeploymentStatus(WatchEventType type, string name)
+            public static void DeploymentStatus(WatchEventType type, ResourceName name)
             {
                 Log.LogDebug((int)EventIds.DeploymentStatus, $"Deployment '{name}', status'{type}'");
             }
@@ -152,7 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 Log.LogError((int)EventIds.DeploymentError, "Operator received error on watch type.");
             }
 
-            public static void DeploymentNameMismatch(string received, string expected)
+            public static void DeploymentNameMismatch(string received, ResourceName expected)
             {
                 Log.LogDebug((int)EventIds.DeploymentNameMismatch, $"Watching for edge deployments for '{expected}', received notification for '{received}'");
             }

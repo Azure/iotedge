@@ -154,13 +154,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         string proxyTrustBundleConfigMapName = configuration.GetValue<string>(Constants.ProxyTrustBundleConfigMapEnvKey);
                         Kubernetes.PortMapServiceType mappedServiceDefault = GetDefaultServiceType(configuration);
                         bool enableServiceCallTracing = configuration.GetValue<bool>(K8sConstants.EnableK8sServiceCallTracingName);
-                        string k8sNamespace = configuration.GetValue<string>(K8sConstants.K8sNamespaceKey);
+                        string deviceNamespace = configuration.GetValue<string>(K8sConstants.K8sNamespaceKey);
 
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId)));
                         builder.RegisterModule(new KubernetesModule(
                             iothubHostname,
-                            edgeDeviceHostName,
                             deviceId,
+                            edgeDeviceHostName,
                             proxyImage,
                             proxyConfigPath,
                             proxyConfigVolumeName,
@@ -169,7 +169,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                             proxyTrustBundleVolumeName,
                             proxyTrustBundleConfigMapName,
                             apiVersion,
-                            k8sNamespace,
+                            deviceNamespace,
                             new Uri(managementUri),
                             new Uri(workloadUri),
                             dockerAuthConfig,

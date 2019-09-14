@@ -16,10 +16,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public const string K8sCrdPlural = "edgedeployments";
 
-        public const string K8sNamespace = "microsoft-azure-devices-edge";
-
-        public const string K8sNamespaceBaseName = "K8sNamespaceBaseName";
-
         public const string K8sEdgeModuleLabel = "net.azure-devices.edge.module";
 
         public const string K8sEdgeOriginalModuleId = "net.azure-devices.edge.original-moduleid";
@@ -35,12 +31,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public const string K8sPullSecretType = "kubernetes.io/dockerconfigjson";
 
         public const string K8sPullSecretData = ".dockerconfigjson";
-
-        public const string ProxyImage = "darobs/envoy:0.1";
-
-        public const string AgentConfigMap = "edgeagentconfigmap";
-
-        public const string ModuleConfigMap = "moduleconfigmap";
 
         public const string PortMappingServiceType = "PortMappingServiceType";
 

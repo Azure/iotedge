@@ -26,9 +26,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
     public class KubernetesModule : Module
     {
-        readonly string deviceId;
-        readonly string iotHubHostname;
-        readonly string gatewayHostname;
+        readonly ResourceName resourceName;
+        readonly string edgeDeviceHostname;
         readonly string proxyImage;
         readonly string proxyConfigPath;
         readonly string proxyConfigVolumeName;
@@ -37,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string proxyTrustBundleVolumeName;
         readonly string proxyTrustBundleConfigMapName;
         readonly string apiVersion;
-        readonly string k8sNamespace;
+        readonly string deviceNamespace;
         readonly Uri managementUri;
         readonly Uri workloadUri;
         readonly IEnumerable<AuthConfig> dockerAuthConfig;
@@ -51,8 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
         public KubernetesModule(
             string iotHubHostname,
-            string gatewayHostName,
             string deviceId,
+            string edgeDeviceHostName,
             string proxyImage,
             string proxyConfigPath,
             string proxyConfigVolumeName,
@@ -61,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             string proxyTrustBundleVolumeName,
             string proxyTrustBundleConfigMapName,
             string apiVersion,
-            string k8sNamespace,
+            string deviceNamespace,
             Uri managementUri,
             Uri workloadUri,
             IEnumerable<AuthConfig> dockerAuthConfig,
@@ -73,9 +72,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout)
         {
-            this.iotHubHostname = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
-            this.gatewayHostname = Preconditions.CheckNonWhiteSpace(gatewayHostName, nameof(gatewayHostName));
-            this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            this.resourceName = new ResourceName(iotHubHostname, deviceId);
+            this.edgeDeviceHostname = Preconditions.CheckNonWhiteSpace(edgeDeviceHostName, nameof(edgeDeviceHostName));
             this.proxyImage = Preconditions.CheckNonWhiteSpace(proxyImage, nameof(proxyImage));
             this.proxyConfigPath = Preconditions.CheckNonWhiteSpace(proxyConfigPath, nameof(proxyConfigPath));
             this.proxyConfigVolumeName = Preconditions.CheckNonWhiteSpace(proxyConfigVolumeName, nameof(proxyConfigVolumeName));
@@ -84,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.proxyTrustBundleVolumeName = Preconditions.CheckNonWhiteSpace(proxyTrustBundleVolumeName, nameof(proxyTrustBundleVolumeName));
             this.proxyTrustBundleConfigMapName = Preconditions.CheckNonWhiteSpace(proxyTrustBundleConfigMapName, nameof(proxyTrustBundleConfigMapName));
             this.apiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
-            this.k8sNamespace = Preconditions.CheckNonWhiteSpace(k8sNamespace, nameof(k8sNamespace));
+            this.deviceNamespace = Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace));
             this.managementUri = Preconditions.CheckNotNull(managementUri, nameof(managementUri));
             this.workloadUri = Preconditions.CheckNotNull(workloadUri, nameof(workloadUri));
             this.dockerAuthConfig = Preconditions.CheckNotNull(dockerAuthConfig, nameof(dockerAuthConfig));
@@ -143,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IModuleIdentityLifecycleManager
-            var identityBuilder = new ModuleIdentityProviderServiceBuilder(this.iotHubHostname, this.deviceId, this.gatewayHostname);
+            var identityBuilder = new ModuleIdentityProviderServiceBuilder(this.resourceName.Hostname, this.resourceName.DeviceId, this.edgeDeviceHostname);
             builder.Register(c => new ModuleIdentityLifecycleManager(c.Resolve<IIdentityManager>(), identityBuilder, this.workloadUri))
                 .As<IModuleIdentityLifecycleManager>()
                 .SingleInstance();
@@ -178,26 +176,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     {
                         var combinedConfigProvider = await c.Resolve<Task<ICombinedConfigProvider<CombinedDockerConfig>>>();
                         ICommandFactory commandFactory = await c.Resolve<Task<ICommandFactory>>();
-                        IPlanner planner = new KubernetesPlanner(this.k8sNamespace, this.iotHubHostname, this.deviceId, c.Resolve<IKubernetes>(), commandFactory, combinedConfigProvider);
+                        IPlanner planner = new KubernetesPlanner(this.deviceNamespace, this.resourceName, c.Resolve<IKubernetes>(), commandFactory, combinedConfigProvider);
                         return planner;
                     })
                 .As<Task<IPlanner>>()
                 .SingleInstance();
 
-            // IRuntimeInfoProvider
-            builder.Register(c => Task.FromResult(new KubernetesRuntimeInfoProvider(this.k8sNamespace, c.Resolve<IKubernetes>()) as IRuntimeInfoProvider))
-                .As<Task<IRuntimeInfoProvider>>()
-                .SingleInstance();
+            // KubernetesRuntimeInfoProvider
+            builder.Register(c => new KubernetesRuntimeInfoProvider(this.deviceNamespace, c.Resolve<IKubernetes>()))
+                .As<IRuntimeInfoProvider>()
+                .As<IRuntimeInfoSource>();
 
-            // EdgeDeploymentController
+            // IEdgeDeploymentController
             builder.Register(
                     c =>
                     {
-                        var deploymentSelector = $"{Constants.K8sEdgeDeviceLabel}={KubeUtils.SanitizeK8sValue(this.deviceId)},{Constants.K8sEdgeHubNameLabel}={KubeUtils.SanitizeK8sValue(this.iotHubHostname)}";
+                        var deploymentSelector = $"{Constants.K8sEdgeDeviceLabel}={KubeUtils.SanitizeK8sValue(this.resourceName.DeviceId)},{Constants.K8sEdgeHubNameLabel}={KubeUtils.SanitizeK8sValue(this.resourceName.Hostname)}";
                         IEdgeDeploymentController watchOperator = new EdgeDeploymentController(
-                            this.iotHubHostname,
-                            this.deviceId,
-                            this.gatewayHostname,
+                            this.resourceName,
+                            this.edgeDeviceHostname,
                             this.proxyImage,
                             this.proxyConfigPath,
                             this.proxyConfigVolumeName,
@@ -207,7 +204,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             this.proxyTrustBundleConfigMapName,
                             deploymentSelector,
                             this.defaultMapServiceType,
-                            this.k8sNamespace,
+                            this.deviceNamespace,
                             this.apiVersion,
                             this.workloadUri,
                             this.managementUri,
@@ -224,9 +221,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     c =>
                     {
                         IKubernetesOperator watchOperator = new EdgeDeploymentOperator(
-                            this.iotHubHostname,
-                            this.deviceId,
-                            this.k8sNamespace,
+                            this.resourceName,
+                            this.deviceNamespace,
                             c.Resolve<IKubernetes>(),
                             c.Resolve<IEdgeDeploymentController>());
 
@@ -241,7 +237,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     {
                         var moduleStateStore = c.Resolve<IEntityStore<string, ModuleState>>();
                         var restartPolicyManager = c.Resolve<IRestartPolicyManager>();
-                        IRuntimeInfoProvider runtimeInfoProvider = await c.Resolve<Task<IRuntimeInfoProvider>>();
+                        IRuntimeInfoProvider runtimeInfoProvider = c.Resolve<IRuntimeInfoProvider>();
                         IEnvironmentProvider dockerEnvironmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, moduleStateStore, restartPolicyManager);
                         return dockerEnvironmentProvider;
                     })

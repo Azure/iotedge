@@ -19,20 +19,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
         readonly ICommandFactory commandFactory;
         readonly ICombinedConfigProvider<CombinedDockerConfig> combinedConfigProvider;
         readonly string deviceNamespace;
-        readonly string iotHubHostname;
-        readonly string deviceId;
+        readonly ResourceName resourceName;
 
         public KubernetesPlanner(
             string deviceNamespace,
-            string iotHubHostname,
-            string deviceId,
+            ResourceName resourceName,
             IKubernetes client,
             ICommandFactory commandFactory,
             ICombinedConfigProvider<CombinedDockerConfig> combinedConfigProvider)
         {
+            this.resourceName = resourceName;
             this.deviceNamespace = Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace));
-            this.iotHubHostname = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
-            this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.commandFactory = Preconditions.CheckNotNull(commandFactory, nameof(commandFactory));
             this.combinedConfigProvider = Preconditions.CheckNotNull(combinedConfigProvider, nameof(combinedConfigProvider));
@@ -70,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
                 // The "Plan" here is very simple - if we have any change, publish all desired modules to a CRD.
                 // The CRD allows us to give the customer a Kubernetes-centric way to see the deployment
                 // and the status of that deployment through the "edgedeployments" API.
-                var crdCommand = new KubernetesCrdCommand(this.deviceNamespace, this.iotHubHostname, this.deviceId, this.client, desired.Modules.Values, runtimeInfo, this.combinedConfigProvider);
+                var crdCommand = new KubernetesCrdCommand(this.deviceNamespace, this.resourceName, this.client, desired.Modules.Values, runtimeInfo, this.combinedConfigProvider);
                 var planCommand = await this.commandFactory.WrapAsync(crdCommand);
                 var planList = new List<ICommand>
                 {
