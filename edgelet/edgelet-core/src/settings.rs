@@ -18,6 +18,9 @@ const SHAREDACCESSKEY_KEY: &str = "SharedAccessKey";
 const DEVICEID_REGEX: &str = r"^[A-Za-z0-9\-:.+%_#*?!(),=@;$']{1,128}$";
 const HOSTNAME_REGEX: &str = r"^[a-zA-Z0-9_\-\.]+$";
 
+/// This is the default connection string
+pub const DEFAULT_CONNECTION_STRING: &str = "<ADD DEVICE CONNECTION STRING HERE>";
+
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub struct ManualX509Auth {
@@ -92,6 +95,16 @@ impl ManualDeviceConnectionString {
     pub fn parse_device_connection_string(&self) -> Result<(MemoryKey, String, String), Error> {
         if self.device_connection_string.is_empty() {
             return Err(Error::from(ErrorKind::ConnectionStringEmpty));
+        }
+
+        if self.device_connection_string == DEFAULT_CONNECTION_STRING {
+            return Err(Error::from(ErrorKind::ConnectionStringNotConfigured(
+                if cfg!(windows) {
+                    "https://aka.ms/iot-edge-configure-windows"
+                } else {
+                    "https://aka.ms/iot-edge-configure-linux"
+                },
+            )));
         }
 
         let mut key = None;
