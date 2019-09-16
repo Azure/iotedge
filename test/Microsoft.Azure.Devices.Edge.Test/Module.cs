@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
     public class Module : RuntimeFixture
     {
-        protected const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
+        private const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
 
         [Test]
         public async Task TempSensor()
