@@ -100,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
             var planner = new KubernetesPlanner(Namespace, ResourceName, DefaultClient, DefaultCommandFactory, DefaultConfigProvider);
             var plan = await planner.PlanAsync(desired, current, RuntimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty);
             Assert.Single(plan.Commands);
-            Assert.True(plan.Commands.First() is KubernetesCrdCommand);
+            Assert.True(plan.Commands.First() is EdgeDeploymentCommand);
         }
 
         [Fact]

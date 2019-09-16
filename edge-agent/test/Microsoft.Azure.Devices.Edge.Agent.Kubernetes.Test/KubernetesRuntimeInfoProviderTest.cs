@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var client = new Mock<IKubernetes>(MockBehavior.Strict);
             var runtimeInfo = new KubernetesRuntimeInfoProvider(Namespace, client.Object);
 
-            var modules = await runtimeInfo.GetModules(new CancellationToken());
+            var modules = await runtimeInfo.GetModules(CancellationToken.None);
 
             Assert.Empty(modules);
         }
@@ -93,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var runtimeInfo = new KubernetesRuntimeInfoProvider(Namespace, client.Object);
             runtimeInfo.CreateOrUpdateAddPodInfo("edgeagent", pods["edgeagent"]);
 
-            var modules = await runtimeInfo.GetModules(new CancellationToken());
+            var modules = await runtimeInfo.GetModules(CancellationToken.None);
 
             var info = modules.Single();
             Assert.NotNull(info);
@@ -110,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             runtimeInfo.CreateOrUpdateAddPodInfo("edgehub", pods["edgehub"]);
             runtimeInfo.RemovePodInfo("edgeagent");
 
-            var modules = await runtimeInfo.GetModules(new CancellationToken());
+            var modules = await runtimeInfo.GetModules(CancellationToken.None);
 
             var info = modules.Single();
             Assert.NotNull(info);
@@ -127,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 runtimeInfo.CreateOrUpdateAddPodInfo(podName, pod);
             }
 
-            var modules = (await runtimeInfo.GetModules(new CancellationToken())).ToList();
+            var modules = (await runtimeInfo.GetModules(CancellationToken.None)).ToList();
 
             Assert.Equal(3, modules.Count);
             foreach (var module in modules)
@@ -164,7 +164,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 runtimeInfo.CreateOrUpdateAddPodInfo(podName, pod);
             }
 
-            var modules = (await runtimeInfo.GetModules(new CancellationToken())).ToList();
+            var modules = (await runtimeInfo.GetModules(CancellationToken.None)).ToList();
 
             Assert.Equal(3, modules.Count);
             foreach (var i in modules)
@@ -207,8 +207,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                         string name = default(string);
                         pod.Metadata.Labels?.TryGetValue(KubernetesConstants.K8sEdgeModuleLabel, out name);
                         return new { name, pod };
-                    }
-                )
+                    })
                 .Where(item => !string.IsNullOrEmpty(item.name))
                 .ToDictionary(item => item.name, item => item.pod);
         }

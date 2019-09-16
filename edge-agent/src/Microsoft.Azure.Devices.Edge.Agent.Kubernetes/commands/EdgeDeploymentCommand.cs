@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
     using Newtonsoft.Json.Linq;
     using Constants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
-    public class KubernetesCrdCommand : ICommand
+    public class EdgeDeploymentCommand : ICommand
     {
         readonly IKubernetes client;
         readonly List<IModule> modules;
@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
         // command.
         public string Id => this.id.Value;
 
-        public KubernetesCrdCommand(
+        public EdgeDeploymentCommand(
             string deviceNamespace,
             ResourceName resourceName,
             IKubernetes client,
@@ -82,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
                     var v1Secret = await currentSecret.Match(
                         async s =>
                         {
-                            if ((s.Data != null) && s.Data.TryGetValue(Constants.K8sPullSecretData, out byte[] pullSecretData) &&
+                            if (s.Data != null && s.Data.TryGetValue(Constants.K8sPullSecretData, out byte[] pullSecretData) &&
                                 pullSecretData.SequenceEqual(secretData[Constants.K8sPullSecretData]))
                             {
                                 return s;
@@ -117,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
                     })
                 .ToList();
 
-            // Modules may share an impage pull secret, so only pick unique ones to add to the dictionary.
+            // Modules may share an image pull secret, so only pick unique ones to add to the dictionary.
             Dictionary<string, ImagePullSecret> secrets = modulesList
                 .Select(module => module.Config.AuthConfig.Map(auth => new ImagePullSecret(auth)).OrDefault())
                 .Where(secret => secret != null)
@@ -129,10 +129,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
             try
             {
                 JObject currentDeployment = await this.client.GetNamespacedCustomObjectAsync(
-                    Constants.K8sCrdGroup,
-                    Constants.K8sApiVersion,
+                    Constants.EdgeDeployment.Group,
+                    Constants.EdgeDeployment.Version,
                     this.deviceNamespace,
-                    Constants.K8sCrdPlural,
+                    Constants.EdgeDeployment.Plural,
                     this.resourceName,
                     token) as JObject;
 
@@ -152,7 +152,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
             // need resourceVersion for Replace.
             activeDeployment.ForEach(deployment => metadata.ResourceVersion = deployment.Metadata.ResourceVersion);
 
-            var customObjectDefinition = new EdgeDeploymentDefinition(Constants.K8sMetaApiVersion, Constants.K8sCrdKind, metadata, modulesList);
+            var customObjectDefinition = new EdgeDeploymentDefinition(Constants.EdgeDeployment.ApiVersion, Constants.EdgeDeployment.Kind, metadata, modulesList);
             var crdObject = JObject.FromObject(customObjectDefinition, JsonSerializer.Create(this.serializerSettings));
 
             await activeDeployment.Match(
@@ -161,10 +161,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
                     Events.ReplaceEdgeDeployment(customObjectDefinition);
                     await this.client.ReplaceNamespacedCustomObjectWithHttpMessagesAsync(
                         crdObject,
-                        Constants.K8sCrdGroup,
-                        Constants.K8sApiVersion,
+                        Constants.EdgeDeployment.Group,
+                        Constants.EdgeDeployment.Version,
                         this.deviceNamespace,
-                        Constants.K8sCrdPlural,
+                        Constants.EdgeDeployment.Version,
                         this.resourceName,
                         cancellationToken: token);
                 },
@@ -173,10 +173,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
                     Events.CreateEdgeDeployment(customObjectDefinition);
                     await this.client.CreateNamespacedCustomObjectWithHttpMessagesAsync(
                         crdObject,
-                        Constants.K8sCrdGroup,
-                        Constants.K8sApiVersion,
+                        Constants.EdgeDeployment.Group,
+                        Constants.EdgeDeployment.Version,
                         this.deviceNamespace,
-                        Constants.K8sCrdPlural,
+                        Constants.EdgeDeployment.Plural,
                         cancellationToken: token);
                 });
         }
@@ -189,7 +189,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
         public string Show()
         {
             IEnumerable<string> commandDescriptions = this.modules.Select(m => $"[{m.Name}]");
-            return $"Create a CRD with modules: (\n  {string.Join("\n  ", commandDescriptions)}\n)";
+            return $"Create an EdgeDeployment with modules: (\n  {string.Join("\n  ", commandDescriptions)}\n)";
         }
 
         public override string ToString() => this.Show();
@@ -197,7 +197,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
         static class Events
         {
             const int IdStart = KubernetesEventIds.KubernetesCommand;
-            static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesCrdCommand>();
+            static readonly ILogger Log = Logger.Factory.CreateLogger<EdgeDeploymentCommand>();
 
             enum EventIds
             {

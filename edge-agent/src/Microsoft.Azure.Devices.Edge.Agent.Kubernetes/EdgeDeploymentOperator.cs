@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public void Dispose() => this.Stop();
 
         void StartListEdgeDeployments() =>
-            this.client.ListNamespacedCustomObjectWithHttpMessagesAsync(Constants.K8sCrdGroup, Constants.K8sApiVersion, this.deviceNamespace, Constants.K8sCrdPlural, watch: true)
+            this.client.ListNamespacedCustomObjectWithHttpMessagesAsync(Constants.EdgeDeployment.Group, Constants.EdgeDeployment.Version, this.deviceNamespace, Constants.EdgeDeployment.Plural, watch: true)
                 .ContinueWith(this.OnListEdgeDeploymentsCompleted);
 
         async Task OnListEdgeDeploymentsCompleted(Task<HttpOperationResponse<object>> task)

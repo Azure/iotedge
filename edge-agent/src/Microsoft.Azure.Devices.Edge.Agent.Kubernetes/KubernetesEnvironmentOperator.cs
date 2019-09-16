@@ -94,6 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     {
                         Events.PodStatusRemoveError(podName);
                     }
+
                     break;
 
                 default:

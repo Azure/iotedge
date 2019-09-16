@@ -80,8 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                         string name = default(string);
                         pod.Metadata.Labels?.TryGetValue(KubernetesConstants.K8sEdgeModuleLabel, out name);
                         return new { name, pod };
-                    }
-                )
+                    })
                 .Where(item => !string.IsNullOrEmpty(item.name))
                 .ToDictionary(item => item.name, item => item.pod);
         }

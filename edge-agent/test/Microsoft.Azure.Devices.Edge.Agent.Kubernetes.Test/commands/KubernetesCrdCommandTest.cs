@@ -40,12 +40,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
             IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             KubernetesModule km1 = new KubernetesModule(m1 as IModule<DockerConfig>, config);
             KubernetesModule[] modules = { km1 };
-            Assert.Throws<ArgumentException>(() => new KubernetesCrdCommand(null, ResourceName, DefaultClient, modules, Runtime, DefaultConfigProvider));
-            Assert.Throws<ArgumentException>(() => new KubernetesCrdCommand(null, null, DefaultClient, modules, Runtime, DefaultConfigProvider));
-            Assert.Throws<ArgumentNullException>(() => new KubernetesCrdCommand(Namespace, ResourceName, null, modules, Runtime, DefaultConfigProvider));
-            Assert.Throws<ArgumentNullException>(() => new KubernetesCrdCommand(Namespace, ResourceName, DefaultClient, null, Runtime, DefaultConfigProvider));
-            Assert.Throws<ArgumentNullException>(() => new KubernetesCrdCommand(Namespace, ResourceName, DefaultClient, modules, Runtime, null));
-            Assert.Throws<ArgumentException>(() => new KubernetesCrdCommand(null, ResourceName, DefaultClient, modules, Runtime, DefaultConfigProvider));
+            Assert.Throws<ArgumentException>(() => new EdgeDeploymentCommand(null, ResourceName, DefaultClient, modules, Runtime, DefaultConfigProvider));
+            Assert.Throws<ArgumentException>(() => new EdgeDeploymentCommand(null, null, DefaultClient, modules, Runtime, DefaultConfigProvider));
+            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, null, modules, Runtime, DefaultConfigProvider));
+            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, DefaultClient, null, Runtime, DefaultConfigProvider));
+            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, DefaultClient, modules, Runtime, null));
+            Assert.Throws<ArgumentException>(() => new EdgeDeploymentCommand(null, ResourceName, DefaultClient, modules, Runtime, DefaultConfigProvider));
         }
 
         [Fact]
@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                         {
                             getSecretCalled = true;
                         }
-                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.K8sCrdPlural}"))
+                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.EdgeDeployment.Plural}"))
                         {
                             getCrdCalled = true;
                         }
@@ -91,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                         {
                             postSecretCalled = true;
                         }
-                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.K8sCrdPlural}"))
+                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.EdgeDeployment.Plural}"))
                         {
                             postCrdCalled = true;
                         }
@@ -103,9 +103,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                 var client = new Kubernetes(
                     new KubernetesClientConfiguration
                     {
-                        Host = server.Uri.ToString()
+                        Host = server.Uri
                     });
-                var cmd = new KubernetesCrdCommand(Namespace, ResourceName, client, modules, Runtime, configProvider.Object);
+                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, modules, Runtime, configProvider.Object);
                 await cmd.ExecuteAsync(token);
                 Assert.True(getSecretCalled, nameof(getSecretCalled));
                 Assert.True(postSecretCalled, nameof(postSecretCalled));
@@ -119,7 +119,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
         public async void CrdCommandExecuteWithAuthReplaceObjects()
         {
             CombinedDockerConfig config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
-            string metaApiVersion = Constants.K8sApi + "/" + Constants.K8sApiVersion;
             string secretName = "username-docker.io";
             var secretData = new Dictionary<string, byte[]> { [Constants.K8sPullSecretData] = Encoding.UTF8.GetBytes("Invalid Secret Data") };
             var secretMeta = new V1ObjectMeta(name: secretName, namespaceProperty: Namespace);
@@ -131,7 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
             var configProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
             configProvider.Setup(cp => cp.GetCombinedConfig(km1, Runtime)).Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(auth)));
             var existingSecret = new V1Secret("v1", secretData, type: Constants.K8sPullSecretType, kind: "Secret", metadata: secretMeta);
-            var existingDeployment = new EdgeDeploymentDefinition(metaApiVersion, Constants.K8sCrdKind, new V1ObjectMeta(name: ResourceName), new List<KubernetesModule>());
+            var existingDeployment = new EdgeDeploymentDefinition(Constants.EdgeDeployment.ApiVersion, Constants.EdgeDeployment.Kind, new V1ObjectMeta(name: ResourceName), new List<KubernetesModule>());
             bool getSecretCalled = false;
             bool putSecretCalled = false;
             bool getCrdCalled = false;
@@ -150,7 +149,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                             getSecretCalled = true;
                             await httpContext.Response.Body.WriteAsync(JsonConvert.SerializeObject(existingSecret).ToBody(), token);
                         }
-                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.K8sCrdPlural}/{ResourceName}"))
+                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.EdgeDeployment.Plural}/{ResourceName}"))
                         {
                             getCrdCalled = true;
                             await httpContext.Response.Body.WriteAsync(JsonConvert.SerializeObject(existingDeployment).ToBody(), token);
@@ -163,7 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                         {
                             putSecretCalled = true;
                         }
-                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.K8sCrdPlural}/{ResourceName}"))
+                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.EdgeDeployment.Plural}/{ResourceName}"))
                         {
                             putCrdCalled = true;
                         }
@@ -175,9 +174,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                 var client = new Kubernetes(
                     new KubernetesClientConfiguration
                     {
-                        Host = server.Uri.ToString()
+                        Host = server.Uri
                     });
-                var cmd = new KubernetesCrdCommand(Namespace, ResourceName, client, modules, Runtime, configProvider.Object);
+                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, modules, Runtime, configProvider.Object);
                 await cmd.ExecuteAsync(token);
                 Assert.True(getSecretCalled, nameof(getSecretCalled));
                 Assert.True(putSecretCalled, nameof(putSecretCalled));
@@ -231,7 +230,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                                 httpContext.Response.Body = secretBody;
                             }
                         }
-                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.K8sCrdPlural}/{ResourceName}"))
+                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.EdgeDeployment.Plural}/{ResourceName}"))
                         {
                             getCrdCalled = true;
                             httpContext.Response.StatusCode = 404;
@@ -246,7 +245,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                             postSecretCalled++;
                             secretBody = httpContext.Request.Body; // save this for next query.
                         }
-                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.K8sCrdPlural}"))
+                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.EdgeDeployment.Plural}"))
                         {
                             postCrdCalled++;
                         }
@@ -258,7 +257,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                         {
                             putSecretCalled = true;
                         }
-                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.K8sCrdPlural}"))
+                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.EdgeDeployment.Plural}"))
                         {
                             putCrdCalled = true;
                         }
@@ -272,7 +271,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                     {
                         Host = server.Uri.ToString()
                     });
-                var cmd = new KubernetesCrdCommand(Namespace, ResourceName, client, modules, Runtime, configProvider.Object);
+                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, modules, Runtime, configProvider.Object);
                 await cmd.ExecuteAsync(token);
                 Assert.True(getSecretCalled, nameof(getSecretCalled));
                 Assert.Equal(1, postSecretCalled);
