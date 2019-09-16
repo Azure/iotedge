@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using Microsoft.Extensions.Logging;
     using Microsoft.Rest;
 
+    // TODO add unit tests
     public class EdgeDeploymentOperator : IKubernetesOperator
     {
         readonly IKubernetes client;
@@ -27,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             IEdgeDeploymentController controller)
         {
             this.deviceNamespace = Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace));
-            this.resourceName = resourceName;
+            this.resourceName = Preconditions.CheckNotNull(resourceName, nameof(resourceName));
 
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.operatorWatch = Option.None<Watcher<EdgeDeploymentDefinition>>();

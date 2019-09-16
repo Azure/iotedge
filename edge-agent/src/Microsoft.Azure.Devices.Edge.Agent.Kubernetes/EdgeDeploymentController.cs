@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
     using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
 
+    // TODO add unit tests
     public class EdgeDeploymentController : IEdgeDeploymentController
     {
         const string EdgeHubHostname = "edgehub";

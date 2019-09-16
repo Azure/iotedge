@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
             ICombinedConfigProvider<CombinedDockerConfig> combinedConfigProvider)
         {
             this.deviceNamespace = KubeUtils.SanitizeK8sValue(Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace)));
-            this.resourceName = resourceName;
+            this.resourceName = Preconditions.CheckNotNull(resourceName, nameof(resourceName));
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.modules = Preconditions.CheckNotNull(modules, nameof(modules)).ToList();
             this.runtimeInfo = Preconditions.CheckNotNull(runtimeInfo, nameof(runtimeInfo));

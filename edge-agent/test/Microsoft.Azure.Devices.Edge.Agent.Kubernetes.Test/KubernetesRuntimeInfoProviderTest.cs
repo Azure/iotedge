@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     [Unit]
     public class KubernetesRuntimeInfoProviderTest
     {
-        const string Ns = "msiot-dwr-hub-dwr-ha3";
+        const string Namespace = "msiot-dwr-hub-dwr-ha3";
 
         public static IEnumerable<object[]> SystemResponseData()
         {
@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var client = new Mock<IKubernetes>(MockBehavior.Strict);
 
             Assert.Throws<ArgumentException>(() => new KubernetesRuntimeInfoProvider(null, null));
-            Assert.Throws<ArgumentNullException>(() => new KubernetesRuntimeInfoProvider(Ns, null));
+            Assert.Throws<ArgumentNullException>(() => new KubernetesRuntimeInfoProvider(Namespace, null));
             Assert.Throws<ArgumentException>(() => new KubernetesRuntimeInfoProvider(null, client.Object));
         }
 
@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var response = new HttpOperationResponse<Stream> { Request = new System.Net.Http.HttpRequestMessage(), Body = new MemoryStream(logs) };
             var client = new Mock<IKubernetes>(MockBehavior.Strict);
             client.Setup(kc => kc.ReadNamespacedPodLogWithHttpMessagesAsync(It.IsAny<string>(), It.IsAny<string>(), null, true, null, null, null, null, null, null, null, It.IsAny<CancellationToken>())).ReturnsAsync(() => response);
-            var runtimeInfo = new KubernetesRuntimeInfoProvider(Ns, client.Object);
+            var runtimeInfo = new KubernetesRuntimeInfoProvider(Namespace, client.Object);
 
             var result = await runtimeInfo.GetModuleLogs("module", true, Option.None<int>(), Option.None<int>(), CancellationToken.None);
 
@@ -64,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         {
             var response = new HttpOperationResponse<V1NodeList> { Body = nodes };
             var client = new Mock<IKubernetes>(MockBehavior.Strict);
-            var runtimeInfo = new KubernetesRuntimeInfoProvider(Ns, client.Object);
+            var runtimeInfo = new KubernetesRuntimeInfoProvider(Namespace, client.Object);
 
             var result = await runtimeInfo.GetSystemInfo();
 
@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         public async Task ReturnsEmptyModulesWhenNoDataAvailable()
         {
             var client = new Mock<IKubernetes>(MockBehavior.Strict);
-            var runtimeInfo = new KubernetesRuntimeInfoProvider(Ns, client.Object);
+            var runtimeInfo = new KubernetesRuntimeInfoProvider(Namespace, client.Object);
 
             var modules = await runtimeInfo.GetModules(new CancellationToken());
 
@@ -90,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         {
             Dictionary<string, V1Pod> pods = BuildPodList();
             var client = new Mock<IKubernetes>(MockBehavior.Strict);
-            var runtimeInfo = new KubernetesRuntimeInfoProvider(Ns, client.Object);
+            var runtimeInfo = new KubernetesRuntimeInfoProvider(Namespace, client.Object);
             runtimeInfo.CreateOrUpdateAddPodInfo("edgeagent", pods["edgeagent"]);
 
             var modules = await runtimeInfo.GetModules(new CancellationToken());
@@ -105,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         {
             Dictionary<string, V1Pod> pods = BuildPodList();
             var client = new Mock<IKubernetes>(MockBehavior.Strict);
-            var runtimeInfo = new KubernetesRuntimeInfoProvider(Ns, client.Object);
+            var runtimeInfo = new KubernetesRuntimeInfoProvider(Namespace, client.Object);
             runtimeInfo.CreateOrUpdateAddPodInfo("edgeagent", pods["edgeagent"]);
             runtimeInfo.CreateOrUpdateAddPodInfo("edgehub", pods["edgehub"]);
             runtimeInfo.RemovePodInfo("edgeagent");
@@ -121,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         public async Task ConvertsPodsToModules()
         {
             var client = new Mock<IKubernetes>(MockBehavior.Strict);
-            var runtimeInfo = new KubernetesRuntimeInfoProvider(Ns, client.Object);
+            var runtimeInfo = new KubernetesRuntimeInfoProvider(Namespace, client.Object);
             foreach ((string podName, var pod) in BuildPodList())
             {
                 runtimeInfo.CreateOrUpdateAddPodInfo(podName, pod);
@@ -147,7 +147,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         public async Task ReturnsLastKnowModuleState()
         {
             var client = new Mock<IKubernetes>(MockBehavior.Strict);
-            var runtimeInfo = new KubernetesRuntimeInfoProvider(Ns, client.Object);
+            var runtimeInfo = new KubernetesRuntimeInfoProvider(Namespace, client.Object);
             foreach ((string podName, var pod) in BuildPodList())
             {
                 runtimeInfo.CreateOrUpdateAddPodInfo(podName, pod);

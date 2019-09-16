@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     [Unit]
     public class KubernetesEnvironmentOperatorTest
     {
-        const string Ns = "msiot-dwr-hub-dwr-ha3";
+        const string Namespace = "msiot-dwr-hub-dwr-ha3";
 
         static readonly TimeSpan TestTimeout = TimeSpan.FromSeconds(150);
 
@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 var client = new Kubernetes(new KubernetesClientConfiguration { Host = server.Uri });
 
                 var collector = new RuntimeInfoCollector(requestHandled);
-                var environment = new KubernetesEnvironmentOperator(Ns, collector, client);
+                var environment = new KubernetesEnvironmentOperator(Namespace, collector, client);
 
                 environment.Start();
 
@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 var client = new Kubernetes(new KubernetesClientConfiguration { Host = server.Uri });
 
                 var collector = new RuntimeInfoCollector(requestHandled);
-                var environment = new KubernetesEnvironmentOperator(Ns, collector, client);
+                var environment = new KubernetesEnvironmentOperator(Namespace, collector, client);
 
                 environment.Start();
 

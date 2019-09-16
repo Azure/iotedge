@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
             ICommandFactory commandFactory,
             ICombinedConfigProvider<CombinedDockerConfig> combinedConfigProvider)
         {
-            this.resourceName = resourceName;
+            this.resourceName = Preconditions.CheckNotNull(resourceName, nameof(resourceName));
             this.deviceNamespace = Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace));
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.commandFactory = Preconditions.CheckNotNull(commandFactory, nameof(commandFactory));

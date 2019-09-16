@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
 
     public class KubernetesCrdCommandTest
     {
-        const string Ns = "namespace";
+        const string Namespace = "namespace";
         static readonly ResourceName ResourceName = new ResourceName("hostname", "deviceId");
         static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>();
         static readonly DockerConfig Config1 = new DockerConfig("test-image:1");
@@ -34,12 +34,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
 
         [Fact]
         [Unit]
-        public void CrdCommandCreateValidation()
+        public void ConstructorThrowsOnInvalidParams()
         {
             CombinedDockerConfig config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
             IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             KubernetesModule km1 = new KubernetesModule(m1 as IModule<DockerConfig>, config);
             KubernetesModule[] modules = { km1 };
+            Assert.Throws<ArgumentException>(() => new KubernetesCrdCommand(null, ResourceName, DefaultClient, modules, Runtime, DefaultConfigProvider));
+            Assert.Throws<ArgumentException>(() => new KubernetesCrdCommand(null, null, DefaultClient, modules, Runtime, DefaultConfigProvider));
+            Assert.Throws<ArgumentNullException>(() => new KubernetesCrdCommand(Namespace, ResourceName, null, modules, Runtime, DefaultConfigProvider));
+            Assert.Throws<ArgumentNullException>(() => new KubernetesCrdCommand(Namespace, ResourceName, DefaultClient, null, Runtime, DefaultConfigProvider));
+            Assert.Throws<ArgumentNullException>(() => new KubernetesCrdCommand(Namespace, ResourceName, DefaultClient, modules, Runtime, null));
             Assert.Throws<ArgumentException>(() => new KubernetesCrdCommand(null, ResourceName, DefaultClient, modules, Runtime, DefaultConfigProvider));
         }
 
@@ -69,11 +74,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                     if (string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase))
                     {
                         httpContext.Response.StatusCode = 404;
-                        if (pathStr.Contains($"api/v1/namespaces/{Ns}/secrets"))
+                        if (pathStr.Contains($"api/v1/namespaces/{Namespace}/secrets"))
                         {
                             getSecretCalled = true;
                         }
-                        else if (pathStr.Contains($"namespaces/{Ns}/{Constants.K8sCrdPlural}"))
+                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.K8sCrdPlural}"))
                         {
                             getCrdCalled = true;
                         }
@@ -82,11 +87,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                     {
                         httpContext.Response.StatusCode = 201;
                         httpContext.Response.Body = httpContext.Request.Body;
-                        if (pathStr.Contains($"api/v1/namespaces/{Ns}/secrets"))
+                        if (pathStr.Contains($"api/v1/namespaces/{Namespace}/secrets"))
                         {
                             postSecretCalled = true;
                         }
-                        else if (pathStr.Contains($"namespaces/{Ns}/{Constants.K8sCrdPlural}"))
+                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.K8sCrdPlural}"))
                         {
                             postCrdCalled = true;
                         }
@@ -100,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                     {
                         Host = server.Uri.ToString()
                     });
-                var cmd = new KubernetesCrdCommand(Ns, ResourceName, client, modules, Runtime, configProvider.Object);
+                var cmd = new KubernetesCrdCommand(Namespace, ResourceName, client, modules, Runtime, configProvider.Object);
                 await cmd.ExecuteAsync(token);
                 Assert.True(getSecretCalled, nameof(getSecretCalled));
                 Assert.True(postSecretCalled, nameof(postSecretCalled));
@@ -117,7 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
             string metaApiVersion = Constants.K8sApi + "/" + Constants.K8sApiVersion;
             string secretName = "username-docker.io";
             var secretData = new Dictionary<string, byte[]> { [Constants.K8sPullSecretData] = Encoding.UTF8.GetBytes("Invalid Secret Data") };
-            var secretMeta = new V1ObjectMeta(name: secretName, namespaceProperty: Ns);
+            var secretMeta = new V1ObjectMeta(name: secretName, namespaceProperty: Namespace);
             IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             var km1 = new KubernetesModule((IModule<DockerConfig>)m1, config);
             KubernetesModule[] modules = { km1 };
@@ -140,12 +145,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                     string method = httpContext.Request.Method;
                     if (string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase))
                     {
-                        if (pathStr.Contains($"api/v1/namespaces/{Ns}/secrets/{secretName}"))
+                        if (pathStr.Contains($"api/v1/namespaces/{Namespace}/secrets/{secretName}"))
                         {
                             getSecretCalled = true;
                             await httpContext.Response.Body.WriteAsync(JsonConvert.SerializeObject(existingSecret).ToBody(), token);
                         }
-                        else if (pathStr.Contains($"namespaces/{Ns}/{Constants.K8sCrdPlural}/{ResourceName}"))
+                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.K8sCrdPlural}/{ResourceName}"))
                         {
                             getCrdCalled = true;
                             await httpContext.Response.Body.WriteAsync(JsonConvert.SerializeObject(existingDeployment).ToBody(), token);
@@ -154,11 +159,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                     else if (string.Equals(method, "PUT", StringComparison.OrdinalIgnoreCase))
                     {
                         httpContext.Response.Body = httpContext.Request.Body;
-                        if (pathStr.Contains($"api/v1/namespaces/{Ns}/secrets/{secretName}"))
+                        if (pathStr.Contains($"api/v1/namespaces/{Namespace}/secrets/{secretName}"))
                         {
                             putSecretCalled = true;
                         }
-                        else if (pathStr.Contains($"namespaces/{Ns}/{Constants.K8sCrdPlural}/{ResourceName}"))
+                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.K8sCrdPlural}/{ResourceName}"))
                         {
                             putCrdCalled = true;
                         }
@@ -172,7 +177,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                     {
                         Host = server.Uri.ToString()
                     });
-                var cmd = new KubernetesCrdCommand(Ns, ResourceName, client, modules, Runtime, configProvider.Object);
+                var cmd = new KubernetesCrdCommand(Namespace, ResourceName, client, modules, Runtime, configProvider.Object);
                 await cmd.ExecuteAsync(token);
                 Assert.True(getSecretCalled, nameof(getSecretCalled));
                 Assert.True(putSecretCalled, nameof(putSecretCalled));
@@ -212,7 +217,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                     string method = httpContext.Request.Method;
                     if (string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase))
                     {
-                        if (pathStr.Contains($"api/v1/namespaces/{Ns}/secrets/{secretName}"))
+                        if (pathStr.Contains($"api/v1/namespaces/{Namespace}/secrets/{secretName}"))
                         {
                             if (secretBody == Stream.Null)
                             {
@@ -226,7 +231,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                                 httpContext.Response.Body = secretBody;
                             }
                         }
-                        else if (pathStr.Contains($"namespaces/{Ns}/{Constants.K8sCrdPlural}/{ResourceName}"))
+                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.K8sCrdPlural}/{ResourceName}"))
                         {
                             getCrdCalled = true;
                             httpContext.Response.StatusCode = 404;
@@ -236,12 +241,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                     {
                         httpContext.Response.StatusCode = 201;
                         httpContext.Response.Body = httpContext.Request.Body;
-                        if (pathStr.Contains($"api/v1/namespaces/{Ns}/secrets"))
+                        if (pathStr.Contains($"api/v1/namespaces/{Namespace}/secrets"))
                         {
                             postSecretCalled++;
                             secretBody = httpContext.Request.Body; // save this for next query.
                         }
-                        else if (pathStr.Contains($"namespaces/{Ns}/{Constants.K8sCrdPlural}"))
+                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.K8sCrdPlural}"))
                         {
                             postCrdCalled++;
                         }
@@ -249,11 +254,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                     else if (string.Equals(method, "PUT", StringComparison.OrdinalIgnoreCase))
                     {
                         httpContext.Response.Body = httpContext.Request.Body;
-                        if (pathStr.Contains($"api/v1/namespaces/{Ns}/secrets"))
+                        if (pathStr.Contains($"api/v1/namespaces/{Namespace}/secrets"))
                         {
                             putSecretCalled = true;
                         }
-                        else if (pathStr.Contains($"namespaces/{Ns}/{Constants.K8sCrdPlural}"))
+                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.K8sCrdPlural}"))
                         {
                             putCrdCalled = true;
                         }
@@ -267,7 +272,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                     {
                         Host = server.Uri.ToString()
                     });
-                var cmd = new KubernetesCrdCommand(Ns, ResourceName, client, modules, Runtime, configProvider.Object);
+                var cmd = new KubernetesCrdCommand(Namespace, ResourceName, client, modules, Runtime, configProvider.Object);
                 await cmd.ExecuteAsync(token);
                 Assert.True(getSecretCalled, nameof(getSecretCalled));
                 Assert.Equal(1, postSecretCalled);
