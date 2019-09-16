@@ -110,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         static class Events
         {
             const int IdStart = KubernetesEventIds.KubernetesServiceBuilder;
-            private static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesServiceBuilder>();
+            static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesServiceBuilder>();
 
             enum EventIds
             {

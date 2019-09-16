@@ -12,12 +12,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes;
     using Microsoft.Azure.Devices.Edge.Agent.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
-
+    using Constants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
     using K8sConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
+    using KubernetesModule = Microsoft.Azure.Devices.Edge.Agent.Service.Modules.KubernetesModule;
 
     public class Program
     {
@@ -154,13 +156,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         string proxyTrustBundleConfigMapName = configuration.GetValue<string>(Constants.ProxyTrustBundleConfigMapEnvKey);
                         Kubernetes.PortMapServiceType mappedServiceDefault = GetDefaultServiceType(configuration);
                         bool enableServiceCallTracing = configuration.GetValue<bool>(K8sConstants.EnableK8sServiceCallTracingName);
-                        string k8sNamespace = configuration.GetValue<string>(K8sConstants.K8sNamespaceKey);
+                        string deviceNamespace = configuration.GetValue<string>(K8sConstants.K8sNamespaceKey);
 
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId)));
                         builder.RegisterModule(new KubernetesModule(
                             iothubHostname,
-                            edgeDeviceHostName,
                             deviceId,
+                            edgeDeviceHostName,
                             proxyImage,
                             proxyConfigPath,
                             proxyConfigVolumeName,
@@ -169,7 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                             proxyTrustBundleVolumeName,
                             proxyTrustBundleConfigMapName,
                             apiVersion,
-                            k8sNamespace,
+                            deviceNamespace,
                             new Uri(managementUri),
                             new Uri(workloadUri),
                             dockerAuthConfig,
@@ -225,16 +227,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             // TODO move this code to Agent
             if (mode.ToLowerInvariant().Equals(Constants.KubernetesMode))
             {
-                // Start the runtime info provider
-                IRuntimeInfoProvider edgeOperator = await container.Resolve<Task<IRuntimeInfoProvider>>();
-                if (edgeOperator is Kubernetes.IKubernetesOperator kubernetesOperator)
-                {
-                    kubernetesOperator.Start();
-                }
+                // Start environment operator
+                IKubernetesEnvironmentOperator environmentOperator = container.Resolve<IKubernetesEnvironmentOperator>();
+                environmentOperator.Start();
 
-                // Start the crdwatch
-                Kubernetes.IKubernetesOperator crdWatch = await container.Resolve<Task<Kubernetes.IKubernetesOperator>>();
-                crdWatch.Start();
+                // Start the edge deployment operator
+                IEdgeDeploymentOperator edgeDeploymentOperator = container.Resolve<IEdgeDeploymentOperator>();
+                edgeDeploymentOperator.Start();
             }
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)

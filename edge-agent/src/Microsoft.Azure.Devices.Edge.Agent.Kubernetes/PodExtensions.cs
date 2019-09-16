@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         {
             Option<V1ContainerStatus> containerStatus = GetContainerByName(name, pod);
             ReportedModuleStatus moduleStatus = ConvertPodStatusToModuleStatus(containerStatus);
-            RuntimeData runtimeData = GetRuntimedata(containerStatus.OrDefault());
+            RuntimeData runtimeData = GetRuntimeData(containerStatus.OrDefault());
 
             string moduleName = string.Empty;
             if (!(pod.Metadata?.Annotations?.TryGetValue(Constants.K8sEdgeOriginalModuleId, out moduleName) ?? false))
@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 reportedConfig);
         }
 
-        private static Option<V1ContainerStatus> GetContainerByName(string name, V1Pod pod)
+        static Option<V1ContainerStatus> GetContainerByName(string name, V1Pod pod)
         {
             string containerName = KubeUtils.SanitizeDNSValue(name);
             V1ContainerStatus status = pod.Status?.ContainerStatuses?
@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             return Option.Maybe(status);
         }
 
-        private static ReportedModuleStatus ConvertPodStatusToModuleStatus(Option<V1ContainerStatus> podStatus)
+        static ReportedModuleStatus ConvertPodStatusToModuleStatus(Option<V1ContainerStatus> podStatus)
         {
             return podStatus.Map(
                 pod =>
@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 }).GetOrElse(() => new ReportedModuleStatus(ModuleStatus.Unknown, "Unknown"));
         }
 
-        private static RuntimeData GetRuntimedata(V1ContainerStatus status)
+        static RuntimeData GetRuntimeData(V1ContainerStatus status)
         {
             string imageName = "unknown:unknown";
             if (status?.Image != null)
@@ -86,17 +86,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             }
             else if (status?.State?.Terminated != null)
             {
-                return GetTerminatedRuntimedata(status.State.Terminated, imageName);
+                return GetTerminatedRuntimeData(status.State.Terminated, imageName);
             }
             else if (status?.LastState?.Terminated != null)
             {
-                return GetTerminatedRuntimedata(status.LastState.Terminated, imageName);
+                return GetTerminatedRuntimeData(status.LastState.Terminated, imageName);
             }
 
             return new RuntimeData(0, Option.None<DateTime>(), Option.None<DateTime>(), imageName);
         }
 
-        private static RuntimeData GetTerminatedRuntimedata(V1ContainerStateTerminated term, string imageName)
+        static RuntimeData GetTerminatedRuntimeData(V1ContainerStateTerminated term, string imageName)
         {
             if (term.StartedAt.HasValue &&
                 term.FinishedAt.HasValue)

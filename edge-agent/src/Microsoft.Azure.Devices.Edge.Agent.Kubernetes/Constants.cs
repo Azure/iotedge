@@ -4,21 +4,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
     public static class Constants
     {
-        public const string K8sMetaApiVersion = K8sApi + "/" + K8sApiVersion;
+        public static class EdgeDeployment
+        {
+            public const string ApiVersion = Api + "/" + Version;
 
-        public const string K8sApi = "microsoft.azure.devices.edge";
+            public const string Api = "microsoft.azure.devices.edge";
 
-        public const string K8sApiVersion = "v1";
+            public const string Version = "v1";
 
-        public const string K8sCrdKind = "EdgeDeployment";
+            public const string Kind = "EdgeDeployment";
 
-        public const string K8sCrdGroup = "microsoft.azure.devices.edge";
+            public const string Group = "microsoft.azure.devices.edge";
 
-        public const string K8sCrdPlural = "edgedeployments";
-
-        public const string K8sNamespace = "microsoft-azure-devices-edge";
-
-        public const string K8sNamespaceBaseName = "K8sNamespaceBaseName";
+            public const string Plural = "edgedeployments";
+        }
 
         public const string K8sEdgeModuleLabel = "net.azure-devices.edge.module";
 
@@ -35,12 +34,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public const string K8sPullSecretType = "kubernetes.io/dockerconfigjson";
 
         public const string K8sPullSecretData = ".dockerconfigjson";
-
-        public const string ProxyImage = "darobs/envoy:0.1";
-
-        public const string AgentConfigMap = "edgeagentconfigmap";
-
-        public const string ModuleConfigMap = "moduleconfigmap";
 
         public const string PortMappingServiceType = "PortMappingServiceType";
 
