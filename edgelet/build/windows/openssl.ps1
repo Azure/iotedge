@@ -60,7 +60,7 @@ function Get-OpenSSL
     else
     {
         # for local installation, set the env variable within the USER scope
-        Write-Host "Local installation detected" 
+        Write-Host "Local installation detected"
         [System.Environment]::SetEnvironmentVariable("OPENSSL_ROOT_DIR", "$env:HOMEDRIVE\vcpkg\installed\$(if ($Arm) { 'arm' } else { 'x64' })-windows", [System.EnvironmentVariableTarget]::User)
         [System.Environment]::SetEnvironmentVariable("OPENSSL_DIR", "$env:HOMEDRIVE\vcpkg\installed\$(if ($Arm) { 'arm' } else { 'x64' })-windows", [System.EnvironmentVariableTarget]::User)
     }
