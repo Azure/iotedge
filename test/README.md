@@ -1,22 +1,14 @@
 # How to run the end-to-end tests
 
 ## Software Dependency
-Since an IoT Edge device is reposible for running Long Hault(LH) and End-to-End (E2E) tests; hence,
-the software requirements to run a test is the combination of IoTEdge and test build.
-* For IoTEdge
-    * Moby Engine
-    * Moby CLI
-    * iotedge
-    * libiothsm-std
+Since an IoT Edge device is responsible for running end-to-end (E2E) tests; hence,
+the software requirements to run a test is the combination of IoT Edge and test build.
 * For Building Tests
     * .NET Core SDK
-    * Azure CLI (Optional)
 
 ## Test parameters
 
 The end-to-end tests take several parameters, which they expect to find in a file named `context.json` in the same directory as the test binaries (e.g., `test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp2.1/context.json`). Parameter names are case-insensitive. The parameters are:
-
-_Note: the directory does not exist upon cloning. A user can manually `mkdir` for the path or run a test to have it generate the directory hierarchy -- (though the initial test will complain that `context.json` is not found)._
 
 | Name | Required | Description |
 |------|----------|-------------|
@@ -41,8 +33,6 @@ _Note: the directory does not exist upon cloning. A user can manually `mkdir` fo
 | `testTimeoutMinutes` || The maximum amount of time, in minutes, a single test should take. If this time is exceeded, the associated test will fail with a timeout error. If not given, the default value is `5`. |
 | `verbose` || Boolean value indicating whether to output more verbose logging information to standard output during a test run. If not given, the default is `false`. |
 
-_Note: the `\` requires a `\` escape -- especially for a Window path (i.e. `C:\\Users\\foo` )_
-
 ## Test secrets
 
 The tests also expect to find several _secret_ parameters. While these can technically be added to `context.json`, it is recommended that you create environment variables and make them available to the test framework in a way that avoids committing them to your shell's command history or saving them in clear text on your filesystem. When set as environment variables, all secret parameters must be prefixed with `E2E_`. Parameter names are case-insensitive; they're only shown in uppercase here so they follow the common convention for environment variables, and to stand out as secrets.
@@ -60,7 +50,7 @@ _Note: the definitive source for information about test parameters is `test/Micr
 
 With the test parameters and secrets in place, you can run all the end-to-end tests from the command line
 
-_In Window Command Prompt (Admin),_
+_In Windows Command Prompt (Admin),_
 
 ```cmd
 cd {repo root}
@@ -72,25 +62,11 @@ cd {repo root}
 sudo --preserve-env dotnet test ./test/Microsoft.Azure.Devices.Edge.Test 
 ```
 
-If you wish to run a specific test of end-to-end tests, you can append to your base command: 
-```
---filter Name~<YOUR_TEST_NAME> 
-```
-where * <YOUR_TEST_NAME> * is the name of the test
+For more details please refer to NUnit document: 
+https://docs.microsoft.com/en-us/dotnet/core/testing/selective-unit-tests#nunit
 
 ## Troubleshooting
 
 If you are using a VSCode in Linux, it is recommend that you increase the maximum number of file I/O to prevent a test from erroring out by hitting the limit. To increase the file I/O capacity:
-```bash
-sudo nano /etc/sysctl.conf
-```
-Insert the following text:
-```
-fs.inotify.max_user_watches=1638400
-fs.inotify.max_user_instances=1638400
-```
-Verify the command has been added:
-```bash
-sudo sysctl -p
-```
+https://code.visualstudio.com/docs/setup/linux#_visual-studio-code-is-unable-to-watch-for-file-changes-in-this-large-workspace-error-enospc
 
