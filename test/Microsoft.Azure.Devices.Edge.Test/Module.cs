@@ -12,11 +12,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
     public class Module : RuntimeFixture
     {
+        protected const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
+
         [Test]
         public async Task TempSensor()
         {
-            const string DefaultImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
-            string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultImage);
+            string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
 
             CancellationToken token = this.cts.Token;
 
@@ -58,7 +59,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task TempFilter()
         {
-            const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
             string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
             string filterImage = Context.Current.TempFilterImage.Expect(() => new ArgumentException());
 
