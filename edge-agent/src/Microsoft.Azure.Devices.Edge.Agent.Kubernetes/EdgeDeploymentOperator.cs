@@ -65,21 +65,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         }
                         catch (Exception ex) when (!ex.IsFatal())
                         {
-                            Events.ExceptionInCustomResourceWatch(ex);
+                            Events.EdgeDeploymentWatchFailed(ex);
                         }
                     },
                     onClosed: () =>
                     {
-                        Events.CrdWatchClosed();
+                        Events.EdgeDeploymentWatchClosed();
 
-                        // get rid of the current crd watch object since we got closed
+                        // get rid of the current edge deployment watch object since we got closed
                         this.operatorWatch.ForEach(watch => watch.Dispose());
                         this.operatorWatch = Option.None<Watcher<EdgeDeploymentDefinition>>();
 
                         // kick off a new watch
                         this.StartListEdgeDeployments();
                     },
-                    onError: Events.ExceptionInCustomResourceWatch));
+                    onError: Events.EdgeDeploymentWatchFailed));
         }
 
         async Task HandleEdgeDeploymentChangedAsync(WatchEventType type, EdgeDeploymentDefinition edgeDeploymentDefinition)
@@ -119,21 +119,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         static class Events
         {
-            const int IdStart = KubernetesEventIds.KubernetesCrdWatcher;
+            const int IdStart = KubernetesEventIds.EdgeDeploymentOperator;
             static readonly ILogger Log = Logger.Factory.CreateLogger<EdgeDeploymentOperator>();
 
             enum EventIds
             {
-                ExceptionInCustomResourceWatch = IdStart,
+                WatchFailed = IdStart,
                 DeploymentStatus,
                 DeploymentError,
                 DeploymentNameMismatch,
-                CrdWatchClosed,
+                WatchClosed,
             }
 
-            public static void ExceptionInCustomResourceWatch(Exception ex)
+            public static void EdgeDeploymentWatchFailed(Exception ex)
             {
-                Log.LogError((int)EventIds.ExceptionInCustomResourceWatch, ex, "Exception caught in Custom Resource Watch task.");
+                Log.LogError((int)EventIds.WatchFailed, ex, "Exception caught in edge deployment watch task.");
             }
 
             public static void DeploymentStatus(WatchEventType type, ResourceName name)
@@ -151,9 +151,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 Log.LogDebug((int)EventIds.DeploymentNameMismatch, $"Watching for edge deployments for '{expected}', received notification for '{received}'");
             }
 
-            public static void CrdWatchClosed()
+            public static void EdgeDeploymentWatchClosed()
             {
-                Log.LogInformation((int)EventIds.CrdWatchClosed, $"K8s closed the CRD watch. Attempting to reopen watch.");
+                Log.LogInformation((int)EventIds.WatchClosed, "K8s closed the edge deployment watch. Attempting to reopen watch.");
             }
         }
     }

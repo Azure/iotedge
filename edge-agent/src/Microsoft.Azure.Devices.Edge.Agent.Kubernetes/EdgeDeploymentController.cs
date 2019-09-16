@@ -490,29 +490,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         static class Events
         {
-            const int IdStart = KubernetesEventIds.KubernetesCrdWatcher;
-            private static readonly ILogger Log = Logger.Factory.CreateLogger<EdgeDeploymentController>();
+            const int IdStart = KubernetesEventIds.EdgeDeploymentController;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<EdgeDeploymentController>();
 
             enum EventIds
             {
                 InvalidModuleType = IdStart,
-                ExceptionInCustomResourceWatch,
                 InvalidCreationString,
-                EdgeDeploymentDeserializeFail,
-                DeploymentStatus,
-                DeploymentError,
-                DeploymentNameMismatch,
                 UpdateService,
                 CreateService,
                 UpdateDeployment,
                 CreateDeployment,
-                NullListResponse,
                 DeletingService,
                 DeletingDeployment,
                 CreatingDeployment,
                 CreatingService,
-                ReplacingDeployment,
-                CrdWatchClosed,
                 CreatingServiceAccount,
                 DeletingServiceAccount
             }
@@ -542,34 +534,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 Log.LogError((int)EventIds.InvalidModuleType, $"Module {module.Name} has an invalid module type '{module.Type}'. Expected type 'docker'");
             }
 
-            public static void ExceptionInCustomResourceWatch(Exception ex)
-            {
-                Log.LogError((int)EventIds.ExceptionInCustomResourceWatch, ex, "Exception caught in Custom Resource Watch task.");
-            }
-
             public static void InvalidCreationString(string kind, string name)
             {
                 Log.LogDebug((int)EventIds.InvalidCreationString, $"Expected a valid '{kind}' creation string in k8s Object '{name}'.");
-            }
-
-            public static void EdgeDeploymentDeserializeFail(Exception e)
-            {
-                Log.LogError((int)EventIds.EdgeDeploymentDeserializeFail, e, "Received an invalid Edge Deployment.");
-            }
-
-            public static void DeploymentStatus(WatchEventType type, string name)
-            {
-                Log.LogDebug((int)EventIds.DeploymentStatus, $"Deployment '{name}', status'{type}'");
-            }
-
-            public static void DeploymentError()
-            {
-                Log.LogError((int)EventIds.DeploymentError, "Operator received error on watch type.");
-            }
-
-            public static void DeploymentNameMismatch(string received, string expected)
-            {
-                Log.LogDebug((int)EventIds.DeploymentNameMismatch, $"Watching for edge deployments for '{expected}', received notification for '{received}'");
             }
 
             public static void UpdateService(string name)
@@ -601,16 +568,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             {
                 Log.LogDebug((int)EventIds.DeletingServiceAccount, $"Deleting Service Account {name}");
             }
-
-            public static void NullListResponse(string listType, string what)
-            {
-                Log.LogError((int)EventIds.NullListResponse, $"{listType} returned null {what}");
-            }
-
-            public static void CrdWatchClosed()
-            {
-                Log.LogInformation((int)EventIds.CrdWatchClosed, $"K8s closed the CRD watch. Attempting to reopen watch.");
-            }
-        }
+       }
     }
 }

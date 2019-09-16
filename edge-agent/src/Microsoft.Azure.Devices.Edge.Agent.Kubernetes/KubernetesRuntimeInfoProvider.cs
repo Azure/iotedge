@@ -75,6 +75,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             string version = "Kubernetes";
             return Task.FromResult(new SystemInfo(osType, arch, version));
         }
-
     }
 }

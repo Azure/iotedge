@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         }
                         catch (Exception ex) when (!ex.IsFatal())
                         {
-                            Events.ExceptionInPodWatch(ex);
+                            Events.PodWatchFailed(ex);
                         }
                     },
                     onClosed: () =>
@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         // kick off a new watch
                         this.Start();
                     },
-                    onError: Events.ExceptionInPodWatch));
+                    onError: Events.PodWatchFailed));
         }
 
         void HandlePodChangedAsync(WatchEventType type, V1Pod pod)
@@ -104,48 +104,35 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
     static class Events
     {
-        const int IdStart = KubernetesEventIds.KubernetesRuntimeInfoProvider;
+        const int IdStart = KubernetesEventIds.KubernetesEnvironmentOperator;
         static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesEnvironmentOperator>();
 
         enum EventIds
         {
-            InvalidModuleType = IdStart,
-            ExceptionInPodWatch,
+            WatchFailed = IdStart,
             PodStatus,
             PodStatusRemoveError,
-            PodWatchClosed,
-            NullListResponse,
-            NullNodeInfoResponse,
+            WatchClosed
         }
 
-        public static void ExceptionInPodWatch(Exception ex)
+        public static void PodWatchFailed(Exception ex)
         {
-            Log.LogError((int)EventIds.ExceptionInPodWatch, ex, "Exception caught in Pod Watch task.");
+            Log.LogError((int)EventIds.WatchFailed, ex, "Exception caught in Pod Watch task.");
         }
 
-        public static void PodStatus(WatchEventType type, string podname)
+        public static void PodStatus(WatchEventType type, string name)
         {
-            Log.LogDebug((int)EventIds.PodStatus, $"Pod '{podname}', status'{type}'");
+            Log.LogDebug((int)EventIds.PodStatus, $"Pod '{name}', status'{type}'");
         }
 
-        public static void PodStatusRemoveError(string podname)
+        public static void PodStatusRemoveError(string name)
         {
-            Log.LogWarning((int)EventIds.PodStatusRemoveError, $"Notified of pod {podname} deleted, but not removed from our pod list");
-        }
-
-        public static void NullListResponse(string listType, string what)
-        {
-            Log.LogError((int)EventIds.NullListResponse, $"{listType} returned null {what}");
-        }
-
-        public static void NullNodeInfoResponse(string nodeName)
-        {
-            Log.LogError((int)EventIds.NullNodeInfoResponse, $"node {nodeName} had no node information");
+            Log.LogWarning((int)EventIds.PodStatusRemoveError, $"Notified of pod {name} deleted, but not removed from our pod list");
         }
 
         public static void PodWatchClosed()
         {
-            Log.LogInformation((int)EventIds.PodWatchClosed, $"K8s closed the pod watch. Attempting to reopen watch.");
+            Log.LogInformation((int)EventIds.WatchClosed, $"K8s closed the pod watch. Attempting to reopen watch.");
         }
     }
 }
