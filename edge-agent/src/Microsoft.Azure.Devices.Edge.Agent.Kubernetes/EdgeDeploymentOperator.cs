@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using Microsoft.Rest;
 
     // TODO add unit tests
-    public class EdgeDeploymentOperator : IKubernetesOperator
+    public class EdgeDeploymentOperator : IEdgeDeploymentOperator
     {
         readonly IKubernetes client;
         readonly AsyncLock watchLock = new AsyncLock();

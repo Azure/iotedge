@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using Microsoft.Extensions.Logging;
     using Microsoft.Rest;
 
-    public class KubernetesEnvironmentOperator : IKubernetesOperator
+    public class KubernetesEnvironmentOperator : IKubernetesEnvironmentOperator
     {
         readonly IRuntimeInfoSource moduleStatusSource;
         readonly IKubernetes client;

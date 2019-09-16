@@ -187,7 +187,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<IRuntimeInfoProvider>()
                 .As<IRuntimeInfoSource>();
 
-            // IEdgeDeploymentController
+            // EdgeDeploymentController
             builder.Register(
                     c =>
                     {
@@ -216,19 +216,33 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<IEdgeDeploymentController>()
                 .SingleInstance();
 
-            // EdgeDeploymentOperator
+            // IEdgeDeploymentOperator
             builder.Register(
                     c =>
                     {
-                        IKubernetesOperator watchOperator = new EdgeDeploymentOperator(
+                        IEdgeDeploymentOperator watchOperator = new EdgeDeploymentOperator(
                             this.resourceName,
                             this.deviceNamespace,
                             c.Resolve<IKubernetes>(),
                             c.Resolve<IEdgeDeploymentController>());
 
-                        return Task.FromResult(watchOperator);
+                        return watchOperator;
                     })
-                .As<Task<IKubernetesOperator>>()
+                .As<IEdgeDeploymentOperator>()
+                .SingleInstance();
+
+            // IKubernetesEnvironmentOperator
+            builder.Register(
+                    c =>
+                    {
+                        IKubernetesEnvironmentOperator watchOperator = new KubernetesEnvironmentOperator(
+                            this.deviceNamespace,
+                            c.Resolve<IRuntimeInfoSource>(),
+                            c.Resolve<IKubernetes>());
+
+                        return watchOperator;
+                    })
+                .As<IKubernetesEnvironmentOperator>()
                 .SingleInstance();
 
             // Task<IEnvironmentProvider>
