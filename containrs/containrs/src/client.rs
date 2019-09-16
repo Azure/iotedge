@@ -3,17 +3,15 @@ use hyper::client::connect::Connect;
 use hyper::header;
 use hyper::http::{Method, Request, StatusCode, Uri};
 use hyper::Client as HyperClient;
-use log::*;
+// use log::*;
 
 use oci_distribution::v2::Catalog;
-use oci_image::v1::Manifest;
+use oci_image::{v1::Manifest, MediaType};
 
 use crate::auth::{AuthClient, Credentials};
 use crate::reference::ReferenceKind;
 use crate::util::hyper::BodyExt;
 use crate::Result;
-
-const DOCKER_MANIFEST_MEDIATYPE: &str = "application/vnd.docker.distribution.manifest.v2+json";
 
 /// Client for interacting with container registries which conform to the
 /// OCI distribution specification (i.e: Docker Registry HTTP API V2 protocol)
@@ -93,13 +91,15 @@ impl<C: Connect + 'static> Client<C> {
         reference: &ReferenceKind,
     ) -> Result<Manifest> {
         let uri = self.base_uri(format!("/v2/{}/manifests/{}", name, reference).as_str())?;
-        let req = Request::get(uri)
-            .header(header::ACCEPT, Manifest::MEDIATYPE)
-            .header(header::ACCEPT, DOCKER_MANIFEST_MEDIATYPE) // for compat
-            .body(Body::empty())?;
-        let res = self.client.request(req).await?;
 
-        debug!("{:#?}", res);
+        let mut req = Request::get(uri);
+        req.header(header::ACCEPT, Manifest::MEDIA_TYPE);
+        for &similar_mime in Manifest::SIMILAR_MEDIA_TYPES {
+            // Docker compatibility
+            req.header(header::ACCEPT, similar_mime);
+        }
+        let req = req.body(Body::empty())?;
+        let res = self.client.request(req).await?;
 
         match res.status() {
             StatusCode::OK => {
