@@ -167,7 +167,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             return agentBuilder.Build();
         }
 
-        public IModuleConfigBuilder GetModuleBuilder(string name)
+        public IModuleConfigBuilder GetModule(string name)
         {
             return this.moduleBuilders[name];
         }

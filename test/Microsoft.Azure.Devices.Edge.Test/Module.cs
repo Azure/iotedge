@@ -70,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                              builder.AddModule("tempSensor", sensorImage);
                              builder.AddModule("tempFilter", filterImage)
                                     .WithEnvironment(new[] { ("TemperatureThreshold", "19") });
-                             builder.GetModuleBuilder("$edgeHub")
+                             builder.GetModule("$edgeHub")
                                     .WithDesiredProperties(new Dictionary<string, object>
                                     {
                                         ["routes"] = new
