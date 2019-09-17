@@ -1,58 +1,75 @@
-//! Tools to parse and validate WWW-Authenticate headers
-//!
-//! *not battle tested!*
-//! Seems to work well enough in containrs, but it'll probably fail in more
-//! complex scenarios!
-//!
-//! If only https://github.com/hyperium/headers had WWW-Authenticate :'(
+//! A strongly-typed WWW-Authenticate header
 
 use std::collections::HashMap;
 use std::str::FromStr;
 
-use lazy_static::lazy_static;
-use regex::Regex;
+use failure::Fail;
+use pest::error::Error as PestError;
+use pest::Parser;
+use pest_derive::Parser;
 
-/// HTTP Authentication Schemes, as listed at
-/// https://developer.mozilla.org/en-US/docs/Web/HTTP/Authentication#Authentication_schemes
+#[derive(Parser)]
+#[grammar = "auth/www_authenticate.pest"]
+struct PestWWWAuthenticateParser;
+
+#[derive(Debug, Fail)]
+pub enum WWWAuthenticateError {
+    #[fail(display = "Failed to parse WWW-Authenticate Header: {}", _0)]
+    Pest(PestError<Rule>),
+
+    #[fail(display = "Error in Challenge: {}", _0)]
+    BadChallenge(ChallengeError),
+}
+
+type Error = WWWAuthenticateError;
+
+/// HTTP Authentication Schemes
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub enum ChallengeKind {
+pub enum ChallengeScheme {
     Basic,
     Bearer,
     Digest,
-    Hoba,
-    Mutual,
-    Aws4HmacSha256,
     Other(String),
 }
 
 /// `WWW-Authenticate` header, defined in [RFC7235](https://tools.ietf.org/html/rfc7235#section-4.1)
-impl FromStr for ChallengeKind {
+impl FromStr for ChallengeScheme {
     type Err = ();
-    fn from_str(s: &str) -> std::result::Result<ChallengeKind, ()> {
-        use self::ChallengeKind::*;
-        Ok(match s {
-            "Basic" => Basic,
-            "Bearer" => Bearer,
-            "Digest" => Digest,
-            "HOBA" => Hoba,
-            "Mutual" => Mutual,
-            "AWS4-HMAC-SHA256" => Aws4HmacSha256,
+    fn from_str(s: &str) -> std::result::Result<ChallengeScheme, ()> {
+        use self::ChallengeScheme::*;
+        Ok(match s.to_ascii_lowercase().as_str() {
+            "basic" => Basic,
+            "bearer" => Bearer,
+            "digest" => Digest,
             other => Other(other.to_string()),
         })
     }
 }
 
+#[derive(Debug, Fail)]
+pub enum ChallengeError {
+    #[fail(display = "TODO: add errors")]
+    _Placeholder,
+}
+
 /// A WWW-Authenticate challenge, and it's associated parameters
-// TODO: strongly type the various challenge types?
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Challenge {
-    kind: ChallengeKind,
+    scheme: ChallengeScheme,
     parameters: HashMap<String, String>,
 }
 
 impl Challenge {
-    pub fn kind(&self) -> &ChallengeKind {
-        &self.kind
+    fn new(
+        scheme: ChallengeScheme,
+        parameters: HashMap<String, String>,
+    ) -> Result<Challenge, ChallengeError> {
+        // TODO: actually do validation based on given challenge scheme
+        Ok(Challenge { scheme, parameters })
+    }
+
+    pub fn scheme(&self) -> &ChallengeScheme {
+        &self.scheme
     }
 
     pub fn into_parameters(self) -> HashMap<String, String> {
@@ -75,62 +92,61 @@ impl IntoIterator for WWWAuthenticate {
     }
 }
 
-// TODO: maybe _don't_ use an unintelligible regex to parse these things
 impl FromStr for WWWAuthenticate {
-    type Err = ();
-    fn from_str(s: &str) -> std::result::Result<WWWAuthenticate, ()> {
-        lazy_static! {
-            // parses (authtype)? (key)=("val")|(val)
-            // group 1: authtype
-            // group 2: key
-            // group 3: value (in quotes)
-            // group 4: value (without quotes)
-            // https://regex101.com/ is your friend in understanding this beast
-            static ref RE: Regex =
-                Regex::new(r#"\s*(?:(\w+)\s+)?(\w+)=(?:"(.*?[^\\])"|([^"\s,]*)),?"#).unwrap();
-        }
+    type Err = Error;
 
-        let mut challenges = Vec::new();
+    fn from_str(header_str: &str) -> Result<WWWAuthenticate, Error> {
+        let mut res = WWWAuthenticate(Vec::new());
 
-        // headers are only valid if _all_ characters in the string are part of a
-        // capture group. As such, keep track of the expected next char index while
-        // iterating through the captures
-        let mut expected_next_start = 0;
+        // NOTE: The grammar itself provides a lot of invariants regarding the structure
+        // of the returned pairs. As such, the code uses quite a lot of unwraps, which
+        // rely on the early-bail behavior of the Pest grammar
 
-        for cap in RE.captures_iter(s) {
-            // safe to unwrap, since a capture is guaranteed to capture _something_
-            let full_cap = cap.get(0).unwrap();
-            if expected_next_start != full_cap.start() {
-                return Err(());
-            }
-            expected_next_start = full_cap.end();
+        let challenge_list_p = PestWWWAuthenticateParser::parse(Rule::root, header_str)
+            .map_err(Error::Pest)?
+            // top-level rules are guaranteed to have a single Pair
+            .next()
+            .unwrap()
+            // root rule must parse into a single challenge_list rule
+            .into_inner()
+            .next()
+            .unwrap();
 
-            // Finding a new challenge requires creating a new  if this is the start of a
-            // new challenge
-            if let Some(kind) = cap.get(1) {
-                challenges.push(Challenge {
-                    kind: kind.as_str().parse()?,
-                    parameters: HashMap::new(),
-                })
-            }
+        // see example structure in the grammar file to get a better understanding of
+        // how the following traversal works
 
-            // Parse subsequent groups into the latest challenge
-            let parameters = &mut challenges.last_mut().ok_or(())?.parameters;
-
-            let key = cap.get(2).ok_or(())?.as_str().to_string();
-            let val = cap
-                .get(3)
-                .or_else(|| cap.get(4))
-                .ok_or(())?
+        // iterate through the challenges
+        for challenge_p in challenge_list_p.into_inner() {
+            let mut challenge_ps = challenge_p.into_inner();
+            // first pair will always be the scheme
+            let scheme = challenge_ps
+                .next()
+                .unwrap()
                 .as_str()
-                .to_string();
+                .parse::<ChallengeScheme>()
+                .unwrap(); // Impossible to fail parsing a ChallengeScheme
 
-            // TODO: properly unescape val strings
+            // subsequent pairs will always be a bunch of auth_params
+            let mut parameters: HashMap<String, String> = HashMap::new();
+            for param_p in challenge_ps {
+                let mut param_ps = param_p.into_inner();
+                // each auth_param must have a name and arg
+                let name = param_ps.next().unwrap().as_str().to_string().to_ascii_lowercase();
+                let arg = param_ps
+                    .next()
+                    .unwrap()
+                    .as_str()
+                    .trim_matches('"')
+                    .to_string();
+                // TODO: unescape values in the arg
+                parameters.insert(name, arg);
+            }
 
-            parameters.insert(key, val);
+            res.0
+                .push(Challenge::new(scheme, parameters).map_err(Error::BadChallenge)?);
         }
 
-        Ok(WWWAuthenticate(challenges))
+        Ok(res)
     }
 }
 
@@ -138,67 +154,342 @@ impl FromStr for WWWAuthenticate {
 mod tests {
     use super::*;
 
-    #[test]
-    fn smoke() {
-        assert_eq!(
-            "Bearer realm=\"https://auth.docker.io/token\",service=\"registry.docker.io\",scope=\"repository:library/ubuntu:pull\""
-                .parse::<WWWAuthenticate>()
-                .unwrap(),
-            WWWAuthenticate(vec![Challenge {
-                kind: ChallengeKind::Bearer,
-                parameters: [
-                    ("realm", "https://auth.docker.io/token"),
-                    ("service", "registry.docker.io"),
-                    ("scope", "repository:library/ubuntu:pull")
-                ]
-                .into_iter()
-                .map(|(a, b)| (a.to_string(), b.to_string()))
-                .collect()
-            }])
-        );
+    macro_rules! string_map(
+        {} => { ::std::collections::HashMap::new() };
+        { $($key:expr => $value:expr),+} => {
+            {
+                let mut m = ::std::collections::HashMap::new();
+                $(
+                    m.insert($key.to_string(), $value.to_string());
+                )+
+                m
+            }
+         };
+    );
+
+    macro_rules! single_challenge_valid {
+        ($name:ident, $teststr:expr, $scheme:expr, $parameters:expr) => {
+            #[test]
+            fn $name() {
+                assert_eq!(
+                    $teststr.parse::<WWWAuthenticate>().unwrap(), 
+                    WWWAuthenticate(vec![Challenge {
+                        scheme: $scheme, 
+                        parameters: $parameters
+                    }])
+                );
+            }
+        };
     }
 
-    #[test]
-    fn close_but_invalid() {
-        assert!("close Bearer realm=\"https://auth.docker.io/token\""
-            .parse::<WWWAuthenticate>()
-            .is_err());
+    macro_rules! multi_challenge_valid {
+        ($name:ident, $teststr:expr, $({$scheme:expr, $parameters:expr}),+) => {
+            #[test]
+            fn $name() {
+                assert_eq!(
+                    $teststr.parse::<WWWAuthenticate>().unwrap(), 
+                    WWWAuthenticate(vec![
+                        $(
+                            Challenge {
+                                scheme: $scheme, 
+                                parameters: $parameters
+                            },
+                        )+
+                    ])
+                );
+            }
+        };
     }
+
+    /// $err should be a pattern describing the expected error type 
+    ///
+    /// e.g: invalid!(test, "asd asd asd asd", Error::Pest(_))
+    macro_rules! invalid {
+        ($name:ident, $teststr:expr, $err:pat) => {
+            #[test]
+            fn $name() {
+                let err = $teststr.parse::<WWWAuthenticate>().unwrap_err();
+                match err {
+                    $err => {}
+                    _ => panic!()
+                }
+            }
+        }
+    }
+
+    single_challenge_valid!(smoke, 
+        "Bearer realm=\"https://auth.docker.io/token\",service=\"registry.docker.io\",scope=\"repository:library/ubuntu:pull\"", 
+        ChallengeScheme::Bearer,
+        string_map!{
+            "realm" => "https://auth.docker.io/token",
+            "service" => "registry.docker.io",
+            "scope" => "repository:library/ubuntu:pull"
+        }
+    );
+
+    invalid!(close_but_invalid, "close Bearer realm=\"https://auth.docker.io/token\"", Error::Pest(_));
 
     #[test]
     fn complex_multi_mode() {
-        let ours = r#"
-Digest realm="htt\"p\"-auth@example.org", qop="auth, auth-int",
+        let ours = r#" Digest realm="htt\"p\"-auth@example.org", qop="auth, auth-int",
     algorithm=MD5,
     nonce="7ypf/xlj9XXwfDPEoM4URrv/xwf94BcCAzFZH4GiTo0v",
-    opaque="FQhe/qaU925kfnzjCev0ciny7QMkPqMAFRtzCUYo5tdS"
-Basic realm="example.com""#
+    opaque="FQhe/qaU925kfnzjCev0ciny7QMkPqMAFRtzCUYo5tdS",
+ Basic realm="example.com""#
             .parse::<WWWAuthenticate>()
             .unwrap();
 
         let expected = WWWAuthenticate(vec![
             Challenge {
-                kind: ChallengeKind::Digest,
-                parameters: [
-                    ("realm", "htt\\\"p\\\"-auth@example.org"),
-                    ("qop", "auth, auth-int"),
-                    ("algorithm", "MD5"),
-                    ("nonce", "7ypf/xlj9XXwfDPEoM4URrv/xwf94BcCAzFZH4GiTo0v"),
-                    ("opaque", "FQhe/qaU925kfnzjCev0ciny7QMkPqMAFRtzCUYo5tdS"),
-                ]
-                .into_iter()
-                .map(|(a, b)| (a.to_string(), b.to_string()))
-                .collect(),
+                scheme: ChallengeScheme::Digest,
+                parameters: string_map! {
+                    "realm" => "htt\\\"p\\\"-auth@example.org",
+                    "qop" => "auth, auth-int",
+                    "algorithm" => "MD5",
+                    "nonce" => "7ypf/xlj9XXwfDPEoM4URrv/xwf94BcCAzFZH4GiTo0v",
+                    "opaque" => "FQhe/qaU925kfnzjCev0ciny7QMkPqMAFRtzCUYo5tdS"
+                },
             },
             Challenge {
-                kind: ChallengeKind::Basic,
-                parameters: [("realm", "example.com")]
-                    .into_iter()
-                    .map(|(a, b)| (a.to_string(), b.to_string()))
-                    .collect(),
+                scheme: ChallengeScheme::Basic,
+                parameters: string_map! { "realm" => "example.com" },
             },
         ]);
 
         assert_eq!(ours, expected);
     }
+
+    // subsequent tests are from http://test.greenbytes.de/tech/tc/httpauth/
+
+    single_challenge_valid!(simplebasic, 
+        r#"Basic realm="foo""#, 
+        ChallengeScheme::Basic,
+        string_map!{ "realm" => "foo" }
+    );
+
+    single_challenge_valid!(simplebasiclf, 
+        r#"Basic
+ realm="foo""#, 
+        ChallengeScheme::Basic,
+        string_map!{ "realm" => "foo" }
+    );
+
+    single_challenge_valid!(simplebasicucase, 
+        r#"BASIC REALM="foo""#, 
+        ChallengeScheme::Basic,
+        string_map!{ "realm" => "foo" }
+    );
+
+    // TODO: Uncomment once challenge-type valdation is in
+    // /// realm is only allowed to use quoted-string syntax
+    // invalid!(simplebasictok, r#"Basic realm=foo"#, Error::ChallengeError(?));
+
+    // FIXME: apparently, this should pass the parser, but not the realm check?
+    // invalid!(simplebasictokbs, r#"Basic realm=\f\o\o"#, Error::?);
+
+    // TODO: Uncomment once challenge-type valdation is in
+    // /// realm is only allowed to use quoted-string syntax
+    // invalid!(simplebasicsq, r#"Basic realm='foo'"#, Error::?);
+
+    single_challenge_valid!(simplebasicpct, 
+        r#"Basic realm="foo%20bar""#, 
+        ChallengeScheme::Basic,
+        string_map!{ "realm" => "foo%20bar" }
+    );
+
+    single_challenge_valid!(simplebasiccomma, 
+        r#"Basic , realm="foo""#, 
+        ChallengeScheme::Basic,
+        string_map!{ "realm" => "foo" }
+    );
+
+    invalid!(simplebasiccomma2, r#"Basic, realm="foo""#, Error::Pest(_));
+
+    // TODO: Uncomment once challenge-type valdation is in
+    // invalid!(simplebasicnorealm, r#"Basic"#, Error::ChallengeError(?));
+
+    // TODO: Uncomment once challenge-type valdation is in
+    // invalid!(simplebasic2realms, r#"Basic realm="foo", realm="bar""#, Error::ChallengeError(?))
+
+    single_challenge_valid!(simplebasicwsrealm, 
+        r#"Basic realm = "foo""#, 
+        ChallengeScheme::Basic,
+        string_map!{ "realm" => "foo" }
+    );
+
+    // FIXME: this is broken
+    // single_challenge_valid!(simplebasicrealmsqc, 
+    //     r#"Basic realm="\f\o\o""#, 
+    //     ChallengeScheme::Basic,
+    //     string_map!{ "realm" => "foo" }
+    // );
+
+    // TODO: Uncomment once double-quote unescape is in 
+    // single_challenge_valid!(simplebasicrealmsqc, 
+    //     r#"Basic realm="\"foo\""#, 
+    //     ChallengeScheme::Basic,
+    //     string_map!{ "realm" => "foo" }
+    // );
+
+    single_challenge_valid!(simplebasicnewparam1, 
+        r#"Basic realm="foo", bar="xyz",, a=b,,,c=d"#, 
+        ChallengeScheme::Basic,
+        string_map!{
+            "realm" => "foo",
+            "bar" => "xyz",
+            "a" => "b",
+            "c" => "d"
+        }
+    );
+
+    single_challenge_valid!(simplebasicnewparam2, 
+        r#"Basic bar="xyz", realm="foo""#, 
+        ChallengeScheme::Basic,
+        string_map!{
+            "realm" => "foo",
+            "bar" => "xyz"
+        }
+    );
+
+    single_challenge_valid!(simplebasicrealmiso88591, 
+        r#"Basic realm="foo-ä""#, 
+        ChallengeScheme::Basic,
+        string_map!{ "realm" => "foo-ä" }
+    );
+
+    single_challenge_valid!(simplebasicrealmut8, 
+        r#"Basic realm="foo-Ã¤""#, 
+        ChallengeScheme::Basic,
+        string_map!{ "realm" => "foo-Ã¤" }
+    );
+
+    single_challenge_valid!(simplebasicrealmrfc2047, 
+        r#"Basic realm="=?ISO-8859-1?Q?foo-=E4?=""#, 
+        ChallengeScheme::Basic,
+        string_map!{ "realm" => "=?ISO-8859-1?Q?foo-=E4?=" }
+    );
+
+    multi_challenge_valid!(multibasicunknown,
+        r#"Basic realm="basic", Newauth realm="newauth""#,
+        {
+            ChallengeScheme::Basic,
+            string_map!{ "realm" => "basic" }
+        },
+        {
+            ChallengeScheme::Other("newauth".to_string()),
+            string_map!{ "realm" => "newauth" }
+        }
+    );
+
+    multi_challenge_valid!(multibasicunknownnoparam,
+        r#"Basic realm="basic", Newauth"#,
+        {
+            ChallengeScheme::Basic,
+            string_map!{ "realm" => "basic" }
+        },
+        {
+            ChallengeScheme::Other("newauth".to_string()),
+            string_map!{}
+        }
+    );
+
+    multi_challenge_valid!(multibasicunknown2,
+        r#"Newauth realm="newauth", Basic realm="basic""#,
+        {
+            ChallengeScheme::Other("newauth".to_string()),
+            string_map!{ "realm" => "newauth" }
+        },
+        {
+            ChallengeScheme::Basic,
+            string_map!{ "realm" => "basic" }
+        }
+    );
+
+    multi_challenge_valid!(multibasicunknown2np,
+        r#"Newauth, Basic realm="basic""#,
+        {
+            ChallengeScheme::Other("newauth".to_string()),
+            string_map!{}
+        },
+        {
+            ChallengeScheme::Basic,
+            string_map!{ "realm" => "basic" }
+        }
+    );
+
+    single_challenge_valid!(multibasicempty, 
+        r#",Basic realm="basic""#, 
+        ChallengeScheme::Basic,
+        string_map!{ "realm" => "basic" }
+    );
+
+    // TODO: Uncomment once double-quote unescape is in 
+    // multi_challenge_valid!(multibasicqs, 
+    //     r#"Newauth realm="apps", type=1, title="Login to \"apps\"", Basic realm="simple""#, 
+    //     {
+    //         ChallengeScheme::Other("newauth".to_string()),
+    //         string_map!{
+    //             "realm" => "apps",
+    //             "type" => "1",
+    //             "title" => "Login to \"apps\"" 
+    //         }
+    //     },
+    //     {
+    //         ChallengeScheme::Basic,
+    //         string_map!{ "realm" => "simple" }
+    //     }
+    // );
+
+    multi_challenge_valid!(multidisgscheme, 
+        r#"Newauth realm="Newauth Realm", basic=foo, Basic realm="Basic Realm""#, 
+        {
+            ChallengeScheme::Other("newauth".to_string()),
+            string_map!{
+                "realm" => "Newauth Realm",
+                "basic" => "foo"
+            }
+        },
+        {
+            ChallengeScheme::Basic,
+            string_map!{ "realm" => "Basic Realm" }
+        }
+    );
+
+    single_challenge_valid!(unknown, 
+        r#"Newauth param="value""#, 
+        ChallengeScheme::Other("newauth".to_string()),
+        string_map!{ "param" => "value" }
+    );
+
+    multi_challenge_valid!(parametersnotrequired, 
+        r#"A, B"#, 
+        {
+            ChallengeScheme::Other("a".to_string()),
+            string_map!{}
+        },
+        {
+            ChallengeScheme::Other("b".to_string()),
+            string_map!{}
+        }
+    );
+
+    single_challenge_valid!(disguisedrealm, 
+        r#"Basic foo="realm=nottherealm", realm="basic""#, 
+        ChallengeScheme::Basic,
+        string_map!{
+            "foo" => "realm=nottherealm",
+            "realm" => "basic"
+        }
+    );
+
+    single_challenge_valid!(disguisedrealm2, 
+        r#"Basic nottherealm="nottherealm", realm="basic""#, 
+        ChallengeScheme::Basic,
+        string_map!{
+            "nottherealm" => "nottherealm",
+            "realm" => "basic"
+        }
+    );
+
+    invalid!(missing_quote, r#"Basic realm="basic"#, Error::Pest(_));
 }

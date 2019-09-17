@@ -14,7 +14,7 @@ mod docker;
 // mod oauth2;
 mod www_authenticate;
 
-use www_authenticate::{ChallengeKind, WWWAuthenticate};
+use www_authenticate::{ChallengeScheme, WWWAuthenticate};
 
 /// Credentials used to authenticate with server
 #[derive(Debug)]
@@ -91,8 +91,8 @@ impl<C: Connect + 'static> AuthClient<C> {
         // TODO: handle multiple challenges
         let challenge = www_auth.into_iter().next().unwrap();
 
-        match challenge.kind() {
-            ChallengeKind::Bearer => {
+        match challenge.scheme() {
+            ChallengeScheme::Bearer => {
                 debug!("Doing Bearer Authentication");
                 let parameters = challenge.into_parameters();
 
