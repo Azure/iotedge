@@ -12,20 +12,24 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
     public class Module : RuntimeFixture
     {
-        private const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
+        private string GetTempSensorImage()
+        {
+            const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
+            return Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
+        }
 
+        [Category("TempSensor")]
         [Test]
         public async Task TempSensor()
         {
-            string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
-
+            const string tempSensorModName = "tempSensor";
             CancellationToken token = this.cts.Token;
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
-                builder => { builder.AddModule("tempSensor", sensorImage); },
+                builder => { builder.AddModule(tempSensorModName, this.GetTempSensorImage()); },
                 token);
 
-            EdgeModule sensor = deployment.Modules["tempSensor"];
+            EdgeModule sensor = deployment.Modules[tempSensorModName];
             await sensor.WaitForEventsReceivedAsync(deployment.StartTime, token);
 
             await sensor.UpdateDesiredPropertiesAsync(
@@ -56,35 +60,74 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 token);
         }
 
+        [Category("TempSensor")]
         [Test]
         public async Task TempFilter()
         {
-            string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
-            string filterImage = Context.Current.TempFilterImage.Expect(() => new ArgumentException());
+            string filterImage = Context.Current.TempFilterImage.Expect(() => new ArgumentNullException("tempFilterImage parameter is required for TempFilter test"));
+
+            const string filterModName = "tempFilter";
+            const string tempSensorModName = "tempSensor";
 
             CancellationToken token = this.cts.Token;
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                 builder =>
                 {
-                             builder.AddModule("tempSensor", sensorImage);
-                             builder.AddModule("tempFilter", filterImage)
+                             builder.AddModule(tempSensorModName, this.GetTempSensorImage());
+                             builder.AddModule(filterModName, filterImage)
                                     .WithEnvironment(new[] { ("TemperatureThreshold", "19") });
                              builder.GetModule("$edgeHub")
                                     .WithDesiredProperties(new Dictionary<string, object>
                                     {
                                         ["routes"] = new
                                         {
-                                            TempFilterToCloud = "FROM /messages/modules/tempFilter/outputs/alertOutput INTO $upstream",
-                                            TempSensorToTempFilter = "FROM /messages/modules/tempSensor/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/tempFilter/inputs/input1\")"
+                                            TempFilterToCloud = "FROM /messages/modules/" + filterModName + "/outputs/alertOutput INTO $upstream",
+                                            TempSensorToTempFilter = "FROM /messages/modules/" + tempSensorModName + "/outputs/temperatureOutput INTO BrokeredEndpoint('/modules/" + filterModName + "/inputs/input1')"
                                         }
                                     } );
                 },
                 token);
 
-            EdgeModule filter = deployment.Modules["tempFilter"];
+            EdgeModule filter = deployment.Modules[filterModName];
             await filter.WaitForEventsReceivedAsync(deployment.StartTime, token);
         }
+
+        [Category("TempSensor")]
+        [Test]
+        // Test Temperature Filter Function: https://docs.microsoft.com/en-us/azure/iot-edge/tutorial-deploy-function
+        public async Task TempFilterFunc()
+        {
+            string filterFunc = Context.Current.TempFilterFunc.Expect(() => new ArgumentNullException("'tempFilterFunc' parameter is required for TempFilterFunc() test"));
+
+            const string filterFuncModuleName = "tempFilterFunctions";
+            const string tempSensorModName = "tempSensor";
+
+            CancellationToken token = this.cts.Token;
+
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+                builder =>
+                {
+                             builder.AddModule(tempSensorModName, this.GetTempSensorImage());
+                             builder.AddModule(filterFuncModuleName, filterFunc)
+                                    .WithEnvironment(new[] { ("AZURE_FUNCTIONS_ENVIRONMENT", "Development") });
+                             builder.GetModule("$edgeHub")
+                                    .WithDesiredProperties(new Dictionary<string, object>
+                                    {
+                                        ["routes"] = new
+                                        {
+                                            TempFilterFunctionsToCloud = "FROM /messages/modules/" + filterFuncModuleName + "/outputs/alertOutput INTO $upstream",
+                                            TempSensorToTempFilter = "FROM /messages/modules/" + tempSensorModName + "/outputs/temperatureOutput " + 
+                                                                     "INTO BrokeredEndpoint('/modules/" + filterFuncModuleName + "/inputs/input1')"
+                                        }
+                                    } );
+                },
+                token);
+
+            EdgeModule filter = deployment.Modules[filterFuncModuleName];
+            await filter.WaitForEventsReceivedAsync(deployment.StartTime, token);
+        }
+
 
         [Test]
         public async Task ModuleToModuleDirectMethod(
