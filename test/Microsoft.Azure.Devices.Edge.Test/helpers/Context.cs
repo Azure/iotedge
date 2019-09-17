@@ -76,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             }
 
             string defaultId =
-                $"e2e-{string.Concat(Dns.GetHostName().Take(15))}-{DateTime.Now:yyMMdd'-'HHmmss'.'fff}";
+                $"e2e-{string.Concat(Dns.GetHostName().Take(14)).TrimEnd(new[] { '-' })}-{DateTime.Now:yyMMdd'-'HHmmss'.'fff}";
 
             this.CaCertScriptPath = Get("caCertScriptPath");
             this.ConnectionString = Get("IOT_HUB_CONNECTION_STRING");

@@ -20,15 +20,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         //
         // In the worst-case scenario the tests currently need:
         // - 2 chars for the CN suffix
-        // - 25 chars for the leaf ID suffix
-        // ...and that leaves 37 chars for the device ID if we don't want to exceed 64 chars total.
-        const int EdgeDeviceIdMaxLength = 37;
+        // - 26 chars for the leaf ID suffix
+        // ...and that leaves 36 chars for the device ID if we don't want to exceed 64 chars total.
+        const int EdgeDeviceIdMaxLength = 36;
         const int LeafDeviceIdMaxLength = 62;
         const int CertCnMaxLength = 64;
 
         const string LengthErrorMessageBase = 
-            "The certificate common name (CN) is more than {0} characters in length and may " +
-            "cause problems in tests that generate certificates";
+            "The {0} is more than {1} characters long and may cause problems in tests that " +
+            "generate certificates";
         const string LengthErrorMessageDevice =
             LengthErrorMessageBase + " with a CN based on the device ID";
 
@@ -45,7 +45,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         {
             if (id.Length > EdgeDeviceIdMaxLength)
             {
-                throw new ArgumentException(string.Format(LengthErrorMessageDevice, EdgeDeviceIdMaxLength));
+                throw new ArgumentException(
+                    string.Format(LengthErrorMessageDevice, "edge device ID", EdgeDeviceIdMaxLength));
             }
 
             return new IdentityString(id, IdType.EdgeDevice);
@@ -62,7 +63,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string id = $"{parent.ToString()}{suffix}";
             if (id.Length > LeafDeviceIdMaxLength)
             {
-                throw new ArgumentException(string.Format(LengthErrorMessageDevice, LeafDeviceIdMaxLength));
+                throw new ArgumentException(
+                    string.Format(LengthErrorMessageDevice, "leaf device ID", LeafDeviceIdMaxLength));
             }
 
             return new IdentityString(id, IdType.LeafDevice);
@@ -79,7 +81,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string id = $"{parent.ToString()}{suffix}";
             if (id.Length > CertCnMaxLength)
             {
-                throw new ArgumentException(string.Format(LengthErrorMessageDevice, CertCnMaxLength));
+                throw new ArgumentException(
+                    string.Format(LengthErrorMessageBase, "certificate common name (CN)", CertCnMaxLength));
             }
 
             return new IdentityString(id, IdType.CertificateCommonName);
