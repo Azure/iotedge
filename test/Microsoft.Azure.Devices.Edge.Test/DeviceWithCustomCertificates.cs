@@ -19,9 +19,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             CancellationToken token = this.TestToken;
 
-            IdentityString leafDeviceId = IdentityString.LeafDevice(
-                Context.Current.DeviceId,
-                $"-{protocol}-{testAuth}");
+            string leafDeviceId = IdentityLimits.CheckLeafId(
+                $"{Context.Current.DeviceId}-{protocol}-{testAuth}");
 
             Option<string> parentId = testAuth == TestAuthenticationType.SasOutOfScope
                 ? Option.None<string>()

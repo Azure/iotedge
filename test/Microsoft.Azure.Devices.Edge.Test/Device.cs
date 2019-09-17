@@ -20,8 +20,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             await this.runtime.DeployConfigurationAsync(token);
 
-            IdentityString leafDeviceId =
-                IdentityString.LeafDevice(Context.Current.DeviceId, "-quickstart-certs");
+            string leafDeviceId =
+                IdentityLimits.CheckLeafId($"{Context.Current.DeviceId}-quickstart-certs");
 
             var leaf = await LeafDevice.CreateAsync(
                 leafDeviceId,
