@@ -66,6 +66,9 @@ pub enum ErrorKind {
 
     #[fail(display = "An error occurred obtaining the client identity certificate")]
     IdentityCertificate,
+
+    #[fail(display = "Could not get the system info")]
+    SystemInfo,
 }
 
 #[derive(Clone, Debug, PartialEq)]

@@ -503,7 +503,6 @@ pub enum RuntimeOperation {
     GetModuleLogs(String),
     Init,
     ListModules,
-    ListNodes,
     RemoveModule(String),
     RestartModule(String),
     StartModule(String),
@@ -522,7 +521,6 @@ impl fmt::Display for RuntimeOperation {
             }
             RuntimeOperation::Init => write!(f, "Could not initialize module runtime"),
             RuntimeOperation::ListModules => write!(f, "Could not list modules"),
-            RuntimeOperation::ListNodes => write!(f, "Could not list nodes"),
             RuntimeOperation::RemoveModule(name) => write!(f, "Could not remove module {}", name),
             RuntimeOperation::RestartModule(name) => write!(f, "Could not restart module {}", name),
             RuntimeOperation::StartModule(name) => write!(f, "Could not start module {}", name),
