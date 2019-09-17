@@ -78,24 +78,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             string defaultId =
                 $"e2e-{string.Concat(Dns.GetHostName().Take(15))}-{DateTime.Now:yyMMdd'-'HHmmss'.'fff}";
 
-            const int DeviceIdMaxLength = 37;
-            string CheckDeviceIdLength(string deviceId)
-            {
-                if (deviceId.Length > DeviceIdMaxLength)
-                {
-                    string message =
-                        $"The device ID is more than {DeviceIdMaxLength} characters in length, and " +
-                        "may cause problems in tests that generate certificates with a CN based on " +
-                        "the device ID.";
-                    throw new ArgumentException(message);
-                }
-
-                return deviceId;
-            }
-
             this.CaCertScriptPath = Get("caCertScriptPath");
             this.ConnectionString = Get("IOT_HUB_CONNECTION_STRING");
-            this.DeviceId = CheckDeviceIdLength(GetOrDefault("deviceId", defaultId));
+            this.DeviceId = IdentityString.EdgeDevice(GetOrDefault("deviceId", defaultId));
             this.DpsIdScope = Option.Maybe(Get("dpsIdScope"));
             this.DpsGroupKey = Option.Maybe(Get("DPS_GROUP_KEY"));
             this.EdgeAgentImage = Option.Maybe(Get("edgeAgentImage"));
@@ -127,7 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public Dictionary<string, EdgeDevice> DeleteList { get; } = new Dictionary<string, EdgeDevice>();
 
-        public string DeviceId { get; }
+        public IdentityString DeviceId { get; }
 
         public Option<string> DpsIdScope { get; }
 

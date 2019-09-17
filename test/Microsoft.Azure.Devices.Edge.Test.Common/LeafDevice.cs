@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         }
 
         public static Task<LeafDevice> CreateAsync(
-            string leafDeviceId,
+            IdentityString leafDeviceId,
             Protocol protocol,
             AuthenticationType auth,
             Option<string> parentId,
@@ -192,7 +192,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         }
 
         static async Task<LeafDevice> CreateWithSelfSignedCertAsync(
-            string leafDeviceId,
+            IdentityString leafDeviceId,
             string parentId,
             bool useSecondaryCertificate,
             CertificateAuthority ca,
@@ -201,8 +201,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string edgeHostname,
             CancellationToken token)
         {
-            LeafCertificates primary = await ca.GenerateLeafCertificatesAsync($"{leafDeviceId}-1", token);
-            LeafCertificates secondary = await ca.GenerateLeafCertificatesAsync($"{leafDeviceId}-2", token);
+            LeafCertificates primary = await ca.GenerateLeafCertificatesAsync(
+                IdentityString.CertificateCommonName(leafDeviceId, "-1"),
+                token);
+            LeafCertificates secondary = await ca.GenerateLeafCertificatesAsync(
+                IdentityString.CertificateCommonName(leafDeviceId, "-2"),
+                token);
 
             string[] streams = await Task.WhenAll(
                 new[]
