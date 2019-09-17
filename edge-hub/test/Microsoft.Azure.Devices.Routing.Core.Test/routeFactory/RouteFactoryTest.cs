@@ -87,10 +87,21 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.RouteFactory
         public static IEnumerable<object[]> GetFunctionEndpointParserData()
         {
             var testData = new List<object[]>();
+
             testData.Add(
                 new object[]
                 {
                     @"FROM /* INTO brokeredEndpoint(""/modules/alertLogic/inputs/in"")",
+                    CustomMessageSource.Create("/"),
+                    "true",
+                    "brokeredEndpoint",
+                    "/modules/alertLogic/inputs/in"
+                });
+
+            testData.Add(
+                new object[]
+                {
+                    @"FROM /* INTO brokeredEndpoint('/modules/alertLogic/inputs/in')",
                     CustomMessageSource.Create("/"),
                     "true",
                     "brokeredEndpoint",
