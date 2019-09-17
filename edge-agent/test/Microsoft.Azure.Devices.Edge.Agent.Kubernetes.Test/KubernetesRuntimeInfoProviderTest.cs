@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Rest;
@@ -42,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
             Assert.Throws<ArgumentException>(() => new KubernetesRuntimeInfoProvider(null, client.Object, moduleManager.Object));
             Assert.Throws<ArgumentNullException>(() => new KubernetesRuntimeInfoProvider("namespace ", null, moduleManager.Object));
-            Assert.Throws<ArgumentException>(() => new KubernetesRuntimeInfoProvider("namespace", client.Object, null));
+            Assert.Throws<ArgumentNullException>(() => new KubernetesRuntimeInfoProvider("namespace", client.Object, null));
         }
 
         [Fact]

@@ -25,6 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         {
             this.deviceNamespace = Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace));
             this.client = Preconditions.CheckNotNull(client, nameof(client));
+            this.moduleManager = Preconditions.CheckNotNull(moduleManager, nameof(moduleManager));
             this.moduleRuntimeInfo = new ConcurrentDictionary<string, ModuleRuntimeInfo>();
         }
 
