@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         const int LeafDeviceIdMaxLength = 62;
         const int CertCnMaxLength = 64;
 
-        const string LengthErrorMessageBase = 
+        const string LengthErrorMessageBase =
             "The {0} is more than {1} characters long and may cause problems in tests that " +
             "generate certificates";
         const string LengthErrorMessageDevice =
