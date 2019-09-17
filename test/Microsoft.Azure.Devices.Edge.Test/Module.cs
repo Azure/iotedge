@@ -117,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                         ["routes"] = new
                                         {
                                             TempFilterFunctionsToCloud = "FROM /messages/modules/" + filterFuncModuleName + "/outputs/alertOutput INTO $upstream",
-                                            TempSensorToTempFilter = "FROM /messages/modules/" + tempSensorModName + "/outputs/temperatureOutput " + 
+                                            TempSensorToTempFilter = "FROM /messages/modules/" + tempSensorModName + "/outputs/temperatureOutput " +
                                                                      "INTO BrokeredEndpoint('/modules/" + filterFuncModuleName + "/inputs/input1')"
                                         }
                                     } );
@@ -127,7 +127,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
             EdgeModule filter = deployment.Modules[filterFuncModuleName];
             await filter.WaitForEventsReceivedAsync(deployment.StartTime, token);
         }
-
 
         [Test]
         public async Task ModuleToModuleDirectMethod(
