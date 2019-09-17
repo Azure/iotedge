@@ -1,5 +1,11 @@
 # How to run the end-to-end tests
 
+## Software Dependency
+Since an IoT Edge device is responsible for running end-to-end (E2E) tests; hence,
+the software requirements to run a test is the combination of IoT Edge and test build.
+* For Building Tests
+    * .NET Core SDK
+
 ## Test parameters
 
 The end-to-end tests take several parameters, which they expect to find in a file named `context.json` in the same directory as the test binaries (e.g., `test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp2.1/context.json`). Parameter names are case-insensitive. The parameters are:
@@ -22,6 +28,7 @@ The end-to-end tests take several parameters, which they expect to find in a fil
 | `rootCaPrivateKeyPath` | * | Full path to a file containing the private key associated with `rootCaCertificatePath`. Required when running the test 'TransparentGateway', ignored otherwise. |
 | `setupTimeoutMinutes` || The maximum amount of time, in minutes, test setup should take. This includes setup for all tests, for the tests in a fixture, or for a single test. If this time is exceeded, the associated test(s) will fail with a timeout error. If not given, the default value is `5`. |
 | `teardownTimeoutMinutes` || The maximum amount of time, in minutes, test teardown should take. This includes teardown for all tests, for the tests in a fixture, or for a single test. If this time is exceeded, the associated test(s) will fail with a timeout error. If not given, the default value is `2`. |
+| `tempFilterImage` | * | Docker image to pull/use for the temperature filter module. Required when running the test 'TempFilter', ignored otherwise.|
 | `tempSensorImage` || Docker image to pull/use for the temperature sensor module (see the test 'TempSensor'). If not given, `mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0` is used.|
 | `testTimeoutMinutes` || The maximum amount of time, in minutes, a single test should take. If this time is exceeded, the associated test will fail with a timeout error. If not given, the default value is `5`. |
 | `verbose` || Boolean value indicating whether to output more verbose logging information to standard output during a test run. If not given, the default is `false`. |
@@ -41,9 +48,25 @@ _Note: the definitive source for information about test parameters is `test/Micr
 
 ## Running the tests
 
-With the test parameters and secrets in place, you can run all the end-to-end tests from the command line:
+With the test parameters and secrets in place, you can run all the end-to-end tests from the command line
 
-```
+_In Windows Command Prompt (Admin),_
+
+```cmd
 cd {repo root}
 dotnet test test/Microsoft.Azure.Devices.Edge.Test
 ```
+_For Linux,_
+```bash
+cd {repo root}
+sudo --preserve-env dotnet test ./test/Microsoft.Azure.Devices.Edge.Test 
+```
+
+For more details please refer to NUnit document: 
+https://docs.microsoft.com/en-us/dotnet/core/testing/selective-unit-tests#nunit
+
+## Troubleshooting
+
+If you are using a VSCode in Linux, it is recommend that you increase the maximum number of file I/O to prevent a test from erroring out by hitting the limit. To increase the file I/O capacity:
+https://code.visualstudio.com/docs/setup/linux#_visual-studio-code-is-unable-to-watch-for-file-changes-in-this-large-workspace-error-enospc
+

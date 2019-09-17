@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -11,11 +12,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
     public class Module : RuntimeFixture
     {
+        private const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
+
         [Test]
         public async Task TempSensor()
         {
-            const string DefaultImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
-            string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultImage);
+            string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
 
             CancellationToken token = this.cts.Token;
 
@@ -52,6 +54,36 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     }
                 },
                 token);
+        }
+
+        [Test]
+        public async Task TempFilter()
+        {
+            string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
+            string filterImage = Context.Current.TempFilterImage.Expect(() => new ArgumentException());
+
+            CancellationToken token = this.cts.Token;
+
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
+                builder =>
+                {
+                             builder.AddModule("tempSensor", sensorImage);
+                             builder.AddModule("tempFilter", filterImage)
+                                    .WithEnvironment(new[] { ("TemperatureThreshold", "19") });
+                             builder.GetModule("$edgeHub")
+                                    .WithDesiredProperties(new Dictionary<string, object>
+                                    {
+                                        ["routes"] = new
+                                        {
+                                            TempFilterToCloud = "FROM /messages/modules/tempFilter/outputs/alertOutput INTO $upstream",
+                                            TempSensorToTempFilter = "FROM /messages/modules/tempSensor/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/tempFilter/inputs/input1\")"
+                                        }
+                                    } );
+                },
+                token);
+
+            EdgeModule filter = deployment.Modules["tempFilter"];
+            await filter.WaitForEventsReceivedAsync(deployment.StartTime, token);
         }
 
         [Test]
