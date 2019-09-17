@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using NUnit.Framework;
 
-    public class Module : RuntimeFixture
+    public class Module : ManualProvisioningFixture
     {
         [Test]
         public async Task TempSensor()

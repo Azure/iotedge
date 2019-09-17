@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
 
-    class Device : RuntimeFixture
+    class Device : ManualProvisioningFixture
     {
         [Test]
         public async Task QuickstartCerts()

@@ -43,16 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                                 },
                                 token);
 
-                            var runtime = new EdgeRuntime(
-                                Context.Current.DeviceId,
-                                Context.Current.EdgeAgentImage,
-                                Context.Current.EdgeHubImage,
-                                Context.Current.Proxy,
-                                Context.Current.Registries,
-                                Context.Current.OptimizeForPerformance,
-                                this.iotHub);
-
-                            await runtime.DeployConfigurationAsync(token);
+                            await this.runtime.DeployConfigurationAsync(token);
                         }
 
                         // ReSharper disable once RedundantCatchClause
