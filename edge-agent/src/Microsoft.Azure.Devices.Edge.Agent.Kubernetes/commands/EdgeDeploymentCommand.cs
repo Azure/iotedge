@@ -164,7 +164,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
                         Constants.EdgeDeployment.Group,
                         Constants.EdgeDeployment.Version,
                         this.deviceNamespace,
-                        Constants.EdgeDeployment.Version,
+                        Constants.EdgeDeployment.Plural,
                         this.resourceName,
                         cancellationToken: token);
                 },
