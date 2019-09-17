@@ -64,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
                         case AuthenticationType.CertificateAuthority:
                             {
-                                string p = parentId.Expect(() => new ArgumentException());
+                                string p = parentId.Expect(() => new ArgumentException("Missing parent ID"));
                                 return await CreateWithCaCertAsync(
                                     leafDeviceId,
                                     p,
@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
                         case AuthenticationType.SelfSigned:
                             {
-                                string p = parentId.Expect(() => new ArgumentException());
+                                string p = parentId.Expect(() => new ArgumentException("Missing parent ID"));
                                 return await CreateWithSelfSignedCertAsync(
                                     leafDeviceId,
                                     p,
@@ -272,7 +272,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             Device edge = await iotHub.GetDeviceIdentityAsync(parentId, token);
             if (edge == null)
             {
-                throw new ArgumentException($"Device '{parentId}' not found in '{iotHub.Hostname}'");
+                throw new InvalidOperationException($"Device '{parentId}' not found in '{iotHub.Hostname}'");
             }
 
             return edge;

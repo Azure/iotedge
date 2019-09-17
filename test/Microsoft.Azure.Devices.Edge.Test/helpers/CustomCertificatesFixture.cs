@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 async () =>
                 {
                     (string, string, string) rootCa =
-                        Context.Current.RootCaKeys.Expect(() => new ArgumentException());
+                        Context.Current.RootCaKeys.Expect(() => new InvalidOperationException("Missing root CA keys"));
 
                     using (var cts = new CancellationTokenSource(Context.Current.SetupTimeout))
                     {

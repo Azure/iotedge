@@ -34,8 +34,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task DpsSymmetricKey()
         {
-            string idScope = Context.Current.DpsIdScope.Expect(() => new ArgumentException());
-            string groupKey = Context.Current.DpsGroupKey.Expect(() => new ArgumentException());
+            string idScope = Context.Current.DpsIdScope.Expect(() => new InvalidOperationException("Missing DPS ID scope"));
+            string groupKey = Context.Current.DpsGroupKey.Expect(() => new InvalidOperationException("Missing DPS enrollment group key"));
             string registrationId = $"{Context.Current.DeviceId}-{TestContext.CurrentContext.Test.NormalizedName()}";
 
             string deviceKey = this.DeriveDeviceKey(Convert.FromBase64String(groupKey), registrationId);
@@ -64,7 +64,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 this.iotHub,
                 token,
                 takeOwnership: true);
-            Context.Current.DeleteList.TryAdd(registrationId, device.Expect(() => new ArgumentException()));
+            Context.Current.DeleteList.TryAdd(registrationId, device.Expect(() => new InvalidOperationException(
+                $"Device '{registrationId}' should have been created by DPS, but was not found in '{this.iotHub.Hostname}'")));
         }
     }
 }
