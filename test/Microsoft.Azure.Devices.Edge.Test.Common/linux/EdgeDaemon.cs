@@ -48,7 +48,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         case "Ubuntu":
                             return new[]
                             {
-                                "set -e",
                                 $"curl https://packages.microsoft.com/config/ubuntu/{version}/prod.list > /etc/apt/sources.list.d/microsoft-prod.list",
                                 "curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg",
                                 "apt-get update",
@@ -57,7 +56,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         case "Raspbian":
                             return new[]
                             {
-                                "set -e",
                                 "curl -L https://aka.ms/libiothsm-std-linux-armhf-latest -o libiothsm-std.deb",
                                 "curl -L https://aka.ms/iotedged-linux-armhf-latest -o iotedge.deb",
                                 "dpkg --force-confnew -i libiothsm-std.deb iotedge.deb",
@@ -72,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             await Profiler.Run(
                 async () =>
                 {
-                    string[] output = await Process.RunAsync("bash", $"-c \"{string.Join("; ", commands)}\"", token);
+                    string[] output = await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", commands)}\"", token);
                     Log.Verbose(string.Join("\n", output));
 
                     await this.InternalStopAsync(token);
