@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 },
                 async () =>
                 {
-                    // TODO: support curl behind a proxy
+                    // TODO: 8/30/2019 support curl behind a proxy
                     string[] platformInfo = await Process.RunAsync("lsb_release", "-sir", token);
                     string os = platformInfo[0].Trim();
                     string version = platformInfo[1].Trim();
