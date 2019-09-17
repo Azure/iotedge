@@ -431,12 +431,8 @@ mod tests {
 
         let mut runtime = Runtime::new().unwrap();
         let info = runtime.block_on(task).unwrap();
-        println!(
-            "{}\n{}\n{}",
-            info.os_type(),
-            info.architecture(),
-            info.version()
-        );
+
+        assert_eq!(info.architecture(), "[{\"name\":\"amd64\",\"nodes_count\":2},{\"name\":\"arm32\",\"nodes_count\":1}]");
     }
 
     fn list_node_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
