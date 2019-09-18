@@ -45,8 +45,13 @@ impl<C: Connect + 'static> AuthClient<C> {
     /// requests
     pub async fn request(&mut self, mut req: Request<Body>) -> Result<Response<Body>> {
         let headers = match self.store.get(req.uri()) {
-            Some(headers) => headers.clone(),
-            None => self.authenticate(&req).await?,
+            Some(h) => h.clone(),
+            None => {
+                let new_headers = self.authenticate(&req).await?;
+                let h = new_headers.clone();
+                self.store.insert(req.uri().clone(), new_headers);
+                h
+            }
         };
 
         req.headers_mut().extend(headers);

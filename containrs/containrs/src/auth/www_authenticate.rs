@@ -154,6 +154,8 @@ impl FromStr for WWWAuthenticate {
 mod tests {
     use super::*;
 
+    // TODO: look into using `proptest` to iron-out parsing issues
+
     macro_rules! string_map(
         {} => { ::std::collections::HashMap::new() };
         { $($key:expr => $value:expr),+} => {

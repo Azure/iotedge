@@ -59,7 +59,7 @@ pub struct ImageConfig {
 pub struct RootFS {
     /// Type is the type of the rootfs.
     #[serde(rename = "type")]
-    pub rootfs_type: String, // cannot use `type` as name. it's a reserved word
+    pub rootfs_type: String, // avoids raw identifier syntax (i.e: `pub r#type: String`)
 
     /// DiffIDs is an array of layer content hashes (DiffIDs), in order from
     /// bottom-most to top-most.
@@ -128,7 +128,7 @@ pub struct Image {
 
     /// RootFS references the layer content addresses used by the image.
     #[serde(rename = "rootfs")]
-    pub root_fs: RootFS,
+    pub rootfs: RootFS,
 
     /// History describes the history of each layer.
     #[serde(rename = "history", skip_serializing_if = "Option::is_none")]

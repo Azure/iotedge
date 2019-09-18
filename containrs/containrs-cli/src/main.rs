@@ -14,7 +14,7 @@ async fn main() -> Result<()> {
     let app_m = App::new("containrs-cli")
         .setting(AppSettings::ArgRequiredElseHelp)
         .version("0.1.0")
-        .author("Daniel Prilik <danielprilik@gmail.com>")
+        .author("Azure IoT Edge Devs")
         .about("CLI for interacting with the containrs library.")
         // TODO: pass authentication credentials via CLI
         .subcommand(
@@ -107,7 +107,7 @@ async fn main() -> Result<()> {
             println!("canonical: {:#?}", image);
 
             let mut client = Client::new(hyper_client, image.domain(), credentials);
-            let manifest = client.get_manifest(image.name(), image.reference()).await?;
+            let manifest = client.get_manifest(&image).await?;
             println!("{:#?}", manifest);
 
             // dump manifest to file (making director if it doesn't exist)

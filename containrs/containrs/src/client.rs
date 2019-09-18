@@ -4,14 +4,33 @@ use hyper::header;
 use hyper::http::{Method, Request, StatusCode, Uri};
 use hyper::Client as HyperClient;
 // use log::*;
+use serde::{Deserialize, Serialize};
 
 use oci_distribution::v2::Catalog;
 use oci_image::{v1::Manifest, MediaType};
 
 use crate::auth::{AuthClient, Credentials};
-use crate::reference::ReferenceKind;
+use crate::reference::Reference;
 use crate::util::hyper::BodyExt;
 use crate::Result;
+
+/// Basic struct to indicate pagination options
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Paginate {
+    #[serde(rename = "n")]
+    n: usize,
+    #[serde(rename = "last", skip_serializing_if = "Option::is_none")]
+    last: Option<String>,
+}
+
+impl Paginate {
+    /// Create a new pagination definition
+    /// - `n` - Limit the number of entries in each response.
+    /// - `last` - Result set will include values lexically after last.
+    pub fn new(n: usize, last: Option<String>) -> Paginate {
+        Paginate { n, last }
+    }
+}
 
 /// Client for interacting with container registries which conform to the
 /// OCI distribution specification (i.e: Docker Registry HTTP API V2 protocol)
@@ -64,8 +83,7 @@ impl<C: Connect + 'static> Client<C> {
         &mut self,
         paginate: Option<Paginate>,
     ) -> Result<Option<(Catalog, Option<Paginate>)>> {
-        if let Some(paginate) = paginate {
-            let _ = paginate;
+        if let Some(_paginate) = paginate {
             unimplemented!("implement _catalog pagination")
         }
 
@@ -85,12 +103,15 @@ impl<C: Connect + 'static> Client<C> {
     /// Fetch the manifest identified by name and reference where reference can
     /// be a tag or digest. A HEAD request can also be issued to this endpoint
     /// to obtain resource information without receiving all data.
-    pub async fn get_manifest(
-        &mut self,
-        name: &str,
-        reference: &ReferenceKind,
-    ) -> Result<Manifest> {
-        let uri = self.base_uri(format!("/v2/{}/manifests/{}", name, reference).as_str())?;
+    pub async fn get_manifest(&mut self, reference: &Reference) -> Result<Manifest> {
+        let uri = self.base_uri(
+            format!(
+                "/v2/{}/manifests/{}",
+                reference.name(),
+                reference.reference_kind()
+            )
+            .as_str(),
+        )?;
 
         let mut req = Request::get(uri);
         req.header(header::ACCEPT, Manifest::MEDIA_TYPE);
@@ -116,25 +137,5 @@ impl<C: Connect + 'static> Client<C> {
                 other_status
             ),
         }
-    }
-}
-
-use serde::{Deserialize, Serialize};
-
-/// Basic struct to indicate pagination options
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Paginate {
-    #[serde(rename = "n")]
-    n: usize,
-    #[serde(rename = "last", skip_serializing_if = "Option::is_none")]
-    last: Option<String>,
-}
-
-impl Paginate {
-    /// Create a new pagination definition
-    /// - `n` - Limit the number of entries in each response.
-    /// - `last` - Result set will include values lexically after last.
-    pub fn new(n: usize, last: Option<String>) -> Paginate {
-        Paginate { n, last }
     }
 }

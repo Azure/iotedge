@@ -48,7 +48,7 @@ impl Reference {
     }
 
     /// Return the object's reference (either a tag or digest string)
-    pub fn reference(&self) -> &ReferenceKind {
+    pub fn reference_kind(&self) -> &ReferenceKind {
         &self.reference
     }
 }
@@ -198,6 +198,8 @@ impl FromStr for RawReference {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // TODO: look into using `proptest` to iron-out parsing issues
 
     #[test]
     fn bare() {
