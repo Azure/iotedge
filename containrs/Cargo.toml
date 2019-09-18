@@ -2,6 +2,6 @@
 members = [
     "containrs",
     "containrs-cli",
-    "oci_distribution",
-    "oci_image",
+    "oci-distribution",
+    "oci-image",
 ]

@@ -180,8 +180,8 @@ dependencies = [
  "headers 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.13.0-alpha.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "oci_distribution 0.1.0",
- "oci_image 0.1.0",
+ "oci-distribution 0.1.0",
+ "oci-image 0.1.0",
  "pest 2.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "pest_derive 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.101 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -704,7 +704,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "oci_distribution"
+name = "oci-distribution"
 version = "0.1.0"
 dependencies = [
  "serde 1.0.101 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -712,7 +712,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "oci_image"
+name = "oci-image"
 version = "0.1.0"
 dependencies = [
  "serde 1.0.101 (registry+https://github.com/rust-lang/crates.io-index)",

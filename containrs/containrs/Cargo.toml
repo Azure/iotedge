@@ -5,8 +5,8 @@ authors = ["Daniel Prilik <danielprilik@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-oci_image = { path = "../oci_image" }
-oci_distribution = { path = "../oci_distribution" }
+oci-image = { path = "../oci-image" }
+oci-distribution = { path = "../oci-distribution" }
 
 async-trait = "0.1"
 failure = "0.1"
