@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
             string filterImage = Context.Current.TempFilterImage.Expect(() => new ArgumentException());
 
-            CancellationToken token = this.cts.Token;
+            CancellationToken token = this.TestToken;
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                 builder =>
