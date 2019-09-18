@@ -65,7 +65,7 @@ pub enum ErrorKind {
     Config,
 
     #[fail(display = "An error occurred obtaining the client identity certificate")]
-    IdentityCertificate,
+    IdentityCertificate
 }
 
 #[derive(Clone, Debug, PartialEq)]

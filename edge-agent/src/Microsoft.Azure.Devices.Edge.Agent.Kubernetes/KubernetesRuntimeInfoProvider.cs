@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using k8s;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
     using Microsoft.Azure.Devices.Edge.Util;
     using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
 
@@ -18,11 +19,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly string deviceNamespace;
         readonly IKubernetes client;
         readonly ConcurrentDictionary<string, ModuleRuntimeInfo> moduleRuntimeInfo;
+        readonly IModuleManager moduleManager;
 
-        public KubernetesRuntimeInfoProvider(string deviceNamespace, IKubernetes client)
+        public KubernetesRuntimeInfoProvider(string deviceNamespace, IKubernetes client, IModuleManager moduleManager)
         {
             this.deviceNamespace = Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace));
             this.client = Preconditions.CheckNotNull(client, nameof(client));
+            this.moduleManager = Preconditions.CheckNotNull(moduleManager, nameof(moduleManager));
             this.moduleRuntimeInfo = new ConcurrentDictionary<string, ModuleRuntimeInfo>();
         }
 
@@ -51,29 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public Task<SystemInfo> GetSystemInfo()
         {
-            // Comment this out to unblock testing.
-            // V1NodeList k8SNodes = await this.client.ListNodeAsync();
-            // string osType = string.Empty;
-            // string arch = string.Empty;
-            // string version = string.Empty;
-            // if (k8SNodes.Items != null)
-            // {
-            //     V1Node firstNode = k8SNodes.Items.FirstOrDefault();
-            //     if (firstNode?.Status?.NodeInfo != null)
-            //     {
-            //         osType = firstNode.Status.NodeInfo.OperatingSystem;
-            //         arch = firstNode.Status.NodeInfo.Architecture;
-            //         version = firstNode.Status.NodeInfo.OsImage;
-            //     }
-            //     else
-            //     {
-            //         Events.NullNodeInfoResponse(firstNode?.Metadata?.Name ?? "UNKNOWN");
-            //     }
-            // }
-            string osType = "Kubernetes";
-            string arch = "Kubernetes";
-            string version = "Kubernetes";
-            return Task.FromResult(new SystemInfo(osType, arch, version));
+            return this.moduleManager.GetSystemInfoAsync();
         }
     }
 }

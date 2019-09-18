@@ -32,6 +32,9 @@ metadata:
   namespace: {{ include "edge-kubernetes.namespace" . | quote }}
 rules:
   - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["list"]
+  - apiGroups: [""]
     resources: ["pods", "pods/log"]
     verbs: ["list", "watch"]
   - apiGroups: [""]
