@@ -618,47 +618,47 @@ Function RunAllTests
 
     $TestName = "DirectMethodAmqpMqtt"
     $testExitCode = RunDirectMethodAmqpMqttTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "DirectMethodMqtt"
     $testExitCode = RunDirectMethodMqttTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "DirectMethodMqttAmqp"
     $testExitCode = RunDirectMethodMqttAmqpTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "DpsSymmetricKeyProvisioning"
     $testExitCode = RunDpsProvisioningTest ([DpsProvisioningType]::SymmetricKey)
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "DpsTpmProvisioning"
     $testExitCode = RunDpsProvisioningTest ([DpsProvisioningType]::Tpm)
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "DpsX509Provisioning"
     $testExitCode = RunDpsProvisioningTest ([DpsProvisioningType]::X509)
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "QuickstartCerts"
     $testExitCode = RunQuickstartCertsTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "TempFilter"
     $testExitCode = RunTempFilterTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "TempFilterFunctions"
     $testExitCode = RunTempFilterFunctionsTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "TempSensor"
     $testExitCode = RunTempSensorTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     $TestName = "TransparentGateway"
     $testExitCode = RunTransparentGatewayTest
-    $lastTestExitCode = If ($testExitCode -gt 0) { $testExitCode } Else { $lastTestExitCode }
+    $lastTestExitCode = If ($testExitCode -ne 0) { $testExitCode } Else { $lastTestExitCode }
 
     Return $lastTestExitCode
 }
@@ -845,6 +845,7 @@ Function RunDpsProvisioningTest
             $installCACommand = "Import-Certificate -CertStoreLocation 'cert:\LocalMachine\Root' -FilePath $EdgeCertGenScriptDir\certs\azure-iot-test-only.intermediate.cert.pem"
             Invoke-Expression $installCACommand | Out-Host
 
+            New-CACertsDevice "$registrationId"
             $identityPkPath = "$EdgeCertGenScriptDir\private\iot-device-${registrationId}.key.pem"
             $identityCertPath = "$EdgeCertGenScriptDir\certs\iot-device-${registrationId}-full-chain.cert.pem"
 
@@ -1095,9 +1096,15 @@ Function RunLeafDeviceTest
     [ValidateSet("sas","x509CA","x509Thumprint")][string]$authType,
     [ValidateSet("Mqtt","MqttWs","Amqp", "AmqpWs")][string]$protocol,
     [ValidateNotNullOrEmpty()][string]$leafDeviceId,
-    [string]$edgeDeviceId
+    [string]$edgeDeviceId,
+    [bool]$useSecondaryCredential = $False
 )
 {
+
+    if ($leafDeviceId.Length -gt 64) {
+        throw "can't generate cert. asn1 device name length of 64 exceeded. $leafDeviceId"
+    }
+    
     $testCommand = $null
     switch ($authType) {
         "sas"
@@ -1170,6 +1177,11 @@ Function RunLeafDeviceTest
                 -ctsk `"$EdgeCertGenScriptDir\private\iot-device-${leafDeviceId}-sec.key.pem`" ``
                 -ed-id `"$edgeDeviceId`" ``
                 -ed `"$env:computername`""
+
+            If ($useSecondaryCredential) {
+                $testCommand = "$testCommand --use-secondary-credential"
+            }
+
             break
         }
 
@@ -1177,7 +1189,7 @@ Function RunLeafDeviceTest
         {
             $(Throw "Unsupported auth mode $authType")
         }
-     }
+    }
 
     If ($ProxyUri) {
         $testCommand = "$testCommand --proxy `"$ProxyUri`""
@@ -1239,17 +1251,25 @@ Function RunTransparentGatewayTest
     # run the various leaf device tests
     $deviceId = "e2e-${ReleaseLabel}-Win-${Architecture}"
 
-    RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-noscope-leaf" $null
-    RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-noscope-leaf" $null
+    # NOTE: device name cannot be > 64 chars because of asn1 limits for certs
+    # thus we're abbreviating noscope/inscope as no/in and leaf as lf, x509ca as x5c, x509th as x5t, pri as p, sec as s.
+    RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-no-lf" $null
+    RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-no-lf" $null
 
-    RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-inscope-leaf" $edgeDeviceId
-    RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-inscope-leaf" $edgeDeviceId
+    RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-in-lf" $edgeDeviceId
+    RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-in-lf" $edgeDeviceId
 
-    RunLeafDeviceTest "x509CA" "Mqtt" "$deviceId-mqtt-x509ca-inscope-leaf" $edgeDeviceId
-    RunLeafDeviceTest "x509CA" "Amqp" "$deviceId-amqp-x509ca-inscope-leaf" $edgeDeviceId
+    RunLeafDeviceTest "x509CA" "Mqtt" "$deviceId-mqtt-x5c-in-lf" $edgeDeviceId
+    RunLeafDeviceTest "x509CA" "Amqp" "$deviceId-amqp-x5c-in-lf" $edgeDeviceId
 
-    RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-x509th-inscope-leaf" $edgeDeviceId
-    RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-x509th-inscope-leaf" $edgeDeviceId
+    # run thumbprint test using primary cert with MQTT
+    RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-p-x5t-in-lf" $edgeDeviceId
+    # run thumbprint test using secondary cert with MQTT
+    RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-s-x5t-in-lf" $edgeDeviceId $True
+    # run thumbprint test using primary cert with AMQP
+    RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-p-x5t-in-lf" $edgeDeviceId
+    # run thumbprint test using secondary cert with AMQP
+    RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-s-x5t-in-lf" $edgeDeviceId $True
 
     Return $testExitCode
 }
@@ -1258,7 +1278,7 @@ Function RunTest
 {
     $testExitCode = 0
 
-    If ($TestName.StartsWith("Dps") -Or $TestName -eq "TransparentGateway")
+    If ($TestName -eq "DpsX509Provisioning" -Or $TestName -eq "TransparentGateway")
     {
         # setup certificate generation tools to create the Edge device and leaf device certificates
         PrepareCertificateTools
@@ -1314,7 +1334,7 @@ Function TestSetup
         $testCommand = "&$EnvSetupScriptPath ``
             -ArtifactImageBuildNumber `"$ArtifactImageBuildNumber`" ``
             -E2ETestFolder `"$E2ETestFolder`""
-            
+
         Invoke-Expression $testCommand | Out-Host
     }
     InitializeWorkingFolder

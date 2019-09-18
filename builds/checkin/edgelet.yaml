@@ -25,6 +25,8 @@ jobs:
         displayName: Check submodules
       - bash: edgelet/build/linux/build.sh
         displayName: Build
+      - bash: edgelet/build/linux/build-k8s.sh
+        displayName: Build (runtime-kubernetes)
       - bash: edgelet/build/linux/test.sh
         displayName: Test
 
@@ -123,7 +125,7 @@ jobs:
     variables:
       coverage.excludes: "docker-rs*"
       coverage.goal: 68
-      rust.toolchain: nightly-2019-06-07
+      rust.toolchain: nightly-2019-07-05
     pool:
       vmImage: 'ubuntu-16.04'
     steps:

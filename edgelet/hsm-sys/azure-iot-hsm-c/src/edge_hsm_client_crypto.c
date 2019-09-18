@@ -32,6 +32,9 @@ int hsm_client_crypto_init(void)
         int status;
         const HSM_CLIENT_STORE_INTERFACE* store_if;
         const HSM_CLIENT_KEY_INTERFACE* key_if;
+
+        log_init(LVL_INFO);
+
         if ((store_if = hsm_client_store_interface()) == NULL)
         {
             LOG_ERROR("HSM store interface not available");

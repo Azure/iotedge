@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using Newtonsoft.Json;
     using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
     using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
-    using DockerModels = global::Docker.DotNet.Models;
+    using DockerModels = Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
     using VolumeOptions =
         Microsoft.Azure.Devices.Edge.Util.Option<(System.Collections.Generic.List<k8s.Models.V1Volume>,
             System.Collections.Generic.List<k8s.Models.V1VolumeMount>, System.Collections.Generic.List<k8s.Models.V1VolumeMount>)>;
@@ -604,10 +604,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             return envList;
         }
 
-        private Option<List<(int Port, string Protocol)>> GetExposedPorts(IDictionary<string, DockerModels.EmptyStruct> exposedPorts)
+        private Option<List<(int Port, string Protocol)>> GetExposedPorts(IDictionary<string, global::Docker.DotNet.Models.EmptyStruct> exposedPorts)
         {
             var serviceList = new List<(int, string)>();
-            foreach (KeyValuePair<string, DockerModels.EmptyStruct> exposedPort in exposedPorts)
+            foreach (KeyValuePair<string, global::Docker.DotNet.Models.EmptyStruct> exposedPort in exposedPorts)
             {
                 string[] portProtocol = exposedPort.Key.Split('/');
                 if (portProtocol.Length == 2)

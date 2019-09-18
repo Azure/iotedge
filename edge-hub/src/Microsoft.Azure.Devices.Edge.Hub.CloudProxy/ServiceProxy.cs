@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     .GetOrElse(
                         () =>
                         {
-                            Events.NullResult(deviceId);
+                            Events.ScopeNotFound(deviceId);
                             return Option.None<ServiceIdentity>();
                         });
 
@@ -113,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                     .GetOrElse(
                         () =>
                         {
-                            Events.NullResult(id);
+                            Events.ScopeNotFound(id);
                             return Option.None<ServiceIdentity>();
                         });
 
@@ -129,6 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             {
                 IteratorCreated = IdStart,
                 ScopeResultReceived,
+                NoScopeFound,
                 UnexpectedResult
             }
 
@@ -163,9 +164,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Log.LogWarning((int)EventIds.UnexpectedResult, "Received null device scope result");
             }
 
-            public static void NullResult(string id)
+            public static void ScopeNotFound(string id)
             {
-                Log.LogWarning((int)EventIds.UnexpectedResult, $"Received null device scope result for {id}");
+                Log.LogWarning((int)EventIds.NoScopeFound, $"Device scope not found for {id}. Parent-child relationship is not set.");
             }
 
             public static void BadRequestResult(string id, HttpStatusCode statusCode)

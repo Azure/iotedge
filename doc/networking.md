@@ -39,6 +39,7 @@ Reasons for changing this configuration include:
 * Modifying the IP block used for assigning IPs to containers
 * Changing the MTU
 * Changing the gateway address
+* Enabling IPv4/IPv6 dual-stack support
 
 The usual reason for modifying this configuration is that some other subnet on the network clashes with the default docker subnet.
 
@@ -82,6 +83,8 @@ moby_runtime:
 
 Any changes to other specific settings of this network must be made out of band, via the Moby Engine.
 Read the Docker [networking guide][4] for more information.
+
+For more details on how to configure IoT edge to work on IPv6 networks, please refer to the [IPv6 networking guide on Linux devices](./IPv6Configuration.md) guide.
 
 This network can be configured before starting IoT Edge, as the `iotedged` does a "get or create" operation on the network when starting.
 Pre-configuring a network and updating the network in the `config.yaml` allows complete control over its settings.
