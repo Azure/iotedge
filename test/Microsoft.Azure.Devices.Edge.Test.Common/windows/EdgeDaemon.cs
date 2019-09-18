@@ -2,10 +2,10 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
 {
     using System;
-    using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
+    using System.Net;
     using System.ServiceProcess;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -20,25 +20,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             this.scriptDir = scriptDir;
         }
 
-        public async Task InstallAsync(string deviceConnectionString, Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
+        public async Task InstallAsync(Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
         {
-            await this.InstallInternalAsync(deviceConnectionString, packagesPath, proxy, token);
-            await this.ConfigureAsync(proxy, token);
-        }
-
-        async Task InstallInternalAsync(string deviceConnectionString, Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
-        {
-            var properties = new object[] { };
-            string message = "Installed edge daemon";
+            var properties = new object[] { Dns.GetHostName() };
+            string message = "Installed edge daemon on '{Device}'";
             packagesPath.ForEach(
                 p =>
                 {
                     message += " from packages in '{InstallPackagePath}'";
-                    properties = new object[] { p };
+                    properties = properties.Append(p).ToArray();
                 });
 
-            string installCommand = "Install-IoTEdge -Manual -ContainerOs Windows " +
-                                    $"-DeviceConnectionString '{deviceConnectionString}'";
+            string installCommand = $"Deploy-IoTEdge -ContainerOs Windows";
             packagesPath.ForEach(p => installCommand += $" -OfflineInstallationPath '{p}'");
             proxy.ForEach(
                 p => installCommand += $" -InvokeWebRequestParameters @{{ '-Proxy' = '{p}' }}");
@@ -60,50 +53,34 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                     string[] output =
                         await Process.RunAsync("powershell", string.Join(";", commands), token);
                     Log.Verbose(string.Join("\n", output));
+
+                    const string suffix = @"\iotedge\config.yaml";
+                    File.Copy(
+                        Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + suffix,
+                        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData) + suffix);
                 },
                 message,
                 properties);
         }
 
-        public Task ConfigureAsync(Func<DaemonConfiguration, Task<(string, object[])>> config, CancellationToken token)
+        public async Task ConfigureAsync(Func<DaemonConfiguration, Task<(string, object[])>> config, CancellationToken token, bool restart)
         {
-            var properties = new List<object>();
-            var message = new StringBuilder("Configured edge daemon");
             string configYamlPath =
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData) + @"\iotedge\config.yaml";
 
-            return Profiler.Run(
-                async () =>
-                {
-                    await this.InternalStopAsync(token);
+            Profiler profiler = Profiler.Start();
 
-                    var yaml = new DaemonConfiguration(configYamlPath);
-                    (string m, object[] p) = await config(yaml);
+            await this.InternalStopAsync(token);
 
-                    message.Append($" {m}");
-                    properties.AddRange(p);
+            var yaml = new DaemonConfiguration(configYamlPath);
+            (string message, object[] properties) = await config(yaml);
 
-                    await this.InternalStartAsync(token);
-                },
-                message.ToString(),
-                properties);
-        }
+            if (restart)
+            {
+                await this.InternalStartAsync(token);
+            }
 
-        Task ConfigureAsync(Option<Uri> proxy, CancellationToken token)
-        {
-            return proxy.ForEachAsync(
-                p =>
-                {
-                    return this.ConfigureAsync(
-                        config =>
-                        {
-                            config.AddHttpsProxy(p);
-                            config.Update();
-
-                            return Task.FromResult(("with proxy '{ProxyUri}'", new object[] { p.ToString() }));
-                        },
-                        token);
-                });
+            profiler.Stop($"Configured edge daemon {message}", properties);
         }
 
         public Task StartAsync(CancellationToken token)

@@ -2,12 +2,11 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 {
     using System;
-    using System.Collections.Generic;
     using System.ComponentModel;
     using System.IO;
     using System.Linq;
+    using System.Net;
     using System.ServiceProcess;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -15,21 +14,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
     public class EdgeDaemon : IEdgeDaemon
     {
-        public async Task InstallAsync(string deviceConnectionString, Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
+        public async Task InstallAsync(Option<string> packagesPath, Option<Uri> proxy, CancellationToken token)
         {
-            await InstallAsync(packagesPath, token);
-            await this.ConfigureAsync(deviceConnectionString, proxy, token);
-        }
-
-        static async Task InstallAsync(Option<string> packagesPath, CancellationToken token)
-        {
-            var properties = new object[] { };
-            string message = "Installed edge daemon";
+            var properties = new object[] { Dns.GetHostName() };
+            string message = "Installed edge daemon on '{Device}'";
             packagesPath.ForEach(
                 p =>
                 {
                     message += " from packages in '{InstallPackagePath}'";
-                    properties = new object[] { p };
+                    properties = properties.Append(p).ToArray();
                 });
 
             string[] commands = await packagesPath.Match(
@@ -46,6 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                 },
                 async () =>
                 {
+                    // TODO: 8/30/2019 support curl behind a proxy
                     string[] platformInfo = await Process.RunAsync("lsb_release", "-sir", token);
                     string os = platformInfo[0].Trim();
                     string version = platformInfo[1].Trim();
@@ -54,7 +48,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         case "Ubuntu":
                             return new[]
                             {
-                                "set -e",
                                 $"curl https://packages.microsoft.com/config/ubuntu/{version}/prod.list > /etc/apt/sources.list.d/microsoft-prod.list",
                                 "curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg",
                                 "apt-get update",
@@ -63,7 +56,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                         case "Raspbian":
                             return new[]
                             {
-                                "set -e",
                                 "curl -L https://aka.ms/libiothsm-std-linux-armhf-latest -o libiothsm-std.deb",
                                 "curl -L https://aka.ms/iotedged-linux-armhf-latest -o iotedge.deb",
                                 "dpkg --force-confnew -i libiothsm-std.deb iotedge.deb",
@@ -78,61 +70,37 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             await Profiler.Run(
                 async () =>
                 {
-                    string[] output = await Process.RunAsync("bash", $"-c \"{string.Join("; ", commands)}\"", token);
+                    string[] output = await Process.RunAsync("bash", $"-c \"{string.Join(" || exit $?; ", commands)}\"", token);
                     Log.Verbose(string.Join("\n", output));
+
+                    await this.InternalStopAsync(token);
                 },
                 message,
                 properties);
         }
 
-        public Task ConfigureAsync(Func<DaemonConfiguration, Task<(string, object[])>> config, CancellationToken token)
+        public Task ConfigureAsync(Func<DaemonConfiguration, Task<(string, object[])>> config, CancellationToken token, bool restart)
         {
-            var properties = new List<object>();
-            var message = new StringBuilder("Configured edge daemon");
+            var properties = new object[] { };
+            var message = "Configured edge daemon";
 
             return Profiler.Run(
                 async () =>
                 {
                     await this.InternalStopAsync(token);
-
                     var yaml = new DaemonConfiguration("/etc/iotedge/config.yaml");
                     (string msg, object[] props) = await config(yaml);
 
-                    message.Append($" {msg}");
-                    properties.AddRange(props);
+                    message += $" {msg}";
+                    properties = properties.Concat(props).ToArray();
 
-                    await this.InternalStartAsync(token);
+                    if (restart)
+                    {
+                        await this.InternalStartAsync(token);
+                    }
                 },
                 message.ToString(),
                 properties);
-        }
-
-        Task ConfigureAsync(string deviceConnectionString, Option<Uri> proxy, CancellationToken token)
-        {
-            return this.ConfigureAsync(
-                async (config) =>
-                {
-                    string hostname = (await File.ReadAllTextAsync("/proc/sys/kernel/hostname", token)).Trim();
-                    IotHubConnectionStringBuilder builder = IotHubConnectionStringBuilder.Create(deviceConnectionString);
-
-                    string message = "for device '{Device}' registered as '{Id}'";
-                    var properties = new object[] { hostname, builder.DeviceId };
-
-                    proxy.ForEach(
-                        p =>
-                        {
-                            message += " with proxy '{ProxyUri}'";
-                            properties = properties.Concat(new object[] { p }).ToArray();
-                        });
-
-                    config.SetDeviceConnectionString(deviceConnectionString);
-                    config.SetDeviceHostname(hostname);
-                    proxy.ForEach(config.AddHttpsProxy);
-                    config.Update();
-
-                    return (message, properties);
-                },
-                token);
         }
 
         public Task StartAsync(CancellationToken token) => Profiler.Run(
@@ -152,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         async Task InternalStopAsync(CancellationToken token)
         {
-            string[] output = await Process.RunAsync("systemctl", "stop iotedge", token);
+            string[] output = await Process.RunAsync("systemctl", "stop iotedge.service iotedge.socket iotedge.mgmt.socket", token);
             Log.Verbose(string.Join("\n", output));
             await WaitForStatusAsync(ServiceControllerStatus.Stopped, token);
         }
@@ -174,7 +142,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
                     async () =>
                     {
                         string[] output =
-                            await Process.RunAsync("apt-get", "purge --yes libiothsm-std", token);
+                            await Process.RunAsync("apt-get", "purge --yes libiothsm-std iotedge", token);
+
                         Log.Verbose(string.Join("\n", output));
                     },
                     "Uninstalled edge daemon");

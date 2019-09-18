@@ -17,17 +17,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
             [Values] TestAuthenticationType testAuth,
             [Values(Protocol.Mqtt, Protocol.Amqp)] Protocol protocol)
         {
-            CancellationToken token = this.cts.Token;
+            CancellationToken token = this.TestToken;
 
-            // Generate a leaf device ID--based on the (edge) device ID--that is at most
-            // (deviceId.Length + 26 chars) long. This gives us a leaf device ID of <= 63
-            // characters, and gives LeafDevice.CreateAsync (called below) some wiggle room to
-            // create certs with unique CNs that don't exceed the 64-char limit.
-            string leafDeviceId = $"{Context.Current.DeviceId}-{protocol.ToString()}-{testAuth.ToString()}";
+            string leafDeviceId = IdentityLimits.CheckLeafId(
+                $"{Context.Current.DeviceId}-{protocol}-{testAuth}");
 
             Option<string> parentId = testAuth == TestAuthenticationType.SasOutOfScope
                 ? Option.None<string>()
-                : Option.Some(Context.Current.DeviceId);
+                : Option.Some(Context.Current.DeviceId.ToString());
 
             var leaf = await LeafDevice.CreateAsync(
                 leafDeviceId,
