@@ -249,7 +249,7 @@ where
             .expect("Unexpected lock error")
             .borrow_mut()
             .list_nodes()
-            .map_err(|err| Error::from(err.context(ErrorKind::SystemInfo)))
+            .map_err(|err| Error::from(err.context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))))
             .map(|nodes| {
                 // Accumulate the architectures and their node counts into a map
                 let architectures = nodes
@@ -432,7 +432,7 @@ mod tests {
         let mut runtime = Runtime::new().unwrap();
         let info = runtime.block_on(task).unwrap();
 
-        assert_eq!(info.architecture(), "[{\"name\":\"amd64\",\"nodes_count\":2},{\"name\":\"arm32\",\"nodes_count\":1}]");
+        assert_eq!(info.architecture(), "[{\"name\":\"amd64\",\"nodes_count\":2}]");
     }
 
     fn list_node_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
@@ -457,25 +457,6 @@ mod tests {
                                   "kubeProxyVersion": "v1.13.10",
                                   "operatingSystem": "linux",
                                   "architecture": "amd64"
-                                },
-                            }
-                        },
-                        {
-                            "kind" : "Node",
-                            "status" :
-                            {
-                                "nodeInfo":
-                                {
-                                  "machineID": "5aedea612a1a481a9f967578995b2930",
-                                  "systemUUID": "0331B348-6DBE-4344-BF93-6A3407C31879",
-                                  "bootID": "e8c73b01-12e6-45d1-a008-aeb3b5ae4225",
-                                  "kernelVersion": "4.15.0-1052-azure",
-                                  "osImage": "Ubuntu 16.04.6 LTS",
-                                  "containerRuntimeVersion": "docker://3.0.6",
-                                  "kubeletVersion": "v1.13.10",
-                                  "kubeProxyVersion": "v1.13.10",
-                                  "operatingSystem": "linux",
-                                  "architecture": "arm32"
                                 },
                             }
                         },
