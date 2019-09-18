@@ -1,5 +1,5 @@
 
-> **!!! IMPORTANT NOTE !!! The metrics described here are deprecated and will the removed in subsequent releases. They are superseded by [edge metrics V2](edge-metrics-v2).**
+# **!!! IMPORTANT NOTE !!! The metrics described here are deprecated and will be removed in subsequent releases. They are superseded by [edge metrics V2](edge-metrics-v2).**
 
 ## Metrics in EdgeHub
 
