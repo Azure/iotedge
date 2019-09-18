@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using NUnit.Framework;
 
-    public class Module : RuntimeFixture
+    public class Module : ManualProvisioningFixture
     {
         private const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
 
@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
 
-            CancellationToken token = this.cts.Token;
+            CancellationToken token = this.TestToken;
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                 builder => { builder.AddModule("tempSensor", sensorImage); },
@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string sensorImage = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
             string filterImage = Context.Current.TempFilterImage.Expect(() => new ArgumentException());
 
-            CancellationToken token = this.cts.Token;
+            CancellationToken token = this.TestToken;
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                 builder =>
@@ -95,12 +95,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Assert.Ignore("Module-to-module direct methods don't work over WebSocket on Windows");
             }
 
-            string senderImage = Context.Current.MethodSenderImage.Expect(() => new ArgumentException());
-            string receiverImage = Context.Current.MethodReceiverImage.Expect(() => new ArgumentException());
+            string senderImage = Context.Current.MethodSenderImage.Expect(() => new InvalidOperationException("Missing Direct Method Sender image"));
+            string receiverImage = Context.Current.MethodReceiverImage.Expect(() => new InvalidOperationException("Missing Direct Method Receiver image"));
             string methodSender = $"methodSender-{protocol.ToString()}";
             string methodReceiver = $"methodReceiver-{protocol.ToString()}";
 
-            CancellationToken token = this.cts.Token;
+            CancellationToken token = this.TestToken;
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                 builder =>
