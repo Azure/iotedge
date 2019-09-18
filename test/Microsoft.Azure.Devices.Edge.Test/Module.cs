@@ -64,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         [Test]
         public async Task TempFilter()
         {
-            string filterImage = Context.Current.TempFilterImage.Expect(() => new ArgumentNullException("tempFilterImage parameter is required for TempFilter test"));
+            string filterImage = Context.Current.TempFilterImage.Expect(() => new ArgumentException("tempFilterImage parameter is required for TempFilter test"));
 
             const string filterModName = "tempFilter";
             const string tempSensorModName = "tempSensor";
@@ -98,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         // Test Temperature Filter Function: https://docs.microsoft.com/en-us/azure/iot-edge/tutorial-deploy-function
         public async Task TempFilterFunc()
         {
-            string filterFunc = Context.Current.TempFilterFunc.Expect(() => new ArgumentNullException("'tempFilterFunc' parameter is required for TempFilterFunc() test"));
+            string filterFunc = Context.Current.TempFilterFunc.Expect(() => new ArgumentException("'tempFilterFunc' parameter is required for TempFilterFunc() test"));
 
             const string filterFuncModuleName = "tempFilterFunctions";
             const string tempSensorModName = "tempSensor";
