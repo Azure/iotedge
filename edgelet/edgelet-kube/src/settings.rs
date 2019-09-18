@@ -9,8 +9,10 @@ use edgelet_core::{
 };
 use edgelet_docker::{DockerConfig, DEFAULTS};
 use edgelet_utils::YamlFileSource;
+use failure::ResultExt;
 
 use crate::error::Error;
+use crate::ErrorKind;
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Settings {
@@ -23,30 +25,31 @@ pub struct Settings {
     proxy_image: String,
     proxy_config_path: String,
     proxy_config_map_name: String,
+    proxy_trust_bundle_path: String,
+    proxy_trust_bundle_config_map_name: String,
     image_pull_policy: String,
     service_account_name: String,
     device_hub_selector: String,
 }
 
 impl Settings {
-    pub fn new(filename: Option<&Path>) -> Result<Self, Error> {
-        let filename = filename.map(|filename| {
-            filename.to_str().unwrap_or_else(|| {
-                panic!(
-                    "cannot load config from {} because it is not a utf-8 path",
-                    filename.display()
-                )
-            })
-        });
+    pub fn new(filename: &Path) -> Result<Self, Error> {
         let mut config = Config::default();
-        config.merge(YamlFileSource::String(DEFAULTS))?;
-        if let Some(file) = filename {
-            config.merge(YamlFileSource::File(file.into()))?;
-        }
+        config
+            .merge(YamlFileSource::String(DEFAULTS))
+            .context(ErrorKind::Config)?;
 
-        config.merge(Environment::with_prefix("iotedge"))?;
+        config
+            .merge(YamlFileSource::File(filename.into()))
+            .context(ErrorKind::Config)?;
 
-        Ok(config.try_into()?)
+        config
+            .merge(Environment::with_prefix("iotedge"))
+            .context(ErrorKind::Config)?;
+
+        let settings = config.try_into().context(ErrorKind::Config)?;
+
+        Ok(settings)
     }
 
     pub fn with_device_id(mut self, device_id: &str) -> Self {
@@ -85,6 +88,14 @@ impl Settings {
 
     pub fn proxy_config_map_name(&self) -> &str {
         &self.proxy_config_map_name
+    }
+
+    pub fn proxy_trust_bundle_path(&self) -> &str {
+        &self.proxy_trust_bundle_path
+    }
+
+    pub fn proxy_trust_bundle_config_map_name(&self) -> &str {
+        &self.proxy_trust_bundle_config_map_name
     }
 
     pub fn image_pull_policy(&self) -> &str {

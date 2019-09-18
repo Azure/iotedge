@@ -19,14 +19,12 @@ use edgelet_core::{
     RuntimeOperation, SystemInfo,
 };
 use edgelet_docker::DockerConfig;
-use kube_client::{
-    get_config, Client as KubeClient, Error as KubeClientError, HttpClient, TokenSource, ValueToken,
-};
+use kube_client::{get_config, Client as KubeClient, HttpClient, TokenSource, ValueToken};
 use provisioning::ProvisioningResult;
 
-use crate::convert::{auth_to_image_pull_secret, pod_to_module, trust_bundle_to_config_map};
+use crate::convert::{auth_to_image_pull_secret, pod_to_module};
 use crate::error::{Error, ErrorKind};
-use crate::module::{authenticate, create_module, KubeModule};
+use crate::module::{authenticate, create_module, init_trust_bundle, KubeModule};
 use crate::settings::Settings;
 
 pub struct KubeModuleRuntime<T, S> {
@@ -76,7 +74,7 @@ where
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
     S::Future: Send,
 {
     type Error = Error;
@@ -89,16 +87,16 @@ where
         if let Some(auth) = config.auth() {
             // Have authorization for this module spec, create this if it doesn't exist.
             let fut = auth_to_image_pull_secret(self.settings().namespace(), auth)
-                .map_err(Error::from)
                 .map(|(secret_name, pull_secret)| {
                     let client_copy = self.client.clone();
                     let namespace_copy = self.settings().namespace().to_owned();
+
                     self.client
                         .lock()
                         .expect("Unexpected lock error")
                         .borrow_mut()
                         .list_secrets(self.settings().namespace(), Some(secret_name.as_str()))
-                        .map_err(Error::from)
+                        .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                         .and_then(move |secrets| {
                             if let Some(current_secret) = secrets.items.into_iter().find(|secret| {
                                 secret.metadata.as_ref().map_or(false, |meta| {
@@ -117,7 +115,9 @@ where
                                             secret_name.as_str(),
                                             &pull_secret,
                                         )
-                                        .map_err(Error::from)
+                                        .map_err(|err| {
+                                            Error::from(err.context(ErrorKind::KubeClient))
+                                        })
                                         .map(|_| ());
 
                                     Either::A(Either::B(f))
@@ -128,7 +128,7 @@ where
                                     .expect("Unexpected lock error")
                                     .borrow_mut()
                                     .create_secret(namespace_copy.as_str(), &pull_secret)
-                                    .map_err(Error::from)
+                                    .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                                     .map(|_| ());
 
                                 Either::B(f)
@@ -136,7 +136,8 @@ where
                         })
                 })
                 .into_future()
-                .flatten();
+                .flatten()
+                .map_err(|err| Error::from(err.context(ErrorKind::RegistryOperation)));
 
             Box::new(fut)
         } else {
@@ -170,45 +171,12 @@ impl MakeModuleRuntime
 
         let fut = get_config()
             .map(|config| KubeModuleRuntime::new(KubeClient::new(config), settings))
-            .map_err(Error::from)
-            .map(|runtime| runtime.init_trust_bundle(&crypto).map(|_| runtime))
+            .map_err(|err| Error::from(err.context(ErrorKind::Initialization)))
+            .map(|runtime| init_trust_bundle(&runtime, &crypto).map(|_| runtime))
             .into_future()
             .flatten();
 
         Box::new(fut)
-    }
-}
-
-impl<T, S> KubeModuleRuntime<T, S>
-where
-    T: TokenSource,
-    S: Service + 'static,
-    S::ReqBody: From<Vec<u8>>,
-    S::ResBody: Stream,
-    Body: From<S::ResBody>,
-    S::Error: Into<KubeClientError>,
-{
-    fn init_trust_bundle(
-        &self,
-        crypto: &impl GetTrustBundle,
-    ) -> impl Future<Item = (), Error = Error> {
-        crypto
-            .get_trust_bundle()
-            .map_err(|err| Error::from(err.context(ErrorKind::IdentityCertificate)))
-            .and_then(|cert| {
-                trust_bundle_to_config_map(self.settings(), &cert).map_err(Error::from)
-            })
-            .map(|(name, config_map)| {
-                self.client()
-                    .lock()
-                    .expect("Unexpected lock error")
-                    .borrow_mut()
-                    .replace_config_map(&self.settings().namespace(), &name, &config_map)
-                    .map_err(Error::from)
-                    .map(|_| ())
-            })
-            .into_future()
-            .flatten()
     }
 }
 
@@ -219,7 +187,7 @@ where
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
     S::Future: Send,
 {
     type Error = Error;
@@ -285,7 +253,9 @@ where
                 self.settings().namespace(),
                 Some(&self.settings().device_hub_selector()),
             )
-            .map_err(Error::from)
+            .map_err(|err| {
+                Error::from(err.context(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules)))
+            })
             .and_then(|pods| {
                 pods.items
                     .into_iter()
@@ -326,7 +296,7 @@ where
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
     S::Future: Send,
 {
     type Error = Error;
@@ -386,116 +356,5 @@ impl Extend<u8> for Chunk {
 impl AsRef<[u8]> for Chunk {
     fn as_ref(&self) -> &[u8] {
         self.0.as_ref()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use hyper::service::{service_fn, Service};
-    use hyper::{Body, Error as HyperError, Request, Response};
-    use native_tls::TlsConnector;
-    use url::Url;
-
-    use edgelet_test_utils::cert::TestCert;
-    use edgelet_test_utils::crypto::TestHsm;
-    use kube_client::{Client as KubeClient, Config as KubeConfig, Error, TokenSource};
-
-    use crate::tests::make_settings;
-    use crate::{ErrorKind, KubeModuleRuntime};
-
-    #[test]
-    fn init_trust_bundle_fails_when_trust_bundle_unavailable() {
-        let service = service_fn(|_: Request<Body>| -> Result<Response<Body>, HyperError> {
-            Ok(Response::new(Body::empty()))
-        });
-        let crypto = TestHsm::default().with_fail_call(true);
-
-        let task = create_runtime(service).init_trust_bundle(&crypto);
-
-        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
-        let err = runtime.block_on(task).unwrap_err();
-
-        assert_eq!(err.kind(), &ErrorKind::IdentityCertificate)
-    }
-
-    #[test]
-    fn init_trust_bundle_fails_when_cert_unavailable() {
-        let service = service_fn(|_: Request<Body>| -> Result<Response<Body>, HyperError> {
-            Ok(Response::new(Body::empty()))
-        });
-        let cert = TestCert::default().with_fail_pem(true);
-        let crypto = TestHsm::default().with_cert(cert);
-
-        let task = create_runtime(service).init_trust_bundle(&crypto);
-
-        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
-        let err = runtime.block_on(task).unwrap_err();
-
-        assert_eq!(err.kind(), &ErrorKind::IdentityCertificate)
-    }
-
-    #[test]
-    fn init_trust_bundle_fails_when_k8s_api_call_fails() {
-        let service = service_fn(|_: Request<Body>| -> Result<Response<Body>, HyperError> {
-            Ok(Response::new(Body::empty()))
-        });
-        let cert = TestCert::default().with_cert(b"secret_cert".to_vec());
-        let crypto = TestHsm::default().with_cert(cert);
-
-        let task = create_runtime(service).init_trust_bundle(&crypto);
-
-        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
-        let err = runtime.block_on(task).unwrap_err();
-
-        assert_eq!(err.kind(), &ErrorKind::KubeClient)
-    }
-
-    #[test]
-    fn init_trust_bundle_creates_trust_bundle_config_map() {
-        let service = service_fn(|_: Request<Body>| -> Result<Response<Body>, HyperError> {
-            let body = r###"{
-                    "kind": "ConfigMap",
-                    "apiVersion": "v1",
-                    "metadata": {
-                        "name": "ca-pemstore",
-                        "namespace": "default"
-                    }
-                }"###;
-            Ok(Response::new(Body::from(body)))
-        });
-        let cert = TestCert::default().with_cert(b"secret_cert".to_vec());
-        let crypto = TestHsm::default().with_cert(cert);
-
-        let task = create_runtime(service).init_trust_bundle(&crypto);
-
-        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
-        runtime.block_on(task).unwrap();
-    }
-
-    fn create_runtime<S: Service>(service: S) -> KubeModuleRuntime<TestTokenSource, S> {
-        let settings = make_settings(None);
-        let client = KubeClient::with_client(get_config(), service);
-
-        KubeModuleRuntime::new(client, settings)
-    }
-
-    fn get_config() -> KubeConfig<TestTokenSource> {
-        KubeConfig::new(
-            Url::parse("https://localhost:443").unwrap(),
-            "/api".to_string(),
-            TestTokenSource,
-            TlsConnector::new().unwrap(),
-        )
-    }
-
-    #[derive(Clone)]
-    struct TestTokenSource;
-
-    impl TokenSource for TestTokenSource {
-        type Error = Error;
-
-        fn get(&self) -> kube_client::error::Result<Option<String>> {
-            Ok(None)
-        }
     }
 }

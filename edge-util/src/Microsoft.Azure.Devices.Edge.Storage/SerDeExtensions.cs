@@ -10,7 +10,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         {
             if (string.IsNullOrWhiteSpace(json))
             {
-                return default(T);
+                return typeof(T) == typeof(string)
+                    ? (T)(object)json
+                    : default(T);
             }
 
             return typeof(T) == typeof(string)

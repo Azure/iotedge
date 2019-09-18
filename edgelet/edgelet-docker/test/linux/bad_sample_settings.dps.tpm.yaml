@@ -1,5 +1,4 @@
-
-# Configures the provisioning mode
+# multiple registation ids with TPM provisioning
 provisioning:
   source: "dps"
   global_endpoint: "scheme://jibba-jabba.net"
