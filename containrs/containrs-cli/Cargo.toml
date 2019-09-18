@@ -6,6 +6,7 @@ edition = "2018"
 
 [dependencies]
 containrs = { path = "../containrs" }
+docker-reference = { path = "../docker-reference" }
 
 clap = "~2.33.0"
 hyper = "0.13.0-alpha.1"

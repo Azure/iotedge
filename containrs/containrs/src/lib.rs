@@ -1,6 +1,5 @@
 mod auth;
 mod client;
-pub mod reference;
 mod util;
 
 // TODO: convert this to something cleaner

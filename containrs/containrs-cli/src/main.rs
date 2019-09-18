@@ -2,7 +2,8 @@ use clap::{App, AppSettings, Arg, SubCommand};
 use hyper::Client as HyperClient;
 use hyper_tls::HttpsConnector;
 
-use containrs::reference::RawReference;
+use docker_reference::RawReference;
+
 use containrs::{Client, Credentials};
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
@@ -59,7 +60,6 @@ async fn main() -> Result<()> {
     let hyper_client = HyperClient::builder().build::<_, hyper::Body>(https);
 
     let default_repo = "registry-1.docker.io";
-    let default_tag = "latest";
     let docker_compat = true;
 
     let credentials = Credentials::Anonymous;
@@ -96,7 +96,7 @@ async fn main() -> Result<()> {
             let image = match image.parse::<RawReference>() {
                 Ok(img) => {
                     println!("non-canonical: {:#?}", img);
-                    img.canonicalize(default_repo, default_tag, docker_compat)
+                    img.canonicalize(default_repo, docker_compat)
                 }
                 Err(e) => {
                     eprintln!("Error: {}", e);
@@ -106,7 +106,7 @@ async fn main() -> Result<()> {
 
             println!("canonical: {:#?}", image);
 
-            let mut client = Client::new(hyper_client, image.domain(), credentials);
+            let mut client = Client::new(hyper_client, image.registry(), credentials);
             let manifest = client.get_manifest(&image).await?;
             println!("{:#?}", manifest);
 

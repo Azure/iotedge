@@ -6,11 +6,11 @@ use hyper::Client as HyperClient;
 // use log::*;
 use serde::{Deserialize, Serialize};
 
+use docker_reference::Reference;
 use oci_distribution::v2::Catalog;
 use oci_image::{v1::Manifest, MediaType};
 
 use crate::auth::{AuthClient, Credentials};
-use crate::reference::Reference;
 use crate::util::hyper::BodyExt;
 use crate::Result;
 
@@ -37,16 +37,16 @@ impl Paginate {
 #[derive(Debug)]
 pub struct Client<C> {
     client: AuthClient<C>,
-    domain: String,
+    registry: String,
 }
 
 impl<C: Connect + 'static> Client<C> {
-    /// Construct a new Client pointing to the given `domain` using the given
+    /// Construct a new Client pointing to the given `registry` using the given
     /// `creds`
-    pub fn new(hyper_client: HyperClient<C>, domain: &str, creds: Credentials) -> Client<C> {
+    pub fn new(hyper_client: HyperClient<C>, registry: &str, creds: Credentials) -> Client<C> {
         Client {
             client: AuthClient::new(hyper_client, creds),
-            domain: domain.to_owned(),
+            registry: registry.to_owned(),
         }
     }
 
@@ -54,7 +54,7 @@ impl<C: Connect + 'static> Client<C> {
     fn base_uri(&self, endpoint: &str) -> std::result::Result<Uri, hyper::http::Error> {
         Uri::builder()
             .scheme("https")
-            .authority(self.domain.as_str())
+            .authority(self.registry.as_str())
             .path_and_query(endpoint)
             .build()
     }
@@ -70,7 +70,7 @@ impl<C: Connect + 'static> Client<C> {
     }
 
     /// Check that basic authentication works (by pinging the base URL:
-    /// <domain>/v2/)
+    /// <registry>/v2/)
     pub async fn check_basic_auth(&mut self) -> Result<bool> {
         self.check_authentication("/v2/", Method::GET).await
     }
@@ -105,12 +105,7 @@ impl<C: Connect + 'static> Client<C> {
     /// to obtain resource information without receiving all data.
     pub async fn get_manifest(&mut self, reference: &Reference) -> Result<Manifest> {
         let uri = self.base_uri(
-            format!(
-                "/v2/{}/manifests/{}",
-                reference.name(),
-                reference.reference_kind()
-            )
-            .as_str(),
+            format!("/v2/{}/manifests/{}", reference.repo(), reference.kind()).as_str(),
         )?;
 
         let mut req = Request::get(uri);

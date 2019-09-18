@@ -1,0 +1,10 @@
+[package]
+name = "www-authenticate"
+version = "0.1.0"
+authors = ["Azure IoT Edge Devs"]
+edition = "2018"
+
+[dependencies]
+failure = "0.1"
+pest = "2.1"
+pest_derive = "2.1"

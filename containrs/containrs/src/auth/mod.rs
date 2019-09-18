@@ -12,7 +12,6 @@ use crate::Result;
 
 mod docker;
 // mod oauth2;
-mod www_authenticate;
 
 use www_authenticate::{ChallengeScheme, WWWAuthenticate};
 

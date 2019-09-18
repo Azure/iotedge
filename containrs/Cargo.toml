@@ -2,6 +2,8 @@
 members = [
     "containrs",
     "containrs-cli",
+    "docker-reference",
     "oci-distribution",
     "oci-image",
+    "www-authenticate",
 ]
