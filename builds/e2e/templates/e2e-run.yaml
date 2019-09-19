@@ -1,6 +1,5 @@
 steps:
 - pwsh: |
-    Write-Host ">>> Length of DPS group key: $env:E2E_DPS_GROUP_KEY.length"
     $testFile = '$(binDir)/Microsoft.Azure.Devices.Edge.Test.dll'
 
     if ($IsWindows)
