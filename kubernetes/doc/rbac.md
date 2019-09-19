@@ -41,7 +41,7 @@ EdgeAgent doesn’t need to perform cluster-wide operations so it is downgraded 
 
 ## EdgeHub and modules
 
-EdgeHub and other modules shouldn’t rely on any Kubernetes specific APIs and be runtime agnostic. As a result, no specific roles and permissions to access Kubernetes resources is required.
+EdgeHub and other modules shouldn’t rely on any Kubernetes specific APIs and are runtime agnostic. As a result, no specific roles and permissions to access Kubernetes resources is required.
 
 # Module Authentication
 
