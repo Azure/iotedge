@@ -10,6 +10,7 @@ steps:
     keyVaultName: $(kv.name)
     secretsFilter: >-
       TestContainerRegistryPassword,
+      TestDpsGroupKeySymmetric,
       TestEventHubCompatibleEndpoint,
       TestIotedgedPackageRootSigningCert,
       TestIotHubConnectionString,
