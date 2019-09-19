@@ -119,7 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 .Select(
                     service =>
                     {
-                        Events.UpdateService(service.Metadata.Name);
+                        Events.UpdateService(service);
                         return this.client.ReplaceNamespacedServiceAsync(service, service.Metadata.Name, this.deviceNamespace);
                     });
             await Task.WhenAll(updatingTask);
@@ -130,7 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 .Select(
                     service =>
                     {
-                        Events.DeletingService(service);
+                        Events.DeleteService(service);
                         return this.client.DeleteNamespacedServiceAsync(service.Metadata.Name, this.deviceNamespace);
                     });
             await Task.WhenAll(removingTasks);
@@ -141,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 .Select(
                     service =>
                     {
-                        Events.CreatingService(service);
+                        Events.CreateService(service);
                         return this.client.CreateNamespacedServiceAsync(service, this.deviceNamespace);
                     });
             await Task.WhenAll(addingTasks);
@@ -213,7 +213,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 .Select(
                     deployment =>
                     {
-                        Events.UpdateDeployment(deployment.Metadata.Name);
+                        Events.UpdateDeployment(deployment);
                         return this.client.ReplaceNamespacedDeploymentAsync(deployment, deployment.Metadata.Name, this.deviceNamespace);
                     });
             await Task.WhenAll(updatingTask);
@@ -224,7 +224,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 .Select(
                     deployment =>
                     {
-                        Events.DeletingDeployment(deployment);
+                        Events.DeleteDeployment(deployment);
                         return this.client.DeleteNamespacedDeployment1Async(deployment.Metadata.Name, this.deviceNamespace);
                     });
             await Task.WhenAll(removingTasks);
@@ -235,7 +235,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 .Select(
                     deployment =>
                     {
-                        Events.CreatingDeployment(deployment);
+                        Events.CreateDeployment(deployment);
                         return this.client.CreateNamespacedDeploymentAsync(deployment, this.deviceNamespace);
                     });
             await Task.WhenAll(addingTasks);
@@ -278,7 +278,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             var updatingTasks = updating.Select(
                 account =>
                 {
-                    Events.UpdatingServiceAccount(account.Metadata.Name);
+                    Events.UpdateServiceAccount(account);
                     return this.client.ReplaceNamespacedServiceAccountAsync(account, account.Metadata.Name, this.deviceNamespace);
                 });
             await Task.WhenAll(updatingTasks);
@@ -289,7 +289,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 .Select(
                     account =>
                     {
-                        Events.DeletingServiceAccount(account.Metadata.Name);
+                        Events.DeleteServiceAccount(account);
                         return this.client.DeleteNamespacedServiceAccountAsync(account.Metadata.Name, this.deviceNamespace);
                     });
             await Task.WhenAll(removingTasks);
@@ -299,7 +299,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 .Select(
                     account =>
                     {
-                        Events.CreatingServiceAccount(account.Metadata.Name);
+                        Events.CreateServiceAccount(account);
                         return this.client.CreateNamespacedServiceAccountAsync(account, this.deviceNamespace);
                     });
             await Task.WhenAll(addingTasks);
@@ -338,44 +338,41 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
             enum EventIds
             {
-                InvalidModuleType = IdStart,
-                InvalidCreationString,
+                InvalidCreationString = IdStart,
                 CreateService,
+                DeleteService,
                 UpdateService,
-                UpdateDeployment,
                 CreateDeployment,
-                DeletingService,
-                DeletingDeployment,
-                CreatingDeployment,
-                CreatingService,
-                CreatingServiceAccount,
-                DeletingServiceAccount,
-                UpdatingServiceAccount
+                DeleteDeployment,
+                UpdateDeployment,
+                CreateServiceAccount,
+                DeleteServiceAccount,
+                UpdateServiceAccount
             }
 
-            public static void DeletingService(V1Service service)
+            public static void DeleteService(V1Service service)
             {
-                Log.LogInformation((int)EventIds.DeletingService, $"Deleting service {service.Metadata.Name}");
+                Log.LogInformation((int)EventIds.DeleteService, $"Delete service {service.Metadata.Name}");
             }
 
-            public static void CreatingService(V1Service service)
+            public static void CreateService(V1Service service)
             {
-                Log.LogInformation((int)EventIds.CreatingService, $"Creating service {service.Metadata.Name}");
+                Log.LogInformation((int)EventIds.CreateService, $"Create service {service.Metadata.Name}");
             }
 
-            public static void DeletingDeployment(V1Deployment deployment)
+            public static void CreateDeployment(V1Deployment deployment)
             {
-                Log.LogInformation((int)EventIds.DeletingDeployment, $"Deleting deployment {deployment.Metadata.Name}");
+                Log.LogInformation((int)EventIds.CreateDeployment, $"Create deployment {deployment.Metadata.Name}");
             }
 
-            public static void CreatingDeployment(V1Deployment deployment)
+            public static void DeleteDeployment(V1Deployment deployment)
             {
-                Log.LogInformation((int)EventIds.CreatingDeployment, $"Creating deployment {deployment.Metadata.Name}");
+                Log.LogInformation((int)EventIds.DeleteDeployment, $"Delete deployment {deployment.Metadata.Name}");
             }
 
-            public static void InvalidModuleType(IModule module)
+            public static void UpdateDeployment(V1Deployment deployment)
             {
-                Log.LogError((int)EventIds.InvalidModuleType, $"Module {module.Name} has an invalid module type '{module.Type}'. Expected type 'docker'");
+                Log.LogInformation((int)EventIds.UpdateDeployment, $"Update deployment {deployment.Metadata.Name}");
             }
 
             public static void InvalidCreationString(string kind, string name)
@@ -383,39 +380,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 Log.LogDebug((int)EventIds.InvalidCreationString, $"Expected a valid '{kind}' creation string in k8s Object '{name}'.");
             }
 
-            public static void UpdateService(string name)
+            public static void UpdateService(V1Service service)
             {
-                Log.LogDebug((int)EventIds.UpdateService, $"Updating service object '{name}'");
+                Log.LogDebug((int)EventIds.UpdateService, $"Update service object '{service.Metadata.Name}'");
             }
 
-            public static void CreateService(string name)
+            public static void CreateServiceAccount(V1ServiceAccount serviceAccount)
             {
-                Log.LogDebug((int)EventIds.CreateService, $"Creating service object '{name}'");
+                Log.LogDebug((int)EventIds.CreateServiceAccount, $"Create Service Account {serviceAccount.Metadata.Name}");
             }
 
-            public static void UpdateDeployment(string name)
+            public static void DeleteServiceAccount(V1ServiceAccount serviceAccount)
             {
-                Log.LogDebug((int)EventIds.UpdateDeployment, $"Updating edge deployment '{name}'");
+                Log.LogDebug((int)EventIds.DeleteServiceAccount, $"Delete Service Account {serviceAccount.Metadata.Name}");
             }
 
-            public static void CreateDeployment(string name)
+            public static void UpdateServiceAccount(V1ServiceAccount serviceAccount)
             {
-                Log.LogDebug((int)EventIds.CreateDeployment, $"Creating edge deployment '{name}'");
-            }
-
-            public static void CreatingServiceAccount(string name)
-            {
-                Log.LogDebug((int)EventIds.CreatingServiceAccount, $"Creating Service Account {name}");
-            }
-
-            public static void DeletingServiceAccount(string name)
-            {
-                Log.LogDebug((int)EventIds.DeletingServiceAccount, $"Deleting Service Account {name}");
-            }
-
-            public static void UpdatingServiceAccount(string name)
-            {
-                Log.LogDebug((int)EventIds.UpdatingServiceAccount, $"Updating Service Account {name}");
+                Log.LogDebug((int)EventIds.UpdateServiceAccount, $"Update Service Account {serviceAccount.Metadata.Name}");
             }
         }
     }
