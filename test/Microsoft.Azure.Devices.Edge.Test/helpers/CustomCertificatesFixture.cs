@@ -20,6 +20,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 {
                     (string, string, string) rootCa =
                         Context.Current.RootCaKeys.Expect(() => new InvalidOperationException("Missing root CA keys"));
+                    string caCertScriptPath =
+                        Context.Current.CaCertScriptPath.Expect(() => new InvalidOperationException("Missing CA cert script path"));
 
                     using (var cts = new CancellationTokenSource(Context.Current.SetupTimeout))
                     {
@@ -31,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             this.ca = await CertificateAuthority.CreateAsync(
                                 Context.Current.DeviceId,
                                 rootCa,
-                                Context.Current.CaCertScriptPath,
+                                caCertScriptPath,
                                 token);
 
                             await this.daemon.ConfigureAsync(
