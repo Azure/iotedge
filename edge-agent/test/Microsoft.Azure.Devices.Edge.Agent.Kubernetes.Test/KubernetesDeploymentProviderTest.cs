@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var deployment = builder.GetDeployment(identity, module, labels);
             var pod = deployment.Spec.Template;
 
-            Assert.True(pod != null);
+            Assert.NotNull(pod);
             // Validate annotation
             Assert.True(pod.Metadata.Annotations.ContainsKey("demo"));
             // Two containers should exist - proxy and the module
@@ -91,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             // We made this container privileged
             Assert.True(moduleContainer.SecurityContext.Privileged);
             // Validate that there are 4 mounts
-            Assert.Equal(4, moduleContainer.VolumeMounts.Count);
+            Assert.Equal(3, moduleContainer.VolumeMounts.Count);
             // Validate the custom mount that we added
             Assert.Contains(moduleContainer.VolumeMounts, vm => vm.Name.Equals("homeblah"));
             var mount = moduleContainer.VolumeMounts.Single(vm => vm.Name.Equals("homeblah"));
