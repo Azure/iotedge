@@ -35,8 +35,9 @@ Example:
 - Make sure you add registry credentials for edgebuilds.azurecr.io (See credentials in the portal)
 
 ## How to build the function image: 
-The procedure to build Azure function image is indifference from how would one build a dotnet application image:
+The procedure to build Azure function image is indifference from how would one build a .NET application image:
 - Go to folder: <Azure-IoT-Edge-Core Repo path>\edge-modules\functions\samples
 - Run the command: `dotnet publish -c Release`
 - Run the command: `docker build --no-cache -t <DockerRegServer:5000>/<ImageName>:<LatestTag> --file .\samples\docker\linux\amd64\Dockerfile .`
 - Do a docker push: `docker push <DockerRegServer:5000>/<ImageName>:<LatestTag>`
+- If you want to run the C# dotnet E2E test, please make sure to update the `context.json` file with `tempFilterFunc` variable.

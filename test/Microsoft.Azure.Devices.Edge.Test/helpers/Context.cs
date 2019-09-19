@@ -100,7 +100,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.TempFilterFunc = Option.Maybe(Get("tempFilterFunc"));
             this.TempFilterImage = Option.Maybe(Get("tempFilterImage"));
             this.TempSensorImage = Option.Maybe(Get("tempSensorImage"));
-            this.TempFilterImage = Option.Maybe(Get("tempFilterImage"));
             this.TestTimeout = TimeSpan.FromMinutes(context.GetValue("testTimeoutMinutes", 5));
             this.Verbose = context.GetValue<bool>("verbose");
         }
