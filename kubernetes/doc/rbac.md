@@ -29,7 +29,9 @@ IoT Edge runtime on Kubernetes leverages standard [RBAC](https://kubernetes.io/d
 
 In addition to standard permissions to list, create, delete, update and watch Kubernetes resources like Deployments, Pods, Services, ConfigMaps etc it has security related permissions.
 
-An iotedged has a ClusterRole because it is required to perform cluster wide operations. When reporting system information, it lists nodes and collects all unique types of architecture with number of nodes of this type. Another cluster-wide operation is TokenReview that is a foundation of module authentication.
+`iotedged` has a ClusterRole because it performs the following cluster wide operations:
+* When reporting system information, it lists nodes and collects all unique types of architecture with number of nodes of this type. 
+* TokenReview, which is the foundation of module authentication.
 
 Each installation will create its own ClusterRole and ClusterRoleBinding for iotedged.
 
