@@ -64,7 +64,7 @@ pub type HSM_CLIENT_DERIVE_AND_SIGN_WITH_IDENTITY = Option<
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct HSM_CLIENT_TPM_INTERFACE_TAG {
+pub struct HSM_CLIENT_TPM_INTERFACE {
     pub hsm_client_tpm_create: HSM_CLIENT_CREATE,
     pub hsm_client_tpm_destroy: HSM_CLIENT_DESTROY,
     pub hsm_client_activate_identity_key: HSM_CLIENT_ACTIVATE_IDENTITY_KEY,
@@ -75,11 +75,9 @@ pub struct HSM_CLIENT_TPM_INTERFACE_TAG {
     pub hsm_client_free_buffer: HSM_CLIENT_FREE_BUFFER,
 }
 
-pub type HSM_CLIENT_TPM_INTERFACE = HSM_CLIENT_TPM_INTERFACE_TAG;
-
-impl Default for HSM_CLIENT_TPM_INTERFACE_TAG {
-    fn default() -> HSM_CLIENT_TPM_INTERFACE_TAG {
-        HSM_CLIENT_TPM_INTERFACE_TAG {
+impl Default for HSM_CLIENT_TPM_INTERFACE {
+    fn default() -> HSM_CLIENT_TPM_INTERFACE {
+        HSM_CLIENT_TPM_INTERFACE {
             hsm_client_tpm_create: None,
             hsm_client_tpm_destroy: None,
             hsm_client_activate_identity_key: None,
@@ -93,119 +91,119 @@ impl Default for HSM_CLIENT_TPM_INTERFACE_TAG {
 }
 
 #[test]
-fn bindgen_test_layout_HSM_CLIENT_TPM_INTERFACE_TAG() {
-    use crate::tpm::HSM_CLIENT_TPM_INTERFACE_TAG;
+fn bindgen_test_layout_HSM_CLIENT_TPM_INTERFACE() {
+    use crate::tpm::HSM_CLIENT_TPM_INTERFACE;
 
     assert_eq!(
-        ::std::mem::size_of::<HSM_CLIENT_TPM_INTERFACE_TAG>(),
+        ::std::mem::size_of::<HSM_CLIENT_TPM_INTERFACE>(),
         8_usize * ::std::mem::size_of::<usize>(),
-        concat!("Size of: ", stringify!(HSM_CLIENT_TPM_INTERFACE_TAG))
+        concat!("Size of: ", stringify!(HSM_CLIENT_TPM_INTERFACE))
     );
     assert_eq!(
-        ::std::mem::align_of::<HSM_CLIENT_TPM_INTERFACE_TAG>(),
+        ::std::mem::align_of::<HSM_CLIENT_TPM_INTERFACE>(),
         ::std::mem::size_of::<usize>(),
-        concat!("Alignment of ", stringify!(HSM_CLIENT_TPM_INTERFACE_TAG))
+        concat!("Alignment of ", stringify!(HSM_CLIENT_TPM_INTERFACE))
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_TPM_INTERFACE_TAG>())).hsm_client_tpm_create
-                as *const _ as usize
+            &(*(::std::ptr::null::<HSM_CLIENT_TPM_INTERFACE>())).hsm_client_tpm_create as *const _
+                as usize
         },
         0_usize,
         concat!(
             "Offset of field: ",
-            stringify!(HSM_CLIENT_TPM_INTERFACE_TAG),
+            stringify!(HSM_CLIENT_TPM_INTERFACE),
             "::",
             stringify!(hsm_client_tpm_create)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_TPM_INTERFACE_TAG>())).hsm_client_tpm_destroy
-                as *const _ as usize
+            &(*(::std::ptr::null::<HSM_CLIENT_TPM_INTERFACE>())).hsm_client_tpm_destroy as *const _
+                as usize
         },
         ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
-            stringify!(HSM_CLIENT_TPM_INTERFACE_TAG),
+            stringify!(HSM_CLIENT_TPM_INTERFACE),
             "::",
             stringify!(hsm_client_tpm_destroy)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_TPM_INTERFACE_TAG>()))
-                .hsm_client_activate_identity_key as *const _ as usize
+            &(*(::std::ptr::null::<HSM_CLIENT_TPM_INTERFACE>())).hsm_client_activate_identity_key
+                as *const _ as usize
         },
         2_usize * ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
-            stringify!(HSM_CLIENT_TPM_INTERFACE_TAG),
+            stringify!(HSM_CLIENT_TPM_INTERFACE),
             "::",
             stringify!(hsm_client_activate_identity_key)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_TPM_INTERFACE_TAG>())).hsm_client_get_ek as *const _
+            &(*(::std::ptr::null::<HSM_CLIENT_TPM_INTERFACE>())).hsm_client_get_ek as *const _
                 as usize
         },
         3_usize * ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
-            stringify!(HSM_CLIENT_TPM_INTERFACE_TAG),
+            stringify!(HSM_CLIENT_TPM_INTERFACE),
             "::",
             stringify!(hsm_client_get_ek)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_TPM_INTERFACE_TAG>())).hsm_client_get_srk as *const _
+            &(*(::std::ptr::null::<HSM_CLIENT_TPM_INTERFACE>())).hsm_client_get_srk as *const _
                 as usize
         },
         4_usize * ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
-            stringify!(HSM_CLIENT_TPM_INTERFACE_TAG),
+            stringify!(HSM_CLIENT_TPM_INTERFACE),
             "::",
             stringify!(hsm_client_get_srk)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_TPM_INTERFACE_TAG>())).hsm_client_sign_with_identity
+            &(*(::std::ptr::null::<HSM_CLIENT_TPM_INTERFACE>())).hsm_client_sign_with_identity
                 as *const _ as usize
         },
         5_usize * ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
-            stringify!(HSM_CLIENT_TPM_INTERFACE_TAG),
+            stringify!(HSM_CLIENT_TPM_INTERFACE),
             "::",
             stringify!(hsm_client_sign_with_identity)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_TPM_INTERFACE_TAG>()))
+            &(*(::std::ptr::null::<HSM_CLIENT_TPM_INTERFACE>()))
                 .hsm_client_derive_and_sign_with_identity as *const _ as usize
         },
         6_usize * ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
-            stringify!(HSM_CLIENT_TPM_INTERFACE_TAG),
+            stringify!(HSM_CLIENT_TPM_INTERFACE),
             "::",
             stringify!(hsm_client_derive_and_sign_with_identity)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_TPM_INTERFACE_TAG>())).hsm_client_free_buffer
-                as *const _ as usize
+            &(*(::std::ptr::null::<HSM_CLIENT_TPM_INTERFACE>())).hsm_client_free_buffer as *const _
+                as usize
         },
         7_usize * ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
-            stringify!(HSM_CLIENT_TPM_INTERFACE_TAG),
+            stringify!(HSM_CLIENT_TPM_INTERFACE),
             "::",
             stringify!(hsm_client_free_buffer)
         )

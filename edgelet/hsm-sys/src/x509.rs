@@ -27,7 +27,7 @@ pub type HSM_CLIENT_GET_CERTIFICATE_INFO =
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct HSM_CLIENT_X509_INTERFACE_TAG {
+pub struct HSM_CLIENT_X509_INTERFACE {
     pub hsm_client_x509_create: HSM_CLIENT_CREATE,
     pub hsm_client_x509_destroy: HSM_CLIENT_DESTROY,
     pub hsm_client_get_cert: HSM_CLIENT_GET_CERTIFICATE,
@@ -38,11 +38,9 @@ pub struct HSM_CLIENT_X509_INTERFACE_TAG {
     pub hsm_client_get_certificate_info: HSM_CLIENT_GET_CERTIFICATE_INFO,
 }
 
-pub type HSM_CLIENT_X509_INTERFACE = HSM_CLIENT_X509_INTERFACE_TAG;
-
-impl Default for HSM_CLIENT_X509_INTERFACE_TAG {
-    fn default() -> HSM_CLIENT_X509_INTERFACE_TAG {
-        HSM_CLIENT_X509_INTERFACE_TAG {
+impl Default for HSM_CLIENT_X509_INTERFACE {
+    fn default() -> HSM_CLIENT_X509_INTERFACE {
+        HSM_CLIENT_X509_INTERFACE {
             hsm_client_x509_create: None,
             hsm_client_x509_destroy: None,
             hsm_client_get_cert: None,
@@ -56,117 +54,117 @@ impl Default for HSM_CLIENT_X509_INTERFACE_TAG {
 }
 
 #[test]
-fn bindgen_test_layout_HSM_CLIENT_X509_INTERFACE_TAG() {
+fn bindgen_test_layout_HSM_CLIENT_X509_INTERFACE() {
     assert_eq!(
-        ::std::mem::size_of::<HSM_CLIENT_X509_INTERFACE_TAG>(),
+        ::std::mem::size_of::<HSM_CLIENT_X509_INTERFACE>(),
         8_usize * ::std::mem::size_of::<usize>(),
-        concat!("Size of: ", stringify!(HSM_CLIENT_X509_INTERFACE_TAG))
+        concat!("Size of: ", stringify!(HSM_CLIENT_X509_INTERFACE))
     );
     assert_eq!(
-        ::std::mem::align_of::<HSM_CLIENT_X509_INTERFACE_TAG>(),
+        ::std::mem::align_of::<HSM_CLIENT_X509_INTERFACE>(),
         ::std::mem::size_of::<usize>(),
-        concat!("Alignment of ", stringify!(HSM_CLIENT_X509_INTERFACE_TAG))
+        concat!("Alignment of ", stringify!(HSM_CLIENT_X509_INTERFACE))
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_X509_INTERFACE_TAG>())).hsm_client_x509_create
-                as *const _ as usize
+            &(*(::std::ptr::null::<HSM_CLIENT_X509_INTERFACE>())).hsm_client_x509_create as *const _
+                as usize
         },
         0_usize,
         concat!(
             "Offset of field: ",
-            stringify!(HSM_CLIENT_X509_INTERFACE_TAG),
+            stringify!(HSM_CLIENT_X509_INTERFACE),
             "::",
             stringify!(hsm_client_x509_create)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_X509_INTERFACE_TAG>())).hsm_client_x509_destroy
+            &(*(::std::ptr::null::<HSM_CLIENT_X509_INTERFACE>())).hsm_client_x509_destroy
                 as *const _ as usize
         },
         ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
-            stringify!(HSM_CLIENT_X509_INTERFACE_TAG),
+            stringify!(HSM_CLIENT_X509_INTERFACE),
             "::",
             stringify!(hsm_client_x509_destroy)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_X509_INTERFACE_TAG>())).hsm_client_get_cert
-                as *const _ as usize
+            &(*(::std::ptr::null::<HSM_CLIENT_X509_INTERFACE>())).hsm_client_get_cert as *const _
+                as usize
         },
         2_usize * ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
-            stringify!(HSM_CLIENT_X509_INTERFACE_TAG),
+            stringify!(HSM_CLIENT_X509_INTERFACE),
             "::",
             stringify!(hsm_client_get_cert)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_X509_INTERFACE_TAG>())).hsm_client_get_key as *const _
+            &(*(::std::ptr::null::<HSM_CLIENT_X509_INTERFACE>())).hsm_client_get_key as *const _
                 as usize
         },
         3_usize * ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
-            stringify!(HSM_CLIENT_X509_INTERFACE_TAG),
+            stringify!(HSM_CLIENT_X509_INTERFACE),
             "::",
             stringify!(hsm_client_get_key)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_X509_INTERFACE_TAG>())).hsm_client_get_common_name
+            &(*(::std::ptr::null::<HSM_CLIENT_X509_INTERFACE>())).hsm_client_get_common_name
                 as *const _ as usize
         },
         4_usize * ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
-            stringify!(HSM_CLIENT_X509_INTERFACE_TAG),
+            stringify!(HSM_CLIENT_X509_INTERFACE),
             "::",
             stringify!(hsm_client_get_common_name)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_X509_INTERFACE_TAG>())).hsm_client_free_buffer
-                as *const _ as usize
+            &(*(::std::ptr::null::<HSM_CLIENT_X509_INTERFACE>())).hsm_client_free_buffer as *const _
+                as usize
         },
         5_usize * ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
-            stringify!(HSM_CLIENT_X509_INTERFACE_TAG),
+            stringify!(HSM_CLIENT_X509_INTERFACE),
             "::",
             stringify!(hsm_client_free_buffer)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_X509_INTERFACE_TAG>()))
-                .hsm_client_sign_with_private_key as *const _ as usize
+            &(*(::std::ptr::null::<HSM_CLIENT_X509_INTERFACE>())).hsm_client_sign_with_private_key
+                as *const _ as usize
         },
         6_usize * ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
-            stringify!(HSM_CLIENT_X509_INTERFACE_TAG),
+            stringify!(HSM_CLIENT_X509_INTERFACE),
             "::",
             stringify!(hsm_client_sign_with_private_key)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_X509_INTERFACE_TAG>()))
-                .hsm_client_get_certificate_info as *const _ as usize
+            &(*(::std::ptr::null::<HSM_CLIENT_X509_INTERFACE>())).hsm_client_get_certificate_info
+                as *const _ as usize
         },
         7_usize * ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
-            stringify!(HSM_CLIENT_X509_INTERFACE_TAG),
+            stringify!(HSM_CLIENT_X509_INTERFACE),
             "::",
             stringify!(hsm_client_get_certificate_info)
         )

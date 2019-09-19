@@ -53,47 +53,46 @@ fn bindgen_test_supported_hsm_version() {
 pub type HSM_CLIENT_HANDLE = *mut c_void;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct HSM_CERTIFICATE_TAG {
+pub struct CERT_DATA_INFO {
     _unused: [u8; 0],
 }
-pub type CERT_INFO_HANDLE = *mut HSM_CERTIFICATE_TAG;
+pub type CERT_INFO_HANDLE = *mut CERT_DATA_INFO;
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct SIZED_BUFFER_TAG {
+pub struct SIZED_BUFFER {
     pub buffer: *mut c_uchar,
     pub size: usize,
 }
-pub type SIZED_BUFFER = SIZED_BUFFER_TAG;
 
 #[test]
-fn bindgen_test_layout_SIZED_BUFFER_TAG() {
+fn bindgen_test_layout_SIZED_BUFFER() {
     assert_eq!(
-        ::std::mem::size_of::<SIZED_BUFFER_TAG>(),
+        ::std::mem::size_of::<SIZED_BUFFER>(),
         2_usize * ::std::mem::size_of::<usize>(),
-        concat!("Size of: ", stringify!(SIZED_BUFFER_TAG))
+        concat!("Size of: ", stringify!(SIZED_BUFFER))
     );
     assert_eq!(
-        ::std::mem::align_of::<SIZED_BUFFER_TAG>(),
+        ::std::mem::align_of::<SIZED_BUFFER>(),
         ::std::mem::size_of::<usize>(),
-        concat!("Alignment of ", stringify!(SIZED_BUFFER_TAG))
+        concat!("Alignment of ", stringify!(SIZED_BUFFER))
     );
     assert_eq!(
-        unsafe { &(*(::std::ptr::null::<SIZED_BUFFER_TAG>())).buffer as *const _ as usize },
+        unsafe { &(*(::std::ptr::null::<SIZED_BUFFER>())).buffer as *const _ as usize },
         0_usize,
         concat!(
             "Offset of field: ",
-            stringify!(SIZED_BUFFER_TAG),
+            stringify!(SIZED_BUFFER),
             "::",
             stringify!(buffer)
         )
     );
     assert_eq!(
-        unsafe { &(*(::std::ptr::null::<SIZED_BUFFER_TAG>())).size as *const _ as usize },
+        unsafe { &(*(::std::ptr::null::<SIZED_BUFFER>())).size as *const _ as usize },
         ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
-            stringify!(SIZED_BUFFER_TAG),
+            stringify!(SIZED_BUFFER),
             "::",
             stringify!(size)
         )
@@ -104,28 +103,26 @@ pub type HSM_CLIENT_CREATE = Option<unsafe extern "C" fn() -> HSM_CLIENT_HANDLE>
 pub type HSM_CLIENT_DESTROY = Option<unsafe extern "C" fn(handle: HSM_CLIENT_HANDLE)>;
 pub type HSM_CLIENT_FREE_BUFFER = Option<unsafe extern "C" fn(buffer: *mut c_void)>;
 
-pub type CRYPTO_ENCODING_TAG = u32;
-pub const CRYPTO_ENCODING_TAG_PEM: CRYPTO_ENCODING_TAG = 0;
+pub type CRYPTO_ENCODING = u32;
+pub const CRYPTO_ENCODING_PEM: CRYPTO_ENCODING = 0;
 
-pub const PRIVATE_KEY_TYPE_TAG_PRIVATE_KEY_TYPE_UNKNOWN: PRIVATE_KEY_TYPE_TAG = 0;
-pub const PRIVATE_KEY_TYPE_TAG_PRIVATE_KEY_TYPE_PAYLOAD: PRIVATE_KEY_TYPE_TAG = 1;
-pub const PRIVATE_KEY_TYPE_TAG_PRIVATE_KEY_TYPE_REFERENCE: PRIVATE_KEY_TYPE_TAG = 2;
-pub type PRIVATE_KEY_TYPE_TAG = u32;
-pub use self::PRIVATE_KEY_TYPE_TAG as PRIVATE_KEY_TYPE;
+pub const PRIVATE_KEY_TYPE_PRIVATE_KEY_TYPE_UNKNOWN: PRIVATE_KEY_TYPE = 0;
+pub const PRIVATE_KEY_TYPE_PRIVATE_KEY_TYPE_PAYLOAD: PRIVATE_KEY_TYPE = 1;
+pub const PRIVATE_KEY_TYPE_PRIVATE_KEY_TYPE_REFERENCE: PRIVATE_KEY_TYPE = 2;
+pub type PRIVATE_KEY_TYPE = u32;
 
-pub const CERTIFICATE_TYPE_TAG_CERTIFICATE_TYPE_UNKNOWN: CERTIFICATE_TYPE_TAG = 0;
-pub const CERTIFICATE_TYPE_TAG_CERTIFICATE_TYPE_CLIENT: CERTIFICATE_TYPE_TAG = 1;
-pub const CERTIFICATE_TYPE_TAG_CERTIFICATE_TYPE_SERVER: CERTIFICATE_TYPE_TAG = 2;
-pub const CERTIFICATE_TYPE_TAG_CERTIFICATE_TYPE_CA: CERTIFICATE_TYPE_TAG = 3;
-pub type CERTIFICATE_TYPE_TAG = u32;
-pub use self::CERTIFICATE_TYPE_TAG as CERTIFICATE_TYPE;
+pub const CERTIFICATE_TYPE_CERTIFICATE_TYPE_UNKNOWN: CERTIFICATE_TYPE = 0;
+pub const CERTIFICATE_TYPE_CERTIFICATE_TYPE_CLIENT: CERTIFICATE_TYPE = 1;
+pub const CERTIFICATE_TYPE_CERTIFICATE_TYPE_SERVER: CERTIFICATE_TYPE = 2;
+pub const CERTIFICATE_TYPE_CERTIFICATE_TYPE_CA: CERTIFICATE_TYPE = 3;
+pub type CERTIFICATE_TYPE = u32;
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct HSM_CERTIFICATE_PROPS_TAG {
+pub struct HSM_CERT_PROPS {
     _unused: [u8; 0],
 }
-pub type CERT_PROPS_HANDLE = *mut HSM_CERTIFICATE_PROPS_TAG;
+pub type CERT_PROPS_HANDLE = *mut HSM_CERT_PROPS;
 
 extern "C" {
     pub fn cert_properties_create() -> CERT_PROPS_HANDLE;

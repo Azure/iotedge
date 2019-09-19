@@ -185,7 +185,7 @@ pub type HSM_CLIENT_CRYPTO_GET_CERTIFICATE = Option<
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct HSM_CLIENT_CRYPTO_INTERFACE_TAG {
+pub struct HSM_CLIENT_CRYPTO_INTERFACE {
     pub hsm_client_crypto_create: HSM_CLIENT_CREATE,
     pub hsm_client_crypto_destroy: HSM_CLIENT_DESTROY,
     pub hsm_client_get_random_bytes: HSM_CLIENT_GET_RANDOM_BYTES,
@@ -200,11 +200,10 @@ pub struct HSM_CLIENT_CRYPTO_INTERFACE_TAG {
     pub hsm_client_crypto_sign_with_private_key: HSM_CLIENT_CRYPTO_SIGN_WITH_PRIVATE_KEY,
     pub hsm_client_crypto_get_certificate: HSM_CLIENT_CRYPTO_GET_CERTIFICATE,
 }
-pub type HSM_CLIENT_CRYPTO_INTERFACE = HSM_CLIENT_CRYPTO_INTERFACE_TAG;
 
-impl Default for HSM_CLIENT_CRYPTO_INTERFACE_TAG {
-    fn default() -> HSM_CLIENT_CRYPTO_INTERFACE_TAG {
-        HSM_CLIENT_CRYPTO_INTERFACE_TAG {
+impl Default for HSM_CLIENT_CRYPTO_INTERFACE {
+    fn default() -> HSM_CLIENT_CRYPTO_INTERFACE {
+        HSM_CLIENT_CRYPTO_INTERFACE {
             hsm_client_crypto_create: None,
             hsm_client_crypto_destroy: None,
             hsm_client_get_random_bytes: None,
@@ -223,182 +222,182 @@ impl Default for HSM_CLIENT_CRYPTO_INTERFACE_TAG {
 }
 
 #[test]
-fn bindgen_test_layout_HSM_CLIENT_CRYPTO_INTERFACE_TAG() {
+fn bindgen_test_layout_HSM_CLIENT_CRYPTO_INTERFACE() {
     assert_eq!(
-        ::std::mem::size_of::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>(),
+        ::std::mem::size_of::<HSM_CLIENT_CRYPTO_INTERFACE>(),
         13_usize * ::std::mem::size_of::<usize>(),
-        concat!("Size of: ", stringify!(HSM_CLIENT_CRYPTO_INTERFACE_TAG))
+        concat!("Size of: ", stringify!(HSM_CLIENT_CRYPTO_INTERFACE))
     );
     assert_eq!(
-        ::std::mem::align_of::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>(),
+        ::std::mem::align_of::<HSM_CLIENT_CRYPTO_INTERFACE>(),
         ::std::mem::size_of::<usize>(),
-        concat!("Alignment of ", stringify!(HSM_CLIENT_CRYPTO_INTERFACE_TAG))
+        concat!("Alignment of ", stringify!(HSM_CLIENT_CRYPTO_INTERFACE))
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>())).hsm_client_crypto_create
+            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE>())).hsm_client_crypto_create
                 as *const _ as usize
         },
         0_usize,
         concat!(
             "Offset of field: ",
-            stringify!(HSM_CLIENT_CRYPTO_INTERFACE_TAG),
+            stringify!(HSM_CLIENT_CRYPTO_INTERFACE),
             "::",
             stringify!(hsm_client_crypto_create)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>())).hsm_client_crypto_destroy
+            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE>())).hsm_client_crypto_destroy
                 as *const _ as usize
         },
         ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
-            stringify!(HSM_CLIENT_CRYPTO_INTERFACE_TAG),
+            stringify!(HSM_CLIENT_CRYPTO_INTERFACE),
             "::",
             stringify!(hsm_client_crypto_destroy)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>())).hsm_client_get_random_bytes
+            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE>())).hsm_client_get_random_bytes
                 as *const _ as usize
         },
         2_usize * ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
-            stringify!(HSM_CLIENT_CRYPTO_INTERFACE_TAG),
+            stringify!(HSM_CLIENT_CRYPTO_INTERFACE),
             "::",
             stringify!(hsm_client_get_random_bytes)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>()))
+            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE>()))
                 .hsm_client_create_master_encryption_key as *const _ as usize
         },
         3_usize * ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
-            stringify!(HSM_CLIENT_CRYPTO_INTERFACE_TAG),
+            stringify!(HSM_CLIENT_CRYPTO_INTERFACE),
             "::",
             stringify!(hsm_client_create_master_encryption_key)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>()))
+            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE>()))
                 .hsm_client_destroy_master_encryption_key as *const _ as usize
         },
         4_usize * ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
-            stringify!(HSM_CLIENT_CRYPTO_INTERFACE_TAG),
+            stringify!(HSM_CLIENT_CRYPTO_INTERFACE),
             "::",
             stringify!(hsm_client_destroy_master_encryption_key)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>()))
-                .hsm_client_create_certificate as *const _ as usize
+            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE>())).hsm_client_create_certificate
+                as *const _ as usize
         },
         5_usize * ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
-            stringify!(HSM_CLIENT_CRYPTO_INTERFACE_TAG),
+            stringify!(HSM_CLIENT_CRYPTO_INTERFACE),
             "::",
             stringify!(hsm_client_create_certificate)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>()))
-                .hsm_client_destroy_certificate as *const _ as usize
+            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE>())).hsm_client_destroy_certificate
+                as *const _ as usize
         },
         6_usize * ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
-            stringify!(HSM_CLIENT_CRYPTO_INTERFACE_TAG),
+            stringify!(HSM_CLIENT_CRYPTO_INTERFACE),
             "::",
             stringify!(hsm_client_destroy_certificate)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>())).hsm_client_encrypt_data
+            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE>())).hsm_client_encrypt_data
                 as *const _ as usize
         },
         7_usize * ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
-            stringify!(HSM_CLIENT_CRYPTO_INTERFACE_TAG),
+            stringify!(HSM_CLIENT_CRYPTO_INTERFACE),
             "::",
             stringify!(hsm_client_encrypt_data)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>())).hsm_client_decrypt_data
+            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE>())).hsm_client_decrypt_data
                 as *const _ as usize
         },
         8_usize * ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
-            stringify!(HSM_CLIENT_CRYPTO_INTERFACE_TAG),
+            stringify!(HSM_CLIENT_CRYPTO_INTERFACE),
             "::",
             stringify!(hsm_client_decrypt_data)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>())).hsm_client_get_trust_bundle
+            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE>())).hsm_client_get_trust_bundle
                 as *const _ as usize
         },
         9_usize * ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
-            stringify!(HSM_CLIENT_CRYPTO_INTERFACE_TAG),
+            stringify!(HSM_CLIENT_CRYPTO_INTERFACE),
             "::",
             stringify!(hsm_client_get_trust_bundle)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>())).hsm_client_free_buffer
+            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE>())).hsm_client_free_buffer
                 as *const _ as usize
         },
         10_usize * ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
-            stringify!(HSM_CLIENT_CRYPTO_INTERFACE_TAG),
+            stringify!(HSM_CLIENT_CRYPTO_INTERFACE),
             "::",
             stringify!(hsm_client_free_buffer)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>()))
+            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE>()))
                 .hsm_client_crypto_sign_with_private_key as *const _ as usize
         },
         11_usize * ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
-            stringify!(HSM_CLIENT_CRYPTO_INTERFACE_TAG),
+            stringify!(HSM_CLIENT_CRYPTO_INTERFACE),
             "::",
             stringify!(hsm_client_crypto_sign_with_private_key)
         )
     );
     assert_eq!(
         unsafe {
-            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE_TAG>()))
+            &(*(::std::ptr::null::<HSM_CLIENT_CRYPTO_INTERFACE>()))
                 .hsm_client_crypto_get_certificate as *const _ as usize
         },
         12_usize * ::std::mem::size_of::<usize>(),
         concat!(
             "Offset of field: ",
-            stringify!(HSM_CLIENT_CRYPTO_INTERFACE_TAG),
+            stringify!(HSM_CLIENT_CRYPTO_INTERFACE),
             "::",
             stringify!(hsm_client_crypto_get_certificate)
         )
