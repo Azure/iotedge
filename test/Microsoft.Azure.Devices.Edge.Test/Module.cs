@@ -98,6 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         // Test Temperature Filter Function: https://docs.microsoft.com/en-us/azure/iot-edge/tutorial-deploy-function
         public async Task TempFilterFunc()
         {
+            // Azure Fucntion Name: EdgeHubTrigger-CSharp
             string filterFunc = Context.Current.TempFilterFunc.Expect(() => new ArgumentException("'tempFilterFunc' parameter is required for TempFilterFunc() test"));
 
             const string filterFuncModuleName = "tempFilterFunctions";
@@ -116,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                     {
                                         ["routes"] = new
                                         {
-                                            TempFilterFunctionsToCloud = "FROM /messages/modules/" + filterFuncModuleName + "/outputs/alertOutput INTO $upstream",
+                                            TempFilterFunctionsToCloud = "FROM /messages/modules/" + filterFuncModuleName + "/outputs/output1 INTO $upstream",
                                             TempSensorToTempFilter = "FROM /messages/modules/" + tempSensorModName + "/outputs/temperatureOutput " +
                                                                      "INTO BrokeredEndpoint('/modules/" + filterFuncModuleName + "/inputs/input1')"
                                         }
