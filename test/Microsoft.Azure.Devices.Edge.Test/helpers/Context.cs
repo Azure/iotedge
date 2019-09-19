@@ -155,8 +155,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public Option<string> TempSensorImage { get; }
 
-        public Option<string> TempFilterImage { get; }
-
         public TimeSpan TestTimeout { get; }
 
         public bool Verbose { get; }
