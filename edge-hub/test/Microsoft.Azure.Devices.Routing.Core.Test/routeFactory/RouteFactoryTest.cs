@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.RouteFactory
         [Theory]
         public void TestParseRouteWithFunctionEndpoint(string routeString, IMessageSource expectedSource, string expectedCondition, string function, string inputEndpoint)
         {
-            var mockEndpointFactory = new Mock<IEndpointFactory>();
+            var mockEndpointFactory = new Mock<IEndpointFactory>(MockBehavior.Strict);
             mockEndpointFactory.Setup(
                     ef => ef.CreateFunctionEndpoint(
                         It.Is<string>(s => s.Equals(function, StringComparison.OrdinalIgnoreCase)),
@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.RouteFactory
         [Theory]
         public void TestParseRouteWithSystemEndpoint(string routeString, IMessageSource expectedSource, string expectedCondition, string systemEndpoint)
         {
-            var mockEndpointFactory = new Mock<IEndpointFactory>();
+            var mockEndpointFactory = new Mock<IEndpointFactory>(MockBehavior.Strict);
             mockEndpointFactory.Setup(
                     ef => ef.CreateSystemEndpoint(
                         It.Is<string>(s => s.Equals(systemEndpoint, StringComparison.OrdinalIgnoreCase))))
@@ -65,9 +65,11 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.RouteFactory
         [InlineData(@"SELECT FROM /messages/modules/adapter INTO brokeredEndpoint(""/modules/alertLogic/inputs/in"")")]
         [InlineData(@"FROM INTO brokeredEndpoint(""/modules/alertLogic/inputs/in"")")]
         [InlineData(@"FROM /* INTO brokeredEndpoint(""/modules/alertLogic/inputs/in')")]
-        [InlineData(@"FROM /* INTO brokeredEndpoint('/modules/alert""Logic/inputs/in')")]
         [InlineData(@"FROM /* INTO brokeredEndpoint('/modules/alertLogic/inputs/in"")")]
-        [InlineData(@"FROM /* INTO brokeredEndpoint(""/modules/alert'Logic/inputs/in"")")]
+        [InlineData(@"FROM /* INTO brokeredEndpoint(""""/modules/alertLogic/inputs/in"""")")]
+        [InlineData(@"FROM /* INTO brokeredEndpoint(''/modules/alertLogic/inputs/in'')")]
+        [InlineData(@"FROM /* INTO brokeredEndpoint('""/modules/alertLogic/inputs/in'"")")]
+        [InlineData(@"FROM /* INTO brokeredEndpoint(""'/modules/alertLogic/inputs/in""')")]
         [InlineData(@"FROM /messages WHERE temp == 100 INTO brokeredEndpoint(""/modules/alertLogic/inputs/in"")")]
         [InlineData(@"FROM /messages WHERE INTO brokeredEndpoint(""/modules/alertLogic/inputs/in"")")]
         [InlineData(@"FROM /messages WHERE temp = 'high' INTO")]
@@ -110,6 +112,26 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.RouteFactory
                     "true",
                     "brokeredEndpoint",
                     "/modules/alertLogic/inputs/in"
+                });
+
+            testData.Add(
+                new object[]
+                {
+                    @"FROM /* INTO brokeredEndpoint('/modules/alert""Logic/inputs/in')",
+                    CustomMessageSource.Create("/"),
+                    "true",
+                    "brokeredEndpoint",
+                    @"/modules/alert""Logic/inputs/in"
+                });
+
+            testData.Add(
+                new object[]
+                {
+                    @"FROM /* INTO brokeredEndpoint(""/modules/alert'Logic/inputs/in"")",
+                    CustomMessageSource.Create("/"),
+                    "true",
+                    "brokeredEndpoint",
+                    "/modules/alert'Logic/inputs/in"
                 });
 
             testData.Add(
