@@ -60,7 +60,7 @@ From a module point of view, it communicates with iotedged via HTTP and all nece
 | +------------+ |                  | +-----------+            +-----------+ |                 
 | |            | |      HTTPS       | |           |    HTTP    |           | |                 
 | |  iotedged  |<-------------------->|   proxy   |<---------->|  ModuleA  | |                 
-| |            | |  Authrorization  | |           |            |           | |                 
+| |            | |   Authorization  | |           |            |           | |                 
 | +------------+ |                  | +-----------+            +-----------+ |                 
 | pod   ^        |                  | pod                                    |                 
 +-------|--------+                  +----------------------------------------+                 
