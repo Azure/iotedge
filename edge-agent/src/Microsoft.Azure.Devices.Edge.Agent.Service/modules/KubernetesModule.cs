@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -187,6 +188,30 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<IRuntimeInfoProvider>()
                 .As<IRuntimeInfoSource>();
 
+            // KubernetesDeploymentProvider
+            builder.Register(
+                    c => new KubernetesDeploymentProvider(
+                        this.edgeDeviceHostname,
+                        this.proxyImage,
+                        this.proxyConfigPath,
+                        this.proxyConfigVolumeName,
+                        this.proxyConfigMapName,
+                        this.proxyTrustBundlePath,
+                        this.proxyTrustBundleVolumeName,
+                        this.proxyTrustBundleConfigMapName,
+                        this.apiVersion,
+                        this.workloadUri,
+                        this.managementUri))
+                .As<IKubernetesDeploymentProvider>();
+
+            // KubernetesServiceProvider
+            builder.Register(c => new KubernetesServiceProvider(this.defaultMapServiceType))
+                .As<IKubernetesServiceProvider>();
+
+            // KubernetesServiceAccountProvider
+            builder.Register(c => new KubernetesServiceAccountProvider())
+                .As<IKubernetesServiceAccountProvider>();
+
             // EdgeDeploymentController
             builder.Register(
                     c =>
@@ -194,22 +219,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         var deploymentSelector = $"{Constants.K8sEdgeDeviceLabel}={KubeUtils.SanitizeK8sValue(this.resourceName.DeviceId)},{Constants.K8sEdgeHubNameLabel}={KubeUtils.SanitizeK8sValue(this.resourceName.Hostname)}";
                         IEdgeDeploymentController watchOperator = new EdgeDeploymentController(
                             this.resourceName,
-                            this.edgeDeviceHostname,
-                            this.proxyImage,
-                            this.proxyConfigPath,
-                            this.proxyConfigVolumeName,
-                            this.proxyConfigMapName,
-                            this.proxyTrustBundlePath,
-                            this.proxyTrustBundleVolumeName,
-                            this.proxyTrustBundleConfigMapName,
                             deploymentSelector,
-                            this.defaultMapServiceType,
                             this.deviceNamespace,
-                            this.apiVersion,
-                            this.workloadUri,
-                            this.managementUri,
                             c.Resolve<IKubernetes>(),
-                            c.Resolve<IModuleIdentityLifecycleManager>());
+                            c.Resolve<IModuleIdentityLifecycleManager>(),
+                            c.Resolve<IKubernetesServiceProvider>(),
+                            c.Resolve<IKubernetesDeploymentProvider>(),
+                            c.Resolve<IKubernetesServiceAccountProvider>());
 
                         return watchOperator;
                     })

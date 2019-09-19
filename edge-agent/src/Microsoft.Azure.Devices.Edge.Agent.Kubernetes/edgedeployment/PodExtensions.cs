@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
+namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 {
     using System;
     using System.Linq;
@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
     public static class PodExtensions
     {
@@ -17,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             RuntimeData runtimeData = GetRuntimeData(containerStatus.OrDefault());
 
             string moduleName = string.Empty;
-            if (!(pod.Metadata?.Annotations?.TryGetValue(Constants.K8sEdgeOriginalModuleId, out moduleName) ?? false))
+            if (!(pod.Metadata?.Annotations?.TryGetValue(KubernetesConstants.K8sEdgeOriginalModuleId, out moduleName) ?? false))
             {
                 moduleName = name;
             }

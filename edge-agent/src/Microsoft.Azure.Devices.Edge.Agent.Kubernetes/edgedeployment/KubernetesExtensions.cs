@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
+namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 {
     using System.Collections.Generic;
     using System.Linq;
@@ -143,27 +143,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     }
                     else
                     {
-                        Events.ExposedPortValue(exposedPort.Key);
+                        Events.InvalidExposedPortValue(exposedPort.Key);
                     }
                 }
             }
 
-            return (serviceList.Count > 0) ? Option.Some(serviceList) : Option.None<List<(int, string)>>();
+            return serviceList.Count > 0 ? Option.Some(serviceList) : Option.None<List<(int, string)>>();
         }
 
         static class Events
         {
-            const int IdStart = KubernetesEventIds.KubernetesModuleBuilder;
-            private static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesPodBuilder>();
+            const int IdStart = KubernetesEventIds.KubernetesModelValidation;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesServiceProvider>();
 
             enum EventIds
             {
-                ExposedPortValue = IdStart,
+                InvalidExposedPortValue = IdStart,
             }
 
-            public static void ExposedPortValue(string portEntry)
+            public static void InvalidExposedPortValue(string portEntry)
             {
-                Log.LogWarning((int)EventIds.ExposedPortValue, $"Received an invalid exposed port value '{portEntry}'.");
+                Log.LogWarning((int)EventIds.InvalidExposedPortValue, $"Received an invalid exposed port value '{portEntry}'.");
             }
         }
     }

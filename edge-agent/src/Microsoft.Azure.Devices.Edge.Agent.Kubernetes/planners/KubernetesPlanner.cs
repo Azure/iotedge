@@ -9,9 +9,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
     using k8s;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
-    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
     public class KubernetesPlanner : IPlanner
     {

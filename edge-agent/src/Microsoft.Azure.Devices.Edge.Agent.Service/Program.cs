@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
     using Microsoft.Azure.Devices.Edge.Agent.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
@@ -20,6 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Constants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
     using K8sConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
     using KubernetesModule = Microsoft.Azure.Devices.Edge.Agent.Service.Modules.KubernetesModule;
+    using KubernetesPortMapServiceType = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.PortMapServiceType;
 
     public class Program
     {
@@ -154,7 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         string proxyTrustBundlePath = configuration.GetValue<string>(Constants.ProxyTrustBundlePathEnvKey);
                         string proxyTrustBundleVolumeName = configuration.GetValue<string>(Constants.ProxyTrustBundleVolumeEnvKey);
                         string proxyTrustBundleConfigMapName = configuration.GetValue<string>(Constants.ProxyTrustBundleConfigMapEnvKey);
-                        Kubernetes.PortMapServiceType mappedServiceDefault = GetDefaultServiceType(configuration);
+                        KubernetesPortMapServiceType mappedServiceDefault = GetDefaultServiceType(configuration);
                         bool enableServiceCallTracing = configuration.GetValue<bool>(K8sConstants.EnableK8sServiceCallTracingName);
                         string deviceNamespace = configuration.GetValue<string>(K8sConstants.K8sNamespaceKey);
 
@@ -356,8 +358,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             return localConfigPath;
         }
 
-        static Kubernetes.PortMapServiceType GetDefaultServiceType(IConfiguration configuration) =>
-            Enum.TryParse(configuration.GetValue(K8sConstants.PortMappingServiceType, string.Empty), true, out Kubernetes.PortMapServiceType defaultServiceType)
+        static KubernetesPortMapServiceType GetDefaultServiceType(IConfiguration configuration) =>
+            Enum.TryParse(configuration.GetValue(K8sConstants.PortMappingServiceType, string.Empty), true, out KubernetesPortMapServiceType defaultServiceType)
                 ? defaultServiceType
                 : Kubernetes.Constants.DefaultPortMapServiceType;
 

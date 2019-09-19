@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
     using Microsoft.Azure.Devices.Edge.Util;
     using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
 

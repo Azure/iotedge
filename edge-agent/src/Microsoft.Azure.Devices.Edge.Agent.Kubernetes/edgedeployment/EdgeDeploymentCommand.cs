@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
+namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 {
     using System;
     using System.Collections.Generic;
@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
     public class EdgeDeploymentCommand : ICommand
     {
         readonly IKubernetes client;
-        readonly List<IModule> modules;
+        readonly IReadOnlyCollection<IModule> modules;
         readonly IRuntimeInfo runtimeInfo;
         readonly Lazy<string> id;
         readonly ICombinedConfigProvider<CombinedDockerConfig> combinedConfigProvider;

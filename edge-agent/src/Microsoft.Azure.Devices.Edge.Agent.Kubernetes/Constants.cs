@@ -2,6 +2,8 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
+
     public static class Constants
     {
         public static class EdgeDeployment

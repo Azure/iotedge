@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         this.podWatch = Option.None<Watcher<V1Pod>>();
 
                         // kick off a new watch
-                        this.Start();
+                        this.StartListPods();
                     },
                     onError: Events.PodWatchFailed));
         }

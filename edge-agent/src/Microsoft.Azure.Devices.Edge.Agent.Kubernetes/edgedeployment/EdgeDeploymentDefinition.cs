@@ -1,13 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
+namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 {
     using System.Collections.Generic;
-    using System.IO;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
-    using Newtonsoft.Json.Linq;
 
     public class EdgeDeploymentDefinition : IEdgeDeploymentDefinition
     {
