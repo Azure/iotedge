@@ -37,7 +37,7 @@ Each installation will create its own ClusterRole and ClusterRoleBinding for iot
 
 ## EdgeAgent
 
-An EdgeAgent component doesn’t require cluster-wide operations so it is downgraded to a Role with permissions scope to a namespace Edge installed in. All security operations are delegated to iotedged.
+EdgeAgent doesn’t need to perform cluster-wide operations so it is downgraded to a Role with permissions scoped to the namespace the edge device is installed in. All security operations are delegated to iotedged.
 
 ## EdgeHub and modules
 
