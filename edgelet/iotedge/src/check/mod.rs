@@ -1003,7 +1003,7 @@ fn settings_hostname(check: &mut Check) -> Result<CheckResult, failure::Error> {
         .into());
     }
 
-    // Some software like Kubernetes and the IoT Hub SDKs for downstream clients require the device hostname to follow RFC 1035.
+    // Some software like the IoT Hub SDKs for downstream clients require the device hostname to follow RFC 1035.
     // For example, the IoT Hub C# SDK cannot connect to a hostname that contains an `_`.
     if !is_rfc_1035_valid(config_hostname) {
         return Ok(CheckResult::Warning(Context::new(format!(
@@ -1964,13 +1964,13 @@ fn is_rfc_1035_valid(name: &str) -> bool {
             Some(c) => c,
             None => return false,
         };
-        if first_char < 'a' || first_char > 'z' {
+        if (first_char < 'a' || first_char > 'z') && (first_char < 'A' || first_char > 'Z') {
             return false;
         }
 
         if label
             .chars()
-            .any(|c| (c < 'a' || c > 'z') && (c < '0' || c > '9') && c != '-')
+            .any(|c| (c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && (c < '0' || c > '9') && c != '-')
         {
             return false;
         }
@@ -1979,7 +1979,7 @@ fn is_rfc_1035_valid(name: &str) -> bool {
             .chars()
             .last()
             .expect("label has at least one character");
-        if (last_char < 'a' || last_char > 'z') && (last_char < '0' || last_char > '9') {
+        if (last_char < 'a' || last_char > 'z') && (last_char < 'A' || last_char > 'Z') && (last_char < '0' || last_char > '9') {
             return false;
         }
 
@@ -2355,6 +2355,10 @@ mod tests {
         assert!(super::is_rfc_1035_valid(&longest_valid_name));
         assert!(super::is_rfc_1035_valid("xn--v9ju72g90p.com"));
         assert!(super::is_rfc_1035_valid("xn--a-kz6a.xn--b-kn6b.xn--c-ibu"));
+
+        assert!(super::is_rfc_1035_valid("FOOBAR"));
+        assert!(super::is_rfc_1035_valid("FOOBAR.BAZ"));
+        assert!(super::is_rfc_1035_valid("FoObAr01.bAz"));
 
         assert!(!super::is_rfc_1035_valid(&format!(
             "{}a",
