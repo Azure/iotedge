@@ -186,11 +186,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             return Task.CompletedTask;
         }
 
-        public string Show()
-        {
-            IEnumerable<string> commandDescriptions = this.modules.Select(m => $"[{m.Name}]");
-            return $"Create an EdgeDeployment with modules: (\n  {string.Join("\n  ", commandDescriptions)}\n)";
-        }
+        public string Show() => $"Create an EdgeDeployment with modules: ({string.Join(", ", this.modules.Select(m => m.Name))}\n)";
 
         public override string ToString() => this.Show();
 

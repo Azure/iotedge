@@ -17,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     {
         const string EdgeHubHostname = "edgehub";
 
+        readonly string deviceNamespace;
         readonly string edgeHostname;
         readonly string proxyImage;
         readonly string proxyConfigPath;
@@ -30,6 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         readonly Uri managementUri;
 
         public KubernetesDeploymentProvider(
+            string deviceNamespace,
             string edgeHostname,
             string proxyImage,
             string proxyConfigPath,
@@ -42,6 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             Uri workloadUri,
             Uri managementUri)
         {
+            this.deviceNamespace = deviceNamespace;
             this.edgeHostname = edgeHostname;
             this.proxyImage = proxyImage;
             this.proxyConfigPath = proxyConfigPath;
@@ -177,6 +180,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 envList.Add(new V1EnvVar(CoreConstants.ProxyTrustBundlePathEnvKey, this.proxyTrustBundlePath));
                 envList.Add(new V1EnvVar(CoreConstants.ProxyTrustBundleVolumeEnvKey, this.proxyTrustBundleVolumeName));
                 envList.Add(new V1EnvVar(CoreConstants.ProxyTrustBundleConfigMapEnvKey, this.proxyTrustBundleConfigMapName));
+                envList.Add(new V1EnvVar(KubernetesConstants.K8sNamespaceKey, this.deviceNamespace));
             }
 
             if (string.Equals(identity.ModuleId, CoreConstants.EdgeAgentModuleIdentityName) ||

@@ -191,6 +191,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             // KubernetesDeploymentProvider
             builder.Register(
                     c => new KubernetesDeploymentProvider(
+                        this.deviceNamespace,
                         this.edgeDeviceHostname,
                         this.proxyImage,
                         this.proxyConfigPath,
