@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             string defaultId =
                 $"e2e-{string.Concat(Dns.GetHostName().Take(14)).TrimEnd(new[] { '-' })}-{DateTime.Now:yyMMdd'-'HHmmss'.'fff}";
 
-            this.CaCertScriptPath = Get("caCertScriptPath");
+            this.CaCertScriptPath = Option.Maybe(Get("caCertScriptPath"));
             this.ConnectionString = Get("IOT_HUB_CONNECTION_STRING");
             this.DeviceId = IdentityLimits.CheckEdgeId(GetOrDefault("deviceId", defaultId));
             this.DpsIdScope = Option.Maybe(Get("dpsIdScope"));
@@ -107,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public static Context Current => Default.Value;
 
-        public string CaCertScriptPath { get; }
+        public Option<string> CaCertScriptPath { get; }
 
         public string ConnectionString { get; }
 
