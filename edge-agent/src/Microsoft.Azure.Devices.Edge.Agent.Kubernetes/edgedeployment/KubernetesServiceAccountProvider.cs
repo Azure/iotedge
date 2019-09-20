@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     {
         public V1ServiceAccount GetServiceAccount(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels)
         {
-            string name = KubeUtils.SanitizeK8sValue(identity.ModuleId);
+            string name = identity.DeploymentName();
             var annotations = new Dictionary<string, string>
             {
                 [KubernetesConstants.K8sEdgeOriginalModuleId] = ModuleIdentityHelper.GetModuleName(identity.ModuleId)

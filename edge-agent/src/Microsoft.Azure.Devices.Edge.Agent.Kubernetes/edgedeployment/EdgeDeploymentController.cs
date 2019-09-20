@@ -47,8 +47,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             this.serviceAccountProvider = serviceAccountProvider;
         }
 
-        string DeploymentName(string moduleId) => KubeUtils.SanitizeK8sValue(moduleId);
-
         public async Task<ModuleSet> DeployModulesAsync(IList<KubernetesModule> modules, ModuleSet currentModules)
         {
             var desiredModules = ModuleSet.Create(modules.ToArray());
@@ -59,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     module => module.Name,
                     module => new Dictionary<string, string>
                     {
-                        [KubernetesConstants.K8sEdgeModuleLabel] = KubeUtils.SanitizeK8sValue(moduleIdentities[module.Name].ModuleId),
+                        [KubernetesConstants.K8sEdgeModuleLabel] = moduleIdentities[module.Name].DeploymentName(),
                         [KubernetesConstants.K8sEdgeDeviceLabel] = KubeUtils.SanitizeLabelValue(this.resourceName.DeviceId),
                         [KubernetesConstants.K8sEdgeHubNameLabel] = KubeUtils.SanitizeLabelValue(this.resourceName.Hostname)
                     });
@@ -90,32 +88,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             return desiredModules;
         }
 
-        async Task ManageServices(V1ServiceList existing, List<V1Service> desired)
+        async Task ManageServices(V1ServiceList existing, IEnumerable<V1Service> desired)
         {
-            // find common service names that are candidates to update
-            var commonNames = desired.Where(d => existing.Items.Any(e => e.Metadata.Name == d.Metadata.Name))
-                .Select(d => d.Metadata.Name)
-                .ToList();
-
             // Compose creation strings from existing items
             Dictionary<string, string> creationStrings = GetServiceConfig(existing);
 
+            // find difference between desired and existing services
+            var diff = desired.Diff(existing.Items, service => service.Metadata.Name);
+
             // Update only those services if configurations have not matched
-            var updating = desired.Where(
-                    service =>
-                    {
-                        // current module is to add it to cluster
-                        if (!creationStrings.TryGetValue(service.Metadata.Name, out string creationString))
-                        {
-                            return false;
-                        }
-
-                        // current module is to update an existing one
-                        return service.Metadata.Annotations[KubernetesConstants.CreationString] != creationString;
-                    })
-                .ToList();
-
-            var updatingTask = updating
+            var updatingTask = diff.Updated
+                .Where(service => service.Metadata.Annotations[KubernetesConstants.CreationString] != creationStrings[service.Metadata.Name])
                 .Select(
                     service =>
                     {
@@ -124,20 +107,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     });
             await Task.WhenAll(updatingTask);
 
-            // Delete only those existing services that are not in the list of common names
-            var removingTasks = existing.Items
-                .Where(service => !commonNames.Contains(service.Metadata.Name))
+            // Delete all existing services that are not in desired list
+            var removingTasks = diff.Removed
                 .Select(
-                    service =>
+                    name =>
                     {
-                        Events.DeleteService(service);
-                        return this.client.DeleteNamespacedServiceAsync(service.Metadata.Name, this.deviceNamespace);
+                        Events.DeleteService(name);
+                        return this.client.DeleteNamespacedServiceAsync(name, this.deviceNamespace);
                     });
             await Task.WhenAll(removingTasks);
 
-            // Add only those desired services that are not in the list of common names
-            var addingTasks = desired
-                .Where(service => !commonNames.Contains(service.Metadata.Name))
+            // Create new desired services
+            var addingTasks = diff.Added
                 .Select(
                     service =>
                     {
@@ -172,44 +153,36 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             return config;
         }
 
-        async Task ManageDeployments(V1DeploymentList existing, List<V1Deployment> desired)
+        async Task ManageDeployments(V1DeploymentList existing, IEnumerable<V1Deployment> desired)
         {
-            // find common deployment names that are candidates to update
-            var commonNames = desired.Where(d => existing.Items.Any(e => e.Metadata.Name == d.Metadata.Name))
-                .Select(d => d.Metadata.Name)
-                .ToList();
-
             // Compose creation strings from existing items
             Dictionary<string, string> creationStrings = GetDeploymentConfig(existing);
 
             // Update only deployments if configurations have not matched or it's an EdgeAgent with the same version
-            var updating = desired.Where(
-                    deployment =>
-                    {
-                        // current module is to add it to cluster
-                        if (!creationStrings.TryGetValue(deployment.Metadata.Name, out string creationString))
-                        {
-                            return false;
-                        }
+            bool ShouldUpdate(V1Deployment deployment)
+            {
+                // current module is to update an existing one
+                if (deployment.Metadata.Annotations[KubernetesConstants.CreationString] != creationStrings[deployment.Metadata.Name])
+                {
+                    return true;
+                }
 
-                        // current module is to update an existing one
-                        if (deployment.Metadata.Annotations[KubernetesConstants.CreationString] != creationString)
-                        {
-                            return true;
-                        }
+                // current module is not EdgeAgent
+                if (deployment.Metadata.Name != KubeUtils.SanitizeK8sValue(CoreConstants.EdgeAgentModuleName))
+                {
+                    return true;
+                }
 
-                        // current module is not EdgeAgent
-                        if (deployment.Metadata.Name != this.DeploymentName(CoreConstants.EdgeAgentModuleName))
-                        {
-                            return true;
-                        }
+                // current module is EdgeAgent but image is different
+                var current = existing.Items.First(e => e.Metadata.Name == deployment.Metadata.Name);
+                return V1DeploymentEx.ImageEquals(current, deployment);
+            }
 
-                        var current = existing.Items.First(e => e.Metadata.Name == deployment.Metadata.Name);
-                        return V1DeploymentEx.ImageEquals(current, deployment);
-                    })
-                .ToList();
+            // find difference between desired and existing deployments
+            var diff = desired.Diff(existing.Items, deployment => deployment.Metadata.Name);
 
-            var updatingTask = updating
+            var updatingTask = diff.Updated
+                .Where(ShouldUpdate)
                 .Select(
                     deployment =>
                     {
@@ -218,20 +191,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     });
             await Task.WhenAll(updatingTask);
 
-            // Delete only those existing deployments that are not in the list of common names
-            var removingTasks = existing.Items
-                .Where(deployment => !commonNames.Contains(deployment.Metadata.Name))
+            // Delete all existing deployments that are not in desired list
+            var removingTasks = diff.Removed
                 .Select(
-                    deployment =>
+                    name =>
                     {
-                        Events.DeleteDeployment(deployment);
-                        return this.client.DeleteNamespacedDeployment1Async(deployment.Metadata.Name, this.deviceNamespace);
+                        Events.DeleteDeployment(name);
+                        return this.client.DeleteNamespacedDeployment1Async(name, this.deviceNamespace);
                     });
             await Task.WhenAll(removingTasks);
 
-            // Add only those desired deployments that are not in the list of common names
-            var addingTasks = desired
-                .Where(deployment => !commonNames.Contains(deployment.Metadata.Name))
+            // Add all new deployments from desired list
+            var addingTasks = diff.Added
                 .Select(
                     deployment =>
                     {
@@ -268,34 +239,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
         async Task ManageServiceAccounts(V1ServiceAccountList existing, IReadOnlyCollection<V1ServiceAccount> desired)
         {
-            // find common deployment names that are candidates to update
-            var commonNames = desired.Where(d => existing.Items.Any(e => e.Metadata.Name == d.Metadata.Name))
-                .Select(d => d.Metadata.Name)
-                .ToList();
+            // find difference between desired and existing deployments
+            var diff = desired.Diff(existing.Items, serviceAccount => serviceAccount.Metadata.Name);
 
-            // Update only service accounts that have same name among existing ones
-            var updating = desired.Where(serviceAccount => commonNames.Contains(serviceAccount.Metadata.Name)).ToList();
-            var updatingTasks = updating.Select(
-                account =>
-                {
-                    Events.UpdateServiceAccount(account);
-                    return this.client.ReplaceNamespacedServiceAccountAsync(account, account.Metadata.Name, this.deviceNamespace);
-                });
-            await Task.WhenAll(updatingTasks);
-
-            // Delete only those existing service accounts that are not in in the list of common names
-            var removingTasks = existing.Items
-                .Where(serviceAccount => !commonNames.Contains(serviceAccount.Metadata.Name))
+            // Update all service accounts that are in both lists
+            var updatingTasks = diff.Updated
                 .Select(
                     account =>
                     {
-                        Events.DeleteServiceAccount(account);
-                        return this.client.DeleteNamespacedServiceAccountAsync(account.Metadata.Name, this.deviceNamespace);
+                        Events.UpdateServiceAccount(account);
+                        return this.client.ReplaceNamespacedServiceAccountAsync(account, account.Metadata.Name, this.deviceNamespace);
+                    });
+            await Task.WhenAll(updatingTasks);
+
+            // Delete only those existing service accounts that are not in in desired list of common names
+            var removingTasks = diff.Removed
+                .Select(
+                    name =>
+                    {
+                        Events.DeleteServiceAccount(name);
+                        return this.client.DeleteNamespacedServiceAccountAsync(name, this.deviceNamespace);
                     });
             await Task.WhenAll(removingTasks);
 
             // Add only those desired service account that are not in the list of common names
-            var addingTasks = desired.Where(serviceAccount => !commonNames.Contains(serviceAccount.Metadata.Name))
+            var addingTasks = diff.Added
                 .Select(
                     account =>
                     {
@@ -350,9 +318,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 UpdateServiceAccount
             }
 
-            public static void DeleteService(V1Service service)
+            public static void DeleteService(string name)
             {
-                Log.LogInformation((int)EventIds.DeleteService, $"Delete service {service.Metadata.Name}");
+                Log.LogInformation((int)EventIds.DeleteService, $"Delete service {name}");
             }
 
             public static void CreateService(V1Service service)
@@ -365,9 +333,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 Log.LogInformation((int)EventIds.CreateDeployment, $"Create deployment {deployment.Metadata.Name}");
             }
 
-            public static void DeleteDeployment(V1Deployment deployment)
+            public static void DeleteDeployment(string name)
             {
-                Log.LogInformation((int)EventIds.DeleteDeployment, $"Delete deployment {deployment.Metadata.Name}");
+                Log.LogInformation((int)EventIds.DeleteDeployment, $"Delete deployment {name}");
             }
 
             public static void UpdateDeployment(V1Deployment deployment)
@@ -390,9 +358,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 Log.LogDebug((int)EventIds.CreateServiceAccount, $"Create Service Account {serviceAccount.Metadata.Name}");
             }
 
-            public static void DeleteServiceAccount(V1ServiceAccount serviceAccount)
+            public static void DeleteServiceAccount(string name)
             {
-                Log.LogDebug((int)EventIds.DeleteServiceAccount, $"Delete Service Account {serviceAccount.Metadata.Name}");
+                Log.LogDebug((int)EventIds.DeleteServiceAccount, $"Delete Service Account {name}");
             }
 
             public static void UpdateServiceAccount(V1ServiceAccount serviceAccount)

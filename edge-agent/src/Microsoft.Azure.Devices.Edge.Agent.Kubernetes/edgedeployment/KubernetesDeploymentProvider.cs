@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
         V1Deployment CreateDeployment(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels)
         {
-            string name = KubeUtils.SanitizeK8sValue(identity.ModuleId);
+            string name = identity.DeploymentName();
 
             var podSpec = this.GetPod(name, identity, module, labels);
 

@@ -93,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             if (portList.Count > 0)
             {
                 // Selector: by module name and device name, also how we will label this puppy.
-                var name = KubeUtils.SanitizeK8sValue(identity.ModuleId);
+                var name = identity.DeploymentName();
                 var objectMeta = new V1ObjectMeta(annotations: annotations, labels: labels, name: name);
 
                 // How we manage this service is dependent on the port mappings user asks for.
