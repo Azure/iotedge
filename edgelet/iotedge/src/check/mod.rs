@@ -1964,14 +1964,15 @@ fn is_rfc_1035_valid(name: &str) -> bool {
             Some(c) => c,
             None => return false,
         };
-        if (first_char < 'a' || first_char > 'z') && (first_char < 'A' || first_char > 'Z') {
+        let first_char_invalid =
+            (first_char < 'a' || first_char > 'z') && (first_char < 'A' || first_char > 'Z');
+        if first_char_invalid {
             return false;
         }
 
-        if label
-            .chars()
-            .any(|c| (c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && (c < '0' || c > '9') && c != '-')
-        {
+        let any_char_invalid =
+            |c| (c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && (c < '0' || c > '9') && c != '-';
+        if label.chars().any(any_char_invalid) {
             return false;
         }
 
@@ -1979,7 +1980,10 @@ fn is_rfc_1035_valid(name: &str) -> bool {
             .chars()
             .last()
             .expect("label has at least one character");
-        if (last_char < 'a' || last_char > 'z') && (last_char < 'A' || last_char > 'Z') && (last_char < '0' || last_char > '9') {
+        let last_char_invalid = (last_char < 'a' || last_char > 'z')
+            && (last_char < 'A' || last_char > 'Z')
+            && (last_char < '0' || last_char > '9');
+        if last_char_invalid {
             return false;
         }
 
