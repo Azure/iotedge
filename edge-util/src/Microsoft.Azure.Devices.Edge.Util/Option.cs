@@ -208,8 +208,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
             Preconditions.CheckNotNull(predicate, nameof(predicate));
 
             foreach (var item in source)
+            {
                 if (item.Filter(predicate).HasValue)
+                {
                     yield return item.OrDefault();
+                }
+            }
         }
 
         public static IEnumerable<T> FilterMap<T>(this IEnumerable<Option<T>> source)
@@ -217,8 +221,12 @@ namespace Microsoft.Azure.Devices.Edge.Util
             Preconditions.CheckNotNull(source, nameof(source));
 
             foreach (var item in source)
+            {
                 if (item.HasValue)
+                {
                     yield return item.OrDefault();
+                }
+            }
         }
 
         /// <summary>
