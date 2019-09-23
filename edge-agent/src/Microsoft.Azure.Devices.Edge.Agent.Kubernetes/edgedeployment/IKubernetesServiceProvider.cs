@@ -9,5 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     public interface IKubernetesServiceProvider
     {
         Option<V1Service> GetService(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels);
+
+        void UpdateService(V1Service to, V1Service from);
     }
 }

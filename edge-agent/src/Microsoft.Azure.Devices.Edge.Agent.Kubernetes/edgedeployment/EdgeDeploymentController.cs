@@ -7,9 +7,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     using k8s;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deployment;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Diff;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using Newtonsoft.Json;
     using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
     using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
     using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
@@ -90,20 +92,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
         async Task ManageServices(V1ServiceList existing, IEnumerable<V1Service> desired)
         {
-            // Compose creation strings from existing items
-            Dictionary<string, string> creationStrings = GetServiceConfig(existing);
-
             // find difference between desired and existing services
-            var diff = desired.Diff(existing.Items, service => service.Metadata.Name);
+            var diff = FindServiceDiff(desired, existing.Items);
 
             // Update only those services if configurations have not matched
             var updatingTask = diff.Updated
-                .Where(service => service.Metadata.Annotations[KubernetesConstants.CreationString] != creationStrings[service.Metadata.Name])
                 .Select(
-                    service =>
+                    update =>
                     {
-                        Events.UpdateService(service);
-                        return this.client.ReplaceNamespacedServiceAsync(service, service.Metadata.Name, this.deviceNamespace);
+                        Events.UpdateService(update.To);
+
+                        this.serviceProvider.UpdateService(update.To, update.From);
+                        return this.client.ReplaceNamespacedServiceAsync(update.To, update.To.Metadata.Name, this.deviceNamespace);
                     });
             await Task.WhenAll(updatingTask);
 
@@ -128,66 +128,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             await Task.WhenAll(addingTasks);
         }
 
-        static Dictionary<string, string> GetServiceConfig(V1ServiceList services)
+        static Diff<V1Service> FindServiceDiff(IEnumerable<V1Service> desired, IEnumerable<V1Service> existing)
         {
-            var config = new Dictionary<string, string>();
-            foreach (var service in services.Items)
-            {
-                if (service?.Metadata?.Name == null)
-                {
-                    Events.InvalidCreationString(service == null ? "service" : "name", "null service in list");
-                    continue;
-                }
+            var desiredSet = new Set<V1Service>(desired.ToDictionary(service => service.Metadata.Name));
+            var existingSet = new Set<V1Service>(existing.ToDictionary(service => service.Metadata.Name));
 
-                if (service.Metadata?.Annotations == null || !service.Metadata.Annotations.TryGetValue(KubernetesConstants.CreationString, out string creationString))
-                {
-                    Events.InvalidCreationString(service.Kind, service.Metadata?.Name);
-
-                    var serviceWithoutStatus = new V1Service(service.ApiVersion, service.Kind, service.Metadata, service.Spec);
-                    creationString = JsonConvert.SerializeObject(serviceWithoutStatus);
-                }
-
-                config[service.Metadata.Name] = creationString;
-            }
-
-            return config;
+            return desiredSet.Diff(existingSet, ServiceByCreationStringEqualityComparer);
         }
+
+        static IEqualityComparer<V1Service> ServiceByCreationStringEqualityComparer { get; } = new KubernetesServiceByCreationStringEqualityComparer();
 
         async Task ManageDeployments(V1DeploymentList existing, IEnumerable<V1Deployment> desired)
         {
-            // Compose creation strings from existing items
-            Dictionary<string, string> creationStrings = GetDeploymentConfig(existing);
-
-            // Update only deployments if configurations have not matched or it's an EdgeAgent with the same version
-            bool ShouldUpdate(V1Deployment deployment)
-            {
-                // current module is to update an existing one
-                if (deployment.Metadata.Annotations[KubernetesConstants.CreationString] != creationStrings[deployment.Metadata.Name])
-                {
-                    return true;
-                }
-
-                // current module is not EdgeAgent
-                if (deployment.Metadata.Name != KubeUtils.SanitizeK8sValue(CoreConstants.EdgeAgentModuleName))
-                {
-                    return true;
-                }
-
-                // current module is EdgeAgent but image is different
-                var current = existing.Items.First(e => e.Metadata.Name == deployment.Metadata.Name);
-                return V1DeploymentEx.ImageEquals(current, deployment);
-            }
-
             // find difference between desired and existing deployments
-            var diff = desired.Diff(existing.Items, deployment => deployment.Metadata.Name);
+            var diff = FindDeploymentDiff(desired, existing.Items);
 
             var updatingTask = diff.Updated
-                .Where(ShouldUpdate)
                 .Select(
-                    deployment =>
+                    update =>
                     {
-                        Events.UpdateDeployment(deployment);
-                        return this.client.ReplaceNamespacedDeploymentAsync(deployment, deployment.Metadata.Name, this.deviceNamespace);
+                        Events.UpdateDeployment(update.To);
+
+                        this.deploymentProvider.Update(update.To, update.From);
+                        return this.client.ReplaceNamespacedDeploymentAsync(update.To, update.To.Metadata.Name, this.deviceNamespace);
                     });
             await Task.WhenAll(updatingTask);
 
@@ -212,43 +175,30 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             await Task.WhenAll(addingTasks);
         }
 
-        static Dictionary<string, string> GetDeploymentConfig(V1DeploymentList deployments)
+        static Diff<V1Deployment> FindDeploymentDiff(IEnumerable<V1Deployment> desired, IEnumerable<V1Deployment> existing)
         {
-            var config = new Dictionary<string, string>();
-            foreach (var deployment in deployments.Items)
-            {
-                if (deployment?.Metadata?.Name == null)
-                {
-                    Events.InvalidCreationString(deployment == null ? "deployment" : "name", "null deployment in list");
-                    continue;
-                }
+            var desiredSet = new Set<V1Deployment>(desired.ToDictionary(service => service.Metadata.Name));
+            var existingSet = new Set<V1Deployment>(existing.ToDictionary(service => service.Metadata.Name));
 
-                if (deployment.Metadata?.Annotations == null || !deployment.Metadata.Annotations.TryGetValue(KubernetesConstants.CreationString, out string creationString))
-                {
-                    Events.InvalidCreationString(deployment.Kind, deployment.Metadata?.Name);
-
-                    var deploymentWithoutStatus = new V1Deployment(deployment.ApiVersion, deployment.Kind, deployment.Metadata, deployment.Spec);
-                    creationString = JsonConvert.SerializeObject(deploymentWithoutStatus);
-                }
-
-                config[deployment.Metadata.Name] = creationString;
-            }
-
-            return config;
+            return desiredSet.Diff(existingSet, DeploymentByCreationStringEqualityComparer);
         }
+
+        static IEqualityComparer<V1Deployment> DeploymentByCreationStringEqualityComparer { get; } = new KubernetesDeploymentByCreationStringEqualityComparer();
 
         async Task ManageServiceAccounts(V1ServiceAccountList existing, IReadOnlyCollection<V1ServiceAccount> desired)
         {
-            // find difference between desired and existing deployments
-            var diff = desired.Diff(existing.Items, serviceAccount => serviceAccount.Metadata.Name);
+            // find difference between desired and existing service accounts
+            var diff = FindServiceAccountDiff(desired, existing.Items);
 
             // Update all service accounts that are in both lists
             var updatingTasks = diff.Updated
                 .Select(
-                    account =>
+                    update =>
                     {
-                        Events.UpdateServiceAccount(account);
-                        return this.client.ReplaceNamespacedServiceAccountAsync(account, account.Metadata.Name, this.deviceNamespace);
+                        Events.UpdateServiceAccount(update.To);
+
+                        this.serviceAccountProvider.Update(update.To, update.From);
+                        return this.client.ReplaceNamespacedServiceAccountAsync(update.To, update.To.Metadata.Name, this.deviceNamespace);
                     });
             await Task.WhenAll(updatingTasks);
 
@@ -271,6 +221,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                         return this.client.CreateNamespacedServiceAccountAsync(account, this.deviceNamespace);
                     });
             await Task.WhenAll(addingTasks);
+        }
+
+        static Diff<V1ServiceAccount> FindServiceAccountDiff(IEnumerable<V1ServiceAccount> desired, IEnumerable<V1ServiceAccount> existing)
+        {
+            var desiredSet = new Set<V1ServiceAccount>(desired.ToDictionary(service => service.Metadata.Name));
+            var existingSet = new Set<V1ServiceAccount>(existing.ToDictionary(service => service.Metadata.Name));
+
+            return desiredSet.Diff(existingSet);
         }
 
         public async Task PurgeModulesAsync()

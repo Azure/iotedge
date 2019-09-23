@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
+namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Diff
 {
     using System.Collections.Generic;
     using System.Collections.Immutable;
@@ -12,16 +12,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public readonly IImmutableSet<string> Removed;
 
-        public readonly IImmutableSet<T> Updated;
+        public readonly IImmutableSet<Update<T>> Updated;
 
-        public Diff(IEnumerable<T> added, IEnumerable<string> removed, IEnumerable<T> updated)
+        public Diff(IEnumerable<T> added, IEnumerable<string> removed, IEnumerable<Update<T>> updated)
         {
             this.Added = Preconditions.CheckNotNull(added, nameof(added)).ToImmutableHashSet();
             this.Removed = Preconditions.CheckNotNull(removed, nameof(removed)).ToImmutableHashSet();
             this.Updated = Preconditions.CheckNotNull(updated, nameof(updated)).ToImmutableHashSet();
         }
 
-        public static Diff<T> Empty { get; } = new Diff<T>(ImmutableList<T>.Empty, ImmutableList<string>.Empty, ImmutableList<T>.Empty);
+        public static Diff<T> Empty { get; } = new Diff<T>(ImmutableList<T>.Empty, ImmutableList<string>.Empty, ImmutableList<Update<T>>.Empty);
 
         public override bool Equals(object obj)
         {
@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public class Builder
         {
             IList<T> added;
-            IList<T> updated;
+            IList<Update<T>> updated;
             IList<string> removed;
 
             public Builder WithAdded(params T[] added)
@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 return this;
             }
 
-            public Builder WithUpdated(params T[] updated)
+            public Builder WithUpdated(params Update<T>[] updated)
             {
                 this.updated = updated;
                 return this;
@@ -83,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 new Diff<T>(
                     this.added ?? ImmutableList<T>.Empty,
                     this.removed ?? ImmutableList<string>.Empty,
-                    this.updated ?? ImmutableList<T>.Empty);
+                    this.updated ?? ImmutableList<Update<T>>.Empty);
         }
     }
 }

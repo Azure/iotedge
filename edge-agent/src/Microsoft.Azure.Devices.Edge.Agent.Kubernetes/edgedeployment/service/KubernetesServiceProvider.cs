@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
+namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service
 {
     using System.Collections.Generic;
     using System.Linq;
@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
     using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
+    // TODO add unit tests
     public class KubernetesServiceProvider : IKubernetesServiceProvider
     {
         readonly PortMapServiceType defaultMapServiceType;
@@ -29,7 +30,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 {
                     [KubernetesConstants.CreationString] = JsonConvert.SerializeObject(s)
                 });
+
             return service;
+        }
+
+        public void UpdateService(V1Service to, V1Service from)
+        {
+            to.Metadata.ResourceVersion = from.Metadata.ResourceVersion;
+            to.Spec.ClusterIP = from.Spec.ClusterIP;
         }
 
         Option<V1Service> CreateService(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels)
@@ -49,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 // Entries in the Exposed Port list just tell Docker that this container wants to listen on that port.
                 // We interpret this as a "ClusterIP" service type listening on that exposed port, backed by this module.
                 // Users of this Module's exposed port should be able to find the service by connecting to "<module name>:<port>"
-                PortExtensions.GetExposedPorts(module.Config.CreateOptions.ExposedPorts)
+                module.Config.CreateOptions.ExposedPorts.GetExposedPorts()
                     .ForEach(ports => ports.ForEach(item => portList.Add(new V1ServicePort(item.Port, $"ExposedPort-{item.Port}-{item.Protocol.ToLower()}", protocol: item.Protocol))));
             }
 
@@ -61,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     string[] portProtocol = portBinding.Key.Split('/');
                     if (portProtocol.Length == 2)
                     {
-                        if (int.TryParse(portProtocol[0], out int port) && ProtocolExtensions.TryValidateProtocol(portProtocol[1], out string protocol))
+                        if (int.TryParse(portProtocol[0], out int port) && PortExtensions.TryValidateProtocol(portProtocol[1], out string protocol))
                         {
                             // Entries in Docker portMap wants to expose a port on the host (hostPort) and map it to the container's port (port)
                             // We interpret that as the pod wants the cluster to expose a port on a public IP (hostPort), and target it to the container's port (port)

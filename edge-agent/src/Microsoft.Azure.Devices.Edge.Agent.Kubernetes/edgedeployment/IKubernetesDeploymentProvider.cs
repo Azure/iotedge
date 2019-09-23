@@ -8,5 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     public interface IKubernetesDeploymentProvider
     {
         V1Deployment GetDeployment(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels);
+
+        void Update(V1Deployment to, V1Deployment from);
     }
 }

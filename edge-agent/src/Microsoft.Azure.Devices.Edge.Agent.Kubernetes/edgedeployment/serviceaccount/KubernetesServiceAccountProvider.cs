@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
+namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.ServiceAccount
 {
     using System.Collections.Generic;
     using k8s.Models;
@@ -17,6 +17,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             };
             var metadata = new V1ObjectMeta(annotations, name: name, labels: labels);
             return new V1ServiceAccount(metadata: metadata);
+        }
+
+        public void Update(V1ServiceAccount to, V1ServiceAccount from)
+        {
+            to.Metadata.ResourceVersion = from.Metadata.ResourceVersion;
         }
     }
 }

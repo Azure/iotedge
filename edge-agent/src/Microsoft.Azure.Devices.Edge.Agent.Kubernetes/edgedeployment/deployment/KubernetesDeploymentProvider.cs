@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
+namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deployment
 {
     using System;
     using System.Collections.Generic;
@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
     using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
@@ -66,6 +67,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 [KubernetesConstants.CreationString] = JsonConvert.SerializeObject(deployment)
             };
             return deployment;
+        }
+
+        public void Update(V1Deployment to, V1Deployment from)
+        {
+            to.Metadata.ResourceVersion = from.Metadata.ResourceVersion;
         }
 
         V1Deployment CreateDeployment(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels)
