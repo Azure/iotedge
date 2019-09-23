@@ -1,7 +1,8 @@
+use failure::{Fail, ResultExt};
 use hyper::body::Body;
 use hyper::client::connect::Connect;
 use hyper::header;
-use hyper::http::{Method, Request, StatusCode, Uri};
+use hyper::http::{uri, Method, Request, Response, StatusCode, Uri};
 use hyper::Client as HyperClient;
 // use log::*;
 use serde::{Deserialize, Serialize};
@@ -11,8 +12,8 @@ use oci_distribution::v2::Catalog;
 use oci_image::{v1::Manifest, MediaType};
 
 use crate::auth::{AuthClient, Credentials};
-use crate::util::hyper::BodyExt;
-use crate::Result;
+use crate::error::*;
+use crate::util::hyper::{BodyExt, ResponseExt};
 
 /// Basic struct to indicate pagination options
 #[derive(Debug, Serialize, Deserialize)]
@@ -37,42 +38,60 @@ impl Paginate {
 #[derive(Debug)]
 pub struct Client<C> {
     client: AuthClient<C>,
-    registry: String,
+    registry_base: Uri,
 }
 
 impl<C: Connect + 'static> Client<C> {
-    /// Construct a new Client pointing to the given `registry` using the given
-    /// `creds`
-    pub fn new(hyper_client: HyperClient<C>, registry: &str, creds: Credentials) -> Client<C> {
-        Client {
-            client: AuthClient::new(hyper_client, creds),
-            registry: registry.to_owned(),
+    /// Construct a new Client to communicate with container registries.
+    /// The `registry_uri` must have a scheme (http[s]) and authority (domain),
+    /// and can optionally include a base path as well (for container registries
+    /// that are not at "/"). Returns an error if the registry Uri is malformed.
+    pub fn new(
+        hyper_client: HyperClient<C>,
+        registry_uri: &str,
+        creds: Credentials,
+    ) -> Result<Client<C>> {
+        let registry = registry_uri
+            .parse::<Uri>()
+            .context(ErrorKind::RegistryUriMalformed)?;
+
+        let mut parts = registry.into_parts();
+        if parts.scheme.is_none() {
+            return Err(ErrorKind::RegistryUriMissingScheme.into());
         }
+        if parts.authority.is_none() {
+            return Err(ErrorKind::RegistryUriMissingAuthority.into());
+        }
+        if parts.path_and_query.is_none() {
+            parts.path_and_query = Some(uri::PathAndQuery::from_static("/"))
+        }
+
+        Ok(Client {
+            client: AuthClient::new(hyper_client, creds),
+            registry_base: Uri::from_parts(parts).unwrap(), // guaranteed to work
+        })
     }
 
-    /// Utility method to cut down on the boilerplate required to poke URIs.
-    fn base_uri(&self, endpoint: &str) -> std::result::Result<Uri, hyper::http::Error> {
-        Uri::builder()
-            .scheme("https")
-            .authority(self.registry.as_str())
-            .path_and_query(endpoint)
-            .build()
+    /// Utility method to construct endpoint URIs
+    fn base_uri(&self, endpoint: &str) -> Result<Uri> {
+        let uri = format!("{}{}", self.registry_base, endpoint.trim_start_matches('/'))
+            .parse::<Uri>()
+            .context(ErrorKind::InvalidApiEndpoint);
+        Ok(uri?)
     }
 
     /// Utility method to check if we can access a certain endpoint
-    async fn check_authentication(&mut self, endpoint: &str, method: Method) -> Result<bool> {
+    pub async fn check_authentication<T>(&mut self, endpoint: &str, method: T) -> Result<bool>
+    where
+        Method: hyper::http::HttpTryFrom<T>,
+    {
         let uri = self.base_uri(endpoint)?;
         let req = Request::builder()
             .method(method)
             .uri(uri)
-            .body(Body::empty())?;
-        Ok(self.client.request(req).await?.status() != StatusCode::UNAUTHORIZED)
-    }
-
-    /// Check that basic authentication works (by pinging the base URL:
-    /// <registry>/v2/)
-    pub async fn check_basic_auth(&mut self) -> Result<bool> {
-        self.check_authentication("/v2/", Method::GET).await
+            .body(Body::empty())
+            .context(ErrorKind::InvalidApiEndpoint)?;
+        Ok(self.client.request(req).await?.status().is_success())
     }
 
     /// Retrieve a sorted, json list of repositories available in the registry.
@@ -90,14 +109,24 @@ impl<C: Connect + 'static> Client<C> {
         let uri = self.base_uri("/v2/_catalog")?;
         let res = self.client.get(uri).await?;
 
-        Ok(match res.status() {
-            StatusCode::NOT_FOUND => None,
-            StatusCode::OK => Some((res.into_body().json::<Catalog>().await?, None)),
-            other_status => panic!(
-                "Recieved unexpected status ({:?}) from server",
-                other_status
-            ),
-        })
+        match res.status() {
+            StatusCode::NOT_FOUND => Ok(None),
+            StatusCode::OK => Ok(Some((
+                res.into_body()
+                    .json::<Catalog>()
+                    .await
+                    .context(ErrorKind::ApiMalformedJSON)?,
+                None,
+            ))),
+            StatusCode::UNAUTHORIZED => {
+                // TODO: attempt to reauthenticate
+                unimplemented!("get_manifest: UNAUTHORIZED")
+            }
+            status => {
+                res.dump_to_debug().await;
+                Err(ErrorKind::ApiUnexpectedStatus(status).into())
+            }
+        }
     }
 
     /// Fetch the manifest identified by name and reference where reference can
@@ -114,23 +143,47 @@ impl<C: Connect + 'static> Client<C> {
             // Docker compatibility
             req.header(header::ACCEPT, similar_mime);
         }
-        let req = req.body(Body::empty())?;
+        let req = req.body(Body::empty()).unwrap();
         let res = self.client.request(req).await?;
 
         match res.status() {
             StatusCode::OK => {
-                let manifest = res.into_body().json::<Manifest>().await?;
+                let manifest = res
+                    .into_body()
+                    .json::<Manifest>()
+                    .await
+                    .context(ErrorKind::ApiMalformedJSON)?;
                 Ok(manifest)
             }
-            StatusCode::BAD_REQUEST => unimplemented!("get_manifest: BAD_REQUEST"),
-            StatusCode::NOT_FOUND => unimplemented!("get_manifest: NOT_FOUND"),
-            StatusCode::FORBIDDEN => unimplemented!("get_manifest: FORBIDDEN"),
-            StatusCode::TOO_MANY_REQUESTS => unimplemented!("get_manifest: TOO_MANY_REQUESTS"),
-            StatusCode::UNAUTHORIZED => unimplemented!("get_manifest: UNAUTHORIZED"),
-            other_status => panic!(
-                "Recieved unexpected status ({:?}) from server",
-                other_status
-            ),
+            StatusCode::UNAUTHORIZED => {
+                // TODO: attempt to reauthenticate
+                unimplemented!("get_manifest: UNAUTHORIZED")
+            }
+            status => match status {
+                StatusCode::BAD_REQUEST
+                | StatusCode::NOT_FOUND
+                | StatusCode::TOO_MANY_REQUESTS
+                | StatusCode::FORBIDDEN => Err(new_api_error(status, res).await),
+                _ => {
+                    res.dump_to_debug().await;
+                    Err(ErrorKind::ApiUnexpectedStatus(status).into())
+                }
+            },
         }
+    }
+}
+
+/// Given a response that _should_ contain a well-structured ApiErrors JSON
+/// value, returns a Error(ErrorKind::ApiError) who's context is either the
+/// ApiErrors JSON itself, or, if the JSON was malformed, a
+/// ErrorKind::ApiMalformedJSON.
+async fn new_api_error(status: StatusCode, res: Response<Body>) -> Error {
+    let error = res.into_body().json::<ApiErrors>().await;
+    match error {
+        Err(parse_err) => parse_err
+            .context(ErrorKind::ApiMalformedJSON)
+            .context(ErrorKind::ApiError(status))
+            .into(),
+        Ok(errors) => errors.context(ErrorKind::ApiError(status)).into(),
     }
 }

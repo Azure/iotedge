@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use failure::ResultExt;
 use headers::Authorization as AuthorizationHeader;
 use headers::HeaderMapExt;
 use hyper::client::connect::Connect;
@@ -9,8 +10,10 @@ use hyper::Client as HyperClient;
 use serde::{Deserialize, Serialize};
 use serde_urlencoded;
 
-use crate::util::hyper::BodyExt;
-use crate::Result;
+use crate::error::*;
+use crate::util::hyper::{BodyExt, ResponseExt};
+
+use super::AuthError;
 
 /// Docker Authorization Token Response.
 ///
@@ -53,26 +56,42 @@ pub async fn auth_flow<C: Connect + 'static>(
     client: &mut HyperClient<C>,
     mut parameters: HashMap<String, String>,
 ) -> Result<HeaderMap> {
-    let realm = parameters.remove("realm").unwrap();
-    let query = serde_urlencoded::to_string(parameters)?;
+    let realm = parameters
+        .remove("realm")
+        .ok_or_else(|| AuthError::AuthServerUri)?;
+    // serializing HashMap<String, String> into urlencoded string cannot fail
+    let query = serde_urlencoded::to_string(parameters).unwrap();
 
-    let uri = (realm + "?" + &query).parse::<Uri>()?;
-    let res = client.get(uri).await?;
+    let uri = (realm + "?" + &query)
+        .parse::<Uri>()
+        .context(AuthError::AuthServerUri)?;
+    let res = client
+        .get(uri)
+        .await
+        .context(AuthError::AuthServerNoResponse)?;
+
     if !res.status().is_success() {
-        // TODO: report an issue with the authentication
-        panic!("auth server didn't respond")
+        let status = res.status();
+        res.dump_to_debug().await;
+        return Err(AuthError::AuthServerError(status).into());
     }
 
-    let token_reponse: DockerAuthTokenResponse = res.into_body().json().await?;
+    let token_reponse: DockerAuthTokenResponse = res
+        .into_body()
+        .json()
+        .await
+        .context(AuthError::AuthServerInvalidResponse)?;
 
     // TODO: use those expiration times?
 
     let token = token_reponse
         .token
         .or(token_reponse.access_token)
-        .expect("auth server didn't return a token");
+        .ok_or_else(|| AuthError::AuthServerMissingToken)?;
 
     let mut map = HeaderMap::new();
-    map.typed_insert(AuthorizationHeader::bearer(&token).unwrap());
+    map.typed_insert(
+        AuthorizationHeader::bearer(&token).context(AuthError::AuthServerInvalidToken)?,
+    );
     Ok(map)
 }

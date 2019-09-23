@@ -2,14 +2,21 @@ use clap::{App, AppSettings, Arg, SubCommand};
 use hyper::Client as HyperClient;
 use hyper_tls::HttpsConnector;
 
-use docker_reference::RawReference;
+use docker_reference::Reference;
 
 use containrs::{Client, Credentials};
 
-type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
-
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() {
+    if let Err(fail) = true_main().await {
+        println!("{}", fail);
+        for cause in fail.iter_causes() {
+            println!("\tcaused by: {}", cause);
+        }
+    }
+}
+
+async fn true_main() -> Result<(), failure::Error> {
     pretty_env_logger::init();
 
     let app_m = App::new("containrs-cli")
@@ -17,26 +24,26 @@ async fn main() -> Result<()> {
         .version("0.1.0")
         .author("Azure IoT Edge Devs")
         .about("CLI for interacting with the containrs library.")
+        .arg(
+            Arg::with_name("default-registry")
+                .help("Default registry (defaults to https://registry-1.docker.io/v2/)")
+                .long("default-registry")
+                .takes_value(true),
+        )
         // TODO: pass authentication credentials via CLI
         .subcommand(
             SubCommand::with_name("test_auth")
-                .about("Test if basic authentication works")
+                .about("Test if authentication works with a particular endpoint")
                 .arg(
-                    Arg::with_name("registry")
-                        .help("Registry URL (e.g: registry-1.docker.io")
+                    Arg::with_name("endpoint")
+                        .help("endpoint URL (e.g: /v2/")
                         .required(true)
                         .index(1),
                 ),
         )
         .subcommand(
             SubCommand::with_name("catalog")
-                .about("Retrieve a sorted, json list of repositories available in the registry")
-                .arg(
-                    Arg::with_name("registry")
-                        .help("Registry URL (e.g: registry-1.docker.io")
-                        .required(true)
-                        .index(1),
-                ),
+                .about("Retrieve a sorted, json list of repositories available in the registry"),
         )
         .subcommand(
             SubCommand::with_name("download")
@@ -59,7 +66,9 @@ async fn main() -> Result<()> {
     let https = HttpsConnector::new().expect("TLS initialization failed");
     let hyper_client = HyperClient::builder().build::<_, hyper::Body>(https);
 
-    let default_repo = "registry-1.docker.io";
+    let default_registry = app_m
+        .value_of("default-registry")
+        .unwrap_or("https://registry-1.docker.io");
     let docker_compat = true;
 
     let credentials = Credentials::Anonymous;
@@ -67,22 +76,20 @@ async fn main() -> Result<()> {
     match app_m.subcommand() {
         ("test_auth", Some(sub_m)) => {
             // won't panic, as this is a required argument
-            let registry = sub_m.value_of("registry").unwrap();
-            let mut client = Client::new(hyper_client, registry, credentials);
+            let endpoint = sub_m.value_of("endpoint").unwrap();
+
+            let mut client = Client::new(hyper_client, default_registry, credentials)?;
             println!(
                 "Basic auth {}",
-                if client.check_basic_auth().await? {
+                if client.check_authentication(&endpoint, "GET").await? {
                     "succeeded"
                 } else {
                     "failed"
                 }
             );
         }
-        ("catalog", Some(sub_m)) => {
-            // won't panic, as this is a required argument
-            let registry = sub_m.value_of("registry").unwrap();
-
-            let mut client = Client::new(hyper_client, registry, credentials);
+        ("catalog", Some(_sub_m)) => {
+            let mut client = Client::new(hyper_client, default_registry, credentials)?;
             match client.get_catalog(None).await? {
                 Some((catalog, _)) => println!("{:#?}", catalog),
                 None => println!("Registry doesn't support the _catalog endpoint"),
@@ -93,20 +100,11 @@ async fn main() -> Result<()> {
             let outdir = sub_m.value_of("outdir").unwrap();
             let image = sub_m.value_of("image").unwrap();
 
-            let image = match image.parse::<RawReference>() {
-                Ok(img) => {
-                    println!("non-canonical: {:#?}", img);
-                    img.canonicalize(default_repo, docker_compat)
-                }
-                Err(e) => {
-                    eprintln!("Error: {}", e);
-                    return Ok(());
-                }
-            };
+            let image = Reference::parse(image, default_registry, docker_compat)?;
 
             println!("canonical: {:#?}", image);
 
-            let mut client = Client::new(hyper_client, image.registry(), credentials);
+            let mut client = Client::new(hyper_client, image.registry(), credentials)?;
             let manifest = client.get_manifest(&image).await?;
             println!("{:#?}", manifest);
 

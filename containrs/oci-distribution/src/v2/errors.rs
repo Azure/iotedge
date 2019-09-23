@@ -11,7 +11,7 @@ pub struct Errors {
 }
 
 /// Inner Error structure used in [Errors]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Error {
     /// The code field will be a unique identifier, all caps with underscores by
     /// convention.
@@ -24,6 +24,18 @@ pub struct Error {
     /// information the client can use to resolve the issue.
     #[serde(rename = "detail", skip_serializing_if = "Option::is_none")]
     pub detail: Option<Value>,
+}
+
+impl std::fmt::Debug for Error {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let mut builder = fmt.debug_struct("Error");
+        builder.field("code", &self.code);
+        builder.field("message", &self.message);
+        if let Some(json) = self.detail.as_ref() {
+            builder.field("detail", &format_args!("{}", json));
+        }
+        builder.finish()
+    }
 }
 
 // While the client can take action on certain error codes, the registry MAY

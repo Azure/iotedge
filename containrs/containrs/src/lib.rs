@@ -1,9 +1,8 @@
 mod auth;
 mod client;
+mod error;
 mod util;
-
-// TODO: convert this to something cleaner
-pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
 pub use auth::Credentials;
 pub use client::*;
+pub use error::{Error, ErrorKind, Result};

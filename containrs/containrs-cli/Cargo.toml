@@ -9,6 +9,7 @@ containrs = { path = "../containrs" }
 docker-reference = { path = "../docker-reference" }
 
 clap = "~2.33.0"
+failure = "0.1"
 hyper = "0.13.0-alpha.1"
 hyper-tls = "0.4.0-alpha.1"
 log = "0.4"
