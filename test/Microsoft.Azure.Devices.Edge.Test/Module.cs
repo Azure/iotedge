@@ -66,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             string filterImage = Context.Current.TempFilterImage.Expect(() => new ArgumentException("tempFilterImage parameter is required for TempFilter test"));
 
-            string filterModuleName = "tempFilter";
+            const string filterModuleName = "tempFilter";
             var tempSensorModule = this.GetTempSensorImage();
 
             CancellationToken token = this.TestToken;
@@ -100,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             // Azure Fucntion Name: EdgeHubTrigger-CSharp
             string filterFunc = Context.Current.TempFilterFuncImage.Expect(() => new ArgumentException("'tempFilterFuncImage' parameter is required for TempFilterFunc() test"));
 
-            string filterFuncModuleName = "tempFilterFunctions";
+            const string filterFuncModuleName = "tempFilterFunctions";
             var tempSensorModule = this.GetTempSensorImage();
 
             CancellationToken token = this.TestToken;
