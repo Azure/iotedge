@@ -350,8 +350,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
             var expectedContainerNames = containersToReturn
                                             .Where(c => !c.Equals(missingContainerName))
-                                            .Select(c => c.Substring(1))
-                                            .Concat(new[] { "dgeAgent" });
+                                            .Concat(new[] { "edgeAgent" });
 
             Assert.Equal(expectedContainerNames, actualContainerNames);
         }
@@ -361,18 +360,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         public async Task GetModules_Handles_MissingEdgeAgent()
         {
             var missingContainerName = "edgeAgent";
-            var containersToReturn = new[] { "container1", "container2", "container3" };
+            var expectedContainerNames = new[] { "container1", "container2", "container3" };
 
-            var dockerClient = this.SetupDockerClient(missingContainerName, containersToReturn);
+            var dockerClient = this.SetupDockerClient(missingContainerName, expectedContainerNames);
             var provider = await RuntimeInfoProvider.CreateAsync(dockerClient);
 
             var moduleInfo = await provider.GetModules(CancellationToken.None);
 
-            var actualContainerNames = moduleInfo
-                                            .Select(m => m.Name);
-
-            var expectedContainerNames = containersToReturn
-                                            .Select(c => c.Substring(1));
+            var actualContainerNames = moduleInfo.Select(m => m.Name);
 
             Assert.Equal(expectedContainerNames, actualContainerNames);
         }
@@ -405,7 +400,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                                     {
                                         return Task.FromResult(new ContainerInspectResponse()
                                         {
-                                            Name = a,
+                                            Name = "/" + a,
                                             Config = new Config() { Image = "dummy:latest" },
                                             State = new ContainerState() { Status = "running" }
                                         });
