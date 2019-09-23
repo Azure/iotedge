@@ -352,6 +352,9 @@ function process_args() {
             DPS_MASTER_SYMMETRIC_KEY="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 30 ]; then
+            DESIRED_MODULES_TO_RESTART_JSON_PATH="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 31 ]; then
             RANDOM_RESTART_INTERVAL_IN_MINS="$arg"
             saveNextArg=0
         else
@@ -386,7 +389,8 @@ function process_args() {
                 '-installRootCAKeyPassword' ) saveNextArg=27;;
                 '-dpsScopeId' ) saveNextArg=28;;
                 '-dpsMasterSymmetricKey' ) saveNextArg=29;;
-                '-randomRestartIntervalInMins' ) saveNextArg=30;;
+                '-desiredModulesToRestartJsonPath' ) saveNextArg=30;;
+                '-randomRestartIntervalInMins' ) saveNextArg=31;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -970,7 +974,8 @@ function usage() {
     echo ' -installRootCACertPath          Optional path to root CA certificate to be used for certificate generation'
     echo ' -installRootCAKeyPath           Optional path to root CA certificate private key to be used for certificate generation'
     echo ' -installRootCAKeyPassword       Optional password to access the root CA certificate private key to be used for certificate generation'
-    echo ' -randomRestartIntervalInMins    Optional value specifying how often a random module will restart'
+    echo ' -desiredModulesToRestartJsonPath  Optional JSON file path specifying what modules to restart in array format. If specified, then "randomRestartIntervalInMins" must be specified as well.'
+    echo ' -randomRestartIntervalInMins    Optional value specifying how often a random module will restart. If specified, then "desiredModulesToRestartJsonPath" must be specified as well.'
     exit 1;
 }
 
