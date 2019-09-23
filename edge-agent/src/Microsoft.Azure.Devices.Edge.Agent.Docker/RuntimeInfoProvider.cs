@@ -64,13 +64,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                                         c => this.client.Containers
                                                  .InspectContainerAsync(c.ID)
                                                  .MayThrow(typeof(DockerContainerNotFoundException)))
-                                    .Concat(new[] {
+                                    .Concat(new[]
+                                    {
                                         this.client.Containers
                                                  .InspectContainerAsync(CoreConstants.EdgeAgentModuleName)
                                                  .MayThrow(EdgeAgentNotFoundAlternative, typeof(DockerContainerNotFoundException))
-                                    })
-                       );
-            
+                                    }));
+
             List<ModuleRuntimeInfo> modules = containerInspectResponses
                                                  .FilterMap()
                                                  .Select(InspectResponseToModule)
@@ -222,6 +222,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                     edgeAgentContainerNotFoundReported = true;
                 }
             }
-        }        
-    }    
+        }
+    }
 }

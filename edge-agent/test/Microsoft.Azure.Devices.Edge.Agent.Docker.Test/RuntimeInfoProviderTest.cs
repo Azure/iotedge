@@ -340,7 +340,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             var missingContainerName = "container2";
             var containersToReturn = new[] { "container1", "container2", "container3" };
 
-            var dockerClient = SetupDockerClient(missingContainerName, containersToReturn);
+            var dockerClient = this.SetupDockerClient(missingContainerName, containersToReturn);
             var provider = await RuntimeInfoProvider.CreateAsync(dockerClient);
 
             var moduleInfo = await provider.GetModules(CancellationToken.None);
@@ -350,8 +350,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
             var expectedContainerNames = containersToReturn
                                             .Where(c => !c.Equals(missingContainerName))
-                                            .Select(c => c.Substring(1))    // cuts the first letter
-                                            .Concat(new[] { "dgeAgent" });  // added anyway
+                                            .Select(c => c.Substring(1))
+                                            .Concat(new[] { "dgeAgent" });
 
             Assert.Equal(expectedContainerNames, actualContainerNames);
         }
@@ -363,7 +363,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             var missingContainerName = "edgeAgent";
             var containersToReturn = new[] { "container1", "container2", "container3" };
 
-            var dockerClient = SetupDockerClient(missingContainerName, containersToReturn);
+            var dockerClient = this.SetupDockerClient(missingContainerName, containersToReturn);
             var provider = await RuntimeInfoProvider.CreateAsync(dockerClient);
 
             var moduleInfo = await provider.GetModules(CancellationToken.None);
@@ -372,7 +372,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                                             .Select(m => m.Name);
 
             var expectedContainerNames = containersToReturn
-                                            .Select(c => c.Substring(1));    // cuts the first letter
+                                            .Select(c => c.Substring(1));
 
             Assert.Equal(expectedContainerNames, actualContainerNames);
         }

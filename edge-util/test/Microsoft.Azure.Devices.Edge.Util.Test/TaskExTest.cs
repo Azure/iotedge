@@ -234,12 +234,19 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                         var result = await Task.Factory
                                             .StartNew<int>(() => throw new UnexpectedException())
                                             .MayThrow(typeof(ExpectedException1));
-                    }
-                );
+                    });
         }
 
-        private class ExpectedException1 : Exception { };
-        private class ExpectedException2 : Exception { };
-        private class UnexpectedException : Exception { };
+        private class ExpectedException1 : Exception
+        {
+        }
+
+        private class ExpectedException2 : Exception
+        {
+        }
+
+        private class UnexpectedException : Exception
+        {
+        }
     }
 }

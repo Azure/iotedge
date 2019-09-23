@@ -264,7 +264,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [Unit]
         public void TestFilterMap_NoPredicate_DropsNones()
         {
-            var values = new Option<int> []
+            var values = new Option<int>[]
                          {
                             Option.Some(1),
                             Option.Some(2),
@@ -292,10 +292,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                             Option.Some(4)
                          };
 
-            var result = values.FilterMap(x => x%2 == 0).ToList();
+            var result = values.FilterMap(x => x % 2 == 0).ToList();
 
             Assert.Equal(new[] { 2, 4 }, result);
         }
-
     }
 }
