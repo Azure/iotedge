@@ -97,8 +97,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.RootCaKeys = GetAndValidateRootCaKeys();
             this.SetupTimeout = TimeSpan.FromMinutes(context.GetValue("setupTimeoutMinutes", 5));
             this.TeardownTimeout = TimeSpan.FromMinutes(context.GetValue("teardownTimeoutMinutes", 2));
-            this.TempSensorImage = Option.Maybe(Get("tempSensorImage"));
+            this.TempFilterFuncImage = Option.Maybe(Get("tempFilterFuncImage"));
             this.TempFilterImage = Option.Maybe(Get("tempFilterImage"));
+            this.TempSensorImage = Option.Maybe(Get("tempSensorImage"));
             this.TestTimeout = TimeSpan.FromMinutes(context.GetValue("testTimeoutMinutes", 5));
             this.Verbose = context.GetValue<bool>("verbose");
         }
@@ -147,9 +148,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public TimeSpan TeardownTimeout { get; }
 
-        public Option<string> TempSensorImage { get; }
+        public Option<string> TempFilterFuncImage { get; }
 
         public Option<string> TempFilterImage { get; }
+
+        public Option<string> TempSensorImage { get; }
 
         public TimeSpan TestTimeout { get; }
 
