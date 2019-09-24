@@ -237,6 +237,7 @@ fn run() -> Result<(), Error> {
                 ),
         )
         .subcommand(SubCommand::with_name("version").about("Show the version information"))
+        .subcommand(SubCommand::with_name("cssbundle").about("Bundles troubleshooting information"))
         .get_matches();
 
     let runtime = || -> Result<_, Error> {
@@ -323,6 +324,7 @@ fn run() -> Result<(), Error> {
             tokio_runtime.block_on(Logs::new(id, options, runtime()?).execute())
         }
         ("version", _) => tokio_runtime.block_on(Version::new().execute()),
+        ("cssbundle", _) => tokio_runtime.block_on(Bundle::new().execute()),
         (command, _) => tokio_runtime.block_on(Unknown::new(command.to_string()).execute()),
     }
 }
