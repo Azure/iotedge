@@ -1,3 +1,5 @@
+#![deny(future_incompatible, rust_2018_idioms)]
+
 mod auth;
 mod client;
 mod error;

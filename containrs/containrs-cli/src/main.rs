@@ -25,8 +25,14 @@ async fn true_main() -> Result<(), failure::Error> {
         .author("Azure IoT Edge Devs")
         .about("CLI for interacting with the containrs library.")
         .arg(
+            Arg::with_name("transport-scheme")
+                .help("Transport scheme (defaults to \"https\")")
+                .long("transport-scheme")
+                .takes_value(true),
+        )
+        .arg(
             Arg::with_name("default-registry")
-                .help("Default registry (defaults to https://registry-1.docker.io/v2/)")
+                .help("Default registry (defaults to \"registry-1.docker.io\")")
                 .long("default-registry")
                 .takes_value(true),
         )
@@ -66,9 +72,10 @@ async fn true_main() -> Result<(), failure::Error> {
     let https = HttpsConnector::new().expect("TLS initialization failed");
     let hyper_client = HyperClient::builder().build::<_, hyper::Body>(https);
 
+    let transport_scheme = app_m.value_of("transport-scheme").unwrap_or("https");
     let default_registry = app_m
         .value_of("default-registry")
-        .unwrap_or("https://registry-1.docker.io");
+        .unwrap_or("registry-1.docker.io");
     let docker_compat = true;
 
     let credentials = Credentials::Anonymous;
@@ -78,7 +85,12 @@ async fn true_main() -> Result<(), failure::Error> {
             // won't panic, as this is a required argument
             let endpoint = sub_m.value_of("endpoint").unwrap();
 
-            let mut client = Client::new(hyper_client, default_registry, credentials)?;
+            let mut client = Client::new(
+                hyper_client,
+                transport_scheme,
+                default_registry,
+                credentials,
+            )?;
             println!(
                 "Basic auth {}",
                 if client.check_authentication(&endpoint, "GET").await? {
@@ -89,7 +101,12 @@ async fn true_main() -> Result<(), failure::Error> {
             );
         }
         ("catalog", Some(_sub_m)) => {
-            let mut client = Client::new(hyper_client, default_registry, credentials)?;
+            let mut client = Client::new(
+                hyper_client,
+                transport_scheme,
+                default_registry,
+                credentials,
+            )?;
             match client.get_catalog(None).await? {
                 Some((catalog, _)) => println!("{:#?}", catalog),
                 None => println!("Registry doesn't support the _catalog endpoint"),
@@ -104,7 +121,12 @@ async fn true_main() -> Result<(), failure::Error> {
 
             println!("canonical: {:#?}", image);
 
-            let mut client = Client::new(hyper_client, image.registry(), credentials)?;
+            let mut client = Client::new(
+                hyper_client,
+                transport_scheme,
+                image.registry(),
+                credentials,
+            )?;
             let manifest = client.get_manifest(&image).await?;
             println!("{:#?}", manifest);
 

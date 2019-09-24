@@ -17,13 +17,16 @@ pub struct Error {
 pub enum ErrorKind {
     // Client Construction
     #[fail(display = "Could not parse registry URI")]
-    RegistryUriMalformed,
-
-    #[fail(display = "Registry URI is is missing scheme (e.g: https://)")]
-    RegistryUriMissingScheme,
+    ClientRegistryUriMalformed,
 
     #[fail(display = "Registry URI is is missing authority (e.g: registry-1.docker.io)")]
-    RegistryUriMissingAuthority,
+    ClientRegistryUriMissingAuthority,
+
+    #[fail(display = "Registry URI includes scheme. Use `scheme` parameter instead.")]
+    ClientRegistryUriHasScheme,
+
+    #[fail(display = "Could not parse scheme")]
+    ClientMalformedScheme,
 
     // API communication
     #[fail(display = "Could not construct API Endpoint request")]
@@ -103,7 +106,7 @@ impl From<Context<ErrorKind>> for Error {
 pub struct ApiErrors(oci_distribution::v2::Errors);
 
 impl Display for ApiErrors {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self.0)
     }
 }

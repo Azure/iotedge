@@ -2,7 +2,7 @@ use failure::{Fail, ResultExt};
 use hyper::body::Body;
 use hyper::client::connect::Connect;
 use hyper::header;
-use hyper::http::{uri, Method, Request, Response, StatusCode, Uri};
+use hyper::http::{uri, HttpTryFrom, Method, Request, Response, StatusCode, Uri};
 use hyper::Client as HyperClient;
 // use log::*;
 use serde::{Deserialize, Serialize};
@@ -43,24 +43,30 @@ pub struct Client<C> {
 
 impl<C: Connect + 'static> Client<C> {
     /// Construct a new Client to communicate with container registries.
-    /// The `registry_uri` must have a scheme (http[s]) and authority (domain),
+    /// The `registry_uri` must have an authority component (i.e: domain),
     /// and can optionally include a base path as well (for container registries
     /// that are not at "/"). Returns an error if the registry Uri is malformed.
     pub fn new(
         hyper_client: HyperClient<C>,
+        scheme: &str,
         registry_uri: &str,
         creds: Credentials,
     ) -> Result<Client<C>> {
         let registry = registry_uri
             .parse::<Uri>()
-            .context(ErrorKind::RegistryUriMalformed)?;
+            .context(ErrorKind::ClientRegistryUriMalformed)?;
 
         let mut parts = registry.into_parts();
-        if parts.scheme.is_none() {
-            return Err(ErrorKind::RegistryUriMissingScheme.into());
+        match parts.scheme {
+            Some(_) => return Err(ErrorKind::ClientRegistryUriHasScheme.into()),
+            None => {
+                parts.scheme =
+                    Some(uri::Scheme::try_from(scheme).context(ErrorKind::ClientMalformedScheme)?)
+            }
         }
+
         if parts.authority.is_none() {
-            return Err(ErrorKind::RegistryUriMissingAuthority.into());
+            return Err(ErrorKind::ClientRegistryUriMissingAuthority.into());
         }
         if parts.path_and_query.is_none() {
             parts.path_and_query = Some(uri::PathAndQuery::from_static("/"))
