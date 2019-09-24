@@ -44,10 +44,6 @@
   <ItemGroup>
     <AdditionalFiles Include="..\..\..\stylecop.json" Link="stylecop.json" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="watchers\" />
-  </ItemGroup>
   <PropertyGroup>
     <CodeAnalysisRuleSet>..\..\..\stylecop.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>

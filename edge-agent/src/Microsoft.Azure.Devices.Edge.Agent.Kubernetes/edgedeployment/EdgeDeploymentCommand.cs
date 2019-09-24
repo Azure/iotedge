@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
+namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 {
     using System;
     using System.Collections.Generic;
@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
     public class EdgeDeploymentCommand : ICommand
     {
         readonly IKubernetes client;
-        readonly List<IModule> modules;
+        readonly IReadOnlyCollection<IModule> modules;
         readonly IRuntimeInfo runtimeInfo;
         readonly Lazy<string> id;
         readonly ICombinedConfigProvider<CombinedDockerConfig> combinedConfigProvider;
@@ -186,11 +186,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands
             return Task.CompletedTask;
         }
 
-        public string Show()
-        {
-            IEnumerable<string> commandDescriptions = this.modules.Select(m => $"[{m.Name}]");
-            return $"Create an EdgeDeployment with modules: (\n  {string.Join("\n  ", commandDescriptions)}\n)";
-        }
+        public string Show() => $"Create an EdgeDeployment with modules: ({string.Join(", ", this.modules.Select(m => m.Name))}\n)";
 
         public override string ToString() => this.Show();
 

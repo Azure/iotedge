@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
+namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 {
     using System;
     using System.Threading.Tasks;
@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
     using Microsoft.Rest;
+    using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
     // TODO add unit tests
     public class EdgeDeploymentOperator : IEdgeDeploymentOperator
@@ -48,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public void Dispose() => this.Stop();
 
         void StartListEdgeDeployments() =>
-            this.client.ListNamespacedCustomObjectWithHttpMessagesAsync(Constants.EdgeDeployment.Group, Constants.EdgeDeployment.Version, this.deviceNamespace, Constants.EdgeDeployment.Plural, watch: true)
+            this.client.ListNamespacedCustomObjectWithHttpMessagesAsync(KubernetesConstants.EdgeDeployment.Group, KubernetesConstants.EdgeDeployment.Version, this.deviceNamespace, KubernetesConstants.EdgeDeployment.Plural, watch: true)
                 .ContinueWith(this.OnListEdgeDeploymentsCompleted);
 
         async Task OnListEdgeDeploymentsCompleted(Task<HttpOperationResponse<object>> task)
