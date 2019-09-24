@@ -13,6 +13,7 @@ use crate::error::*;
 
 mod docker;
 mod error;
+mod oauth2_userpass;
 
 pub use error::AuthError;
 
@@ -23,6 +24,7 @@ use www_authenticate::{ChallengeScheme, WWWAuthenticate};
 pub enum Credentials {
     Anonymous,
     UserPass(String, String),
+    AzureActiveDirectory, // Parameters TBD (once I learn more about how AAD works)
 }
 
 /// Wrapper around hyper::Client providing transparent authentication
@@ -125,18 +127,32 @@ impl<C: Connect + 'static> AuthClient<C> {
         for challenge in www_auth.into_iter() {
             let auth_header = match challenge.scheme() {
                 ChallengeScheme::Bearer => {
-                    debug!("Doing Bearer Authentication");
                     let parameters = challenge.into_parameters();
 
-                    // !!!!!!!!!!!!! TODO !!!!!!!!!!!!!!!!
-                    // Implement OAuth2 flow, falling back to current docker-specific flow only if
-                    // things fail. after all, the end goal is talk to an Azure Container Registry
+                    let oauth2_result = oauth2_userpass::auth_flow(
+                        &mut self.client,
+                        &self.creds,
+                        parameters.clone(),
+                    )
+                    .await;
 
-                    docker::auth_flow(&mut self.client, parameters)
-                        .await
-                        .context(AuthError::DockerAuth)?
+                    match oauth2_result {
+                        Ok(auth_header) => auth_header,
+                        // Fall back to docker-specific auth flow on faliure
+                        Err(e) => {
+                            let e = failure::Error::from(e);
+                            warn!("{}", e);
+                            for cause in e.iter_causes() {
+                                warn!("\tcaused by: {}", cause);
+                            }
+                            warn!("Attempting Docker-specific auth flow");
+
+                            docker::auth_flow(&mut self.client, &self.creds, parameters.clone())
+                                .await?
+                        }
+                    }
                 }
-                m => panic!("{:?} authentication is not implemented", m),
+                m => return Err(AuthError::UnimplementedChallengeScheme(m.to_owned()).into()),
             };
             headers.extend(auth_header)
         }

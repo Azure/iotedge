@@ -1,19 +1,24 @@
+//! FIXME: Docker _should_ support oauth2 username-password authentication, but
+//! for some reason, registry-1.docker.io keeps throwing 405s whenever you POST
+//! the auth server.
+
 use std::collections::HashMap;
 
 use failure::ResultExt;
 use headers::Authorization as AuthorizationHeader;
 use headers::HeaderMapExt;
 use hyper::client::connect::Connect;
-use hyper::http::{HeaderMap, Uri};
+use hyper::http::{HeaderMap, Request, StatusCode, Uri};
+use hyper::Body;
 use hyper::Client as HyperClient;
-// use log::*;
+use log::*;
 use serde::{Deserialize, Serialize};
 use serde_urlencoded;
 
 use crate::error::*;
 use crate::util::hyper::{BodyExt, ResponseExt};
 
-use super::AuthError;
+use super::{AuthError, Credentials};
 
 /// Docker Authorization Token Response.
 ///
@@ -54,6 +59,7 @@ pub struct DockerAuthTokenResponse {
 /// Docker auth flow handler
 pub async fn auth_flow<C: Connect + 'static>(
     client: &mut HyperClient<C>,
+    creds: &Credentials,
     mut parameters: HashMap<String, String>,
 ) -> Result<HeaderMap> {
     let realm = parameters
@@ -65,15 +71,31 @@ pub async fn auth_flow<C: Connect + 'static>(
     let uri = (realm + "?" + &query)
         .parse::<Uri>()
         .context(AuthError::AuthServerUri)?;
+
+    let mut req = Request::get(uri);
+    // Credentials aren't required to access public repos
+    if let Credentials::UserPass(user, pass) = creds {
+        req.headers_mut()
+            .unwrap()
+            .typed_insert(AuthorizationHeader::basic(user, pass));
+    }
+    let req = req.body(Body::empty()).unwrap();
+    debug!("{:#?}", req);
+
     let res = client
-        .get(uri)
+        .request(req)
         .await
         .context(AuthError::AuthServerNoResponse)?;
+    debug!("{:#?}", res);
 
     if !res.status().is_success() {
-        let status = res.status();
-        res.dump_to_debug().await;
-        return Err(AuthError::AuthServerError(status).into());
+        match res.status() {
+            StatusCode::UNAUTHORIZED => return Err(AuthError::InvalidCredentials.into()),
+            status => {
+                res.dump_to_debug().await;
+                return Err(AuthError::AuthServerError(status).into());
+            }
+        }
     }
 
     let token_reponse: DockerAuthTokenResponse = res

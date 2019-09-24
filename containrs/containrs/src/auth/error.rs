@@ -1,5 +1,7 @@
 use failure::{Context, Fail};
 
+use www_authenticate::ChallengeScheme;
+
 use crate::error::*;
 
 #[derive(Debug, Fail)]
@@ -13,8 +15,20 @@ pub enum AuthError {
     #[fail(display = "API Endpoint response has malformed www-authenticate header")]
     EndpointMalformedHeader,
 
+    #[fail(
+        display = "Server is using an unimplemented authentication scheme \"{:?}\"",
+        _0
+    )]
+    UnimplementedChallengeScheme(ChallengeScheme),
+
     #[fail(display = "Could not complete Docker authentication flow")]
-    DockerAuth,
+    DockerFlow,
+
+    #[fail(display = "Could not complete OAuth2 authentication flow")]
+    OAuth2Flow,
+
+    #[fail(display = "Invalid Credentials")]
+    InvalidCredentials,
 
     #[fail(display = "Could not construct auth server URI from www-authenticate header")]
     AuthServerUri,

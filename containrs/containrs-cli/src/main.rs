@@ -36,6 +36,20 @@ async fn true_main() -> Result<(), failure::Error> {
                 .long("default-registry")
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name("username")
+                .help("Username (for use with UserPass Credentials)")
+                .short("u")
+                .long("username")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("password")
+                .help("Password (for use with UserPass Credentials)")
+                .short("p")
+                .long("password")
+                .takes_value(true),
+        )
         // TODO: pass authentication credentials via CLI
         .subcommand(
             SubCommand::with_name("test_auth")
@@ -78,7 +92,13 @@ async fn true_main() -> Result<(), failure::Error> {
         .unwrap_or("registry-1.docker.io");
     let docker_compat = true;
 
-    let credentials = Credentials::Anonymous;
+    let username = app_m.value_of("username");
+    let password = app_m.value_of("password");
+
+    let credentials = match (username, password) {
+        (Some(user), Some(pass)) => Credentials::UserPass(user.to_string(), pass.to_string()),
+        _ => Credentials::Anonymous,
+    };
 
     match app_m.subcommand() {
         ("test_auth", Some(sub_m)) => {

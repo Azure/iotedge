@@ -48,7 +48,7 @@ pub enum ErrorKind {
     ApiUnexpectedStatus(hyper::StatusCode),
 
     // Authentication-related Errors
-    #[fail(display = "Could not complete authentication flow: {}", _0)]
+    #[fail(display = "Auth Flow Error: {}", _0)]
     Auth(AuthError),
 
     // Misc
