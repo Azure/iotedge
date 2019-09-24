@@ -324,7 +324,7 @@ fn run() -> Result<(), Error> {
             tokio_runtime.block_on(Logs::new(id, options, runtime()?).execute())
         }
         ("version", _) => tokio_runtime.block_on(Version::new().execute()),
-        ("cssbundle", _) => tokio_runtime.block_on(Bundle::new().execute()),
+        ("cssbundle", _) => tokio_runtime.block_on(Bundle::new(runtime()?).execute()),
         (command, _) => tokio_runtime.block_on(Unknown::new(command.to_string()).execute()),
     }
 }
