@@ -116,7 +116,7 @@ impl FromStr for WWWAuthenticate {
         // rely on the early-bail behavior of the Pest grammar
 
         let challenge_list_p = PestWWWAuthenticateParser::parse(Rule::root, header_str)
-            .map_err(WWWAuthenticateError::Pest)?
+            .map_err(WWWAuthenticateError::Parse)?
             // top-level rules are guaranteed to have a single Pair
             .next()
             .unwrap()

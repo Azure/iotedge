@@ -6,7 +6,7 @@ use super::Rule;
 #[derive(Debug, Fail)]
 pub enum WWWAuthenticateError {
     #[fail(display = "Failed to parse WWW-Authenticate Header: {}", _0)]
-    Pest(PestError<Rule>),
+    Parse(PestError<Rule>),
 
     #[fail(display = "Error in Challenge: {}", _0)]
     BadChallenge(ChallengeError),

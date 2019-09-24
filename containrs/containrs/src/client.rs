@@ -163,7 +163,7 @@ impl<C: Connect + 'static> Client<C> {
                 StatusCode::BAD_REQUEST
                 | StatusCode::NOT_FOUND
                 | StatusCode::TOO_MANY_REQUESTS
-                | StatusCode::FORBIDDEN => Err(new_api_error(status, res).await),
+                | StatusCode::FORBIDDEN => Err(new_api_error(res).await),
                 _ => {
                     res.dump_to_debug().await;
                     Err(ErrorKind::ApiUnexpectedStatus(status).into())
@@ -177,7 +177,8 @@ impl<C: Connect + 'static> Client<C> {
 /// value, returns a Error(ErrorKind::ApiError) who's context is either the
 /// ApiErrors JSON itself, or, if the JSON was malformed, a
 /// ErrorKind::ApiMalformedJSON.
-async fn new_api_error(status: StatusCode, res: Response<Body>) -> Error {
+async fn new_api_error(res: Response<Body>) -> Error {
+    let status = res.status();
     let error = res.into_body().json::<ApiErrors>().await;
     match error {
         Err(parse_err) => parse_err
