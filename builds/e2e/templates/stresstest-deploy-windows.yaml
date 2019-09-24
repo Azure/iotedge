@@ -21,12 +21,6 @@ parameters:
 
 steps:
   - task: CopyFiles@2
-    displayName: 'Copy Edgelet Artifact'
-    inputs:
-      SourceFolder: "$(Build.StagingDirectory)/${{ parameters['edgelet.artifact.name'] }}"
-      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['edgelet.artifact.name'] }}"
-      CleanTargetFolder: true
-  - task: CopyFiles@2
     displayName: 'Copy Images Artifact'
     inputs:
       SourceFolder: "$(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}"
