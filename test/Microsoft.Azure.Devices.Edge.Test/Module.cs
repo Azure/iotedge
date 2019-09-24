@@ -32,14 +32,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
         }
 
-        private (string Name, string Image) GetTempSensorImage()
-        {
-            const string name = "tempSensor";
-            const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
-            string image = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
-            return (name, image);
-        }
-
         [Test]
         public async Task TempSensor()
         {
