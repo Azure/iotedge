@@ -12,21 +12,24 @@ parameters:
   snitch.storage.account: ''
   snitch.storage.masterKey: ''
   loadGen.message.frequency: ''
+  loadGen.transportType: 'mqtt'
+  longHaul.protocolHead: ''
 
 steps:
   - task: CopyFiles@2
-    displayName: 'Copy Images Artifact'
+    displayName: 'Copy Images artifact'
     inputs:
       SourceFolder: "$(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}"
       TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
       CleanTargetFolder: true
-  - task: PowerShell@2
+  - task: Bash@3
     displayName: 'Run Long Haul Deployment'
     inputs:
       targetType: inline
       script: |
-        #Requires -RunAsAdministrator
-        $testName="LongHaul"
-        $ArtifactInfo=convertfrom-stringdata (get-content $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt -raw)
-        $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/windows/test/Run-E2ETest.ps1 -E2ETestFolder "$(Agent.HomeDirectory)/.." -ReleaseLabel "${{ parameters['release.label'] }}" -ArtifactImageBuildNumber "$($ArtifactInfo.BuildNumber)" -TestName "$testName" -ContainerRegistry "${{ parameters['container.registry'] }}" -ContainerRegistryUsername "${{ parameters['container.registry.username'] }}" -ContainerRegistryPassword "${{ parameters['container.registry.password'] }}" -IoTHubConnectionString "${{ parameters['iotHub.connectionString'] }}" -EventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" -SnitchBuildNumber "${{ parameters['snitch.build.number'] }}" -SnitchStorageAccount "${{ parameters['snitch.storage.account'] }}" -SnitchStorageMasterKey "${{ parameters['snitch.storage.masterKey'] }}" -SnitchAlertUrl "${{ parameters['snitch.alert.url'] }}" -LoadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}"
+        declare -a cnreg=( ${{ parameters['container.registry.credential'] }} )
+        testName="LongHaul"
+        . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
+        chmod +x $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh
+        sudo $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh -testDir "$(Agent.HomeDirectory)/.." -releaseLabel "${{ parameters['release.label'] }}" -artifactImageBuildNumber "$BuildNumber" -testName "$testName" -containerRegistry "${{ parameters['container.registry'] }}" -containerRegistryUsername "${{ parameters['container.registry.username'] }}" -containerRegistryPassword "${{ parameters['container.registry.password'] }}" -iotHubConnectionString "${{ parameters['iotHub.connectionString'] }}" -eventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" -snitchBuildNumber "${{ parameters['snitch.build.number'] }}" -snitchStorageAccount "${{ parameters['snitch.storage.account'] }}" -snitchStorageMasterKey "${{ parameters['snitch.storage.masterKey'] }}" -snitchAlertUrl "${{ parameters['snitch.alert.url'] }}" -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" -longHaulProtocolHead "${{ parameters['longHaul.protocolHead'] }}" -cleanAll
       workingDirectory: "$(Agent.HomeDirectory)/.."
