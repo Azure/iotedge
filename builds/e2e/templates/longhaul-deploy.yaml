@@ -13,7 +13,6 @@ parameters:
   snitch.storage.masterKey: ''
   loadGen.message.frequency: ''
   loadGen.transportType: 'mqtt'
-  longHaul.protocolHead: ''
 
 steps:
   # Normally, we would also have a Copy Edgelet Artifact step, however this breaks the build for 1.0.8
