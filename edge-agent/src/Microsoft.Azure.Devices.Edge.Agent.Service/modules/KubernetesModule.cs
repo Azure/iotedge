@@ -146,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
             // IModuleIdentityLifecycleManager
             var identityBuilder = new ModuleIdentityProviderServiceBuilder(this.resourceName.Hostname, this.resourceName.DeviceId, this.edgeDeviceHostname);
-            builder.Register(c => new ModuleIdentityLifecycleManager(c.Resolve<IIdentityManager>(), identityBuilder, this.workloadUri))
+            builder.Register(c => new KubernetesModuleIdentityLifecycleManager(c.Resolve<IIdentityManager>(), identityBuilder, this.workloadUri))
                 .As<IModuleIdentityLifecycleManager>()
                 .SingleInstance();
 

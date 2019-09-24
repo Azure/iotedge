@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             }
         }
 
-        async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(Diff diff)
+        protected async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(Diff diff)
         {
             IList<string> addedOrUpdatedModuleNames = diff.AddedOrUpdated.Select(m => ModuleIdentityHelper.GetModuleIdentityName(m.Name)).ToList();
             IEnumerable<string> removedModuleNames = diff.Removed.Select(ModuleIdentityHelper.GetModuleIdentityName);

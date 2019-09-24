@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public const int KubernetesRuntimeInfoProvider = EventIdStart + 600;
         public const int KubernetesModelValidation = EventIdStart + 700;
         public const int KubernetesServiceBuilder = EventIdStart + 800;
+        public const int KubernetesModuleIdentityLifecycleManager = EventIdStart + 900;
         const int EventIdStart = 200000;
     }
 }
