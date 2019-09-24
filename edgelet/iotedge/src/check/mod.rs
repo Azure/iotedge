@@ -1011,8 +1011,8 @@ fn settings_hostname(check: &mut Check) -> Result<CheckResult, failure::Error> {
              \n\
              - Hostname must be between 1 and 255 octets inclusive.\n\
              - Each label in the hostname (component separated by \".\") must be between 1 and 63 octets inclusive.\n\
-             - Each label must start with an ASCII alphabet character (a-z), end with an ASCII alphanumeric character (a-z, 0-9), \
-               and must contain only ASCII alphanumeric characters or hyphens (a-z, 0-9, \"-\").\n\
+             - Each label must start with an ASCII alphabet character (a-z, A-Z), end with an ASCII alphanumeric character (a-z, A-Z, 0-9), \
+               and must contain only ASCII alphanumeric characters or hyphens (a-z, A-Z, 0-9, \"-\").\n\
              \n\
              Not complying with RFC 1035 may cause errors during the TLS handshake with modules and downstream devices.",
             config_hostname,
