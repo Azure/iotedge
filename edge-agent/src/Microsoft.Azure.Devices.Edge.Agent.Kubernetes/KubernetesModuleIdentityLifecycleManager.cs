@@ -16,35 +16,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         {
         }
 
-        public new async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(ModuleSet desired, ModuleSet current)
+        protected override async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesWorkAsync(ModuleSet desired, ModuleSet current)
         {
             Diff diff = desired.Diff(current);
-            try
-            {
-                IImmutableDictionary<string, IModuleIdentity> identities = await this.GetModuleIdentitiesAsync(diff);
-                return identities;
-            }
-            catch (Exception ex)
-            {
-                Events.ErrorGettingModuleIdentities(ex);
-                return ImmutableDictionary<string, IModuleIdentity>.Empty;
-            }
-        }
 
-        static class Events
-        {
-            const int IdStart = KubernetesEventIds.KubernetesModuleIdentityLifecycleManager;
-            static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesModuleIdentityLifecycleManager>();
-
-            enum EventIds
-            {
-                ErrorGettingModuleIdentities = IdStart,
-            }
-
-            public static void ErrorGettingModuleIdentities(Exception ex)
-            {
-                Log.LogDebug((int)EventIds.ErrorGettingModuleIdentities, ex, "Error getting module identities.");
-            }
+            IImmutableDictionary<string, IModuleIdentity> moduleIdentities = await this.GetModuleIdentitiesAsync(diff);
+            return moduleIdentities;
         }
     }
 }

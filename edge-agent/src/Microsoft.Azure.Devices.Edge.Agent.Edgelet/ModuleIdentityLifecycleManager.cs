@@ -26,22 +26,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         public async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(ModuleSet desired, ModuleSet current)
         {
-            Diff diff = desired.Diff(current);
-            if (diff.IsEmpty)
+             try
             {
-                return ImmutableDictionary<string, IModuleIdentity>.Empty;
-            }
-
-            try
-            {
-                IImmutableDictionary<string, IModuleIdentity> moduleIdentities = await this.GetModuleIdentitiesAsync(diff);
-                return moduleIdentities;
+                return await this.GetModuleIdentitiesWorkAsync(desired, current);
             }
             catch (Exception ex)
             {
                 Events.ErrorGettingModuleIdentities(ex);
                 return ImmutableDictionary<string, IModuleIdentity>.Empty;
             }
+        }
+
+        protected virtual async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesWorkAsync(ModuleSet desired, ModuleSet current)
+        {
+            Diff diff = desired.Diff(current);
+            if (diff.IsEmpty)
+            {
+                return ImmutableDictionary<string, IModuleIdentity>.Empty;
+            }
+
+            IImmutableDictionary<string, IModuleIdentity> moduleIdentities = await this.GetModuleIdentitiesAsync(diff);
+            return moduleIdentities;
         }
 
         protected async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(Diff diff)
