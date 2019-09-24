@@ -633,6 +633,7 @@ function run_longhaul_test() {
     sed -i -e "s@<RandomRestartIntervalInMins>@$RANDOM_RESTART_INTERVAL_IN_MINS@g" "$deployment_working_file"
 
     json_arr=`cat $DESIRED_MODULES_TO_RESTART_JSON_PATH`
+    json_arr=${json_arr//\"/\\\\\"}
     sed -i -e "s@<DesiredModulesToRestartJsonArray>@$json_arr@g" "$deployment_working_file"
 
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
