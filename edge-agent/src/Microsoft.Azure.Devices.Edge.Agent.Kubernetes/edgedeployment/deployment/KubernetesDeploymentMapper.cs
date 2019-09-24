@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
     using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
     using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
-    public class KubernetesDeploymentProvider : IKubernetesDeploymentProvider
+    public class KubernetesDeploymentMapper : IKubernetesDeploymentMapper
     {
         const string EdgeHubHostname = "edgehub";
 
@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
         readonly Uri workloadUri;
         readonly Uri managementUri;
 
-        public KubernetesDeploymentProvider(
+        public KubernetesDeploymentMapper(
             string deviceNamespace,
             string edgeHostname,
             string proxyImage,
@@ -59,9 +59,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             this.managementUri = managementUri;
         }
 
-        public V1Deployment GetDeployment(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels)
+        public V1Deployment CreateDeployment(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels)
         {
-            var deployment = this.CreateDeployment(identity, module, labels);
+            var deployment = this.PrepareDeployment(identity, module, labels);
             deployment.Metadata.Annotations = new Dictionary<string, string>
             {
                 [KubernetesConstants.CreationString] = JsonConvert.SerializeObject(deployment)
@@ -69,12 +69,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             return deployment;
         }
 
-        public void Update(V1Deployment to, V1Deployment from)
+        public void UpdateDeployment(V1Deployment to, V1Deployment from)
         {
             to.Metadata.ResourceVersion = from.Metadata.ResourceVersion;
         }
 
-        V1Deployment CreateDeployment(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels)
+        V1Deployment PrepareDeployment(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels)
         {
             string name = identity.DeploymentName();
 

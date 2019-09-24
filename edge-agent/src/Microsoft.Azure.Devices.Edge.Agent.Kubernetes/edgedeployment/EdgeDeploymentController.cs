@@ -25,9 +25,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         readonly string deploymentSelector;
         readonly string deviceNamespace;
         readonly IModuleIdentityLifecycleManager moduleIdentityLifecycleManager;
-        readonly IKubernetesServiceProvider serviceProvider;
-        readonly IKubernetesDeploymentProvider deploymentProvider;
-        readonly IKubernetesServiceAccountProvider serviceAccountProvider;
+        readonly IKubernetesServiceMapper serviceMapper;
+        readonly IKubernetesDeploymentMapper deploymentMapper;
+        readonly IKubernetesServiceAccountMapper serviceAccountMapper;
 
         public EdgeDeploymentController(
             ResourceName resourceName,
@@ -35,18 +35,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             string deviceNamespace,
             IKubernetes client,
             IModuleIdentityLifecycleManager moduleIdentityLifecycleManager,
-            IKubernetesServiceProvider serviceProvider,
-            IKubernetesDeploymentProvider deploymentProvider,
-            IKubernetesServiceAccountProvider serviceAccountProvider)
+            IKubernetesServiceMapper serviceMapper,
+            IKubernetesDeploymentMapper deploymentMapper,
+            IKubernetesServiceAccountMapper serviceAccountMapper)
         {
             this.resourceName = resourceName;
             this.deploymentSelector = deploymentSelector;
             this.deviceNamespace = deviceNamespace;
             this.moduleIdentityLifecycleManager = moduleIdentityLifecycleManager;
             this.client = client;
-            this.serviceProvider = serviceProvider;
-            this.deploymentProvider = deploymentProvider;
-            this.serviceAccountProvider = serviceAccountProvider;
+            this.serviceMapper = serviceMapper;
+            this.deploymentMapper = deploymentMapper;
+            this.serviceAccountMapper = serviceAccountMapper;
         }
 
         public async Task<ModuleSet> DeployModulesAsync(IList<KubernetesModule> modules, ModuleSet currentModules)
@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     });
 
             var desiredServices = modules
-                .Select(module => this.serviceProvider.GetService(moduleIdentities[module.Name], module, labels[module.Name]))
+                .Select(module => this.serviceMapper.CreateService(moduleIdentities[module.Name], module, labels[module.Name]))
                 .Where(service => service.HasValue)
                 .Select(service => service.OrDefault())
                 .ToList();
@@ -74,14 +74,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             await this.ManageServices(currentServices, desiredServices);
 
             var desiredDeployments = modules
-                .Select(module => this.deploymentProvider.GetDeployment(moduleIdentities[module.Name], module, labels[module.Name]))
+                .Select(module => this.deploymentMapper.CreateDeployment(moduleIdentities[module.Name], module, labels[module.Name]))
                 .ToList();
 
             V1DeploymentList currentDeployments = await this.client.ListNamespacedDeploymentAsync(this.deviceNamespace, labelSelector: this.deploymentSelector);
             await this.ManageDeployments(currentDeployments, desiredDeployments);
 
             var desiredServiceAccounts = modules
-                .Select(module => this.serviceAccountProvider.GetServiceAccount(moduleIdentities[module.Name], module, labels[module.Name]))
+                .Select(module => this.serviceAccountMapper.CreateServiceAccount(moduleIdentities[module.Name], labels[module.Name]))
                 .ToList();
 
             V1ServiceAccountList currentServiceAccounts = await this.client.ListNamespacedServiceAccountAsync(this.deviceNamespace, labelSelector: this.deploymentSelector);
@@ -102,7 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     {
                         Events.UpdateService(update.To);
 
-                        this.serviceProvider.UpdateService(update.To, update.From);
+                        this.serviceMapper.UpdateService(update.To, update.From);
                         return this.client.ReplaceNamespacedServiceAsync(update.To, update.To.Metadata.Name, this.deviceNamespace);
                     });
             await Task.WhenAll(updatingTask);
@@ -149,7 +149,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     {
                         Events.UpdateDeployment(update.To);
 
-                        this.deploymentProvider.Update(update.To, update.From);
+                        this.deploymentMapper.UpdateDeployment(update.To, update.From);
                         return this.client.ReplaceNamespacedDeploymentAsync(update.To, update.To.Metadata.Name, this.deviceNamespace);
                     });
             await Task.WhenAll(updatingTask);
@@ -177,8 +177,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
         static Diff<V1Deployment> FindDeploymentDiff(IEnumerable<V1Deployment> desired, IEnumerable<V1Deployment> existing)
         {
-            var desiredSet = new Set<V1Deployment>(desired.ToDictionary(service => service.Metadata.Name));
-            var existingSet = new Set<V1Deployment>(existing.ToDictionary(service => service.Metadata.Name));
+            var desiredSet = new Set<V1Deployment>(desired.ToDictionary(deployment => deployment.Metadata.Name));
+            var existingSet = new Set<V1Deployment>(existing.ToDictionary(deployment => deployment.Metadata.Name));
 
             return desiredSet.Diff(existingSet, DeploymentByCreationStringEqualityComparer);
         }
@@ -197,7 +197,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     {
                         Events.UpdateServiceAccount(update.To);
 
-                        this.serviceAccountProvider.Update(update.To, update.From);
+                        this.serviceAccountMapper.Update(update.To, update.From);
                         return this.client.ReplaceNamespacedServiceAccountAsync(update.To, update.To.Metadata.Name, this.deviceNamespace);
                     });
             await Task.WhenAll(updatingTasks);
@@ -225,8 +225,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
         static Diff<V1ServiceAccount> FindServiceAccountDiff(IEnumerable<V1ServiceAccount> desired, IEnumerable<V1ServiceAccount> existing)
         {
-            var desiredSet = new Set<V1ServiceAccount>(desired.ToDictionary(service => service.Metadata.Name));
-            var existingSet = new Set<V1ServiceAccount>(existing.ToDictionary(service => service.Metadata.Name));
+            var desiredSet = new Set<V1ServiceAccount>(desired.ToDictionary(serviceAccount => serviceAccount.Metadata.Name));
+            var existingSet = new Set<V1ServiceAccount>(existing.ToDictionary(serviceAccount => serviceAccount.Metadata.Name));
 
             return desiredSet.Diff(existingSet);
         }

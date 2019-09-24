@@ -5,9 +5,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
 
-    public interface IKubernetesServiceAccountProvider
+    public interface IKubernetesServiceAccountMapper
     {
-        V1ServiceAccount GetServiceAccount(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels);
+        V1ServiceAccount CreateServiceAccount(IModuleIdentity identity, IDictionary<string, string> labels);
 
         void Update(V1ServiceAccount to, V1ServiceAccount from);
     }

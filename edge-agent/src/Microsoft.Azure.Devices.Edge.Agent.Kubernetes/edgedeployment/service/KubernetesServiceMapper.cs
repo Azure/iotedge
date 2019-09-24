@@ -13,18 +13,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service
     using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
     // TODO add unit tests
-    public class KubernetesServiceProvider : IKubernetesServiceProvider
+    public class KubernetesServiceMapper : IKubernetesServiceMapper
     {
         readonly PortMapServiceType defaultMapServiceType;
 
-        public KubernetesServiceProvider(PortMapServiceType defaultMapServiceType)
+        public KubernetesServiceMapper(PortMapServiceType defaultMapServiceType)
         {
             this.defaultMapServiceType = defaultMapServiceType;
         }
 
-        public Option<V1Service> GetService(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels)
+        public Option<V1Service> CreateService(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels)
         {
-            Option<V1Service> service = this.CreateService(identity, module, labels);
+            Option<V1Service> service = this.PrepareService(identity, module, labels);
             service.ForEach(
                 s => s.Metadata.Annotations = new Dictionary<string, string>
                 {
@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service
             to.Spec.ClusterIP = from.Spec.ClusterIP;
         }
 
-        Option<V1Service> CreateService(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels)
+        Option<V1Service> PrepareService(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels)
         {
             var portList = new List<V1ServicePort>();
             bool onlyExposedPorts = true;
@@ -123,7 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service
         static class Events
         {
             const int IdStart = KubernetesEventIds.KubernetesServiceBuilder;
-            static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesServiceProvider>();
+            static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesServiceMapper>();
 
             enum EventIds
             {

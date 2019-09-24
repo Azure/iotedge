@@ -193,7 +193,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
             // KubernetesDeploymentProvider
             builder.Register(
-                    c => new KubernetesDeploymentProvider(
+                    c => new KubernetesDeploymentMapper(
                         this.deviceNamespace,
                         this.edgeDeviceHostname,
                         this.proxyImage,
@@ -206,15 +206,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         this.apiVersion,
                         this.workloadUri,
                         this.managementUri))
-                .As<IKubernetesDeploymentProvider>();
+                .As<IKubernetesDeploymentMapper>();
 
             // KubernetesServiceProvider
-            builder.Register(c => new KubernetesServiceProvider(this.defaultMapServiceType))
-                .As<IKubernetesServiceProvider>();
+            builder.Register(c => new KubernetesServiceMapper(this.defaultMapServiceType))
+                .As<IKubernetesServiceMapper>();
 
             // KubernetesServiceAccountProvider
-            builder.Register(c => new KubernetesServiceAccountProvider())
-                .As<IKubernetesServiceAccountProvider>();
+            builder.Register(c => new KubernetesServiceAccountMapper())
+                .As<IKubernetesServiceAccountMapper>();
 
             // EdgeDeploymentController
             builder.Register(
@@ -227,9 +227,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             this.deviceNamespace,
                             c.Resolve<IKubernetes>(),
                             c.Resolve<IModuleIdentityLifecycleManager>(),
-                            c.Resolve<IKubernetesServiceProvider>(),
-                            c.Resolve<IKubernetesDeploymentProvider>(),
-                            c.Resolve<IKubernetesServiceAccountProvider>());
+                            c.Resolve<IKubernetesServiceMapper>(),
+                            c.Resolve<IKubernetesDeploymentMapper>(),
+                            c.Resolve<IKubernetesServiceAccountMapper>());
 
                         return watchOperator;
                     })

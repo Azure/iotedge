@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service
         static class Events
         {
             const int IdStart = KubernetesEventIds.KubernetesModelValidation;
-            static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesServiceProvider>();
+            static readonly ILogger Log = Logger.Factory.CreateLogger<KubernetesServiceMapper>();
 
             enum EventIds
             {

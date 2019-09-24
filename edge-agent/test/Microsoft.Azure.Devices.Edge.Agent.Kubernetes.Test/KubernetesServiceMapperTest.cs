@@ -12,13 +12,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     using Xunit;
 
     [Unit]
-    public class KubernetesServiceProviderTest
+    public class KubernetesServiceMapperTest
     {
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
         static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>();
         static readonly DockerConfig Config1 = new DockerConfig("test-image:1");
 
-        [Unit]
         [Fact]
         public void EmptyIsNotAllowedAsServiceAnnotation()
         {
@@ -32,12 +31,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var docker = new DockerModule(moduleId.ModuleId, "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             var module = new KubernetesModule(docker, config);
             var moduleLabels = new Dictionary<string, string>();
-            var builder = new KubernetesServiceProvider(PortMapServiceType.ClusterIP);
+            var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
 
-            Assert.Throws<InvalidKubernetesNameException>(() => builder.GetService(moduleId, module, moduleLabels));
+            Assert.Throws<InvalidKubernetesNameException>(() => mapper.CreateService(moduleId, module, moduleLabels));
         }
 
-        [Unit]
         [Fact]
         public void NoPortsExposedMeansNoServiceCreated()
         {
@@ -47,13 +45,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var module = new KubernetesModule(docker, config);
             var moduleLabels = new Dictionary<string, string>();
 
-            var builder = new KubernetesServiceProvider(PortMapServiceType.ClusterIP);
+            var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
 
-            var service = builder.GetService(moduleId, module, moduleLabels);
+            var service = mapper.CreateService(moduleId, module, moduleLabels);
             Assert.False(service.HasValue);
         }
 
-        [Unit]
         [Fact]
         public void InvalidPortBindingDoesNotCreateAService()
         {
@@ -67,14 +64,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             var module = new KubernetesModule(docker, config);
             var moduleLabels = new Dictionary<string, string>();
-            var builder = new KubernetesServiceProvider(PortMapServiceType.ClusterIP);
+            var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
 
-            var service = builder.GetService(moduleId, module, moduleLabels);
+            var service = mapper.CreateService(moduleId, module, moduleLabels);
 
             Assert.False(service.HasValue);
         }
 
-        [Unit]
         [Fact]
         public void UnknownProtocolDoesNotCreateService()
         {
@@ -88,14 +84,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             var module = new KubernetesModule(docker, config);
             var moduleLabels = new Dictionary<string, string>();
-            var builder = new KubernetesServiceProvider(PortMapServiceType.ClusterIP);
+            var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
 
-            var service = builder.GetService(moduleId, module, moduleLabels);
+            var service = mapper.CreateService(moduleId, module, moduleLabels);
 
             Assert.False(service.HasValue);
         }
 
-        [Unit]
         [Fact]
         public void ExposingPortsCreatesAServiceHappyPath()
         {
@@ -109,14 +104,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             var module = new KubernetesModule(docker, config);
             var moduleLabels = new Dictionary<string, string>();
-            var builder = new KubernetesServiceProvider(PortMapServiceType.ClusterIP);
+            var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
 
-            var service = builder.GetService(moduleId, module, moduleLabels);
+            var service = mapper.CreateService(moduleId, module, moduleLabels);
 
             Assert.True(service.HasValue);
         }
 
-        [Unit]
         [Fact]
         public void ServiceCreationHappyPath()
         {
@@ -130,9 +124,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             };
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             var module = new KubernetesModule(docker, config);
-            var builder = new KubernetesServiceProvider(PortMapServiceType.ClusterIP);
+            var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
 
-            var converted = builder.GetService(moduleId, module, moduleLabels);
+            var converted = mapper.CreateService(moduleId, module, moduleLabels);
 
             Assert.True(converted.HasValue);
             var service = converted.OrDefault();

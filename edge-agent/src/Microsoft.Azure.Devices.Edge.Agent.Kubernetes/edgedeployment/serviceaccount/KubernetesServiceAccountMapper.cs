@@ -6,9 +6,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.ServiceAc
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
-    public class KubernetesServiceAccountProvider : IKubernetesServiceAccountProvider
+    public class KubernetesServiceAccountMapper : IKubernetesServiceAccountMapper
     {
-        public V1ServiceAccount GetServiceAccount(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels)
+        public V1ServiceAccount CreateServiceAccount(IModuleIdentity identity, IDictionary<string, string> labels)
         {
             string name = identity.DeploymentName();
             var annotations = new Dictionary<string, string>
