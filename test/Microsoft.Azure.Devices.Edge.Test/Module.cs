@@ -18,13 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             public string Image { get; }
 
             private const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
-            // Make sure it's thread-safe
-            private static readonly object padlock = new object();
             private static int instanceCount = 0;
-
-            private TempSensorModule()
-            {
-            }
 
             private TempSensorModule(int number)
             {
@@ -34,10 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             public static TempSensorModule GetInstance()
             {
-                lock (padlock)
-                {
-                    return new TempSensorModule(TempSensorModule.instanceCount++);
-                }
+                return new TempSensorModule(TempSensorModule.instanceCount++);
             }
         }
 
