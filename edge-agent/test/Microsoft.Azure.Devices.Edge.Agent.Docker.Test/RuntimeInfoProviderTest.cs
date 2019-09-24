@@ -332,5 +332,86 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             receivedLogs = Encoding.UTF8.GetString(buffer, 0, readBytes);
             Assert.Equal(dummyLogs, receivedLogs);
         }
+
+        [Fact]
+        [Unit]
+        public async Task GetModules_Handles_NotFoundException()
+        {
+            var missingContainerName = "container2";
+            var containersToReturn = new[] { "container1", "container2", "container3" };
+
+            var dockerClient = this.SetupDockerClient(missingContainerName, containersToReturn);
+            var provider = await RuntimeInfoProvider.CreateAsync(dockerClient);
+
+            var moduleInfo = await provider.GetModules(CancellationToken.None);
+
+            var actualContainerNames = moduleInfo
+                                            .Select(m => m.Name);
+
+            var expectedContainerNames = containersToReturn
+                                            .Where(c => !c.Equals(missingContainerName))
+                                            .Concat(new[] { "edgeAgent" });
+
+            Assert.Equal(expectedContainerNames, actualContainerNames);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task GetModules_Handles_MissingEdgeAgent()
+        {
+            var missingContainerName = "edgeAgent";
+            var expectedContainerNames = new[] { "container1", "container2", "container3" };
+
+            var dockerClient = this.SetupDockerClient(missingContainerName, expectedContainerNames);
+            var provider = await RuntimeInfoProvider.CreateAsync(dockerClient);
+
+            var moduleInfo = await provider.GetModules(CancellationToken.None);
+
+            var actualContainerNames = moduleInfo.Select(m => m.Name);
+
+            Assert.Equal(expectedContainerNames, actualContainerNames);
+        }
+
+        private IDockerClient SetupDockerClient(string nonExistingContainer, params string[] containers)
+        {
+            var dockerClient = new Mock<IDockerClient>();
+            var dockerContainer = new Mock<IContainerOperations>();
+            var dockerSystem = new Mock<ISystemOperations>();
+            var containerList = containers.Select(c => new ContainerListResponse { ID = c }).ToList();
+            var systemInfoResponse = new SystemInfoResponse() { OSType = OperatingSystemType, Architecture = Architecture, ServerVersion = "42" };
+
+            dockerClient.Setup(call => call.Containers).Returns(dockerContainer.Object);
+            dockerClient.Setup(call => call.System).Returns(dockerSystem.Object);
+
+            dockerContainer.Setup(
+                call => call.ListContainersAsync(It.IsAny<ContainersListParameters>(), It.IsAny<CancellationToken>()))
+                            .Returns(() => Task.FromResult(containerList as IList<ContainerListResponse>));
+
+            dockerContainer.Setup(
+                call => call.InspectContainerAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                            .Returns(
+                                (string a, CancellationToken b) =>
+                                {
+                                    if (a.Equals(nonExistingContainer))
+                                    {
+                                        return Task.FromException<ContainerInspectResponse>(new DockerContainerNotFoundException(0, null));
+                                    }
+                                    else
+                                    {
+                                        return Task.FromResult(new ContainerInspectResponse()
+                                        {
+                                            Name = "/" + a,
+                                            Config = new Config() { Image = "dummy:latest" },
+                                            State = new ContainerState() { Status = "running" }
+                                        });
+                                    }
+                                });
+
+            dockerSystem.Setup(
+                call => call.GetSystemInfoAsync(It.IsAny<CancellationToken>()))
+                            .Returns(() => Task.FromResult(systemInfoResponse));
+
+            return dockerClient.Object;
+        }
     }
 }
