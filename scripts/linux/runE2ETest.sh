@@ -977,8 +977,8 @@ function usage() {
     echo ' -installRootCACertPath            Optional path to root CA certificate to be used for certificate generation'
     echo ' -installRootCAKeyPath             Optional path to root CA certificate private key to be used for certificate generation'
     echo ' -installRootCAKeyPassword         Optional password to access the root CA certificate private key to be used for certificate generation'
-    echo ' -desiredModulesToRestartJsonPath  Optional JSON file path specifying what modules to restart in array format. If specified, then "randomRestartIntervalInMins" must be specified as well.'
-    echo ' -randomRestartIntervalInMins      Optional value specifying how often a random module will restart. If specified, then "desiredModulesToRestartJsonPath" must be specified as well.'
+    echo ' -desiredModulesToRestartJsonPath  Optional JSON file path for long haul specifying what modules to restart in array format. If specified, then "randomRestartIntervalInMins" must be specified as well.'
+    echo ' -randomRestartIntervalInMins      Optional value for long haul specifying how often a random module will restart. If specified, then "desiredModulesToRestartJsonPath" must be specified as well.'
     exit 1;
 }
 
