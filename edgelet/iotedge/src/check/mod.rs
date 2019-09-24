@@ -1964,15 +1964,14 @@ fn is_rfc_1035_valid(name: &str) -> bool {
             Some(c) => c,
             None => return false,
         };
-        let first_char_invalid =
-            (first_char < 'a' || first_char > 'z') && (first_char < 'A' || first_char > 'Z');
-        if first_char_invalid {
+        if !first_char.is_ascii_alphabetic() {
             return false;
         }
 
-        let any_char_invalid =
-            |c| (c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && (c < '0' || c > '9') && c != '-';
-        if label.chars().any(any_char_invalid) {
+        if label
+            .chars()
+            .any(|c| !c.is_ascii_alphanumeric() && c != '-')
+        {
             return false;
         }
 
@@ -1980,10 +1979,7 @@ fn is_rfc_1035_valid(name: &str) -> bool {
             .chars()
             .last()
             .expect("label has at least one character");
-        let last_char_invalid = (last_char < 'a' || last_char > 'z')
-            && (last_char < 'A' || last_char > 'Z')
-            && (last_char < '0' || last_char > '9');
-        if last_char_invalid {
+        if !last_char.is_ascii_alphanumeric() {
             return false;
         }
 
@@ -2376,5 +2372,6 @@ mod tests {
         assert!(!super::is_rfc_1035_valid("\u{4eca}\u{65e5}\u{306f}"));
         assert!(!super::is_rfc_1035_valid("\u{4eca}\u{65e5}\u{306f}.com"));
         assert!(!super::is_rfc_1035_valid("a\u{4eca}.b\u{65e5}.c\u{306f}"));
+        assert!(!super::is_rfc_1035_valid("FoObAr01.bAz-"));
     }
 }
