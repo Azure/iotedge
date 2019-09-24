@@ -86,18 +86,18 @@ namespace Microsoft.Azure.Devices.Edge.Test
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                 builder =>
                 {
-                             builder.AddModule(tempSensorModule.Name, tempSensorModule.Image);
-                             builder.AddModule(filterModuleName, filterImage)
-                                    .WithEnvironment(new[] { ("TemperatureThreshold", "19") });
-                             builder.GetModule("$edgeHub")
-                                    .WithDesiredProperties(new Dictionary<string, object>
-                                    {
-                                        ["routes"] = new
-                                        {
-                                            TempFilterToCloud = "FROM /messages/modules/" + filterModuleName + "/outputs/alertOutput INTO $upstream",
-                                            TempSensorToTempFilter = "FROM /messages/modules/" + tempSensorModule.Name + "/outputs/temperatureOutput INTO BrokeredEndpoint('/modules/" + filterModuleName + "/inputs/input1')"
-                                        }
-                                    } );
+                    builder.AddModule(tempSensorModule.Name, tempSensorModule.Image);
+                    builder.AddModule(filterModuleName, filterImage)
+                        .WithEnvironment(new[] { ("TemperatureThreshold", "19") });
+                    builder.GetModule("$edgeHub")
+                        .WithDesiredProperties(new Dictionary<string, object>
+                        {
+                            ["routes"] = new
+                            {
+                                TempFilterToCloud = "FROM /messages/modules/" + filterModuleName + "/outputs/alertOutput INTO $upstream",
+                                TempSensorToTempFilter = "FROM /messages/modules/" + tempSensorModule.Name + "/outputs/temperatureOutput INTO BrokeredEndpoint('/modules/" + filterModuleName + "/inputs/input1')"
+                            }
+                        } );
                 },
                 token);
 

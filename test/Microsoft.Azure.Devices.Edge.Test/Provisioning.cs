@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Context.Current.Proxy);
         }
 
-        string DeriveDeviceKey(byte[] groupKey, string registrationId)
+        private string DeriveDeviceKey(byte[] groupKey, string registrationId)
         {
             using (var hmac = new HMACSHA256(groupKey))
             {
@@ -31,12 +31,17 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
         }
 
+        private string GetRegistrationId()
+        {
+            return $"{Context.Current.DeviceId}-{TestContext.CurrentContext.Test.NormalizedName()}";
+        }
+
         [Test]
         public async Task DpsSymmetricKey()
         {
             string idScope = Context.Current.DpsIdScope.Expect(() => new InvalidOperationException("Missing DPS ID scope"));
             string groupKey = Context.Current.DpsGroupKey.Expect(() => new InvalidOperationException("Missing DPS enrollment group key"));
-            string registrationId = $"{Context.Current.DeviceId}-{TestContext.CurrentContext.Test.NormalizedName()}";
+            string registrationId = this.GetRegistrationId();
 
             string deviceKey = this.DeriveDeviceKey(Convert.FromBase64String(groupKey), registrationId);
 
@@ -66,6 +71,42 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 takeOwnership: true);
             Context.Current.DeleteList.TryAdd(registrationId, device.Expect(() => new InvalidOperationException(
                 $"Device '{registrationId}' should have been created by DPS, but was not found in '{this.iotHub.Hostname}'")));
+        }
+
+        [Test]
+        public async Task DpsTpm()
+        {
+            string idScope = Context.Current.DpsIdScope.Expect(() => new InvalidOperationException("Missing DPS ID scope"));
+            string registrationId = this.GetRegistrationId();
+            CancellationToken token = this.TestToken;
+
+            await this.daemon.ConfigureAsync(
+                config =>
+                {
+                    config.SetDpsTpm(idScope, registrationId);
+                    config.Update();
+                    return Task.FromResult((
+                        "with DPS symmetric key attestation for '{Identity}'",
+                        new object[] { registrationId }));
+                },
+                token);
+
+            await this.daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
+
+            var agent = new EdgeAgent(registrationId, this.iotHub);
+            await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
+            await agent.PingAsync(token);
+
+            Option<EdgeDevice> device = await EdgeDevice.GetIdentityAsync(
+                registrationId,
+                this.iotHub,
+                token,
+                takeOwnership: true);
+
+            Context.Current.DeleteList.TryAdd(
+                registrationId,
+                device.Expect(() => new InvalidOperationException(
+                    $"Device '{registrationId}' should have been created by DPS, but was not found in '{this.iotHub.Hostname}'")));
         }
     }
 }

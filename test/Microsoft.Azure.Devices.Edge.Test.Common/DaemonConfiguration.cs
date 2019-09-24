@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public class DaemonConfiguration
     {
+        private const string GlobalEndPoint = "https://global.azure-devices-provisioning.net";
         readonly string configYamlFile;
         readonly YamlDocument config;
 
@@ -39,11 +40,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         {
             this.config.RemoveIfExists("provisioning");
             this.config.ReplaceOrAdd("provisioning.source", "dps");
-            this.config.ReplaceOrAdd("provisioning.global_endpoint", "https://global.azure-devices-provisioning.net");
+            this.config.ReplaceOrAdd("provisioning.global_endpoint", GlobalEndPoint);
             this.config.ReplaceOrAdd("provisioning.scope_id", idScope);
             this.config.ReplaceOrAdd("provisioning.attestation.method", "symmetric_key");
             this.config.ReplaceOrAdd("provisioning.attestation.registration_id", registrationId);
             this.config.ReplaceOrAdd("provisioning.attestation.symmetric_key", deviceKey);
+        }
+
+        public void SetDpsTpm(string idScope, string registrationId)
+        {
+            this.config.RemoveIfExists("provisioning");
+            this.config.ReplaceOrAdd("provisioning.source", "dps");
+            this.config.ReplaceOrAdd("provisioning.global_endpoint", GlobalEndPoint);
+            this.config.ReplaceOrAdd("provisioning.scope_id", idScope);
+            this.config.ReplaceOrAdd("provisioning.attestation.method", "tpm");
+            this.config.ReplaceOrAdd("provisioning.attestation.registration_id", registrationId);
         }
 
         public void SetDeviceHostname(string value)
