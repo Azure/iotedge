@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             string defaultId =
                 $"e2e-{string.Concat(Dns.GetHostName().Take(14)).TrimEnd(new[] { '-' })}-{DateTime.Now:yyMMdd'-'HHmmss'.'fff}";
 
-            this.CaCertScriptPath = Get("caCertScriptPath");
+            this.CaCertScriptPath = Option.Maybe(Get("caCertScriptPath"));
             this.ConnectionString = Get("IOT_HUB_CONNECTION_STRING");
             this.DeviceId = IdentityLimits.CheckEdgeId(GetOrDefault("deviceId", defaultId));
             this.DpsIdScope = Option.Maybe(Get("dpsIdScope"));
@@ -97,8 +97,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.RootCaKeys = GetAndValidateRootCaKeys();
             this.SetupTimeout = TimeSpan.FromMinutes(context.GetValue("setupTimeoutMinutes", 5));
             this.TeardownTimeout = TimeSpan.FromMinutes(context.GetValue("teardownTimeoutMinutes", 2));
-            this.TempSensorImage = Option.Maybe(Get("tempSensorImage"));
+            this.TempFilterFuncImage = Option.Maybe(Get("tempFilterFuncImage"));
             this.TempFilterImage = Option.Maybe(Get("tempFilterImage"));
+            this.TempSensorImage = Option.Maybe(Get("tempSensorImage"));
             this.TestTimeout = TimeSpan.FromMinutes(context.GetValue("testTimeoutMinutes", 5));
             this.Verbose = context.GetValue<bool>("verbose");
         }
@@ -107,7 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public static Context Current => Default.Value;
 
-        public string CaCertScriptPath { get; }
+        public Option<string> CaCertScriptPath { get; }
 
         public string ConnectionString { get; }
 
@@ -147,9 +148,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public TimeSpan TeardownTimeout { get; }
 
-        public Option<string> TempSensorImage { get; }
+        public Option<string> TempFilterFuncImage { get; }
 
         public Option<string> TempFilterImage { get; }
+
+        public Option<string> TempSensorImage { get; }
 
         public TimeSpan TestTimeout { get; }
 
