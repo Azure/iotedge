@@ -146,27 +146,30 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             {
                 public bool Equals(Option<AuthConfig> a, Option<AuthConfig> b)
                 {
-                    return a.Match(
-                        authConfig =>
-                        {
-                            return b.Match(
-                                o => string.Equals(authConfig.Auth, o.Auth) &&
-                                    string.Equals(authConfig.Email, o.Email) &&
-                                    string.Equals(authConfig.IdentityToken, o.IdentityToken) &&
-                                    string.Equals(authConfig.Password, o.Password) &&
-                                    string.Equals(authConfig.RegistryToken, o.RegistryToken) &&
-                                    string.Equals(authConfig.ServerAddress, o.ServerAddress) &&
-                                    string.Equals(authConfig.Username, o.Username),
-                                () => false);
-                        },
-                        () => !b.HasValue);
+                    if (!a.HasValue && !b.HasValue)
+                    {
+                        return true;
+                    }
+
+                    if (a.HasValue && b.HasValue)
+                    {
+                        var authConfig = a.OrDefault();
+                        var other = b.OrDefault();
+                        return string.Equals(authConfig.Auth, other.Auth) &&
+                            string.Equals(authConfig.Email, other.Email) &&
+                            string.Equals(authConfig.IdentityToken, other.IdentityToken) &&
+                            string.Equals(authConfig.Password, other.Password) &&
+                            string.Equals(authConfig.RegistryToken, other.RegistryToken) &&
+                            string.Equals(authConfig.ServerAddress, other.ServerAddress) &&
+                            string.Equals(authConfig.Username, other.Username);
+                    }
+
+                    return false;
                 }
 
                 public int GetHashCode(Option<AuthConfig> obj)
                 {
-                    return obj.Match(
-                        o => o.GetHashCode(),
-                        () => 0);
+                    return obj.GetHashCode();
                 }
             }
         }
