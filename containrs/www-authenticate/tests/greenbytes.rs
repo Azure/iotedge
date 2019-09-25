@@ -46,7 +46,7 @@ single_challenge_valid!(simplebasiccomma,
     string_map!{ "realm" => "foo" }
 );
 
-invalid!(simplebasiccomma2, r#"Basic, realm="foo""#, WWWAuthenticateError::Pest(_));
+invalid!(simplebasiccomma2, r#"Basic, realm="foo""#, WWWAuthenticateError::Parse(_));
 
 // TODO: Uncomment once challenge-type valdation is in
 // invalid!(simplebasicnorealm, r#"Basic"#, Error::ChallengeError(?));
@@ -234,4 +234,4 @@ single_challenge_valid!(disguisedrealm2,
     }
 );
 
-invalid!(missing_quote, r#"Basic realm="basic"#, WWWAuthenticateError::Pest(_));
+invalid!(missing_quote, r#"Basic realm="basic"#, WWWAuthenticateError::Parse(_));

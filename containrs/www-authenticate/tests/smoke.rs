@@ -12,7 +12,7 @@ single_challenge_valid!(smoke,
     }
 );
 
-invalid!(close_but_invalid, "close Bearer realm=\"https://auth.docker.io/token\"", WWWAuthenticateError::Pest(_));
+invalid!(close_but_invalid, "close Bearer realm=\"https://auth.docker.io/token\"", WWWAuthenticateError::Parse(_));
 
 multi_challenge_valid!(complex_smoke,
     r#" Digest realm="htt\"p\"-auth@example.org", qop="auth, auth-int",
