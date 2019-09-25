@@ -2,6 +2,7 @@
 
 use std::fs;
 use std::fs::File;
+use std::sync::Arc;
 
 use futures::{Future, Stream};
 use tokio::prelude::*;
@@ -16,11 +17,23 @@ use edgelet_core::{LogOptions, Module, ModuleRuntime};
 
 pub struct Bundle<M> {
     runtime: M,
+    options: Arc<BundleOptions>,
+}
+
+struct BundleOptions {
+    log_options: LogOptions,
+    location: String,
 }
 
 impl<M> Bundle<M> {
-    pub fn new(runtime: M) -> Self {
-        Bundle { runtime }
+    pub fn new(runtime: M, log_options: LogOptions, location: &str) -> Self {
+        Bundle {
+            runtime,
+            options: Arc::new(BundleOptions {
+                log_options,
+                location: location.to_owned(),
+            }),
+        }
     }
 }
 
@@ -31,23 +44,20 @@ where
     type Future = Box<dyn Future<Item = (), Error = Error> + Send>;
 
     fn execute(&mut self) -> Self::Future {
-        println!("Test!");
-
-        if fs::create_dir_all("./bundle/logs").is_err() {
+        if fs::create_dir_all(&(self.options.location)).is_err() {
             // TODO: make error kind
             return Box::new(future::err(Error::from(ErrorKind::WriteToStdout)));
         }
 
         let runtime = self.runtime.clone();
+        let options = self.options.clone();
 
         let result = self
             .get_modules()
             .and_then(move |names| {
-                future::join_all(
-                    names
-                        .into_iter()
-                        .map(move |name| Bundle::write_log_to_file(runtime.clone(), name)),
-                )
+                future::join_all(names.into_iter().map(move |name| {
+                    Bundle::write_log_to_file(runtime.clone(), name, options.clone())
+                }))
             })
             .map(drop);
 
@@ -67,13 +77,16 @@ where
             .collect()
     }
 
-    fn write_log_to_file(runtime: M, module_name: String) -> impl Future<Item = (), Error = Error> {
+    fn write_log_to_file(
+        runtime: M,
+        module_name: String,
+        options: Arc<BundleOptions>,
+    ) -> impl Future<Item = (), Error = Error> {
         println!("Writing {} to file", module_name);
-        let log_options = LogOptions::new();
-        let file_name = format!("./bundle/logs/{}_log.txt", module_name);
+        let file_name = format!("{}/{}_log.txt", options.location, module_name);
 
         future::result(File::create(file_name))
             .map_err(|err| Error::from(err.context(ErrorKind::WriteToStdout)))
-            .and_then(move |file| pull_logs(&runtime, &module_name, &log_options, file))
+            .and_then(move |file| pull_logs(&runtime, &module_name, &(options.log_options), file))
     }
 }
