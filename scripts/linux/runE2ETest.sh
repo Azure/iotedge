@@ -945,7 +945,7 @@ function usage() {
     echo ' -containerRegistryPassword      Password of given username for container registory.'
     echo ' -iotHubConnectionString         IoT hub connection string for creating edge device.'
     echo ' -eventHubConnectionString       Event hub connection string for receive D2C messages.'
-	echo ' -eventHubConsumerGroup          An existing consumer group id for D2C messages.'
+    echo ' -eventHubConsumerGroup          An existing consumer group id for D2C messages.'
     echo ' -loadGenMessageFrequency        Frequency to send messages in LoadGen module for long haul and stress test. Default is 00.00.01 for long haul and 00:00:00.03 for stress test.'
     echo ' -snitchAlertUrl                 Alert Url pointing to Azure Logic App for email preparation and sending for long haul and stress test.'
     echo ' -snitchBuildNumber              Build number for snitcher docker image for long haul and stress test. Default is 1.1.'
