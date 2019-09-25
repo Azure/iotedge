@@ -34,18 +34,16 @@ where
 
     fn execute(&mut self) -> Self::Future {
         let id = self.id.clone();
-        pull_logs(&self.runtime, &id, &self.options, io::stdout())
+        Box::new(pull_logs(&self.runtime, &id, &self.options, io::stdout()))
     }
 }
 
-type Temp = Box<dyn Future<Item = (), Error = Error> + Send>;
-
-pub fn pull_logs<M, W>(runtime: &M, id: &str, options: &LogOptions, mut writer: W) -> Temp
+pub fn pull_logs<M, W>(runtime: &M, id: &str, options: &LogOptions, mut writer: W) -> impl Future<Item = (), Error = Error> + Send
 where
     M: 'static + ModuleRuntime + Clone,
     W: 'static + Write + Send,
 {
-    Box::new(runtime
+    runtime
         .logs(id, options)
         .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))
         .and_then(move |logs| {
@@ -62,5 +60,5 @@ where
                     Ok(())
                 })
                 .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))
-        }))
+        })
 }

@@ -4,6 +4,7 @@ use std::fs;
 use std::fs::File;
 
 use futures::{Future, Stream};
+use tokio::prelude::*;
 
 use crate::error::{Error, ErrorKind};
 use failure::Fail;
@@ -25,26 +26,32 @@ impl<M> Bundle<M> {
 
 impl<M> Command for Bundle<M>
 where
-    M: 'static + ModuleRuntime + Clone,
+    M: 'static + ModuleRuntime + Clone + Send,
 {
-    // type Future = FutureResult<(), Error>;
     type Future = Box<dyn Future<Item = (), Error = Error> + Send>;
 
     fn execute(&mut self) -> Self::Future {
         println!("Test!");
 
-        // let id = "edgeAgent".to_string();
-        // let log_options = LogOptions::new();
+        if fs::create_dir_all("./bundle/logs").is_err() {
+            // TODO: make error kind
+            return Box::new(future::err(Error::from(ErrorKind::WriteToStdout)));
+        }
 
-        // fs::create_dir_all("./bundle/logs");
-        // let file = File::create("./bundle/logs/foo.txt").unwrap();
-        // let log1 = pull_logs(&self.runtime, &id, &log_options, file);
+        let runtime = self.runtime.clone();
 
-        Box::new(self.get_modules().map(|names| {
-            for name in names {
-                println!("{}", name);
-            }
-        }))
+        let result = self
+            .get_modules()
+            .and_then(move |names| {
+                future::join_all(
+                    names
+                        .into_iter()
+                        .map(move |name| Bundle::write_log_to_file(runtime.clone(), name)),
+                )
+            })
+            .map(drop);
+
+        Box::new(result)
     }
 }
 
@@ -58,5 +65,15 @@ where
             .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))
             .map(|(module, _state)| module.name().to_string())
             .collect()
+    }
+
+    fn write_log_to_file(runtime: M, module_name: String) -> impl Future<Item = (), Error = Error> {
+        println!("Writing {} to file", module_name);
+        let log_options = LogOptions::new();
+        let file_name = format!("./bundle/logs/{}_log.txt", module_name);
+
+        future::result(File::create(file_name))
+            .map_err(|err| Error::from(err.context(ErrorKind::WriteToStdout)))
+            .and_then(move |file| pull_logs(&runtime, &module_name, &log_options, file))
     }
 }
