@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use bytes::Bytes;
 use std::io::{self, Write};
 
 use failure::Fail;
@@ -35,16 +34,16 @@ where
 
     fn execute(&mut self) -> Self::Future {
         let id = self.id.clone();
-        pull_logs(&self.runtime, &id, &self.options, |b| {io::stdout().write(b)})
+        pull_logs(&self.runtime, &id, &self.options, io::stdout())
     }
 }
 
 type Temp = Box<dyn Future<Item = (), Error = Error> + Send>;
 
-pub fn pull_logs<M, F, T, E>(runtime: &M, id: &str, options: &LogOptions, cb: F) -> Temp
+pub fn pull_logs<M, W>(runtime: &M, id: &str, options: &LogOptions, mut writer: W) -> Temp
 where
     M: 'static + ModuleRuntime + Clone,
-    F: 'static, Fn(&Bytes) -> Result<T, E> + Send,
+    W: 'static + Write + Send,
 {
     Box::new(runtime
         .logs(id, options)
@@ -58,7 +57,7 @@ where
                         LogChunk::Stdin(b)
                         | LogChunk::Stdout(b)
                         | LogChunk::Stderr(b)
-                        | LogChunk::Unknown(b) => cb(&b)?,
+                        | LogChunk::Unknown(b) => writer.write(&b)?,
                     };
                     Ok(())
                 })

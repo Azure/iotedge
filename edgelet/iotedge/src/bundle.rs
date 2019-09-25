@@ -1,16 +1,14 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use failure::Fail;
+use crate::logs::pull_logs;
 use futures::future::Future;
 use futures::prelude::*;
 use std::io::{self};
 
-use std::str;
-
-use crate::error::{Error, ErrorKind};
+use crate::error::{Error};
 use crate::Command;
 
-use edgelet_core::{Chunked, LogChunk, LogDecode, LogOptions, ModuleRuntime};
+use edgelet_core::{LogOptions, ModuleRuntime};
 
 pub struct Bundle<M> {
     runtime: M,
@@ -34,29 +32,8 @@ where
         let id = "edgeAgent".to_string();
         let log_options = LogOptions::new();
 
-        let log1 = self
-            .runtime
-            .logs(&id, &log_options)
-            .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))
-            .and_then(move |logs| {
-                let chunked =
-                    Chunked::new(logs.map_err(|_| io::Error::new(io::ErrorKind::Other, "unknown")));
-                LogDecode::new(chunked)
-                    .for_each(|chunk| {
-                        match chunk {
-                            LogChunk::Stdin(b)
-                            | LogChunk::Stdout(b)
-                            | LogChunk::Stderr(b)
-                            | LogChunk::Unknown(b) => {
-                                let test = str::from_utf8(&b).unwrap().to_string();
-                                println!("{}", test);
-                            }
-                        };
-                        Ok(())
-                    })
-                    .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))
-            });
+        let log1 = pull_logs(&self.runtime, &id, &log_options, io::stdout());
 
-        Box::new(log1)
+        log1
     }
 }
