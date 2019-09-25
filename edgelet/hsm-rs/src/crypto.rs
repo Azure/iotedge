@@ -34,7 +34,7 @@ pub enum CertificateType {
 #[derive(Clone, Debug)]
 pub struct Crypto {
     handle: HSM_CLIENT_HANDLE,
-    interface: HSM_CLIENT_CRYPTO_INTERFACE_TAG,
+    interface: HSM_CLIENT_CRYPTO_INTERFACE,
 }
 
 // Handles don't have thread-affinity
@@ -166,10 +166,10 @@ fn make_certification_props(props: &CertificateProperties) -> Result<CERT_PROPS_
         })?;
 
     let c_cert_type = match *props.certificate_type() {
-        CertificateType::Client => CERTIFICATE_TYPE_TAG_CERTIFICATE_TYPE_CLIENT,
-        CertificateType::Server => CERTIFICATE_TYPE_TAG_CERTIFICATE_TYPE_SERVER,
-        CertificateType::Ca => CERTIFICATE_TYPE_TAG_CERTIFICATE_TYPE_CA,
-        _ => CERTIFICATE_TYPE_TAG_CERTIFICATE_TYPE_UNKNOWN,
+        CertificateType::Client => CERTIFICATE_TYPE_CERTIFICATE_TYPE_CLIENT,
+        CertificateType::Server => CERTIFICATE_TYPE_CERTIFICATE_TYPE_SERVER,
+        CertificateType::Ca => CERTIFICATE_TYPE_CERTIFICATE_TYPE_CA,
+        _ => CERTIFICATE_TYPE_CERTIFICATE_TYPE_UNKNOWN,
     };
     let result = unsafe { set_certificate_type(handle, c_cert_type) };
     match result {
@@ -587,11 +587,11 @@ impl HsmCertificate {
         let private_key = unsafe { slice::from_raw_parts(pk as *const c_uchar, pk_size).to_vec() };
         let pk_type = unsafe { certificate_info_private_key_type(self.cert_info_handle) };
         let private_key = match pk_type {
-            PRIVATE_KEY_TYPE_TAG_PRIVATE_KEY_TYPE_UNKNOWN => Ok(None),
-            PRIVATE_KEY_TYPE_TAG_PRIVATE_KEY_TYPE_PAYLOAD => {
+            PRIVATE_KEY_TYPE_PRIVATE_KEY_TYPE_UNKNOWN => Ok(None),
+            PRIVATE_KEY_TYPE_PRIVATE_KEY_TYPE_PAYLOAD => {
                 Ok(Some(PrivateKey::Key(KeyBytes::Pem(private_key))))
             }
-            PRIVATE_KEY_TYPE_TAG_PRIVATE_KEY_TYPE_REFERENCE => {
+            PRIVATE_KEY_TYPE_PRIVATE_KEY_TYPE_REFERENCE => {
                 Ok(Some(PrivateKey::Ref(String::from_utf8(private_key)?)))
             }
             e => Err(Error::from(ErrorKind::PrivateKeyType(e))),
@@ -711,7 +711,7 @@ mod tests {
         };
 
         // cert type get/set test
-        let test_input: CERTIFICATE_TYPE = CERTIFICATE_TYPE_TAG_CERTIFICATE_TYPE_SERVER;
+        let test_input: CERTIFICATE_TYPE = CERTIFICATE_TYPE_CERTIFICATE_TYPE_SERVER;
         let set_result = unsafe { set_certificate_type(handle, test_input) };
         assert_eq!(0, set_result);
         unsafe {
