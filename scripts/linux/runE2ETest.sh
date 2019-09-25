@@ -170,6 +170,7 @@ function prepare_test_from_artifacts() {
                 local escapedSnitchAlertUrl
                 local escapedBuildId
                 sed -i -e "s@<Analyzer.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.ConsumerGroupId>@${EVENT_HUB_CONSUMER_GROUP:-\$Default}@g" "$deployment_working_file"
                 sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
                 escapedSnitchAlertUrl="${SNITCH_ALERT_URL//&/\\&}"
                 escapedBuildId="${ARTIFACT_IMAGE_BUILD_NUMBER//./}"
@@ -348,7 +349,7 @@ function process_args() {
         elif [ $saveNextArg -eq 28 ]; then
             DPS_MASTER_SYMMETRIC_KEY="$arg"
             saveNextArg=0
-		elif [ $saveNextArg -eq 29 ]; then
+        elif [ $saveNextArg -eq 29 ]; then
             EVENT_HUB_CONSUMER_GROUP="$arg"
             saveNextArg=0
         else
@@ -621,7 +622,6 @@ function run_longhaul_test() {
     local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-longhaul"
 
     sed -i -e "s@<Analyzer.DeviceID>@$device_id@g" "$deployment_working_file"
-	sed -i -e "s@<Analyzer.ConsumerGroupId>@${EVENT_HUB_CONSUMER_GROUP:-\$Default}@g" "$deployment_working_file"
 
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run Long Haul test with -d '$device_id' started at $test_start_time"
@@ -700,7 +700,6 @@ function run_stress_test() {
     local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-stress"
 
     sed -i -e "s@<Analyzer.DeviceID>@$device_id@g" "$deployment_working_file"
-	sed -i -e "s@<Analyzer.ConsumerGroupId>@${EVENT_HUB_CONSUMER_GROUP:-\$Default}@g" "$deployment_working_file"
 
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run Stress test with -d '$device_id' started at $test_start_time"
