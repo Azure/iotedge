@@ -120,10 +120,7 @@ impl<C: Connect + 'static> Client<C> {
                 // TODO: attempt to reauthenticate
                 unimplemented!("get_manifest: UNAUTHORIZED")
             }
-            status => {
-                res.dump_to_debug().await;
-                Err(ErrorKind::ApiUnexpectedStatus(status).into())
-            }
+            _ => Err(new_api_error(res).await),
         }
     }
 
@@ -163,16 +160,7 @@ impl<C: Connect + 'static> Client<C> {
                 // TODO: attempt to reauthenticate
                 unimplemented!("get_tags: UNAUTHORIZED")
             }
-            status => match status {
-                StatusCode::BAD_REQUEST
-                | StatusCode::NOT_FOUND
-                | StatusCode::TOO_MANY_REQUESTS
-                | StatusCode::FORBIDDEN => Err(new_api_error(res).await),
-                _ => {
-                    res.dump_to_debug().await;
-                    Err(ErrorKind::ApiUnexpectedStatus(status).into())
-                }
-            },
+            _ => Err(new_api_error(res).await),
         }
     }
 
@@ -201,16 +189,7 @@ impl<C: Connect + 'static> Client<C> {
                 // TODO: attempt to re-authenticate
                 unimplemented!("get_manifest: UNAUTHORIZED")
             }
-            status => match status {
-                StatusCode::BAD_REQUEST
-                | StatusCode::NOT_FOUND
-                | StatusCode::TOO_MANY_REQUESTS
-                | StatusCode::FORBIDDEN => Err(new_api_error(res).await),
-                _ => {
-                    res.dump_to_debug().await;
-                    Err(ErrorKind::ApiUnexpectedStatus(status).into())
-                }
-            },
+            _ => Err(new_api_error(res).await),
         }
     }
 
@@ -263,18 +242,29 @@ impl<C: Connect + 'static> Client<C> {
 }
 
 /// Given a response that _should_ contain a well-structured ApiErrors JSON
-/// value, returns a Error(ErrorKind::ApiError) who's context is either the
-/// ApiErrors JSON itself, or, if the JSON was malformed, a
-/// ErrorKind::ApiMalformedJSON.
-// TODO: provide better error messages if there is valid JSON in the body
+/// value, returns a descriptive Error about what went wrong
 async fn new_api_error(res: Response<Body>) -> Error {
     let status = res.status();
-    let error = res.into_body().json::<ApiErrors>().await;
-    match error {
-        Err(parse_err) => parse_err
-            .context(ErrorKind::ApiMalformedJSON)
-            .context(ErrorKind::ApiError(status))
-            .into(),
-        Ok(errors) => errors.context(ErrorKind::ApiError(status)).into(),
+    match status {
+        StatusCode::BAD_REQUEST
+        | StatusCode::NOT_FOUND
+        | StatusCode::TOO_MANY_REQUESTS
+        | StatusCode::FORBIDDEN => {
+            let error = res.into_body().json::<ApiErrors>().await;
+            match error {
+                Err(parse_err) => parse_err
+                    .context(ErrorKind::ApiMalformedJSON)
+                    .context(ErrorKind::ApiError(status))
+                    .into(),
+                Ok(errors) => {
+                    // TODO: provide better error messages if errors are valid JSON
+                    errors.context(ErrorKind::ApiError(status)).into()
+                }
+            }
+        }
+        _ => {
+            res.dump_to_debug().await;
+            ErrorKind::ApiUnexpectedStatus(status).into()
+        }
     }
 }
