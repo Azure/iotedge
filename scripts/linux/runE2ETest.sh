@@ -858,7 +858,9 @@ function run_test()
 }
 
 function setup_mounted_storage() {
-    mkdir ~/edgehub-mounted-storage
+    if [! -d "edgehub-mounted-storage"]; then
+        mkdir ~/edgehub-mounted-storage
+    fi
     chmod a+r ~/edgehub-mounted-storage
 }
 
