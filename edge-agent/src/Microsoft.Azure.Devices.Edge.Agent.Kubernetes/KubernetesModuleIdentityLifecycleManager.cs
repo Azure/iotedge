@@ -11,17 +11,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
     public class KubernetesModuleIdentityLifecycleManager : Edgelet.ModuleIdentityLifecycleManager
     {
+        protected override bool GetRequiresIdentities() => true;
+
         public KubernetesModuleIdentityLifecycleManager(IIdentityManager identityManager, ModuleIdentityProviderServiceBuilder identityProviderServiceBuilder, Uri workloadUri)
             : base(identityManager, identityProviderServiceBuilder, workloadUri)
         {
-        }
-
-        protected override async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesWorkAsync(ModuleSet desired, ModuleSet current)
-        {
-            Diff diff = desired.Diff(current);
-
-            IImmutableDictionary<string, IModuleIdentity> moduleIdentities = await this.GetModuleIdentitiesAsync(diff);
-            return moduleIdentities;
         }
     }
 }

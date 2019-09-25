@@ -17,6 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         readonly ModuleIdentityProviderServiceBuilder identityProviderServiceBuilder;
         readonly Uri workloadUri;
 
+        protected virtual bool GetRequiresIdentities() => false;
+
         public ModuleIdentityLifecycleManager(IIdentityManager identityManager, ModuleIdentityProviderServiceBuilder identityProviderServiceBuilder, Uri workloadUri)
         {
             this.identityManager = Preconditions.CheckNotNull(identityManager, nameof(identityManager));
@@ -26,27 +28,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         public async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(ModuleSet desired, ModuleSet current)
         {
-             try
+            Diff diff = desired.Diff(current);
+            if (diff.IsEmpty && !this.GetRequiresIdentities())
             {
-                return await this.GetModuleIdentitiesWorkAsync(desired, current);
+                return ImmutableDictionary<string, IModuleIdentity>.Empty;
+            }
+
+            try
+            {
+                IImmutableDictionary<string, IModuleIdentity> moduleIdentities = await this.GetModuleIdentitiesAsync(diff);
+                return moduleIdentities;
             }
             catch (Exception ex)
             {
                 Events.ErrorGettingModuleIdentities(ex);
                 return ImmutableDictionary<string, IModuleIdentity>.Empty;
             }
-        }
-
-        protected virtual async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesWorkAsync(ModuleSet desired, ModuleSet current)
-        {
-            Diff diff = desired.Diff(current);
-            if (diff.IsEmpty)
-            {
-                return ImmutableDictionary<string, IModuleIdentity>.Empty;
-            }
-
-            IImmutableDictionary<string, IModuleIdentity> moduleIdentities = await this.GetModuleIdentitiesAsync(diff);
-            return moduleIdentities;
         }
 
         protected async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(Diff diff)
