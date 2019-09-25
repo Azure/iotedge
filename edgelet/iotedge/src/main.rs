@@ -237,7 +237,34 @@ fn run() -> Result<(), Error> {
                 ),
         )
         .subcommand(SubCommand::with_name("version").about("Show the version information"))
-        .subcommand(SubCommand::with_name("cssbundle").about("Bundles troubleshooting information"))
+        .subcommand(
+            SubCommand::with_name("cssbundle")
+                .about("Bundles troubleshooting information")
+                .arg(
+                    Arg::with_name("location")
+                        .help("Directory to store bundle")
+                        .long("location")
+                        .takes_value(true)
+                        .value_name("NUM")
+                        .default_value("."),
+                )
+                .arg(
+                    Arg::with_name("tail")
+                        .help("Number of lines to show from the end of each log")
+                        .long("tail")
+                        .takes_value(true)
+                        .value_name("NUM")
+                        .default_value("all"),
+                )
+                .arg(
+                    Arg::with_name("since")
+                        .help("Only return logs since this time, as a UNIX timestamp")
+                        .long("since")
+                        .takes_value(true)
+                        .value_name("NUM")
+                        .default_value("0"),
+                ),
+        )
         .get_matches();
 
     let runtime = || -> Result<_, Error> {
@@ -324,7 +351,24 @@ fn run() -> Result<(), Error> {
             tokio_runtime.block_on(Logs::new(id, options, runtime()?).execute())
         }
         ("version", _) => tokio_runtime.block_on(Version::new().execute()),
-        ("cssbundle", _) => tokio_runtime.block_on(Bundle::new(runtime()?).execute()),
+        ("cssbundle", Some(args)) => {
+            let location = args
+                .value_of("location")
+                .unwrap_or_default();
+            let tail = args
+                .value_of("tail")
+                .and_then(|a| a.parse::<LogTail>().ok())
+                .unwrap_or_default();
+            let since = args
+                .value_of("since")
+                .and_then(|a| a.parse::<i32>().ok())
+                .unwrap_or_default();
+            let options = LogOptions::new()
+                .with_follow(false)
+                .with_tail(tail)
+                .with_since(since);
+                tokio_runtime.block_on(Bundle::new(options, location, runtime()?).execute())
+        },
         (command, _) => tokio_runtime.block_on(Unknown::new(command.to_string()).execute()),
     }
 }

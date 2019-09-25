@@ -26,7 +26,7 @@ struct BundleOptions {
 }
 
 impl<M> Bundle<M> {
-    pub fn new(runtime: M, log_options: LogOptions, location: &str) -> Self {
+    pub fn new(log_options: LogOptions, location: &str, runtime: M) -> Self {
         Bundle {
             runtime,
             options: Arc::new(BundleOptions {
@@ -44,7 +44,8 @@ where
     type Future = Box<dyn Future<Item = (), Error = Error> + Send>;
 
     fn execute(&mut self) -> Self::Future {
-        if fs::create_dir_all(&(self.options.location)).is_err() {
+        let dir = format!("{}/bundle/logs", self.options.location);
+        if fs::create_dir_all(&dir).is_err() {
             // TODO: make error kind
             return Box::new(future::err(Error::from(ErrorKind::WriteToStdout)));
         }
@@ -83,7 +84,7 @@ where
         options: Arc<BundleOptions>,
     ) -> impl Future<Item = (), Error = Error> {
         println!("Writing {} to file", module_name);
-        let file_name = format!("{}/{}_log.txt", options.location, module_name);
+        let file_name = format!("{}/bundle/logs/{}_log.txt", options.location, module_name);
 
         future::result(File::create(file_name))
             .map_err(|err| Error::from(err.context(ErrorKind::WriteToStdout)))
