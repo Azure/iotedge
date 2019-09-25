@@ -1,9 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use crate::logs::pull_logs;
+
+use std::fs::File;
+use std::fs;
+
 use futures::future::Future;
-use futures::prelude::*;
-use std::io::{self};
 
 use crate::error::{Error};
 use crate::Command;
@@ -32,7 +34,11 @@ where
         let id = "edgeAgent".to_string();
         let log_options = LogOptions::new();
 
-        let log1 = pull_logs(&self.runtime, &id, &log_options, io::stdout());
+        fs::create_dir_all("./bundle/logs");
+
+        let mut file = File::create("./bundle/logs/foo.txt").unwrap();
+
+        let log1 = pull_logs(&self.runtime, &id, &log_options, file);
 
         log1
     }
