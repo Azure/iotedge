@@ -74,11 +74,51 @@ namespace Microsoft.Azure.Devices.Edge.Test
         }
 
         [Test]
-        public async Task DpsTpm()
+        public async Task DpsX509()
         {
+            (string, string, string) rootCa =
+                        Context.Current.RootCaKeys.Expect(() => new InvalidOperationException("Missing root CA keys"));
+            string caCertScriptPath =
+                        Context.Current.CaCertScriptPath.Expect(() => new InvalidOperationException("Missing CA cert script path"));
             string idScope = Context.Current.DpsIdScope.Expect(() => new InvalidOperationException("Missing DPS ID scope"));
             string registrationId = this.GetRegistrationId();
+
+            CertificateAuthority ca;
             CancellationToken token = this.TestToken;
+
+            using (var cts = new CancellationTokenSource(Context.Current.SetupTimeout))
+            {
+                DateTime startTime = DateTime.Now;
+                CancellationToken token = cts.Token;
+
+                try
+                {
+                    // BEARWASHERE -- Working on this func
+                    this.ca = await CertificateAuthority.CreateDpsX509CaAsync(
+                        Context.Current.DeviceId,
+                        caCertScriptPath,
+                        token);
+
+                    await this.daemon.ConfigureAsync(
+                        config =>
+                        {
+                            config.SetCertificates(this.ca.Certificates);
+                            config.Update();
+                            return Task.FromResult(("with edge certificates", Array.Empty<object>()));
+                        },
+                        token);
+
+                    await this.runtime.DeployConfigurationAsync(token);
+                }
+                catch
+                {
+                    throw;
+                }
+                finally
+                {
+                    await NUnitLogs.CollectAsync(startTime, token);
+                }
+            }
 
             await this.daemon.ConfigureAsync(
                 config =>

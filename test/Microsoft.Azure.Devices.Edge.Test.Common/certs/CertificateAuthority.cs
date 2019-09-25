@@ -21,6 +21,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
             return new CertificateAuthority(certs, scriptPath);
         }
 
+        public static async Task<CertificateAuthority> CreateDpsX509CaAsync(string deviceId, string scriptPath, CancellationToken token)
+        {
+            await OsPlatform.Current.CreateDeviceCertificatesAsync(deviceId, scriptPath, token);
+            EdgeCertificates certs = await OsPlatform.Current.GenerateEdgeCertificatesAsync(deviceId, scriptPath, token);
+            return new CertificateAuthority(certs, scriptPath);
+        }
+
         public static CertificateAuthority GetQuickstart()
         {
             EdgeCertificates certs = OsPlatform.Current.GetEdgeQuickstartCertificates();

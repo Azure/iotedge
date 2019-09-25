@@ -33,6 +33,28 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
 
         public IEdgeDaemon CreateEdgeDaemon(Option<string> installerPath) => new EdgeDaemon(installerPath);
 
+        public Task<Certificates> CreateDeviceCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
+        {
+            var command = BuildCertCommand($"New-CACertsDevice '{deviceId}'", scriptPath);
+
+            await Profiler.Run(
+                async () =>
+                {
+                    string[] output = await Process.RunAsync("powershell", command, token);
+                    Log.Verbose(string.Join("\n", output));
+                },
+                "Created certificates for the device");
+
+            var files = new[]
+            {
+                $"certs/iot-device-{deviceId}-full-chain.cert.pem",
+                $"private/iot-device-{deviceId}.key.pem"
+            };
+            files = NormalizeFiles(files, scriptPath);
+
+            return new Certificates(files[0], files[1]);
+        }
+
         public Task<EdgeCertificates> GenerateEdgeCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
         {
             string command = BuildCertCommand(
