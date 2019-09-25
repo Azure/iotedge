@@ -74,7 +74,7 @@ A `volumes` section of config used to describe how a `ConfigMap` existing in a n
 }
 ```
 
-## CPU and Memory Resources
+## CPU, Memory and Device Resources
 
 EdgeAgent allows to specify Compute resources for a module container.
 
@@ -88,7 +88,7 @@ To enable this feature, the following environment variables need to be set for t
 
 ### Create Options
 
-A `resources` section of config used to specify compute resources for an IoT Edge Module container. The value of this section is the same description Kubernetes uses for [container spec](https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/). 
+A `resources` section of config used to specify compute resources for an IoT Edge Module container. The value of this section is the same description Kubernetes uses for [container spec](https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/). In addition to CPU and Memory EdgeAgent operator can specify [device](https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/device-plugins/) limits for a module.
 
 `EdgeAgent` doesn't do any translations or interpretations of values but simply assign value from module deployment to `resources` parameter of container spec. The description of exact structure can be found [here](hhttps://kubernetes.io/docs/reference/generated/kubernetes-api/v1.12/#resourcerequirements-v1-core).
 
@@ -99,11 +99,13 @@ A `resources` section of config used to specify compute resources for an IoT Edg
     "resources": {
       "limits": {
         "memory": "128Mi",
-        "cpu": "500m"
+        "cpu": "500m",
+        "hardware-vendor.example/foo": 2
       },
       "requests": {
         "memory": "64Mi",
-        "cpu": "250m"
+        "cpu": "250m",
+        "hardware-vendor.example/foo": 2
       }
     }
   }
