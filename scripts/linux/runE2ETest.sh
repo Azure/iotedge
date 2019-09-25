@@ -383,7 +383,7 @@ function process_args() {
                 '-installRootCAKeyPassword' ) saveNextArg=26;;
                 '-dpsScopeId' ) saveNextArg=27;;
                 '-dpsMasterSymmetricKey' ) saveNextArg=28;;
-				'-eventHubConsumerGroup' ) saveNextArg=29;;
+                '-eventHubConsumerGroup' ) saveNextArg=29;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
