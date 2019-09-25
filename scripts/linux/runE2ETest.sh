@@ -22,12 +22,11 @@ function clean_up() {
     if [ "$CLEAN_ALL" = '1' ]; then
         echo 'Prune docker system'
         docker system prune -af --volumes || true
+        rm -rf ~/edgehub-mounted-storage
     else
         echo 'Remove docker containers'
         docker rm -f $(docker ps -aq) || true
     fi
-
-    rm -rf ~/edgehub-mounted-storage
 }
 
 function create_iotedge_service_config {
@@ -858,7 +857,7 @@ function run_test()
 }
 
 function setup_mounted_storage() {
-    if [! -d "edgehub-mounted-storage"]; then
+    if [ ! -d "~/edgehub-mounted-storage" ]; then
         mkdir ~/edgehub-mounted-storage
     fi
     chmod a+r ~/edgehub-mounted-storage
