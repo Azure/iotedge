@@ -21,12 +21,6 @@ pub enum AuthError {
     )]
     UnimplementedChallengeScheme(ChallengeScheme),
 
-    #[fail(display = "Could not complete Docker authentication flow")]
-    DockerFlow,
-
-    #[fail(display = "Could not complete OAuth2 authentication flow")]
-    OAuth2Flow,
-
     #[fail(display = "Invalid Credentials")]
     InvalidCredentials,
 

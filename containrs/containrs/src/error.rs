@@ -38,8 +38,14 @@ pub enum ErrorKind {
     #[fail(display = "API returned an error (status code: {})", _0)]
     ApiError(hyper::StatusCode),
 
+    #[fail(display = "API returned malformed Body")]
+    ApiMalformedBody,
+
     #[fail(display = "API returned malformed JSON")]
     ApiMalformedJSON,
+
+    #[fail(display = "API returned malformed pagination link")]
+    PaginationLink,
 
     #[fail(
         display = "API returned an out of spec response (status code: {}). See debug logs for response contents.",
@@ -47,13 +53,20 @@ pub enum ErrorKind {
     )]
     ApiUnexpectedStatus(hyper::StatusCode),
 
+    // Concrete Endpoint Errors
+    #[fail(
+        display = "Server returned Manifest with incompatible schema version = {}",
+        _0
+    )]
+    InvalidSchemaVersion(i32),
+
     // Authentication-related Errors
     #[fail(display = "Auth Flow Error: {}", _0)]
     Auth(AuthError),
 
     // Misc
     #[fail(display = "Could not parse hyper::Body as JSON")]
-    UtilHyperJSON,
+    UtilHyperBodyJSON,
 
     // Endpoint contexts
     #[fail(display = "Error while fetching _catalog")]

@@ -5,33 +5,15 @@ use hyper::header;
 use hyper::http::{uri, HttpTryFrom, Method, Request, Response, StatusCode, Uri};
 use hyper::Client as HyperClient;
 // use log::*;
-use serde::{Deserialize, Serialize};
 
 use docker_reference::Reference;
-use oci_distribution::v2::Catalog;
+use oci_distribution::v2::{Catalog, Tags};
 use oci_image::{v1::Manifest, MediaType};
 
 use crate::auth::{AuthClient, Credentials};
 use crate::error::*;
+use crate::paginate::Paginate;
 use crate::util::hyper::{BodyExt, ResponseExt};
-
-/// Basic struct to indicate pagination options
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Paginate {
-    #[serde(rename = "n")]
-    n: usize,
-    #[serde(rename = "last", skip_serializing_if = "Option::is_none")]
-    last: Option<String>,
-}
-
-impl Paginate {
-    /// Create a new pagination definition
-    /// - `n` - Limit the number of entries in each response.
-    /// - `last` - Result set will include values lexically after last.
-    pub fn new(n: usize, last: Option<String>) -> Paginate {
-        Paginate { n, last }
-    }
-}
 
 /// Client for interacting with container registries which conform to the
 /// OCI distribution specification (i.e: Docker Registry HTTP API V2 protocol)
@@ -86,7 +68,8 @@ impl<C: Connect + 'static> Client<C> {
         Ok(uri?)
     }
 
-    /// Utility method to check if we can access a certain endpoint
+    /// Utility method to check authentication with a particular endpoint
+    /// (e.g: /v2/)
     pub async fn check_authentication<T>(&mut self, endpoint: &str, method: T) -> Result<bool>
     where
         Method: hyper::http::HttpTryFrom<T>,
@@ -100,30 +83,39 @@ impl<C: Connect + 'static> Client<C> {
         Ok(self.client.request(req).await?.status().is_success())
     }
 
-    /// Retrieve a sorted, json list of repositories available in the registry.
+    /// Retrieve a sorted, JSON list of repositories available in the registry.
     /// If the _catalog API is not available, this method returns None.
-    /// Otherwise, returns a tuple of the Catalog, and the next Pagination range
-    /// (if pagination was initially specified)
-    pub async fn get_catalog(
+    /// If the _catalog API is available, returns a tuple [Vec<u8>]
+    /// and the next [Paginate] range (if pagination is being used)
+    pub async fn get_raw_catalog(
         &mut self,
         paginate: Option<Paginate>,
-    ) -> Result<Option<(Catalog, Option<Paginate>)>> {
-        if let Some(_paginate) = paginate {
-            unimplemented!("implement _catalog pagination")
-        }
+    ) -> Result<Option<(Vec<u8>, Option<Paginate>)>> {
+        let uri = match paginate {
+            Some(Paginate { n, last }) => {
+                self.base_uri(format!("/v2/_catalog?n={}&last={}", n, last).as_str())?
+            }
+            None => self.base_uri("/v2/_catalog")?,
+        };
 
-        let uri = self.base_uri("/v2/_catalog")?;
         let res = self.client.get(uri).await?;
 
         match res.status() {
             StatusCode::NOT_FOUND => Ok(None),
-            StatusCode::OK => Ok(Some((
-                res.into_body()
-                    .json::<Catalog>()
-                    .await
-                    .context(ErrorKind::ApiMalformedJSON)?,
-                None,
-            ))),
+            StatusCode::OK => {
+                let next_paginate = res
+                    .headers()
+                    .get(header::LINK)
+                    .map(Paginate::from_link_header)
+                    .transpose()?;
+                Ok(Some((
+                    res.into_body()
+                        .bytes()
+                        .await
+                        .context(ErrorKind::ApiMalformedBody)?,
+                    next_paginate,
+                )))
+            }
             StatusCode::UNAUTHORIZED => {
                 // TODO: attempt to reauthenticate
                 unimplemented!("get_manifest: UNAUTHORIZED")
@@ -135,10 +127,57 @@ impl<C: Connect + 'static> Client<C> {
         }
     }
 
-    /// Fetch the manifest identified by name and reference where reference can
-    /// be a tag or digest. A HEAD request can also be issued to this endpoint
-    /// to obtain resource information without receiving all data.
-    pub async fn get_manifest(&mut self, reference: &Reference) -> Result<Manifest> {
+    /// Fetch the tags under a given `repo`.
+    /// Returns a tuple of [Vec<u8>] and the next [Paginate] range
+    /// (if pagination is being used)
+    pub async fn get_raw_tags(
+        &mut self,
+        repo: &str,
+        paginate: Option<Paginate>,
+    ) -> Result<(Vec<u8>, Option<Paginate>)> {
+        let uri = match paginate {
+            Some(Paginate { n, last }) => {
+                self.base_uri(format!("/v2/{}/tags/list?n={}&last={}", repo, n, last).as_str())?
+            }
+            None => self.base_uri(format!("/v2/{}/tags/list", repo).as_str())?,
+        };
+
+        let res = self.client.get(uri).await?;
+
+        match res.status() {
+            StatusCode::OK => {
+                let next_paginate = res
+                    .headers()
+                    .get(header::LINK)
+                    .map(Paginate::from_link_header)
+                    .transpose()?;
+                Ok((
+                    res.into_body()
+                        .bytes()
+                        .await
+                        .context(ErrorKind::ApiMalformedBody)?,
+                    next_paginate,
+                ))
+            }
+            StatusCode::UNAUTHORIZED => {
+                // TODO: attempt to reauthenticate
+                unimplemented!("get_tags: UNAUTHORIZED")
+            }
+            status => match status {
+                StatusCode::BAD_REQUEST
+                | StatusCode::NOT_FOUND
+                | StatusCode::TOO_MANY_REQUESTS
+                | StatusCode::FORBIDDEN => Err(new_api_error(res).await),
+                _ => {
+                    res.dump_to_debug().await;
+                    Err(ErrorKind::ApiUnexpectedStatus(status).into())
+                }
+            },
+        }
+    }
+
+    /// Fetch the raw manifest JSON associated with the given reference.
+    pub async fn get_raw_manifest(&mut self, reference: &Reference) -> Result<Vec<u8>> {
         let uri = self.base_uri(
             format!("/v2/{}/manifests/{}", reference.repo(), reference.kind()).as_str(),
         )?;
@@ -153,16 +192,13 @@ impl<C: Connect + 'static> Client<C> {
         let res = self.client.request(req).await?;
 
         match res.status() {
-            StatusCode::OK => {
-                let manifest = res
-                    .into_body()
-                    .json::<Manifest>()
-                    .await
-                    .context(ErrorKind::ApiMalformedJSON)?;
-                Ok(manifest)
-            }
+            StatusCode::OK => Ok(res
+                .into_body()
+                .bytes()
+                .await
+                .context(ErrorKind::ApiMalformedBody)?),
             StatusCode::UNAUTHORIZED => {
-                // TODO: attempt to reauthenticate
+                // TODO: attempt to re-authenticate
                 unimplemented!("get_manifest: UNAUTHORIZED")
             }
             status => match status {
@@ -177,12 +213,60 @@ impl<C: Connect + 'static> Client<C> {
             },
         }
     }
+
+    /// Retrieve a sorted, JSON list of repositories available in the registry.
+    /// If the _catalog API is not available, this method returns None.
+    /// If the _catalog API is available, returns a tuple [Catalog] and
+    /// the next [Paginate] range (if pagination is being used)
+    pub async fn get_catalog(
+        &mut self,
+        paginate: Option<Paginate>,
+    ) -> Result<Option<(Catalog, Option<Paginate>)>> {
+        self.get_raw_catalog(paginate)
+            .await?
+            .map(|(raw_catalog, paginate)| {
+                Ok((
+                    serde_json::from_slice::<Catalog>(&raw_catalog)
+                        .context(ErrorKind::ApiMalformedJSON)?,
+                    paginate,
+                ))
+            })
+            .transpose()
+    }
+
+    /// Fetch the tags under a given `repo`, performing additional checks to
+    /// ensure the JSON is spec-compliant.
+    pub async fn get_tags(
+        &mut self,
+        repo: &str,
+        paginate: Option<Paginate>,
+    ) -> Result<(Tags, Option<Paginate>)> {
+        let (raw_tags, paginate) = self.get_raw_tags(repo, paginate).await?;
+        Ok((
+            serde_json::from_slice::<Tags>(&raw_tags).context(ErrorKind::ApiMalformedJSON)?,
+            paginate,
+        ))
+    }
+
+    /// Fetch the Manifest associated with the given reference, performing
+    /// additional checks to ensure the JSON is spec-compliant.
+    pub async fn get_manifest(&mut self, reference: &Reference) -> Result<Manifest> {
+        let manifest = serde_json::from_slice::<Manifest>(&self.get_raw_manifest(reference).await?)
+            .context(ErrorKind::ApiMalformedJSON)?;
+
+        if manifest.schema_version != 2 {
+            return Err(ErrorKind::InvalidSchemaVersion(manifest.schema_version).into());
+        }
+
+        Ok(manifest)
+    }
 }
 
 /// Given a response that _should_ contain a well-structured ApiErrors JSON
 /// value, returns a Error(ErrorKind::ApiError) who's context is either the
 /// ApiErrors JSON itself, or, if the JSON was malformed, a
 /// ErrorKind::ApiMalformedJSON.
+// TODO: provide better error messages if there is valid JSON in the body
 async fn new_api_error(res: Response<Body>) -> Error {
     let status = res.status();
     let error = res.into_body().json::<ApiErrors>().await;

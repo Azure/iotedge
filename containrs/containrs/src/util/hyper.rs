@@ -28,13 +28,13 @@ impl BodyExt for Body {
 
     /// Deserialize body as JSON
     async fn json<T: DeserializeOwned>(mut self) -> Result<T> {
-        let slice = self.bytes().await.context(ErrorKind::UtilHyperJSON)?;
+        let slice = self.bytes().await.context(ErrorKind::UtilHyperBodyJSON)?;
         let val = serde_json::from_slice::<T>(&slice);
         match val {
             Ok(val) => Ok(val),
             Err(e) => {
                 debug!("Malformed JSON: {}", String::from_utf8_lossy(&slice));
-                Err(e).context(ErrorKind::UtilHyperJSON)?
+                Err(e).context(ErrorKind::UtilHyperBodyJSON)?
             }
         }
     }

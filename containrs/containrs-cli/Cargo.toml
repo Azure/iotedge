@@ -10,8 +10,8 @@ docker-reference = { path = "../docker-reference" }
 
 clap = "~2.33.0"
 failure = "0.1"
-hyper = "0.13.0-alpha.1"
-hyper-tls = "0.4.0-alpha.1"
+hyper = "0.13.0-alpha.2"
+hyper-tls = "0.4.0-alpha.2"
 log = "0.4"
 pretty_env_logger = "0.3"
-tokio = "0.2.0-alpha.4"
+tokio = "0.2.0-alpha.5"
