@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
     public class KubernetesModuleIdentityLifecycleManager : Edgelet.ModuleIdentityLifecycleManager
     {
-        protected override bool GetRequiresIdentities() => true;
+        protected override bool ShouldAlwaysReturnIdentities => true;
 
         public KubernetesModuleIdentityLifecycleManager(IIdentityManager identityManager, ModuleIdentityProviderServiceBuilder identityProviderServiceBuilder, Uri workloadUri)
             : base(identityManager, identityProviderServiceBuilder, workloadUri)
