@@ -53,16 +53,6 @@ async fn true_main() -> Result<(), failure::Error> {
                 .takes_value(true),
         )
         .subcommand(
-            SubCommand::with_name("test_auth")
-                .about("Test if authentication works with a particular endpoint")
-                .arg(
-                    Arg::with_name("endpoint")
-                        .help("endpoint URL (e.g: /v2/")
-                        .required(true)
-                        .index(1),
-                ),
-        )
-        .subcommand(
             SubCommand::with_name("raw")
                 .setting(AppSettings::SubcommandRequiredElseHelp)
                 .about("Retrieve raw responses from various endpoints")
@@ -141,25 +131,6 @@ async fn true_main() -> Result<(), failure::Error> {
     };
 
     match app_m.subcommand() {
-        ("test_auth", Some(sub_m)) => {
-            // won't panic, as this is a required argument
-            let endpoint = sub_m.value_of("endpoint").unwrap();
-
-            let mut client = Client::new(
-                hyper_client,
-                transport_scheme,
-                default_registry,
-                credentials,
-            )?;
-            println!(
-                "Basic auth {}",
-                if client.check_authentication(&endpoint, "GET").await? {
-                    "succeeded"
-                } else {
-                    "failed"
-                }
-            );
-        }
         ("raw", Some(app_m)) => {
             match app_m.subcommand() {
                 ("catalog", Some(sub_m)) => {
