@@ -348,6 +348,9 @@ function process_args() {
         elif [ $saveNextArg -eq 28 ]; then
             DPS_MASTER_SYMMETRIC_KEY="$arg"
             saveNextArg=0
+		elif [ $saveNextArg -eq 29 ]; then
+            EVENT_HUB_CONSUMER_GROUP="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -379,6 +382,7 @@ function process_args() {
                 '-installRootCAKeyPassword' ) saveNextArg=26;;
                 '-dpsScopeId' ) saveNextArg=27;;
                 '-dpsMasterSymmetricKey' ) saveNextArg=28;;
+				'-eventHubConsumerGroup' ) saveNextArg=29;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -617,6 +621,7 @@ function run_longhaul_test() {
     local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-longhaul"
 
     sed -i -e "s@<Analyzer.DeviceID>@$device_id@g" "$deployment_working_file"
+	sed -i -e "s@<Analyzer.ConsumerGroupId>@${EVENT_HUB_CONSUMER_GROUP:-\$Default}@g" "$deployment_working_file"
 
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run Long Haul test with -d '$device_id' started at $test_start_time"
@@ -695,6 +700,7 @@ function run_stress_test() {
     local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-stress"
 
     sed -i -e "s@<Analyzer.DeviceID>@$device_id@g" "$deployment_working_file"
+	sed -i -e "s@<Analyzer.ConsumerGroupId>@${EVENT_HUB_CONSUMER_GROUP:-\$Default}@g" "$deployment_working_file"
 
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run Stress test with -d '$device_id' started at $test_start_time"
@@ -940,6 +946,7 @@ function usage() {
     echo ' -containerRegistryPassword      Password of given username for container registory.'
     echo ' -iotHubConnectionString         IoT hub connection string for creating edge device.'
     echo ' -eventHubConnectionString       Event hub connection string for receive D2C messages.'
+	echo ' -eventHubConsumerGroup          An existing consumer group id for D2C messages.'
     echo ' -loadGenMessageFrequency        Frequency to send messages in LoadGen module for long haul and stress test. Default is 00.00.01 for long haul and 00:00:00.03 for stress test.'
     echo ' -snitchAlertUrl                 Alert Url pointing to Azure Logic App for email preparation and sending for long haul and stress test.'
     echo ' -snitchBuildNumber              Build number for snitcher docker image for long haul and stress test. Default is 1.1.'
