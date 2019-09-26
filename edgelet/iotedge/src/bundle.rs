@@ -56,9 +56,9 @@ where
         let result = self
             .get_modules()
             .and_then(move |names| {
-                future::join_all(names.into_iter().map(move |name| {
+                stream::iter_ok(names).for_each(move |name| {
                     Bundle::write_log_to_file(runtime.clone(), name, options.clone())
-                }))
+                })
             })
             .map(drop);
 
