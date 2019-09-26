@@ -47,17 +47,10 @@ where
             let file_options = zip::write::FileOptions::default()
                 .compression_method(zip::CompressionMethod::Deflated);
 
-            let mut zip_writer = zip::ZipWriter::new(
-                File::create(location.to_owned())
+            let zip_writer = zip::ZipWriter::new(
+                File::create(format!("{}/css_bundle.zip", location.to_owned()))
                     .map_err(|err| Error::from(err.context(ErrorKind::WriteToStdout)))?,
             );
-
-            zip_writer
-                .add_directory_from_path(
-                    &Path::new(&format!("{}/bundle/logs", location.to_owned())),
-                    file_options,
-                )
-                .map_err(|err| Error::from(err.context(ErrorKind::WriteToStdout)))?;
 
             Ok(BundleState {
                 runtime: self.runtime.clone(),
@@ -124,7 +117,7 @@ where
             mut zip_writer,
         } = state;
 
-        let file_name = format!("{}/bundle/logs/{}_log.txt", location, module_name);
+        let file_name = format!("logs/{}_log.txt", module_name);
         zip_writer
             .start_file_from_path(&Path::new(&file_name), file_options)
             .into_future()
