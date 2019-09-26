@@ -30,7 +30,7 @@ pub fn sanitize_dns_domain(domain: &str) -> Result<String> {
 pub fn sanitize_dns_value(name: &str) -> Result<String> {
     let name_string = sanitize_dns_label(name);
     if name_string.is_empty() {
-        Err(ErrorKind::InvalidModuleName(name.to_owned()))?
+        Err(ErrorKind::InvalidModuleName(name.to_owned()).into())
     } else {
         Ok(name_string)
     }
