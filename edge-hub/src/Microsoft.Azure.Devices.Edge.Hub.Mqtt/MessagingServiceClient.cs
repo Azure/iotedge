@@ -109,28 +109,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             var properties = new Dictionary<StringSegment, StringSegment>();
             if (TwinAddressHelper.TryParseOperation(protocolGatewayMessage.Address, properties, out TwinAddressHelper.Operation operation, out StringSegment subresource))
             {
-                bool hasCorrelationId = properties.TryGetValue(RequestId, out StringSegment correlationId);
+                IMessage message = this.messageConverter.ToMessage(protocolGatewayMessage);
+                message.SystemProperties.TryGetValue(SystemProperties.CorrelationId, out string correlationId);
 
                 switch (operation)
                 {
                     case TwinAddressHelper.Operation.TwinGetState:
                         EnsureNoSubresource(subresource);
-
-                        if (!hasCorrelationId || correlationId.Length == 0)
+                        if (correlationId == null || correlationId.Length == 0)
                         {
                             throw new InvalidOperationException("Correlation id is missing or empty.");
                         }
 
-                        await this.deviceListener.SendGetTwinRequest(correlationId.ToString());
+                        await this.deviceListener.SendGetTwinRequest(correlationId);
                         Events.GetTwin(this.deviceListener.Identity);
                         break;
 
                     case TwinAddressHelper.Operation.TwinPatchReportedState:
                         EnsureNoSubresource(subresource);
-
-                        IMessage forwardMessage = new EdgeMessage.Builder(this.byteBufferConverter.ToByteArray(protocolGatewayMessage.Payload))
-                            .Build();
-                        await this.deviceListener.UpdateReportedPropertiesAsync(forwardMessage, hasCorrelationId ? correlationId.ToString() : string.Empty);
+                        await this.deviceListener.UpdateReportedPropertiesAsync(message, correlationId ?? string.Empty);
                         Events.UpdateReportedProperties(this.deviceListener.Identity);
                         break;
 
