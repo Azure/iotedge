@@ -60,7 +60,7 @@ impl UrlConnector {
                     Err(ErrorKind::InvalidUrlWithReason(
                         url.to_string(),
                         InvalidUrlReason::FileNotFound,
-                    ))?
+                    ).into())
                 }
             }
 
@@ -73,7 +73,7 @@ impl UrlConnector {
             _ => Err(ErrorKind::InvalidUrlWithReason(
                 url.to_string(),
                 InvalidUrlReason::InvalidScheme,
-            ))?,
+            ).into()),
         }
     }
 
@@ -100,8 +100,8 @@ impl UrlConnector {
                 scheme: scheme.to_string(),
                 base_path: base_path.to_string(),
                 path: path.to_string(),
-            })?,
-        }
+            }.into()),
+        } 
     }
 }
 
