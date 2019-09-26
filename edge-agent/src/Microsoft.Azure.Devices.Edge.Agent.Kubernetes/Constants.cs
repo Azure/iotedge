@@ -44,5 +44,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public const string K8sNamespaceKey = "K8sNamespace";
 
         public const PortMapServiceType DefaultPortMapServiceType = PortMapServiceType.ClusterIP;
+
+        public const string ProxyImageEnvKey = "ProxyImage";
+
+        public const string ProxyConfigPathEnvKey = "ProxyConfigPath";
+
+        public const string ProxyConfigVolumeEnvKey = "ProxyConfigVolume";
+
+        public const string ProxyConfigMapNameEnvKey = "ProxyConfigMapName";
+
+        public const string ProxyTrustBundlePathEnvKey = "ProxyTrustBundlePath";
+
+        public const string ProxyTrustBundleVolumeEnvKey = "ProxyTrustBundleVolume";
+
+        public const string ProxyTrustBundleConfigMapEnvKey = "ProxyTrustBundleConfigMapName";
     }
 }

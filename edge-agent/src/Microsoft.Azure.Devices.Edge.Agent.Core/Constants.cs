@@ -87,20 +87,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string AllModulesIdentifier = "all";
 
-        public const string ProxyImageEnvKey = "ProxyImage";
-
-        public const string ProxyConfigPathEnvKey = "ProxyConfigPath";
-
-        public const string ProxyConfigVolumeEnvKey = "ProxyConfigVolume";
-
-        public const string ProxyConfigMapNameEnvKey = "ProxyConfigMapName";
-
-        public const string ProxyTrustBundlePathEnvKey = "ProxyTrustBundlePath";
-
-        public const string ProxyTrustBundleVolumeEnvKey = "ProxyTrustBundleVolume";
-
-        public const string ProxyTrustBundleConfigMapEnvKey = "ProxyTrustBundleConfigMapName";
-
         public const string CloseOnIdleTimeout = "CloseCloudConnectionOnIdleTimeout";
 
         public const string IdleTimeoutSecs = "CloudConnectionIdleTimeoutSecs";

@@ -179,13 +179,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                 envList.Add(new V1EnvVar(CoreConstants.ModeKey, CoreConstants.KubernetesMode));
                 envList.Add(new V1EnvVar(CoreConstants.EdgeletManagementUriVariableName, this.managementUri.ToString()));
                 envList.Add(new V1EnvVar(CoreConstants.NetworkIdKey, "azure-iot-edge"));
-                envList.Add(new V1EnvVar(CoreConstants.ProxyImageEnvKey, this.proxyImage));
-                envList.Add(new V1EnvVar(CoreConstants.ProxyConfigPathEnvKey, this.proxyConfigPath));
-                envList.Add(new V1EnvVar(CoreConstants.ProxyConfigVolumeEnvKey, this.proxyConfigVolumeName));
-                envList.Add(new V1EnvVar(CoreConstants.ProxyConfigMapNameEnvKey, this.proxyConfigMapName));
-                envList.Add(new V1EnvVar(CoreConstants.ProxyTrustBundlePathEnvKey, this.proxyTrustBundlePath));
-                envList.Add(new V1EnvVar(CoreConstants.ProxyTrustBundleVolumeEnvKey, this.proxyTrustBundleVolumeName));
-                envList.Add(new V1EnvVar(CoreConstants.ProxyTrustBundleConfigMapEnvKey, this.proxyTrustBundleConfigMapName));
+                envList.Add(new V1EnvVar(KubernetesConstants.ProxyImageEnvKey, this.proxyImage));
+                envList.Add(new V1EnvVar(KubernetesConstants.ProxyConfigPathEnvKey, this.proxyConfigPath));
+                envList.Add(new V1EnvVar(KubernetesConstants.ProxyConfigVolumeEnvKey, this.proxyConfigVolumeName));
+                envList.Add(new V1EnvVar(KubernetesConstants.ProxyConfigMapNameEnvKey, this.proxyConfigMapName));
+                envList.Add(new V1EnvVar(KubernetesConstants.ProxyTrustBundlePathEnvKey, this.proxyTrustBundlePath));
+                envList.Add(new V1EnvVar(KubernetesConstants.ProxyTrustBundleVolumeEnvKey, this.proxyTrustBundleVolumeName));
+                envList.Add(new V1EnvVar(KubernetesConstants.ProxyTrustBundleConfigMapEnvKey, this.proxyTrustBundleConfigMapName));
                 envList.Add(new V1EnvVar(KubernetesConstants.K8sNamespaceKey, this.deviceNamespace));
             }
 
