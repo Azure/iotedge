@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
     using System.IO;
     using Microsoft.Azure.Devices.Edge.Util;
     using RootCaKeys = System.ValueTuple<string, string, string>;
+    using Serilog;
 
     public class CertificateAuthority
     {
@@ -14,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
 
         public EdgeCertificates Certificates { get; }
 
-        public Certificates genericCert { get; }
+        public Certificate genericCertificates { get; }
 
         public static async Task<CertificateAuthority> CreateAsync(string deviceId, RootCaKeys rootCa, string scriptPath, CancellationToken token)
         {
@@ -26,20 +27,28 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
 
         public static async Task<CertificateAuthority> CreateDpsX509CaAsync(string deviceId, RootCaKeys rootCa, string scriptPath, CancellationToken token)
         {
-            // [9/26/2019] Setup all the environment for the certificates.
-            // More info: /iotedge/scripts/linux/runE2ETest.sh : run_test()
-            (string rootCertificate, string rootPrivateKey, string rootPassword) = rootCa;
-            await OsPlatform.Current.InstallRootCertificateAsync(rootCertificate, rootPrivateKey, rootPassword, scriptPath, token);
+            if(!File.Exists(Path.Combine(scriptPath, "certs", "azure-iot-test-only.root.ca.cert.pem")))
+            {
+                // [9/26/2019] Setup all the environment for the certificates.
+                // More info: /iotedge/scripts/linux/runE2ETest.sh : run_test()
+                Log.Information("----------------------------------------");
+                Log.Information("Install Root Certificate");
+                (string rootCertificate, string rootPrivateKey, string rootPassword) = rootCa;
+                await OsPlatform.Current.InstallRootCertificateAsync(rootCertificate, rootPrivateKey, rootPassword, scriptPath, token);
+            }
+            else
+            {
+                Log.Information("----------------------------------------");
+                Log.Information("Skip Root Certificate: Root Certificate is installed");
+                Log.Information("----------------------------------------");
+            }
 
             // BEARWASHERE -- CreateDeviceCertificatesAsync(deviceId, scriptPath, token);
             //  Runs > FORCE_NO_PROD_WARNING="true" ${CERT_SCRIPT_DIR}/certGen.sh create_device_certificate "${registration_id}"
-            await OsPlatform.Current.CreateDeviceCertificatesAsync(deviceId, scriptPath, token);
+            Certificate X509Certificate = await OsPlatform.Current.CreateDeviceCertificatesAsync(deviceId, scriptPath, token);
 
-            return new CertificateAuthority(
-                new Certificates(
-                    Path.Combine(scriptPath, "certs", $"iot-device-{deviceId}-full-chain.cert.pem"),
-                    Path.Combine(scriptPath, "private", $"iot-device-{deviceId}.key.pem")),
-                scriptPath);
+            // BEARWASHERE -- This is wrong 
+            return new CertificateAuthority(X509Certificate, scriptPath);
         }
 
         public static CertificateAuthority GetQuickstart()
@@ -60,9 +69,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
             this.scriptPath = Option.Maybe(scriptPath);
         }
 
-        CertificateAuthority(Certificates certs, string scriptPath)
+        CertificateAuthority(Certificate certs, string scriptPath)
         {
-            this.genericCert = certs;
+            this.genericCertificates = certs;
             this.scriptPath = Option.Maybe(scriptPath);
         }
 

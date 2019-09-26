@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         // After calling this function, the following files will be available under {scriptPath}:
         //  certs/iot-device-{deviceId}-full-chain.cert.pem
         //  private/iot-device-{deviceId}.key.pem
-        Task<Certificates> CreateDeviceCertificatesAsync(string deviceId, string scriptPath, CancellationToken token);
+        Task<Certificate> CreateDeviceCertificatesAsync(string deviceId, string scriptPath, CancellationToken token);
 
         // After calling this function, the following files will be available under {scriptPath}:
         //  certs/iot-edge-device-{deviceId}-full-chain.cert.pem

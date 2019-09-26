@@ -6,6 +6,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.IO;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
 
+    //BEARWASHERE
+    using Serilog;
+
     public class DaemonConfiguration
     {
         private const string GlobalEndPoint = "https://global.azure-devices-provisioning.net";
@@ -54,6 +57,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config.ReplaceOrAdd("provisioning.global_endpoint", GlobalEndPoint);
             this.config.ReplaceOrAdd("provisioning.scope_id", idScope);
             this.config.ReplaceOrAdd("provisioning.attestation.method", "tpm");
+            this.config.ReplaceOrAdd("provisioning.attestation.registration_id", registrationId);
+        }
+
+        public void SetDpsX509(string idScope, string registrationId, CertificateAuthority ca)
+        {
+            Uri CertUri = new Uri(ca.genericCertificates.CertificatePath, UriKind.Absolute);
+            Uri pKeyUri = new Uri(ca.genericCertificates.KeyPath, UriKind.Absolute);
+
+            this.config.RemoveIfExists("provisioning");
+            this.config.ReplaceOrAdd("provisioning.source", "dps");
+            this.config.ReplaceOrAdd("provisioning.global_endpoint", GlobalEndPoint);
+            this.config.ReplaceOrAdd("provisioning.scope_id", idScope);
+            this.config.ReplaceOrAdd("provisioning.attestation.method", "x509");
+            this.config.ReplaceOrAdd("provisioning.attestation.identity_cert", CertUri.ToString());
+            this.config.ReplaceOrAdd("provisioning.attestation.identity_pk", pKeyUri.ToString());
             this.config.ReplaceOrAdd("provisioning.attestation.registration_id", registrationId);
         }
 

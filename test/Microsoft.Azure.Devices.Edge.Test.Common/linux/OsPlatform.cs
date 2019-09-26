@@ -27,11 +27,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public IEdgeDaemon CreateEdgeDaemon(Option<string> _) => new EdgeDaemon();
 
-        public async Task<Certificates> CreateDeviceCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
+        public async Task<Certificate> CreateDeviceCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
         {
             var command = BuildCertCommand($"create_device_certificate '{deviceId}'", scriptPath);
             await this.RunScriptAsync(("bash", command), token);
-            return new Certificates(deviceId, scriptPath);
+            return new Certificate(deviceId, scriptPath);
         }
 
         public Task<EdgeCertificates> GenerateEdgeCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)

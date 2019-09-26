@@ -34,11 +34,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
 
         public IEdgeDaemon CreateEdgeDaemon(Option<string> installerPath) => new EdgeDaemon(installerPath);
 
-        public async Task<Certificates> CreateDeviceCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
+        public async Task<Certificate> CreateDeviceCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
         {
             var command = BuildCertCommand($"New-CACertsDevice '{deviceId}'", scriptPath);
             await this.RunScriptAsync(("powershell", command), token);
-            return new Certificates(deviceId, scriptPath);
+            return new Certificate(deviceId, scriptPath);
         }
 
         public Task<EdgeCertificates> GenerateEdgeCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)

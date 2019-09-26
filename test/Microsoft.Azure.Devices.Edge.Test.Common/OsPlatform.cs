@@ -114,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                     string[] output = await Process.RunAsync(command.name, command.args, token);
                     Log.Verbose(string.Join("\n", output));
                 },
-                "Executed: " + command.name + command.args );
+                "Executed: " + command.name + ' ' + command.args );
         }
 
         static void CheckFiles(IEnumerable<string> paths, string basePath) => NormalizeFiles(paths, basePath);

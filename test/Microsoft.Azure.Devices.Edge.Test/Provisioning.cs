@@ -97,25 +97,23 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
                 try
                 {
-                    // BEARWASHERE -- Working on this func
                     ca = await CertificateAuthority.CreateDpsX509CaAsync(
                         registrationId,
                         rootCa,
                         caCertScriptPath,
                         caToken);
 
-                    /*
+                    // BEARWASHERE -- Working on this func
                     await this.daemon.ConfigureAsync(
                         config =>
                         {
-                            config.SetCertificates(ca.Certificates);
+                            config.SetDpsX509(idScope, registrationId, ca);
                             config.Update();
-                            return Task.FromResult(("with edge certificates", Array.Empty<object>()));
+                            return Task.FromResult((
+                                "with DPS X509 attestation for '{Identity}'",
+                                new object[] { registrationId }));
                         },
                         caToken);
-                    */
-
-                    //await this.runtime.DeployConfigurationAsync(caToken);
                 }
                 catch
                 {
@@ -128,21 +126,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
 
             // BEARWASHERE -- Let's fail this.
-            Assert.IsTrue(false, "Just End it");
-
-
-            await this.daemon.ConfigureAsync(
-                config =>
-                {
-                    config.SetDpsTpm(idScope, registrationId);
-                    config.Update();
-                    return Task.FromResult((
-                        "with DPS symmetric key attestation for '{Identity}'",
-                        new object[] { registrationId }));
-                },
-                token);
+            //Assert.IsTrue(false, "Just End it");
 
             await this.daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
+            //await this.runtime.DeployConfigurationAsync(caToken);
 
             var agent = new EdgeAgent(registrationId, this.iotHub);
             await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
