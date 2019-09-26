@@ -950,5 +950,4 @@ mod tests {
             client: service,
         }
     }
-
 }
