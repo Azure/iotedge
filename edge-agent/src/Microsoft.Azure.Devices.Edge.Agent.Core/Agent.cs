@@ -145,6 +145,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                                 throw;
                             }
                         }
+                        else
+                        {
+                            status = Option.Some(DeploymentStatus.Success);
+                        }
                     }
                     else
                     {
