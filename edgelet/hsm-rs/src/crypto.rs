@@ -56,18 +56,18 @@ impl Crypto {
     pub fn new() -> Result<Self, Error> {
         let result = unsafe { hsm_client_crypto_init() as isize };
         if result != 0 {
-            return Err(result.into())
+            return Err(result.into());
         }
         let if_ptr = unsafe { hsm_client_crypto_interface() };
         if if_ptr.is_null() {
             unsafe { hsm_client_crypto_deinit() };
-            return Err(ErrorKind::NullResponse.into())
+            return Err(ErrorKind::NullResponse.into());
         }
         let interface = unsafe { *if_ptr };
         if let Some(handle) = interface.hsm_client_crypto_create.map(|f| unsafe { f() }) {
             if handle.is_null() {
                 unsafe { hsm_client_crypto_deinit() };
-                return Err(ErrorKind::NullResponse.into())
+                return Err(ErrorKind::NullResponse.into());
             }
             Ok(Crypto { handle, interface })
         } else {
@@ -576,7 +576,7 @@ impl HsmCertificate {
                 .into_owned()
         };
         if cert.is_empty() {
-            return Err(ErrorKind::NullResponse.into())
+            return Err(ErrorKind::NullResponse.into());
         }
         Ok(cert)
     }
@@ -603,7 +603,7 @@ impl HsmCertificate {
         let ts: i64 = unsafe { certificate_info_get_valid_to(self.cert_info_handle) };
         let naive_ts = NaiveDateTime::from_timestamp_opt(ts, 0);
         if naive_ts.is_none() {
-            return Err(ErrorKind::NullResponse.into())
+            return Err(ErrorKind::NullResponse.into());
         }
         Ok(DateTime::<Utc>::from_utc(naive_ts.unwrap(), Utc))
     }
@@ -615,7 +615,7 @@ impl HsmCertificate {
                 .into_owned()
         };
         if cn.is_empty() {
-            return Err(ErrorKind::NullResponse.into())
+            return Err(ErrorKind::NullResponse.into());
         }
         Ok(cn)
     }

@@ -40,16 +40,16 @@ impl X509 {
     pub fn new() -> Result<Self, Error> {
         let result = unsafe { hsm_client_x509_init() as isize };
         if result != 0 {
-            return Err(result.into())
+            return Err(result.into());
         }
         let if_ptr = unsafe { hsm_client_x509_interface() };
         if if_ptr.is_null() {
-            return Err(ErrorKind::NullResponse.into())
+            return Err(ErrorKind::NullResponse.into());
         }
         let interface = unsafe { *if_ptr };
         if let Some(handle) = interface.hsm_client_x509_create.map(|f| unsafe { f() }) {
             if handle.is_null() {
-                return Err(ErrorKind::NullResponse.into())
+                return Err(ErrorKind::NullResponse.into());
             }
             Ok(X509 { handle, interface })
         } else {
