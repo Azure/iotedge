@@ -105,7 +105,7 @@ impl RuntimeSettings for Settings {
         self.base.homedir()
     }
 
-    fn certificates(&self) -> Option<&Certificates> {
+    fn certificates(&self) -> &Certificates {
         self.base.certificates()
     }
 

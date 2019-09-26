@@ -700,8 +700,8 @@ where
     env::set_var(HOMEDIR_KEY, &settings.homedir());
 
     info!("Configuring certificates...");
-    let certificates = &settings.certificates();
-    match certificates.as_ref() {
+    let certificates = settings.certificates();
+    match certificates.device_cert().as_ref() {
         None => {
             info!("Transparent gateway certificates not found, operating in quick start mode...")
         }
@@ -1381,7 +1381,7 @@ where
     let (work_tx, work_rx) = oneshot::channel();
 
     let edgelet_cert_props = CertificateProperties::new(
-        settings.certificates().expect("we default now").auto_generated_ca_lifetime(),
+        settings.certificates().auto_generated_ca_lifetime(),
         IOTEDGED_TLS_COMMONNAME.to_string(),
         CertificateType::Server,
         "iotedge-tls".to_string(),
