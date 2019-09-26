@@ -77,8 +77,6 @@ where
             .map(drop);
 
         Box::new(result)
-
-        // Box::new(future::ok(()))
     }
 }
 
@@ -92,9 +90,7 @@ where
         })
     }
 
-    fn get_modules(
-        state: BundleState<M>,
-    ) -> impl Future<Item = (Vec<String>, BundleState<M>), Error = Error> {
+    fn get_modules(state: BundleState<M>) -> impl Future<Item = (Vec<String>, BundleState<M>), Error = Error> {
         state
             .runtime
             .list_with_details()
@@ -104,10 +100,7 @@ where
             .map(|names| (names, state))
     }
 
-    fn write_log_to_file(
-        state: BundleState<M>,
-        module_name: String,
-    ) -> impl Future<Item = BundleState<M>, Error = Error> {
+    fn write_log_to_file(state: BundleState<M>, module_name: String) -> impl Future<Item = BundleState<M>, Error = Error> {
         println!("Writing {} to file", module_name);
         let BundleState {
             runtime,
