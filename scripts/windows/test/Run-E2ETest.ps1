@@ -1317,6 +1317,16 @@ Function SetEnvironmentVariable
     $env:Path="$env:Path;C:\Program Files\iotedge-moby;C:\Program Files\iotedge"
 }
 
+Function SetupMountedStorage
+{
+
+    If (!(Test-Path "C:\data\edgehub"))
+    {
+        New-Item -ItemType directory -Path "C:\data\edgehub"
+    }
+
+}
+
 Function TestSetup
 {
     Write-Host "Environment setup..."

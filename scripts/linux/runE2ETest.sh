@@ -616,8 +616,6 @@ function run_dps_provisioning_test() {
 }
 
 function run_longhaul_test() {
-    setup_mounted_storage
-
     print_highlighted_message "Run Long Haul test for $image_architecture_label"
     test_setup
 
@@ -696,8 +694,6 @@ function run_quickstartcerts_test() {
 }
 
 function run_stress_test() {
-    setup_mounted_storage
-
     print_highlighted_message "Run Stress test for $image_architecture_label"
     test_setup
 
@@ -864,6 +860,7 @@ function setup_mounted_storage() {
 }
 
 function test_setup() {
+    setup_mounted_storage
     validate_test_parameters
     clean_up
     prepare_test_from_artifacts
