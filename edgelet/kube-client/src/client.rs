@@ -890,17 +890,17 @@ mod tests {
 
     #[test]
     fn list_nodes_success() {
-        let service = service_fn(|_req: Request<Body>| -> Result<Response<Body>, HyperError> {
-            Ok(Response::new(Body::from(LIST_NODE_RESPONSE)))
-        });
+        let service = service_fn(
+            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
+                Ok(Response::new(Body::from(LIST_NODE_RESPONSE)))
+            },
+        );
 
         let mut client = make_test_client(service);
 
-        let fut = client
-            .list_nodes()
-            .map(|nodes| {
-                assert_eq!(2, nodes.items.len());
-            });
+        let fut = client.list_nodes().map(|nodes| {
+            assert_eq!(2, nodes.items.len());
+        });
 
         Runtime::new()
             .unwrap()

@@ -104,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             }
         }
 
-        public bool IsOnlyModuleStatusChanged(IModule other) // TODO Should we care about Config here?
+        public bool IsOnlyModuleStatusChanged(IModule other)
         {
             return other is CombinedDockerModule &&
                 string.Equals(this.Name, other.Name) &&

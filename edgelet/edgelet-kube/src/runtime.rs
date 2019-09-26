@@ -249,7 +249,9 @@ where
             .expect("Unexpected lock error")
             .borrow_mut()
             .list_nodes()
-            .map_err(|err| Error::from(err.context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))))
+            .map_err(|err| {
+                Error::from(err.context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo)))
+            })
             .map(|nodes| {
                 // Accumulate the architectures and their node counts into a map
                 let architectures = nodes
@@ -432,7 +434,10 @@ mod tests {
         let mut runtime = Runtime::new().unwrap();
         let info = runtime.block_on(task).unwrap();
 
-        assert_eq!(info.architecture(), "[{\"name\":\"amd64\",\"nodes_count\":2}]");
+        assert_eq!(
+            info.architecture(),
+            "[{\"name\":\"amd64\",\"nodes_count\":2}]"
+        );
     }
 
     fn list_node_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
