@@ -1,10 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::sync::Arc;
+use std::fs::File;
 use std::path::Path;
 
 extern crate zip;
-use std::io::{Write, Seek};
 
 use futures::{Future, Stream};
 use tokio::prelude::*;
@@ -17,11 +16,11 @@ use crate::Command;
 
 use edgelet_core::{LogOptions, Module, ModuleRuntime};
 
-pub struct Bundle<M, W>
-where W: 'static + Write + Seek + Send
- {
-    state: Arc<BundleState<M>>,
-    writer: W,
+pub struct Bundle<M>
+{
+    runtime: M,
+    log_options: Option<LogOptions>,
+    location: Option<String>,
 }
 
 struct BundleState<M>
@@ -30,72 +29,106 @@ struct BundleState<M>
     log_options: LogOptions,
     location: String,
     file_options: zip::write::FileOptions,
+    zip_writer: zip::ZipWriter<File>,
 }
 
-impl<M, W> Bundle<M, W>
-where W: 'static + Write + Seek + Send
+impl<M> Bundle<M>
+where
+    M: 'static + ModuleRuntime + Clone + Send + Sync,
 {
-    pub fn new(log_options: LogOptions, location: &str, runtime: M, writer: W) -> Self {
-        let state = BundleState {
-                runtime,
-                log_options,
-                location: location.to_owned(),
-                file_options: zip::write::FileOptions::default()
-                    .compression_method(zip::CompressionMethod::Deflated)
-            };
+    pub fn new(log_options: LogOptions, location: &str, runtime: M) -> Self {
         Bundle {
-            state: Arc::new(state),
-                            writer,
+            runtime,
+            log_options: Option::Some(log_options),
+            location: Option::Some(location.to_owned()),
+        }
+    }
+
+    fn make_state(self) -> Result<BundleState<M>, Error> {
+        if let (Some(log_options), Some(location)) = (self.log_options, self.location) {
+
+            let file_options = zip::write::FileOptions::default()
+                    .compression_method(zip::CompressionMethod::Deflated);
+
+            let mut zip_writer = zip::ZipWriter::new(
+                File::create(location.to_owned())
+                .map_err(|err| Error::from(err.context(ErrorKind::WriteToStdout)))?);
+
+            zip_writer.add_directory_from_path(&Path::new(&format!("{}/bundle/logs", location.to_owned())), file_options)
+                .map_err(|err| Error::from(err.context(ErrorKind::WriteToStdout)))?;
+
+             Ok(BundleState {
+                runtime: self.runtime.clone(),
+                log_options,
+                location,
+                file_options,
+                zip_writer,
+            })
+        }
+        else{
+            Err(Error::from(ErrorKind::BadHostParameter))
         }
     }
 }
 
-impl<M, W> Command for Bundle<M, W>
+impl<M> Command for Bundle<M>
 where
     M: 'static + ModuleRuntime + Clone + Send + Sync,
-    W: 'static + Write + Seek + Send + Sync,
 {
     type Future = Box<dyn Future<Item = (), Error = Error> + Send>;
 
-    fn execute(&mut self) -> Self::Future {
-                let mut zip_writer = zip::ZipWriter::new(self.writer);
-
-        let dir = format!("{}/bundle/logs", self.state.location);
-        let dir_path = Path::new(&dir);
-        if zip_writer.add_directory_from_path(&dir_path, self.state.file_options).is_err() {
-            // TODO: make error kind
-            return Box::new(future::err(Error::from(ErrorKind::WriteToStdout)));
-        }
-
-        let state = self.state.clone();
-        let result = state.get_modules()
-            .and_then(move |names| {
-                stream::iter_ok(names).fold(zip_writer, move |zw, name| state.write_log_to_file(zw, name))
-            })
-            .map(drop);
+    fn execute(self) -> Self::Future {
+        let result = future::result(self.make_state())
+        .and_then(Bundle::write_all_logs)
+        .map(drop);
 
         Box::new(result)
+
+        // Box::new(future::ok(()))
     }
 }
 
-impl<M> BundleState<M>
+impl<M> Bundle<M>
 where
     M: 'static + ModuleRuntime + Clone,
 {
-    fn get_modules(&self) -> impl Future<Item = Vec<String>, Error = Error> {
-        self.runtime
+    fn write_all_logs(s1: BundleState<M>) -> impl Future<Item = BundleState<M>, Error = Error>    {
+        Bundle::get_modules(s1)
+            .and_then(|(names, s2)| {
+                stream::iter_ok(names)
+                    .fold(s2, |s3, name| Bundle::write_log_to_file(s3, name))
+            })
+    }
+
+    fn get_modules(state: BundleState<M>) -> impl Future<Item = (Vec<String>, BundleState<M>), Error = Error> {
+        state.runtime
             .list_with_details()
             .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))
             .map(|(module, _s)| module.name().to_string())
             .collect()
+            .map(|names| (names, state))
     }
 
-    fn write_log_to_file<W>(&self, zip_writer: zip::ZipWriter<W>, module_name: String) -> impl Future<Item = zip::ZipWriter<W>, Error = Error>
-    where W: 'static + Write + Seek + Send,
-    {
+    fn write_log_to_file(state: BundleState<M>, module_name: String) -> impl Future<Item = BundleState<M>, Error = Error> {
         println!("Writing {} to file", module_name);
-        let file_name = format!("{}/bundle/logs/{}_log.txt", self.location, module_name);
+        let BundleState {
+            runtime,
+            log_options,
+            location,
+            file_options,
+            mut zip_writer,
+       } = state;
 
-        pull_logs(&self.runtime, &module_name, &self.log_options, zip_writer)
+        let file_name = format!("{}/bundle/logs/{}_log.txt", location, module_name);
+        zip_writer.start_file_from_path(&Path::new(&file_name), file_options);
+
+        pull_logs(&runtime, &module_name, &log_options, zip_writer)
+            .map(move |zw| BundleState{
+                runtime,
+                log_options,
+                location,
+                file_options,
+                zip_writer: zw
+            })
     }
 }
