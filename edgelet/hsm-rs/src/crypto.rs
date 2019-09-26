@@ -56,23 +56,23 @@ impl Crypto {
     pub fn new() -> Result<Self, Error> {
         let result = unsafe { hsm_client_crypto_init() as isize };
         if result != 0 {
-            Err(result)?
+            return Err(result.into());
         }
         let if_ptr = unsafe { hsm_client_crypto_interface() };
         if if_ptr.is_null() {
             unsafe { hsm_client_crypto_deinit() };
-            Err(ErrorKind::NullResponse)?
+            return Err(ErrorKind::NullResponse.into());
         }
         let interface = unsafe { *if_ptr };
         if let Some(handle) = interface.hsm_client_crypto_create.map(|f| unsafe { f() }) {
             if handle.is_null() {
                 unsafe { hsm_client_crypto_deinit() };
-                Err(ErrorKind::NullResponse)?
+                return Err(ErrorKind::NullResponse.into());
             }
             Ok(Crypto { handle, interface })
         } else {
             unsafe { hsm_client_crypto_deinit() };
-            Err(ErrorKind::NullResponse)?
+            Err(ErrorKind::NullResponse.into())
         }
     }
 
@@ -109,7 +109,7 @@ impl MakeRandom for Crypto {
         };
         match result {
             0 => Ok(()),
-            r => Err(ErrorKind::Api(r))?,
+            r => Err(ErrorKind::Api(r).into()),
         }
     }
 }
@@ -123,7 +123,7 @@ impl CreateMasterEncryptionKey for Crypto {
         let result = unsafe { if_fn(self.handle) };
         match result {
             0 => Ok(()),
-            r => Err(ErrorKind::Api(r))?,
+            r => Err(ErrorKind::Api(r).into()),
         }
     }
 }
@@ -137,7 +137,7 @@ impl DestroyMasterEncryptionKey for Crypto {
         let result = unsafe { if_fn(self.handle) };
         match result {
             0 => Ok(()),
-            r => Err(ErrorKind::Api(r))?,
+            r => Err(ErrorKind::Api(r).into()),
         }
     }
 }
@@ -145,11 +145,11 @@ impl DestroyMasterEncryptionKey for Crypto {
 fn make_certification_props(props: &CertificateProperties) -> Result<CERT_PROPS_HANDLE, Error> {
     let handle = unsafe { cert_properties_create() };
     if handle.is_null() {
-        return Err(ErrorKind::CertProps)?;
+        return Err(ErrorKind::CertProps.into());
     }
     if unsafe { set_validity_seconds(handle, *props.validity_in_secs()) } != 0 {
         unsafe { cert_properties_destroy(handle) };
-        return Err(ErrorKind::CertProps)?;
+        return Err(ErrorKind::CertProps.into());
     }
     CString::new(props.common_name.clone())
         .ok()
@@ -226,7 +226,7 @@ fn make_certification_props(props: &CertificateProperties) -> Result<CERT_PROPS_
         let result = unsafe { set_san_entries(handle, result.as_ptr(), result.len()) };
         if result != 0 {
             unsafe { cert_properties_destroy(handle) };
-            return Err(ErrorKind::CertProps)?;
+            return Err(ErrorKind::CertProps.into());
         }
     }
 
@@ -247,7 +247,7 @@ impl CreateCertificate for Crypto {
         unsafe { cert_properties_destroy(property_handle) };
 
         if cert_info_handle.is_null() {
-            Err(ErrorKind::NullResponse)?
+            Err(ErrorKind::NullResponse.into())
         } else {
             Ok(HsmCertificate { cert_info_handle })
         }
@@ -282,7 +282,7 @@ impl GetCertificate for Crypto {
             .ok_or_else(|| ErrorKind::ToCStr)?;
         let cert_info_handle = unsafe { if_fn(self.handle, c_alias.as_ptr()) };
         if cert_info_handle.is_null() {
-            Err(ErrorKind::NullResponse)?
+            Err(ErrorKind::NullResponse.into())
         } else {
             Ok(HsmCertificate { cert_info_handle })
         }
@@ -297,7 +297,7 @@ impl GetTrustBundle for Crypto {
             .ok_or(ErrorKind::NoneFn)?;
         let cert_info_handle = unsafe { if_fn(self.handle) };
         if cert_info_handle.is_null() {
-            Err(ErrorKind::NullResponse)?
+            Err(ErrorKind::NullResponse.into())
         } else {
             Ok(HsmCertificate { cert_info_handle })
         }
@@ -343,7 +343,7 @@ impl Encrypt for Crypto {
         };
         match result {
             0 => Ok(Buffer::new(self.interface, encrypted)),
-            r => Err(r)?,
+            r => Err(r.into()),
         }
     }
 }
@@ -387,7 +387,7 @@ impl Decrypt for Crypto {
         };
         match result {
             0 => Ok(Buffer::new(self.interface, decrypted)),
-            r => Err(r)?,
+            r => Err(r.into()),
         }
     }
 }
@@ -576,7 +576,7 @@ impl HsmCertificate {
                 .into_owned()
         };
         if cert.is_empty() {
-            Err(ErrorKind::NullResponse)?
+            return Err(ErrorKind::NullResponse.into());
         }
         Ok(cert)
     }
@@ -603,7 +603,7 @@ impl HsmCertificate {
         let ts: i64 = unsafe { certificate_info_get_valid_to(self.cert_info_handle) };
         let naive_ts = NaiveDateTime::from_timestamp_opt(ts, 0);
         if naive_ts.is_none() {
-            Err(ErrorKind::NullResponse)?
+            return Err(ErrorKind::NullResponse.into());
         }
         Ok(DateTime::<Utc>::from_utc(naive_ts.unwrap(), Utc))
     }
@@ -615,7 +615,7 @@ impl HsmCertificate {
                 .into_owned()
         };
         if cn.is_empty() {
-            Err(ErrorKind::NullResponse)?
+            return Err(ErrorKind::NullResponse.into());
         }
         Ok(cn)
     }
@@ -1260,5 +1260,4 @@ mod tests {
         assert_eq!(plain1.len(), DEFAULT_BUF_LEN);
         assert_eq!(plain2.len(), DEFAULT_BUF_LEN);
     }
-
 }

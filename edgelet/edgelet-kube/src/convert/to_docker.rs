@@ -43,10 +43,10 @@ pub fn pod_to_module(pod: &api_core::Pod) -> Option<Result<KubeModule>> {
             debug!("Found the module named: {}, id {}", module, module_id);
             get_container_by_name(&module, pod)
                 .map_or_else(
-                    || Err(ErrorKind::ModuleNotFound(module.to_string()))?,
+                    || Err(ErrorKind::ModuleNotFound(module.to_string()).into()),
                     |container| {
                         container.image.as_ref().map_or_else(
-                            || Err(ErrorKind::ImageNotFound)?,
+                            || Err(ErrorKind::ImageNotFound.into()),
                             |image_name| {
                                 DockerConfig::new(
                                     image_name.to_string(),
@@ -240,5 +240,4 @@ mod tests {
         assert!(result.is_some());
         assert!(result.unwrap().is_err());
     }
-
 }

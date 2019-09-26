@@ -42,23 +42,23 @@ impl Tpm {
     pub fn new() -> Result<Tpm, Error> {
         let result = unsafe { hsm_client_tpm_init() as isize };
         if result != 0 {
-            Err(result)?
+            return Err(result.into());
         }
         let if_ptr = unsafe { hsm_client_tpm_interface() };
         if if_ptr.is_null() {
             unsafe { hsm_client_tpm_deinit() };
-            Err(ErrorKind::NullResponse)?
+            return Err(ErrorKind::NullResponse.into());
         }
         let interface = unsafe { *if_ptr };
         if let Some(handle) = interface.hsm_client_tpm_create.map(|f| unsafe { f() }) {
             if handle.is_null() {
                 unsafe { hsm_client_tpm_deinit() };
-                Err(ErrorKind::NullResponse)?
+                return Err(ErrorKind::NullResponse.into());
             }
             Ok(Tpm { handle, interface })
         } else {
             unsafe { hsm_client_tpm_deinit() };
-            Err(ErrorKind::NullResponse)?
+            Err(ErrorKind::NullResponse.into())
         }
     }
 
@@ -83,7 +83,7 @@ impl ManageTpmKeys for Tpm {
         let result = unsafe { key_fn(self.handle, key.as_ptr(), key.len()) };
         match result {
             0 => Ok(()),
-            r => Err(r)?,
+            r => Err(r.into()),
         }
     }
 
@@ -96,7 +96,7 @@ impl ManageTpmKeys for Tpm {
         let result = unsafe { key_fn(self.handle, &mut ptr, &mut key_ln) };
         match result {
             0 => Ok(TpmKey::new(self.interface, ptr as *const _, key_ln)),
-            r => Err(r)?,
+            r => Err(r.into()),
         }
     }
 
@@ -109,7 +109,7 @@ impl ManageTpmKeys for Tpm {
         let result = unsafe { key_fn(self.handle, &mut ptr, &mut key_ln) };
         match result {
             0 => Ok(TpmKey::new(self.interface, ptr as *const _, key_ln)),
-            r => Err(r)?,
+            r => Err(r.into()),
         }
     }
 }
@@ -135,7 +135,7 @@ impl SignWithTpm for Tpm {
         };
         match result {
             0 => Ok(TpmDigest::new(self.interface, ptr as *const _, key_ln)),
-            r => Err(r)?,
+            r => Err(r.into()),
         }
     }
 
@@ -164,7 +164,7 @@ impl SignWithTpm for Tpm {
         if result == 0 {
             Ok(TpmDigest::new(self.interface, ptr as *const _, key_ln))
         } else {
-            Err(result)?
+            Err(result.into())
         }
     }
 }
