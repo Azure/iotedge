@@ -34,7 +34,7 @@ pub use crate::bundle::Bundle;
 pub trait Command {
     type Future: Future<Item = ()> + Send;
 
-    fn execute(&mut self) -> Self::Future;
+    fn execute(self) -> Self::Future;
 }
 
 #[derive(Debug, Deserialize)]
