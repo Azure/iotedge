@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
 {
+    using System;
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -71,6 +72,13 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
             (byte[] key, byte[] value) lastEntry = lastEntryOption.OrDefault();
             Assert.Equal(lastKey, lastEntry.key.FromBytes());
             Assert.Equal(lastValue, lastEntry.value.FromBytes());
+        }
+
+        [Fact]
+        public async Task BackupNotImplementedTest()
+        {
+            IDbStore columnFamilyDbStore = this.rocksDbStoreProvider.GetDbStore("firstLastTest");
+            await Assert.ThrowsAsync<NotImplementedException>(() => columnFamilyDbStore.BackupAsync(string.Empty));
         }
     }
 }

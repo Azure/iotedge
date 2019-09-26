@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Routing.Core;
@@ -22,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
     public class Program
     {
-        static readonly TimeSpan ShutdownWaitPeriod = TimeSpan.FromSeconds(20);
+        static readonly TimeSpan ShutdownWaitPeriod = TimeSpan.FromSeconds(60);
 
         public static int Main()
         {
@@ -102,8 +103,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 await protocolHead.StartAsync();
                 await Task.WhenAny(cts.Token.WhenCanceled(), renewal.Token.WhenCanceled());
                 logger.LogInformation("Stopping the protocol heads...");
-                await Task.WhenAny(protocolHead.CloseAsync(CancellationToken.None), Task.Delay(TimeSpan.FromSeconds(10), CancellationToken.None));
+                await protocolHead.CloseAsync(CancellationToken.None);
                 logger.LogInformation("Protocol heads stopped.");
+
+                CloseDbStoreProvider(container);
             }
 
             completed.Set();
@@ -140,6 +143,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
 
             return new EdgeHubProtocolHead(protocolHeads, logger);
+        }
+
+        static void CloseDbStoreProvider(IContainer container)
+        {
+            IDbStoreProvider dbStoreProvider = container.Resolve<IDbStoreProvider>();
+            dbStoreProvider.Close();
         }
 
         static void LogLogo(ILogger logger)

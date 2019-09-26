@@ -4,11 +4,15 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
+    using System.IO;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using System.Web;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
     using Nito.AsyncEx;
+    using ProtoBuf;
 
     /// <summary>
     /// Provides an in memory implementation of the IDbStore
@@ -17,10 +21,49 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     {
         readonly ItemKeyedCollection keyValues;
         readonly AsyncReaderWriterLock listLock = new AsyncReaderWriterLock();
+        readonly string dbName;
 
-        public InMemoryDbStore()
+        public InMemoryDbStore(string dbName)
         {
+            Preconditions.CheckNonWhiteSpace(dbName, nameof(dbName));
+            this.dbName = dbName;
             this.keyValues = new ItemKeyedCollection(new ByteArrayComparer());
+        }
+
+        public InMemoryDbStore(string dbName, string backupPath)
+        {
+            Preconditions.CheckNonWhiteSpace(dbName, nameof(dbName));
+            Preconditions.CheckNonWhiteSpace(backupPath, nameof(backupPath));
+            this.dbName = dbName;
+            this.keyValues = new ItemKeyedCollection(new ByteArrayComparer());
+
+            this.RestoreDb(dbName, backupPath);
+        }
+
+        private void RestoreDb(string dbName, string backupPath)
+        {
+            string backupFileName = HttpUtility.UrlEncode(dbName);
+            string dbBackupPath = Path.Combine(backupPath, $"{backupFileName}.bin");
+            if (!File.Exists(dbBackupPath))
+            {
+                throw new IOException($"The backup data for database {dbName} doesn't exist.");
+            }
+
+            try
+            {
+                using (FileStream file = File.OpenRead(dbBackupPath))
+                {
+                    IList<Item> backedUpItems = Serializer.Deserialize<IList<Item>>(file);
+                    foreach (Item item in backedUpItems)
+                    {
+                        this.keyValues.Add(item);
+                    }
+                }
+            }
+            catch (IOException exception)
+            {
+                throw new IOException($"The restore operation for database {dbName} failed with error.", exception);
+            }
         }
 
         public Task Put(byte[] key, byte[] value) => this.Put(key, value, CancellationToken.None);
@@ -120,6 +163,32 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             }
         }
 
+        public async Task BackupAsync(string backupPath)
+        {
+            string backupFileName = HttpUtility.UrlEncode(this.dbName);
+            string newBackupPath = Path.Combine(backupPath, $"{backupFileName}.bin");
+            try
+            {
+                using (FileStream file = File.Create(newBackupPath))
+                {
+                    using (await this.listLock.WriterLockAsync(CancellationToken.None))
+                    {
+                        Serializer.Serialize(file, this.keyValues.AllItems);
+                    }
+                }
+            }
+            catch (IOException exception)
+            {
+                // Delete the backup data if anything was created as it will likely be corrupt.
+                if (File.Exists(newBackupPath))
+                {
+                    File.Delete(newBackupPath);
+                }
+
+                throw new IOException($"The backup operation for database {this.dbName} failed with error.", exception);
+            }
+        }
+
         public void Dispose()
         {
             // No-op
@@ -162,16 +231,23 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             }
         }
 
+        [ProtoContract]
         class Item
         {
+            private Item()
+            {
+            }
+
             public Item(byte[] key, byte[] value)
             {
                 this.Key = Preconditions.CheckNotNull(key, nameof(key));
                 this.Value = Preconditions.CheckNotNull(value, nameof(value));
             }
 
+            [ProtoMember(1)]
             public byte[] Key { get; }
 
+            [ProtoMember(2)]
             public byte[] Value { get; set; }
         }
 
@@ -185,6 +261,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             public IList<(byte[], byte[])> ItemList => this.Items
                 .Select(i => (i.Key, i.Value))
                 .ToList();
+
+            internal IList<Item> AllItems => this.Items;
 
             protected override byte[] GetKeyForItem(Item item) => item.Key;
         }

@@ -630,6 +630,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         static string GetKey() => Convert.ToBase64String(Encoding.UTF8.GetBytes(Guid.NewGuid().ToString()));
 
         static IEntityStore<string, string> GetEntityStore(string entityName)
-            => new EntityStore<string, string>(new KeyValueStoreMapper<string, byte[], string, byte[]>(new InMemoryDbStore(), new BytesMapper<string>(), new BytesMapper<string>()), entityName);
+            => new EntityStore<string, string>(new KeyValueStoreMapper<string, byte[], string, byte[]>(new InMemoryDbStore(entityName), new BytesMapper<string>(), new BytesMapper<string>()), entityName);
     }
 }

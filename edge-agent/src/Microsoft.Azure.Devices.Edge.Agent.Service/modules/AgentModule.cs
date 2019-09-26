@@ -28,9 +28,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly Option<string> workloadApiVersion;
         readonly string moduleId;
         readonly Option<string> moduleGenerationId;
+        readonly bool useBackupAndRestore;
+        readonly string storageBackupPath;
 
-        public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds, bool usePersistentStorage, string storagePath)
-            : this(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.None<Uri>(), Option.None<string>(), Constants.EdgeAgentModuleIdentityName, Option.None<string>())
+        public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds, bool usePersistentStorage, string storagePath, bool useBackupAndRestore, string storageBackupPath)
+            : this(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.None<Uri>(), Option.None<string>(), Constants.EdgeAgentModuleIdentityName, Option.None<string>(), useBackupAndRestore, storageBackupPath)
         {
         }
 
@@ -43,7 +45,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             Option<Uri> workloadUri,
             Option<string> workloadApiVersion,
             string moduleId,
-            Option<string> moduleGenerationId)
+            Option<string> moduleGenerationId,
+            bool useBackupAndRestore,
+            string storageBackupPath)
         {
             this.maxRestartCount = maxRestartCount;
             this.intensiveCareTime = intensiveCareTime;
@@ -54,6 +58,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.workloadApiVersion = workloadApiVersion;
             this.moduleId = moduleId;
             this.moduleGenerationId = moduleGenerationId;
+            this.useBackupAndRestore = useBackupAndRestore;
+            this.storageBackupPath = storageBackupPath;
         }
 
         static Dictionary<Type, IDictionary<string, Type>> DeploymentConfigTypeMapping
@@ -157,13 +163,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             catch (Exception ex) when (!ExceptionEx.IsFatal(ex))
                             {
                                 logger.LogError(ex, "Error creating RocksDB store. Falling back to in-memory store.");
-                                return new InMemoryDbStoreProvider();
+                                return new InMemoryDbStoreProvider(
+                                    Option.Some(this.storageBackupPath),
+                                    this.useBackupAndRestore);
                             }
                         }
                         else
                         {
                             logger.LogInformation($"Using in-memory store");
-                            return new InMemoryDbStoreProvider();
+                            return new InMemoryDbStoreProvider(
+                                Option.Some(this.storageBackupPath),
+                                this.useBackupAndRestore);
                         }
                     })
                 .As<IDbStoreProvider>()
