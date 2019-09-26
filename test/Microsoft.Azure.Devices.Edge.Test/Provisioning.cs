@@ -2,11 +2,13 @@
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
+    using System.IO;
     using System.Security.Cryptography;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
+    using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
@@ -83,32 +85,37 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string idScope = Context.Current.DpsIdScope.Expect(() => new InvalidOperationException("Missing DPS ID scope"));
             string registrationId = this.GetRegistrationId();
 
+            Assert.IsTrue(File.Exists(Path.Combine(caCertScriptPath,"certGen.sh")), "CA Certification script does not exist. Path: " + $"{caCertScriptPath}" );
+
             CertificateAuthority ca;
             CancellationToken token = this.TestToken;
 
             using (var cts = new CancellationTokenSource(Context.Current.SetupTimeout))
             {
                 DateTime startTime = DateTime.Now;
-                CancellationToken token = cts.Token;
+                CancellationToken caToken = cts.Token;
 
                 try
                 {
                     // BEARWASHERE -- Working on this func
-                    this.ca = await CertificateAuthority.CreateDpsX509CaAsync(
-                        Context.Current.DeviceId,
+                    ca = await CertificateAuthority.CreateDpsX509CaAsync(
+                        registrationId,
+                        rootCa,
                         caCertScriptPath,
-                        token);
+                        caToken);
 
+                    /*
                     await this.daemon.ConfigureAsync(
                         config =>
                         {
-                            config.SetCertificates(this.ca.Certificates);
+                            config.SetCertificates(ca.Certificates);
                             config.Update();
                             return Task.FromResult(("with edge certificates", Array.Empty<object>()));
                         },
-                        token);
+                        caToken);
+                    */
 
-                    await this.runtime.DeployConfigurationAsync(token);
+                    //await this.runtime.DeployConfigurationAsync(caToken);
                 }
                 catch
                 {
@@ -116,9 +123,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 }
                 finally
                 {
-                    await NUnitLogs.CollectAsync(startTime, token);
+                    await NUnitLogs.CollectAsync(startTime, caToken);
                 }
             }
+
+            // BEARWASHERE -- Let's fail this.
+            Assert.IsTrue(false, "Just End it");
+
 
             await this.daemon.ConfigureAsync(
                 config =>

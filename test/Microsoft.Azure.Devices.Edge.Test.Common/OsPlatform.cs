@@ -104,9 +104,22 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             }
         }
 
+        protected async Task RunScriptAsync(
+            (string name, string args) command,
+            CancellationToken token)
+        {
+            await Profiler.Run(
+                async () =>
+                {
+                    string[] output = await Process.RunAsync(command.name, command.args, token);
+                    Log.Verbose(string.Join("\n", output));
+                },
+                "Executed: " + command.name + command.args );
+        }
+
         static void CheckFiles(IEnumerable<string> paths, string basePath) => NormalizeFiles(paths, basePath);
 
-        static string[] NormalizeFiles(IEnumerable<string> paths, string basePath)
+        public static string[] NormalizeFiles(IEnumerable<string> paths, string basePath)
         {
             return paths.Select(
                 path =>

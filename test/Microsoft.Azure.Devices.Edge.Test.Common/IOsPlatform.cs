@@ -17,8 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         IEdgeDaemon CreateEdgeDaemon(Option<string> installerPath);
 
         // After calling this function, the following files will be available under {scriptPath}:
-        //  certs/iot-device-{leafDeviceId}-full-chain.cert.pem
-        //  private/iot-device-{leafDeviceId}.key.pem
+        //  certs/iot-device-{deviceId}-full-chain.cert.pem
+        //  private/iot-device-{deviceId}.key.pem
         Task<Certificates> CreateDeviceCertificatesAsync(string deviceId, string scriptPath, CancellationToken token);
 
         // After calling this function, the following files will be available under {scriptPath}:

@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Serilog;
 
     public class OsPlatform : Common.OsPlatform, IOsPlatform
     {
@@ -26,26 +27,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public IEdgeDaemon CreateEdgeDaemon(Option<string> _) => new EdgeDaemon();
 
-        public Task<Certificates> CreateDeviceCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
+        public async Task<Certificates> CreateDeviceCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
         {
             var command = BuildCertCommand($"create_device_certificate '{deviceId}'", scriptPath);
-
-            await Profiler.Run(
-                async () =>
-                {
-                    string[] output = await Process.RunAsync("bash", command, token);
-                    Log.Verbose(string.Join("\n", output));
-                },
-                "Created certificates for the device");
-
-            var files = new[]
-            {
-                $"certs/iot-device-{deviceId}-full-chain.cert.pem",
-                $"private/iot-device-{deviceId}.key.pem"
-            };
-            files = NormalizeFiles(files, scriptPath);
-
-            return new Certificates(files[0], files[1]);
+            await this.RunScriptAsync(("bash", command), token);
+            return new Certificates(deviceId, scriptPath);
         }
 
         public Task<EdgeCertificates> GenerateEdgeCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
