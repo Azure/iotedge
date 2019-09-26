@@ -352,7 +352,7 @@ function process_args() {
             DPS_MASTER_SYMMETRIC_KEY="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 30 ]; then
-            DESIRED_MODULES_TO_RESTART_JSON_PATH="$arg"
+            DESIRED_MODULES_TO_RESTART_CSV="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 31 ]; then
             RANDOM_RESTART_INTERVAL_IN_MINS="$arg"
@@ -389,7 +389,7 @@ function process_args() {
                 '-installRootCAKeyPassword' ) saveNextArg=27;;
                 '-dpsScopeId' ) saveNextArg=28;;
                 '-dpsMasterSymmetricKey' ) saveNextArg=29;;
-                '-desiredModulesToRestartJsonPath' ) saveNextArg=30;;
+                '-desiredModulesToRestartCSV' ) saveNextArg=30;;
                 '-randomRestartIntervalInMins' ) saveNextArg=31;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
@@ -631,10 +631,7 @@ function run_longhaul_test() {
     sed -i -e "s@<DeviceID>@$device_id@g" "$deployment_working_file"
     sed -i -e "s@<IoTHubConnectionString>@$IOTHUB_CONNECTION_STRING@g" "$deployment_working_file"
     sed -i -e "s@<RandomRestartIntervalInMins>@$RANDOM_RESTART_INTERVAL_IN_MINS@g" "$deployment_working_file"
-
-    json_arr=`cat $DESIRED_MODULES_TO_RESTART_JSON_PATH`
-    json_arr=${json_arr//\"/\\\\\"}
-    sed -i -e "s@<DesiredModulesToRestartJsonArray>@$json_arr@g" "$deployment_working_file"
+    sed -i -e "s@<DesiredModulesToRestartCSV>@$DESIRED_MODULES_TO_RESTART_CSV@g" "$deployment_working_file"
 
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run Long Haul test with -d '$device_id' started at $test_start_time"
@@ -978,7 +975,7 @@ function usage() {
     echo ' -installRootCACertPath            Optional path to root CA certificate to be used for certificate generation'
     echo ' -installRootCAKeyPath             Optional path to root CA certificate private key to be used for certificate generation'
     echo ' -installRootCAKeyPassword         Optional password to access the root CA certificate private key to be used for certificate generation'
-    echo ' -desiredModulesToRestartJsonPath  Optional JSON file path for long haul specifying what modules to restart in array format. If specified, then "randomRestartIntervalInMins" must be specified as well.'
+    echo ' -desiredModulesToRestartCSV       Optional CSV string of module names for long haul specifying what modules to restart. If specified, then "randomRestartIntervalInMins" must be specified as well.'
     echo ' -randomRestartIntervalInMins      Optional value for long haul specifying how often a random module will restart. If specified, then "desiredModulesToRestartJsonPath" must be specified as well.'
     exit 1;
 }
@@ -997,6 +994,7 @@ if [[ "${TEST_NAME,,}" == "longhaul" ]]; then
     LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:01}"
     SNITCH_REPORTING_INTERVAL_IN_SECS="${SNITCH_REPORTING_INTERVAL_IN_SECS:-86400}"
     SNITCH_TEST_DURATION_IN_SECS="${SNITCH_TEST_DURATION_IN_SECS:-604800}"
+    RANDOM_RESTART_INTERVAL_IN_MINS="${RANDOM_RESTART_INTERVAL_IN_MINS:20}"
 fi
 if [[ "${TEST_NAME,,}" == "stress" ]]; then
     LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:00.03}"
