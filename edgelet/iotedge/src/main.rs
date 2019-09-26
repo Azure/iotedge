@@ -245,7 +245,7 @@ fn run() -> Result<(), Error> {
                         .help("Directory to store bundle")
                         .long("location")
                         .takes_value(true)
-                        .value_name("NUM")
+                        .value_name("DIRECTORY")
                         .default_value("."),
                 )
                 .arg(
