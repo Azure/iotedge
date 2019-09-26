@@ -19,10 +19,12 @@ function clean_up() {
     rm -rf /var/run/iotedge/
     rm -rf /etc/iotedge/config.yaml
 
+    echo 'Remove mounted storage folder'
+    rm -rf /home/edgehub-mounted-storage
+
     if [ "$CLEAN_ALL" = '1' ]; then
         echo 'Prune docker system'
         docker system prune -af --volumes || true
-        rm -rf /home/edgehub-mounted-storage
     else
         echo 'Remove docker containers'
         docker rm -f $(docker ps -aq) || true
@@ -860,9 +862,9 @@ function setup_mounted_storage() {
 }
 
 function test_setup() {
-    setup_mounted_storage
     validate_test_parameters
     clean_up
+    setup_mounted_storage
     prepare_test_from_artifacts
     create_iotedge_service_config
 }

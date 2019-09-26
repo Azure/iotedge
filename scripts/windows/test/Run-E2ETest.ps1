@@ -1319,12 +1319,11 @@ Function SetEnvironmentVariable
 
 Function SetupMountedStorage
 {
-
     If (!(Test-Path "C:\data\edgehub"))
     {
         New-Item -ItemType directory -Path "C:\data\edgehub"
     }
-
+    icacls "C:\data\edgehub" /grant Everyone:F
 }
 
 Function TestSetup
@@ -1340,6 +1339,7 @@ Function TestSetup
 
         Invoke-Expression $testCommand | Out-Host
     }
+    SetupMountedStorage
     InitializeWorkingFolder
     PrepareTestFromArtifacts
     SetEnvironmentVariable
