@@ -207,7 +207,7 @@ impl<C: Connect + 'static> Client<C> {
 
     /// Retrieve a byte-slice of the blob with specified `digest` from the
     /// `repo`. If the server doesn't support the use of a Range header, this
-    /// function will return a [ErrorKind::RangeHeaderNotSupported]
+    /// function will return a [ErrorKind::ApiRangeHeaderNotSupported]
     #[allow(clippy::ptr_arg)] // TODO: use proper Digest type instead of String
     pub async fn get_raw_blob_part(
         &mut self,
@@ -258,7 +258,7 @@ impl<C: Connect + 'static> Client<C> {
                 }
 
                 if !self.supports_range_header.unwrap() {
-                    return Err(ErrorKind::RangeHeaderNotSupported.into());
+                    return Err(ErrorKind::ApiRangeHeaderNotSupported.into());
                 }
 
                 Some(RangeHeader::bytes(range).context(ErrorKind::InvalidRange)?)

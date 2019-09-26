@@ -34,10 +34,10 @@ pub enum ErrorKind {
     #[fail(display = "Invalid Range")]
     InvalidRange,
 
-    // API communication
     #[fail(display = "Could not construct API Endpoint request")]
     InvalidApiEndpoint,
 
+    // API communication
     #[fail(display = "Could not send authenticated request")]
     AuthClientRequest,
 
@@ -62,15 +62,15 @@ pub enum ErrorKind {
     )]
     ApiUnexpectedStatus(hyper::StatusCode),
 
-    // Concrete Endpoint Errors
+    #[fail(display = "API doesn't support HTTP Range Headers")]
+    ApiRangeHeaderNotSupported,
+
+    // Data integrity Errors
     #[fail(
-        display = "Server returned Manifest with incompatible schema version = {}",
+        display = "API returned Manifest with incompatible schema version = {}",
         _0
     )]
     InvalidSchemaVersion(i32),
-
-    #[fail(display = "Endpoint doesn't support HTTP Range Headers")]
-    RangeHeaderNotSupported,
 
     // Authentication-related Errors
     #[fail(display = "Auth Flow Error: {}", _0)]
