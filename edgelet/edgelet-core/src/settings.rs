@@ -652,6 +652,7 @@ where
         &self.homedir
     }
 
+    // Certificates is left as an option for backward compat
     fn certificates(&self) -> &Certificates {
         match &self.certificates {
             None => &Certificates {
