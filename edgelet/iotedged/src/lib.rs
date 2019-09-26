@@ -194,7 +194,7 @@ const DEVICE_IDENTITY_CERT_PATH_ENV_KEY: &str = "IOTEDGE_DEVICE_IDENTITY_CERT";
 const DEVICE_IDENTITY_KEY_PATH_ENV_KEY: &str = "IOTEDGE_DEVICE_IDENTITY_PK";
 
 /// These are the properties of the workload CA certificate
-const IOTEDGED_VALIDITY: u64 = 7_776_000;
+// const IOTEDGED_VALIDITY: u64 = 7_776_000;
 // 90 days
 const IOTEDGED_COMMONNAME: &str = "iotedged workload ca";
 const IOTEDGED_TLS_COMMONNAME: &str = "iotedged";
@@ -1381,7 +1381,7 @@ where
     let (work_tx, work_rx) = oneshot::channel();
 
     let edgelet_cert_props = CertificateProperties::new(
-        IOTEDGED_VALIDITY,
+        settings.certificates().expect("we default now").auto_generated_ca_lifetime(),
         IOTEDGED_TLS_COMMONNAME.to_string(),
         CertificateType::Server,
         "iotedge-tls".to_string(),

@@ -445,6 +445,7 @@ pub struct Certificates {
     device_ca_cert: String,
     device_ca_pk: String,
     trusted_ca_certs: String,
+    auto_generated_ca_lifetime: u16,
 }
 
 fn is_supported_uri(uri: &Url) -> bool {
@@ -536,6 +537,11 @@ impl Certificates {
 
     pub fn trusted_ca_certs_uri(&self) -> Result<Url, Error> {
         convert_to_uri(&self.trusted_ca_certs, "certificates.trusted_ca_certs")
+    }
+
+    pub fn auto_generated_ca_lifetime(&self) -> u64 {
+        // Convert days to seconds (86,400 seconds per day)
+        u64::from(self.auto_generated_ca_lifetime) * 86_400
     }
 }
 
