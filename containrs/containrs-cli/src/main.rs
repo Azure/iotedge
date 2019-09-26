@@ -4,9 +4,12 @@ use clap::{App, AppSettings, Arg, SubCommand};
 use hyper::Client as HyperClient;
 use hyper_tls::HttpsConnector;
 
-use docker_reference::Reference;
+use docker_reference::{Reference, ReferenceKind};
 
 use containrs::{Client, Credentials, Paginate};
+
+mod parse_range;
+use crate::parse_range::ParsableRange;
 
 #[tokio::main]
 async fn main() {
@@ -88,6 +91,21 @@ async fn true_main() -> Result<(), failure::Error> {
                                 .help("Image reference")
                                 .required(true)
                                 .index(1),
+                        ),
+                )
+                .subcommand(
+                    SubCommand::with_name("blob")
+                        .about("Retrieve a blob from a given repository")
+                        .arg(
+                            Arg::with_name("repo@digest")
+                                .help("A string of form repo@digest (e.g: ubuntu@sha256:...)")
+                                .required(true)
+                                .index(1),
+                        )
+                        .arg(
+                            Arg::with_name("range")
+                                .help("A range of bytes to retrieve (e.g: \"10..\" will return everything except the first 9 bytes)")
+                                .index(2),
                         ),
                 ),
         )
@@ -182,7 +200,7 @@ async fn true_main() -> Result<(), failure::Error> {
                     let mut client = Client::new(
                         hyper_client,
                         transport_scheme,
-                        image.registry(),
+                        default_registry,
                         credentials,
                     )?;
 
@@ -218,6 +236,37 @@ async fn true_main() -> Result<(), failure::Error> {
                     )?;
                     let manifest = client.get_raw_manifest(&image).await?;
                     std::io::stdout().write_all(&manifest)?;
+                }
+                ("blob", Some(sub_m)) => {
+                    // won't panic, as these are required arguments
+                    let repo_digest = sub_m.value_of("repo@digest").unwrap();
+
+                    let image = Reference::parse(repo_digest, default_registry, docker_compat)?;
+                    eprintln!("canonical: {:#?}", image);
+
+                    let digest = match image.kind() {
+                        ReferenceKind::Digest(digest) => digest,
+                        _ => return Err(failure::err_msg("must specify digest")),
+                    };
+
+                    let mut client = Client::new(
+                        hyper_client,
+                        transport_scheme,
+                        default_registry,
+                        credentials,
+                    )?;
+
+                    let blob = match sub_m.value_of("range") {
+                        Some(s) => {
+                            let range: ParsableRange<u64> = s.parse()?;
+                            client
+                                .get_raw_blob_part(image.repo(), digest, range)
+                                .await?
+                        }
+                        None => client.get_raw_blob(image.repo(), digest).await?,
+                    };
+
+                    std::io::stdout().write_all(&blob)?;
                 }
                 _ => unreachable!(),
             }

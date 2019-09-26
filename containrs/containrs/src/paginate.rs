@@ -26,19 +26,19 @@ impl Paginate {
     pub fn from_link_header(header: &HeaderValue) -> Result<Paginate> {
         let uri = header
             .to_str() // might be invalid utf-8
-            .context(ErrorKind::PaginationLink)?
+            .context(ErrorKind::ApiPaginationLink)?
             .splitn(2, ';')
             .next() // might not be well-formatted
-            .ok_or_else(|| ErrorKind::PaginationLink)?
+            .ok_or_else(|| ErrorKind::ApiPaginationLink)?
             .trim_start_matches('<')
             .trim_end_matches('>')
             .parse::<Uri>() // might not be valid uri
-            .context(ErrorKind::PaginationLink)?;
+            .context(ErrorKind::ApiPaginationLink)?;
         let query = uri
             .query() // might not have query component
-            .ok_or_else(|| ErrorKind::PaginationLink)?;
+            .ok_or_else(|| ErrorKind::ApiPaginationLink)?;
         let next_paginate =
-            serde_urlencoded::from_str::<Paginate>(query).context(ErrorKind::PaginationLink)?;
+            serde_urlencoded::from_str::<Paginate>(query).context(ErrorKind::ApiPaginationLink)?;
         Ok(next_paginate)
     }
 }

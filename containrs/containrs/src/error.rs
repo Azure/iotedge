@@ -15,7 +15,7 @@ pub struct Error {
 
 #[derive(Debug, Fail)]
 pub enum ErrorKind {
-    // Client Construction
+    // User Input Errors
     #[fail(display = "Could not parse registry URI")]
     ClientRegistryUriMalformed,
 
@@ -27,6 +27,12 @@ pub enum ErrorKind {
 
     #[fail(display = "Could not parse scheme")]
     ClientMalformedScheme,
+
+    #[fail(display = "Could not parse provided media_type")]
+    InvalidMediaType,
+
+    #[fail(display = "Invalid Range")]
+    InvalidRange,
 
     // API communication
     #[fail(display = "Could not construct API Endpoint request")]
@@ -45,7 +51,10 @@ pub enum ErrorKind {
     ApiMalformedJSON,
 
     #[fail(display = "API returned malformed pagination link")]
-    PaginationLink,
+    ApiPaginationLink,
+
+    #[fail(display = "API returned a bad redirect")]
+    ApiBadRedirect,
 
     #[fail(
         display = "API returned an out of spec response (status code: {}). See debug logs for response contents.",
@@ -60,6 +69,9 @@ pub enum ErrorKind {
     )]
     InvalidSchemaVersion(i32),
 
+    #[fail(display = "Endpoint doesn't support HTTP Range Headers")]
+    RangeHeaderNotSupported,
+
     // Authentication-related Errors
     #[fail(display = "Auth Flow Error: {}", _0)]
     Auth(AuthError),
@@ -67,10 +79,6 @@ pub enum ErrorKind {
     // Misc
     #[fail(display = "Could not parse hyper::Body as JSON")]
     UtilHyperBodyJSON,
-
-    // Endpoint contexts
-    #[fail(display = "Error while fetching _catalog")]
-    EndpointCatalog,
 }
 
 impl Fail for Error {

@@ -45,6 +45,12 @@ impl<C: Connect + 'static> AuthClient<C> {
         }
     }
 
+    /// Get a mutable borrow of the underlying hyper client (for performing
+    /// raw, unauthenticated requests)
+    pub fn raw_client(&mut self) -> &mut HyperClient<C> {
+        &mut self.client
+    }
+
     /// Wrapper around [HyperClient::request] which authenticates outbound
     /// requests
     pub async fn request(&mut self, mut req: Request<Body>) -> Result<Response<Body>> {
@@ -55,7 +61,7 @@ impl<C: Connect + 'static> AuthClient<C> {
                     .authenticate(&req)
                     .await
                     .context(ErrorKind::AuthClientRequest)?;
-                debug!("Authenticated successfully");
+                trace!("Authenticated successfully");
                 let h = new_headers.clone();
                 self.store.insert(req.uri().clone(), new_headers);
                 h
@@ -63,13 +69,13 @@ impl<C: Connect + 'static> AuthClient<C> {
         };
 
         req.headers_mut().extend(headers);
-        debug!("{:#?}", req);
+        trace!("Authenticated req: {:#?}", req);
         let res = self
             .client
             .request(req)
             .await
             .context(ErrorKind::AuthClientRequest)?;
-        debug!("{:#?}", res);
+        trace!("Authenticated res: {:#?}", res);
         Ok(res)
     }
 
@@ -85,21 +91,21 @@ impl<C: Connect + 'static> AuthClient<C> {
 
     /// Retrieve authentication headers for the given Request
     async fn authenticate(&mut self, orig_req: &Request<Body>) -> Result<HeaderMap> {
-        debug!("Not authenticated yet");
+        trace!("Not authenticated yet");
 
         // start by pinging the URL without authorization
         let unauth_req = Request::builder()
             .uri(orig_req.uri())
             .method(orig_req.method())
             .body(Body::empty())
-            .unwrap(); // won't panic, as it's being built from a known-valid request
-        debug!("Unauth req: {:#?}", unauth_req);
+            .unwrap(); // won't panic, as it's built from a known-valid request
+        trace!("Unauth req: {:#?}", unauth_req);
         let unauth_res = self
             .client
             .request(unauth_req)
             .await
             .context(AuthError::EndpointNoResponse)?;
-        debug!("Unauth res: {:#?}", unauth_res);
+        trace!("Unauth res: {:#?}", unauth_res);
 
         if unauth_res.status() != StatusCode::UNAUTHORIZED {
             // that's wierd, but okay. Just pass up an empty auth header
@@ -121,7 +127,7 @@ impl<C: Connect + 'static> AuthClient<C> {
             .parse::<WWWAuthenticate>()
             .context(AuthError::EndpointMalformedHeader)?;
 
-        debug!("Parsed WWW-Authenticate header: {:#?}", www_auth);
+        trace!("Parsed WWW-Authenticate header: {:#?}", www_auth);
 
         let mut headers = HeaderMap::new();
         for challenge in www_auth.into_iter() {
@@ -141,7 +147,7 @@ impl<C: Connect + 'static> AuthClient<C> {
                         // Fall back to docker-specific auth flow on faliure
                         Err(e) => {
                             let e = failure::Error::from(e);
-                            warn!("{}", e);
+                            warn!("OAuth2 User-Pass {}", e);
                             for cause in e.iter_causes() {
                                 warn!("\tcaused by: {}", cause);
                             }

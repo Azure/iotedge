@@ -76,12 +76,12 @@ pub async fn auth_flow<C: Connect + 'static>(
         .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
         .body(Body::from(query))
         .unwrap();
-    debug!("{:#?}", req);
+    trace!("OAuth2 auth server req: {:#?}", req);
     let res = client
         .request(req)
         .await
         .context(AuthError::AuthServerNoResponse)?;
-    debug!("{:#?}", res);
+    trace!("OAuth2 auth server res: {:#?}", res);
 
     if !res.status().is_success() {
         match res.status() {

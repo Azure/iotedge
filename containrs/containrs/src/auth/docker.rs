@@ -80,13 +80,13 @@ pub async fn auth_flow<C: Connect + 'static>(
             .typed_insert(AuthorizationHeader::basic(user, pass));
     }
     let req = req.body(Body::empty()).unwrap();
-    debug!("{:#?}", req);
+    trace!("Docker auth server req: {:#?}", req);
 
     let res = client
         .request(req)
         .await
         .context(AuthError::AuthServerNoResponse)?;
-    debug!("{:#?}", res);
+    trace!("Docker auth server res: {:#?}", res);
 
     if !res.status().is_success() {
         match res.status() {

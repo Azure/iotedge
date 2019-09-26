@@ -1,4 +1,8 @@
+use std::ops::{Bound, RangeBounds};
+
 use failure::{Fail, ResultExt};
+use headers::HeaderMapExt;
+use headers::Range as RangeHeader;
 use hyper::body::Body;
 use hyper::client::connect::Connect;
 use hyper::header;
@@ -21,6 +25,7 @@ use crate::util::hyper::{BodyExt, ResponseExt};
 pub struct Client<C> {
     client: AuthClient<C>,
     registry_base: Uri,
+    supports_range_header: Option<bool>, // None = Unknown
 }
 
 impl<C: Connect + 'static> Client<C> {
@@ -57,6 +62,7 @@ impl<C: Connect + 'static> Client<C> {
         Ok(Client {
             client: AuthClient::new(hyper_client, creds),
             registry_base: Uri::from_parts(parts).unwrap(), // guaranteed to work
+            supports_range_header: None,
         })
     }
 
@@ -118,13 +124,13 @@ impl<C: Connect + 'static> Client<C> {
             }
             StatusCode::UNAUTHORIZED => {
                 // TODO: attempt to reauthenticate
-                unimplemented!("get_manifest: UNAUTHORIZED")
+                unimplemented!("get_raw_manifest: UNAUTHORIZED")
             }
             _ => Err(new_api_error(res).await),
         }
     }
 
-    /// Fetch the tags under a given `repo`.
+    /// Retrieve the tags under a given `repo`.
     /// Returns a tuple of [Vec<u8>] and the next [Paginate] range
     /// (if pagination is being used)
     pub async fn get_raw_tags(
@@ -158,13 +164,13 @@ impl<C: Connect + 'static> Client<C> {
             }
             StatusCode::UNAUTHORIZED => {
                 // TODO: attempt to reauthenticate
-                unimplemented!("get_tags: UNAUTHORIZED")
+                unimplemented!("get_raw_tags: UNAUTHORIZED")
             }
             _ => Err(new_api_error(res).await),
         }
     }
 
-    /// Fetch the raw manifest JSON associated with the given reference.
+    /// Retrieve the raw manifest JSON associated with the given reference.
     pub async fn get_raw_manifest(&mut self, reference: &Reference) -> Result<Vec<u8>> {
         let uri = self.base_uri(
             format!("/v2/{}/manifests/{}", reference.repo(), reference.kind()).as_str(),
@@ -173,7 +179,7 @@ impl<C: Connect + 'static> Client<C> {
         let mut req = Request::get(uri);
         req.header(header::ACCEPT, Manifest::MEDIA_TYPE);
         for &similar_mime in Manifest::SIMILAR_MEDIA_TYPES {
-            // Docker compatibility
+            // mainly for docker compatibility
             req.header(header::ACCEPT, similar_mime);
         }
         let req = req.body(Body::empty()).unwrap();
@@ -187,7 +193,130 @@ impl<C: Connect + 'static> Client<C> {
                 .context(ErrorKind::ApiMalformedBody)?),
             StatusCode::UNAUTHORIZED => {
                 // TODO: attempt to re-authenticate
-                unimplemented!("get_manifest: UNAUTHORIZED")
+                unimplemented!("get_raw_manifest: UNAUTHORIZED")
+            }
+            _ => Err(new_api_error(res).await),
+        }
+    }
+
+    /// Retrieve the blob with specified `digest` from the `repo`.
+    #[allow(clippy::ptr_arg)] // TODO: use proper Digest type instead of String
+    pub async fn get_raw_blob(&mut self, repo: &str, digest: &String) -> Result<Vec<u8>> {
+        self.get_raw_blob_part(repo, digest, ..).await
+    }
+
+    /// Retrieve a byte-slice of the blob with specified `digest` from the
+    /// `repo`. If the server doesn't support the use of a Range header, this
+    /// function will return a [ErrorKind::RangeHeaderNotSupported]
+    #[allow(clippy::ptr_arg)] // TODO: use proper Digest type instead of String
+    pub async fn get_raw_blob_part(
+        &mut self,
+        repo: &str,
+        digest: &String,
+        range: impl RangeBounds<u64>,
+    ) -> Result<Vec<u8>> {
+        let uri = self.base_uri(format!("/v2/{}/blobs/{}", repo, digest).as_str())?;
+
+        let range_header = match (range.start_bound(), range.end_bound()) {
+            (Bound::Unbounded, Bound::Unbounded) | (Bound::Included(0), Bound::Unbounded) => {
+                // This is an unbounded range over the whole file, which is equivalent to not
+                // sending a range header at all. Just in case, don't send the range
+                // header in these cases.
+                None
+            }
+            _ => {
+                if self.supports_range_header.is_none() {
+                    // "This endpoint MAY also support RFC7233 compliant range requests. Support can
+                    // be detected by issuing a HEAD request. If the header Accept-Range: bytes is
+                    // returned, range requests can be used to fetch partial content."
+
+                    let req = Request::head(uri.clone()).body(Body::empty()).unwrap();
+                    let mut res = self.client.request(req).await?;
+
+                    // FIXME: redirect handling needs to be more robust
+                    if res.status().is_redirection() {
+                        let redirect_uri = res
+                            .headers()
+                            .get(header::LOCATION)
+                            .ok_or_else(|| ErrorKind::ApiBadRedirect)?
+                            .to_str()
+                            .context(ErrorKind::ApiBadRedirect)?
+                            .parse::<Uri>()
+                            .context(ErrorKind::ApiBadRedirect)?;
+
+                        res = self
+                            .client
+                            .raw_client()
+                            .get(redirect_uri)
+                            .await
+                            .context(ErrorKind::ApiBadRedirect)?;
+                    }
+
+                    // FIXME: this could be a stricter check
+                    self.supports_range_header =
+                        Some(res.headers().get(header::ACCEPT_RANGES).is_some());
+                }
+
+                if !self.supports_range_header.unwrap() {
+                    return Err(ErrorKind::RangeHeaderNotSupported.into());
+                }
+
+                Some(RangeHeader::bytes(range).context(ErrorKind::InvalidRange)?)
+            }
+        };
+
+        let mut req = Request::get(uri);
+        if let Some(range_header) = range_header.clone() {
+            req.headers_mut()
+                .unwrap()
+                .typed_insert(range_header.clone());
+        }
+        let req = req.body(Body::empty()).unwrap();
+        let res = self.client.request(req).await?;
+
+        match res.status() {
+            status if status.is_success() => Ok(res
+                .into_body()
+                .bytes()
+                .await
+                .context(ErrorKind::ApiMalformedBody)?),
+            StatusCode::TEMPORARY_REDIRECT => {
+                // FIXME: redirect handling needs to be more robust
+                let redirect_uri = res
+                    .headers()
+                    .get(header::LOCATION)
+                    .ok_or_else(|| ErrorKind::ApiBadRedirect)?
+                    .to_str()
+                    .context(ErrorKind::ApiBadRedirect)?
+                    .parse::<Uri>()
+                    .context(ErrorKind::ApiBadRedirect)?;
+
+                let mut req = Request::get(redirect_uri);
+                if let Some(range_header) = range_header.clone() {
+                    req.headers_mut().unwrap().typed_insert(range_header);
+                }
+                let req = req.body(Body::empty()).unwrap();
+                log::trace!("blob redirect req: {:#?}", req);
+                let res = self
+                    .client
+                    .raw_client()
+                    .request(req)
+                    .await
+                    .context(ErrorKind::ApiBadRedirect)?;
+                log::trace!("blob redirect res: {:#?}", res);
+
+                match res.status() {
+                    status if status.is_success() => Ok(res
+                        .into_body()
+                        .bytes()
+                        .await
+                        .context(ErrorKind::ApiMalformedBody)?),
+                    _ => Err(new_api_error(res).await),
+                }
+            }
+            StatusCode::UNAUTHORIZED => {
+                // TODO: attempt to re-authenticate
+                unimplemented!("get_raw_blob: UNAUTHORIZED")
             }
             _ => Err(new_api_error(res).await),
         }
@@ -213,7 +342,7 @@ impl<C: Connect + 'static> Client<C> {
             .transpose()
     }
 
-    /// Fetch the tags under a given `repo`, performing additional checks to
+    /// Retrieve the tags under a given `repo`, performing additional checks to
     /// ensure the JSON is spec-compliant.
     pub async fn get_tags(
         &mut self,
@@ -227,7 +356,7 @@ impl<C: Connect + 'static> Client<C> {
         ))
     }
 
-    /// Fetch the Manifest associated with the given reference, performing
+    /// Retrieve the Manifest associated with the given reference, performing
     /// additional checks to ensure the JSON is spec-compliant.
     pub async fn get_manifest(&mut self, reference: &Reference) -> Result<Manifest> {
         let manifest = serde_json::from_slice::<Manifest>(&self.get_raw_manifest(reference).await?)
