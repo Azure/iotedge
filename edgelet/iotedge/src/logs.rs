@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use tokio::prelude::future::ok;
 use std::io::{self, Write};
+use failure::ResultExt;
 
 use failure::Fail;
 use futures::prelude::*;
@@ -34,11 +36,12 @@ where
 
     fn execute(&mut self) -> Self::Future {
         let id = self.id.clone();
-        Box::new(pull_logs(&self.runtime, &id, &self.options, io::stdout()))
+        let result = pull_logs(&self.runtime, &id, &self.options, io::stdout()).map(drop);
+        Box::new(result)
     }
 }
 
-pub fn pull_logs<M, W>(runtime: &M, id: &str, options: &LogOptions, mut writer: W) -> impl Future<Item = (), Error = Error> + Send
+pub fn pull_logs<M, W>(runtime: &M, id: &str, options: &LogOptions, mut writer: W) -> impl Future<Item = W, Error = Error> + Send
 where
     M: 'static + ModuleRuntime + Clone,
     W: 'static + Write + Send,
@@ -49,16 +52,17 @@ where
         .and_then(move |logs| {
             let chunked =
                 Chunked::new(logs.map_err(|_| io::Error::new(io::ErrorKind::Other, "unknown")));
-            LogDecode::new(chunked)
-                .for_each(move |chunk| {
+            let decoder = LogDecode::new(chunked)
+                .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)));
+
+            decoder.fold(writer, |w, chunk| {
                     match chunk {
                         LogChunk::Stdin(b)
                         | LogChunk::Stdout(b)
                         | LogChunk::Stderr(b)
-                        | LogChunk::Unknown(b) => writer.write(&b)?,
+                        | LogChunk::Unknown(b) => w.write(&b)?,
                     };
-                    Ok(())
+                    Ok(writer)
                 })
-                .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))
         })
 }
