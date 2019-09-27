@@ -1,4 +1,5 @@
 use std::io::{Read, Write};
+use std::path::Path;
 
 use clap::{App, AppSettings, Arg, SubCommand};
 use hyper::Client as HyperClient;
@@ -112,18 +113,19 @@ async fn true_main() -> Result<(), failure::Error> {
         .subcommand(
             SubCommand::with_name("download")
                 .about("Downloads an image onto disk")
-                .arg(
-                    Arg::with_name("outdir")
-                        .help("Output directory")
-                        .required(true)
-                        .index(1),
-                )
+
                 .arg(
                     Arg::with_name("image")
                         .help("Image reference")
                         .required(true)
+                        .index(1),
+                )
+                .arg(
+                    Arg::with_name("outdir")
+                        .help("Output directory")
+                        .required(true)
                         .index(2),
-                ),
+                )
         )
         .get_matches();
 
@@ -234,7 +236,8 @@ async fn true_main() -> Result<(), failure::Error> {
                         image.registry(),
                         credentials,
                     )?;
-                    let manifest = client.get_raw_manifest(&image).await?;
+                    let (manifest, digest) = client.get_raw_manifest(&image).await?;
+                    eprintln!("Server reported digest: {}", digest);
                     std::io::stdout().write_all(&manifest)?;
                 }
                 ("blob", Some(sub_m)) => {
@@ -285,11 +288,8 @@ async fn true_main() -> Result<(), failure::Error> {
                 image.registry(),
                 credentials,
             )?;
-            let manifest = client.get_manifest(&image).await?;
-            println!("{:#?}", manifest);
 
-            // dump manifest to file (making director if it doesn't exist)
-            let _ = outdir;
+            containrs::flows::download_image(&mut client, &image, Path::new(outdir), true).await?;
         }
         _ => unreachable!(),
     }

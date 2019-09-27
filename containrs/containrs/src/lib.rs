@@ -6,7 +6,9 @@ mod error;
 mod paginate;
 mod util;
 
+pub mod flows;
+
 pub use auth::Credentials;
-pub use client::*;
+pub use client::Client;
 pub use error::{Error, ErrorKind, Result};
 pub use paginate::Paginate;

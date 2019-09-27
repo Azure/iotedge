@@ -11,7 +11,6 @@ use hyper::Client as HyperClient;
 // use log::*;
 
 use docker_reference::Reference;
-use oci_distribution::v2::{Catalog, Tags};
 use oci_image::{v1::Manifest, MediaType};
 
 use crate::auth::{AuthClient, Credentials};
@@ -19,8 +18,8 @@ use crate::error::*;
 use crate::paginate::Paginate;
 use crate::util::hyper::{BodyExt, ResponseExt};
 
-/// Client for interacting with container registries which conform to the
-/// OCI distribution specification (i.e: Docker Registry HTTP API V2 protocol)
+/// Client for interacting with container registries that conform to the OCI
+/// distribution specification (i.e: Docker Registry HTTP API V2 protocol)
 #[derive(Debug)]
 pub struct Client<C> {
     client: AuthClient<C>,
@@ -93,6 +92,9 @@ impl<C: Connect + 'static> Client<C> {
     /// If the _catalog API is not available, this method returns None.
     /// If the _catalog API is available, returns a tuple [Vec<u8>]
     /// and the next [Paginate] range (if pagination is being used)
+    ///
+    /// Returned data should deserialize into [`oci_distribution::v2::Catalog`]
+    // TODO: Make this return a stream
     pub async fn get_raw_catalog(
         &mut self,
         paginate: Option<Paginate>,
@@ -133,6 +135,9 @@ impl<C: Connect + 'static> Client<C> {
     /// Retrieve the tags under a given `repo`.
     /// Returns a tuple of [Vec<u8>] and the next [Paginate] range
     /// (if pagination is being used)
+    ///
+    /// Returned data should deserialize into [`oci_distribution::v2::Tags`]
+    // TODO: Make this return a stream
     pub async fn get_raw_tags(
         &mut self,
         repo: &str,
@@ -170,8 +175,13 @@ impl<C: Connect + 'static> Client<C> {
         }
     }
 
-    /// Retrieve the raw manifest JSON associated with the given reference.
-    pub async fn get_raw_manifest(&mut self, reference: &Reference) -> Result<Vec<u8>> {
+    /// Retrieve the raw manifest JSON associated with the given reference,
+    /// alongside the manifest's digest (as reported by the server).
+    ///
+    /// Returned data should deserialize into [`oci_image::v1::Manifest`]
+    // TODO: use actual digest type instead of String
+    // TODO: Make this return a stream
+    pub async fn get_raw_manifest(&mut self, reference: &Reference) -> Result<(Vec<u8>, String)> {
         let uri = self.base_uri(
             format!("/v2/{}/manifests/{}", reference.repo(), reference.kind()).as_str(),
         )?;
@@ -186,11 +196,22 @@ impl<C: Connect + 'static> Client<C> {
         let res = self.client.request(req).await?;
 
         match res.status() {
-            StatusCode::OK => Ok(res
-                .into_body()
-                .bytes()
-                .await
-                .context(ErrorKind::ApiMalformedBody)?),
+            StatusCode::OK => {
+                let digest = res
+                    .headers()
+                    .get("Docker-Content-Digest")
+                    .ok_or_else(|| ErrorKind::ApiMissingDigestHeader)?
+                    .to_str()
+                    .context(ErrorKind::ApiMalformedDigestHeader)?
+                    // TODO: validate string is actually a Digest
+                    .to_string();
+                let data = res
+                    .into_body()
+                    .bytes()
+                    .await
+                    .context(ErrorKind::ApiMalformedBody)?;
+                Ok((data, digest))
+            }
             StatusCode::UNAUTHORIZED => {
                 // TODO: attempt to re-authenticate
                 unimplemented!("get_raw_manifest: UNAUTHORIZED")
@@ -199,7 +220,7 @@ impl<C: Connect + 'static> Client<C> {
         }
     }
 
-    /// Retrieve the blob with specified `digest` from the `repo`.
+    /// Retrieve the blob with given `digest` from the specified `repo`.
     #[allow(clippy::ptr_arg)] // TODO: use proper Digest type instead of String
     pub async fn get_raw_blob(&mut self, repo: &str, digest: &String) -> Result<Vec<u8>> {
         self.get_raw_blob_part(repo, digest, ..).await
@@ -208,6 +229,7 @@ impl<C: Connect + 'static> Client<C> {
     /// Retrieve a byte-slice of the blob with specified `digest` from the
     /// `repo`. If the server doesn't support the use of a Range header, this
     /// function will return a [ErrorKind::ApiRangeHeaderNotSupported]
+    // TODO: Make this return a stream
     #[allow(clippy::ptr_arg)] // TODO: use proper Digest type instead of String
     pub async fn get_raw_blob_part(
         &mut self,
@@ -320,53 +342,6 @@ impl<C: Connect + 'static> Client<C> {
             }
             _ => Err(new_api_error(res).await),
         }
-    }
-
-    /// Retrieve a sorted, JSON list of repositories available in the registry.
-    /// If the _catalog API is not available, this method returns None.
-    /// If the _catalog API is available, returns a tuple [Catalog] and
-    /// the next [Paginate] range (if pagination is being used)
-    pub async fn get_catalog(
-        &mut self,
-        paginate: Option<Paginate>,
-    ) -> Result<Option<(Catalog, Option<Paginate>)>> {
-        self.get_raw_catalog(paginate)
-            .await?
-            .map(|(raw_catalog, paginate)| {
-                Ok((
-                    serde_json::from_slice::<Catalog>(&raw_catalog)
-                        .context(ErrorKind::ApiMalformedJSON)?,
-                    paginate,
-                ))
-            })
-            .transpose()
-    }
-
-    /// Retrieve the tags under a given `repo`, performing additional checks to
-    /// ensure the JSON is spec-compliant.
-    pub async fn get_tags(
-        &mut self,
-        repo: &str,
-        paginate: Option<Paginate>,
-    ) -> Result<(Tags, Option<Paginate>)> {
-        let (raw_tags, paginate) = self.get_raw_tags(repo, paginate).await?;
-        Ok((
-            serde_json::from_slice::<Tags>(&raw_tags).context(ErrorKind::ApiMalformedJSON)?,
-            paginate,
-        ))
-    }
-
-    /// Retrieve the Manifest associated with the given reference, performing
-    /// additional checks to ensure the JSON is spec-compliant.
-    pub async fn get_manifest(&mut self, reference: &Reference) -> Result<Manifest> {
-        let manifest = serde_json::from_slice::<Manifest>(&self.get_raw_manifest(reference).await?)
-            .context(ErrorKind::ApiMalformedJSON)?;
-
-        if manifest.schema_version != 2 {
-            return Err(ErrorKind::InvalidSchemaVersion(manifest.schema_version).into());
-        }
-
-        Ok(manifest)
     }
 }
 

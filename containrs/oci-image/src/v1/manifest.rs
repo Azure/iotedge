@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use serde::{Deserialize, Serialize};
+use serde::{de, Deserialize, Deserializer, Serialize};
 
 use super::Descriptor;
 use super::{media_type, MediaType};
@@ -14,7 +14,7 @@ pub struct Manifest {
     /// compatibility with older versions of Docker. The value of this field
     /// will not change. This field MAY be removed in a future version of the
     /// specification.
-    #[serde(rename = "schemaVersion")]
+    #[serde(rename = "schemaVersion", deserialize_with = "validate_is_2")]
     pub schema_version: i32,
 
     /// This property is reserved for use, to maintain compatibility. When used,
@@ -42,4 +42,16 @@ impl MediaType for Manifest {
     const MEDIA_TYPE: &'static str = media_type::IMAGE_MANIFEST;
     const SIMILAR_MEDIA_TYPES: &'static [&'static str] =
         &["application/vnd.docker.distribution.manifest.v2+json"];
+}
+
+fn validate_is_2<'de, D>(des: D) -> Result<i32, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    match i32::deserialize(des)? {
+        2 => Ok(2),
+        _ => Err(de::Error::custom(
+            "v1::Manifest must have schemaVersion = 2",
+        )),
+    }
 }

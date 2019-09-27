@@ -5,6 +5,7 @@ use failure::{Backtrace, Context, Fail};
 use serde::{Deserialize, Serialize};
 
 use crate::auth::AuthError;
+use crate::flows::download_image::Error as DownloadImageError;
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
@@ -53,6 +54,12 @@ pub enum ErrorKind {
     #[fail(display = "API returned malformed pagination link")]
     ApiPaginationLink,
 
+    #[fail(display = "API response is missing a Docker-Content-Digest header")]
+    ApiMissingDigestHeader,
+
+    #[fail(display = "API response returned a malformed Docker-Content-Digest header")]
+    ApiMalformedDigestHeader,
+
     #[fail(display = "API returned a bad redirect")]
     ApiBadRedirect,
 
@@ -75,6 +82,10 @@ pub enum ErrorKind {
     // Authentication-related Errors
     #[fail(display = "Auth Flow Error: {}", _0)]
     Auth(AuthError),
+
+    // Helper-related Errors
+    #[fail(display = "Download Image Error: {}", _0)]
+    DownloadImage(DownloadImageError),
 
     // Misc
     #[fail(display = "Could not parse hyper::Body as JSON")]
