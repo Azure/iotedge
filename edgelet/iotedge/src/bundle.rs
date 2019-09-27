@@ -146,6 +146,7 @@ mod tests {
     use edgelet_test_utils::module::*;
     use edgelet_test_utils::crypto::TestHsm;
     use std::str;
+    use tempfile::tempdir;
 
     use super::*;
 
@@ -159,16 +160,7 @@ mod tests {
     #[test]
     fn get_logs() {
         let module_name = "test-module";
-        let logs = vec![
-            &[0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0d, b'R', b'o'][..],
-            &b"ses are"[..],
-            &[b' ', b'r', b'e', b'd', 0x02, 0x00][..],
-            &[0x00, 0x00, 0x00, 0x00, 0x00, 0x10][..],
-            &b"violets"[..],
-            &b" are blue"[..],
-        ];
-
-        let runtime = make_runtime(module_name, logs);
+        let runtime = make_runtime();
 
         let options = LogOptions::new()
             .with_follow(false)
@@ -182,6 +174,25 @@ mod tests {
 
     #[test]
     fn write_logs_to_file() {
+        let runtime = make_runtime();
+
+        let options = LogOptions::new()
+            .with_follow(false)
+            .with_tail(Num(0))
+            .with_since(0);
+
+        let tmp_dir = tempdir().unwrap();
+
+        let bundle = Bundle::new(options, tmp_dir.path().to_str().unwrap(), runtime);
+        bundle.execute().wait().unwrap();
+
+        let expected = tmp_dir.path().join("css_bundle.zip");
+        println!("{}", expected.to_str().unwrap());
+        File::open(expected).unwrap();
+
+    }
+
+    fn make_runtime() -> TestRuntime<Error, TestSettings> {
         let module_name = "test-module";
         let logs = vec![
             &[0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0d, b'R', b'o'][..],
@@ -192,21 +203,6 @@ mod tests {
             &b" are blue"[..],
         ];
 
-        let runtime = make_runtime(module_name, logs);
-
-        let options = LogOptions::new()
-            .with_follow(false)
-            .with_tail(Num(0))
-            .with_since(0);
-
-        let location = "";
-
-        let bundle = Bundle::new(options, location, runtime);
-        let result = bundle.execute().wait();
-        result.unwrap();
-    }
-
-    fn make_runtime(module_name: &str, logs: Vec<&'static[u8]>) -> TestRuntime<Error, TestSettings> {
         let image_name = "microsoft/test-image";
         let state: Result<ModuleRuntimeState, Error> = Ok(ModuleRuntimeState::default());
         let config = TestConfig::new(image_name.to_owned());
