@@ -161,7 +161,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<Task<ICombinedConfigProvider<CombinedDockerConfig>>>()
                 .SingleInstance();
 
-            // TODO why it doesn't have any implementation?
             // ICommandFactory
             builder.Register(
                     c =>
