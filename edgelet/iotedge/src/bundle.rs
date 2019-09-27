@@ -2,7 +2,7 @@
 
 use std::fs::File;
 use std::path::Path;
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, DateTime, Local, Utc};
 use zip;
 
 use futures::{Future, Stream};
@@ -45,11 +45,12 @@ where
     fn make_state(self) -> Result<BundleState<M>, Error> {
         if let (Some(log_options), Some(location)) = (self.log_options, self.location) {
             /* Print status */
-            let since_time = NaiveDateTime::from_timestamp(log_options.since().into(), 0);
+            let since_time: DateTime<Utc> = DateTime::from_utc(NaiveDateTime::from_timestamp(log_options.since().into(), 0), Utc);
+            let since_local: DateTime<Local> = DateTime::from(since_time);
             let max_lines = if let Num(tail) = log_options.tail() {
                 format!("(maximum {} lines) ", tail)
             } else {"".to_owned()};
-            println!("Writing all logs since {} {}to {}", since_time, max_lines, location);
+            println!("Writing all logs {}since {} (local time {}) to {}", max_lines, since_time, since_local, location);
 
             /* Make state */
             let file_options = zip::write::FileOptions::default()
@@ -82,7 +83,8 @@ where
     fn execute(self) -> Self::Future {
         let result = future::result(self.make_state())
             .and_then(Bundle::write_all_logs)
-            .map(drop);
+            .map(drop)
+            .map(|_| println!("Wrote all logs to file"));
 
         Box::new(result)
     }
@@ -125,6 +127,7 @@ where
             .map_err(|err| Error::from(err.context(ErrorKind::WriteToStdout)))
             .and_then(move |_| {
                 pull_logs(&runtime, &module_name, &log_options, zip_writer).map(move |zw| {
+                    println!("Wrote {} to file", module_name);
                     BundleState {
                         runtime,
                         log_options,
