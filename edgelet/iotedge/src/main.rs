@@ -380,13 +380,40 @@ fn run() -> Result<(), Error> {
 fn parse_since(since: &str) -> i64 {
     if let Ok(datetime) = DateTime::parse_from_rfc3339(since) {
         datetime.timestamp()
-    } else if let Ok(duration) = parse_duration::parse(since) {
-        (Local::now() - Duration::nanoseconds(duration.as_nanos().try_into().unwrap_or_default())).timestamp()
     } else if let Ok(epoch) = since.parse() {
         epoch
+    } else if let Ok(duration) = parse_duration::parse(since) {
+        (Local::now() - Duration::nanoseconds(duration.as_nanos().try_into().unwrap_or_default())).timestamp()
     } else {
         /* Default to 1 day ago */
         println!("Flag since ({}) not recognized. Defaulting to 1 day", since);
         (Local::now() - Duration::days(1)).timestamp()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_rfc3339() {
+        assert_eq!(parse_since("2019-09-27T16:00:00+00:00"), 1569600000);
+    }
+
+    #[test]
+    fn parse_english(){
+        assert_eq!(parse_since("1 hour"), (Local::now() - Duration::hours(1)).timestamp());
+        assert_eq!(parse_since("1 hour 20 minutes"), (Local::now() - Duration::hours(1) - Duration::minutes(20)).timestamp());
+        assert_eq!(parse_since("1 day"), (Local::now() - Duration::days(1)).timestamp());
+    }
+
+    #[test]
+    fn parse_unix(){
+        assert_eq!(parse_since("1569600000"), 1569600000);
+    }
+
+    #[test]
+    fn parse_default(){
+        assert_eq!(parse_since("kjhgdfkhgf"), (Local::now() - Duration::days(1)).timestamp());
     }
 }
