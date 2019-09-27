@@ -151,7 +151,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                         }
                         else
                         {
-                            status = Option.Some(DeploymentStatus.Success);
+                            status = DeploymentStatus.Success;
                         }
                     }
                     else
