@@ -39,7 +39,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             this.webHost.Start();
         }
 
-        public string Uri => this.webHost.ServerFeatures.Get<IServerAddressesFeature>().Addresses.First();
+        public string Uri
+        {
+            get
+            {
+                string uri = this.webHost.ServerFeatures.Get<IServerAddressesFeature>().Addresses.First();
+                Console.WriteLine(uri);
+                return uri;
+            }
+        }
 
         public void Dispose()
         {

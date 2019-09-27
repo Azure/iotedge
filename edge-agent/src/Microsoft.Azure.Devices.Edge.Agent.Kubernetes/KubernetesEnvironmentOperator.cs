@@ -81,6 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             }
 
             Events.PodStatus(type, podName);
+            Console.WriteLine($"type: {type}, name: {podName}, pod: {pod}");
             switch (type)
             {
                 case WatchEventType.Added:
