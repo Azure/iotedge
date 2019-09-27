@@ -325,7 +325,7 @@ fn run() -> Result<(), Error> {
                 args.is_present("verbose"),
                 args.is_present("warnings-as-errors"),
             )
-            .and_then(|check| check.execute()),
+            .and_then(iotedge::Command::execute),
         ),
         ("check-list", _) => Check::print_list(),
         ("list", _) => tokio_runtime.block_on(List::new(runtime()?, io::stdout()).execute()),

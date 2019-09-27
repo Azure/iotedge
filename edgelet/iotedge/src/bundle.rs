@@ -96,7 +96,7 @@ where
 {
     fn write_all_logs(s1: BundleState<M>) -> impl Future<Item = BundleState<M>, Error = Error> {
         Bundle::get_modules(s1).and_then(|(names, s2)| {
-                        stream::iter_ok(names).fold(s2, |s3, name| Bundle::write_log_to_file(s3, name))
+                        stream::iter_ok(names).fold(s2, Bundle::write_log_to_file)
         })
     }
 
@@ -146,7 +146,6 @@ mod tests {
     use edgelet_test_utils::module::*;
     use edgelet_test_utils::crypto::TestHsm;
     use std::str;
-    use std::ascii;
     use std::io;
     use tempfile::tempdir;
     use sha2::{Sha256, Digest};
