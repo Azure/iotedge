@@ -362,5 +362,4 @@ mod tests {
         assert!(file_or_data_string(None, None).is_err());
         assert!(file_or_data_string(invalid_path.to_str(), None).is_err());
     }
-
 }

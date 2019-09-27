@@ -16,6 +16,7 @@ use edgelet_kube::Settings;
 use crate::error::{Error, ErrorKind, InitializeErrorReason};
 use crate::logging;
 
+#[allow(deprecated)]
 fn create_app(default_config_file: &OsStr) -> App<'_, '_> {
     let app = App::new(crate_name!())
         .version(edgelet_core::version_with_source_version())
