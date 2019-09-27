@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
-    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
@@ -13,7 +12,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
-    using Moq;
     using Xunit;
 
     [Integration]
@@ -160,127 +158,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
 
             await executor.CloseAsync();
             await Assert.ThrowsAsync<InvalidOperationException>(() => executor.SetEndpoint(endpoint1));
-        }
-
-        [Fact]
-        public async Task StoreMessagesProviderInitTest()
-        {
-            // Arrange
-            int batchSize = 100;
-            List<IMessage> messages = GetNewMessages(batchSize, 0).ToList();
-            var iterator = new Mock<IMessageIterator>();
-            iterator.SetupSequence(i => i.GetNext(It.IsAny<int>()))
-                .ReturnsAsync(messages.Take(15))
-                .ReturnsAsync(messages.Skip(15).Take(15))
-                .ReturnsAsync(messages.Skip(30).Take(70));
-
-            // Act
-            var messagesProvider = new StoringAsyncEndpointExecutor.StoreMessagesProvider(iterator.Object, 100);
-
-            // Assert
-            await Task.Delay(TimeSpan.FromSeconds(1));
-            iterator.VerifyAll();
-
-            // Act
-            IMessage[] messagesBatch = await messagesProvider.GetMessages();
-
-            // Assert
-            Assert.NotNull(messagesBatch);
-            Assert.Equal(batchSize, messagesBatch.Length);
-            Assert.Equal(messages, messagesBatch);
-        }
-
-        [Fact]
-        public async Task StoreMessagesProviderTest()
-        {
-            // Arrange
-            int batchSize = 100;
-            List<IMessage> messages = GetNewMessages(batchSize * 3, 0).ToList();
-            var iterator = new Mock<IMessageIterator>();
-            iterator.SetupSequence(i => i.GetNext(It.IsAny<int>()))
-                .ReturnsAsync(messages.Take(15))
-                .ReturnsAsync(messages.Skip(15).Take(15))
-                .ReturnsAsync(messages.Skip(30).Take(70))
-                .ReturnsAsync(messages.Skip(100).Take(52))
-                .ReturnsAsync(messages.Skip(152).Take(48))
-                .ReturnsAsync(messages.Skip(200));
-
-            // Act
-            var messagesProvider = new StoringAsyncEndpointExecutor.StoreMessagesProvider(iterator.Object, 100);
-            await Task.Delay(TimeSpan.FromSeconds(1));
-            IMessage[] messagesBatch = await messagesProvider.GetMessages();
-
-            // Assert
-            Assert.NotNull(messagesBatch);
-            Assert.Equal(batchSize, messagesBatch.Length);
-            Assert.Equal(messages.Take(100), messagesBatch);
-
-            // Act
-            await Task.Delay(TimeSpan.FromSeconds(1));
-            messagesBatch = await messagesProvider.GetMessages();
-
-            // Assert
-            Assert.NotNull(messagesBatch);
-            Assert.Equal(batchSize, messagesBatch.Length);
-            Assert.Equal(messages.Skip(100).Take(100), messagesBatch);
-
-            // Assert
-            await Task.Delay(TimeSpan.FromSeconds(1));
-            iterator.VerifyAll();
-
-            // Act
-            messagesBatch = await messagesProvider.GetMessages();
-
-            // Assert
-            Assert.NotNull(messagesBatch);
-            Assert.Equal(batchSize, messagesBatch.Length);
-            Assert.Equal(messages.Skip(200).Take(100), messagesBatch);
-        }
-
-        [Fact]
-        public async Task StoreMessagesProviderIntermittantMessagesTest()
-        {
-            // Arrange
-            int batchSize = 10;
-            List<IMessage> messages = GetNewMessages(batchSize, 0).ToList();
-            var iterator = new Mock<IMessageIterator>();
-            iterator.SetupSequence(i => i.GetNext(It.IsAny<int>()))
-                .ReturnsAsync(messages.Take(6))
-                .ReturnsAsync(Enumerable.Empty<IMessage>())
-                .ReturnsAsync(messages.Skip(6).Take(1))
-                .ReturnsAsync(messages.Skip(7).Take(1))
-                .ReturnsAsync(Enumerable.Empty<IMessage>())
-                .ReturnsAsync(messages.Skip(8).Take(1))
-                .ReturnsAsync(Enumerable.Empty<IMessage>());
-
-            // Act
-            var messagesProvider = new StoringAsyncEndpointExecutor.StoreMessagesProvider(iterator.Object, batchSize);
-            await Task.Delay(TimeSpan.FromSeconds(1));
-            IMessage[] messagesBatch = await messagesProvider.GetMessages();
-
-            // Assert
-            Assert.NotNull(messagesBatch);
-            Assert.Equal(6, messagesBatch.Length);
-            Assert.Equal(messages.Take(6), messagesBatch);
-
-            // Act
-            messagesBatch = await messagesProvider.GetMessages();
-
-            // Assert
-            Assert.NotNull(messagesBatch);
-            Assert.Equal(2, messagesBatch.Length);
-            Assert.Equal(messages.Skip(6).Take(2), messagesBatch);
-
-            // Act
-            messagesBatch = await messagesProvider.GetMessages();
-
-            // Assert
-            Assert.NotNull(messagesBatch);
-            Assert.Single(messagesBatch);
-            Assert.Equal(messages.Skip(8).Take(1), messagesBatch);
-
-            // Assert
-            iterator.VerifyAll();
         }
 
         static IEnumerable<IMessage> GetNewMessages(int count, int indexStart)

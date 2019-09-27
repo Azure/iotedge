@@ -46,8 +46,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly Option<TimeSpan> minTwinSyncPeriod;
         readonly Option<TimeSpan> reportedPropertiesSyncFrequency;
         readonly bool useV1TwinManager;
-        readonly int maxUpstreamBatchSize;
-        readonly int upstreamFanOutFactor;
         readonly bool encryptTwinStore;
         readonly TimeSpan configUpdateFrequency;
         readonly ExperimentalFeatures experimentalFeatures;
@@ -72,8 +70,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             Option<TimeSpan> minTwinSyncPeriod,
             Option<TimeSpan> reportedPropertiesSyncFrequency,
             bool useV1TwinManager,
-            int maxUpstreamBatchSize,
-            int upstreamFanOutFactor,
             bool encryptTwinStore,
             TimeSpan configUpdateFrequency,
             ExperimentalFeatures experimentalFeatures)
@@ -97,8 +93,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.minTwinSyncPeriod = minTwinSyncPeriod;
             this.reportedPropertiesSyncFrequency = reportedPropertiesSyncFrequency;
             this.useV1TwinManager = useV1TwinManager;
-            this.maxUpstreamBatchSize = maxUpstreamBatchSize;
-            this.upstreamFanOutFactor = upstreamFanOutFactor;
             this.encryptTwinStore = encryptTwinStore;
             this.configUpdateFrequency = configUpdateFrequency;
             this.experimentalFeatures = experimentalFeatures;
@@ -258,7 +252,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     {
                         var messageConverter = c.Resolve<Core.IMessageConverter<IRoutingMessage>>();
                         IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
-                        return new EndpointFactory(connectionManager, messageConverter, this.edgeDeviceId, this.maxUpstreamBatchSize, this.upstreamFanOutFactor) as IEndpointFactory;
+                        return new EndpointFactory(connectionManager, messageConverter, this.edgeDeviceId) as IEndpointFactory;
                     })
                 .As<Task<IEndpointFactory>>()
                 .SingleInstance();

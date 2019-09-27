@@ -19,6 +19,9 @@
     <OutputPath>bin\CodeCoverage</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Nito.AsyncEx" Version="5.0.0-pre-05" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />

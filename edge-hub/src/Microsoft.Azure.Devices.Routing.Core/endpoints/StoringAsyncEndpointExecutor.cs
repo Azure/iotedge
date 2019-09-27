@@ -13,7 +13,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine;
     using Microsoft.Extensions.Logging;
-    using Nito.AsyncEx;
     using static System.FormattableString;
     using AsyncLock = Microsoft.Azure.Devices.Edge.Util.Concurrency.AsyncLock;
 
@@ -22,7 +21,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
         readonly AtomicBoolean closed = new AtomicBoolean();
         readonly IMessageStore messageStore;
         readonly Task sendMessageTask;
-        readonly AsyncManualResetEvent hasMessagesInQueue = new AsyncManualResetEvent(true);
+        readonly ManualResetEvent hasMessagesInQueue = new ManualResetEvent(true);
         readonly ICheckpointer checkpointer;
         readonly AsyncEndpointExecutorOptions options;
         readonly EndpointExecutorFsm machine;
@@ -128,23 +127,19 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             {
                 Events.StartSendMessagesPump(this);
                 IMessageIterator iterator = this.messageStore.GetMessageIterator(this.Endpoint.Id, this.checkpointer.Offset + 1);
-                int batchSize = this.options.BatchSize * this.Endpoint.FanOutFactor;
-                var storeMessagesProvider = new StoreMessagesProvider(iterator, batchSize);
                 while (!this.cts.IsCancellationRequested)
                 {
                     try
                     {
-                        await this.hasMessagesInQueue.WaitAsync(this.options.BatchTimeout);
-                        IMessage[] messages = await storeMessagesProvider.GetMessages();
-                        if (messages.Length > 0)
+                        this.hasMessagesInQueue.WaitOne(this.options.BatchTimeout);
+                        IMessage[] messages = (await iterator.GetNext(this.options.BatchSize)).ToArray();
+                        await this.ProcessMessages(messages);
+                        Events.SendMessagesSuccess(this, messages);
+                        MetricsV0.DrainedCountIncrement(this.Endpoint.Id, messages.Length);
+
+                        // If store has no messages, then reset the hasMessagesInQueue flag.
+                        if (messages.Length == 0)
                         {
-                            await this.ProcessMessages(messages);
-                            Events.SendMessagesSuccess(this, messages);
-                            MetricsV0.DrainedCountIncrement(this.Endpoint.Id, messages.Length);
-                        }
-                        else
-                        {
-                            // If store has no messages, then reset the hasMessagesInQueue flag.
                             this.hasMessagesInQueue.Reset();
                         }
                     }
@@ -178,60 +173,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             }
         }
 
-        // This class is used to prefetch messages from the store before they are needed.
-        // As soon as the previous batch is consumed, the next batch is fetched.
-        // A pump is started as soon as the object is created, and it keeps the messages list populated.
-        internal class StoreMessagesProvider
-        {
-            readonly IMessageIterator iterator;
-            readonly int batchSize;
-            readonly AsyncLock stateLock = new AsyncLock();
-            Task<IList<IMessage>> getMessagesTask;
-
-            public StoreMessagesProvider(IMessageIterator iterator, int batchSize)
-            {
-                this.iterator = iterator;
-                this.batchSize = batchSize;
-                this.getMessagesTask = Task.Run(this.GetMessagesFromStore);
-            }
-
-            public async Task<IMessage[]> GetMessages()
-            {
-                using (await this.stateLock.LockAsync())
-                {
-                    var messages = await this.getMessagesTask;
-                    if (messages.Count == 0)
-                    {
-                        messages = await this.GetMessagesFromStore();
-                    }
-                    else
-                    {
-                        this.getMessagesTask = Task.Run(this.GetMessagesFromStore);
-                    }
-
-                    return messages.ToArray();
-                }
-            }
-
-            async Task<IList<IMessage>> GetMessagesFromStore()
-            {
-                var messagesList = new List<IMessage>();
-                while (messagesList.Count < this.batchSize)
-                {
-                    int curBatchSize = this.batchSize - messagesList.Count;
-                    IList<IMessage> messages = (await this.iterator.GetNext(curBatchSize)).ToList();
-                    if (!messages.Any())
-                    {
-                        break;
-                    }
-
-                    messagesList.AddRange(messages);
-                }
-
-                return messagesList;
-            }
-        }
-
         static class Events
         {
             const int IdStart = Routing.EventIds.StoringAsyncEndpointExecutor;
@@ -251,7 +192,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
                 Close,
                 CloseSuccess,
                 CloseFailure,
-                ErrorInPopulatePump
             }
 
             public static void AddMessageSuccess(StoringAsyncEndpointExecutor executor, long offset)
@@ -323,11 +263,6 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             public static void CloseFailure(StoringAsyncEndpointExecutor executor, Exception ex)
             {
                 Log.LogError((int)EventIds.CloseFailure, ex, "[CloseFailure] Close failed. EndpointId: {0}, EndpointName: {1}", executor.Endpoint.Id, executor.Endpoint.Name);
-            }
-
-            public static void ErrorInPopulatePump(Exception ex)
-            {
-                Log.LogWarning((int)EventIds.ErrorInPopulatePump, ex, "Error in populate messages pump");
             }
         }
 

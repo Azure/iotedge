@@ -16,29 +16,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
         readonly Core.IMessageConverter<IRoutingMessage> messageConverter;
         readonly string edgeDeviceId;
         readonly ConcurrentDictionary<string, Endpoint> cache;
-        readonly int maxBatchSize;
-        readonly int upstreamFanOutFactor;
 
         public EndpointFactory(
             IConnectionManager connectionManager,
             Core.IMessageConverter<IRoutingMessage> messageConverter,
-            string edgeDeviceId,
-            int maxBatchSize,
-            int upstreamFanOutFactor)
+            string edgeDeviceId)
         {
             this.connectionManager = Preconditions.CheckNotNull(connectionManager, nameof(connectionManager));
             this.messageConverter = Preconditions.CheckNotNull(messageConverter, nameof(messageConverter));
             this.edgeDeviceId = Preconditions.CheckNonWhiteSpace(edgeDeviceId, nameof(edgeDeviceId));
             this.cache = new ConcurrentDictionary<string, Endpoint>();
-            this.maxBatchSize = maxBatchSize;
-            this.upstreamFanOutFactor = upstreamFanOutFactor;
         }
 
         public Endpoint CreateSystemEndpoint(string endpoint)
         {
             if (CloudEndpointName.Equals(endpoint, StringComparison.OrdinalIgnoreCase))
             {
-                return this.cache.GetOrAdd(CloudEndpointName, s => new CloudEndpoint("iothub", id => this.connectionManager.GetCloudConnection(id), this.messageConverter, this.maxBatchSize, this.upstreamFanOutFactor));
+                return this.cache.GetOrAdd(CloudEndpointName, s => new CloudEndpoint("iothub", id => this.connectionManager.GetCloudConnection(id), this.messageConverter));
             }
             else
             {

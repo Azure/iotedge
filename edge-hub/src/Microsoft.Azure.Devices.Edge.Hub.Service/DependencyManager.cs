@@ -142,8 +142,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool useV1TwinManager = this.GetConfigurationValueIfExists<string>("TwinManagerVersion")
                 .Map(v => v.Equals("v1", StringComparison.OrdinalIgnoreCase))
                 .GetOrElse(false);
-            int maxUpstreamBatchSize = this.configuration.GetValue("MaxUpstreamBatchSize", 10);
-            int upstreamFanOutFactor = this.configuration.GetValue("UpstreamFanOutFactor", 10);
             bool encryptTwinStore = this.configuration.GetValue("EncryptTwinStore", false);
             int configUpdateFrequencySecs = this.configuration.GetValue("ConfigRefreshFrequencySecs", 3600);
             TimeSpan configUpdateFrequency = TimeSpan.FromSeconds(configUpdateFrequencySecs);
@@ -169,8 +167,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     minTwinSyncPeriod,
                     reportedPropertiesSyncFrequency,
                     useV1TwinManager,
-                    maxUpstreamBatchSize,
-                    upstreamFanOutFactor,
                     encryptTwinStore,
                     configUpdateFrequency,
                     experimentalFeatures));
