@@ -149,6 +149,7 @@ mod tests {
 
     use super::*;
 
+    #[allow(dead_code)]
     #[derive(Clone, Copy, Debug, Fail)]
     pub enum Error {
         #[fail(display = "General error")]
@@ -156,8 +157,7 @@ mod tests {
     }
 
     #[test]
-    fn get_logs() -> Result<(), Error> {
-        let image_name = "microsoft/test-image";
+    fn get_logs() {
         let module_name = "test-module";
         let logs = vec![
             &[0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0d, b'R', b'o'][..],
@@ -168,18 +168,7 @@ mod tests {
             &b" are blue"[..],
         ];
 
-        let state: Result<ModuleRuntimeState, Error> = Ok(ModuleRuntimeState::default());
-        let config = TestConfig::new(image_name.to_owned());
-        let module = TestModule::new_with_logs(module_name.to_owned(), config, state, logs);
-
-        let runtime = TestRuntime::make_runtime(
-            TestSettings::new(),
-            TestProvisioningResult::new(),
-            TestHsm::default(),
-        )
-        .wait()
-        .unwrap()
-        .with_module(Ok(module));
+        let runtime = make_runtime(module_name, logs);
 
         let options = LogOptions::new()
             .with_follow(false)
@@ -189,7 +178,47 @@ mod tests {
         let result: Vec<u8> = pull_logs(&runtime, module_name, &options, Vec::new()).wait().unwrap();
         let result_str = str::from_utf8(&result).unwrap();
         assert_eq!("Roses are redviolets are blue", result_str);
+    }
 
-        Ok(())
+    #[test]
+    fn write_logs_to_file() {
+        let module_name = "test-module";
+        let logs = vec![
+            &[0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0d, b'R', b'o'][..],
+            &b"ses are"[..],
+            &[b' ', b'r', b'e', b'd', 0x02, 0x00][..],
+            &[0x00, 0x00, 0x00, 0x00, 0x00, 0x10][..],
+            &b"violets"[..],
+            &b" are blue"[..],
+        ];
+
+        let runtime = make_runtime(module_name, logs);
+
+        let options = LogOptions::new()
+            .with_follow(false)
+            .with_tail(Num(0))
+            .with_since(0);
+
+        let location = "";
+
+        let bundle = Bundle::new(options, location, runtime);
+        let result = bundle.execute().wait();
+        result.unwrap();
+    }
+
+    fn make_runtime(module_name: &str, logs: Vec<&'static[u8]>) -> TestRuntime<Error, TestSettings> {
+        let image_name = "microsoft/test-image";
+        let state: Result<ModuleRuntimeState, Error> = Ok(ModuleRuntimeState::default());
+        let config = TestConfig::new(image_name.to_owned());
+        let module = TestModule::new_with_logs(module_name.to_owned(), config, state, logs);
+
+        TestRuntime::make_runtime(
+            TestSettings::new(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+        )
+        .wait()
+        .unwrap()
+        .with_module(Ok(module))
     }
 }
