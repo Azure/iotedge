@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     using Nito.AsyncEx;
 
     /// <summary>
-    /// Provides an in memory implementation of the IDbStore
+    /// Provides an in memory implementation of the IDbStore.
     /// </summary>
     class InMemoryDbStore : IDbStore
     {
@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             this.keyValues = new ItemKeyedCollection(new ByteArrayComparer());
         }
 
-        public Task Put(byte[] key, byte[] value) => this.Put(key, value, CancellationToken.None);
+        public virtual Task Put(byte[] key, byte[] value) => this.Put(key, value, CancellationToken.None);
 
         public Task<Option<byte[]>> Get(byte[] key) => this.Get(key, CancellationToken.None);
 
@@ -97,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             }
         }
 
-        public async Task Put(byte[] key, byte[] value, CancellationToken cancellationToken)
+        public virtual async Task Put(byte[] key, byte[] value, CancellationToken cancellationToken)
         {
             using (await this.listLock.WriterLockAsync(cancellationToken))
             {
@@ -123,6 +123,20 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         public void Dispose()
         {
             // No-op
+        }
+
+        public async Task<long> GetDbSizeInBytes()
+        {
+            long dbSize = 0;
+            using (await this.listLock.ReaderLockAsync(CancellationToken.None))
+            {
+                foreach (Item keyValue in this.keyValues)
+                {
+                    dbSize += keyValue.Key.Length + keyValue.Value.Length;
+                }
+            }
+
+            return dbSize;
         }
 
         async Task IterateBatch(List<(byte[] key, byte[] value)> snapshot, int index, int batchSize, Func<byte[], byte[], Task> callback, CancellationToken cancellationToken)

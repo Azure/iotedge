@@ -42,6 +42,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly IList<X509Certificate2> trustBundle;
         readonly string proxy;
         readonly MetricsConfig metricsConfig;
+        readonly Option<long> maxStorageSpaceBytes;
+        readonly int storageSpaceCheckFrequency;
 
         public CommonModule(
             string productInfo,
@@ -61,7 +63,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             bool persistTokens,
             IList<X509Certificate2> trustBundle,
             string proxy,
-            MetricsConfig metricsConfig)
+            MetricsConfig metricsConfig,
+            Option<long> maxStorageSpaceBytes,
+            int storageSpaceCheckFrequency)
         {
             this.productInfo = productInfo;
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
@@ -81,6 +85,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.trustBundle = Preconditions.CheckNotNull(trustBundle, nameof(trustBundle));
             this.proxy = Preconditions.CheckNotNull(proxy, nameof(proxy));
             this.metricsConfig = Preconditions.CheckNotNull(metricsConfig, nameof(metricsConfig));
+            this.maxStorageSpaceBytes = maxStorageSpaceBytes;
+            this.storageSpaceCheckFrequency = storageSpaceCheckFrequency;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -136,6 +142,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<IRocksDbOptionsProvider>()
                 .SingleInstance();
 
+            // IStorageSpaceChecker
+            builder.Register(
+                c =>
+                {
+                    IStorageSpaceChecker spaceChecker = this.maxStorageSpaceBytes.HasValue && !this.usePersistentStorage
+                       ? new MemorySpaceChecker(TimeSpan.FromSeconds(this.storageSpaceCheckFrequency), this.maxStorageSpaceBytes.GetOrElse(long.MaxValue), () => Task.FromResult(0L)) as IStorageSpaceChecker
+                       : new NullStorageSpaceChecker() as IStorageSpaceChecker;
+                    return spaceChecker;
+                })
+                .As<IStorageSpaceChecker>()
+                .SingleInstance();
+
             // IDbStoreProvider
             builder.Register(
                     c =>
@@ -149,23 +167,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             var partitionsList = new List<string> { Core.Constants.MessageStorePartitionKey, Core.Constants.TwinStorePartitionKey, Core.Constants.CheckpointStorePartitionKey };
                             try
                             {
-                                IDbStoreProvider dbStoreprovider = DbStoreProvider.Create(
+                                IDbStoreProvider dbStoreProvider = DbStoreProvider.Create(
                                     c.Resolve<IRocksDbOptionsProvider>(),
                                     this.storagePath,
                                     partitionsList);
                                 logger.LogInformation($"Created persistent store at {this.storagePath}");
-                                return dbStoreprovider;
+                                return dbStoreProvider;
                             }
-                            catch (Exception ex) when (!ExceptionEx.IsFatal(ex))
+                            catch (Exception ex) when (!ex.IsFatal())
                             {
                                 logger.LogError(ex, "Error creating RocksDB store. Falling back to in-memory store.");
-                                return new InMemoryDbStoreProvider();
+                                var memorySpaceChecker = c.Resolve<IStorageSpaceChecker>();
+                                return new InMemoryDbStoreProvider(Option.Some(memorySpaceChecker));
                             }
                         }
                         else
                         {
                             logger.LogInformation($"Using in-memory store");
-                            return new InMemoryDbStoreProvider();
+                            var memorySpaceChecker = c.Resolve<IStorageSpaceChecker>();
+                            return new InMemoryDbStoreProvider(Option.Some(memorySpaceChecker));
                         }
                     })
                 .As<IDbStoreProvider>()

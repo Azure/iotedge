@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         public const string ConfigFileName = "appsettings_hub.json";
         public const string EdgeHubStorageFolder = "edgeHub";
         public const string InitializationVectorFileName = "EdgeHubIV";
+        public const int StorageSpaceCheckFrequencyInSecs = 30;
         public const string TopicNameConversionSectionName = "mqttTopicNameConversion";
         public const string VersionInfoFileName = "versionInfo.json";
         public const string WorkloadApiVersion = "2019-01-30";
