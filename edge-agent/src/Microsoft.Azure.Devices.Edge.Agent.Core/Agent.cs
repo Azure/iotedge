@@ -127,7 +127,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                         // But that required ModuleSet.Diff to be updated to include modules updated by deployment, and modules updated by state change.
                         IImmutableDictionary<string, IModuleIdentity> identities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desiredModuleSet, current);
                         Plan plan = await this.planner.PlanAsync(desiredModuleSet, current, deploymentConfig.Runtime, identities);
-                        if (!plan.IsEmpty)
+                        if (plan.IsEmpty)
+                        {
+                            status = DeploymentStatus.Success;
+                        }
+                        else
                         {
                             try
                             {
@@ -144,10 +148,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                                 await this.UpdateCurrentConfig(deploymentConfigInfo);
                                 throw;
                             }
-                        }
-                        else
-                        {
-                            status = DeploymentStatus.Success;
                         }
                     }
                     else
