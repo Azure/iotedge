@@ -146,7 +146,10 @@ mod tests {
     use edgelet_test_utils::module::*;
     use edgelet_test_utils::crypto::TestHsm;
     use std::str;
+    use std::ascii;
+    use std::io;
     use tempfile::tempdir;
+    use sha2::{Sha256, Digest};
 
     use super::*;
 
@@ -186,9 +189,9 @@ mod tests {
         let bundle = Bundle::new(options, tmp_dir.path().to_str().unwrap(), runtime);
         bundle.execute().wait().unwrap();
 
-        let expected = tmp_dir.path().join("css_bundle.zip");
-        println!("{}", expected.to_str().unwrap());
-        File::open(expected).unwrap();
+        let result_path = tmp_dir.path().join("css_bundle.zip").to_str().unwrap().to_owned();
+        let result_hash = hash_file(&result_path);
+        assert_eq!("ad27efc79c18f9c2091824e13ee3f2336b2d0771a85587bcfcc7e142a52b906e", &result_hash);
 
     }
 
@@ -216,5 +219,12 @@ mod tests {
         .wait()
         .unwrap()
         .with_module(Ok(module))
+    }
+
+    fn hash_file(path: &str) -> String {
+        let mut file = File::open(path).unwrap();
+        let mut hasher = Sha256::new();
+        io::copy(&mut file, &mut hasher).unwrap();
+        hasher.result().into_iter().map(|c| format!("{:02x?}", c)).collect()
     }
 }
