@@ -2,8 +2,8 @@
 
 use std::fs::File;
 use std::path::Path;
-
-extern crate zip;
+use chrono::NaiveDateTime;
+use zip;
 
 use futures::{Future, Stream};
 use tokio::prelude::*;
@@ -14,7 +14,7 @@ use failure::Fail;
 use crate::logs::pull_logs;
 use crate::Command;
 
-use edgelet_core::{LogOptions, Module, ModuleRuntime};
+use edgelet_core::{LogOptions, Module, ModuleRuntime, LogTail::Num};
 
 pub struct Bundle<M> {
     runtime: M,
@@ -44,6 +44,14 @@ where
 
     fn make_state(self) -> Result<BundleState<M>, Error> {
         if let (Some(log_options), Some(location)) = (self.log_options, self.location) {
+            /* Print status */
+            let since_time = NaiveDateTime::from_timestamp(log_options.since().into(), 0);
+            let max_lines = if let Num(tail) = log_options.tail() {
+                format!("(maximum {} lines) ", tail)
+            } else {"".to_owned()};
+            println!("Writing all logs since {} {}to {}", since_time, max_lines, location);
+
+            /* Make state */
             let file_options = zip::write::FileOptions::default()
                 .compression_method(zip::CompressionMethod::Deflated);
 
