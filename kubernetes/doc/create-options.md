@@ -1,6 +1,6 @@
 # Kubernetes createOptions Extensions
 
-IoT Edge on Kubernetes supports several experimental features to allow a user to assign additional parameters to pods that represents IoT Edge Modules.
+IoT Edge on Kubernetes supports several experimental features to allow a user to assign additional parameters to containers that represents IoT Edge Modules.
 
 ## Experimental features
 
@@ -13,7 +13,7 @@ All features described in this document are experimental. To enable them, the fo
 
 ## Create Options
 
-We added CreateOptions for experimental features on Kubernetes. These options will be ignored until both `ExperimentalFeatures__Enabled` and `ExperimentalFeatures__EnableK8SExtensions` are not set to `true`.
+We added CreateOptions for experimental features on Kubernetes. These options "options will take effect if both variables `ExperimentalFeatures__Enabled` and `ExperimentalFeatures__EnableK8SExtensions` are set to `true`.
 
 ```json
 {
@@ -70,7 +70,7 @@ A `volumes` section of config used to describe how a `ConfigMap` or any other vo
 
 ## CPU, Memory and Device Resources
 
-EdgeAgent allows to specify Compute resources for a module container.
+EdgeAgent allows to specify Compute resources for a module container. Edge supports HostConfig CPU and Memory limits. They will be overrriten if a user specifis `resources` section described below.
 
 ### Create Options
 
@@ -99,7 +99,7 @@ A `resources` section of config used to specify compute resources for an IoT Edg
 
 ## Assigning Modules to Nodes
 
-EdgeAgent allows to constrain an IoT Edge Module to only be able to run on particular node(s), or to prefer to run on particular nodes.
+EdgeAgent allows to constrain an IoT Edge Module to only be able to run on particular node(s).
 
 ### CreateOptions
 
