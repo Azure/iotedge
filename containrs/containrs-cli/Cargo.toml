@@ -7,11 +7,14 @@ edition = "2018"
 [dependencies]
 containrs = { path = "../containrs" }
 docker-reference = { path = "../docker-reference" }
+oci-image = { path = "../oci-image" }
 
 clap = "~2.33.0"
 failure = "0.1"
+futures-preview = "=0.3.0-alpha.18"
 hyper = { version = "0.13.0-alpha.2", features = ["unstable-stream"] }
 hyper-tls = "0.4.0-alpha.2"
+lazy_static = "1.4"
 log = "0.4"
 pretty_env_logger = "0.3"
 tokio = "0.2.0-alpha.5"

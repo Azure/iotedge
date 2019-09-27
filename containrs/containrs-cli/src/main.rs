@@ -1,9 +1,15 @@
+use std::collections::HashMap;
 use std::io::{Read, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use clap::{App, AppSettings, Arg, SubCommand};
+use failure::ResultExt;
+use futures::future;
 use hyper::Client as HyperClient;
 use hyper_tls::HttpsConnector;
+use lazy_static::lazy_static;
+use oci_image::v1 as ociv1;
+use tokio::fs::{self, File};
 use tokio::prelude::*;
 
 use docker_reference::{Reference, ReferenceKind};
@@ -295,10 +301,90 @@ async fn true_main() -> Result<(), failure::Error> {
                 credentials,
             )?;
 
-            containrs::flows::download_image(&mut client, &image, Path::new(outdir), true).await?;
+            let containrs::flows::ImageDownload {
+                manifest_digest,
+                manifest_json,
+                config_json,
+                layers,
+            } = containrs::flows::download_image(&mut client, &image).await?;
+
+            // asyncronously dump the bodies to disk
+
+            lazy_static! {
+                static ref MEDIA_TYPE_TO_FILE_EXT: HashMap<&'static str, &'static str> = {
+                    use ociv1::media_type::*;
+                    let mut m: HashMap<&str, &str> = HashMap::new();
+                    m.insert(IMAGE_LAYER, "tar");
+                    m.insert(IMAGE_LAYER_GZIP, "tar.gz");
+                    m.insert(IMAGE_LAYER_GZIP_DOCKER, "tar.gz");
+                    m.insert(IMAGE_LAYER_ZSTD, "tar.zst");
+                    m.insert(IMAGE_LAYER_NON_DISTRIBUTABLE, "tar");
+                    m.insert(IMAGE_LAYER_NON_DISTRIBUTABLE_GZIP, "tar.gz");
+                    m.insert(IMAGE_LAYER_NON_DISTRIBUTABLE_ZSTD, "tar.zst");
+                    m
+                };
+            }
+
+            let out_dir = Path::new(outdir);
+
+            if !out_dir.exists() {
+                return Err(failure::err_msg("outdir does not exist"));
+            }
+
+            // create an output directory based on the manifest's digest
+            let out_dir = out_dir.join(manifest_digest.replace(':', "-"));
+            fs::create_dir(&out_dir)
+                .await
+                .context(format!("{:?}", out_dir))
+                .context("failed to create directory")?;
+
+            let mut downloads = Vec::new();
+
+            // dump manifest.json to disk
+            downloads.push(write_body_to_file(
+                out_dir.join("manifest.json"),
+                manifest_json,
+            ));
+
+            // dump config.json to disk
+            downloads.push(write_body_to_file(out_dir.join("config.json"), config_json));
+
+            // dump layers to disk
+
+            downloads.extend(layers.into_iter().map(|(body, layer)| {
+                let filename = format!(
+                    "{}.{}",
+                    layer.digest.replace(':', "-"),
+                    MEDIA_TYPE_TO_FILE_EXT
+                        .get(layer.media_type.as_str())
+                        .unwrap_or(&"unknown")
+                );
+                write_body_to_file(out_dir.join(filename), body)
+            }));
+
+            future::try_join_all(downloads).await?;
+
+            // TODO: validate downloaded data (JSON structure, digests, etc...)
         }
         _ => unreachable!(),
     }
 
+    Ok(())
+}
+
+async fn write_body_to_file(
+    file_path: PathBuf,
+    mut body: hyper::Body,
+) -> Result<(), failure::Error> {
+    let mut file = File::create(&file_path)
+        .await
+        .context(format!("could not create {:?}", file_path))?;
+
+    while let Some(next) = body.next().await {
+        let data = next.context(format!("error while downloading {:?}", file_path))?;
+        file.write(data.as_ref())
+            .await
+            .context(format!("error while writing to {:?}", file_path))?;
+    }
     Ok(())
 }
