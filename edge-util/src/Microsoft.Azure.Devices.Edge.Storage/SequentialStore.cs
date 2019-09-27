@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public Task<long> Append(T item) => this.Append(item, CancellationToken.None);
 
-        public Task<bool> RemoveFirst(Func<long, T, Task<bool>> predicate) => this.RemoveFirst(predicate, CancellationToken.None);
+        public Task<bool> RemoveFirst(object state, Func<object, long, T, Task<bool>> predicate) => this.RemoveFirst(state, predicate, CancellationToken.None);
 
         public Task<IEnumerable<(long, T)>> GetBatch(long startingOffset, int batchSize) => this.GetBatch(startingOffset, batchSize, CancellationToken.None);
 
@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             }
         }
 
-        public async Task<bool> RemoveFirst(Func<long, T, Task<bool>> predicate, CancellationToken cancellationToken)
+        public async Task<bool> RemoveFirst(object state, Func<object, long, T, Task<bool>> predicate, CancellationToken cancellationToken)
         {
             using (await this.headLockObject.LockAsync(cancellationToken))
             {
@@ -83,7 +83,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                     .Match(
                         async v =>
                         {
-                            if (await predicate(this.headOffset, v))
+                            if (await predicate(state, this.headOffset, v))
                             {
                                 await this.entityStore.Remove(key, cancellationToken);
                                 this.headOffset++;

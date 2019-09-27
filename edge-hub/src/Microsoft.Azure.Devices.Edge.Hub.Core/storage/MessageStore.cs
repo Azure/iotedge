@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -11,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
     using App.Metrics.Timer;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
     using Microsoft.Extensions.Logging;
@@ -153,7 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
         }
 
         /// <summary>
-        /// Class that contains the message and is stored in the messa
+        /// Class that contains the message and is stored in the message
         /// </summary>
         internal class MessageWrapper
         {
@@ -229,17 +231,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             /// </summary>
             async Task CleanupMessages()
             {
-                long totalCleanupCount = 0;
-                long totalCleanupStoreCount = 0;
+                AtomicLong totalCleanupCount = new AtomicLong(0);
+                AtomicLong totalCleanupDeliveredCount = new AtomicLong(0);
+                AtomicLong totalCleanupTtlCount = new AtomicLong(0);
 
                 try
                 {
-                    while (true)
+                    while (!this.cancellationTokenSource.IsCancellationRequested)
                     {
                         foreach (KeyValuePair<string, ISequentialStore<MessageRef>> endpointSequentialStore in this.messageStore.endpointSequentialStores)
                         {
                             try
                             {
+                                AtomicLong cleanupCount = new AtomicLong(0);
+
                                 if (this.cancellationTokenSource.IsCancellationRequested)
                                 {
                                     return;
@@ -249,54 +254,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                                 CheckpointData checkpointData = await this.messageStore.checkpointStore.GetCheckpointDataAsync(endpointSequentialStore.Key, CancellationToken.None);
                                 ISequentialStore<MessageRef> sequentialStore = endpointSequentialStore.Value;
                                 Events.CleanupCheckpointState(endpointSequentialStore.Key, checkpointData);
-                                int cleanupEntityStoreCount = 0;
 
-                                async Task<bool> DeleteMessageCallback(long offset, MessageRef messageRef)
+                                CleanupState state = new CleanupState(checkpointData);
+
+                                while (await sequentialStore.RemoveFirst(state, DeleteMessageCallback))
                                 {
-                                    if (checkpointData.Offset < offset &&
-                                        DateTime.UtcNow - messageRef.TimeStamp < this.messageStore.timeToLive)
-                                    {
-                                        return false;
-                                    }
-
-                                    bool deleteMessage = false;
-
-                                    // Decrement ref count.
-                                    await this.messageStore.messageEntityStore.Update(
-                                        messageRef.EdgeMessageId,
-                                        m =>
-                                        {
-                                            if (m.RefCount > 0)
-                                            {
-                                                m.RefCount--;
-                                            }
-
-                                            if (m.RefCount == 0)
-                                            {
-                                                deleteMessage = true;
-                                            }
-
-                                            return m;
-                                        });
-
-                                    if (deleteMessage)
-                                    {
-                                        await this.messageStore.messageEntityStore.Remove(messageRef.EdgeMessageId);
-                                        cleanupEntityStoreCount++;
-                                    }
-
-                                    return true;
+                                    cleanupCount.Increment();
                                 }
 
-                                int cleanupCount = 0;
-                                while (await sequentialStore.RemoveFirst(DeleteMessageCallback))
-                                {
-                                    cleanupCount++;
-                                }
+                                totalCleanupCount.Increment(cleanupCount);
+                                totalCleanupDeliveredCount.Increment(state.DeliveredCount.Get());
+                                totalCleanupTtlCount.Increment(state.TtlExpiredCount.Get());
 
-                                totalCleanupCount += cleanupCount;
-                                totalCleanupStoreCount += cleanupEntityStoreCount;
-                                Events.CleanupCompleted(endpointSequentialStore.Key, cleanupCount, cleanupEntityStoreCount, totalCleanupCount, totalCleanupStoreCount);
+                                Events.CleanupCompleted(endpointSequentialStore.Key, cleanupCount.Get(), state.DeliveredCount.Get(), state.TtlExpiredCount.Get(), totalCleanupCount.Get(), totalCleanupDeliveredCount.Get(), totalCleanupTtlCount.Get());
                                 await Task.Delay(MinCleanupSleepTime, this.cancellationTokenSource.Token);
                             }
                             catch (Exception ex)
@@ -315,9 +285,67 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 }
             }
 
+            async Task<bool> DeleteMessageCallback(object state, long offset, MessageRef messageRef)
+            {
+                var cleanupState = state as CleanupState;
+                Debug.Assert(cleanupState != null);
+
+                var now = DateTime.UtcNow;
+
+                if (cleanupState.CheckpointData.Offset < offset &&
+                    (now - messageRef.TimeStamp) < this.messageStore.timeToLive)
+                {
+                    return false;
+                }
+
+                // Decrement ref count.
+                MessageWrapper msg =  await this.messageStore.messageEntityStore.Update(
+                    messageRef.EdgeMessageId,
+                    m =>
+                    {
+                        if (m.RefCount > 0)
+                        {
+                            m.RefCount--;
+                        }
+                        return m;
+                    });
+
+                if (msg.RefCount == 0)
+                {
+                    await this.messageStore.messageEntityStore.Remove(messageRef.EdgeMessageId);
+
+                    if (cleanupState.CheckpointData.Offset >= offset)
+                    {
+                        cleanupState.DeliveredCount.Increment();
+                    }
+                    else if ((now - messageRef.TimeStamp) >= this.messageStore.timeToLive)
+                    {
+                        cleanupState.TtlExpiredCount.Increment();
+                    }
+                }
+
+                return true;
+            }
+
             TimeSpan GetCleanupTaskSleepTime() => this.messageStore.timeToLive.TotalSeconds / 2 < CleanupTaskFrequency.TotalSeconds
                 ? TimeSpan.FromSeconds(this.messageStore.timeToLive.TotalSeconds / 2)
                 : CleanupTaskFrequency;
+        }
+
+        class CleanupState
+        {
+            public CheckpointData CheckpointData { get; }
+
+            public AtomicLong TtlExpiredCount { get; }
+
+            public AtomicLong DeliveredCount { get; }
+
+            public CleanupState(CheckpointData checkpointData)
+            {
+                this.CheckpointData = Preconditions.CheckNotNull(checkpointData, nameof(checkpointData));
+                this.TtlExpiredCount = new AtomicLong(0);
+                this.DeliveredCount = new AtomicLong(0);
+            }
         }
 
         static class Events
@@ -373,10 +401,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 Log.LogWarning((int)EventIds.ErrorCleaningMessages, ex, "Error cleaning up messages in message store");
             }
 
-            public static void CleanupCompleted(string endpointId, int queueMessagesCount, int storeMessagesCount, long totalQueueMessagesCount, long totalStoreMessagesCount)
+            public static void CleanupCompleted(string endpointId, long endpointCount, long endpointDeliveredCount, long endpointTtlCount, long totalCount, long totalDeliveredCount, long totalTtlCount)
             {
-                Log.LogInformation((int)EventIds.CleanupCompleted, Invariant($"Cleaned up {queueMessagesCount} messages from queue for endpoint {endpointId} and {storeMessagesCount} messages from message store."));
-                Log.LogDebug((int)EventIds.CleanupCompleted, Invariant($"Total messages cleaned up from queue for endpoint {endpointId} = {totalQueueMessagesCount}, and total messages cleaned up for message store = {totalStoreMessagesCount}."));
+                Log.LogInformation((int)EventIds.CleanupCompleted, Invariant($"Cleaned up {endpointCount} message references from queue for endpoint {endpointId}. Message store cleanup - {endpointDeliveredCount} delivered, {endpointTtlCount} from ttl."));
+                Log.LogDebug((int)EventIds.CleanupCompleted, Invariant($"Total message references cleaned up from queue for endpoint {endpointId} = {totalCount}. Total message store cleanup - {totalDeliveredCount} delivered, {totalTtlCount} from ttl."));
             }
 
             public static void ErrorGettingMessagesBatch(string entityName, Exception ex)

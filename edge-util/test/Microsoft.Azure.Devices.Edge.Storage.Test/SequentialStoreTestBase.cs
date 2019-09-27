@@ -111,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
                 Assert.Equal(counter++, batchItem.offset);
             }
 
-            await sequentialStore.RemoveFirst((offset, item) => Task.FromResult(item.Prop1 == 0));
+            await sequentialStore.RemoveFirst(null, (state, offset, item) => Task.FromResult(item.Prop1 == 0));
 
             batch = (await sequentialStore.GetBatch(startOffset, 100)).ToList();
             Assert.Equal(9, batch.Count);
@@ -129,7 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
                 Assert.Equal(counter++, batchItem.offset);
             }
 
-            await sequentialStore.RemoveFirst((offset, item) => Task.FromResult(item.Prop1 == 0));
+            await sequentialStore.RemoveFirst(null, (state, offset, item) => Task.FromResult(item.Prop1 == 0));
             batch = (await sequentialStore.GetBatch(startOffset + 1, 100)).ToList();
             Assert.Equal(9, batch.Count);
             counter = startOffset + 1;
@@ -138,7 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
                 Assert.Equal(counter++, batchItem.offset);
             }
 
-            await sequentialStore.RemoveFirst((offset, item) => Task.FromResult(item.Prop1 == 1));
+            await sequentialStore.RemoveFirst(null, (state, offset, item) => Task.FromResult(item.Prop1 == 1));
             batch = (await sequentialStore.GetBatch(startOffset + 2, 100)).ToList();
             Assert.Equal(8, batch.Count);
             counter = startOffset + 2;
@@ -171,7 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
 
             for (int i = 0; i < 4; i++)
             {
-                await sequentialStore.RemoveFirst((o, itm) => Task.FromResult(true));
+                await sequentialStore.RemoveFirst(null, (state, o, itm) => Task.FromResult(true));
             }
 
             // Try to get with starting offset <= 4, should return remaining elements - 4 - 9.

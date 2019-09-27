@@ -17,13 +17,13 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         Task<long> Append(T item);
 
-        Task<bool> RemoveFirst(Func<long, T, Task<bool>> predicate);
+        Task<bool> RemoveFirst(object state, Func<object, long, T, Task<bool>> predicate);
 
         Task<IEnumerable<(long, T)>> GetBatch(long startingOffset, int batchSize);
 
         Task<long> Append(T item, CancellationToken cancellationToken);
 
-        Task<bool> RemoveFirst(Func<long, T, Task<bool>> predicate, CancellationToken cancellationToken);
+        Task<bool> RemoveFirst(object state, Func<object, long, T, Task<bool>> predicate, CancellationToken cancellationToken);
 
         Task<IEnumerable<(long, T)>> GetBatch(long startingOffset, int batchSize, CancellationToken cancellationToken);
     }
