@@ -11,9 +11,11 @@ namespace MessagesAnalyzer
         const string ExcludeModulesIdsPropertyName = "ExcludeModules:Ids";
         const string EventHubConnectionStringPropertyValue = "eventHubConnectionString";
         const string DeviceIdPropertyName = "DeviceId";
+        const string ConsumerGroupIdPropertyName = "ConsumerGroupId";
         const string WebhostPortPropertyName = "WebhostPort";
         const string ToleranceInMillisecondsPropertyName = "ToleranceInMilliseconds";
         const string DefaultDeviceId = "device1";
+        const string DefaultConsumerGroupId = "$Default";
         const string DefaultWebhostPort = "5001";
         const double DefaultToleranceInMilliseconds = 1000 * 60;
 
@@ -30,15 +32,17 @@ namespace MessagesAnalyzer
 
                 return new Settings(
                     configuration.GetValue<string>(EventHubConnectionStringPropertyValue),
+                    configuration.GetValue(ConsumerGroupIdPropertyName, DefaultConsumerGroupId),
                     configuration.GetValue(DeviceIdPropertyName, DefaultDeviceId),
                     excludedModules,
                     configuration.GetValue(WebhostPortPropertyName, DefaultWebhostPort),
                     configuration.GetValue(ToleranceInMillisecondsPropertyName, DefaultToleranceInMilliseconds));
             });
 
-        Settings(string eventHubCs, string deviceId, IList<string> excludedModuleIds, string webhostPort, double tolerance)
+        Settings(string eventHubCs, string consumerGroupId, string deviceId, IList<string> excludedModuleIds, string webhostPort, double tolerance)
         {
             this.EventHubConnectionString = eventHubCs;
+            this.ConsumerGroupId = consumerGroupId;
             this.ExcludedModuleIds = excludedModuleIds;
             this.DeviceId = deviceId;
             this.WebhostPort = webhostPort;
@@ -48,6 +52,8 @@ namespace MessagesAnalyzer
         public static Settings Current => Setting.Value;
 
         public string EventHubConnectionString { get; }
+
+        public string ConsumerGroupId { get; }
 
         public IList<string> ExcludedModuleIds { get; }
 
