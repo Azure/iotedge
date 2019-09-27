@@ -120,6 +120,7 @@ pub struct TestModule<E, C> {
     name: String,
     config: C,
     state: Result<ModuleRuntimeState, E>,
+    logs: Vec<&'static [u8]>,
 }
 
 impl<E: Fail> TestModule<E, TestConfig> {
@@ -128,6 +129,7 @@ impl<E: Fail> TestModule<E, TestConfig> {
             name,
             config,
             state,
+            logs: vec![&[0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, b'A']]
         }
     }
 }
@@ -138,6 +140,18 @@ impl<E: Fail, C> TestModule<E, C> {
             name,
             config,
             state,
+            logs: vec![&[0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, b'A']]
+        }
+    }
+}
+
+impl<E: Fail> TestModule<E, TestConfig> {
+    pub fn new_with_logs(name: String, config: TestConfig, state: Result<ModuleRuntimeState, E>, logs: Vec<&'static [u8]>) -> Self {
+        TestModule {
+            name,
+            config,
+            state,
+            logs,
         }
     }
 }
@@ -292,8 +306,8 @@ where
     type Config = S::Config;
     type Module = TestModule<E, S::Config>;
     type ModuleRegistry = TestRegistry<E, S::Config>;
-    type Chunk = String;
-    type Logs = EmptyBody<Self::Error>;
+    type Chunk = &'static [u8];
+    type Logs = futures::stream::IterOk<std::vec::IntoIter<Self::Chunk>, Self::Error>;
 
     type CreateFuture = FutureResult<(), Self::Error>;
     type GetFuture = FutureResult<(Self::Module, ModuleRuntimeState), Self::Error>;
@@ -379,7 +393,9 @@ where
 
     fn logs(&self, _id: &str, _options: &LogOptions) -> Self::LogsFuture {
         match self.module.as_ref().unwrap() {
-            Ok(ref _m) => future::ok(EmptyBody::new()),
+            Ok(ref m) => {
+                future::ok(stream::iter_ok(m.logs.clone()))
+            },
             Err(ref e) => future::err(e.clone()),
         }
     }

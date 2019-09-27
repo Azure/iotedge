@@ -96,7 +96,7 @@ where
 {
     fn write_all_logs(s1: BundleState<M>) -> impl Future<Item = BundleState<M>, Error = Error> {
         Bundle::get_modules(s1).and_then(|(names, s2)| {
-            stream::iter_ok(names).fold(s2, |s3, name| Bundle::write_log_to_file(s3, name))
+                        stream::iter_ok(names).fold(s2, |s3, name| Bundle::write_log_to_file(s3, name))
         })
     }
 
@@ -137,5 +137,59 @@ where
                     }
                 })
             })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use edgelet_core::{MakeModuleRuntime, ModuleRuntimeState};
+    use edgelet_test_utils::module::*;
+    use edgelet_test_utils::crypto::TestHsm;
+    use std::str;
+
+    use super::*;
+
+    #[derive(Clone, Copy, Debug, Fail)]
+    pub enum Error {
+        #[fail(display = "General error")]
+        General,
+    }
+
+    #[test]
+    fn get_logs() -> Result<(), Error> {
+        let image_name = "microsoft/test-image";
+        let module_name = "test-module";
+        let logs = vec![
+            &[0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0d, b'R', b'o'][..],
+            &b"ses are"[..],
+            &[b' ', b'r', b'e', b'd', 0x02, 0x00][..],
+            &[0x00, 0x00, 0x00, 0x00, 0x00, 0x10][..],
+            &b"violets"[..],
+            &b" are blue"[..],
+        ];
+
+        let state: Result<ModuleRuntimeState, Error> = Ok(ModuleRuntimeState::default());
+        let config = TestConfig::new(image_name.to_owned());
+        let module = TestModule::new_with_logs(module_name.to_owned(), config, state, logs);
+
+        let runtime = TestRuntime::make_runtime(
+            TestSettings::new(),
+            TestProvisioningResult::new(),
+            TestHsm::default(),
+        )
+        .wait()
+        .unwrap()
+        .with_module(Ok(module));
+
+        let options = LogOptions::new()
+            .with_follow(false)
+            .with_tail(Num(0))
+            .with_since(0);
+
+        let result: Vec<u8> = pull_logs(&runtime, module_name, &options, Vec::new()).wait().unwrap();
+        let result_str = str::from_utf8(&result).unwrap();
+        assert_eq!("Roses are redviolets are blue", result_str);
+
+        Ok(())
     }
 }

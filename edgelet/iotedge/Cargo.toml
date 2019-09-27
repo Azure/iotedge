@@ -43,3 +43,6 @@ libc = "0.2"
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3", features = ["ntdef", "ntstatus", "winnt", "winsock2"] }
+
+[dev-dependencies]
+edgelet-test-utils = { path = "../edgelet-test-utils" }

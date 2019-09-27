@@ -959,6 +959,7 @@ dependencies = [
  "edgelet-docker 0.1.0",
  "edgelet-http 0.1.0",
  "edgelet-http-mgmt 0.1.0",
+ "edgelet-test-utils 0.1.0",
  "failure 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.24 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.12.17 (registry+https://github.com/rust-lang/crates.io-index)",
