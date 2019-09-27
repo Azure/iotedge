@@ -28,6 +28,7 @@ termcolor = "0.3"
 tokio = "0.1"
 url = "1.7"
 zip = "0.5.3"
+parse_duration = "2.0.1"
 
 docker = { path = "../docker-rs" }
 edgelet-core = { path = "../edgelet-core" }

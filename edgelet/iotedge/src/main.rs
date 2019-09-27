@@ -14,6 +14,10 @@ use failure::{Fail, ResultExt};
 use futures::Future;
 use url::Url;
 
+use parse_duration;
+use chrono::{DateTime, Local, Duration};
+use std::convert::TryInto;
+
 use edgelet_core::{LogOptions, LogTail};
 use edgelet_http_mgmt::ModuleClient;
 
@@ -342,7 +346,7 @@ fn run() -> Result<(), Error> {
                 .unwrap_or_default();
             let since = args
                 .value_of("since")
-                .and_then(|a| a.parse::<i32>().ok())
+                .and_then(|s| parse_since(s).try_into().ok())
                 .unwrap_or_default();
             let options = LogOptions::new()
                 .with_follow(follow)
@@ -361,7 +365,7 @@ fn run() -> Result<(), Error> {
                 .unwrap_or_default();
             let since = args
                 .value_of("since")
-                .and_then(|a| a.parse::<i32>().ok())
+                .and_then(|s| parse_since(s).try_into().ok())
                 .unwrap_or_default();
             let options = LogOptions::new()
                 .with_follow(false)
@@ -370,5 +374,19 @@ fn run() -> Result<(), Error> {
                 tokio_runtime.block_on(Bundle::new(options, location, runtime()?).execute())
         },
         (command, _) => tokio_runtime.block_on(Unknown::new(command.to_string()).execute()),
+    }
+}
+
+fn parse_since(since: &str) -> i64 {
+    if let Ok(datetime) = DateTime::parse_from_rfc3339(since) {
+        datetime.timestamp()
+    } else if let Ok(duration) = parse_duration::parse(since) {
+        (Local::now() - Duration::nanoseconds(duration.as_nanos().try_into().unwrap_or_default())).timestamp()
+    } else if let Ok(epoch) = since.parse() {
+        epoch
+    } else {
+        /* Default to 1 day ago */
+        println!("Flag since ({}) not recognized. Defaulting to 1 day", since);
+        (Local::now() - Duration::days(1)).timestamp()
     }
 }
