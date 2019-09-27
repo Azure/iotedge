@@ -2,10 +2,10 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
-    using System.Threading;
     using System.Threading.Tasks;
     using k8s;
     using k8s.Models;
@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
                 await Task.WhenAny(requestHandled.WaitAsync(), Task.Delay(TestTimeout));
 
-                Assert.Equal(0, collector.Added);
+                Assert.Equal(0, collector.AddedOrUpdated);
                 Assert.Equal(events.Count, collector.Removed);
             }
         }
@@ -64,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
                 await Task.WhenAny(requestHandled.WaitAsync(), Task.Delay(TestTimeout));
 
-                Assert.Equal(pods.Count, collector.Added);
+                Assert.Equal(pods.Count, collector.AddedOrUpdated);
                 Assert.Equal(0, collector.Removed);
             }
         }
@@ -89,28 +89,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         {
             readonly AsyncCountdownEvent countdown;
 
-            int added;
+            readonly ConcurrentDictionary<string, string> addedOrUpdated = new ConcurrentDictionary<string, string>();
 
-            public int Added => this.added;
+            public int AddedOrUpdated => this.addedOrUpdated.Count;
 
-            int removed;
+            readonly ConcurrentDictionary<string, string> removed = new ConcurrentDictionary<string, string>();
+
+            public int Removed => this.removed.Count;
 
             public RuntimeInfoCollector(AsyncCountdownEvent countdown)
             {
                 this.countdown = countdown;
             }
 
-            public int Removed => this.removed;
-
             public void CreateOrUpdateAddPodInfo(string podName, V1Pod pod)
             {
-                Interlocked.Increment(ref this.added);
+                this.addedOrUpdated.TryAdd(podName, podName);
                 this.countdown.Signal();
             }
 
             public bool RemovePodInfo(string podName)
             {
-                Interlocked.Increment(ref this.removed);
+                this.removed.TryAdd(podName, podName);
                 this.countdown.Signal();
 
                 return true;
