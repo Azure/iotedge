@@ -4,6 +4,7 @@ use std::path::Path;
 use clap::{App, AppSettings, Arg, SubCommand};
 use hyper::Client as HyperClient;
 use hyper_tls::HttpsConnector;
+use tokio::prelude::*;
 
 use docker_reference::{Reference, ReferenceKind};
 
@@ -259,7 +260,7 @@ async fn true_main() -> Result<(), failure::Error> {
                         credentials,
                     )?;
 
-                    let blob = match sub_m.value_of("range") {
+                    let mut blob = match sub_m.value_of("range") {
                         Some(s) => {
                             let range: ParsableRange<u64> = s.parse()?;
                             client
@@ -269,7 +270,12 @@ async fn true_main() -> Result<(), failure::Error> {
                         None => client.get_raw_blob(image.repo(), digest).await?,
                     };
 
-                    std::io::stdout().write_all(&blob)?;
+                    // dump the blob to disk, chunk by chunk
+                    let mut stdout = tokio::io::stdout();
+                    while let Some(next) = blob.next().await {
+                        let data = next?;
+                        stdout.write(data.as_ref()).await?;
+                    }
                 }
                 _ => unreachable!(),
             }

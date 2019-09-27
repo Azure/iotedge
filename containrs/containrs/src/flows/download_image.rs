@@ -1,48 +1,47 @@
 use std::collections::HashMap;
-use std::fs::{self, File};
-use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use failure::{Context, Fail, ResultExt};
+use futures::future::{self, TryFutureExt};
 use hyper::client::connect::Connect;
 use lazy_static::lazy_static;
+use log::*;
+use tokio::fs::{self, File};
+use tokio::prelude::*;
 
 use docker_reference::Reference;
 use oci_image::v1 as ociv1;
 
 use crate::Client;
-use crate::{Error as ContainrsError, ErrorKind, Result};
+use crate::{Error as ContainrsError, ErrorKind as ContainrsErrorKind, Result};
 
 #[derive(Debug, Fail)]
 pub enum Error {
     #[fail(display = "Specified output directory does not exist")]
     OutDirDoesNotExist,
 
-    #[fail(display = "Could not create image directory")]
-    CreateImageDir,
-
-    #[fail(display = "Error while writing to `manifest.json`")]
-    WriteManifestJson,
+    #[fail(display = "Error while creating a directory")]
+    CreateDir,
 
     #[fail(display = "Server returned malformed `manifest.json`")]
     MalformedManifestJson,
 
-    #[fail(display = "Error while writing to `config.json`")]
-    WriteConfigJson,
+    #[fail(display = "Error while downloading blob")]
+    DownloadError,
 
-    #[fail(display = "Server returned malformed `config.json`")]
-    MalformedConfigJson,
+    #[fail(display = "Error while writing to file")]
+    WriteError,
 }
 
 impl From<Error> for ContainrsError {
     fn from(e: Error) -> Self {
-        ErrorKind::DownloadImage(e).into()
+        ContainrsErrorKind::DownloadImage(e).into()
     }
 }
 
 impl From<Context<Error>> for ContainrsError {
     fn from(inner: Context<Error>) -> Self {
-        inner.map(ErrorKind::DownloadImage).into()
+        inner.map(ContainrsErrorKind::DownloadImage).into()
     }
 }
 
@@ -77,41 +76,45 @@ pub async fn download_image(
     // fetch manifest
     let (raw_manifest, digest) = client.get_raw_manifest(image).await?;
 
-    // create an output directory based on the manifest's digest
-    let out_dir = out_dir.join(digest.replace(':', "-"));
-    fs::create_dir(&out_dir).context(Error::CreateImageDir)?;
-
-    // dump manifest.json to disk
-    File::create(out_dir.join("manifest.json"))
-        .and_then(|mut f| f.write(&raw_manifest))
-        .context(Error::WriteManifestJson)?;
+    debug!("Fetched manifest.json");
 
     // validate manifest
     let manifest = serde_json::from_slice::<ociv1::Manifest>(&raw_manifest)
         .context(Error::MalformedManifestJson)?;
 
+    // create an output directory based on the manifest's digest
+    let out_dir = out_dir.join(digest.replace(':', "-"));
+    fs::create_dir(&out_dir)
+        .await
+        .context(format!("{:?}", out_dir))
+        .context(Error::CreateDir)?;
+
+    // dump manifest.json to disk
+    let manifest_path = out_dir.join("manifest.json");
+    File::create(&manifest_path)
+        .and_then(|mut f| async move { f.write(&raw_manifest).await })
+        .await
+        .context(format!("{:?}", manifest_path))
+        .context(Error::WriteError)?;
+
+    debug!("Dumped manifest.json to disk");
+
+    // the rest of the resources can be downloaded in parallel
+
+    let mut downloads = Vec::new();
+
     // fetch config
-    let raw_config = client
-        .get_raw_blob(image.repo(), &manifest.config.digest)
-        .await?;
+    downloads.push(write_chunk_stream_to_file(
+        out_dir.join("config.json"),
+        client
+            .get_raw_blob(image.repo(), &manifest.config.digest)
+            .await?,
+    ));
 
-    File::create(out_dir.join("config.json"))
-        .and_then(|mut f| f.write(&raw_config))
-        .context(Error::WriteConfigJson)?;
+    debug!("Kicked off config.json download");
 
-    if validate {
-        // validate config
-        let _ = serde_json::from_slice::<ociv1::Image>(&raw_config)
-            .context(Error::MalformedConfigJson)?;
-    }
-
-    // XXX: this "async" code is completely synchronous!
-    // The client API needs to be reworked to split all the (&mut self) methods
-    // into multiple smaller methods, where the long-running tasks (i.e: downloading
-    // files) take the client as a (&self).
-    // Or, at least that's the only solution I can think of.
     for layer in manifest.layers {
-        let data = client.get_raw_blob(image.repo(), &layer.digest).await?;
+        let body = client.get_raw_blob(image.repo(), &layer.digest).await?;
 
         let filename = format!(
             "{}.{}",
@@ -121,12 +124,27 @@ pub async fn download_image(
                 .unwrap_or(&"unknown")
         );
 
-        File::create(out_dir.join(filename))
-            .and_then(|mut f| f.write(&data))
-            .context(Error::WriteConfigJson)?;
+        debug!("Kicked off {} download", filename);
+
+        downloads.push(write_chunk_stream_to_file(out_dir.join(filename), body))
     }
 
-    // TODO: validate downloaded images with their digests
+    future::try_join_all(downloads).await?;
 
+    if validate {
+        // TODO: validate downloaded files with their digests
+        // (and JSON structure, if appropriate)
+    }
+
+    Ok(())
+}
+
+async fn write_chunk_stream_to_file(file_path: PathBuf, mut body: hyper::Body) -> Result<()> {
+    let mut file = File::create(&file_path).await.context(Error::WriteError)?;
+
+    while let Some(next) = body.next().await {
+        let data = next.context(Error::DownloadError)?;
+        file.write(data.as_ref()).await.context(Error::WriteError)?;
+    }
     Ok(())
 }

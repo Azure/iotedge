@@ -94,7 +94,7 @@ impl<C: Connect + 'static> Client<C> {
     /// and the next [Paginate] range (if pagination is being used)
     ///
     /// Returned data should deserialize into [`oci_distribution::v2::Catalog`]
-    // TODO: Make this return a stream
+    // TODO: Make this return a stream?
     pub async fn get_raw_catalog(
         &mut self,
         paginate: Option<Paginate>,
@@ -137,7 +137,7 @@ impl<C: Connect + 'static> Client<C> {
     /// (if pagination is being used)
     ///
     /// Returned data should deserialize into [`oci_distribution::v2::Tags`]
-    // TODO: Make this return a stream
+    // TODO: Make this return a stream?
     pub async fn get_raw_tags(
         &mut self,
         repo: &str,
@@ -180,7 +180,7 @@ impl<C: Connect + 'static> Client<C> {
     ///
     /// Returned data should deserialize into [`oci_image::v1::Manifest`]
     // TODO: use actual digest type instead of String
-    // TODO: Make this return a stream
+    // TODO: Make this return a stream?
     pub async fn get_raw_manifest(&mut self, reference: &Reference) -> Result<(Vec<u8>, String)> {
         let uri = self.base_uri(
             format!("/v2/{}/manifests/{}", reference.repo(), reference.kind()).as_str(),
@@ -222,21 +222,20 @@ impl<C: Connect + 'static> Client<C> {
 
     /// Retrieve the blob with given `digest` from the specified `repo`.
     #[allow(clippy::ptr_arg)] // TODO: use proper Digest type instead of String
-    pub async fn get_raw_blob(&mut self, repo: &str, digest: &String) -> Result<Vec<u8>> {
+    pub async fn get_raw_blob(&mut self, repo: &str, digest: &String) -> Result<Body> {
         self.get_raw_blob_part(repo, digest, ..).await
     }
 
     /// Retrieve a byte-slice of the blob with specified `digest` from the
     /// `repo`. If the server doesn't support the use of a Range header, this
     /// function will return a [ErrorKind::ApiRangeHeaderNotSupported]
-    // TODO: Make this return a stream
     #[allow(clippy::ptr_arg)] // TODO: use proper Digest type instead of String
     pub async fn get_raw_blob_part(
         &mut self,
         repo: &str,
         digest: &String,
         range: impl RangeBounds<u64>,
-    ) -> Result<Vec<u8>> {
+    ) -> Result<Body> {
         let uri = self.base_uri(format!("/v2/{}/blobs/{}", repo, digest).as_str())?;
 
         let range_header = match (range.start_bound(), range.end_bound()) {
@@ -297,11 +296,7 @@ impl<C: Connect + 'static> Client<C> {
         let res = self.client.request(req).await?;
 
         match res.status() {
-            status if status.is_success() => Ok(res
-                .into_body()
-                .bytes()
-                .await
-                .context(ErrorKind::ApiMalformedBody)?),
+            status if status.is_success() => Ok(res.into_body()),
             StatusCode::TEMPORARY_REDIRECT => {
                 // FIXME: redirect handling needs to be more robust
                 let redirect_uri = res
@@ -328,11 +323,7 @@ impl<C: Connect + 'static> Client<C> {
                 log::trace!("blob redirect res: {:#?}", res);
 
                 match res.status() {
-                    status if status.is_success() => Ok(res
-                        .into_body()
-                        .bytes()
-                        .await
-                        .context(ErrorKind::ApiMalformedBody)?),
+                    status if status.is_success() => Ok(res.into_body()),
                     _ => Err(new_api_error(res).await),
                 }
             }
