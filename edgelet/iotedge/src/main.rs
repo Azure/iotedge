@@ -227,11 +227,11 @@ fn run() -> Result<(), Error> {
                 )
                 .arg(
                     Arg::with_name("since")
-                        .help("Only return logs since this time, as a UNIX timestamp")
+                        .help("Only return logs since this time, as a duration (1 day, 90 minutes, 2 days 3 hours 2 minutes), rfc3339 timestamp, or UNIX timestamp")
                         .long("since")
                         .takes_value(true)
-                        .value_name("NUM")
-                        .default_value("0"),
+                        .value_name("DURATION or TIMESTAMP")
+                        .default_value("1 day"),
                 )
                 .arg(
                     Arg::with_name("follow")
@@ -262,11 +262,11 @@ fn run() -> Result<(), Error> {
                 )
                 .arg(
                     Arg::with_name("since")
-                        .help("Only return logs since this time, as a UNIX timestamp")
+                        .help("Only return logs since this time, as a duration (1 day, 90 minutes, 2 days 3 hours 2 minutes), rfc3339 timestamp, or UNIX timestamp")
                         .long("since")
                         .takes_value(true)
-                        .value_name("NUM")
-                        .default_value("0"),
+                        .value_name("DURATION or TIMESTAMP")
+                        .default_value("1 day"),
                 ),
         )
         .get_matches();
