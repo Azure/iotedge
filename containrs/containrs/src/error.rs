@@ -54,11 +54,11 @@ pub enum ErrorKind {
     #[fail(display = "API returned malformed pagination link")]
     ApiPaginationLink,
 
-    #[fail(display = "API response is missing a Docker-Content-Digest header")]
-    ApiMissingDigestHeader,
+    #[fail(display = "API response is missing a required header: {}", _0)]
+    ApiMissingHeader(&'static str),
 
-    #[fail(display = "API response returned a malformed Docker-Content-Digest header")]
-    ApiMalformedDigestHeader,
+    #[fail(display = "API response returned a malformed required header: {}", _0)]
+    ApiMalformedHeader(&'static str),
 
     #[fail(display = "API returned a bad redirect")]
     ApiBadRedirect,

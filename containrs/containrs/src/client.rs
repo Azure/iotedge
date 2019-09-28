@@ -18,6 +18,29 @@ use crate::error::*;
 use crate::paginate::Paginate;
 use crate::util::hyper::{BodyExt, ResponseExt};
 
+pub struct Blob {
+    body: hyper::Body,
+    len: usize,
+}
+
+impl Blob {
+    pub fn new(body: hyper::Body, len: usize) -> Blob {
+        Blob { body, len }
+    }
+
+    pub fn into_body(self) -> hyper::Body {
+        self.body
+    }
+
+    pub fn len(&self) -> usize {
+        self.len
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+}
+
 /// Client for interacting with container registries that conform to the OCI
 /// distribution specification (i.e: Docker Registry HTTP API V2 protocol)
 #[derive(Debug)]
@@ -200,9 +223,9 @@ impl<C: Connect + 'static> Client<C> {
                 let digest = res
                     .headers()
                     .get("Docker-Content-Digest")
-                    .ok_or_else(|| ErrorKind::ApiMissingDigestHeader)?
+                    .ok_or_else(|| ErrorKind::ApiMissingHeader("Docker-Content-Digest"))?
                     .to_str()
-                    .context(ErrorKind::ApiMalformedDigestHeader)?
+                    .context(ErrorKind::ApiMalformedHeader("Docker-Content-Digest"))?
                     // TODO: validate string is actually a Digest
                     .to_string();
                 let data = res
@@ -222,20 +245,21 @@ impl<C: Connect + 'static> Client<C> {
 
     /// Retrieve the blob with given `digest` from the specified `repo`.
     #[allow(clippy::ptr_arg)] // TODO: use proper Digest type instead of String
-    pub async fn get_raw_blob(&mut self, repo: &str, digest: &String) -> Result<Body> {
+    pub async fn get_raw_blob(&mut self, repo: &str, digest: &String) -> Result<Blob> {
         self.get_raw_blob_part(repo, digest, ..).await
     }
 
-    /// Retrieve a byte-slice of the blob with specified `digest` from the
-    /// `repo`. If the server doesn't support the use of a Range header, this
-    /// function will return a [ErrorKind::ApiRangeHeaderNotSupported]
+    /// Retrieve a slice of the blob with specified `digest` from the `repo`.
+    ///
+    /// If the server doesn't support the use of a  Range header, this function
+    /// will return a [ErrorKind::ApiRangeHeaderNotSupported]
     #[allow(clippy::ptr_arg)] // TODO: use proper Digest type instead of String
     pub async fn get_raw_blob_part(
         &mut self,
         repo: &str,
         digest: &String,
         range: impl RangeBounds<u64>,
-    ) -> Result<Body> {
+    ) -> Result<Blob> {
         let uri = self.base_uri(format!("/v2/{}/blobs/{}", repo, digest).as_str())?;
 
         let range_header = match (range.start_bound(), range.end_bound()) {
@@ -296,15 +320,28 @@ impl<C: Connect + 'static> Client<C> {
         let res = self.client.request(req).await?;
 
         match res.status() {
-            status if status.is_success() => Ok(res.into_body()),
+            status if status.is_success() => {
+                let len = res
+                    .headers()
+                    .get(header::CONTENT_LENGTH)
+                    .ok_or_else(|| ErrorKind::ApiMissingHeader("Content-Length"))?
+                    .to_str()
+                    .context(ErrorKind::ApiMalformedHeader("Content-Length"))?
+                    .parse::<usize>()
+                    .context(ErrorKind::ApiMalformedHeader("Content-Length"))?;
+                Ok(Blob {
+                    body: res.into_body(),
+                    len,
+                })
+            }
             StatusCode::TEMPORARY_REDIRECT => {
                 // FIXME: redirect handling needs to be more robust
                 let redirect_uri = res
                     .headers()
                     .get(header::LOCATION)
-                    .ok_or_else(|| ErrorKind::ApiBadRedirect)?
+                    .ok_or_else(|| ErrorKind::ApiMissingHeader("Location"))?
                     .to_str()
-                    .context(ErrorKind::ApiBadRedirect)?
+                    .context(ErrorKind::ApiMalformedHeader("Location"))?
                     .parse::<Uri>()
                     .context(ErrorKind::ApiBadRedirect)?;
 
@@ -323,7 +360,20 @@ impl<C: Connect + 'static> Client<C> {
                 log::trace!("blob redirect res: {:#?}", res);
 
                 match res.status() {
-                    status if status.is_success() => Ok(res.into_body()),
+                    status if status.is_success() => {
+                        let len = res
+                            .headers()
+                            .get(header::CONTENT_LENGTH)
+                            .ok_or_else(|| ErrorKind::ApiMissingHeader("Content-Length"))?
+                            .to_str()
+                            .context(ErrorKind::ApiMalformedHeader("Content-Length"))?
+                            .parse::<usize>()
+                            .context(ErrorKind::ApiMalformedHeader("Content-Length"))?;
+                        Ok(Blob {
+                            body: res.into_body(),
+                            len,
+                        })
+                    }
                     _ => Err(new_api_error(res).await),
                 }
             }

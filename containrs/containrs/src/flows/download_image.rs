@@ -4,7 +4,7 @@ use hyper::client::connect::Connect;
 use log::*;
 use oci_image::v1 as ociv1;
 
-use crate::Client;
+use crate::client::{Blob, Client};
 use crate::{ErrorKind, Result};
 
 #[derive(Debug, Fail)]
@@ -29,9 +29,9 @@ impl From<Context<Error>> for crate::Error {
 /// and layers.
 pub struct ImageDownload {
     pub manifest_digest: String,
-    pub manifest_json: hyper::Body,
-    pub config_json: hyper::Body,
-    pub layers: Vec<(hyper::Body, ociv1::Descriptor)>,
+    pub manifest_json: Blob,
+    pub config_json: Blob,
+    pub layers: Vec<(Blob, ociv1::Descriptor)>,
 }
 
 /// Given an `image` [`Reference`], returns a [ImageDownload] struct which
@@ -43,6 +43,7 @@ pub async fn download_image<'a>(
 ) -> Result<ImageDownload> {
     // fetch manifest
     let (manifest_json, manifest_digest) = client.get_raw_manifest(image).await?;
+    let manifest_len = manifest_json.len();
 
     debug!("Fetched manifest.json");
 
@@ -69,7 +70,7 @@ pub async fn download_image<'a>(
 
     Ok(ImageDownload {
         manifest_digest,
-        manifest_json: manifest_json.into(),
+        manifest_json: Blob::new(manifest_json.into(), manifest_len),
         config_json,
         layers,
     })

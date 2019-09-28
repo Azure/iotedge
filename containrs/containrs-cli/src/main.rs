@@ -7,6 +7,7 @@ use failure::ResultExt;
 use futures::future;
 use hyper::Client as HyperClient;
 use hyper_tls::HttpsConnector;
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use lazy_static::lazy_static;
 use oci_image::v1 as ociv1;
 use tokio::fs::{self, File};
@@ -14,7 +15,7 @@ use tokio::prelude::*;
 
 use docker_reference::{Reference, ReferenceKind};
 
-use containrs::{Client, Credentials, Paginate};
+use containrs::{Blob, Client, Credentials, Paginate};
 
 mod parse_range;
 use crate::parse_range::ParsableRange;
@@ -266,7 +267,7 @@ async fn true_main() -> Result<(), failure::Error> {
                         credentials,
                     )?;
 
-                    let mut blob = match sub_m.value_of("range") {
+                    let blob = match sub_m.value_of("range") {
                         Some(s) => {
                             let range: ParsableRange<u64> = s.parse()?;
                             client
@@ -276,12 +277,23 @@ async fn true_main() -> Result<(), failure::Error> {
                         None => client.get_raw_blob(image.repo(), digest).await?,
                     };
 
-                    // dump the blob to disk, chunk by chunk
+                    let len = blob.len();
+                    let mut body = blob.into_body();
+
+                    // dump the blob to stdout, chunk by chunk
                     let mut stdout = tokio::io::stdout();
-                    while let Some(next) = blob.next().await {
+                    // while let Some(next) = body.next().await {
+                    //     let data = next?;
+                    //     stdout.write(data.as_ref()).await?;
+                    // }
+
+                    let progress = ProgressBar::new(len as u64);
+                    while let Some(next) = body.next().await {
                         let data = next?;
-                        stdout.write(data.as_ref()).await?;
+                        let bytes_written = stdout.write(data.as_ref()).await?;
+                        progress.inc(bytes_written as u64);
                     }
+                    progress.finish();
                 }
                 _ => unreachable!(),
             }
@@ -300,6 +312,21 @@ async fn true_main() -> Result<(), failure::Error> {
                 image.registry(),
                 credentials,
             )?;
+
+            let overall_progress = MultiProgress::new();
+            let progress_style = ProgressStyle::default_bar()
+                .template(
+                    "[{elapsed_precise}] {msg:16} - {total_bytes:8} {wide_bar} [{percent:3}%]",
+                )
+                .progress_chars("##-");
+
+            let manifest_progress = overall_progress.add(ProgressBar::new(0));
+            manifest_progress.set_message("manifest.json");
+            manifest_progress.set_style(progress_style.clone());
+
+            let config_progress = overall_progress.add(ProgressBar::new(0));
+            config_progress.set_message("config.json");
+            config_progress.set_style(progress_style.clone());
 
             let containrs::flows::ImageDownload {
                 manifest_digest,
@@ -341,17 +368,23 @@ async fn true_main() -> Result<(), failure::Error> {
             let mut downloads = Vec::new();
 
             // dump manifest.json to disk
-            downloads.push(write_body_to_file(
+            manifest_progress.set_length(manifest_json.len() as u64);
+            downloads.push(write_blob_to_file(
                 out_dir.join("manifest.json"),
                 manifest_json,
+                manifest_progress,
             ));
 
             // dump config.json to disk
-            downloads.push(write_body_to_file(out_dir.join("config.json"), config_json));
+            config_progress.set_length(config_json.len() as u64);
+            downloads.push(write_blob_to_file(
+                out_dir.join("config.json"),
+                config_json,
+                config_progress,
+            ));
 
             // dump layers to disk
-
-            downloads.extend(layers.into_iter().map(|(body, layer)| {
+            downloads.extend(layers.into_iter().map(|(blob, layer)| {
                 let filename = format!(
                     "{}.{}",
                     layer.digest.replace(':', "-"),
@@ -359,8 +392,16 @@ async fn true_main() -> Result<(), failure::Error> {
                         .get(layer.media_type.as_str())
                         .unwrap_or(&"unknown")
                 );
-                write_body_to_file(out_dir.join(filename), body)
+
+                let layer_progress = overall_progress.add(ProgressBar::new(blob.len() as u64));
+                layer_progress.set_message(&layer.digest.split(':').nth(1).unwrap()[..16]);
+                layer_progress.set_style(progress_style.clone());
+                write_blob_to_file(out_dir.join(filename), blob, layer_progress)
             }));
+
+            std::thread::spawn(move || {
+                let _ = overall_progress.join();
+            });
 
             future::try_join_all(downloads).await?;
 
@@ -372,19 +413,24 @@ async fn true_main() -> Result<(), failure::Error> {
     Ok(())
 }
 
-async fn write_body_to_file(
+async fn write_blob_to_file(
     file_path: PathBuf,
-    mut body: hyper::Body,
+    blob: Blob,
+    progress: ProgressBar,
 ) -> Result<(), failure::Error> {
     let mut file = File::create(&file_path)
         .await
         .context(format!("could not create {:?}", file_path))?;
 
+    let mut body = blob.into_body();
     while let Some(next) = body.next().await {
         let data = next.context(format!("error while downloading {:?}", file_path))?;
-        file.write(data.as_ref())
+        let bytes_written = file
+            .write(data.as_ref())
             .await
             .context(format!("error while writing to {:?}", file_path))?;
+        progress.inc(bytes_written as u64);
     }
+    progress.finish();
     Ok(())
 }

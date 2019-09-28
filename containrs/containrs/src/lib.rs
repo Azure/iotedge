@@ -9,6 +9,6 @@ mod util;
 pub mod flows;
 
 pub use auth::Credentials;
-pub use client::Client;
+pub use client::{Blob, Client};
 pub use error::{Error, ErrorKind, Result};
 pub use paginate::Paginate;
