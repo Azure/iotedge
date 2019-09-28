@@ -189,9 +189,7 @@ mod tests {
         bundle.execute().wait().unwrap();
 
         let result_path = tmp_dir.path().join("css_bundle.zip").to_str().unwrap().to_owned();
-        let result_hash = hash_file(&result_path);
-        assert_eq!("ad27efc79c18f9c2091824e13ee3f2336b2d0771a85587bcfcc7e142a52b906e", &result_hash);
-
+        File::open(result_path).unwrap();
     }
 
     fn make_runtime() -> TestRuntime<Error, TestSettings> {
