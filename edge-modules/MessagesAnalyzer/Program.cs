@@ -46,7 +46,7 @@ namespace MessagesAnalyzer
                 EventHubClient.CreateFromConnectionString(builder.ToString());
 
             PartitionReceiver eventHubReceiver = eventHubClient.CreateReceiver(
-                "$Default",
+                Settings.Current.ConsumerGroupId,
                 EventHubPartitionKeyResolver.ResolveToPartition(Settings.Current.DeviceId, (await eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
                 EventPosition.FromEnqueuedTime(DateTime.UtcNow));
 

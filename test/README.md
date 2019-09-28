@@ -1,13 +1,20 @@
 # How to run the end-to-end tests
 
+## Software Dependency
+Since an IoT Edge device is responsible for running end-to-end (E2E) tests; hence,
+the software requirements to run a test is the combination of IoT Edge and test build.
+* For Building Tests
+    * .NET Core SDK
+
 ## Test parameters
 
 The end-to-end tests take several parameters, which they expect to find in a file named `context.json` in the same directory as the test binaries (e.g., `test/Microsoft.Azure.Devices.Edge.Test/bin/Debug/netcoreapp2.1/context.json`). Parameter names are case-insensitive. The parameters are:
 
 | Name | Required | Description |
 |------|----------|-------------|
-| `caCertScriptPath` | ✔ | Path to the folder containing `certGen.sh` (Linux) or `ca-certs.ps1` (Windows). |
-| `deviceId` || Name by which the edge device-under-test will be registered in IoT Hub. If not given, a name will automatically be generated in the format: `e2e-{device hostname}-{yyMMdd-HHmmss.fff}`. |
+| `caCertScriptPath` | * | Path to the folder containing `certGen.sh` (Linux) or `ca-certs.ps1` (Windows). Required when running the test 'TransparentGateway', ignored otherwise. |
+| `deviceId` || Name by which the edge device-under-test will be registered in IoT Hub. If not given, a name will automatically be generated in the format: `e2e-{device hostname}-{yyMMdd-HHmmss.fff}`. DPS tests will derive their "registration ID" from `deviceId` by appending the normalized test name (lowercased, with sequences of non-word characters replaced by a single dash). |
+| `dpsIdScope` | * | The [ID Scope](https://docs.microsoft.com/en-us/azure/iot-dps/concepts-device#id-scope) assigned to a Device Provisioning Service. Required when running any DPS tests, ignored otherwise. |
 | `edgeAgentImage` || Docker image to pull/use for Edge Agent. If not given, the default value `mcr.microsoft.com/azureiotedge-agent:1.0` is used. Note also that the default value is ALWAYS used in config.yaml to start IoT Edge; this setting only applies to any configurations deployed by the tests. |
 | `edgeHubImage` || Docker image to pull/use for Edge Hub. If not given, `mcr.microsoft.com/azureiotedge-hub:1.0` is used. |
 | `installerPath` || Path to the Windows installer script `IotEdgeSecurityDaemon.ps1`. This parameter is ignored on Linux, and optional on Windows. If not given on Windows, the default script will be downloaded from https://aka.ms/iotedge-win to a temporary location. |
@@ -22,6 +29,8 @@ The end-to-end tests take several parameters, which they expect to find in a fil
 | `rootCaPrivateKeyPath` | * | Full path to a file containing the private key associated with `rootCaCertificatePath`. Required when running the test 'TransparentGateway', ignored otherwise. |
 | `setupTimeoutMinutes` || The maximum amount of time, in minutes, test setup should take. This includes setup for all tests, for the tests in a fixture, or for a single test. If this time is exceeded, the associated test(s) will fail with a timeout error. If not given, the default value is `5`. |
 | `teardownTimeoutMinutes` || The maximum amount of time, in minutes, test teardown should take. This includes teardown for all tests, for the tests in a fixture, or for a single test. If this time is exceeded, the associated test(s) will fail with a timeout error. If not given, the default value is `2`. |
+| `tempFilterFuncImage` | * | Azure temperature filter function to be used. Required when running the test 'TempFilterFunc', ignored otherwise.|
+| `tempFilterImage` | * | Docker image to pull/use for the temperature filter module. Required when running the test 'TempFilter', ignored otherwise.|
 | `tempSensorImage` || Docker image to pull/use for the temperature sensor module (see the test 'TempSensor'). If not given, `mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0` is used.|
 | `testTimeoutMinutes` || The maximum amount of time, in minutes, a single test should take. If this time is exceeded, the associated test will fail with a timeout error. If not given, the default value is `5`. |
 | `verbose` || Boolean value indicating whether to output more verbose logging information to standard output during a test run. If not given, the default is `false`. |
@@ -32,6 +41,7 @@ The tests also expect to find several _secret_ parameters. While these can techn
 
 | Name | Required | Description |
 |------|----------|-------------|
+| `[E2E_]DPS_GROUP_KEY` | * | The symmetric key of the DPS [enrollment group](https://docs.microsoft.com/en-us/azure/iot-dps/concepts-service#enrollment-group) to use. Required when running any DPS tests, ignored otherwise. |
 | `[E2E_]IOT_HUB_CONNECTION_STRING` | ✔ | Hub-scoped IoT Hub connection string that can be used to get/add/remove devices, deploy edge configurations, and get/update module twins. |
 | `[E2E_]EVENT_HUB_ENDPOINT` | ✔ | Connection string used to connect to the Event Hub-compatible endpoint of your IoT Hub, to listen for D2C events sent by devices or modules. |
 | `[E2E_]REGISTRIES__{n}__PASSWORD` || Password associated with a container registry entry in the `registries` array of `context.json`. `{n}` is the number corresponding to the (zero-based) array entry. For example, if you specified a single container registry in the `registries` array, the corresponding parameter would be `[E2E_]REGISTRIES__0__PASSWORD`. |
@@ -41,9 +51,25 @@ _Note: the definitive source for information about test parameters is `test/Micr
 
 ## Running the tests
 
-With the test parameters and secrets in place, you can run all the end-to-end tests from the command line:
+With the test parameters and secrets in place, you can run all the end-to-end tests from the command line
 
-```
+_In Windows Command Prompt (Admin),_
+
+```cmd
 cd {repo root}
 dotnet test test/Microsoft.Azure.Devices.Edge.Test
 ```
+_For Linux,_
+```bash
+cd {repo root}
+sudo --preserve-env dotnet test ./test/Microsoft.Azure.Devices.Edge.Test 
+```
+
+For more details please refer to NUnit document: 
+https://docs.microsoft.com/en-us/dotnet/core/testing/selective-unit-tests#nunit
+
+## Troubleshooting
+
+If you are using a VSCode in Linux, it is recommend that you increase the maximum number of file I/O to prevent a test from erroring out by hitting the limit. To increase the file I/O capacity:
+https://code.visualstudio.com/docs/setup/linux#_visual-studio-code-is-unable-to-watch-for-file-changes-in-this-large-workspace-error-enospc
+

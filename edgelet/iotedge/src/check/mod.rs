@@ -1003,7 +1003,7 @@ fn settings_hostname(check: &mut Check) -> Result<CheckResult, failure::Error> {
         .into());
     }
 
-    // Some software like Kubernetes and the IoT Hub SDKs for downstream clients require the device hostname to follow RFC 1035.
+    // Some software like the IoT Hub SDKs for downstream clients require the device hostname to follow RFC 1035.
     // For example, the IoT Hub C# SDK cannot connect to a hostname that contains an `_`.
     if !is_rfc_1035_valid(config_hostname) {
         return Ok(CheckResult::Warning(Context::new(format!(
@@ -1011,8 +1011,8 @@ fn settings_hostname(check: &mut Check) -> Result<CheckResult, failure::Error> {
              \n\
              - Hostname must be between 1 and 255 octets inclusive.\n\
              - Each label in the hostname (component separated by \".\") must be between 1 and 63 octets inclusive.\n\
-             - Each label must start with an ASCII alphabet character (a-z), end with an ASCII alphanumeric character (a-z, 0-9), \
-               and must contain only ASCII alphanumeric characters or hyphens (a-z, 0-9, \"-\").\n\
+             - Each label must start with an ASCII alphabet character (a-z, A-Z), end with an ASCII alphanumeric character (a-z, A-Z, 0-9), \
+               and must contain only ASCII alphanumeric characters or hyphens (a-z, A-Z, 0-9, \"-\").\n\
              \n\
              Not complying with RFC 1035 may cause errors during the TLS handshake with modules and downstream devices.",
             config_hostname,
@@ -1964,13 +1964,13 @@ fn is_rfc_1035_valid(name: &str) -> bool {
             Some(c) => c,
             None => return false,
         };
-        if first_char < 'a' || first_char > 'z' {
+        if !first_char.is_ascii_alphabetic() {
             return false;
         }
 
         if label
             .chars()
-            .any(|c| (c < 'a' || c > 'z') && (c < '0' || c > '9') && c != '-')
+            .any(|c| !c.is_ascii_alphanumeric() && c != '-')
         {
             return false;
         }
@@ -1979,7 +1979,7 @@ fn is_rfc_1035_valid(name: &str) -> bool {
             .chars()
             .last()
             .expect("label has at least one character");
-        if (last_char < 'a' || last_char > 'z') && (last_char < '0' || last_char > '9') {
+        if !last_char.is_ascii_alphanumeric() {
             return false;
         }
 
@@ -2356,6 +2356,10 @@ mod tests {
         assert!(super::is_rfc_1035_valid("xn--v9ju72g90p.com"));
         assert!(super::is_rfc_1035_valid("xn--a-kz6a.xn--b-kn6b.xn--c-ibu"));
 
+        assert!(super::is_rfc_1035_valid("FOOBAR"));
+        assert!(super::is_rfc_1035_valid("FOOBAR.BAZ"));
+        assert!(super::is_rfc_1035_valid("FoObAr01.bAz"));
+
         assert!(!super::is_rfc_1035_valid(&format!(
             "{}a",
             longest_valid_label
@@ -2368,5 +2372,6 @@ mod tests {
         assert!(!super::is_rfc_1035_valid("\u{4eca}\u{65e5}\u{306f}"));
         assert!(!super::is_rfc_1035_valid("\u{4eca}\u{65e5}\u{306f}.com"));
         assert!(!super::is_rfc_1035_valid("a\u{4eca}.b\u{65e5}.c\u{306f}"));
+        assert!(!super::is_rfc_1035_valid("FoObAr01.bAz-"));
     }
 }

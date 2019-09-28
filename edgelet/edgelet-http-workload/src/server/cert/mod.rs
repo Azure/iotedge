@@ -39,7 +39,7 @@ fn cert_to_response<T: Certificate>(cert: &T, context: ErrorKind) -> Result<Cert
             PrivateKeyResponse::new("key".to_string())
                 .with_bytes(String::from_utf8_lossy(buffer.as_ref()).to_string())
         }
-        Ok(None) => Err(ErrorKind::BadPrivateKey)?,
+        Ok(None) => return Err(ErrorKind::BadPrivateKey.into()),
         Err(err) => return Err(Error::from(err.context(context))),
     };
 

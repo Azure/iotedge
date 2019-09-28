@@ -56,8 +56,8 @@ pub enum Error {
 impl<'a> From<&'a Error> for ModuleRuntimeErrorReason {
     fn from(err: &'a Error) -> Self {
         match err {
-            Error::General => ModuleRuntimeErrorReason::Other,
-            Error::NotFound => ModuleRuntimeErrorReason::NotFound,
+            Error::General => Self::Other,
+            Error::NotFound => Self::NotFound,
         }
     }
 }
