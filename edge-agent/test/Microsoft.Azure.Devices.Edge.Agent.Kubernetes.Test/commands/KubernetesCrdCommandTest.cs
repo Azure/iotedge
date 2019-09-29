@@ -24,7 +24,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
     {
         const string Namespace = "namespace";
         static readonly ResourceName ResourceName = new ResourceName("hostname", "deviceId");
-        static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>();
+        static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>()
+        {
+            { "ACamelCaseEnvVar", new EnvVal("ACamelCaseEnvVarValue")}
+        };
         static readonly DockerConfig Config1 = new DockerConfig("test-image:1");
         static readonly DockerConfig Config2 = new DockerConfig("test-image:2");
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
@@ -64,6 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
             bool postSecretCalled = false;
             bool getCrdCalled = false;
             bool postCrdCalled = false;
+            EdgeDeploymentDefinition postedEdgeDeploymentDefinition = null;
 
             using (var server = new KubernetesApiServer(
                 resp: string.Empty,
@@ -94,6 +98,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                         else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.EdgeDeployment.Plural}"))
                         {
                             postCrdCalled = true;
+                            StreamReader reader = new StreamReader(httpContext.Response.Body);
+                            string streamText = reader.ReadToEnd();
+                            postedEdgeDeploymentDefinition = JsonConvert.DeserializeObject<EdgeDeploymentDefinition>(streamText);
                         }
                     }
 
@@ -111,6 +118,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                 Assert.True(postSecretCalled, nameof(postSecretCalled));
                 Assert.True(getCrdCalled, nameof(getCrdCalled));
                 Assert.True(postCrdCalled, nameof(postCrdCalled));
+                Assert.True(postedEdgeDeploymentDefinition.Spec[0].Env.Contains(new KeyValuePair<string,EnvVal>( "ACamelCaseEnvVar", new EnvVal("ACamelCaseEnvVarValue"))));
+
             }
         }
 
