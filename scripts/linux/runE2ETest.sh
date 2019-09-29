@@ -20,7 +20,7 @@ function clean_up() {
     rm -rf /etc/iotedge/config.yaml
 
     echo 'Remove mounted storage folder'
-    rm -rf /home/edgehub-mounted-storage
+    rm -rf $mounted_storage_path
 
     if [ "$CLEAN_ALL" = '1' ]; then
         echo 'Prune docker system'
@@ -855,10 +855,10 @@ function run_test()
 }
 
 function setup_mounted_storage() {
-    if [ ! -d "/home/edgehub-mounted-storage" ]; then
-        mkdir /home/edgehub-mounted-storage
+    if [ ! -d $mounted_storage_path ]; then
+        mkdir $mounted_storage_path
     fi
-    chmod a+rw /home/edgehub-mounted-storage
+    chmod a+rw $mounted_storage_path
 }
 
 function test_setup() {
@@ -1024,5 +1024,6 @@ stress_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployme
 deployment_working_file="$working_folder/deployment.json"
 quickstart_working_folder="$working_folder/quickstart"
 leafdevice_working_folder="$working_folder/leafdevice"
+mounted_storage_path="/home/edgehub-mounted-storage"
 
 run_test
