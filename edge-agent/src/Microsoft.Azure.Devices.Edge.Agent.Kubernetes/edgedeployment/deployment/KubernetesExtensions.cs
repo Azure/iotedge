@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
+namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deployment
 {
     using System.Collections.Generic;
     using System.Linq;
@@ -7,7 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
     public static class V1PodSpecEx
     {
-        public static bool PodSpecEquals(V1PodSpec self, V1PodSpec other)
+        public static bool ImageEquals(this V1PodSpec self, V1PodSpec other)
         {
             if (ReferenceEquals(null, other))
             {
@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
     public static class V1PodTemplateSpecEx
     {
-        public static bool ImageEquals(V1PodTemplateSpec self, V1PodTemplateSpec other)
+        public static bool ImageEquals(this V1PodTemplateSpec self, V1PodTemplateSpec other)
         {
             if (ReferenceEquals(null, other))
             {
@@ -57,13 +57,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 return true;
             }
 
-            return V1PodSpecEx.PodSpecEquals(self.Spec, other.Spec);
+            return self.Spec.ImageEquals(other.Spec);
         }
     }
 
     public static class V1DeploymentSpecEx
     {
-        public static bool ImageEquals(V1DeploymentSpec self, V1DeploymentSpec other)
+        public static bool ImageEquals(this V1DeploymentSpec self, V1DeploymentSpec other)
         {
             if (ReferenceEquals(null, other))
             {
@@ -75,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 return true;
             }
 
-            return V1PodTemplateSpecEx.ImageEquals(self.Template, other.Template);
+            return self.Template.ImageEquals(other.Template);
         }
     }
 
@@ -93,8 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 return true;
             }
 
-            return string.Equals(self.Kind, other.Kind) &&
-                V1DeploymentSpecEx.ImageEquals(self.Spec, other.Spec);
+            return string.Equals(self.Kind, other.Kind) && self.Spec.ImageEquals(other.Spec);
         }
     }
 }

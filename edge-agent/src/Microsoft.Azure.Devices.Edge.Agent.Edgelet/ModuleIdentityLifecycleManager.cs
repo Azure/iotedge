@@ -17,6 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         readonly ModuleIdentityProviderServiceBuilder identityProviderServiceBuilder;
         readonly Uri workloadUri;
 
+        protected virtual bool ShouldAlwaysReturnIdentities => false;
+
         public ModuleIdentityLifecycleManager(IIdentityManager identityManager, ModuleIdentityProviderServiceBuilder identityProviderServiceBuilder, Uri workloadUri)
         {
             this.identityManager = Preconditions.CheckNotNull(identityManager, nameof(identityManager));
@@ -27,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         public async Task<IImmutableDictionary<string, IModuleIdentity>> GetModuleIdentitiesAsync(ModuleSet desired, ModuleSet current)
         {
             Diff diff = desired.Diff(current);
-            if (diff.IsEmpty)
+            if (diff.IsEmpty && !this.ShouldAlwaysReturnIdentities)
             {
                 return ImmutableDictionary<string, IModuleIdentity>.Empty;
             }

@@ -7,12 +7,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Newtonsoft.Json;
 
-    public class KubernetesModule<TConfig> : IModule<TConfig>
+    public class KubernetesModule : IModule<CombinedDockerConfig>
     {
         static readonly DictionaryComparer<string, EnvVal> EnvDictionaryComparer = new DictionaryComparer<string, EnvVal>();
 
-        public KubernetesModule(IModule<TConfig> module)
+        public KubernetesModule(IModule module, CombinedDockerConfig config)
         {
             this.Name = module.Name;
             this.Version = module.Version;
@@ -21,52 +22,90 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.RestartPolicy = module.RestartPolicy;
             this.ConfigurationInfo = module.ConfigurationInfo;
             this.Env = module.Env?.ToImmutableDictionary() ?? ImmutableDictionary<string, EnvVal>.Empty;
-            this.Config = module.Config;
+            this.ImagePullPolicy = module.ImagePullPolicy;
+            this.Config = config;
         }
 
+        [JsonConstructor]
+        public KubernetesModule(
+            string name,
+            string version,
+            string type,
+            ModuleStatus status,
+            RestartPolicy restartPolicy,
+            ConfigurationInfo configurationInfo,
+            IDictionary<string, EnvVal> env,
+            CombinedDockerConfig settings,
+            ImagePullPolicy imagePullPolicy)
+        {
+            this.Name = name;
+            this.Version = version;
+            this.Type = type;
+            this.DesiredStatus = status;
+            this.RestartPolicy = restartPolicy;
+            this.ConfigurationInfo = configurationInfo;
+            this.Env = env?.ToImmutableDictionary() ?? ImmutableDictionary<string, EnvVal>.Empty;
+            this.Config = settings;
+            this.ImagePullPolicy = imagePullPolicy;
+        }
+
+        [JsonProperty(PropertyName = "name")]
         public string Name { get; set; }
 
-        public string Version { get; set; }
+        [JsonProperty(PropertyName = "version")]
+        public string Version { get; }
 
-        public string Type { get; set; }
+        [JsonProperty(PropertyName = "type")]
+        public string Type { get; }
 
-        public ModuleStatus DesiredStatus { get; set; }
+        [JsonProperty(PropertyName = "status")]
+        public ModuleStatus DesiredStatus { get; }
 
-        public RestartPolicy RestartPolicy { get; set; }
+        [JsonProperty(PropertyName = "restartPolicy")]
+        public RestartPolicy RestartPolicy { get; }
 
-        public ConfigurationInfo ConfigurationInfo { get; set; }
+        [JsonProperty(PropertyName = "imagePullPolicy")]
+        public ImagePullPolicy ImagePullPolicy { get; }
 
-        public IDictionary<string, EnvVal> Env { get; set; }
+        [JsonIgnore]
+        public ConfigurationInfo ConfigurationInfo { get; }
 
-        public ImagePullPolicy ImagePullPolicy { get; set; }
+        [JsonProperty(PropertyName = "env")]
+        public IDictionary<string, EnvVal> Env { get; }
 
-        public TConfig Config { get; set; }
+        [JsonProperty(PropertyName = "settings")]
+        [JsonConverter(typeof(CombinedDockerConfigToStringConverter))]
+        public CombinedDockerConfig Config { get; }
 
-        public virtual bool Equals(IModule other) => this.Equals(other as KubernetesModule<TConfig>);
+        public virtual bool Equals(IModule other) => this.Equals(other as KubernetesModule);
 
-        public bool Equals(IModule<TConfig> other) => this.Equals(other as KubernetesModule<TConfig>);
+        public bool Equals(IModule<CombinedDockerConfig> other) => this.Equals(other as KubernetesModule);
 
-        public bool Equals(KubernetesModule<TConfig> other)
+        public bool Equals(KubernetesModule other)
         {
             if (ReferenceEquals(null, other))
+            {
                 return false;
+            }
+
             if (ReferenceEquals(this, other))
+            {
                 return true;
+            }
+
             return string.Equals(this.Name, other.Name) &&
                 string.Equals(this.Version, other.Version) &&
                 string.Equals(this.Type, other.Type) &&
-                this.DesiredStatus != other.DesiredStatus &&
+                this.DesiredStatus == other.DesiredStatus &&
                 this.RestartPolicy == other.RestartPolicy &&
-                this.ConfigurationInfo == other.ConfigurationInfo &&
+                Equals(this.ConfigurationInfo, other.ConfigurationInfo) &&
                 this.ImagePullPolicy == other.ImagePullPolicy &&
-                this.Config is DockerConfig &&
-                this.Config as DockerConfig == other.Config as DockerConfig &&
                 EnvDictionaryComparer.Equals(this.Env, other.Env);
         }
 
         public bool IsOnlyModuleStatusChanged(IModule other)
         {
-            return other is KubernetesModule<TConfig> &&
+            return other is KubernetesModule &&
                 string.Equals(this.Name, other.Name) &&
                 string.Equals(this.Version, other.Version) &&
                 string.Equals(this.Type, other.Type) &&
