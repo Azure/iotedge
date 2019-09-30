@@ -16,7 +16,7 @@ Note: please use your Azure subscription if you need to share any information fr
 Need Support?
 * Have a feature request? Please post it on [User Voice](https://feedback.azure.com/forums/907045-azure-iot-edge) to help us prioritize.
 * Have a technical question? Ask on [Stack Overflow](https://stackoverflow.com/questions/tagged/azure-iot-edge) with tag "azure-iot-edge".
-* Need Support? Every customer with an active Azure subscription has access to [support](https://docs.microsoft.com/en-us/azure/azure-supportability/how-to-create-azure-support-request) with guaranteed response time.  Consider submitting a ticket and get assistance from the Microsoft support team.
+* Need support? Azure customers with support plans have access to priority technical support directly from the Azure Portal. Support plan details are at: https://azure.microsoft.com/en-us/support/plans/
 
 Provide a general summary of the issue in the Title above
 -->
@@ -41,7 +41,9 @@ Provide a detailed set of steps to reproduce the bug.
 <summary>Click here</summary>
 
 ```
-// Paste here
+
+<Paste here between the triple backticks>
+
 ```
 </details>
 
@@ -52,11 +54,11 @@ Provide a detailed set of steps to reproduce the bug.
 
 ### Runtime Versions
 * iotedged [run `iotedge version`]: 
-* Edge Agent [image tag (i.e. 1.0.0)]: 
-* Edge Hub [image tag (i.e. 1.0.0)]: 
+* Edge Agent [image tag (e.g. 1.0.0)]: 
+* Edge Hub [image tag (e.g. 1.0.0)]: 
 * Docker/Moby [run `docker version`]: 
 
-Note: on Windows include the host option `docker -H npipe:////./pipe/iotedge_moby_engine version`
+Note: when using Windows containers on Windows, run `docker -H npipe:////./pipe/iotedge_moby_engine version` instead
 
 ## Logs
 <!--
@@ -69,7 +71,9 @@ Don't forget to remove any connection string information!
 <summary>iotedged logs</summary>
 
 ```
-<Paste here>
+
+<Paste here between the triple backticks>
+
 ```
 </details>
 
@@ -77,7 +81,9 @@ Don't forget to remove any connection string information!
 <summary>edge-agent logs</summary>
 
 ```
-<Paste here>
+
+<Paste here between the triple backticks>
+
 ```
 </details>
 
@@ -85,7 +91,9 @@ Don't forget to remove any connection string information!
 <summary>edge-hub logs</summary>
 
 ```
-<Paste here>
+
+<Paste here between the triple backticks>
+
 ```
 </details>
 
