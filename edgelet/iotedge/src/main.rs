@@ -334,11 +334,17 @@ fn run() -> Result<(), Error> {
             let tail = args
                 .value_of("tail")
                 .and_then(|a| a.parse::<LogTail>().ok())
-                .unwrap_or_default();
+                .unwrap_or_else(|| {
+                    println!("Could not parse tail");
+                    process::exit(1)
+                });
             let since = args
                 .value_of("since")
                 .and_then(|s| parse_since(s))
-                .unwrap();
+                .unwrap_or_else(|| {
+                    println!("Could not parse since");
+                    process::exit(1)
+                });
             let options = LogOptions::new()
                 .with_follow(follow)
                 .with_tail(tail)
@@ -351,7 +357,10 @@ fn run() -> Result<(), Error> {
             let since = args
                 .value_of("since")
                 .and_then(|s| parse_since(s))
-                .unwrap();
+                .unwrap_or_else(|| {
+                    println!("Could not parse since");
+                    process::exit(1)
+                });
             let options = LogOptions::new()
                 .with_follow(false)
                 .with_tail(LogTail::All)
@@ -373,7 +382,6 @@ fn parse_since(since: &str) -> Option<i32> {
             .try_into()
             .ok()
     } else {
-        println!("Could not parse since: {}", since);
         None
     }
 }
