@@ -46,7 +46,7 @@ pub fn pull_logs<M, W>(
     writer: W,
 ) -> impl Future<Item = W, Error = Error> + Send
 where
-    M: 'static + ModuleRuntime + Clone,
+    M: 'static + ModuleRuntime,
     W: 'static + Write + Send,
 {
     runtime

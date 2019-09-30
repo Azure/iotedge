@@ -5,6 +5,7 @@
 #![allow(clippy::similar_names)]
 
 use std::borrow::Cow;
+use std::convert::TryInto;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process;
@@ -15,8 +16,6 @@ use futures::Future;
 use url::Url;
 
 use chrono::{DateTime, Duration, Local};
-use parse_duration;
-use std::convert::TryInto;
 
 use edgelet_core::{LogOptions, LogTail};
 use edgelet_http_mgmt::ModuleClient;
@@ -242,7 +241,7 @@ fn run() -> Result<(), Error> {
         )
         .subcommand(SubCommand::with_name("version").about("Show the version information"))
         .subcommand(
-            SubCommand::with_name("cssbundle")
+            SubCommand::with_name("support-bundle")
                 .about("Bundles troubleshooting information")
                 .arg(
                     Arg::with_name("location")
@@ -251,14 +250,6 @@ fn run() -> Result<(), Error> {
                         .takes_value(true)
                         .value_name("DIRECTORY")
                         .default_value("."),
-                )
-                .arg(
-                    Arg::with_name("tail")
-                        .help("Number of lines to show from the end of each log")
-                        .long("tail")
-                        .takes_value(true)
-                        .value_name("NUM")
-                        .default_value("all"),
                 )
                 .arg(
                     Arg::with_name("since")
@@ -325,7 +316,7 @@ fn run() -> Result<(), Error> {
                 args.is_present("verbose"),
                 args.is_present("warnings-as-errors"),
             )
-            .and_then(iotedge::Command::execute),
+            .and_then(Command::execute),
         ),
         ("check-list", _) => Check::print_list(),
         ("list", _) => tokio_runtime.block_on(List::new(runtime()?, io::stdout()).execute()),
@@ -346,8 +337,8 @@ fn run() -> Result<(), Error> {
                 .unwrap_or_default();
             let since = args
                 .value_of("since")
-                .and_then(|s| parse_since(s).try_into().ok())
-                .unwrap_or_default();
+                .and_then(|s| parse_since(s))
+                .unwrap();
             let options = LogOptions::new()
                 .with_follow(follow)
                 .with_tail(tail)
@@ -355,38 +346,35 @@ fn run() -> Result<(), Error> {
             tokio_runtime.block_on(Logs::new(id, options, runtime()?).execute())
         }
         ("version", _) => tokio_runtime.block_on(Version::new().execute()),
-        ("cssbundle", Some(args)) => {
+        ("support-bundle", Some(args)) => {
             let location = args.value_of("location").unwrap_or_default();
-            let tail = args
-                .value_of("tail")
-                .and_then(|a| a.parse::<LogTail>().ok())
-                .unwrap_or_default();
             let since = args
                 .value_of("since")
-                .and_then(|s| parse_since(s).try_into().ok())
-                .unwrap_or_default();
+                .and_then(|s| parse_since(s))
+                .unwrap();
             let options = LogOptions::new()
                 .with_follow(false)
-                .with_tail(tail)
+                .with_tail(LogTail::All)
                 .with_since(since);
-            tokio_runtime.block_on(Bundle::new(options, location, runtime()?).execute())
+            tokio_runtime.block_on(SupportBundle::new(options, location, runtime()?).execute())
         }
         (command, _) => tokio_runtime.block_on(Unknown::new(command.to_string()).execute()),
     }
 }
 
-fn parse_since(since: &str) -> i64 {
+fn parse_since(since: &str) -> Option<i32> {
     if let Ok(datetime) = DateTime::parse_from_rfc3339(since) {
-        datetime.timestamp()
+        datetime.timestamp().try_into().ok()
     } else if let Ok(epoch) = since.parse() {
-        epoch
+        Some(epoch)
     } else if let Ok(duration) = parse_duration::parse(since) {
-        (Local::now() - Duration::nanoseconds(duration.as_nanos().try_into().unwrap_or_default()))
+        (Local::now() - Duration::nanoseconds(duration.as_nanos().try_into().unwrap()))
             .timestamp()
+            .try_into()
+            .ok()
     } else {
-        /* Default to 1 day ago */
-        println!("Flag since ({}) not recognized. Defaulting to 1 day", since);
-        (Local::now() - Duration::days(1)).timestamp()
+        println!("Could not parse since: {}", since);
+        None
     }
 }
 
@@ -396,35 +384,53 @@ mod tests {
 
     #[test]
     fn parse_rfc3339() {
-        assert_eq!(parse_since("2019-09-27T16:00:00+00:00"), 1_569_600_000);
+        assert_eq!(
+            parse_since("2019-09-27T16:00:00+00:00").unwrap(),
+            1_569_600_000
+        );
     }
 
     #[test]
     fn parse_english() {
-        assert_eq!(
-            parse_since("1 hour"),
-            (Local::now() - Duration::hours(1)).timestamp()
+        assert_near(
+            parse_since("1 hour").unwrap(),
+            (Local::now() - Duration::hours(1))
+                .timestamp()
+                .try_into()
+                .unwrap(),
+            10,
         );
-        assert_eq!(
-            parse_since("1 hour 20 minutes"),
-            (Local::now() - Duration::hours(1) - Duration::minutes(20)).timestamp()
+
+        assert_near(
+            parse_since("1 hour 20 minutes").unwrap(),
+            (Local::now() - Duration::hours(1) - Duration::minutes(20))
+                .timestamp()
+                .try_into()
+                .unwrap(),
+            10,
         );
-        assert_eq!(
-            parse_since("1 day"),
-            (Local::now() - Duration::days(1)).timestamp()
+
+        assert_near(
+            parse_since("1 day").unwrap(),
+            (Local::now() - Duration::days(1))
+                .timestamp()
+                .try_into()
+                .unwrap(),
+            10,
         );
     }
 
     #[test]
     fn parse_unix() {
-        assert_eq!(parse_since("1569600000"), 1_569_600_000);
+        assert_eq!(parse_since("1569600000").unwrap(), 1_569_600_000);
     }
 
     #[test]
     fn parse_default() {
-        assert_eq!(
-            parse_since("kjhgdfkhgf"),
-            (Local::now() - Duration::days(1)).timestamp()
-        );
+        assert!(parse_since("asdfasdf").is_none());
+    }
+
+    fn assert_near(a: i32, b: i32, tol: i32) {
+        assert!((a - b).abs() < tol)
     }
 }

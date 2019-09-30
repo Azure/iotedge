@@ -1,22 +1,21 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use chrono::{DateTime, Local, NaiveDateTime, Utc};
 use std::fs::File;
 use std::path::Path;
-use zip;
 
+use chrono::{DateTime, Local, NaiveDateTime, Utc};
+use failure::Fail;
 use futures::{Future, Stream};
 use tokio::prelude::*;
+use zip;
 
+use edgelet_core::{LogOptions, LogTail, Module, ModuleRuntime};
 use crate::error::{Error, ErrorKind};
-use failure::Fail;
 
 use crate::logs::pull_logs;
 use crate::Command;
 
-use edgelet_core::{LogOptions, LogTail::Num, Module, ModuleRuntime};
-
-pub struct Bundle<M> {
+pub struct SupportBundle<M> {
     runtime: M,
     log_options: LogOptions,
     location: String,
@@ -30,12 +29,28 @@ struct BundleState<M> {
     zip_writer: zip::ZipWriter<File>,
 }
 
-impl<M> Bundle<M>
+impl<M> Command for SupportBundle<M>
+where
+    M: 'static + ModuleRuntime + Clone + Send + Sync,
+{
+    type Future = Box<dyn Future<Item = (), Error = Error> + Send>;
+
+    fn execute(self) -> Self::Future {
+        let result = future::result(self.make_state())
+            .and_then(SupportBundle::write_all_logs)
+            .map(drop)
+            .map(|_| println!("Wrote all logs to file"));
+
+        Box::new(result)
+    }
+}
+
+impl<M> SupportBundle<M>
 where
     M: 'static + ModuleRuntime + Clone + Send + Sync,
 {
     pub fn new(log_options: LogOptions, location: &str, runtime: M) -> Self {
-        Bundle {
+        SupportBundle {
             runtime,
             log_options,
             location: location.to_owned(),
@@ -49,7 +64,7 @@ where
             Utc,
         );
         let since_local: DateTime<Local> = DateTime::from(since_time);
-        let max_lines = if let Num(tail) = self.log_options.tail() {
+        let max_lines = if let LogTail::Num(tail) = self.log_options.tail() {
             format!("(maximum {} lines) ", tail)
         } else {
             "".to_owned()
@@ -76,31 +91,10 @@ where
             zip_writer,
         })
     }
-}
 
-impl<M> Command for Bundle<M>
-where
-    M: 'static + ModuleRuntime + Clone + Send + Sync,
-{
-    type Future = Box<dyn Future<Item = (), Error = Error> + Send>;
-
-    fn execute(self) -> Self::Future {
-        let result = future::result(self.make_state())
-            .and_then(Bundle::write_all_logs)
-            .map(drop)
-            .map(|_| println!("Wrote all logs to file"));
-
-        Box::new(result)
-    }
-}
-
-impl<M> Bundle<M>
-where
-    M: 'static + ModuleRuntime + Clone,
-{
     fn write_all_logs(s1: BundleState<M>) -> impl Future<Item = BundleState<M>, Error = Error> {
-        Bundle::get_modules(s1)
-            .and_then(|(names, s2)| stream::iter_ok(names).fold(s2, Bundle::write_log_to_file))
+        SupportBundle::get_modules(s1)
+            .and_then(|(names, s2)| stream::iter_ok(names).fold(s2, SupportBundle::write_log_to_file))
     }
 
     fn get_modules(
@@ -150,11 +144,13 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::str;
+
+    use tempfile::tempdir;
+
     use edgelet_core::{MakeModuleRuntime, ModuleRuntimeState};
     use edgelet_test_utils::crypto::TestHsm;
     use edgelet_test_utils::module::*;
-    use std::str;
-    use tempfile::tempdir;
 
     use super::*;
 
@@ -172,7 +168,7 @@ mod tests {
 
         let options = LogOptions::new()
             .with_follow(false)
-            .with_tail(Num(0))
+            .with_tail(LogTail::Num(0))
             .with_since(0);
 
         let result: Vec<u8> = pull_logs(&runtime, module_name, &options, Vec::new())
@@ -188,12 +184,12 @@ mod tests {
 
         let options = LogOptions::new()
             .with_follow(false)
-            .with_tail(Num(0))
+            .with_tail(LogTail::Num(0))
             .with_since(0);
 
         let tmp_dir = tempdir().unwrap();
 
-        let bundle = Bundle::new(options, tmp_dir.path().to_str().unwrap(), runtime);
+        let bundle = SupportBundle::new(options, tmp_dir.path().to_str().unwrap(), runtime);
         bundle.execute().wait().unwrap();
 
         let result_path = tmp_dir
