@@ -129,7 +129,7 @@ impl<E: Fail> TestModule<E, TestConfig> {
             name,
             config,
             state,
-            logs: vec![&[0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, b'A']]
+            logs: vec![&[0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, b'A']],
         }
     }
 }
@@ -140,13 +140,18 @@ impl<E: Fail, C> TestModule<E, C> {
             name,
             config,
             state,
-            logs: vec![&[0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, b'A']]
+            logs: vec![&[0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, b'A']],
         }
     }
 }
 
 impl<E: Fail> TestModule<E, TestConfig> {
-    pub fn new_with_logs(name: String, config: TestConfig, state: Result<ModuleRuntimeState, E>, logs: Vec<&'static [u8]>) -> Self {
+    pub fn new_with_logs(
+        name: String,
+        config: TestConfig,
+        state: Result<ModuleRuntimeState, E>,
+        logs: Vec<&'static [u8]>,
+    ) -> Self {
         TestModule {
             name,
             config,
@@ -393,9 +398,7 @@ where
 
     fn logs(&self, _id: &str, _options: &LogOptions) -> Self::LogsFuture {
         match self.module.as_ref().unwrap() {
-            Ok(ref m) => {
-                future::ok(stream::iter_ok(m.logs.clone()))
-            },
+            Ok(ref m) => future::ok(stream::iter_ok(m.logs.clone())),
             Err(ref e) => future::err(e.clone()),
         }
     }

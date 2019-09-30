@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use chrono::{DateTime, Local, NaiveDateTime, Utc};
 use std::fs::File;
 use std::path::Path;
-use chrono::{NaiveDateTime, DateTime, Local, Utc};
 use zip;
 
 use futures::{Future, Stream};
@@ -14,7 +14,7 @@ use failure::Fail;
 use crate::logs::pull_logs;
 use crate::Command;
 
-use edgelet_core::{LogOptions, Module, ModuleRuntime, LogTail::Num};
+use edgelet_core::{LogOptions, LogTail::Num, Module, ModuleRuntime};
 
 pub struct Bundle<M> {
     runtime: M,
@@ -43,30 +43,38 @@ where
     }
 
     fn make_state(self) -> Result<BundleState<M>, Error> {
-            /* Print status */
-            let since_time: DateTime<Utc> = DateTime::from_utc(NaiveDateTime::from_timestamp(self.log_options.since().into(), 0), Utc);
-            let since_local: DateTime<Local> = DateTime::from(since_time);
-            let max_lines = if let Num(tail) = self.log_options.tail() {
-                format!("(maximum {} lines) ", tail)
-            } else {"".to_owned()};
-            println!("Writing all logs {}since {} (local time {}) to {}", max_lines, since_time, since_local, self.location);
+        /* Print status */
+        let since_time: DateTime<Utc> = DateTime::from_utc(
+            NaiveDateTime::from_timestamp(self.log_options.since().into(), 0),
+            Utc,
+        );
+        let since_local: DateTime<Local> = DateTime::from(since_time);
+        let max_lines = if let Num(tail) = self.log_options.tail() {
+            format!("(maximum {} lines) ", tail)
+        } else {
+            "".to_owned()
+        };
+        println!(
+            "Writing all logs {}since {} (local time {}) to {}",
+            max_lines, since_time, since_local, self.location
+        );
 
-            /* Make state */
-            let file_options = zip::write::FileOptions::default()
-                .compression_method(zip::CompressionMethod::Deflated);
+        /* Make state */
+        let file_options =
+            zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
 
-            let zip_writer = zip::ZipWriter::new(
-                File::create(format!("{}/css_bundle.zip", self.location.to_owned()))
-                    .map_err(|err| Error::from(err.context(ErrorKind::WriteToStdout)))?,
-            );
+        let zip_writer = zip::ZipWriter::new(
+            File::create(format!("{}/css_bundle.zip", self.location.to_owned()))
+                .map_err(|err| Error::from(err.context(ErrorKind::WriteToStdout)))?,
+        );
 
-            Ok(BundleState {
-                runtime: self.runtime,
-                log_options: self.log_options,
-                location: self.location,
-                file_options,
-                zip_writer,
-            })
+        Ok(BundleState {
+            runtime: self.runtime,
+            log_options: self.log_options,
+            location: self.location,
+            file_options,
+            zip_writer,
+        })
     }
 }
 
@@ -91,12 +99,13 @@ where
     M: 'static + ModuleRuntime + Clone,
 {
     fn write_all_logs(s1: BundleState<M>) -> impl Future<Item = BundleState<M>, Error = Error> {
-        Bundle::get_modules(s1).and_then(|(names, s2)| {
-                        stream::iter_ok(names).fold(s2, Bundle::write_log_to_file)
-        })
+        Bundle::get_modules(s1)
+            .and_then(|(names, s2)| stream::iter_ok(names).fold(s2, Bundle::write_log_to_file))
     }
 
-    fn get_modules(state: BundleState<M>) -> impl Future<Item = (Vec<String>, BundleState<M>), Error = Error> {
+    fn get_modules(
+        state: BundleState<M>,
+    ) -> impl Future<Item = (Vec<String>, BundleState<M>), Error = Error> {
         state
             .runtime
             .list_with_details()
@@ -106,7 +115,10 @@ where
             .map(|names| (names, state))
     }
 
-    fn write_log_to_file(state: BundleState<M>, module_name: String) -> impl Future<Item = BundleState<M>, Error = Error> {
+    fn write_log_to_file(
+        state: BundleState<M>,
+        module_name: String,
+    ) -> impl Future<Item = BundleState<M>, Error = Error> {
         println!("Writing {} to file", module_name);
         let BundleState {
             runtime,
@@ -139,8 +151,8 @@ where
 #[cfg(test)]
 mod tests {
     use edgelet_core::{MakeModuleRuntime, ModuleRuntimeState};
-    use edgelet_test_utils::module::*;
     use edgelet_test_utils::crypto::TestHsm;
+    use edgelet_test_utils::module::*;
     use std::str;
     use tempfile::tempdir;
 
@@ -163,7 +175,9 @@ mod tests {
             .with_tail(Num(0))
             .with_since(0);
 
-        let result: Vec<u8> = pull_logs(&runtime, module_name, &options, Vec::new()).wait().unwrap();
+        let result: Vec<u8> = pull_logs(&runtime, module_name, &options, Vec::new())
+            .wait()
+            .unwrap();
         let result_str = str::from_utf8(&result).unwrap();
         assert_eq!("Roses are redviolets are blue", result_str);
     }
@@ -182,7 +196,12 @@ mod tests {
         let bundle = Bundle::new(options, tmp_dir.path().to_str().unwrap(), runtime);
         bundle.execute().wait().unwrap();
 
-        let result_path = tmp_dir.path().join("css_bundle.zip").to_str().unwrap().to_owned();
+        let result_path = tmp_dir
+            .path()
+            .join("css_bundle.zip")
+            .to_str()
+            .unwrap()
+            .to_owned();
         File::open(result_path).unwrap();
     }
 

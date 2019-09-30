@@ -39,7 +39,12 @@ where
     }
 }
 
-pub fn pull_logs<M, W>(runtime: &M, id: &str, options: &LogOptions, writer: W) -> impl Future<Item = W, Error = Error> + Send
+pub fn pull_logs<M, W>(
+    runtime: &M,
+    id: &str,
+    options: &LogOptions,
+    writer: W,
+) -> impl Future<Item = W, Error = Error> + Send
 where
     M: 'static + ModuleRuntime + Clone,
     W: 'static + Write + Send,
@@ -57,7 +62,9 @@ where
                         LogChunk::Stdin(b)
                         | LogChunk::Stdout(b)
                         | LogChunk::Stderr(b)
-                        | LogChunk::Unknown(b) => w.write(&b).map_err(|err| Error::from(err.context(ErrorKind::WriteToStdout)))?,
+                        | LogChunk::Unknown(b) => w
+                            .write(&b)
+                            .map_err(|err| Error::from(err.context(ErrorKind::WriteToStdout)))?,
                     };
                     Ok(w)
                 })

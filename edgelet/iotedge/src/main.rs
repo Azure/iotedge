@@ -14,8 +14,8 @@ use failure::{Fail, ResultExt};
 use futures::Future;
 use url::Url;
 
+use chrono::{DateTime, Duration, Local};
 use parse_duration;
-use chrono::{DateTime, Local, Duration};
 use std::convert::TryInto;
 
 use edgelet_core::{LogOptions, LogTail};
@@ -356,9 +356,7 @@ fn run() -> Result<(), Error> {
         }
         ("version", _) => tokio_runtime.block_on(Version::new().execute()),
         ("cssbundle", Some(args)) => {
-            let location = args
-                .value_of("location")
-                .unwrap_or_default();
+            let location = args.value_of("location").unwrap_or_default();
             let tail = args
                 .value_of("tail")
                 .and_then(|a| a.parse::<LogTail>().ok())
@@ -371,8 +369,8 @@ fn run() -> Result<(), Error> {
                 .with_follow(false)
                 .with_tail(tail)
                 .with_since(since);
-                tokio_runtime.block_on(Bundle::new(options, location, runtime()?).execute())
-        },
+            tokio_runtime.block_on(Bundle::new(options, location, runtime()?).execute())
+        }
         (command, _) => tokio_runtime.block_on(Unknown::new(command.to_string()).execute()),
     }
 }
@@ -383,7 +381,8 @@ fn parse_since(since: &str) -> i64 {
     } else if let Ok(epoch) = since.parse() {
         epoch
     } else if let Ok(duration) = parse_duration::parse(since) {
-        (Local::now() - Duration::nanoseconds(duration.as_nanos().try_into().unwrap_or_default())).timestamp()
+        (Local::now() - Duration::nanoseconds(duration.as_nanos().try_into().unwrap_or_default()))
+            .timestamp()
     } else {
         /* Default to 1 day ago */
         println!("Flag since ({}) not recognized. Defaulting to 1 day", since);
@@ -401,19 +400,31 @@ mod tests {
     }
 
     #[test]
-    fn parse_english(){
-        assert_eq!(parse_since("1 hour"), (Local::now() - Duration::hours(1)).timestamp());
-        assert_eq!(parse_since("1 hour 20 minutes"), (Local::now() - Duration::hours(1) - Duration::minutes(20)).timestamp());
-        assert_eq!(parse_since("1 day"), (Local::now() - Duration::days(1)).timestamp());
+    fn parse_english() {
+        assert_eq!(
+            parse_since("1 hour"),
+            (Local::now() - Duration::hours(1)).timestamp()
+        );
+        assert_eq!(
+            parse_since("1 hour 20 minutes"),
+            (Local::now() - Duration::hours(1) - Duration::minutes(20)).timestamp()
+        );
+        assert_eq!(
+            parse_since("1 day"),
+            (Local::now() - Duration::days(1)).timestamp()
+        );
     }
 
     #[test]
-    fn parse_unix(){
+    fn parse_unix() {
         assert_eq!(parse_since("1569600000"), 1569600000);
     }
 
     #[test]
-    fn parse_default(){
-        assert_eq!(parse_since("kjhgdfkhgf"), (Local::now() - Duration::days(1)).timestamp());
+    fn parse_default() {
+        assert_eq!(
+            parse_since("kjhgdfkhgf"),
+            (Local::now() - Duration::days(1)).timestamp()
+        );
     }
 }
