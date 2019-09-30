@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             return this.Equals((ImagePullSecretName)obj);
         }
 
-        public bool Equals(ImagePullSecretName other) => this.value.Equals(other.value);
+        bool Equals(ImagePullSecretName other) => this.value.Equals(other.value);
 
         public override int GetHashCode() => this.ToString().GetHashCode();
 

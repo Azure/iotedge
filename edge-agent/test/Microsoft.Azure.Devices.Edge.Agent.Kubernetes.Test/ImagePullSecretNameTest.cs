@@ -18,5 +18,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
             Assert.Equal("name-server", name);
         }
+
+        [Fact]
+        public void EqualsImagePullSecretesByValue()
+        {
+            var name = new ImagePullSecretName("secret");
+
+            Assert.True(name.Equals(name));
+            Assert.True(name.Equals(new ImagePullSecretName("secret")));
+
+            Assert.False(name.Equals(null));
+            Assert.False(name.Equals(new ImagePullSecretName("not a secret")));
+        }
     }
 }
