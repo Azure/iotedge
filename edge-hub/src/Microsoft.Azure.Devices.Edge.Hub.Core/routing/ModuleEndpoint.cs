@@ -139,7 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 return TaskEx.Done;
             }
 
-            static bool IsRetryable(Exception ex) => ex != null && RetryableExceptions.Any(re => re.IsInstanceOfType(ex));
+            static bool IsRetryable(Exception _ex) => true;
 
             Task<ISinkResult> ProcessNoConnection(ICollection<IRoutingMessage> routingMessages)
             {
@@ -189,8 +189,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 return new SinkResult<IRoutingMessage>(succeeded, failed, invalid, sendFailureDetails);
             }
 
-            bool IsTransientException(Exception ex) => ex is EdgeHubConnectionException
-                                                       || ex is EdgeHubIOException;
+            bool IsTransientException(Exception _ex) => true;
 
             Util.Option<IDeviceProxy> GetDeviceProxy()
             {

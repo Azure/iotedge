@@ -175,9 +175,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             yield return new object[] { new IotHubSuspendedException("Dummy"), true };
 
-            yield return new object[] { new ArgumentException("Dummy"), false };
+            yield return new object[] { new ArgumentException("Dummy"), true };
 
-            yield return new object[] { new ArgumentNullException("dummy"), false };
+            yield return new object[] { new ArgumentNullException("dummy"), true };
         }
     }
 }

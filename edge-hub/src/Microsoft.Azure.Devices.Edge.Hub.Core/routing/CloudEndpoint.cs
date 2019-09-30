@@ -102,7 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             internal static int GetBatchSize(int batchSize, long messageSize) =>
                 Math.Min((int)(Constants.MaxMessageSize / messageSize), batchSize);
 
-            static bool IsRetryable(Exception ex) => ex != null && RetryableExceptions.Any(re => re.IsInstanceOfType(ex));
+            static bool IsRetryable(Exception _ex) => true;
 
             static ISinkResult HandleNoIdentity(List<IRoutingMessage> routingMessages)
             {
@@ -266,7 +266,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 }
             }
 
-            bool IsTransientException(Exception ex) => ex is EdgeHubIOException || ex is EdgeHubConnectionException;
+            bool IsTransientException(Exception _ex) => true;
 
             string GetIdentity(IRoutingMessage routingMessage)
             {
