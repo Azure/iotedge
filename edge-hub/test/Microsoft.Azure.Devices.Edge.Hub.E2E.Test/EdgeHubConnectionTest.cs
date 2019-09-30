@@ -90,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 // Set Edge hub desired properties
                 await this.SetDesiredProperties(registryManager, edgeDeviceId);
 
-                var endpointFactory = new EndpointFactory(connectionManager, new RoutingMessageConverter(), edgeDeviceId, 10, 10);
+                var endpointFactory = new EndpointFactory(connectionManager, new RoutingMessageConverter(), edgeDeviceId);
                 var routeFactory = new EdgeRouteFactory(endpointFactory);
 
                 var dbStoreProvider = new InMemoryDbStoreProvider();
