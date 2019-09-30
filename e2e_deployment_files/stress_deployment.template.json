@@ -167,7 +167,7 @@
                 "value": "<Analyzer.EventHubConnectionString>"
               },
               "DeviceId": {
-                "value": "<Analyzer.DeviceID>"
+                "value": "<DeviceID>"
               }
             },
             "settings": {

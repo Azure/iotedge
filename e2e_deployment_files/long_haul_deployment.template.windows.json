@@ -200,7 +200,7 @@
                 "value": "<Analyzer.EventHubConnectionString>"
               },
               "DeviceId": {
-                "value": "<Analyzer.DeviceID>"
+                "value": "<DeviceID>"
               }
             },
             "settings": {
@@ -278,6 +278,29 @@
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": ""
+            }
+          },
+          "moduleRestarter": {
+            "version": "1.12",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "IoTHubConnectionString": {
+                "value": "<IoTHubConnectionString>"
+              },
+              "DeviceId": {
+                "value": "<DeviceID>"
+              },
+              "DesiredModulesToRestartJsonArray": {
+                "value": "<DesiredModulesToRestartCSV>"
+              },
+              "RandomRestartIntervalInMins": {
+                "value": "<RandomRestartIntervalInMins>"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-module-restarter:<Build.BuildNumber>-windows-<Architecture>"
             }
           }
         }

@@ -221,6 +221,10 @@ Param (
     [ValidateScript({($_ -as [System.Uri]).AbsoluteUri -ne $null})]
     [string] $ProxyUri = $null,
 
+    [string] $RandomRestartIntervalInMins = $null
+
+    [string] $DesiredModulesToRestartCSV = $null
+
     [ValidateNotNullOrEmpty()]
     [string] $SnitchAlertUrl = $null,
 
@@ -926,7 +930,10 @@ Function RunLongHaulTest
 
     $testStartAt = Get-Date
     $deviceId = "${ReleaseLabel}-Windows-${Architecture}-longHaul"
-    (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.DeviceID>',$deviceId) | Set-Content $DeploymentWorkingFilePath
+    (Get-Content $DeploymentWorkingFilePath).replace('<DeviceID>',$deviceId) | Set-Content $DeploymentWorkingFilePath
+    (Get-Content $DeploymentWorkingFilePath).replace('<IoTHubConnectionString>',$IoTHubConnectionString) | Set-Content $DeploymentWorkingFilePath
+    (Get-Content $DeploymentWorkingFilePath).replace('<RandomRestartIntervalInMins>',$RandomRestartIntervalInMins) | Set-Content $DeploymentWorkingFilePath
+    (Get-Content $DeploymentWorkingFilePath).replace('<DesiredModulesToRestartCSV>',$DesiredModulesToRestartCSV) | Set-Content $DeploymentWorkingFilePath
     PrintHighlightedMessage "Run Long Haul test with -d ""$deviceId"" started at $testStartAt"
 
     $testCommand = "&$IotEdgeQuickstartExeTestPath ``
@@ -958,7 +965,7 @@ Function RunStressTest
 
     $testStartAt = Get-Date
     $deviceId = "${ReleaseLabel}-Windows-${Architecture}-stress"
-    (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.DeviceID>',$deviceId) | Set-Content $DeploymentWorkingFilePath
+    (Get-Content $DeploymentWorkingFilePath).replace('<DeviceID>',$deviceId) | Set-Content $DeploymentWorkingFilePath
     PrintHighlightedMessage "Run Stress test with -d ""$deviceId"" started at $testStartAt"
 
     $testCommand = "&$IotEdgeQuickstartExeTestPath ``
