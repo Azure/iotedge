@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
-    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Commands;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
@@ -22,60 +22,41 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
 
     public class KubernetesCrdCommandTest
     {
-        const string Ns = "namespace";
-        const string Hostname = "hostname";
-        const string GwHostname = "gwHostname";
-        const string DeviceId = "deviceId";
+        const string Namespace = "namespace";
+        static readonly ResourceName ResourceName = new ResourceName("hostname", "deviceId");
         static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>();
         static readonly DockerConfig Config1 = new DockerConfig("test-image:1");
         static readonly DockerConfig Config2 = new DockerConfig("test-image:2");
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
-        static readonly IRuntimeInfo RuntimeInfo = Mock.Of<IRuntimeInfo>();
         static readonly IKubernetes DefaultClient = Mock.Of<IKubernetes>();
-        static readonly ICommandFactory DefaultCommandFactory = new KubernetesCommandFactory();
         static readonly ICombinedConfigProvider<CombinedDockerConfig> DefaultConfigProvider = Mock.Of<ICombinedConfigProvider<CombinedDockerConfig>>();
         static readonly IRuntimeInfo Runtime = Mock.Of<IRuntimeInfo>();
 
         [Fact]
         [Unit]
-        public void CrdCommandCreateValidation()
+        public void ConstructorThrowsOnInvalidParams()
         {
+            CombinedDockerConfig config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
             IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            KubernetesModule<DockerConfig> km1 = new KubernetesModule<DockerConfig>(m1 as IModule<DockerConfig>);
-            KubernetesModule<DockerConfig>[] modules = { km1 };
-            Assert.Throws<ArgumentException>(() => new KubernetesCrdCommand<CombinedDockerConfig>(null, Hostname, DeviceId, DefaultClient, modules, Option.None<IRuntimeInfo>(), DefaultConfigProvider));
-            Assert.Throws<ArgumentException>(() => new KubernetesCrdCommand<CombinedDockerConfig>(Ns, null, DeviceId, DefaultClient, modules, Option.None<IRuntimeInfo>(), DefaultConfigProvider));
-            Assert.Throws<ArgumentException>(() => new KubernetesCrdCommand<CombinedDockerConfig>(Ns, Hostname, null, DefaultClient, modules, Option.None<IRuntimeInfo>(), DefaultConfigProvider));
-            Assert.Throws<ArgumentNullException>(() => new KubernetesCrdCommand<CombinedDockerConfig>(Ns, Hostname, DeviceId, null, modules, Option.None<IRuntimeInfo>(), DefaultConfigProvider));
-            Assert.Throws<ArgumentNullException>(() => new KubernetesCrdCommand<CombinedDockerConfig>(Ns, Hostname, DeviceId, DefaultClient, null, Option.None<IRuntimeInfo>(), DefaultConfigProvider));
-            Assert.Throws<ArgumentNullException>(() => new KubernetesCrdCommand<CombinedDockerConfig>(Ns, Hostname, DeviceId, DefaultClient, modules, Option.None<IRuntimeInfo>(), null));
-        }
-
-        [Fact]
-        [Unit]
-        public async void CrdCommandExecuteAsyncInvalidModule()
-        {
-            IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            var km1 = new KubernetesModule<DockerConfig>(m1 as IModule<DockerConfig>);
-            KubernetesModule<DockerConfig>[] modules = { km1 };
-            Option<IRuntimeInfo> runtimeOption = Option.Maybe(Runtime);
-            var configProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
-            configProvider.Setup(cp => cp.GetCombinedConfig(km1, Runtime)).Returns(() => null);
-
-            var token = default(CancellationToken);
-            var cmd = new KubernetesCrdCommand<CombinedDockerConfig>(Ns, Hostname, DeviceId, DefaultClient, modules, runtimeOption, DefaultConfigProvider);
-            await Assert.ThrowsAsync<InvalidModuleException>(() => cmd.ExecuteAsync(token));
+            KubernetesModule km1 = new KubernetesModule(m1 as IModule<DockerConfig>, config);
+            KubernetesModule[] modules = { km1 };
+            Assert.Throws<ArgumentException>(() => new EdgeDeploymentCommand(null, ResourceName, DefaultClient, modules, Runtime, DefaultConfigProvider));
+            Assert.Throws<ArgumentException>(() => new EdgeDeploymentCommand(null, null, DefaultClient, modules, Runtime, DefaultConfigProvider));
+            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, null, modules, Runtime, DefaultConfigProvider));
+            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, DefaultClient, null, Runtime, DefaultConfigProvider));
+            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, DefaultClient, modules, Runtime, null));
+            Assert.Throws<ArgumentException>(() => new EdgeDeploymentCommand(null, ResourceName, DefaultClient, modules, Runtime, DefaultConfigProvider));
         }
 
         [Fact]
         [Unit]
         public async void CrdCommandExecuteWithAuthCreateNewObjects()
         {
+            CombinedDockerConfig config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
             IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            var km1 = new KubernetesModule<DockerConfig>((IModule<DockerConfig>)m1);
-            KubernetesModule<DockerConfig>[] modules = { km1 };
+            var km1 = new KubernetesModule((IModule<DockerConfig>)m1, config);
+            KubernetesModule[] modules = { km1 };
             var token = default(CancellationToken);
-            Option<IRuntimeInfo> runtimeOption = Option.Maybe(Runtime);
             var auth = new AuthConfig() { Username = "username", Password = "password", ServerAddress = "docker.io" };
             var configProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
             configProvider.Setup(cp => cp.GetCombinedConfig(km1, Runtime)).Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(auth)));
@@ -84,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
             bool getCrdCalled = false;
             bool postCrdCalled = false;
 
-            using (var server = new MockKubeApiServer(
+            using (var server = new KubernetesApiServer(
                 resp: string.Empty,
                 shouldNext: httpContext =>
                 {
@@ -93,11 +74,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                     if (string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase))
                     {
                         httpContext.Response.StatusCode = 404;
-                        if (pathStr.Contains($"api/v1/namespaces/{Ns}/secrets"))
+                        if (pathStr.Contains($"api/v1/namespaces/{Namespace}/secrets"))
                         {
                             getSecretCalled = true;
                         }
-                        else if (pathStr.Contains($"namespaces/{Ns}/{Constants.K8sCrdPlural}"))
+                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.EdgeDeployment.Plural}"))
                         {
                             getCrdCalled = true;
                         }
@@ -106,11 +87,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                     {
                         httpContext.Response.StatusCode = 201;
                         httpContext.Response.Body = httpContext.Request.Body;
-                        if (pathStr.Contains($"api/v1/namespaces/{Ns}/secrets"))
+                        if (pathStr.Contains($"api/v1/namespaces/{Namespace}/secrets"))
                         {
                             postSecretCalled = true;
                         }
-                        else if (pathStr.Contains($"namespaces/{Ns}/{Constants.K8sCrdPlural}"))
+                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.EdgeDeployment.Plural}"))
                         {
                             postCrdCalled = true;
                         }
@@ -122,9 +103,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                 var client = new Kubernetes(
                     new KubernetesClientConfiguration
                     {
-                        Host = server.Uri.ToString()
+                        Host = server.Uri
                     });
-                var cmd = new KubernetesCrdCommand<CombinedDockerConfig>(Ns, Hostname, DeviceId, client, modules, runtimeOption, configProvider.Object);
+                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, modules, Runtime, configProvider.Object);
                 await cmd.ExecuteAsync(token);
                 Assert.True(getSecretCalled, nameof(getSecretCalled));
                 Assert.True(postSecretCalled, nameof(postSecretCalled));
@@ -137,27 +118,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
         [Unit]
         public async void CrdCommandExecuteWithAuthReplaceObjects()
         {
-            string resourceName = Hostname + Constants.K8sNameDivider + DeviceId.ToLower();
-            string metaApiVersion = Constants.K8sApi + "/" + Constants.K8sApiVersion;
+            CombinedDockerConfig config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
             string secretName = "username-docker.io";
             var secretData = new Dictionary<string, byte[]> { [Constants.K8sPullSecretData] = Encoding.UTF8.GetBytes("Invalid Secret Data") };
-            var secretMeta = new V1ObjectMeta(name: secretName, namespaceProperty: Ns);
+            var secretMeta = new V1ObjectMeta(name: secretName, namespaceProperty: Namespace);
             IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            var km1 = new KubernetesModule<DockerConfig>((IModule<DockerConfig>)m1);
-            KubernetesModule<DockerConfig>[] modules = { km1 };
+            var km1 = new KubernetesModule((IModule<DockerConfig>)m1, config);
+            KubernetesModule[] modules = { km1 };
             var token = default(CancellationToken);
-            Option<IRuntimeInfo> runtimeOption = Option.Maybe(Runtime);
             var auth = new AuthConfig() { Username = "username", Password = "password", ServerAddress = "docker.io" };
             var configProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
             configProvider.Setup(cp => cp.GetCombinedConfig(km1, Runtime)).Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(auth)));
             var existingSecret = new V1Secret("v1", secretData, type: Constants.K8sPullSecretType, kind: "Secret", metadata: secretMeta);
-            var existingDeployment = new EdgeDeploymentDefinition<DockerConfig>(metaApiVersion, Constants.K8sCrdKind, new V1ObjectMeta(name: resourceName), new List<KubernetesModule<DockerConfig>>());
+            var existingDeployment = new EdgeDeploymentDefinition(Constants.EdgeDeployment.ApiVersion, Constants.EdgeDeployment.Kind, new V1ObjectMeta(name: ResourceName), new List<KubernetesModule>());
             bool getSecretCalled = false;
             bool putSecretCalled = false;
             bool getCrdCalled = false;
             bool putCrdCalled = false;
 
-            using (var server = new MockKubeApiServer(
+            using (var server = new KubernetesApiServer(
                 resp: string.Empty,
                 shouldNext: async httpContext =>
                 {
@@ -165,12 +144,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                     string method = httpContext.Request.Method;
                     if (string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase))
                     {
-                        if (pathStr.Contains($"api/v1/namespaces/{Ns}/secrets/{secretName}"))
+                        if (pathStr.Contains($"api/v1/namespaces/{Namespace}/secrets/{secretName}"))
                         {
                             getSecretCalled = true;
                             await httpContext.Response.Body.WriteAsync(JsonConvert.SerializeObject(existingSecret).ToBody(), token);
                         }
-                        else if (pathStr.Contains($"namespaces/{Ns}/{Constants.K8sCrdPlural}/{resourceName}"))
+                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.EdgeDeployment.Plural}/{ResourceName}"))
                         {
                             getCrdCalled = true;
                             await httpContext.Response.Body.WriteAsync(JsonConvert.SerializeObject(existingDeployment).ToBody(), token);
@@ -179,11 +158,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                     else if (string.Equals(method, "PUT", StringComparison.OrdinalIgnoreCase))
                     {
                         httpContext.Response.Body = httpContext.Request.Body;
-                        if (pathStr.Contains($"api/v1/namespaces/{Ns}/secrets/{secretName}"))
+                        if (pathStr.Contains($"api/v1/namespaces/{Namespace}/secrets/{secretName}"))
                         {
                             putSecretCalled = true;
                         }
-                        else if (pathStr.Contains($"namespaces/{Ns}/{Constants.K8sCrdPlural}/{resourceName}"))
+                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.EdgeDeployment.Plural}/{ResourceName}"))
                         {
                             putCrdCalled = true;
                         }
@@ -195,9 +174,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                 var client = new Kubernetes(
                     new KubernetesClientConfiguration
                     {
-                        Host = server.Uri.ToString()
+                        Host = server.Uri
                     });
-                var cmd = new KubernetesCrdCommand<CombinedDockerConfig>(Ns, Hostname, DeviceId, client, modules, runtimeOption, configProvider.Object);
+                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, modules, Runtime, configProvider.Object);
                 await cmd.ExecuteAsync(token);
                 Assert.True(getSecretCalled, nameof(getSecretCalled));
                 Assert.True(putSecretCalled, nameof(putSecretCalled));
@@ -210,18 +189,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
         [Unit]
         public async void CrdCommandExecuteTwoModulesWithSamePullSecret()
         {
-            string resourceName = Hostname + Constants.K8sNameDivider + DeviceId.ToLower();
+            CombinedDockerConfig config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
             string secretName = "username-docker.io";
             IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            var km1 = new KubernetesModule<DockerConfig>((IModule<DockerConfig>)m1);
+            var km1 = new KubernetesModule((IModule<DockerConfig>)m1, config);
             IModule m2 = new DockerModule("module2", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config2, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            var km2 = new KubernetesModule<DockerConfig>((IModule<DockerConfig>)m2);
-            KubernetesModule<DockerConfig>[] modules = { km1, km2 };
+            var km2 = new KubernetesModule((IModule<DockerConfig>)m2, config);
+            KubernetesModule[] modules = { km1, km2 };
             var token = default(CancellationToken);
-            Option<IRuntimeInfo> runtimeOption = Option.Maybe(Runtime);
             var auth = new AuthConfig() { Username = "username", Password = "password", ServerAddress = "docker.io" };
             var configProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
-            configProvider.Setup(cp => cp.GetCombinedConfig(It.IsAny<KubernetesModule<DockerConfig>>(), Runtime)).Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(auth)));
+            configProvider.Setup(cp => cp.GetCombinedConfig(It.IsAny<KubernetesModule>(), Runtime)).Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(auth)));
             bool getSecretCalled = false;
             bool putSecretCalled = false;
             int postSecretCalled = 0;
@@ -230,7 +208,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
             int postCrdCalled = 0;
             Stream secretBody = Stream.Null;
 
-            using (var server = new MockKubeApiServer(
+            using (var server = new KubernetesApiServer(
                 resp: string.Empty,
                 shouldNext: httpContext =>
                 {
@@ -238,7 +216,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                     string method = httpContext.Request.Method;
                     if (string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase))
                     {
-                        if (pathStr.Contains($"api/v1/namespaces/{Ns}/secrets/{secretName}"))
+                        if (pathStr.Contains($"api/v1/namespaces/{Namespace}/secrets/{secretName}"))
                         {
                             if (secretBody == Stream.Null)
                             {
@@ -252,7 +230,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                                 httpContext.Response.Body = secretBody;
                             }
                         }
-                        else if (pathStr.Contains($"namespaces/{Ns}/{Constants.K8sCrdPlural}/{resourceName}"))
+                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.EdgeDeployment.Plural}/{ResourceName}"))
                         {
                             getCrdCalled = true;
                             httpContext.Response.StatusCode = 404;
@@ -262,12 +240,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                     {
                         httpContext.Response.StatusCode = 201;
                         httpContext.Response.Body = httpContext.Request.Body;
-                        if (pathStr.Contains($"api/v1/namespaces/{Ns}/secrets"))
+                        if (pathStr.Contains($"api/v1/namespaces/{Namespace}/secrets"))
                         {
                             postSecretCalled++;
                             secretBody = httpContext.Request.Body; // save this for next query.
                         }
-                        else if (pathStr.Contains($"namespaces/{Ns}/{Constants.K8sCrdPlural}"))
+                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.EdgeDeployment.Plural}"))
                         {
                             postCrdCalled++;
                         }
@@ -275,11 +253,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                     else if (string.Equals(method, "PUT", StringComparison.OrdinalIgnoreCase))
                     {
                         httpContext.Response.Body = httpContext.Request.Body;
-                        if (pathStr.Contains($"api/v1/namespaces/{Ns}/secrets"))
+                        if (pathStr.Contains($"api/v1/namespaces/{Namespace}/secrets"))
                         {
                             putSecretCalled = true;
                         }
-                        else if (pathStr.Contains($"namespaces/{Ns}/{Constants.K8sCrdPlural}"))
+                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.EdgeDeployment.Plural}"))
                         {
                             putCrdCalled = true;
                         }
@@ -293,7 +271,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                     {
                         Host = server.Uri.ToString()
                     });
-                var cmd = new KubernetesCrdCommand<CombinedDockerConfig>(Ns, Hostname, DeviceId, client, modules, runtimeOption, configProvider.Object);
+                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, modules, Runtime, configProvider.Object);
                 await cmd.ExecuteAsync(token);
                 Assert.True(getSecretCalled, nameof(getSecretCalled));
                 Assert.Equal(1, postSecretCalled);
