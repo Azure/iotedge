@@ -396,7 +396,7 @@ mod tests {
 
     #[test]
     fn parse_rfc3339() {
-        assert_eq!(parse_since("2019-09-27T16:00:00+00:00"), 1569600000);
+        assert_eq!(parse_since("2019-09-27T16:00:00+00:00"), 1_569_600_000);
     }
 
     #[test]
@@ -417,7 +417,7 @@ mod tests {
 
     #[test]
     fn parse_unix() {
-        assert_eq!(parse_since("1569600000"), 1569600000);
+        assert_eq!(parse_since("1569600000"), 1_569_600_000);
     }
 
     #[test]
