@@ -13,21 +13,21 @@
 use futures::Future;
 use serde_derive::Deserialize;
 
-mod support_bundle;
 mod check;
 mod error;
 mod list;
 mod logs;
 mod restart;
+mod support_bundle;
 mod unknown;
 mod version;
 
-pub use crate::support_bundle::SupportBundle;
 pub use crate::check::{Check, OutputFormat};
 pub use crate::error::{Error, ErrorKind, FetchLatestVersionsReason};
 pub use crate::list::List;
 pub use crate::logs::Logs;
 pub use crate::restart::Restart;
+pub use crate::support_bundle::SupportBundle;
 pub use crate::unknown::Unknown;
 pub use crate::version::Version;
 
