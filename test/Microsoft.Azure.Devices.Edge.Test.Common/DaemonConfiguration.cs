@@ -6,9 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using System.IO;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
 
-    //BEARWASHERE
-    using Serilog;
-
     public class DaemonConfiguration
     {
         private const string GlobalEndPoint = "https://global.azure-devices-provisioning.net";
