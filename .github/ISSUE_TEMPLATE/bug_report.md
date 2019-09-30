@@ -52,11 +52,11 @@ Provide a detailed set of steps to reproduce the bug.
 
 ### Runtime Versions
 * iotedged [run `iotedge version`]: 
-* Edge Agent [image tag (i.e. 1.0.0)]
-* Edge Hub [image tag (i.e. 1.0.0)]
-* Docker/Moby [run `docker version`]:
+* Edge Agent [image tag (i.e. 1.0.0)]: 
+* Edge Hub [image tag (i.e. 1.0.0)]: 
+* Docker/Moby [run `docker version`]: 
 
-Note: on Windows include the host option: `docker -H npipe:////./pipe/iotedge_moby_engine version` 
+Note: on Windows include the host option `docker -H npipe:////./pipe/iotedge_moby_engine version`
 
 ## Logs
 <!--
