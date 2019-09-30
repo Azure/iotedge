@@ -41,6 +41,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             return new Certificate(deviceId, scriptPath);
         }
 
+        public async Task CreateVerificationCertificatesAsync(string nounce, string scriptPath, CancellationToken token)
+        {
+            var command = BuildCertCommand($"New-CACertsVerificationCert '{nounce}'", scriptPath);
+            await this.RunScriptAsync(("powershell", command), token);
+            Log.Information("Create Proof of Possion");
+        }
+
         public Task<EdgeCertificates> GenerateEdgeCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
         {
             string command = BuildCertCommand(

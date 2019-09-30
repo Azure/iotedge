@@ -34,6 +34,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             return new Certificate(deviceId, scriptPath);
         }
 
+        public async Task CreateVerificationCertificatesAsync(string nounce, string scriptPath, CancellationToken token)
+        {
+            var command = BuildCertCommand($"create_verification_certificate '{nounce}'", scriptPath);
+            await this.RunScriptAsync(("bash", command), token);
+            Log.Information("Create Proof of Possion");
+        }
+
         public Task<EdgeCertificates> GenerateEdgeCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
         {
             var command = BuildCertCommand($"create_edge_device_certificate '{deviceId}'", scriptPath);

@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
+    using Serilog;
 
     public class Provisioning : DeviceProvisioningFixture
     {
@@ -103,7 +104,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         caCertScriptPath,
                         caToken);
 
-                    // BEARWASHERE -- Working on this func
                     await this.daemon.ConfigureAsync(
                         config =>
                         {
@@ -125,14 +125,12 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 }
             }
 
-            // BEARWASHERE -- Let's fail this.
-            //Assert.IsTrue(false, "Just End it");
-
             await this.daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
-            //await this.runtime.DeployConfigurationAsync(caToken);
 
             var agent = new EdgeAgent(registrationId, this.iotHub);
             await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
+            Log.Information("Device ID: " + registrationId);
+
             await agent.PingAsync(token);
 
             Option<EdgeDevice> device = await EdgeDevice.GetIdentityAsync(

@@ -47,7 +47,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
             //  Runs > FORCE_NO_PROD_WARNING="true" ${CERT_SCRIPT_DIR}/certGen.sh create_device_certificate "${registration_id}"
             Certificate X509Certificate = await OsPlatform.Current.CreateDeviceCertificatesAsync(deviceId, scriptPath, token);
 
-            // BEARWASHERE -- This is wrong 
+            // BEARWASHERE -- Read the guild from the DPS team before proceeding
+            //await OsPlatform.Current.CreateVerificationCertificatesAsync("BA09350B5E501CAC5431D9D8A79C341792754E1EC92BA62C", scriptPath, token);
+
             return new CertificateAuthority(X509Certificate, scriptPath);
         }
 
