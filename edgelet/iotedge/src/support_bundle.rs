@@ -9,8 +9,8 @@ use futures::{Future, Stream};
 use tokio::prelude::*;
 use zip;
 
-use edgelet_core::{LogOptions, LogTail, Module, ModuleRuntime};
 use crate::error::{Error, ErrorKind};
+use edgelet_core::{LogOptions, LogTail, Module, ModuleRuntime};
 
 use crate::logs::pull_logs;
 use crate::Command;
@@ -93,8 +93,9 @@ where
     }
 
     fn write_all_logs(s1: BundleState<M>) -> impl Future<Item = BundleState<M>, Error = Error> {
-        SupportBundle::get_modules(s1)
-            .and_then(|(names, s2)| stream::iter_ok(names).fold(s2, SupportBundle::write_log_to_file))
+        SupportBundle::get_modules(s1).and_then(|(names, s2)| {
+            stream::iter_ok(names).fold(s2, SupportBundle::write_log_to_file)
+        })
     }
 
     fn get_modules(
