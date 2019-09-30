@@ -30,6 +30,12 @@ async fn main() {
     }
 }
 
+lazy_static! {
+    static ref PB_STYLE: ProgressStyle = ProgressStyle::default_bar()
+        .template("[{elapsed_precise}] {msg:16} - {total_bytes:8} {wide_bar} [{percent:3}%]",)
+        .progress_chars("##-");
+}
+
 async fn true_main() -> Result<(), failure::Error> {
     pretty_env_logger::init();
 
@@ -267,6 +273,10 @@ async fn true_main() -> Result<(), failure::Error> {
                         credentials,
                     )?;
 
+                    let progress = ProgressBar::new(0);
+                    progress.set_style(PB_STYLE.clone());
+                    progress.set_message(&digest.split(':').nth(1).unwrap()[..16]);
+
                     let blob = match sub_m.value_of("range") {
                         Some(s) => {
                             let range: ParsableRange<u64> = s.parse()?;
@@ -280,14 +290,10 @@ async fn true_main() -> Result<(), failure::Error> {
                     let len = blob.len();
                     let mut body = blob.into_body();
 
+                    progress.set_length(len as u64);
+
                     // dump the blob to stdout, chunk by chunk
                     let mut stdout = tokio::io::stdout();
-                    // while let Some(next) = body.next().await {
-                    //     let data = next?;
-                    //     stdout.write(data.as_ref()).await?;
-                    // }
-
-                    let progress = ProgressBar::new(len as u64);
                     while let Some(next) = body.next().await {
                         let data = next?;
                         let bytes_written = stdout.write(data.as_ref()).await?;
@@ -314,19 +320,14 @@ async fn true_main() -> Result<(), failure::Error> {
             )?;
 
             let overall_progress = MultiProgress::new();
-            let progress_style = ProgressStyle::default_bar()
-                .template(
-                    "[{elapsed_precise}] {msg:16} - {total_bytes:8} {wide_bar} [{percent:3}%]",
-                )
-                .progress_chars("##-");
 
             let manifest_progress = overall_progress.add(ProgressBar::new(0));
             manifest_progress.set_message("manifest.json");
-            manifest_progress.set_style(progress_style.clone());
+            manifest_progress.set_style(PB_STYLE.clone());
 
             let config_progress = overall_progress.add(ProgressBar::new(0));
             config_progress.set_message("config.json");
-            config_progress.set_style(progress_style.clone());
+            config_progress.set_style(PB_STYLE.clone());
 
             let containrs::flows::ImageDownload {
                 manifest_digest,
@@ -395,7 +396,7 @@ async fn true_main() -> Result<(), failure::Error> {
 
                 let layer_progress = overall_progress.add(ProgressBar::new(blob.len() as u64));
                 layer_progress.set_message(&layer.digest.split(':').nth(1).unwrap()[..16]);
-                layer_progress.set_style(progress_style.clone());
+                layer_progress.set_style(PB_STYLE.clone());
                 write_blob_to_file(out_dir.join(filename), blob, layer_progress)
             }));
 
