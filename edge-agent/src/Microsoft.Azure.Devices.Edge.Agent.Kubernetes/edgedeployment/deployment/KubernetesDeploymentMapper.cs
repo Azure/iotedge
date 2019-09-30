@@ -124,16 +124,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                     volumeMounts: proxyMounts)
             };
 
-            Option<List<V1LocalObjectReference>> imageSecret = module.Config.AuthConfig.Map(
-                auth =>
-                {
-                    var secret = new ImagePullSecret(auth);
-                    var authList = new List<V1LocalObjectReference>
-                    {
-                        new V1LocalObjectReference(secret.Name)
-                    };
-                    return authList;
-                });
+            Option<List<V1LocalObjectReference>> imageSecret = module.Config.AuthConfig
+                .Map(auth => new List<V1LocalObjectReference> { new V1LocalObjectReference(auth.Name) });
 
             var modulePodSpec = new V1PodSpec(containers, volumes: volumes, imagePullSecrets: imageSecret.OrDefault(), serviceAccountName: name);
 
@@ -199,7 +191,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             return envList;
         }
 
-        (List<V1Volume>, List<V1VolumeMount>, List<V1VolumeMount>) GetVolumesFromModule(IModule<AgentDocker.CombinedDockerConfig> moduleWithDockerConfig)
+        (List<V1Volume>, List<V1VolumeMount>, List<V1VolumeMount>) GetVolumesFromModule(KubernetesModule module)
         {
             var volumeList = new List<V1Volume>
             {
@@ -215,9 +207,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
 
             var volumeMountList = new List<V1VolumeMount>(proxyMountList);
 
-            if (moduleWithDockerConfig.Config?.CreateOptions?.HostConfig?.Binds != null)
+            if (module.Config?.CreateOptions?.HostConfig?.Binds != null)
             {
-                foreach (string bind in moduleWithDockerConfig.Config?.CreateOptions?.HostConfig?.Binds)
+                foreach (string bind in module.Config?.CreateOptions?.HostConfig?.Binds)
                 {
                     string[] bindSubstrings = bind.Split(':');
                     if (bindSubstrings.Length >= 2)
@@ -234,9 +226,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                 }
             }
 
-            if (moduleWithDockerConfig.Config?.CreateOptions?.HostConfig?.Mounts != null)
+            if (module.Config?.CreateOptions?.HostConfig?.Mounts != null)
             {
-                foreach (Mount mount in moduleWithDockerConfig.Config?.CreateOptions?.HostConfig?.Mounts)
+                foreach (Mount mount in module.Config?.CreateOptions?.HostConfig?.Mounts)
                 {
                     if (mount.Type.Equals("bind", StringComparison.InvariantCultureIgnoreCase))
                     {

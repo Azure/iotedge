@@ -12,7 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream;
-    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
     using Microsoft.Azure.Devices.Edge.Agent.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -22,6 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using K8sConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
     using KubernetesModule = Microsoft.Azure.Devices.Edge.Agent.Service.Modules.KubernetesModule;
     using KubernetesPortMapServiceType = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service.PortMapServiceType;
+    using IKubernetesEnvironmentOperator = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IKubernetesEnvironmentOperator;
 
     public class Program
     {
@@ -159,6 +159,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         KubernetesPortMapServiceType mappedServiceDefault = GetDefaultServiceType(configuration);
                         bool enableServiceCallTracing = configuration.GetValue<bool>(K8sConstants.EnableK8sServiceCallTracingName);
                         string deviceNamespace = configuration.GetValue<string>(K8sConstants.K8sNamespaceKey);
+                        var kubernetesExperimentalFeatures = KubernetesExperimentalFeatures.Create(configuration.GetSection("experimentalFeatures"), logger);
 
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId)));
                         builder.RegisterModule(new KubernetesModule(
@@ -183,7 +184,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                             enableServiceCallTracing,
                             proxy,
                             closeOnIdleTimeout,
-                            idleTimeout));
+                            idleTimeout,
+                            kubernetesExperimentalFeatures));
 
                         break;
 

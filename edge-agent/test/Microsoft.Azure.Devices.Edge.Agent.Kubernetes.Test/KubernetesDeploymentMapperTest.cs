@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deployment;
@@ -24,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         public void EmptyIsNotAllowedAsPodAnnotation()
         {
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "ModuleId", Mock.Of<ICredentials>());
-            var config = new CombinedDockerConfig("image", new global::Microsoft.Azure.Devices.Edge.Agent.Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
+            var config = new CombinedKubernetesConfig("image", new CreatePodParameters(), Option.None<AuthConfig>());
             config.CreateOptions.Labels = new Dictionary<string, string>
             {
                 // string.Empty is an invalid label name
@@ -42,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         public void SimplePodCreationHappyPath()
         {
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "ModuleId", Mock.Of<ICredentials>());
-            var config = new CombinedDockerConfig("image", new global::Microsoft.Azure.Devices.Edge.Agent.Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
+            var config = new CombinedKubernetesConfig("image", new CreatePodParameters(), Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesDeploymentMapper("namespace", "edgehub", "proxy", "configPath", "configVolumeName", "configMapName", "trustBundlePAth", "trustBundleVolumeName", "trustBindleConfigMapName", "apiVersion", new Uri("http://workload"), new Uri("http://management"));
@@ -57,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         public void ValidatePodPropertyTranslation()
         {
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "ModuleId", Mock.Of<ICredentials>());
-            var config = new CombinedDockerConfig("image", new global::Microsoft.Azure.Devices.Edge.Agent.Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
+            var config = new CombinedKubernetesConfig("image", new CreatePodParameters(), Option.None<AuthConfig>());
             config.CreateOptions.Labels = new Dictionary<string, string>
             {
                 // Add a label
