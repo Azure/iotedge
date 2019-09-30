@@ -194,6 +194,13 @@ jobs:
           imageName: azureiotedge-direct-method-cloud-sender
           project: DirectMethodCloudSender
 
+     # Module Restarter
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Module Restarter
+          imageName: module-restarter
+          project: ModuleRestarter
+
 ################################################################################
 # linux - Rust amd64
 ################################################################################
@@ -332,6 +339,13 @@ jobs:
           name: Direct Method Cloud Sender
           imageName: azureiotedge-direct-method-cloud-sender
           project: DirectMethodCloudSender
+
+     # Module Restarter
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Module Restarter
+          imageName: module-restarter
+          project: ModuleRestarter
 
       - powershell: docker system prune -a -f
         displayName: Clean Machine

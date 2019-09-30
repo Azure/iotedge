@@ -12,7 +12,7 @@ namespace ModuleRestarter
         static readonly string ConnectionString = Environment.GetEnvironmentVariable("IoTHubConnectionString");
         static readonly string DeviceId = Environment.GetEnvironmentVariable("DeviceId");
         static readonly string ModulesCSV = Environment.GetEnvironmentVariable("DesiredModulesToRestartCSV");
-        static readonly string RandomRestartIntervalInMinsString = Environment.GetEnvironmentVariable("RandomRestartIntervalInMins");
+        static readonly int RandomRestartIntervalInMins = int.Parse(Environment.GetEnvironmentVariable("RandomRestartIntervalInMins"));
 
         public static int Main() => MainAsync().Result;
 
@@ -20,18 +20,13 @@ namespace ModuleRestarter
         {
             if (string.IsNullOrEmpty(ModulesCSV))
             {
+                Console.WriteLine("No modules specified to restart. Stopping.");
                 return 0;
             }
 
-            int randomRestartIntervalInMins = 5;
-            if (!string.IsNullOrEmpty(RandomRestartIntervalInMinsString))
-            {
-                randomRestartIntervalInMins = int.Parse(RandomRestartIntervalInMinsString);
-            }
+            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromMinutes(2 * RandomRestartIntervalInMins), null);
 
-            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromMinutes(2 * randomRestartIntervalInMins), null);
-
-            await RestartModules(cts, randomRestartIntervalInMins);
+            await RestartModules(cts, RandomRestartIntervalInMins);
             completed.Set();
 
             return 0;
@@ -44,24 +39,23 @@ namespace ModuleRestarter
         {
             Console.WriteLine("Device ID: {0}", DeviceId);
             Console.WriteLine("Module CSV received: {0}", ModulesCSV);
-            Console.WriteLine("Random restart interval: {0}", RandomRestartIntervalInMinsString);
+            Console.WriteLine("Random restart interval: {0}", RandomRestartIntervalInMins);
 
             string[] moduleNames = ModulesCSV.Split(",");
-
             ServiceClient iotHubServiceClient = ServiceClient.CreateFromConnectionString(ConnectionString);
             CloudToDeviceMethod c2dMethod = new CloudToDeviceMethod("RestartModule");
-            string payload = "{{ \"SchemaVersion\": \"1.0\", \"Id\": \"{0}\" }}";
             Random random = new Random();
 
             while (!cts.Token.IsCancellationRequested)
             {
+                string payload = "{{ \"SchemaVersion\": \"1.0\", \"Id\": \"{0}\" }}";
                 payload = string.Format(payload, moduleNames[random.Next(0, moduleNames.Length)]);
                 Console.WriteLine("RestartModule Method Payload: {0}", payload);
                 c2dMethod.SetPayloadJson(payload);
 
                 await iotHubServiceClient.InvokeDeviceMethodAsync(DeviceId, "$edgeAgent", c2dMethod);
 
-                Thread.Sleep(randomRestartIntervalInMins * 60 * 1000);
+                Thread.Sleep(RandomRestartIntervalInMins * 60 * 1000);
             }
         }
     }

@@ -289,7 +289,7 @@
               "DeviceId": {
                 "value": "<DeviceID>"
               },
-              "DesiredModulesToRestartJsonArray": {
+              "DesiredModulesToRestartCSV": {
                 "value": "<DesiredModulesToRestartCSV>"
               },
               "RandomRestartIntervalInMins": {
