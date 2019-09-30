@@ -18,8 +18,8 @@ use edgelet_core::{LogOptions, Module, ModuleRuntime, LogTail::Num};
 
 pub struct Bundle<M> {
     runtime: M,
-    log_options: Option<LogOptions>,
-    location: Option<String>,
+    log_options: LogOptions,
+    location: String,
 }
 
 struct BundleState<M> {
@@ -37,40 +37,36 @@ where
     pub fn new(log_options: LogOptions, location: &str, runtime: M) -> Self {
         Bundle {
             runtime,
-            log_options: Option::Some(log_options),
-            location: Option::Some(location.to_owned()),
+            log_options,
+            location: location.to_owned(),
         }
     }
 
     fn make_state(self) -> Result<BundleState<M>, Error> {
-        if let (Some(log_options), Some(location)) = (self.log_options, self.location) {
             /* Print status */
-            let since_time: DateTime<Utc> = DateTime::from_utc(NaiveDateTime::from_timestamp(log_options.since().into(), 0), Utc);
+            let since_time: DateTime<Utc> = DateTime::from_utc(NaiveDateTime::from_timestamp(self.log_options.since().into(), 0), Utc);
             let since_local: DateTime<Local> = DateTime::from(since_time);
-            let max_lines = if let Num(tail) = log_options.tail() {
+            let max_lines = if let Num(tail) = self.log_options.tail() {
                 format!("(maximum {} lines) ", tail)
             } else {"".to_owned()};
-            println!("Writing all logs {}since {} (local time {}) to {}", max_lines, since_time, since_local, location);
+            println!("Writing all logs {}since {} (local time {}) to {}", max_lines, since_time, since_local, self.location);
 
             /* Make state */
             let file_options = zip::write::FileOptions::default()
                 .compression_method(zip::CompressionMethod::Deflated);
 
             let zip_writer = zip::ZipWriter::new(
-                File::create(format!("{}/css_bundle.zip", location.to_owned()))
+                File::create(format!("{}/css_bundle.zip", self.location.to_owned()))
                     .map_err(|err| Error::from(err.context(ErrorKind::WriteToStdout)))?,
             );
 
             Ok(BundleState {
-                runtime: self.runtime.clone(),
-                log_options,
-                location,
+                runtime: self.runtime,
+                log_options: self.log_options,
+                location: self.location,
                 file_options,
                 zip_writer,
             })
-        } else {
-            Err(Error::from(ErrorKind::BadHostParameter))
-        }
     }
 }
 
@@ -146,9 +142,7 @@ mod tests {
     use edgelet_test_utils::module::*;
     use edgelet_test_utils::crypto::TestHsm;
     use std::str;
-    use std::io;
     use tempfile::tempdir;
-    use sha2::{Sha256, Digest};
 
     use super::*;
 
@@ -216,12 +210,5 @@ mod tests {
         .wait()
         .unwrap()
         .with_module(Ok(module))
-    }
-
-    fn hash_file(path: &str) -> String {
-        let mut file = File::open(path).unwrap();
-        let mut hasher = Sha256::new();
-        io::copy(&mut file, &mut hasher).unwrap();
-        hasher.result().into_iter().map(|c| format!("{:02x?}", c)).collect()
     }
 }
