@@ -41,6 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             return new Certificate(deviceId, scriptPath);
         }
 
+        // BEARWASHERE -- TO Be removed
         public async Task CreateVerificationCertificatesAsync(string nounce, string scriptPath, CancellationToken token)
         {
             var command = BuildCertCommand($"New-CACertsVerificationCert '{nounce}'", scriptPath);
