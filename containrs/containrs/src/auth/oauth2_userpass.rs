@@ -3,16 +3,12 @@ use std::collections::HashMap;
 use failure::ResultExt;
 use headers::Authorization as AuthorizationHeader;
 use headers::HeaderMapExt;
-use hyper::client::connect::Connect;
-use hyper::http::{HeaderMap, Request, StatusCode, Uri};
-use hyper::Client as HyperClient;
-use hyper::{header, Body};
 use log::*;
+use reqwest::header::HeaderMap;
+use reqwest::{Client as ReqwestClient, StatusCode};
 use serde::{Deserialize, Serialize};
-use serde_urlencoded;
 
 use crate::error::*;
-use crate::util::hyper::{BodyExt, ResponseExt};
 
 use super::{AuthError, Credentials};
 
@@ -49,8 +45,8 @@ pub struct TokenResponse {
 }
 
 /// OAuth2 username-password auth flow handler
-pub async fn auth_flow<C: Connect + 'static>(
-    client: &mut HyperClient<C>,
+pub async fn auth_flow(
+    client: &ReqwestClient,
     creds: &Credentials,
     mut parameters: HashMap<String, String>,
 ) -> Result<HeaderMap> {
@@ -68,38 +64,28 @@ pub async fn auth_flow<C: Connect + 'static>(
     parameters.insert("username".to_string(), user.to_string());
     parameters.insert("password".to_string(), pass.to_string());
 
-    // serializing HashMap<String, String> into urlencoded string cannot fail
-    let query = serde_urlencoded::to_string(parameters).unwrap();
-
-    let uri = realm.parse::<Uri>().context(AuthError::AuthServerUri)?;
-    let req = Request::post(uri)
-        .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
-        .body(Body::from(query))
-        .unwrap();
-    trace!("OAuth2 auth server req: {:#?}", req);
-    let res = client
-        .request(req)
-        .await
-        .context(AuthError::AuthServerNoResponse)?;
-    trace!("OAuth2 auth server res: {:#?}", res);
+    let req = client.post(realm.as_str()).form(&parameters);
+    trace!("Docker auth server req: {:#?}", req);
+    let res = req.send().await.context(AuthError::AuthServerNoResponse)?;
+    trace!("Docker auth server res: {:#?}", res);
 
     if !res.status().is_success() {
         match res.status() {
             StatusCode::UNAUTHORIZED => return Err(AuthError::InvalidCredentials.into()),
             status => {
-                res.dump_to_debug().await;
+                debug!("Unexpected response: {:#?}", res);
+                debug!("Unexpected response content: {:#?}", res.text().await);
                 return Err(AuthError::AuthServerError(status).into());
             }
         }
     }
 
     let token_reponse: TokenResponse = res
-        .into_body()
         .json()
         .await
         .context(AuthError::AuthServerInvalidResponse)?;
 
-    // TODO: use expiration time?
+    // TODO: use those expiration times
 
     let token = token_reponse
         .access_token

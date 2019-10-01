@@ -5,7 +5,6 @@ use failure::{Backtrace, Context, Fail};
 use serde::{Deserialize, Serialize};
 
 use crate::auth::AuthError;
-use crate::flows::download_image::Error as DownloadImageError;
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
@@ -18,19 +17,13 @@ pub struct Error {
 pub enum ErrorKind {
     // User Input Errors
     #[fail(display = "Could not parse registry URI")]
-    ClientRegistryUriMalformed,
+    ClientRegistryUrlMalformed,
 
     #[fail(display = "Registry URI is is missing authority (e.g: registry-1.docker.io)")]
-    ClientRegistryUriMissingAuthority,
+    ClientRegistryUrlMissingAuthority,
 
-    #[fail(display = "Registry URI includes scheme. Use `scheme` parameter instead.")]
-    ClientRegistryUriHasScheme,
-
-    #[fail(display = "Could not parse scheme")]
-    ClientMalformedScheme,
-
-    #[fail(display = "Could not parse provided media_type")]
-    InvalidMediaType,
+    #[fail(display = "Registry URI includes query parameters")]
+    ClientRegistryUrlIncludesQuery,
 
     #[fail(display = "Invalid Range")]
     InvalidRange,
@@ -39,11 +32,11 @@ pub enum ErrorKind {
     InvalidApiEndpoint,
 
     // API communication
-    #[fail(display = "Could not send authenticated request")]
-    AuthClientRequest,
+    #[fail(display = "Could not send HTTP request")]
+    ClientRequest,
 
     #[fail(display = "API returned an error (status code: {})", _0)]
-    ApiError(hyper::StatusCode),
+    ApiError(reqwest::StatusCode),
 
     #[fail(display = "API returned malformed Body")]
     ApiMalformedBody,
@@ -60,36 +53,18 @@ pub enum ErrorKind {
     #[fail(display = "API response returned a malformed required header: {}", _0)]
     ApiMalformedHeader(&'static str),
 
-    #[fail(display = "API returned a bad redirect")]
-    ApiBadRedirect,
-
     #[fail(
         display = "API returned an out of spec response (status code: {}). See debug logs for response contents.",
         _0
     )]
-    ApiUnexpectedStatus(hyper::StatusCode),
+    ApiUnexpectedStatus(reqwest::StatusCode),
 
     #[fail(display = "API doesn't support HTTP Range Headers")]
     ApiRangeHeaderNotSupported,
 
-    // Data integrity Errors
-    #[fail(
-        display = "API returned Manifest with incompatible schema version = {}",
-        _0
-    )]
-    InvalidSchemaVersion(i32),
-
     // Authentication-related Errors
     #[fail(display = "Auth Flow Error: {}", _0)]
     Auth(AuthError),
-
-    // Helper-related Errors
-    #[fail(display = "Download Image Error: {}", _0)]
-    DownloadImage(DownloadImageError),
-
-    // Misc
-    #[fail(display = "Could not parse hyper::Body as JSON")]
-    UtilHyperBodyJSON,
 }
 
 impl Fail for Error {
@@ -129,6 +104,12 @@ impl From<ErrorKind> for Error {
 impl From<Context<ErrorKind>> for Error {
     fn from(inner: Context<ErrorKind>) -> Self {
         Error { inner }
+    }
+}
+
+impl From<reqwest::Error> for Error {
+    fn from(e: reqwest::Error) -> Self {
+        e.context(ErrorKind::ClientRequest).into()
     }
 }
 

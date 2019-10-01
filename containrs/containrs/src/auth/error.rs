@@ -10,10 +10,10 @@ pub enum AuthError {
     EndpointNoResponse,
 
     #[fail(display = "API Endpoint response is missing www-authenticate header")]
-    EndpointMissingHeader,
+    EndpointMissingWWWAuth,
 
     #[fail(display = "API Endpoint response has malformed www-authenticate header")]
-    EndpointMalformedHeader,
+    EndpointMalformedWWWAuth,
 
     #[fail(
         display = "Server is using an unimplemented authentication scheme \"{:?}\"",
@@ -34,7 +34,7 @@ pub enum AuthError {
         display = "Auth server returned an error (status code: {}). See debug logs for response contents.",
         _0
     )]
-    AuthServerError(hyper::StatusCode),
+    AuthServerError(reqwest::StatusCode),
 
     #[fail(display = "Could not parse auth server response")]
     AuthServerInvalidResponse,
@@ -44,6 +44,9 @@ pub enum AuthError {
 
     #[fail(display = "Auth server token is invalid")]
     AuthServerInvalidToken,
+
+    #[fail(display = "Auth cache Rwlock was poisoned")]
+    CacheLock,
 }
 
 impl From<AuthError> for Error {

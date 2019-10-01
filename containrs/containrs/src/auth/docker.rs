@@ -7,16 +7,12 @@ use std::collections::HashMap;
 use failure::ResultExt;
 use headers::Authorization as AuthorizationHeader;
 use headers::HeaderMapExt;
-use hyper::client::connect::Connect;
-use hyper::http::{HeaderMap, Request, StatusCode, Uri};
-use hyper::Body;
-use hyper::Client as HyperClient;
 use log::*;
+use reqwest::header::HeaderMap;
+use reqwest::{Client as ReqwestClient, StatusCode};
 use serde::{Deserialize, Serialize};
-use serde_urlencoded;
 
 use crate::error::*;
-use crate::util::hyper::{BodyExt, ResponseExt};
 
 use super::{AuthError, Credentials};
 
@@ -57,54 +53,43 @@ pub struct DockerAuthTokenResponse {
 }
 
 /// Docker auth flow handler
-pub async fn auth_flow<C: Connect + 'static>(
-    client: &mut HyperClient<C>,
+pub async fn auth_flow(
+    client: &ReqwestClient,
     creds: &Credentials,
     mut parameters: HashMap<String, String>,
 ) -> Result<HeaderMap> {
     let realm = parameters
         .remove("realm")
         .ok_or_else(|| AuthError::AuthServerUri)?;
-    // serializing HashMap<String, String> into urlencoded string cannot fail
-    let query = serde_urlencoded::to_string(parameters).unwrap();
 
-    let uri = (realm + "?" + &query)
-        .parse::<Uri>()
-        .context(AuthError::AuthServerUri)?;
-
-    let mut req = Request::get(uri);
+    let mut req = client.get(realm.as_str()).query(&parameters);
     // Credentials aren't required to access public repos
     if let Credentials::UserPass(user, pass) = creds {
-        req.headers_mut()
-            .unwrap()
-            .typed_insert(AuthorizationHeader::basic(user, pass));
+        let mut m = HeaderMap::new();
+        m.typed_insert(AuthorizationHeader::basic(user, pass));
+        req = req.headers(m);
     }
-    let req = req.body(Body::empty()).unwrap();
     trace!("Docker auth server req: {:#?}", req);
-
-    let res = client
-        .request(req)
-        .await
-        .context(AuthError::AuthServerNoResponse)?;
+    let res = req.send().await.context(AuthError::AuthServerNoResponse)?;
     trace!("Docker auth server res: {:#?}", res);
 
     if !res.status().is_success() {
         match res.status() {
             StatusCode::UNAUTHORIZED => return Err(AuthError::InvalidCredentials.into()),
             status => {
-                res.dump_to_debug().await;
+                debug!("Unexpected response: {:#?}", res);
+                debug!("Unexpected response content: {:#?}", res.text().await);
                 return Err(AuthError::AuthServerError(status).into());
             }
         }
     }
 
     let token_reponse: DockerAuthTokenResponse = res
-        .into_body()
         .json()
         .await
         .context(AuthError::AuthServerInvalidResponse)?;
 
-    // TODO: use those expiration times?
+    // TODO: use those expiration times
 
     let token = token_reponse
         .token

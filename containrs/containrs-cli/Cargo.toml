@@ -12,8 +12,6 @@ oci-image = { path = "../oci-image" }
 clap = "~2.33.0"
 failure = "0.1"
 futures-preview = "=0.3.0-alpha.18"
-hyper = { version = "0.13.0-alpha.2", features = ["unstable-stream"] }
-hyper-tls = "0.4.0-alpha.2"
 indicatif = "0.12"
 lazy_static = "1.4"
 log = "0.4"

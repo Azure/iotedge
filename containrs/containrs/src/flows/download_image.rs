@@ -1,31 +1,15 @@
-use docker_reference::Reference;
-use failure::{Context, Fail, ResultExt};
-use hyper::client::connect::Connect;
+use failure::ResultExt;
+use futures::future;
+
 use log::*;
+
+use docker_reference::Reference;
 use oci_image::v1 as ociv1;
 
-use crate::client::{Blob, Client};
+use crate::{Blob, Client};
 use crate::{ErrorKind, Result};
 
-#[derive(Debug, Fail)]
-pub enum Error {
-    #[fail(display = "Server returned malformed `manifest.json`")]
-    MalformedManifestJson,
-}
-
-impl From<Error> for crate::Error {
-    fn from(e: Error) -> Self {
-        ErrorKind::DownloadImage(e).into()
-    }
-}
-
-impl From<Context<Error>> for crate::Error {
-    fn from(inner: Context<Error>) -> Self {
-        inner.map(ErrorKind::DownloadImage).into()
-    }
-}
-
-/// Collection of [`hyper::Body`]s corresponding to an image's manifest, config,
+/// Collection of [`Blob`]s corresponding to an image's manifest, config,
 /// and layers.
 pub struct ImageDownload {
     pub manifest_digest: String,
@@ -36,42 +20,39 @@ pub struct ImageDownload {
 
 /// Given an `image` [`Reference`], returns a [ImageDownload] struct which
 /// contains the image's manifest, config, and layers as streaming
-/// [`hyper::Body`]s
-pub async fn download_image<'a>(
-    client: &mut Client<impl Connect + 'static>,
-    image: &Reference,
-) -> Result<ImageDownload> {
+/// [`Blob`]s
+pub async fn download_image(client: &Client, image: &Reference) -> Result<ImageDownload> {
     // fetch manifest
     let (manifest_json, manifest_digest) = client.get_raw_manifest(image).await?;
-    let manifest_len = manifest_json.len();
+    let manifest_json = manifest_json.bytes().await?;
 
     debug!("Fetched manifest.json");
 
     // validate manifest
     let manifest = serde_json::from_slice::<ociv1::Manifest>(&manifest_json)
-        .context(Error::MalformedManifestJson)?;
+        .context("while parsing manifest.json")
+        .context(ErrorKind::ApiMalformedJSON)?;
 
-    // fetch config
-    let config_json = client
-        .get_raw_blob(image.repo(), &manifest.config.digest)
-        .await?;
+    let mut futures = Vec::new();
 
-    debug!("Kicked off config.json download");
+    futures.extend(
+        manifest
+            .layers
+            .iter()
+            .map(|layer| client.get_raw_blob(image.repo(), &layer.digest)),
+    );
+    futures.push(client.get_raw_blob(image.repo(), &manifest.config.digest));
 
-    let mut layers = Vec::new();
-    for layer in manifest.layers {
-        let digest = layer.digest.clone();
-        layers.push((
-            client.get_raw_blob(image.repo(), &layer.digest).await?,
-            layer,
-        ));
-        debug!("Kicked off layer {} download", digest);
-    }
+    let mut layers = future::try_join_all(futures).await?;
+
+    debug!("Fired off all download requests");
+
+    let config_json = layers.pop().unwrap();
 
     Ok(ImageDownload {
         manifest_digest,
-        manifest_json: Blob::new(manifest_json.into(), manifest_len),
+        manifest_json: Blob::new_immediate(manifest_json),
         config_json,
-        layers,
+        layers: layers.into_iter().zip(manifest.layers).collect(),
     })
 }

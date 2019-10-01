@@ -1,23 +1,23 @@
 use std::collections::HashMap;
+use std::sync::RwLock;
 
 use failure::ResultExt;
-use hyper::body::Body;
-use hyper::client::connect::Connect;
-use hyper::header;
-use hyper::http::{HeaderMap, Request, Response, StatusCode};
-use hyper::Client as HyperClient;
-use hyper::Uri;
 use log::*;
+use reqwest::header::{self, HeaderMap};
+use reqwest::{Client as ReqwestClient, IntoUrl, Method, RequestBuilder, StatusCode};
+
+use www_authenticate::{ChallengeScheme, WWWAuthenticate};
 
 use crate::error::*;
 
-mod docker;
 mod error;
+mod scope;
+
+mod docker;
 mod oauth2_userpass;
 
 pub use error::AuthError;
-
-use www_authenticate::{ChallengeScheme, WWWAuthenticate};
+pub use scope::*;
 
 /// Credentials used to authenticate with server
 #[derive(Debug)]
@@ -27,120 +27,140 @@ pub enum Credentials {
     AzureActiveDirectory, // Parameters TBD (once I learn more about how AAD works)
 }
 
-/// Wrapper around hyper::Client providing transparent authentication
+/// Wrapper around reqwest::Client to handle authenticating with various
+/// registries, and caching authentication tokens
 #[derive(Debug)]
-pub struct AuthClient<C> {
-    client: HyperClient<C>,
+pub struct AuthClient {
+    client: ReqwestClient,
     creds: Credentials,
-    store: HashMap<Uri, HeaderMap>,
+    // TODO?: explore more generic approach to cache auth tokens, tailored to specific registries
+    headers_cache: RwLock<HashMap<Scope, HeaderMap>>,
 }
 
-impl<C: Connect + 'static> AuthClient<C> {
+impl AuthClient {
     /// Construct a new AuthClient with given `creds`
-    pub fn new(client: HyperClient<C>, creds: Credentials) -> AuthClient<C> {
+    pub fn new(client: ReqwestClient, creds: Credentials) -> AuthClient {
         AuthClient {
             client,
             creds,
-            store: HashMap::new(),
+            headers_cache: RwLock::new(HashMap::new()),
         }
     }
 
-    /// Get a mutable borrow of the underlying hyper client (for performing
-    /// raw, unauthenticated requests)
-    pub fn raw_client(&mut self) -> &mut HyperClient<C> {
-        &mut self.client
-    }
+    /// Wrapper around [ReqwestClient::request] which appends authentication
+    /// headers. Unlike [ReqwestClient::request], this method is async, as it
+    /// may perform some authentication flow HTTP requests prior to returning
+    /// the RequestBuilder
+    pub async fn request<U: Clone + IntoUrl>(
+        &self,
+        method: Method,
+        url: U,
+        scope: &Scope,
+    ) -> Result<RequestBuilder> {
+        // there's some sneaky concurrency to look out for here, as without some special
+        // care, the client might end up performing multiple authentication handshakes
+        // for the same scope (which would be wasteful)
+        //
+        // TODO: improve concurrency when dealing with multiple disjoint scopes.
+        // i.e: starting 2 image pulls at the same time results in one thread blocking
+        // while the first authenticates, which doesn't need to happen if the two images
+        // have disjoint scopes.
+        // This could probably be solved by having a lock for each hash-map entry
 
-    /// Wrapper around [HyperClient::request] which authenticates outbound
-    /// requests
-    pub async fn request(&mut self, mut req: Request<Body>) -> Result<Response<Body>> {
-        let headers = match self.store.get(req.uri()) {
-            Some(h) => h.clone(),
-            None => {
-                let new_headers = self
-                    .authenticate(&req)
-                    .await
-                    .context(ErrorKind::AuthClientRequest)?;
-                trace!("Authenticated successfully");
-                let h = new_headers.clone();
-                self.store.insert(req.uri().clone(), new_headers);
-                h
-            }
+        if let Some(headers) = self
+            .headers_cache
+            .read()
+            .map_err(|_| AuthError::CacheLock)?
+            .get(scope)
+        {
+            // TODO?: store expiration time alongside scope
+            return Ok(self.client.request(method, url).headers(headers.clone()));
         };
 
-        req.headers_mut().extend(headers);
-        trace!("Authenticated req: {:#?}", req);
-        let res = self
-            .client
-            .request(req)
-            .await
-            .context(ErrorKind::AuthClientRequest)?;
-        trace!("Authenticated res: {:#?}", res);
-        Ok(res)
+        trace!("Not authenticated for scope {:?}", scope);
+        // hold lock while authenticating
+        let mut map = self
+            .headers_cache
+            .write()
+            .map_err(|_| AuthError::CacheLock)?;
+        // do one more check to be _certain_ that no other requests have already
+        // performed the authentication flow
+        let headers = if let Some(headers) = map.get(scope) {
+            headers.clone()
+        } else {
+            // alright, this thread gets the responsibility of doing auth flow for this
+            // scope
+            let new_entries = self
+                .authenticate(method.clone(), url.clone(), scope)
+                .await?;
+            for (scope, headers) in new_entries {
+                map.insert(scope, headers);
+            }
+            map.get(scope).unwrap().clone()
+        };
+        trace!("Successfully authenticated scope {:?}", scope);
+
+        Ok(self.client.request(method, url).headers(headers))
     }
 
-    /// Wrapper around [HyperClient::get] which authenticates outbound requests
-    pub async fn get(&mut self, uri: Uri) -> Result<Response<Body>> {
-        self.request(
-            Request::get(uri)
-                .body(Body::default())
-                .context(ErrorKind::AuthClientRequest)?,
-        )
-        .await
+    /// Wrapper around [ReqwestClient::get] which appends authentication
+    /// headers
+    pub async fn get<U: IntoUrl + Clone>(&self, url: U, scope: &Scope) -> Result<RequestBuilder> {
+        self.request(Method::GET, url, scope).await
     }
 
-    /// Retrieve authentication headers for the given Request
-    async fn authenticate(&mut self, orig_req: &Request<Body>) -> Result<HeaderMap> {
-        trace!("Not authenticated yet");
+    /// Wrapper around [ReqwestClient::head] which appends authentication
+    /// headers
+    pub async fn head<U: IntoUrl + Clone>(&self, url: U, scope: &Scope) -> Result<RequestBuilder> {
+        self.request(Method::HEAD, url, scope).await
+    }
 
-        // start by pinging the URL without authorization
-        let unauth_req = Request::builder()
-            .uri(orig_req.uri())
-            .method(orig_req.method())
-            .body(Body::empty())
-            .unwrap(); // won't panic, as it's built from a known-valid request
-        trace!("Unauth req: {:#?}", unauth_req);
+    /// Perform authentication flow for the given request
+    async fn authenticate<U: IntoUrl>(
+        &self,
+        method: Method,
+        url: U,
+        expect_scope: &Scope,
+    ) -> Result<impl IntoIterator<Item = (Scope, HeaderMap)>> {
+        // perform unauthenticated request to check what scope is required
         let unauth_res = self
             .client
-            .request(unauth_req)
+            .request(method, url)
+            .send()
             .await
             .context(AuthError::EndpointNoResponse)?;
         trace!("Unauth res: {:#?}", unauth_res);
 
         if unauth_res.status() != StatusCode::UNAUTHORIZED {
-            // that's wierd, but okay. Just pass up an empty auth header
-            warn!(
-                "Attempted to authenticate with a URI that didn't require authentication: {:?}",
-                orig_req.uri()
-            );
-            return Ok(HeaderMap::new());
+            // that's weird, but okay. Just pass up an empty auth header
+            warn!("Attempted to authenticate with a URI that didn't require authentication");
+            return Ok(vec![(expect_scope.clone(), HeaderMap::new())]);
         }
 
         // extract info from WWW-Authenticate header
-        // Syntax of WWW-Authenticate: <type> realm=<realm>
         let www_auth = unauth_res
             .headers()
             .get(header::WWW_AUTHENTICATE)
-            .ok_or_else(|| AuthError::EndpointMissingHeader)?
+            .ok_or_else(|| AuthError::EndpointMissingWWWAuth)?
             .to_str()
-            .context(AuthError::EndpointMalformedHeader)?
+            .context(AuthError::EndpointMalformedWWWAuth)?
             .parse::<WWWAuthenticate>()
-            .context(AuthError::EndpointMalformedHeader)?;
+            .context(AuthError::EndpointMalformedWWWAuth)?;
 
         trace!("Parsed WWW-Authenticate header: {:#?}", www_auth);
 
-        let mut headers = HeaderMap::new();
+        // TODO: once scope parsing is implemented, check that returned scopes match
+        // expected scope
+
+        let mut auth_headers = Vec::new();
         for challenge in www_auth.into_iter() {
             let auth_header = match challenge.scheme() {
                 ChallengeScheme::Bearer => {
                     let parameters = challenge.into_parameters();
 
-                    let oauth2_result = oauth2_userpass::auth_flow(
-                        &mut self.client,
-                        &self.creds,
-                        parameters.clone(),
-                    )
-                    .await;
+                    let oauth2_result =
+                        oauth2_userpass::auth_flow(&self.client, &self.creds, parameters.clone())
+                            .await;
 
                     match oauth2_result {
                         Ok(auth_header) => auth_header,
@@ -153,15 +173,15 @@ impl<C: Connect + 'static> AuthClient<C> {
                             }
                             warn!("Attempting Docker-specific auth flow");
 
-                            docker::auth_flow(&mut self.client, &self.creds, parameters.clone())
-                                .await?
+                            docker::auth_flow(&self.client, &self.creds, parameters.clone()).await?
                         }
                     }
                 }
                 m => return Err(AuthError::UnimplementedChallengeScheme(m.to_owned()).into()),
             };
-            headers.extend(auth_header)
+            auth_headers.push((expect_scope.clone(), auth_header))
         }
-        Ok(headers)
+
+        Ok(auth_headers)
     }
 }

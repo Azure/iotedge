@@ -1,135 +1,80 @@
+use std::cell::RefCell;
 use std::ops::{Bound, RangeBounds};
+use std::sync::Arc;
 
+use bytes::Bytes;
 use failure::{Fail, ResultExt};
 use headers::HeaderMapExt;
 use headers::Range as RangeHeader;
-use hyper::body::Body;
-use hyper::client::connect::Connect;
-use hyper::header;
-use hyper::http::{uri, HttpTryFrom, Method, Request, Response, StatusCode, Uri};
-use hyper::Client as HyperClient;
-// use log::*;
+use log::*;
+use reqwest::header::{self, HeaderMap};
+use reqwest::{Client as ReqwestClient, Method, Response, StatusCode, Url};
 
 use docker_reference::Reference;
 use oci_image::{v1::Manifest, MediaType};
 
-use crate::auth::{AuthClient, Credentials};
+use crate::auth::{Action, AuthClient, Credentials, Resource, Scope};
+use crate::blob::Blob;
 use crate::error::*;
 use crate::paginate::Paginate;
-use crate::util::hyper::{BodyExt, ResponseExt};
-
-pub struct Blob {
-    body: hyper::Body,
-    len: usize,
-}
-
-impl Blob {
-    pub fn new(body: hyper::Body, len: usize) -> Blob {
-        Blob { body, len }
-    }
-
-    pub fn into_body(self) -> hyper::Body {
-        self.body
-    }
-
-    pub fn len(&self) -> usize {
-        self.len
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len == 0
-    }
-}
 
 /// Client for interacting with container registries that conform to the OCI
 /// distribution specification (i.e: Docker Registry HTTP API V2 protocol)
 #[derive(Debug)]
-pub struct Client<C> {
-    client: AuthClient<C>,
-    registry_base: Uri,
-    supports_range_header: Option<bool>, // None = Unknown
+pub struct Client {
+    client: AuthClient,
+    registry_base: Url,
+    supports_range_header: Arc<RefCell<Option<bool>>>, // None = Unknown
 }
 
-impl<C: Connect + 'static> Client<C> {
+impl Client {
     /// Construct a new Client to communicate with container registries.
-    /// The `registry_uri` must have an authority component (i.e: domain),
+    /// The `registry_url` must have an authority component (i.e: domain),
     /// and can optionally include a base path as well (for container registries
-    /// that are not at "/"). Returns an error if the registry Uri is malformed.
-    pub fn new(
-        hyper_client: HyperClient<C>,
-        scheme: &str,
-        registry_uri: &str,
-        creds: Credentials,
-    ) -> Result<Client<C>> {
-        let registry = registry_uri
-            .parse::<Uri>()
-            .context(ErrorKind::ClientRegistryUriMalformed)?;
+    /// that are not at "/"). Returns an error if the registry Url is malformed.
+    pub fn new(scheme: &str, registry_url: &str, creds: Credentials) -> Result<Client> {
+        let registry_url = scheme.to_string() + "://" + registry_url;
 
-        let mut parts = registry.into_parts();
-        match parts.scheme {
-            Some(_) => return Err(ErrorKind::ClientRegistryUriHasScheme.into()),
-            None => {
-                parts.scheme =
-                    Some(uri::Scheme::try_from(scheme).context(ErrorKind::ClientMalformedScheme)?)
-            }
-        }
+        let registry_base = registry_url
+            .parse::<Url>()
+            .context(ErrorKind::ClientRegistryUrlMalformed)?;
 
-        if parts.authority.is_none() {
-            return Err(ErrorKind::ClientRegistryUriMissingAuthority.into());
+        if !registry_base.has_host() {
+            return Err(ErrorKind::ClientRegistryUrlMissingAuthority.into());
         }
-        if parts.path_and_query.is_none() {
-            parts.path_and_query = Some(uri::PathAndQuery::from_static("/"))
+        if registry_base.query().is_some() {
+            return Err(ErrorKind::ClientRegistryUrlIncludesQuery.into());
         }
 
         Ok(Client {
-            client: AuthClient::new(hyper_client, creds),
-            registry_base: Uri::from_parts(parts).unwrap(), // guaranteed to work
-            supports_range_header: None,
+            client: AuthClient::new(ReqwestClient::new(), creds),
+            registry_base,
+            supports_range_header: Arc::new(RefCell::new(None)),
         })
-    }
-
-    /// Utility method to construct endpoint URIs
-    fn base_uri(&self, endpoint: &str) -> Result<Uri> {
-        let uri = format!("{}{}", self.registry_base, endpoint.trim_start_matches('/'))
-            .parse::<Uri>()
-            .context(ErrorKind::InvalidApiEndpoint);
-        Ok(uri?)
-    }
-
-    /// Utility method to check authentication with a particular endpoint
-    /// (e.g: /v2/)
-    pub async fn check_authentication<T>(&mut self, endpoint: &str, method: T) -> Result<bool>
-    where
-        Method: hyper::http::HttpTryFrom<T>,
-    {
-        let uri = self.base_uri(endpoint)?;
-        let req = Request::builder()
-            .method(method)
-            .uri(uri)
-            .body(Body::empty())
-            .context(ErrorKind::InvalidApiEndpoint)?;
-        Ok(self.client.request(req).await?.status().is_success())
     }
 
     /// Retrieve a sorted, JSON list of repositories available in the registry.
     /// If the _catalog API is not available, this method returns None.
-    /// If the _catalog API is available, returns a tuple [Vec<u8>]
+    /// If the _catalog API is available, returns a tuple [Bytes]
     /// and the next [Paginate] range (if pagination is being used)
     ///
     /// Returned data should deserialize into [`oci_distribution::v2::Catalog`]
     // TODO: Make this return a stream?
     pub async fn get_raw_catalog(
-        &mut self,
+        &self,
         paginate: Option<Paginate>,
-    ) -> Result<Option<(Vec<u8>, Option<Paginate>)>> {
-        let uri = match paginate {
-            Some(Paginate { n, last }) => {
-                self.base_uri(format!("/v2/_catalog?n={}&last={}", n, last).as_str())?
-            }
-            None => self.base_uri("/v2/_catalog")?,
-        };
+    ) -> Result<Option<(Bytes, Option<Paginate>)>> {
+        // TODO: double check this scope
+        let scope = Scope::new(Resource::registry("catalog"), &[Action::Any]);
 
-        let res = self.client.get(uri).await?;
+        let mut url = self.registry_base.join("/v2/_catalog/").unwrap();
+        if let Some(Paginate { n, last }) = paginate {
+            url.query_pairs_mut()
+                .append_pair("n", &n.to_string())
+                .append_pair("last", &last.to_string());
+        }
+
+        let res = self.client.get(url, &scope).await?.send().await?;
 
         match res.status() {
             StatusCode::NOT_FOUND => Ok(None),
@@ -137,13 +82,10 @@ impl<C: Connect + 'static> Client<C> {
                 let next_paginate = res
                     .headers()
                     .get(header::LINK)
-                    .map(Paginate::from_link_header)
+                    .map(|header| Paginate::from_link_header(header, &self.registry_base))
                     .transpose()?;
                 Ok(Some((
-                    res.into_body()
-                        .bytes()
-                        .await
-                        .context(ErrorKind::ApiMalformedBody)?,
+                    res.bytes().await.context(ErrorKind::ApiMalformedBody)?,
                     next_paginate,
                 )))
             }
@@ -156,37 +98,41 @@ impl<C: Connect + 'static> Client<C> {
     }
 
     /// Retrieve the tags under a given `repo`.
-    /// Returns a tuple of [Vec<u8>] and the next [Paginate] range
+    /// Returns a tuple of [Bytes] and the next [Paginate] range
     /// (if pagination is being used)
     ///
     /// Returned data should deserialize into [`oci_distribution::v2::Tags`]
     // TODO: Make this return a stream?
     pub async fn get_raw_tags(
-        &mut self,
+        &self,
         repo: &str,
         paginate: Option<Paginate>,
-    ) -> Result<(Vec<u8>, Option<Paginate>)> {
-        let uri = match paginate {
-            Some(Paginate { n, last }) => {
-                self.base_uri(format!("/v2/{}/tags/list?n={}&last={}", repo, n, last).as_str())?
-            }
-            None => self.base_uri(format!("/v2/{}/tags/list", repo).as_str())?,
-        };
+    ) -> Result<(Bytes, Option<Paginate>)> {
+        // TODO: double check this scope
+        let scope = Scope::new(Resource::repo(repo), &[Action::Pull]);
 
-        let res = self.client.get(uri).await?;
+        let mut url = self
+            .registry_base
+            .join(format!("/v2/{}/tags/list", repo).as_str())
+            .context(ErrorKind::InvalidApiEndpoint)?;
+
+        if let Some(Paginate { n, last }) = paginate {
+            url.query_pairs_mut()
+                .append_pair("n", &n.to_string())
+                .append_pair("last", &last.to_string());
+        }
+
+        let res = self.client.get(url, &scope).await?.send().await?;
 
         match res.status() {
             StatusCode::OK => {
                 let next_paginate = res
                     .headers()
                     .get(header::LINK)
-                    .map(Paginate::from_link_header)
+                    .map(|header| Paginate::from_link_header(header, &self.registry_base))
                     .transpose()?;
                 Ok((
-                    res.into_body()
-                        .bytes()
-                        .await
-                        .context(ErrorKind::ApiMalformedBody)?,
+                    res.bytes().await.context(ErrorKind::ApiMalformedBody)?,
                     next_paginate,
                 ))
             }
@@ -203,20 +149,22 @@ impl<C: Connect + 'static> Client<C> {
     ///
     /// Returned data should deserialize into [`oci_image::v1::Manifest`]
     // TODO: use actual digest type instead of String
-    // TODO: Make this return a stream?
-    pub async fn get_raw_manifest(&mut self, reference: &Reference) -> Result<(Vec<u8>, String)> {
-        let uri = self.base_uri(
-            format!("/v2/{}/manifests/{}", reference.repo(), reference.kind()).as_str(),
-        )?;
+    pub async fn get_raw_manifest(&self, reference: &Reference) -> Result<(Blob, String)> {
+        // TODO: double check this scope
+        let scope = Scope::new(Resource::repo(reference.repo()), &[Action::Pull]);
 
-        let mut req = Request::get(uri);
-        req.header(header::ACCEPT, Manifest::MEDIA_TYPE);
+        let url = self
+            .registry_base
+            .join(format!("/v2/{}/manifests/{}", reference.repo(), reference.kind()).as_str())
+            .context(ErrorKind::InvalidApiEndpoint)?;
+
+        let mut req = self.client.request(Method::GET, url, &scope).await?;
+        req = req.header(header::ACCEPT, Manifest::MEDIA_TYPE);
         for &similar_mime in Manifest::SIMILAR_MEDIA_TYPES {
             // mainly for docker compatibility
-            req.header(header::ACCEPT, similar_mime);
+            req = req.header(header::ACCEPT, similar_mime);
         }
-        let req = req.body(Body::empty()).unwrap();
-        let res = self.client.request(req).await?;
+        let res = req.send().await?;
 
         match res.status() {
             StatusCode::OK => {
@@ -228,12 +176,7 @@ impl<C: Connect + 'static> Client<C> {
                     .context(ErrorKind::ApiMalformedHeader("Docker-Content-Digest"))?
                     // TODO: validate string is actually a Digest
                     .to_string();
-                let data = res
-                    .into_body()
-                    .bytes()
-                    .await
-                    .context(ErrorKind::ApiMalformedBody)?;
-                Ok((data, digest))
+                Ok((Blob::new(res), digest))
             }
             StatusCode::UNAUTHORIZED => {
                 // TODO: attempt to re-authenticate
@@ -245,7 +188,7 @@ impl<C: Connect + 'static> Client<C> {
 
     /// Retrieve the blob with given `digest` from the specified `repo`.
     #[allow(clippy::ptr_arg)] // TODO: use proper Digest type instead of String
-    pub async fn get_raw_blob(&mut self, repo: &str, digest: &String) -> Result<Blob> {
+    pub async fn get_raw_blob(&self, repo: &str, digest: &String) -> Result<Blob> {
         self.get_raw_blob_part(repo, digest, ..).await
     }
 
@@ -255,12 +198,18 @@ impl<C: Connect + 'static> Client<C> {
     /// will return a [ErrorKind::ApiRangeHeaderNotSupported]
     #[allow(clippy::ptr_arg)] // TODO: use proper Digest type instead of String
     pub async fn get_raw_blob_part(
-        &mut self,
+        &self,
         repo: &str,
         digest: &String,
         range: impl RangeBounds<u64>,
     ) -> Result<Blob> {
-        let uri = self.base_uri(format!("/v2/{}/blobs/{}", repo, digest).as_str())?;
+        // TODO: double check this scope
+        let scope = Scope::new(Resource::repo(repo), &[Action::Pull]);
+
+        let url = self
+            .registry_base
+            .join(format!("/v2/{}/blobs/{}", repo, digest).as_str())
+            .context(ErrorKind::InvalidApiEndpoint)?;
 
         let range_header = match (range.start_bound(), range.end_bound()) {
             (Bound::Unbounded, Bound::Unbounded) | (Bound::Included(0), Bound::Unbounded) => {
@@ -270,39 +219,19 @@ impl<C: Connect + 'static> Client<C> {
                 None
             }
             _ => {
-                if self.supports_range_header.is_none() {
+                if self.supports_range_header.borrow().is_none() {
                     // "This endpoint MAY also support RFC7233 compliant range requests. Support can
                     // be detected by issuing a HEAD request. If the header Accept-Range: bytes is
                     // returned, range requests can be used to fetch partial content."
 
-                    let req = Request::head(uri.clone()).body(Body::empty()).unwrap();
-                    let mut res = self.client.request(req).await?;
-
-                    // FIXME: redirect handling needs to be more robust
-                    if res.status().is_redirection() {
-                        let redirect_uri = res
-                            .headers()
-                            .get(header::LOCATION)
-                            .ok_or_else(|| ErrorKind::ApiBadRedirect)?
-                            .to_str()
-                            .context(ErrorKind::ApiBadRedirect)?
-                            .parse::<Uri>()
-                            .context(ErrorKind::ApiBadRedirect)?;
-
-                        res = self
-                            .client
-                            .raw_client()
-                            .get(redirect_uri)
-                            .await
-                            .context(ErrorKind::ApiBadRedirect)?;
-                    }
+                    let res = self.client.head(url.clone(), &scope).await?.send().await?;
 
                     // FIXME: this could be a stricter check
-                    self.supports_range_header =
-                        Some(res.headers().get(header::ACCEPT_RANGES).is_some());
+                    self.supports_range_header
+                        .replace(Some(res.headers().get(header::ACCEPT_RANGES).is_some()));
                 }
 
-                if !self.supports_range_header.unwrap() {
+                if !self.supports_range_header.borrow().unwrap() {
                     return Err(ErrorKind::ApiRangeHeaderNotSupported.into());
                 }
 
@@ -310,73 +239,16 @@ impl<C: Connect + 'static> Client<C> {
             }
         };
 
-        let mut req = Request::get(uri);
-        if let Some(range_header) = range_header.clone() {
-            req.headers_mut()
-                .unwrap()
-                .typed_insert(range_header.clone());
+        let mut req = self.client.get(url, &scope).await?;
+        if let Some(range_header) = range_header {
+            let mut m = HeaderMap::new();
+            m.typed_insert(range_header);
+            req = req.headers(m);
         }
-        let req = req.body(Body::empty()).unwrap();
-        let res = self.client.request(req).await?;
+        let res = req.send().await?;
 
         match res.status() {
-            status if status.is_success() => {
-                let len = res
-                    .headers()
-                    .get(header::CONTENT_LENGTH)
-                    .ok_or_else(|| ErrorKind::ApiMissingHeader("Content-Length"))?
-                    .to_str()
-                    .context(ErrorKind::ApiMalformedHeader("Content-Length"))?
-                    .parse::<usize>()
-                    .context(ErrorKind::ApiMalformedHeader("Content-Length"))?;
-                Ok(Blob {
-                    body: res.into_body(),
-                    len,
-                })
-            }
-            StatusCode::TEMPORARY_REDIRECT => {
-                // FIXME: redirect handling needs to be more robust
-                let redirect_uri = res
-                    .headers()
-                    .get(header::LOCATION)
-                    .ok_or_else(|| ErrorKind::ApiMissingHeader("Location"))?
-                    .to_str()
-                    .context(ErrorKind::ApiMalformedHeader("Location"))?
-                    .parse::<Uri>()
-                    .context(ErrorKind::ApiBadRedirect)?;
-
-                let mut req = Request::get(redirect_uri);
-                if let Some(range_header) = range_header.clone() {
-                    req.headers_mut().unwrap().typed_insert(range_header);
-                }
-                let req = req.body(Body::empty()).unwrap();
-                log::trace!("blob redirect req: {:#?}", req);
-                let res = self
-                    .client
-                    .raw_client()
-                    .request(req)
-                    .await
-                    .context(ErrorKind::ApiBadRedirect)?;
-                log::trace!("blob redirect res: {:#?}", res);
-
-                match res.status() {
-                    status if status.is_success() => {
-                        let len = res
-                            .headers()
-                            .get(header::CONTENT_LENGTH)
-                            .ok_or_else(|| ErrorKind::ApiMissingHeader("Content-Length"))?
-                            .to_str()
-                            .context(ErrorKind::ApiMalformedHeader("Content-Length"))?
-                            .parse::<usize>()
-                            .context(ErrorKind::ApiMalformedHeader("Content-Length"))?;
-                        Ok(Blob {
-                            body: res.into_body(),
-                            len,
-                        })
-                    }
-                    _ => Err(new_api_error(res).await),
-                }
-            }
+            status if status.is_success() => Ok(Blob::new(res)),
             StatusCode::UNAUTHORIZED => {
                 // TODO: attempt to re-authenticate
                 unimplemented!("get_raw_blob: UNAUTHORIZED")
@@ -388,14 +260,14 @@ impl<C: Connect + 'static> Client<C> {
 
 /// Given a response that _should_ contain a well-structured ApiErrors JSON
 /// value, returns a descriptive Error about what went wrong
-async fn new_api_error(res: Response<Body>) -> Error {
+async fn new_api_error(res: Response) -> Error {
     let status = res.status();
     match status {
         StatusCode::BAD_REQUEST
         | StatusCode::NOT_FOUND
         | StatusCode::TOO_MANY_REQUESTS
         | StatusCode::FORBIDDEN => {
-            let error = res.into_body().json::<ApiErrors>().await;
+            let error = res.json::<ApiErrors>().await;
             match error {
                 Err(parse_err) => parse_err
                     .context(ErrorKind::ApiMalformedJSON)
@@ -408,7 +280,8 @@ async fn new_api_error(res: Response<Body>) -> Error {
             }
         }
         _ => {
-            res.dump_to_debug().await;
+            debug!("Unexpected response: {:#?}", res);
+            debug!("Unexpected response content: {:#?}", res.text().await);
             ErrorKind::ApiUnexpectedStatus(status).into()
         }
     }

@@ -1,12 +1,11 @@
 use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+use std::time::Instant;
 
 use clap::{App, AppSettings, Arg, SubCommand};
 use failure::ResultExt;
 use futures::future;
-use hyper::Client as HyperClient;
-use hyper_tls::HttpsConnector;
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use lazy_static::lazy_static;
 use oci_image::v1 as ociv1;
@@ -143,9 +142,6 @@ async fn true_main() -> Result<(), failure::Error> {
         )
         .get_matches();
 
-    let https = HttpsConnector::new().expect("TLS initialization failed");
-    let hyper_client = HyperClient::builder().build::<_, hyper::Body>(https);
-
     // TODO: throw these options into a Struct
     // TODO: support loading configuration from file
 
@@ -173,12 +169,7 @@ async fn true_main() -> Result<(), failure::Error> {
                         None => None,
                     };
 
-                    let mut client = Client::new(
-                        hyper_client,
-                        transport_scheme,
-                        default_registry,
-                        credentials,
-                    )?;
+                    let client = Client::new(transport_scheme, default_registry, credentials)?;
 
                     let mut paginate = init_paginate;
                     loop {
@@ -213,12 +204,7 @@ async fn true_main() -> Result<(), failure::Error> {
 
                     let image = Reference::parse(repo, default_registry, docker_compat)?;
 
-                    let mut client = Client::new(
-                        hyper_client,
-                        transport_scheme,
-                        default_registry,
-                        credentials,
-                    )?;
+                    let client = Client::new(transport_scheme, default_registry, credentials)?;
 
                     let mut paginate = init_paginate;
                     loop {
@@ -244,15 +230,24 @@ async fn true_main() -> Result<(), failure::Error> {
                     let image = Reference::parse(image, default_registry, docker_compat)?;
                     eprintln!("canonical: {:#?}", image);
 
-                    let mut client = Client::new(
-                        hyper_client,
-                        transport_scheme,
-                        image.registry(),
-                        credentials,
-                    )?;
-                    let (manifest, digest) = client.get_raw_manifest(&image).await?;
-                    eprintln!("Server reported digest: {}", digest);
-                    std::io::stdout().write_all(&manifest)?;
+                    let client = Client::new(transport_scheme, image.registry(), credentials)?;
+
+                    let progress = ProgressBar::new(0);
+                    progress.set_style(PB_STYLE.clone());
+                    progress.set_message("manifest.json");
+
+                    let (mut manifest, digest) = client.get_raw_manifest(&image).await?;
+                    progress.println(format!("Server reported digest: {}", digest));
+
+                    progress.set_length(manifest.len().unwrap_or(0));
+
+                    // dump the blob to stdout, chunk by chunk
+                    let mut stdout = tokio::io::stdout();
+                    while let Some(data) = manifest.chunk().await? {
+                        let bytes_written = stdout.write(data.as_ref()).await?;
+                        progress.inc(bytes_written as u64);
+                    }
+                    progress.finish();
                 }
                 ("blob", Some(sub_m)) => {
                     // won't panic, as these are required arguments
@@ -266,18 +261,13 @@ async fn true_main() -> Result<(), failure::Error> {
                         _ => return Err(failure::err_msg("must specify digest")),
                     };
 
-                    let mut client = Client::new(
-                        hyper_client,
-                        transport_scheme,
-                        default_registry,
-                        credentials,
-                    )?;
+                    let client = Client::new(transport_scheme, default_registry, credentials)?;
 
                     let progress = ProgressBar::new(0);
                     progress.set_style(PB_STYLE.clone());
                     progress.set_message(&digest.split(':').nth(1).unwrap()[..16]);
 
-                    let blob = match sub_m.value_of("range") {
+                    let mut blob = match sub_m.value_of("range") {
                         Some(s) => {
                             let range: ParsableRange<u64> = s.parse()?;
                             client
@@ -287,15 +277,11 @@ async fn true_main() -> Result<(), failure::Error> {
                         None => client.get_raw_blob(image.repo(), digest).await?,
                     };
 
-                    let len = blob.len();
-                    let mut body = blob.into_body();
-
-                    progress.set_length(len as u64);
+                    progress.set_length(blob.len().unwrap_or(0));
 
                     // dump the blob to stdout, chunk by chunk
                     let mut stdout = tokio::io::stdout();
-                    while let Some(next) = body.next().await {
-                        let data = next?;
+                    while let Some(data) = blob.chunk().await? {
                         let bytes_written = stdout.write(data.as_ref()).await?;
                         progress.inc(bytes_written as u64);
                     }
@@ -309,15 +295,12 @@ async fn true_main() -> Result<(), failure::Error> {
             let outdir = sub_m.value_of("outdir").unwrap();
             let image = sub_m.value_of("image").unwrap();
 
+            let start_time = Instant::now();
+
             let image = Reference::parse(image, default_registry, docker_compat)?;
             eprintln!("canonical: {:#?}", image);
 
-            let mut client = Client::new(
-                hyper_client,
-                transport_scheme,
-                image.registry(),
-                credentials,
-            )?;
+            let client = Client::new(transport_scheme, image.registry(), credentials)?;
 
             let overall_progress = MultiProgress::new();
 
@@ -334,7 +317,9 @@ async fn true_main() -> Result<(), failure::Error> {
                 manifest_json,
                 config_json,
                 layers,
-            } = containrs::flows::download_image(&mut client, &image).await?;
+            } = containrs::flows::download_image(&client, &image).await?;
+
+            eprintln!("flows::download_image() time: {:?}", start_time.elapsed());
 
             // asyncronously dump the bodies to disk
 
@@ -369,7 +354,7 @@ async fn true_main() -> Result<(), failure::Error> {
             let mut downloads = Vec::new();
 
             // dump manifest.json to disk
-            manifest_progress.set_length(manifest_json.len() as u64);
+            manifest_progress.set_length(manifest_json.len().unwrap_or(0));
             downloads.push(write_blob_to_file(
                 out_dir.join("manifest.json"),
                 manifest_json,
@@ -377,7 +362,7 @@ async fn true_main() -> Result<(), failure::Error> {
             ));
 
             // dump config.json to disk
-            config_progress.set_length(config_json.len() as u64);
+            config_progress.set_length(config_json.len().unwrap_or(0));
             downloads.push(write_blob_to_file(
                 out_dir.join("config.json"),
                 config_json,
@@ -394,17 +379,21 @@ async fn true_main() -> Result<(), failure::Error> {
                         .unwrap_or(&"unknown")
                 );
 
-                let layer_progress = overall_progress.add(ProgressBar::new(blob.len() as u64));
+                let layer_progress =
+                    overall_progress.add(ProgressBar::new(blob.len().unwrap_or(0)));
                 layer_progress.set_message(&layer.digest.split(':').nth(1).unwrap()[..16]);
                 layer_progress.set_style(PB_STYLE.clone());
                 write_blob_to_file(out_dir.join(filename), blob, layer_progress)
             }));
 
-            std::thread::spawn(move || {
+            let progress_handle = std::thread::spawn(move || {
                 let _ = overall_progress.join();
             });
 
             future::try_join_all(downloads).await?;
+            let _ = progress_handle.join();
+
+            eprintln!("Full download flow time: {:?}", start_time.elapsed());
 
             // TODO: validate downloaded data (JSON structure, digests, etc...)
         }
@@ -416,16 +405,18 @@ async fn true_main() -> Result<(), failure::Error> {
 
 async fn write_blob_to_file(
     file_path: PathBuf,
-    blob: Blob,
+    mut blob: Blob,
     progress: ProgressBar,
 ) -> Result<(), failure::Error> {
     let mut file = File::create(&file_path)
         .await
         .context(format!("could not create {:?}", file_path))?;
 
-    let mut body = blob.into_body();
-    while let Some(next) = body.next().await {
-        let data = next.context(format!("error while downloading {:?}", file_path))?;
+    while let Some(data) = blob
+        .chunk()
+        .await
+        .context(format!("error while downloading {:?}", file_path))?
+    {
         let bytes_written = file
             .write(data.as_ref())
             .await
