@@ -24,10 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
     {
         const string Namespace = "namespace";
         static readonly ResourceName ResourceName = new ResourceName("hostname", "deviceId");
-        static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>()
-        {
-            { "ACamelCaseEnvVar", new EnvVal("ACamelCaseEnvVarValue")}
-        };
+        static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>();
         static readonly DockerConfig Config1 = new DockerConfig("test-image:1");
         static readonly DockerConfig Config2 = new DockerConfig("test-image:2");
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
@@ -67,7 +64,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
             bool postSecretCalled = false;
             bool getCrdCalled = false;
             bool postCrdCalled = false;
-            EdgeDeploymentDefinition postedEdgeDeploymentDefinition = null;
 
             using (var server = new KubernetesApiServer(
                 resp: string.Empty,
@@ -98,9 +94,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                         else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.EdgeDeployment.Plural}"))
                         {
                             postCrdCalled = true;
-                            StreamReader reader = new StreamReader(httpContext.Response.Body);
-                            string streamText = reader.ReadToEnd();
-                            postedEdgeDeploymentDefinition = JsonConvert.DeserializeObject<EdgeDeploymentDefinition>(streamText);
                         }
                     }
 
@@ -118,8 +111,66 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                 Assert.True(postSecretCalled, nameof(postSecretCalled));
                 Assert.True(getCrdCalled, nameof(getCrdCalled));
                 Assert.True(postCrdCalled, nameof(postCrdCalled));
-                Assert.True(postedEdgeDeploymentDefinition.Spec[0].Env.Contains(new KeyValuePair<string,EnvVal>( "ACamelCaseEnvVar", new EnvVal("ACamelCaseEnvVarValue"))));
+            }
+        }
 
+        [Fact]
+        [Unit]
+        public async void CrdCommandExecuteDeploysModulesWithEnvVars()
+        {
+            CombinedDockerConfig config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
+            IDictionary<string, EnvVal> moduleEnvVars = new Dictionary<string, EnvVal>()
+            {
+                { "ACamelCaseEnvVar", new EnvVal("ACamelCaseEnvVarValue")}
+            };
+
+            IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, moduleEnvVars);
+            var km1 = new KubernetesModule((IModule<DockerConfig>)m1, config);
+            KubernetesModule[] modules = { km1 };
+            var token = default(CancellationToken);
+            var auth = new AuthConfig() { Username = "username", Password = "password", ServerAddress = "docker.io" };
+            var configProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
+            configProvider.Setup(cp => cp.GetCombinedConfig(km1, Runtime)).Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(auth)));
+            EdgeDeploymentDefinition postedEdgeDeploymentDefinition = null;
+            bool postCrdCalled = false;
+
+            using (var server = new KubernetesApiServer(
+                resp: string.Empty,
+                shouldNext: httpContext =>
+                {
+                    string pathStr = httpContext.Request.Path.Value;
+                    string method = httpContext.Request.Method;
+                    if (string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase))
+                    {
+                        httpContext.Response.StatusCode = 404;
+                    }
+                    else if (string.Equals(method, "POST", StringComparison.OrdinalIgnoreCase))
+                    {
+                        httpContext.Response.StatusCode = 201;
+                        httpContext.Response.Body = httpContext.Request.Body;
+                        if (pathStr.Contains($"namespaces/{Namespace}/{Constants.EdgeDeployment.Plural}"))
+                        {
+                            postCrdCalled = true;
+                            postedEdgeDeploymentDefinition = JsonConvert.DeserializeObject<EdgeDeploymentDefinition>(new StreamReader(httpContext.Response.Body)
+                                                                                                                         .ReadToEnd());
+                        }
+                    }
+
+                    return Task.FromResult(false);
+                }))
+            {
+                var client = new Kubernetes(
+                    new KubernetesClientConfiguration
+                    {
+                        Host = server.Uri
+                    });
+                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, modules, Runtime, configProvider.Object);
+                await cmd.ExecuteAsync(token);
+
+                Assert.True(postCrdCalled);
+                Assert.Equal("module1", postedEdgeDeploymentDefinition.Spec[0].Name);
+                Assert.Equal("test-image:1", postedEdgeDeploymentDefinition.Spec[0].Config.Image);
+                Assert.True(postedEdgeDeploymentDefinition.Spec[0].Env.Contains(new KeyValuePair<string,EnvVal>( "ACamelCaseEnvVar", new EnvVal("ACamelCaseEnvVarValue"))));
             }
         }
 
