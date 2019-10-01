@@ -1168,7 +1168,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
                     .Callback<TwinCollection>(tc => patch = tc)
                     .Returns(Task.CompletedTask);
-                
+
                 // build current module set
                 ModuleSet currentModuleSet = ModuleSet.Create(
                     new TestRuntimeModule(
@@ -1212,7 +1212,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
 
                 // Assert
                 edgeAgentConnection.Verify(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()), Times.Once);
-                Assert.Equal(200L, ((Newtonsoft.Json.Linq.JValue) (patch["lastDesiredStatus"]?["code"]))?.Value);
+                Assert.Equal(200L, ((Newtonsoft.Json.Linq.JValue)patch["lastDesiredStatus"]?["code"])?.Value);
             }
         }
 

@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     using Moq;
     using Xunit;
 
+    [Unit]
     public class AgentTests
     {
         public static IEnumerable<object[]> GetExceptionsToTest() => new List<object[]>
@@ -38,7 +39,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         };
 
         [Fact]
-        [Unit]
         public void AgentConstructorInvalidArgs()
         {
             var mockConfigSource = new Mock<IConfigSource>();
@@ -64,7 +64,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Fact]
-        [Unit]
         public async void AgentCreateSuccessWhenDecryptFails()
         {
             var mockConfigSource = new Mock<IConfigSource>();
@@ -88,7 +87,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Fact]
-        [Unit]
         public async void ReconcileAsyncOnEmptyPlan()
         {
             var token = default(CancellationToken);
@@ -137,7 +135,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Fact]
-        [Unit]
         public async void ReconcileAsyncAbortsWhenConfigSourceThrows()
         {
             // Arrange
@@ -170,7 +167,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Theory]
-        [Unit]
         [MemberData(nameof(GetExceptionsToTest))]
         public async void ReconcileAsyncAbortsWhenConfigSourceReturnsKnownExceptions(
             Exception testException,
@@ -208,7 +204,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Fact]
-        [Unit]
         public async void ReconcileAsyncAbortsWhenEnvironmentSourceThrows()
         {
             // Arrange
@@ -242,7 +237,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Fact]
-        [Unit]
         public async void ReconcileAsyncAbortsWhenModuleIdentityLifecycleManagerThrows()
         {
             // Arrange
@@ -287,7 +281,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Fact]
-        [Unit]
         public async void ReconcileAsyncReportsFailedWhenEncryptProviderThrows()
         {
             var token = default(CancellationToken);
@@ -347,7 +340,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Fact]
-        [Unit]
         public async void ReconcileAsyncOnSetPlan()
         {
             var desiredModule = new TestModule("desired", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, new ConfigurationInfo("1"), null);
@@ -405,7 +397,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Fact]
-        [Unit]
         public async void ReconcileAsyncWithNoDeploymentChange()
         {
             var desiredModule = new TestModule("CustomModule", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, new ConfigurationInfo("1"), null);
@@ -451,53 +442,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Fact]
-        [Unit]
-        public async void ReconcileAsyncWithNoDeploymentChange()
-        {
-            var desiredModule = new TestModule("CustomModule", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, new ConfigurationInfo("1"), null);
-            var currentModule = new TestModule("CustomModule", "v1", "test", ModuleStatus.Running, new TestConfig("image"), RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, new ConfigurationInfo("1"), null);
-
-            var testPlan = new Plan(new List<ICommand>());
-            var token = default(CancellationToken);
-            var runtimeInfo = Mock.Of<IRuntimeInfo>();
-            var deploymentConfig = new DeploymentConfig("1.0", runtimeInfo, new SystemModules(null, null), new Dictionary<string, IModule> { ["CustomModule"] = desiredModule });
-            var deploymentConfigInfo = new DeploymentConfigInfo(0, deploymentConfig);
-            ModuleSet desiredSet = deploymentConfig.GetModuleSet();
-            ModuleSet currentSet = ModuleSet.Create(currentModule);
-
-            var mockConfigSource = new Mock<IConfigSource>();
-            var mockEnvironment = new Mock<IEnvironment>();
-            var mockPlanner = new Mock<IPlanner>();
-            var planRunner = new OrderedPlanRunner();
-            var mockReporter = new Mock<IReporter>();
-            var mockModuleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
-            var configStore = Mock.Of<IEntityStore<string, string>>();
-            var mockEnvironmentProvider = Mock.Of<IEnvironmentProvider>(m => m.Create(It.IsAny<DeploymentConfig>()) == mockEnvironment.Object);
-            var serde = Mock.Of<ISerde<DeploymentConfigInfo>>();
-            var encryptionDecryptionProvider = Mock.Of<IEncryptionProvider>();
-
-            mockConfigSource.Setup(cs => cs.GetDeploymentConfigInfoAsync())
-                .ReturnsAsync(deploymentConfigInfo);
-            mockEnvironment.Setup(env => env.GetModulesAsync(token))
-                .ReturnsAsync(currentSet);
-            mockModuleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(desiredSet, currentSet))
-                .ReturnsAsync(ImmutableDictionary<string, IModuleIdentity>.Empty);
-            mockPlanner.Setup(pl => pl.PlanAsync(It.IsAny<ModuleSet>(), currentSet, runtimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty))
-                .Returns(Task.FromResult(testPlan));
-            mockReporter.Setup(r => r.ReportAsync(token, It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), DeploymentStatus.Success))
-                .Returns(Task.CompletedTask);
-
-            var agent = new Agent(mockConfigSource.Object, mockEnvironmentProvider, mockPlanner.Object, planRunner, mockReporter.Object, mockModuleIdentityLifecycleManager.Object, configStore, DeploymentConfigInfo.Empty, serde, encryptionDecryptionProvider);
-
-            await agent.ReconcileAsync(token);
-
-            mockEnvironment.Verify(env => env.GetModulesAsync(token), Times.Exactly(1));
-            mockPlanner.Verify(pl => pl.PlanAsync(It.IsAny<ModuleSet>(), currentSet, runtimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty), Times.Once);
-            mockReporter.Verify(r => r.ReportAsync(token, It.IsAny<ModuleSet>(), It.IsAny<IRuntimeInfo>(), It.IsAny<long>(), DeploymentStatus.Success), Times.Once);
-        }
-
-        [Fact]
-        [Unit]
         public async Task DesiredIsNotNullBecauseCurrentThrew()
         {
             // Arrange
@@ -529,7 +473,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Fact]
-        [Unit]
         public async Task CurrentIsNotNullBecauseDesiredThrew()
         {
             // Arrange
@@ -559,7 +502,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Fact]
-        [Unit]
         public async Task ReportShutdownAsyncConfigTest()
         {
             // Arrange
@@ -597,7 +539,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Fact]
-        [Unit]
         public async Task HandleShutdownTest()
         {
             // Arrange
