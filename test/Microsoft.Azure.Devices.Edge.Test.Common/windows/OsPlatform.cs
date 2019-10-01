@@ -11,6 +11,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Util;
+
+    // BEARWASHERE - to be removed
     using Serilog;
 
     public class OsPlatform : Common.OsPlatform, IOsPlatform
@@ -39,14 +41,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             var command = BuildCertCommand($"New-CACertsDevice '{deviceId}'", scriptPath);
             await this.RunScriptAsync(("powershell", command), token);
             return new Certificate(deviceId, scriptPath);
-        }
-
-        // BEARWASHERE -- TO Be removed
-        public async Task CreateVerificationCertificatesAsync(string nounce, string scriptPath, CancellationToken token)
-        {
-            var command = BuildCertCommand($"New-CACertsVerificationCert '{nounce}'", scriptPath);
-            await this.RunScriptAsync(("powershell", command), token);
-            Log.Information("Create Proof of Possion");
         }
 
         public Task<EdgeCertificates> GenerateEdgeCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
