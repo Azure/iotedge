@@ -1558,7 +1558,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         [Fact]
         public void ValidateTwinPropertiesWithNullValue()
         {
-            var reported = new
+            var reportedObj = new
             {
                 ok = "ok",
                 level1 = new
@@ -1567,7 +1567,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 }
             };
 
-            TwinManager.ValidateTwinProperties(JToken.FromObject(reported));
+            string reportedJson = "{ \"ok\":\"good\", \"level1\": { \"field1\": null } }";
+
+            TwinManager.ValidateTwinProperties(JToken.FromObject(reportedObj));
+            TwinManager.ValidateTwinProperties(JToken.Parse(reportedJson));
         }
 
         [Fact]
