@@ -47,7 +47,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service
                                 .ToList())
                     .GetOrElse(() => new List<V1ServicePort>());
 
-
         static class Events
         {
             const int IdStart = KubernetesEventIds.KubernetesModelValidation;
