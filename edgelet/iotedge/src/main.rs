@@ -5,6 +5,7 @@
 #![allow(clippy::similar_names)]
 
 use std::borrow::Cow;
+use std::convert::TryInto;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process;
@@ -332,9 +333,11 @@ fn run() -> Result<(), Error> {
             let follow = args.is_present("follow");
             let tail = args
                 .value_of("tail")
-                .map(|a| a.parse::<LogTail>())
+                .map(str::parse)
                 .transpose()
-                .map_err(|err| Error::from(err.context(ErrorKind::BadTailParameter)))?
+                .map_err(|err: edgelet_core::Error| {
+                    Error::from(err.context(ErrorKind::BadTailParameter))
+                })?
                 .unwrap_or_default();
             let since = args
                 .value_of("since")
@@ -368,11 +371,18 @@ fn run() -> Result<(), Error> {
 
 fn parse_since(since: &str) -> Result<i32, Error> {
     if let Ok(datetime) = DateTime::parse_from_rfc3339(since) {
-        Ok(datetime.timestamp() as i32)
+        let temp: Result<i32, _> = datetime.timestamp().try_into();
+        Ok(temp.context(ErrorKind::BadSinceParameter)?)
     } else if let Ok(epoch) = since.parse() {
         Ok(epoch)
     } else if let Ok(duration) = parse_duration::parse(since) {
-        Ok((Local::now() - Duration::nanoseconds(duration.as_nanos() as i64)).timestamp() as i32)
+        let nano: Result<i64, _> = duration.as_nanos().try_into();
+        let nano = nano.context(ErrorKind::BadSinceParameter)?;
+
+        let temp: Result<i32, _> = (Local::now() - Duration::nanoseconds(nano))
+            .timestamp()
+            .try_into();
+        Ok(temp.context(ErrorKind::BadSinceParameter)?)
     } else {
         Err(Error::from(ErrorKind::BadSinceParameter))
     }
@@ -394,19 +404,28 @@ mod tests {
     fn parse_english() {
         assert_near(
             parse_since("1 hour").unwrap(),
-            (Local::now() - Duration::hours(1)).timestamp() as i32,
+            (Local::now() - Duration::hours(1))
+                .timestamp()
+                .try_into()
+                .unwrap(),
             10,
         );
 
         assert_near(
             parse_since("1 hour 20 minutes").unwrap(),
-            (Local::now() - Duration::hours(1) - Duration::minutes(20)).timestamp() as i32,
+            (Local::now() - Duration::hours(1) - Duration::minutes(20))
+                .timestamp()
+                .try_into()
+                .unwrap(),
             10,
         );
 
         assert_near(
             parse_since("1 day").unwrap(),
-            (Local::now() - Duration::days(1)).timestamp() as i32,
+            (Local::now() - Duration::days(1))
+                .timestamp()
+                .try_into()
+                .unwrap(),
             10,
         );
     }

@@ -190,7 +190,11 @@ mod tests {
 
         let tmp_dir = tempdir().unwrap();
 
-        let bundle = SupportBundle::new(options, tmp_dir.path().to_str().unwrap().to_owned(), runtime);
+        let bundle = SupportBundle::new(
+            options,
+            tmp_dir.path().to_str().unwrap().to_owned(),
+            runtime,
+        );
         bundle.execute().wait().unwrap();
 
         let result_path = tmp_dir
