@@ -442,6 +442,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         }
 
         [Fact]
+        [Fact]
+        [Unit]
         public async Task DesiredIsNotNullBecauseCurrentThrew()
         {
             // Arrange
