@@ -103,6 +103,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         internal static void ValidateTwinProperties(JToken properties) => ValidateTwinProperties(properties, 1);
 
+        // TODO: Move to a Twin helper class (along with Twin manager update).
+        internal static string EncodeTwinKey(string key)
+        {
+            Preconditions.CheckNonWhiteSpace(key, nameof(key));
+            var sb = new StringBuilder();
+            foreach (char ch in key)
+            {
+                switch (ch)
+                {
+                    case '.':
+                        sb.Append("%2E");
+                        break;
+
+                    case '$':
+                        sb.Append("%24");
+                        break;
+
+                    case ' ':
+                        sb.Append("%20");
+                        break;
+
+                    default:
+                        sb.Append(ch);
+                        break;
+                }
+            }
+
+            return sb.ToString();
+        }
+
         internal void ConnectionEstablishedCallback(object sender, IIdentity identity)
         {
             Events.ConnectionEstablished(identity.Id);
@@ -265,7 +295,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         static void ValidateTwinProperties(JToken properties, int currentDepth)
         {
-            foreach (JProperty kvp in ((JObject) properties).Properties())
+            foreach (JProperty kvp in ((JObject)properties).Properties())
             {
                 ValidatePropertyNameAndLength(kvp.Name);
 
@@ -275,7 +305,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 {
                     if (kvp.Value.Type is JTokenType.Integer)
                     {
-                        ValidateIntegerValue(kvp.Name, (long) kvp.Value);
+                        ValidateIntegerValue(kvp.Name, (long)kvp.Value);
                     }
                     else
                     {
@@ -622,36 +652,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
 
             await cloudProxy.ForEachAsync(cp => cp.UpdateReportedPropertiesAsync(reported));
-        }
-
-        // TODO: Move to a Twin helper class (along with Twin manager update).
-        internal static string EncodeTwinKey(string key)
-        {
-            Preconditions.CheckNonWhiteSpace(key, nameof(key));
-            var sb = new StringBuilder();
-            foreach (char ch in key)
-            {
-                switch (ch)
-                {
-                    case '.':
-                        sb.Append("%2E");
-                        break;
-
-                    case '$':
-                        sb.Append("%24");
-                        break;
-
-                    case ' ':
-                        sb.Append("%20");
-                        break;
-
-                    default:
-                        sb.Append(ch);
-                        break;
-                }
-            }
-
-            return sb.ToString();
         }
 
         static class Events
