@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                         [typeof(KubernetesModule)] = new[] { nameof(KubernetesModule.Name) }
                     })
                 {
-                    //Environment variable (env) property JSON casing should be left alone
+                    // Environment variable (env) property JSON casing should be left alone
                     NamingStrategy = new CamelCaseNamingStrategy
                     {
                         ProcessDictionaryKeys = false
