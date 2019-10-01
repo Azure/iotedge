@@ -1,8 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test
 {
-    using System;
-    using System.Collections.Generic;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
@@ -15,8 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     public class SetupFixture
     {
         readonly IEdgeDaemon daemon;
-        readonly IotHub iotHub;
-        EdgeDevice device;
+        IotHub iotHub;
 
         public SetupFixture()
         {
@@ -43,48 +41,36 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     Context.Current.LogFile.ForEach(f => loggerConfig.WriteTo.File(f));
                     Log.Logger = loggerConfig.CreateLogger();
 
-                    // Install IoT Edge
                     using (var cts = new CancellationTokenSource(Context.Current.SetupTimeout))
                     {
-                        // NUnit's [Timeout] attribute isn't supported in .NET Standard
-                        // and even if it were, it doesn't run the teardown method when
-                        // a test times out. We need teardown to run, to remove the
-                        // device registration from IoT Hub and stop the daemon. So
-                        // we have our own timeout mechanism.
-                        DateTime startTime = DateTime.Now;
                         CancellationToken token = cts.Token;
 
-                        Assert.IsNull(this.device);
-                        this.device = await EdgeDevice.GetOrCreateIdentityAsync(
-                            Context.Current.DeviceId,
-                            this.iotHub,
-                            token);
-
+                        // Install IoT Edge, and do some basic configuration
                         await this.daemon.UninstallAsync(token);
                         await this.daemon.InstallAsync(
-                            this.device.ConnectionString,
                             Context.Current.PackagePath,
                             Context.Current.Proxy,
                             token);
 
-                        try
-                        {
-                            await this.daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
+                        await this.daemon.ConfigureAsync(
+                            config =>
+                            {
+                                var msg = string.Empty;
+                                var props = new object[] { };
 
-                            var agent = new EdgeAgent(this.device.Id, this.iotHub);
-                            await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
-                            await agent.PingAsync(token);
-                        }
+                                config.SetDeviceHostname(Dns.GetHostName());
+                                Context.Current.Proxy.ForEach(proxy =>
+                                {
+                                    config.AddHttpsProxy(proxy);
+                                    msg = "with proxy '{ProxyUri}'";
+                                    props = new object[] { proxy.ToString() };
+                                });
+                                config.Update();
 
-                        // ReSharper disable once RedundantCatchClause
-                        catch
-                        {
-                            throw;
-                        }
-                        finally
-                        {
-                            await NUnitLogs.CollectAsync(startTime, token);
-                        }
+                                return Task.FromResult((msg, props));
+                            },
+                            token,
+                            restart: false);
                     }
                 },
                 "Completed end-to-end test setup");
@@ -98,11 +84,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
                     using (var cts = new CancellationTokenSource(Context.Current.TeardownTimeout))
                     {
                         CancellationToken token = cts.Token;
-
                         await this.daemon.StopAsync(token);
-
-                        Assert.IsNotNull(this.device);
-                        await this.device.MaybeDeleteIdentityAsync(token);
+                        foreach (EdgeDevice device in Context.Current.DeleteList.Values)
+                        {
+                            await device.MaybeDeleteIdentityAsync(token);
+                        }
                     }
                 },
                 "Completed end-to-end test teardown"),

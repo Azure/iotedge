@@ -167,6 +167,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             return agentBuilder.Build();
         }
 
+        public IModuleConfigBuilder GetModule(string name)
+        {
+            return this.moduleBuilders[name];
+        }
+
         static (string name, bool system) ParseModuleName(string name) =>
             name.FirstOrDefault() == '$' ? (name.Substring(1), true) : (name, false);
     }

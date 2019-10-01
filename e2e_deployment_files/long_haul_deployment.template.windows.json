@@ -201,6 +201,9 @@
               },
               "DeviceId": {
                 "value": "<DeviceID>"
+              },
+              "ConsumerGroupId": {
+                "value": "<Analyzer.ConsumerGroupId>"
               }
             },
             "settings": {
