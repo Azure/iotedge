@@ -27,7 +27,29 @@ certificates:
 agent:
   name: "edgeAgent"
   type: "docker"
+  {{- if .Values.edgeAgent.env }}
+  env:
+    {{- if .Values.edgeAgent.env.portMappingServiceType}}
+    PortMappingServiceType: {{ .Values.edgeAgent.env.portMappingServiceType | quote }}
+    {{- end }}
+    {{- if .Values.edgeAgent.env.enableK8sServiceCallTracing}}
+    EnableK8sServiceCallTracing: {{ .Values.edgeAgent.env.enableK8sServiceCallTracing | quote }}
+    {{- end }}
+    {{- if .Values.edgeAgent.env.runtimeLogLevel}}
+    RuntimeLogLevel: {{ .Values.edgeAgent.env.runtimeLogLevel | quote }}
+    {{- end }}
+    {{- if .Values.edgeAgent.env.persistentVolumeClaimDefaultSizeInMb}}
+    PersistentVolumeClaimDefaultSizeInMb: {{ .Values.edgeAgent.env.persistentVolumeClaimDefaultSizeInMb | quote }}
+    {{- end }}
+    {{- if .Values.edgeAgent.env.persistentVolumeName}}
+    PersistentVolumeName: {{ .Values.edgeAgent.env.persistentVolumeName | quote }}
+    {{- end }}
+    {{- if .Values.edgeAgent.env.storageClassName}}
+    StorageClassName: {{- if (eq "-" .Values.edgeAgent.env.storageClassName) }} "" {{- else }} {{ .Values.edgeAgent.env.storageClassName | quote }} {{- end }}
+    {{- end }}
+  {{ else }}
   env: {}
+  {{ end }}
   config:
     image: "{{ .Values.edgeAgent.image.repository }}:{{ .Values.edgeAgent.image.tag }}"
   {{- if .Values.edgeAgent.registryCredentials }}
