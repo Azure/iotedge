@@ -100,7 +100,7 @@ jobs:
 
       # Module Restarter - Not Using Template for ARM64 because we have 2 different .NET Core.
       - task: Bash@3
-        displayName: Build Image - Direct Method Cloud Sender - aarch64
+        displayName: Build Image - Module Restarter - aarch64
         inputs:
            filePath: scripts/linux/buildImage.sh
            arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-module-restarter -n microsoft -P ModuleRestarter --target-arch aarch64
