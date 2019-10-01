@@ -18,6 +18,7 @@ parameters:
   loadGen2.transportType: 'Amqp_Tcp_Only'
   loadGen3.transportType: 'Mqtt_Tcp_Only'
   loadGen4.transportType: 'Mqtt_Tcp_Only'
+  analyzer.consumerGroupId: ''
 
 steps:
   - task: CopyFiles@2
