@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.IO;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using App.Metrics;
@@ -120,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 return TaskEx.Done;
             }
 
-            static bool IsRetryable(Exception ex) => ex != null && RetryableExceptions.Contains(ex.GetType());
+            static bool IsRetryable(Exception ex) => ex != null && RetryableExceptions.Any(re => re.IsInstanceOfType(ex));
 
             Task<ISinkResult> ProcessNoConnection(string identity, IRoutingMessage routingMessage)
             {
