@@ -89,6 +89,7 @@ jobs:
           snitch.storage.account: '$(snitch.storage.account)'
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
+          analyzer.consumerGroupId: 'longhaul_linux_amd64'
 
 ################################################################################
   - job: linux_arm32v7_moby
@@ -154,6 +155,7 @@ jobs:
           snitch.storage.account: '$(snitch.storage.account)'
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.arm32v7)'
+          analyzer.consumerGroupId: 'longhaul_linux_arm32v7'
 
 ################################################################################
   - job: linux_arm64v8_docker
@@ -219,6 +221,7 @@ jobs:
           snitch.storage.account: '$(snitch.storage.account)'
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.arm64v8)'
+          analyzer.consumerGroupId: 'longhaul_linux_arm64v8'
           
 ################################################################################
   - job: windows_amd64_moby
@@ -286,6 +289,7 @@ jobs:
           snitch.storage.account: '$(snitch.storage.account)'
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
+          analyzer.consumerGroupId: 'longhaul_windows_amd64'
 
 ################################################################################
   - job: windows_servercore_amd64_moby
@@ -353,6 +357,7 @@ jobs:
           snitch.storage.account: '$(snitch.storage.account)'
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
+          analyzer.consumerGroupId: 'longhaul_windows_servercore_amd64'
 
 ################################################################################
   - job: iotuap_amd64_moby
@@ -419,3 +424,4 @@ jobs:
           snitch.storage.account: '$(snitch.storage.account)'
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
+          analyzer.consumerGroupId: 'longhaul_iotuap_amd64'
