@@ -5,38 +5,40 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 
-    public class MethodResult
+    public abstract class MethodResult
     {
-        public MethodResult(int status, JRaw payload)
+        protected MethodResult(HttpStatusCode statusCode)
+        {
+            this.StatusCode = statusCode;
+        }
+
+        [JsonIgnore]
+        public HttpStatusCode StatusCode { get; }
+    }
+
+    public class MethodSuccessResult : MethodResult
+    {
+        public MethodSuccessResult(int status, JRaw payload)
+            : base(HttpStatusCode.OK)
         {
             this.Status = status;
             this.Payload = payload;
         }
 
         [JsonProperty("status")]
-        public virtual int Status { get; }
+        public int Status { get; }
 
         [JsonProperty("payload")]
-        public virtual JRaw Payload { get; }
+        public JRaw Payload { get; }
     }
 
     public class MethodErrorResult : MethodResult
     {
         public MethodErrorResult(HttpStatusCode statusCode, string message)
-            : base(0, null)
+            : base(statusCode)
         {
-            this.StatusCode = statusCode;
             this.Message = message;
         }
-
-        [JsonIgnore]
-        public override int Status { get; }
-
-        [JsonIgnore]
-        public override JRaw Payload { get; }
-
-        [JsonIgnore]
-        public HttpStatusCode StatusCode { get; }
 
         [JsonProperty("message")]
         public string Message { get; }

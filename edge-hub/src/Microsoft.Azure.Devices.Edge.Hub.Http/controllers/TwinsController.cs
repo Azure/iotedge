@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
     using System.Net;
     using System.Text;
     using System.Threading.Tasks;
-    using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.Mvc.Filters;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -65,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 
         internal static MethodResult GetMethodResult(DirectMethodResponse directMethodResponse) =>
             directMethodResponse.Exception.Map(e => new MethodErrorResult(directMethodResponse.HttpStatusCode, e.Message) as MethodResult)
-                .GetOrElse(() => new MethodResult(directMethodResponse.Status, GetRawJson(directMethodResponse.Data)));
+                .GetOrElse(() => new MethodSuccessResult(directMethodResponse.Status, GetRawJson(directMethodResponse.Data)));
 
         internal static JRaw GetRawJson(byte[] bytes)
         {
@@ -97,11 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 
             this.Response.ContentLength = resultUtf8Bytes.Length;
             this.Response.ContentType = supportedContentType;
-
-            if (methodResult is MethodErrorResult errorResult)
-            {
-                this.Response.StatusCode = (int)errorResult.StatusCode;
-            }
+            this.Response.StatusCode = (int)methodResult.StatusCode;
 
             await this.Response.Body.WriteAsync(resultUtf8Bytes, 0, resultUtf8Bytes.Length);
         }
