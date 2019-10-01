@@ -38,7 +38,7 @@ int hsm_client_x509_init()
     {
         log_init(LVL_INFO);
 
-        result = hsm_client_crypto_init();
+        result = hsm_client_crypto_init(CA_VALIDITY);
         if (result == 0)
         {
             g_is_x509_initialized = true;

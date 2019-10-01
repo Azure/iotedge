@@ -43,7 +43,7 @@ static void test_hook_gballoc_free(void* ptr)
 #include "azure_c_shared_utility/gballoc.h"
 
 // store mocks
-MOCKABLE_FUNCTION(, int, mocked_hsm_client_store_create, const char*, store_name);
+MOCKABLE_FUNCTION(, int, mocked_hsm_client_store_create, const char*, store_name, uint64_t, auto_generated_ca_lifetime);
 MOCKABLE_FUNCTION(, int, mocked_hsm_client_store_destroy, const char*, store_name);
 MOCKABLE_FUNCTION(, HSM_CLIENT_STORE_HANDLE, mocked_hsm_client_store_open, const char*, store_name);
 MOCKABLE_FUNCTION(, int, mocked_hsm_client_store_close, HSM_CLIENT_STORE_HANDLE, handle);
@@ -110,6 +110,9 @@ static TEST_MUTEX_HANDLE g_dllByDll;
 static const char* TEST_ALIAS_STRING = "test_alias";
 static const char* TEST_ISSUER_ALIAS_STRING = "test_issuer_alias";
 
+// 90 days.
+static const uint64_t TEST_CA_VALIDITY =  90 * 24 * 3600;
+
 static const unsigned char TEST_TBS[] = { 't', 'e', 's', 't' };
 static const size_t TEST_TBS_SIZE = sizeof(TEST_TBS);
 
@@ -166,8 +169,9 @@ const HSM_CLIENT_KEY_INTERFACE* test_hook_hsm_client_key_interface(void)
     return &mocked_hsm_client_key_interface;
 }
 
-static int test_hook_hsm_client_store_create(const char* store_name)
+static int test_hook_hsm_client_store_create(const char* store_name, uint64_t auto_generated_ca_lifetime)
 {
+    (void)auto_generated_ca_lifetime;
     (void)store_name;
     return 0;
 }
@@ -549,10 +553,10 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
             int status;
             EXPECTED_CALL(hsm_client_store_interface());
             EXPECTED_CALL(hsm_client_key_interface());
-            STRICT_EXPECTED_CALL(mocked_hsm_client_store_create(TEST_EDGE_STORE_NAME));
+            STRICT_EXPECTED_CALL(mocked_hsm_client_store_create(TEST_EDGE_STORE_NAME, TEST_CA_VALIDITY));
 
             // act
-            status = hsm_client_crypto_init();
+            status = hsm_client_crypto_init(TEST_CA_VALIDITY);
 
             // assert
             ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
@@ -570,12 +574,12 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
         {
             //arrange
             int status;
-            status = hsm_client_crypto_init();
+            status = hsm_client_crypto_init(TEST_CA_VALIDITY);
             ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             umock_c_reset_all_calls();
 
             // act
-            status = hsm_client_crypto_init();
+            status = hsm_client_crypto_init(TEST_CA_VALIDITY);
 
             // assert
             ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
@@ -598,7 +602,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
 
             EXPECTED_CALL(hsm_client_store_interface());
             EXPECTED_CALL(hsm_client_key_interface());
-            STRICT_EXPECTED_CALL(mocked_hsm_client_store_create(TEST_EDGE_STORE_NAME));
+            STRICT_EXPECTED_CALL(mocked_hsm_client_store_create(TEST_EDGE_STORE_NAME, TEST_CA_VALIDITY));
 
             umock_c_negative_tests_snapshot();
 
@@ -609,7 +613,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
                 umock_c_negative_tests_fail_call(i);
 
                 // act
-                status = hsm_client_crypto_init();
+                status = hsm_client_crypto_init(TEST_CA_VALIDITY);
 
                 // assert
                 ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
@@ -626,7 +630,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
         TEST_FUNCTION(hsm_client_crypto_deinit_success)
         {
             //arrange
-            (void)hsm_client_crypto_init();
+            (void)hsm_client_crypto_init(TEST_CA_VALIDITY);
             umock_c_reset_all_calls();
             STRICT_EXPECTED_CALL(mocked_hsm_client_store_destroy(TEST_EDGE_STORE_NAME));
 
@@ -648,16 +652,16 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
         {
             //arrange
             int status;
-            hsm_client_crypto_init();
+            hsm_client_crypto_init(TEST_CA_VALIDITY);
             hsm_client_crypto_deinit();
             umock_c_reset_all_calls();
 
             EXPECTED_CALL(hsm_client_store_interface());
             EXPECTED_CALL(hsm_client_key_interface());
-            STRICT_EXPECTED_CALL(mocked_hsm_client_store_create(TEST_EDGE_STORE_NAME));
+            STRICT_EXPECTED_CALL(mocked_hsm_client_store_create(TEST_EDGE_STORE_NAME, TEST_CA_VALIDITY));
 
             // act
-            status = hsm_client_crypto_init();
+            status = hsm_client_crypto_init(TEST_CA_VALIDITY);
 
             // assert
             ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
@@ -724,7 +728,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
         {
             //arrange
             int status;
-            status = hsm_client_crypto_init();
+            status = hsm_client_crypto_init(TEST_CA_VALIDITY);
             ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
@@ -757,7 +761,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
             int test_result = umock_c_negative_tests_init();
             ASSERT_ARE_EQUAL(int, 0, test_result);
 
-            status = hsm_client_crypto_init();
+            status = hsm_client_crypto_init(TEST_CA_VALIDITY);
             ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
@@ -832,7 +836,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
         {
             //arrange
             int status;
-            status = hsm_client_crypto_init();
+            status = hsm_client_crypto_init(TEST_CA_VALIDITY);
             ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
@@ -888,7 +892,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
         TEST_FUNCTION(edge_hsm_client_get_random_bytes_invalid_param_validation)
         {
             //arrange
-            int status = hsm_client_crypto_init();
+            int status = hsm_client_crypto_init(TEST_CA_VALIDITY);
             ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
@@ -925,7 +929,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
         {
             //arrange
             int status;
-            status = hsm_client_crypto_init();
+            status = hsm_client_crypto_init(TEST_CA_VALIDITY);
             ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
@@ -958,7 +962,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
             int test_result = umock_c_negative_tests_init();
             ASSERT_ARE_EQUAL(int, 0, test_result);
             int status;
-            status = hsm_client_crypto_init();
+            status = hsm_client_crypto_init(TEST_CA_VALIDITY);
             ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
@@ -1018,7 +1022,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
         TEST_FUNCTION(edge_hsm_client_create_master_encryption_key_invalid_param_validation)
         {
             //arrange
-            int status = hsm_client_crypto_init();
+            int status = hsm_client_crypto_init(TEST_CA_VALIDITY);
             ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_CREATE_MASTER_ENCRYPTION_KEY hsm_client_create_master_encryption_key;
@@ -1039,7 +1043,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
         TEST_FUNCTION(edge_hsm_client_create_master_encryption_key_success)
         {
             //arrange
-            int status = hsm_client_crypto_init();
+            int status = hsm_client_crypto_init(TEST_CA_VALIDITY);
             ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
@@ -1087,7 +1091,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
         TEST_FUNCTION(edge_hsm_client_destroy_master_encryption_key_invalid_param_validation)
         {
             //arrange
-            int status = hsm_client_crypto_init();
+            int status = hsm_client_crypto_init(TEST_CA_VALIDITY);
             ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_DESTROY_MASTER_ENCRYPTION_KEY hsm_client_destroy_master_encryption_key;
@@ -1108,7 +1112,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
         TEST_FUNCTION(edge_hsm_client_destroy_master_encryption_key_success)
         {
             //arrange
-            int status = hsm_client_crypto_init();
+            int status = hsm_client_crypto_init(TEST_CA_VALIDITY);
             ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
@@ -1154,7 +1158,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
         TEST_FUNCTION(edge_hsm_client_create_certificate_invalid_param_validation)
         {
             //arrange
-            int status = hsm_client_crypto_init();
+            int status = hsm_client_crypto_init(TEST_CA_VALIDITY);
             ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_CREATE_CERTIFICATE hsm_client_create_certificate = interface->hsm_client_create_certificate;
@@ -1181,7 +1185,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
         {
             //arrange
             int status;
-            status = hsm_client_crypto_init();
+            status = hsm_client_crypto_init(TEST_CA_VALIDITY);
             ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
@@ -1218,7 +1222,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
             int test_result = umock_c_negative_tests_init();
             ASSERT_ARE_EQUAL(int, 0, test_result);
             int status;
-            status = hsm_client_crypto_init();
+            status = hsm_client_crypto_init(TEST_CA_VALIDITY);
             ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
@@ -1281,7 +1285,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
         TEST_FUNCTION(edge_hsm_client_get_trust_bundle_invalid_param_validation)
         {
             //arrange
-            int status = hsm_client_crypto_init();
+            int status = hsm_client_crypto_init(TEST_CA_VALIDITY);
             ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_GET_TRUST_BUNDLE hsm_client_get_trust_bundle = interface->hsm_client_get_trust_bundle;
@@ -1304,7 +1308,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
         {
             //arrange
             int status;
-            status = hsm_client_crypto_init();
+            status = hsm_client_crypto_init(TEST_CA_VALIDITY);
             ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
@@ -1338,7 +1342,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
             int test_result = umock_c_negative_tests_init();
             ASSERT_ARE_EQUAL(int, 0, test_result);
             int status;
-            status = hsm_client_crypto_init();
+            status = hsm_client_crypto_init(TEST_CA_VALIDITY);
             ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
@@ -1396,7 +1400,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
         TEST_FUNCTION(edge_hsm_client_destroy_certificate_invalid_param_1_validation)
         {
             //arrange
-            int status = hsm_client_crypto_init();
+            int status = hsm_client_crypto_init(TEST_CA_VALIDITY);
             ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_DESTROY_CERTIFICATE hsm_client_destroy_certificate = interface->hsm_client_destroy_certificate;
@@ -1417,7 +1421,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
         TEST_FUNCTION(edge_hsm_client_destroy_certificate_invalid_param_2_validation)
         {
             //arrange
-            int status = hsm_client_crypto_init();
+            int status = hsm_client_crypto_init(TEST_CA_VALIDITY);
             ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_DESTROY_CERTIFICATE hsm_client_destroy_certificate = interface->hsm_client_destroy_certificate;
@@ -1439,7 +1443,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
         {
             //arrange
             int status;
-            status = hsm_client_crypto_init();
+            status = hsm_client_crypto_init(TEST_CA_VALIDITY);
             ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
@@ -1471,7 +1475,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
             int test_result = umock_c_negative_tests_init();
             ASSERT_ARE_EQUAL(int, 0, test_result);
             int status;
-            status = hsm_client_crypto_init();
+            status = hsm_client_crypto_init(TEST_CA_VALIDITY);
             ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
@@ -1530,7 +1534,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
         TEST_FUNCTION(edge_hsm_client_crypto_get_certificate_invalid_param_validation)
         {
             //arrange
-            int status = hsm_client_crypto_init();
+            int status = hsm_client_crypto_init(TEST_CA_VALIDITY);
             ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_CRYPTO_GET_CERTIFICATE hsm_client_crypto_get_certificate = interface->hsm_client_crypto_get_certificate;
@@ -1557,7 +1561,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
         {
             //arrange
             int status;
-            status = hsm_client_crypto_init();
+            status = hsm_client_crypto_init(TEST_CA_VALIDITY);
             ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
@@ -1591,7 +1595,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
             int test_result = umock_c_negative_tests_init();
             ASSERT_ARE_EQUAL(int, 0, test_result);
             int status;
-            status = hsm_client_crypto_init();
+            status = hsm_client_crypto_init(TEST_CA_VALIDITY);
             ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
@@ -1697,7 +1701,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
         {
             //arrange
             int status;
-            status = hsm_client_crypto_init();
+            status = hsm_client_crypto_init(TEST_CA_VALIDITY);
             ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;
@@ -1736,7 +1740,7 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
             int test_result = umock_c_negative_tests_init();
             ASSERT_ARE_EQUAL(int, 0, test_result);
             int status;
-            status = hsm_client_crypto_init();
+            status = hsm_client_crypto_init(TEST_CA_VALIDITY);
             ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
             const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
             HSM_CLIENT_CREATE hsm_client_crypto_create = interface->hsm_client_crypto_create;

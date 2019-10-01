@@ -53,8 +53,8 @@ impl Drop for Crypto {
 
 impl Crypto {
     /// Create a new Cryptography implementation for the HSM API.
-    pub fn new() -> Result<Self, Error> {
-        let result = unsafe { hsm_client_crypto_init() as isize };
+    pub fn new(auto_generated_expiry: u64) -> Result<Self, Error> {
+        let result = unsafe { hsm_client_crypto_init(auto_generated_expiry) as isize };
         if result != 0 {
             return Err(result.into());
         }

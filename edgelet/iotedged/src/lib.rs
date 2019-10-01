@@ -267,8 +267,10 @@ where
         set_iot_edge_env_vars(&settings, &external_provisioning_info)
             .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
 
+        let auto_generated_ca_lifetime = settings.certificates().auto_generated_ca_lifetime();
+
         info!("Initializing hsm...");
-        let crypto = Crypto::new(hsm_lock.clone())
+        let crypto = Crypto::new(hsm_lock.clone(), auto_generated_ca_lifetime)
             .context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
 
         let hsm_version = crypto
@@ -701,6 +703,7 @@ where
 
     info!("Configuring certificates...");
     let certificates = settings.certificates();
+
     match certificates.device_cert().as_ref() {
         None => {
             info!("Transparent gateway certificates not found, operating in quick start mode...")

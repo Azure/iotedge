@@ -40,6 +40,9 @@ static char* TEST_IOTEDGE_HOMEDIR_GUID = NULL;
 static TEST_MUTEX_HANDLE g_testByTest;
 static TEST_MUTEX_HANDLE g_dllByDll;
 
+// 90 days.
+static const uint64_t TEST_CA_VALIDITY =  90 * 24 * 3600;
+
 //#############################################################################
 // Test helpers
 //#############################################################################
@@ -233,7 +236,7 @@ BEGIN_TEST_SUITE(edge_hsm_store_int_tests)
         int result;
         const HSM_CLIENT_STORE_INTERFACE *store_if = hsm_client_store_interface();
         ASSERT_IS_NOT_NULL(store_if, "Line:" TOSTRING(__LINE__));
-        result = store_if->hsm_client_store_create(EDGE_STORE_NAME);
+        result = store_if->hsm_client_store_create(EDGE_STORE_NAME, TEST_CA_VALIDITY);
         ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
 
         result = store_if->hsm_client_store_destroy(EDGE_STORE_NAME);
@@ -246,7 +249,7 @@ BEGIN_TEST_SUITE(edge_hsm_store_int_tests)
         const HSM_CLIENT_STORE_INTERFACE *store_if = hsm_client_store_interface();
         ASSERT_IS_NOT_NULL(store_if, "Line:" TOSTRING(__LINE__));
 
-        result = store_if->hsm_client_store_create(EDGE_STORE_NAME);
+        result = store_if->hsm_client_store_create(EDGE_STORE_NAME, TEST_CA_VALIDITY);
         ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
 
         HSM_CLIENT_STORE_HANDLE store_handle = store_if->hsm_client_store_open(EDGE_STORE_NAME);
@@ -271,7 +274,7 @@ BEGIN_TEST_SUITE(edge_hsm_store_int_tests)
         const HSM_CLIENT_STORE_INTERFACE *store_if = hsm_client_store_interface();
         ASSERT_IS_NOT_NULL(store_if, "Line:" TOSTRING(__LINE__));
 
-        result = store_if->hsm_client_store_create(EDGE_STORE_NAME);
+        result = store_if->hsm_client_store_create(EDGE_STORE_NAME, TEST_CA_VALIDITY);
         ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
 
         HSM_CLIENT_STORE_HANDLE store_handle = store_if->hsm_client_store_open(EDGE_STORE_NAME);
@@ -313,7 +316,7 @@ BEGIN_TEST_SUITE(edge_hsm_store_int_tests)
         const HSM_CLIENT_STORE_INTERFACE *store_if = hsm_client_store_interface();
         ASSERT_IS_NOT_NULL(store_if, "Line:" TOSTRING(__LINE__));
 
-        result = store_if->hsm_client_store_create(EDGE_STORE_NAME);
+        result = store_if->hsm_client_store_create(EDGE_STORE_NAME, TEST_CA_VALIDITY);
         ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
 
         HSM_CLIENT_STORE_HANDLE store_handle = store_if->hsm_client_store_open(EDGE_STORE_NAME);
@@ -362,7 +365,7 @@ BEGIN_TEST_SUITE(edge_hsm_store_int_tests)
         const HSM_CLIENT_STORE_INTERFACE *store_if = hsm_client_store_interface();
         ASSERT_IS_NOT_NULL(store_if, "Line:" TOSTRING(__LINE__));
 
-        result = store_if->hsm_client_store_create(EDGE_STORE_NAME);
+        result = store_if->hsm_client_store_create(EDGE_STORE_NAME, TEST_CA_VALIDITY);
         ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
 
         HSM_CLIENT_STORE_HANDLE store_handle = store_if->hsm_client_store_open(EDGE_STORE_NAME);
@@ -390,7 +393,7 @@ BEGIN_TEST_SUITE(edge_hsm_store_int_tests)
         const HSM_CLIENT_STORE_INTERFACE *store_if = hsm_client_store_interface();
         ASSERT_IS_NOT_NULL(store_if, "Line:" TOSTRING(__LINE__));
 
-        result = store_if->hsm_client_store_create(EDGE_STORE_NAME);
+        result = store_if->hsm_client_store_create(EDGE_STORE_NAME, TEST_CA_VALIDITY);
         ASSERT_ARE_EQUAL(int, 0, result, "Line:" TOSTRING(__LINE__));
 
         HSM_CLIENT_STORE_HANDLE store_handle = store_if->hsm_client_store_open(EDGE_STORE_NAME);

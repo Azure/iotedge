@@ -310,7 +310,7 @@ extern "C" {
     pub fn hsm_client_tpm_deinit();
 }
 extern "C" {
-    pub fn hsm_client_crypto_init() -> c_int;
+    pub fn hsm_client_crypto_init(auto_generated_cert_lifetime: u64) -> c_int;
 }
 extern "C" {
     pub fn hsm_client_crypto_deinit();

@@ -16,7 +16,7 @@ extern "C" {
 #include "hsm_key_interface.h"
 
 typedef void* HSM_CLIENT_STORE_HANDLE;
-typedef int (*HSM_CLIENT_STORE_CREATE)(const char* store_name);
+typedef int (*HSM_CLIENT_STORE_CREATE)(const char* store_name, uint64_t auto_generated_ca_lifetime);
 typedef int (*HSM_CLIENT_STORE_DESTROY)(const char* store_name);
 typedef HSM_CLIENT_STORE_HANDLE (*HSM_CLIENT_STORE_OPEN)(const char* store_name);
 typedef int (*HSM_CLIENT_STORE_CLOSE)(HSM_CLIENT_STORE_HANDLE handle);

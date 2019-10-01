@@ -362,7 +362,7 @@ extern int hsm_client_x509_init();
 extern void hsm_client_x509_deinit();
 extern int hsm_client_tpm_init();
 extern void hsm_client_tpm_deinit();
-extern int hsm_client_crypto_init();
+extern int hsm_client_crypto_init(uint64_t);
 extern void hsm_client_crypto_deinit();
 extern const char* hsm_get_device_ca_alias(void);
 extern const char* hsm_get_version(void);
