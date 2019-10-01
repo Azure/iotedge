@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Http
 {
+    using System.Net;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 
@@ -13,23 +14,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
         }
 
         [JsonProperty("status")]
-        public int Status { get; }
+        public virtual int Status { get; }
 
         [JsonProperty("payload")]
-        public JRaw Payload { get; }
+        public virtual JRaw Payload { get; }
     }
 
     public class MethodErrorResult : MethodResult
     {
-        public MethodErrorResult(int status, JRaw payload, string message, string exceptionMessage)
-            : base(status, payload)
+        public MethodErrorResult(HttpStatusCode statusCode, string message)
+            : base(0, null)
         {
+            this.StatusCode = statusCode;
             this.Message = message;
-            this.ExceptionMessage = exceptionMessage;
         }
 
-        public string Message { get; }
+        [JsonIgnore]
+        public override int Status { get; }
 
-        public string ExceptionMessage { get; }
+        [JsonIgnore]
+        public override JRaw Payload { get; }
+
+        [JsonIgnore]
+        public HttpStatusCode StatusCode { get; }
+
+        [JsonProperty("message")]
+        public string Message { get; }
     }
 }
