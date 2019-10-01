@@ -57,11 +57,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 }
             };
             IList<ContainerListResponse> containers = await this.client.Containers.ListContainersAsync(parameters, ctsToken);
-            List<ContainerInspectResponse> containerInspectResponses = (await Task.WhenAll(containers.Select(c => this.client.Containers.InspectContainerAsync(c.ID)))).ToList();
-            Option<ContainerInspectResponse> edgeAgentReponse = await this.GetEdgeAgentContainerAsync();
-            edgeAgentReponse.ForEach(e => containerInspectResponses.Add(e));
 
-            List<ModuleRuntimeInfo> modules = containerInspectResponses.Select(InspectResponseToModule).ToList();
+            Option<ContainerInspectResponse>[] containerInspectResponses =
+                await Task.WhenAll(
+                         containers.Select(
+                                        c => this.client.Containers
+                                                 .InspectContainerAsync(c.ID)
+                                                 .MayThrow(typeof(DockerContainerNotFoundException)))
+                                    .Concat(new[]
+                                    {
+                                        this.client.Containers
+                                                 .InspectContainerAsync(CoreConstants.EdgeAgentModuleName)
+                                                 .MayThrow(EdgeAgentNotFoundAlternative, typeof(DockerContainerNotFoundException))
+                                    }));
+
+            List<ModuleRuntimeInfo> modules = containerInspectResponses
+                                                 .FilterMap()
+                                                 .Select(InspectResponseToModule)
+                                                 .ToList();
+
             return modules;
         }
 
@@ -177,18 +191,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             return status;
         }
 
-        async Task<Option<ContainerInspectResponse>> GetEdgeAgentContainerAsync()
+        static Option<ContainerInspectResponse> EdgeAgentNotFoundAlternative(Exception ex)
         {
-            try
-            {
-                ContainerInspectResponse response = await this.client.Containers.InspectContainerAsync(CoreConstants.EdgeAgentModuleName);
-                return Option.Some(response);
-            }
-            catch (DockerContainerNotFoundException ex)
-            {
                 Events.EdgeAgentContainerNotFound(ex);
                 return Option.None<ContainerInspectResponse>();
-            }
         }
 
         static class Events
@@ -208,7 +214,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 Log.LogInformation((int)EventIds.InvalidContainerStatus, $"Encountered an unrecognized container state from Docker - {status}");
             }
 
-            public static void EdgeAgentContainerNotFound(DockerContainerNotFoundException ex)
+            public static void EdgeAgentContainerNotFound(Exception ex)
             {
                 if (edgeAgentContainerNotFoundReported == false)
                 {

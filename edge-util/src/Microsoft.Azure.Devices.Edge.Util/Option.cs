@@ -202,6 +202,33 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
     public static class Option
     {
+        public static IEnumerable<T> FilterMap<T>(this IEnumerable<Option<T>> source, Func<T, bool> predicate)
+        {
+            Preconditions.CheckNotNull(source, nameof(source));
+            Preconditions.CheckNotNull(predicate, nameof(predicate));
+
+            foreach (var item in source)
+            {
+                if (item.Filter(predicate).HasValue)
+                {
+                    yield return item.OrDefault();
+                }
+            }
+        }
+
+        public static IEnumerable<T> FilterMap<T>(this IEnumerable<Option<T>> source)
+        {
+            Preconditions.CheckNotNull(source, nameof(source));
+
+            foreach (var item in source)
+            {
+                if (item.HasValue)
+                {
+                    yield return item.OrDefault();
+                }
+            }
+        }
+
         /// <summary>
         /// Creates an <c>Option &lt;T&gt;</c> with <paramref name="value"/> and marks
         /// the option object as having a value, i.e., <c>Option&lt;T&gt;.HasValue == true</c>.

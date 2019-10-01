@@ -111,6 +111,7 @@ steps:
       dpsIdScope = '$(dps.idScope)'
       edgeAgentImage = "$imagePrefix-agent:$imageTag";
       edgeHubImage = "$imagePrefix-hub:$imageTag";
+      tempFilterFuncImage = "$imagePrefix-functions-filter:$imageTag";
       tempFilterImage = "$imagePrefix-temperature-filter:$imageTag";
       tempSensorImage = "$imagePrefix-simulated-temperature-sensor:$imageTag";
       methodSenderImage = "$imagePrefix-direct-method-sender:$imageTag";

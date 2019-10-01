@@ -170,6 +170,7 @@ function prepare_test_from_artifacts() {
                 local escapedSnitchAlertUrl
                 local escapedBuildId
                 sed -i -e "s@<Analyzer.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.ConsumerGroupId>@${EVENT_HUB_CONSUMER_GROUP:-\$Default}@g" "$deployment_working_file"
                 sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
                 escapedSnitchAlertUrl="${SNITCH_ALERT_URL//&/\\&}"
                 escapedBuildId="${ARTIFACT_IMAGE_BUILD_NUMBER//./}"
@@ -328,28 +329,28 @@ function process_args() {
             MQTT_SETTINGS_ENABLED="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 23 ]; then
-            LONG_HAUL_PROTOCOL_HEAD="$arg"
-            saveNextArg=0
-        elif [ $saveNextArg -eq 24 ]; then
             CERT_SCRIPT_DIR="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 25 ]; then
+        elif [ $saveNextArg -eq 24 ]; then
             ROOT_CA_CERT_PATH="$arg"
             INSTALL_CA_CERT=1
             saveNextArg=0
-        elif [ $saveNextArg -eq 26 ]; then
+        elif [ $saveNextArg -eq 25 ]; then
             ROOT_CA_KEY_PATH="$arg"
             INSTALL_CA_CERT=1
             saveNextArg=0
-        elif [ $saveNextArg -eq 27 ]; then
+        elif [ $saveNextArg -eq 26 ]; then
             ROOT_CA_PASSWORD="$arg"
             INSTALL_CA_CERT=1
             saveNextArg=0
-        elif [ $saveNextArg -eq 28 ]; then
+        elif [ $saveNextArg -eq 27 ]; then
             DPS_SCOPE_ID="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 29 ]; then
+        elif [ $saveNextArg -eq 28 ]; then
             DPS_MASTER_SYMMETRIC_KEY="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 29 ]; then
+            EVENT_HUB_CONSUMER_GROUP="$arg"
             saveNextArg=0
         else
             case "$arg" in
@@ -376,13 +377,13 @@ function process_args() {
                 '-loadGen4TransportType' ) saveNextArg=20;;
                 '-amqpSettingsEnabled' ) saveNextArg=21;;
                 '-mqttSettingsEnabled' ) saveNextArg=22;;
-                '-longHaulProtocolHead' ) saveNextArg=23;;
-                '-certScriptDir' ) saveNextArg=24;;
-                '-installRootCACertPath' ) saveNextArg=25;;
-                '-installRootCAKeyPath' ) saveNextArg=26;;
-                '-installRootCAKeyPassword' ) saveNextArg=27;;
-                '-dpsScopeId' ) saveNextArg=28;;
-                '-dpsMasterSymmetricKey' ) saveNextArg=29;;
+                '-certScriptDir' ) saveNextArg=23;;
+                '-installRootCACertPath' ) saveNextArg=24;;
+                '-installRootCAKeyPath' ) saveNextArg=25;;
+                '-installRootCAKeyPassword' ) saveNextArg=26;;
+                '-dpsScopeId' ) saveNextArg=27;;
+                '-dpsMasterSymmetricKey' ) saveNextArg=28;;
+                '-eventHubConsumerGroup' ) saveNextArg=29;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -944,6 +945,7 @@ function usage() {
     echo ' -containerRegistryPassword      Password of given username for container registory.'
     echo ' -iotHubConnectionString         IoT hub connection string for creating edge device.'
     echo ' -eventHubConnectionString       Event hub connection string for receive D2C messages.'
+    echo ' -eventHubConsumerGroup          An existing consumer group id for D2C messages.'
     echo ' -loadGenMessageFrequency        Frequency to send messages in LoadGen module for long haul and stress test. Default is 00.00.01 for long haul and 00:00:00.03 for stress test.'
     echo ' -snitchAlertUrl                 Alert Url pointing to Azure Logic App for email preparation and sending for long haul and stress test.'
     echo ' -snitchBuildNumber              Build number for snitcher docker image for long haul and stress test. Default is 1.1.'
@@ -957,7 +959,6 @@ function usage() {
     echo ' -loadGen4TransportType          Transport type for LoadGen4 for stress test. Default is mqtt.'
     echo ' -amqpSettingsEnabled            Enable amqp protocol head in Edge Hub.'
     echo ' -mqttSettingsEnabled            Enable mqtt protocol head in Edge Hub.'
-    echo ' -longHaulProtocolHead           Specify which protocol head is used to run long haul test for ARM32v7 device. Valid values are amqp (default) and mqtt.'
     echo ' -dpsScopeId                     DPS scope id. Required only when using DPS to provision the device.'
     echo ' -dpsMasterSymmetricKey          DPS master symmetric key. Required only when using DPS symmetric key to provision the Edge device.'
     echo ' -certScriptDir                  Optional path to certificate generation script dir'
@@ -971,7 +972,6 @@ process_args "$@"
 
 CONTAINER_REGISTRY="${CONTAINER_REGISTRY:-edgebuilds.azurecr.io}"
 E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
-LONG_HAUL_PROTOCOL_HEAD="${LONG_HAUL_PROTOCOL_HEAD:-amqp}"
 SNITCH_BUILD_NUMBER="${SNITCH_BUILD_NUMBER:-1.2}"
 LOADGEN1_TRANSPORT_TYPE="${LOADGEN1_TRANSPORT_TYPE:-amqp}"
 LOADGEN2_TRANSPORT_TYPE="${LOADGEN2_TRANSPORT_TYPE:-amqp}"
@@ -1001,6 +1001,7 @@ if [ "$image_architecture_label" = 'arm32v7' ] ||
    [ "$image_architecture_label" = 'arm64v8' ]; then
     optimize_for_performance=false
 fi
+
 iotedged_artifact_folder="$(get_iotedged_artifact_folder)"
 iotedge_quickstart_artifact_file="$(get_iotedge_quickstart_artifact_file)"
 leafdevice_artifact_file="$(get_leafdevice_artifact_file)"

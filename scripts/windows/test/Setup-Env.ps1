@@ -87,6 +87,8 @@ If ($osEdition -eq "IoTUAP")    # Windows IoT Core - update iotedge
             if($residualModules.Length -gt 0) {
                 docker -H npipe:////./pipe/iotedge_moby_engine rm -f $residualModules
             }
+	    
+	      docker -H npipe:////./pipe/iotedge_moby_engine system prune -a --volumes -f
         }
         catch {
             Write-Host "Cleanup existing containers failed."
