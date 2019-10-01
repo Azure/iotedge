@@ -1511,7 +1511,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
-        public void ValidateTwinPropertiesSuccess()
+        public void ValidateTwinPropertiesWithLongName()
         {
             string tooLong = Enumerable.Repeat("A", 5000).Aggregate((sum, next) => sum + next);
             var reported = new Dictionary<string, string>
@@ -1519,50 +1519,50 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 [tooLong] = "wrong"
             };
 
-            Assert.Throws<InvalidOperationException>(() => TwinManager.ValidateTwinProperties(JToken.FromObject(reported)));
+            InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => TwinManager.ValidateTwinProperties(JToken.FromObject(reported)));
+            Assert.Equal("Length of property name AAAAAAAAAA.. exceeds maximum length of 4096", ex.Message);
+        }
 
-            var reported1 = new
+        [Fact]
+        public void ValidateTwinPropertiesWithLongValue()
+        {
+            string tooLong = Enumerable.Repeat("A", 5000).Aggregate((sum, next) => sum + next);
+            var reported = new
             {
                 ok = "ok",
-                level = new
-                {
-                    ok = "ok",
-                    s = tooLong
-                }
-            };
-
-            Assert.Throws<InvalidOperationException>(() => TwinManager.ValidateTwinProperties(JToken.FromObject(reported1)));
-
-            var reported2 = new
-            {
-                level = new
-                {
-                    number = -4503599627370497
-                }
-            };
-
-            Assert.Throws<InvalidOperationException>(() => TwinManager.ValidateTwinProperties(JToken.FromObject(reported2)));
-
-            var reported3 = new
-            {
                 level1 = new
                 {
+                    ok = "ok",
                     level2 = new
                     {
-                        level3 = new
-                        {
-                            level4 = new
-                            {
-                                level5 = new { }
-                            }
-                        }
+                        propertyWithBigValue = tooLong
                     }
                 }
             };
 
-            TwinManager.ValidateTwinProperties(JToken.FromObject(reported3));
+            InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => TwinManager.ValidateTwinProperties(JToken.FromObject(reported)));
+            Assert.Equal("Value associated with property name propertyWithBigValue has length 5000 that exceeds maximum length of 4096", ex.Message);
+        }
 
-            var reported4 = new
+        [Fact]
+        public void ValidateTwinPropertiesWithInvalidNumber()
+        {
+            var reported = new
+            {
+                level = new
+                {
+                    invalidNumber = -4503599627370497
+                }
+            };
+
+            InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => TwinManager.ValidateTwinProperties(JToken.FromObject(reported)));
+            Assert.Equal("Property invalidNumber has an out of bound value. Valid values are between -4503599627370496 and 4503599627370495", ex.Message);
+        }
+
+        [Fact]
+        public void ValidateTwinPropertiesWithTooManyLevel()
+        {
+            var reported = new
             {
                 level1 = new
                 {
@@ -1582,21 +1582,55 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
                 }
             };
 
-            Assert.Throws<InvalidOperationException>(() => TwinManager.ValidateTwinProperties(JToken.FromObject(reported4)));
+            InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => TwinManager.ValidateTwinProperties(JToken.FromObject(reported)));
+            Assert.Equal("Nested depth of twin property exceeds 5", ex.Message);
+        }
 
-            var reported5 = new
+        [Fact]
+        public void ValidateTwinPropertiesWithArray()
+        {
+            var reported = new
             {
                 array = new[] { 0, 1, 2 }
             };
 
-            Assert.Throws<InvalidOperationException>(() => TwinManager.ValidateTwinProperties(JToken.FromObject(reported5)));
+            InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => TwinManager.ValidateTwinProperties(JToken.FromObject(reported)));
+            Assert.Equal("Property array has a value of unsupported type. Valid types are integer, float, string, bool, null and nested object", ex.Message);
+        }
 
-            var reported6 = new
+        [Fact]
+        public void ValidateTwinPropertiesWithBtyeValue()
+        {
+            var reported = new
             {
                 tooBig = new byte[10 * 1024]
             };
 
-            Assert.Throws<InvalidOperationException>(() => TwinManager.ValidateTwinProperties(JToken.FromObject(reported6)));
+            InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => TwinManager.ValidateTwinProperties(JToken.FromObject(reported)));
+            Assert.Equal("Property tooBig has a value of unsupported type. Valid types are integer, float, string, bool, null and nested object", ex.Message);
+        }
+
+        [Fact]
+        public void ValidateTwinPropertiesSuccess()
+        {
+            var reported = new
+            {
+                level1 = new
+                {
+                    level2 = new
+                    {
+                        level3 = new
+                        {
+                            level4 = new
+                            {
+                                level5 = new { }
+                            }
+                        }
+                    }
+                }
+            };
+
+            TwinManager.ValidateTwinProperties(JToken.FromObject(reported));
         }
 
         [Theory]

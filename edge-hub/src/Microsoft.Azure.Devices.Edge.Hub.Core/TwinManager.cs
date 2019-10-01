@@ -265,21 +265,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         static void ValidateTwinProperties(JToken properties, int currentDepth)
         {
-            foreach (JProperty kvp in ((JObject)properties).Properties())
+            foreach (JProperty kvp in ((JObject) properties).Properties())
             {
                 ValidatePropertyNameAndLength(kvp.Name);
 
                 ValidateValueType(kvp.Name, kvp.Value);
 
-                string s = kvp.Value.ToString();
-                ValidatePropertyValueLength(kvp.Name, s);
-
-                if ((kvp.Value is JValue) && (kvp.Value.Type is JTokenType.Integer))
+                if (kvp.Value is JValue)
                 {
-                    ValidateIntegerValue(kvp.Name, (long)kvp.Value);
+                    if (kvp.Value.Type is JTokenType.Integer)
+                    {
+                        ValidateIntegerValue(kvp.Name, (long) kvp.Value);
+                    }
+                    else
+                    {
+                        string s = kvp.Value.ToString();
+                        ValidatePropertyValueLength(kvp.Name, s);
+                    }
                 }
 
-                if ((kvp.Value != null) && (kvp.Value is JObject))
+                if (kvp.Value != null && kvp.Value is JObject)
                 {
                     if (currentDepth > TwinPropertyMaxDepth)
                     {
