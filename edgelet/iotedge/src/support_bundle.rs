@@ -49,11 +49,11 @@ impl<M> SupportBundle<M>
 where
     M: 'static + ModuleRuntime + Clone + Send + Sync,
 {
-    pub fn new(log_options: LogOptions, location: &str, runtime: M) -> Self {
+    pub fn new(log_options: LogOptions, location: String, runtime: M) -> Self {
         SupportBundle {
             runtime,
             log_options,
-            location: location.to_owned(),
+            location,
         }
     }
 
@@ -79,8 +79,8 @@ where
             zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
 
         let zip_writer = zip::ZipWriter::new(
-            File::create(format!("{}/css_bundle.zip", self.location.to_owned()))
-                .map_err(|err| Error::from(err.context(ErrorKind::WriteToStdout)))?,
+            File::create(format!("{}/iotedge_bundle.zip", self.location.to_owned()))
+                .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))?,
         );
 
         Ok(BundleState {
@@ -127,7 +127,7 @@ where
         zip_writer
             .start_file_from_path(&Path::new(&file_name), file_options)
             .into_future()
-            .map_err(|err| Error::from(err.context(ErrorKind::WriteToStdout)))
+            .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))
             .and_then(move |_| {
                 pull_logs(&runtime, &module_name, &log_options, zip_writer).map(move |zw| {
                     println!("Wrote {} to file", module_name);
@@ -190,12 +190,12 @@ mod tests {
 
         let tmp_dir = tempdir().unwrap();
 
-        let bundle = SupportBundle::new(options, tmp_dir.path().to_str().unwrap(), runtime);
+        let bundle = SupportBundle::new(options, tmp_dir.path().to_str().unwrap().to_owned(), runtime);
         bundle.execute().wait().unwrap();
 
         let result_path = tmp_dir
             .path()
-            .join("css_bundle.zip")
+            .join("iotedge_bundle.zip")
             .to_str()
             .unwrap()
             .to_owned();

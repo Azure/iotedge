@@ -5,7 +5,6 @@
 #![allow(clippy::similar_names)]
 
 use std::borrow::Cow;
-use std::convert::TryInto;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process;
@@ -340,7 +339,7 @@ fn run() -> Result<(), Error> {
                 });
             let since = args
                 .value_of("since")
-                .and_then(|s| parse_since(s))
+                .and_then(|s| parse_since(s).ok())
                 .unwrap_or_else(|| {
                     println!("Could not parse since");
                     process::exit(1)
@@ -356,7 +355,7 @@ fn run() -> Result<(), Error> {
             let location = args.value_of("location").unwrap_or_default();
             let since = args
                 .value_of("since")
-                .and_then(|s| parse_since(s))
+                .and_then(|s| parse_since(s).ok())
                 .unwrap_or_else(|| {
                     println!("Could not parse since");
                     process::exit(1)
@@ -365,24 +364,22 @@ fn run() -> Result<(), Error> {
                 .with_follow(false)
                 .with_tail(LogTail::All)
                 .with_since(since);
-            tokio_runtime.block_on(SupportBundle::new(options, location, runtime()?).execute())
+            tokio_runtime
+                .block_on(SupportBundle::new(options, location.to_owned(), runtime()?).execute())
         }
         (command, _) => tokio_runtime.block_on(Unknown::new(command.to_string()).execute()),
     }
 }
 
-fn parse_since(since: &str) -> Option<i32> {
+fn parse_since(since: &str) -> Result<i32, Error> {
     if let Ok(datetime) = DateTime::parse_from_rfc3339(since) {
-        datetime.timestamp().try_into().ok()
+        Ok(datetime.timestamp() as i32)
     } else if let Ok(epoch) = since.parse() {
-        Some(epoch)
+        Ok(epoch)
     } else if let Ok(duration) = parse_duration::parse(since) {
-        (Local::now() - Duration::nanoseconds(duration.as_nanos().try_into().unwrap()))
-            .timestamp()
-            .try_into()
-            .ok()
+        Ok((Local::now() - Duration::nanoseconds(duration.as_nanos() as i64)).timestamp() as i32)
     } else {
-        None
+        Err(Error::from(ErrorKind::BadSinceParameter))
     }
 }
 
@@ -402,28 +399,19 @@ mod tests {
     fn parse_english() {
         assert_near(
             parse_since("1 hour").unwrap(),
-            (Local::now() - Duration::hours(1))
-                .timestamp()
-                .try_into()
-                .unwrap(),
+            (Local::now() - Duration::hours(1)).timestamp() as i32,
             10,
         );
 
         assert_near(
             parse_since("1 hour 20 minutes").unwrap(),
-            (Local::now() - Duration::hours(1) - Duration::minutes(20))
-                .timestamp()
-                .try_into()
-                .unwrap(),
+            (Local::now() - Duration::hours(1) - Duration::minutes(20)).timestamp() as i32,
             10,
         );
 
         assert_near(
             parse_since("1 day").unwrap(),
-            (Local::now() - Duration::days(1))
-                .timestamp()
-                .try_into()
-                .unwrap(),
+            (Local::now() - Duration::days(1)).timestamp() as i32,
             10,
         );
     }
@@ -435,7 +423,7 @@ mod tests {
 
     #[test]
     fn parse_default() {
-        assert!(parse_since("asdfasdf").is_none());
+        assert!(parse_since("asdfasdf").is_err());
     }
 
     fn assert_near(a: i32, b: i32, tol: i32) {
