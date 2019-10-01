@@ -1545,6 +1545,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         }
 
         [Fact]
+        public void ValidateTwinPropertiesWithNullValue()
+        {
+            var reported = new
+            {
+                ok = "ok",
+                level1 = new
+                {
+                    ok = null as string
+                }
+            };
+
+            TwinManager.ValidateTwinProperties(JToken.FromObject(reported));
+        }
+
+        [Fact]
         public void ValidateTwinPropertiesWithInvalidNumber()
         {
             var reported = new
