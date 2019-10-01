@@ -18,6 +18,9 @@ pub enum ErrorKind {
     #[fail(display = "Invalid value for --since parameter")]
     BadSinceParameter,
 
+    #[fail(display = "Invalid value for --tail parameter")]
+    BadTailParameter,
+
     #[fail(display = "")]
     Diagnostics,
 

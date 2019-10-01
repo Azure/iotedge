@@ -332,18 +332,15 @@ fn run() -> Result<(), Error> {
             let follow = args.is_present("follow");
             let tail = args
                 .value_of("tail")
-                .and_then(|a| a.parse::<LogTail>().ok())
-                .unwrap_or_else(|| {
-                    println!("Could not parse tail");
-                    process::exit(1)
-                });
+                .map(|a| a.parse::<LogTail>())
+                .transpose()
+                .map_err(|err| Error::from(err.context(ErrorKind::BadTailParameter)))?
+                .unwrap_or_default();
             let since = args
                 .value_of("since")
-                .and_then(|s| parse_since(s).ok())
-                .unwrap_or_else(|| {
-                    println!("Could not parse since");
-                    process::exit(1)
-                });
+                .map(|s| parse_since(s))
+                .transpose()?
+                .unwrap_or_default();
             let options = LogOptions::new()
                 .with_follow(follow)
                 .with_tail(tail)
@@ -355,11 +352,9 @@ fn run() -> Result<(), Error> {
             let location = args.value_of("location").unwrap_or_default();
             let since = args
                 .value_of("since")
-                .and_then(|s| parse_since(s).ok())
-                .unwrap_or_else(|| {
-                    println!("Could not parse since");
-                    process::exit(1)
-                });
+                .map(|s| parse_since(s))
+                .transpose()?
+                .unwrap_or_default();
             let options = LogOptions::new()
                 .with_follow(false)
                 .with_tail(LogTail::All)
