@@ -14,6 +14,7 @@ parameters:
   loadGen.message.frequency: ''
 
 steps:
+  # Normally, we would also have a Copy Edgelet Artifact step, however this breaks the build for 1.0.8
   - task: CopyFiles@2
     displayName: 'Copy Images Artifact'
     inputs:
