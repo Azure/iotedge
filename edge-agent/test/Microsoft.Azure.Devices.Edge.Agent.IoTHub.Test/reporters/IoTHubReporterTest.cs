@@ -21,12 +21,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
     using Xunit;
     using ConfigurationInfo = Microsoft.Azure.Devices.Edge.Agent.Core.ConfigurationInfo;
 
+    [Unit]
     public class IoTHubReporterTest
     {
         static readonly TimeSpan Timeout = TimeSpan.FromSeconds(5);
 
         [Fact]
-        [Unit]
         public void CreateInvalidInputs()
         {
             var edgeAgentConnection = new Mock<IEdgeAgentConnection>();
@@ -40,7 +40,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
         }
 
         [Fact]
-        [Unit]
         public async void SkipReportIfNoSavedStateAndNoStateFromConfigSource()
         {
             using (var cts = new CancellationTokenSource(Timeout))
@@ -63,7 +62,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
         }
 
         [Fact]
-        [Unit]
         public async void ClearAndGenerateNewReportedInfoIfDeserializeFails()
         {
             // Arrange
@@ -245,7 +243,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
         }
 
         [Fact]
-        [Unit]
         public async void ReportedPatchTest()
         {
             using (var cts = new CancellationTokenSource(Timeout))
@@ -424,7 +421,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
         }
 
         [Fact]
-        [Unit]
         public async void ReportedPatchNoneStatusTest()
         {
             using (var cts = new CancellationTokenSource())
@@ -612,7 +608,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
         }
 
         [Fact]
-        [Unit]
         public async void ReportedPatchTestStripMetadata()
         {
             using (var cts = new CancellationTokenSource(Timeout))
@@ -797,7 +792,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
         }
 
         [Fact]
-        [Unit]
         public async void ReportedPatchTest2()
         {
             using (var cts = new CancellationTokenSource(Timeout))
@@ -973,7 +967,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
         }
 
         [Fact]
-        [Unit]
         public async void ReportAsyncDoesNotReportIfPatchIsEmpty()
         {
             using (var cts = new CancellationTokenSource(Timeout))
@@ -1095,7 +1088,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
         }
 
         [Fact]
-        [Unit]
         public async void ReportAsyncWithOnlyStatusChange()
         {
             using (var cts = new CancellationTokenSource(Timeout))
@@ -1168,7 +1160,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
                     .Callback<TwinCollection>(tc => patch = tc)
                     .Returns(Task.CompletedTask);
-                
+
                 // build current module set
                 ModuleSet currentModuleSet = ModuleSet.Create(
                     new TestRuntimeModule(
@@ -1212,12 +1204,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
 
                 // Assert
                 edgeAgentConnection.Verify(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()), Times.Once);
-                Assert.Equal(200L, ((Newtonsoft.Json.Linq.JValue) (patch["lastDesiredStatus"]?["code"]))?.Value);
+                Assert.Equal(200L, ((Newtonsoft.Json.Linq.JValue)patch["lastDesiredStatus"]?["code"])?.Value);
             }
         }
 
         [Fact]
-        [Unit]
         public async void ReportedPatchIncludesEdgeHubInSystemModulesTest()
         {
             using (var cts = new CancellationTokenSource(Timeout))
@@ -1396,7 +1387,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
         }
 
         [Fact]
-        [Unit]
         public async void ReportAsyncAcceptsNullInputs()
         {
             using (var cts = new CancellationTokenSource(Timeout))
@@ -1450,7 +1440,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
         }
 
         [Fact]
-        [Unit]
         public async void ReportEmptyShutdown()
         {
             using (var cts = new CancellationTokenSource(Timeout))
@@ -1477,7 +1466,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
         }
 
         [Fact]
-        [Unit]
         public async void ReportShutdown()
         {
             using (var cts = new CancellationTokenSource(Timeout))
@@ -1622,7 +1610,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
         }
 
         [Fact]
-        [Unit]
         public async void ReportShutdownWithOnlyEdgeAgentInState()
         {
             using (var cts = new CancellationTokenSource(Timeout))
@@ -1712,7 +1699,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
         }
 
         [Fact]
-        [Unit]
         public async void ReportedPatchWithEnvVarsTest()
         {
             using (var cts = new CancellationTokenSource(Timeout))
