@@ -67,7 +67,7 @@ jobs:
       - template: templates/stresstest-deploy.yaml
         parameters:
           release.label: 'st$(agent.group)'
-          edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'
+          edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
@@ -122,7 +122,7 @@ jobs:
       - template: templates/stresstest-deploy.yaml
         parameters:
           release.label: 'st$(agent.group)'
-          edgelet.artifact.name: 'iotedged-debian9-arm32v7'
+          edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
@@ -177,7 +177,7 @@ jobs:
       - template: templates/stresstest-deploy.yaml
         parameters:
           release.label: 'st$(agent.group)'
-          edgelet.artifact.name: 'iotedged-ubuntu18.04-aarch64'
+          edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.linux)'
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
@@ -234,7 +234,7 @@ jobs:
       - template: templates/stresstest-deploy-windows.yaml
         parameters:
           release.label: 'winpro-st$(agent.group)'
-          edgelet.artifact.name: 'iotedged-windows'
+          edgelet.artifact.name: '$(edgelet.artifact.name)'
           images.artifact.name: '$(images.artifact.name.windows)'
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
