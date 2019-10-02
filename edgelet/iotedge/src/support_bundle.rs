@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::env;
+use std::error::Error as StdError;
 use std::fs::File;
 use std::path::Path;
 use std::process::Command as ShellCommand;
@@ -182,14 +183,20 @@ where
         let inspect = ShellCommand::new("docker")
             .arg("inspect")
             .arg(&module_name)
-            .output()
-            .map_err(|err| Error::from(err.context(ErrorKind::Docker)))?;
+            .output();
 
-        let (file_name, output) = if inspect.status.success() {
-            (format!("inspect/{}.json", module_name), inspect.stdout)
+        let (file_name, output) = if let Ok(result) = inspect {
+            if result.status.success() {
+                (format!("inspect/{}.json", module_name), result.stdout)
+            } else {
+                (format!("inspect/{}_err.json", module_name), result.stderr)
+            }
         } else {
-            (format!("inspect/{}_err.json", module_name), inspect.stderr)
+            let err_message = inspect.err().unwrap().description().to_owned();
+            println!("Could not reach docker. Error message: {}", err_message);
+            (format!("inspect/{}_err_docker.txt", module_name), err_message.as_bytes().to_vec())
         };
+
         state
             .zip_writer
             .start_file_from_path(&Path::new(&file_name), state.file_options)
@@ -200,7 +207,6 @@ where
             .write(&output)
             .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))?;
 
-        println!("Wrote docker inspect for {} to file", module_name);
         Ok(state)
     }
 }
