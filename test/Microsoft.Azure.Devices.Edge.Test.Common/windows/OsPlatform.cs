@@ -40,6 +40,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
         {
             var command = BuildCertCommand($"New-CACertsDevice '{deviceId}'", scriptPath);
             await this.RunScriptAsync(("powershell", command), token);
+
+            
+            // Windows requires all the certificates from root up to leaf to be installed.
+            await this.RunScriptAsync(("powershell", $"Import-Certificate -CertStoreLocation 'cert:\\LocalMachine\\Root' -FilePath " + Path.Combine(scriptPath, "certs", "azure-iot-test-only.root.ca.cert.pem") + " | Out-Host"), token);
+            await this.RunScriptAsync(("powershell", $"Import-Certificate -CertStoreLocation 'cert:\\LocalMachine\\Root' -FilePath " + Path.Combine(scriptPath, "certs", "azure-iot-test-only.intermediate.cert.pem") + " | Out-Host"), token);
+
             return new Certificate(deviceId, scriptPath);
         }
 

@@ -31,16 +31,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
             {
                 // [9/26/2019] Setup all the environment for the certificates.
                 // More info: /iotedge/scripts/linux/runE2ETest.sh : run_test()
-                Log.Information("----------------------------------------");
-                Log.Information("Install Root Certificate");
+                Log.Verbose("----------------------------------------");
+                Log.Verbose("Install Root Certificate");
                 (string rootCertificate, string rootPrivateKey, string rootPassword) = rootCa;
                 await OsPlatform.Current.InstallRootCertificateAsync(rootCertificate, rootPrivateKey, rootPassword, scriptPath, token);
             }
             else
             {
-                Log.Information("----------------------------------------");
-                Log.Information("Skip Root Certificate: Root Certificate is installed");
-                Log.Information("----------------------------------------");
+                Log.Verbose("----------------------------------------");
+                Log.Verbose("Skip Root Certificate: Root Certificate is installed");
+                Log.Verbose("----------------------------------------");
             }
 
             Certificate X509Certificate = await OsPlatform.Current.CreateDeviceCertificatesAsync(deviceId, scriptPath, token);
