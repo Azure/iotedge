@@ -298,7 +298,7 @@ extern "C" {
     pub fn hsm_client_crypto_interface() -> *const HSM_CLIENT_CRYPTO_INTERFACE;
 }
 extern "C" {
-    pub fn hsm_client_x509_init() -> c_int;
+    pub fn hsm_client_x509_init(auto_generated_cert_lifetime: u64) -> c_int;
 }
 extern "C" {
     pub fn hsm_client_x509_deinit();

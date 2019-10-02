@@ -193,9 +193,6 @@ const DEVICE_IDENTITY_CERT_PATH_ENV_KEY: &str = "IOTEDGE_DEVICE_IDENTITY_CERT";
 /// This is used for both DPS attestation and manual authentication modes.
 const DEVICE_IDENTITY_KEY_PATH_ENV_KEY: &str = "IOTEDGE_DEVICE_IDENTITY_PK";
 
-/// These are the properties of the workload CA certificate
-// const IOTEDGED_VALIDITY: u64 = 7_776_000;
-// 90 days
 const IOTEDGED_COMMONNAME: &str = "iotedged workload ca";
 const IOTEDGED_TLS_COMMONNAME: &str = "iotedged";
 // 5 mins
@@ -297,6 +294,7 @@ where
             hsm_lock.clone(),
             &settings,
             external_provisioning_info.as_ref(),
+            auto_generated_ca_lifetime,
         )?;
 
         let cache_subdir_path = Path::new(&settings.homedir()).join(EDGE_SETTINGS_SUBDIR);
@@ -823,13 +821,17 @@ fn prepare_httpclient_and_identity_data<S>(
     hsm_lock: Arc<HsmLock>,
     settings: &S,
     provisioning_result: Option<&ProvisioningResult>,
+    auto_generated_ca_lifetime: u64,
 ) -> Result<(MaybeProxyClient, Option<IdentityCertificateData>), Error>
 where
     S: RuntimeSettings,
 {
     if get_provisioning_auth_method(settings, provisioning_result)? == ProvisioningAuthMethod::X509
     {
-        prepare_httpclient_and_identity_data_for_x509_provisioning(hsm_lock)
+        prepare_httpclient_and_identity_data_for_x509_provisioning(
+            hsm_lock,
+            auto_generated_ca_lifetime,
+        )
     } else {
         let hyper_client = MaybeProxyClient::new(get_proxy_uri(None)?, None, None)
             .context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?;
@@ -840,9 +842,11 @@ where
 
 fn prepare_httpclient_and_identity_data_for_x509_provisioning(
     hsm_lock: Arc<HsmLock>,
+    auto_generated_ca_lifetime: u64,
 ) -> Result<(MaybeProxyClient, Option<IdentityCertificateData>), Error> {
     info!("Initializing hsm X509 interface...");
-    let x509 = X509::new(hsm_lock).context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
+    let x509 = X509::new(hsm_lock, auto_generated_ca_lifetime)
+        .context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
 
     let hsm_version = x509
         .get_version()
