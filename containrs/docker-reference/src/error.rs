@@ -6,7 +6,7 @@ pub type Result<T> = ::std::result::Result<T, Error>;
 #[derive(Debug, Fail)]
 pub enum Error {
     #[fail(display = "Failed to parse object reference {}", _0)]
-    Pest(PestError<super::Rule>),
+    Parse(PestError<super::Rule>),
 
     #[fail(display = "Image name is too long (>255 chars)")]
     NameTooLong,

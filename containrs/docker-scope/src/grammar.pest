@@ -1,0 +1,42 @@
+// Grammar, as specified on https://docs.docker.com/registry/spec/auth/scope/
+//
+// scope                   := resourcescope [ ' ' resourcescope ]*
+//
+// resourcescope           := resourcetype  ":" resourcename  ":" action [ ',' action ]*
+// resourcetype            := resourcetypevalue [ '(' resourcetypevalue ')' ]
+// resourcename            := [ hostname '/' ] component [ '/' component ]*
+// hostname                := hostcomponent ['.' hostcomponent]* [':' port-number]
+// component               := alpha-numeric [ separator alpha-numeric ]*
+//
+// hostcomponent           := /([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])/
+// port-number             := /[0-9]+/
+// action                  := /[a-z]*/
+// resourcetypevalue       := /[a-z0-9]+/
+// alpha-numeric           := /[a-z0-9]+/
+// separator               := /[_.]|__|[-]*/
+
+scope = { resourcescope ~ (" " ~ resourcescope)* }
+
+resourcescope = ${ resourcetype ~ ":" ~  resourcename ~ ":" ~ action ~ ("," ~ action)* }
+resourcetype = @{ resourcetypevalue ~ ("(" ~ resourcetypevalue ~ ")")? }
+resourcename = @{ (hostname ~ "/")? ~ component ~ ("/" ~ component)* }
+hostname = @{ hostcomponent ~ ("." ~ hostcomponent)* ~ (":" ~ port_number)? }
+component = { alpha_numeric ~ (separator ~ alpha_numeric)* }
+
+hostcomponent = { ASCII_ALPHANUMERIC ~ ("-"+ ~ ASCII_ALPHANUMERIC | ASCII_ALPHANUMERIC)* }
+port_number = { ASCII_DIGIT+ }
+// (the spec isn't entirely correct, and is missing the "*" and "_" chars)
+action = { (ASCII_ALPHA_LOWER | "*" | "_")* }
+resourcetypevalue = { alpha_numeric+ }
+alpha_numeric = { (ASCII_ALPHA_LOWER | ASCII_DIGIT)+ }
+separator = { "__" | ( "_" | "." ) | "-"* }
+
+// Example: (via https://pest.rs/#editor)
+// 
+// "repository:samplemodule:pull,push"
+// 
+// - resourcescope
+//   - resourcetype: "repository"
+//   - resourcename: "samplemodule"
+//   - action: "pull"
+//   - action: "push"

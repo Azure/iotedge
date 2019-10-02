@@ -11,7 +11,7 @@ oci-image = { path = "../oci-image" }
 
 clap = "~2.33.0"
 failure = "0.1"
-futures-preview = "=0.3.0-alpha.18"
+futures-preview = "0.3.0-alpha.19"
 indicatif = "0.12"
 lazy_static = "1.4"
 log = "0.4"

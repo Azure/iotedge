@@ -185,7 +185,7 @@ impl FromStr for RawReference {
         let mut digest_str = None;
 
         let refstr_p = PestReferenceParser::parse(Rule::refstr, refstr)
-            .map_err(Error::Pest)?
+            .map_err(Error::Parse)?
             // top-level rules are guaranteed to have a single Pair
             .next()
             .unwrap()

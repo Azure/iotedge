@@ -13,10 +13,11 @@ use reqwest::{Client as ReqwestClient, Method, Response, StatusCode, Url};
 use docker_reference::Reference;
 use oci_image::{v1::Manifest, MediaType};
 
-use crate::auth::{Action, AuthClient, Credentials, Resource, Scope};
+use crate::auth::{AuthClient, Credentials};
 use crate::blob::Blob;
 use crate::error::*;
 use crate::paginate::Paginate;
+use docker_scope::{Action, Resource, Scope};
 
 /// Client for interacting with container registries that conform to the OCI
 /// distribution specification (i.e: Docker Registry HTTP API V2 protocol)
@@ -64,8 +65,7 @@ impl Client {
         &self,
         paginate: Option<Paginate>,
     ) -> Result<Option<(Bytes, Option<Paginate>)>> {
-        // TODO: double check this scope
-        let scope = Scope::new(Resource::registry("catalog"), &[Action::Any]);
+        let scope = Scope::new(Resource::registry("catalog"), &[Action::Wildcard]);
 
         let mut url = self.registry_base.join("/v2/_catalog/").unwrap();
         if let Some(Paginate { n, last }) = paginate {
@@ -161,7 +161,6 @@ impl Client {
         let mut req = self.client.request(Method::GET, url, &scope).await?;
         req = req.header(header::ACCEPT, Manifest::MEDIA_TYPE);
         for &similar_mime in Manifest::SIMILAR_MEDIA_TYPES {
-            // mainly for docker compatibility
             req = req.header(header::ACCEPT, similar_mime);
         }
         let res = req.send().await?;

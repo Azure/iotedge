@@ -3,6 +3,7 @@ members = [
     "containrs",
     "containrs-cli",
     "docker-reference",
+    "docker-scope",
     "oci-distribution",
     "oci-image",
     "www-authenticate",

@@ -6,13 +6,14 @@ edition = "2018"
 
 [dependencies]
 docker-reference = { path = "../docker-reference" }
+docker-scope = { path = "../docker-scope" }
 oci-distribution = { path = "../oci-distribution" }
 oci-image = { path = "../oci-image" }
 www-authenticate = { path = "../www-authenticate" }
 
 bytes = "0.4"
 failure = "0.1"
-futures-preview = "=0.3.0-alpha.18"
+futures-preview = "0.3.0-alpha.19"
 headers = "0.2.3"
 http = "0.1"
 log = "0.4"
