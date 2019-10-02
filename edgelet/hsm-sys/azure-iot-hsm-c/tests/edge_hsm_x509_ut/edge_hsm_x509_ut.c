@@ -48,7 +48,7 @@ static void test_hook_gballoc_free(void* ptr)
 #include "hsm_utils.h"
 
 // interface mocks
-MOCKABLE_FUNCTION(, int, hsm_client_crypto_init);
+MOCKABLE_FUNCTION(, int, hsm_client_crypto_init, uint64_t, auto_generated_ca_lifetime);
 MOCKABLE_FUNCTION(, void, hsm_client_crypto_deinit);
 MOCKABLE_FUNCTION(, const HSM_CLIENT_CRYPTO_INTERFACE*, hsm_client_crypto_interface);
 MOCKABLE_FUNCTION(, const char*, hsm_get_device_ca_alias);
@@ -130,6 +130,7 @@ static const char *TEST_ENV_DATA = "test_env";
 #define TEST_ENV_DATA_SIZE (strlen(TEST_ENV_DATA) + 1)
 
 #define MAX_FAILED_FUNCTION_LIST_SIZE 16
+#define TEST_CERT_VALIDITY 7776000
 
 //#############################################################################
 // Mocked functions test hooks
@@ -148,8 +149,9 @@ static const HSM_CLIENT_CRYPTO_INTERFACE* test_hook_hsm_client_crypto_interface(
     return &mocked_hsm_client_crypto_interface;
 }
 
-static int test_hook_hsm_client_crypto_init()
+static int test_hook_hsm_client_crypto_init(uint64_t auto_generated_ca_lifetime)
 {
+    (void)auto_generated_ca_lifetime;
     return 0;
 }
 
@@ -474,7 +476,7 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
     {
         //arrange
         int status;
-        EXPECTED_CALL(hsm_client_crypto_init());
+        EXPECTED_CALL(hsm_client_crypto_init(TEST_CERT_VALIDITY));
 
         // act
         status = hsm_client_x509_init();
@@ -521,7 +523,7 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
         int test_result = umock_c_negative_tests_init();
         ASSERT_ARE_EQUAL(int, 0, test_result);
 
-        EXPECTED_CALL(hsm_client_crypto_init());
+        EXPECTED_CALL(hsm_client_crypto_init(TEST_CERT_VALIDITY));
         umock_c_negative_tests_snapshot();
 
         for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)

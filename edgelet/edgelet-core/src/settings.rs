@@ -444,7 +444,7 @@ impl Listen {
 pub struct Certificates {
     #[serde(flatten)]
     device_cert: Option<DeviceCertificate>,
-    auto_generated_ca_lifetime: u16,
+    auto_generated_ca_lifetime_days: u16,
 }
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
@@ -551,9 +551,9 @@ impl Certificates {
         self.device_cert.as_ref()
     }
 
-    pub fn auto_generated_ca_lifetime(&self) -> u64 {
+    pub fn auto_generated_ca_lifetime_seconds(&self) -> u64 {
         // Convert days to seconds (86,400 seconds per day)
-        u64::from(self.auto_generated_ca_lifetime) * 86_400
+        u64::from(self.auto_generated_ca_lifetime_days) * 86_400
     }
 }
 

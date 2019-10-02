@@ -264,10 +264,10 @@ where
         set_iot_edge_env_vars(&settings, &external_provisioning_info)
             .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
 
-        let auto_generated_ca_lifetime = settings.certificates().auto_generated_ca_lifetime();
+        let auto_generated_ca_lifetime_seconds = settings.certificates().auto_generated_ca_lifetime();
 
         info!("Initializing hsm...");
-        let crypto = Crypto::new(hsm_lock.clone(), auto_generated_ca_lifetime)
+        let crypto = Crypto::new(hsm_lock.clone(), auto_generated_ca_lifetime_seconds)
             .context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
 
         let hsm_version = crypto
@@ -294,7 +294,7 @@ where
             hsm_lock.clone(),
             &settings,
             external_provisioning_info.as_ref(),
-            auto_generated_ca_lifetime,
+            auto_generated_ca_lifetime_seconds,
         )?;
 
         let cache_subdir_path = Path::new(&settings.homedir()).join(EDGE_SETTINGS_SUBDIR);
@@ -821,7 +821,7 @@ fn prepare_httpclient_and_identity_data<S>(
     hsm_lock: Arc<HsmLock>,
     settings: &S,
     provisioning_result: Option<&ProvisioningResult>,
-    auto_generated_ca_lifetime: u64,
+    auto_generated_ca_lifetime_seconds: u64,
 ) -> Result<(MaybeProxyClient, Option<IdentityCertificateData>), Error>
 where
     S: RuntimeSettings,
@@ -830,7 +830,7 @@ where
     {
         prepare_httpclient_and_identity_data_for_x509_provisioning(
             hsm_lock,
-            auto_generated_ca_lifetime,
+            auto_generated_ca_lifetime_seconds,
         )
     } else {
         let hyper_client = MaybeProxyClient::new(get_proxy_uri(None)?, None, None)
@@ -842,10 +842,10 @@ where
 
 fn prepare_httpclient_and_identity_data_for_x509_provisioning(
     hsm_lock: Arc<HsmLock>,
-    auto_generated_ca_lifetime: u64,
+    auto_generated_ca_lifetime_seconds: u64,
 ) -> Result<(MaybeProxyClient, Option<IdentityCertificateData>), Error> {
     info!("Initializing hsm X509 interface...");
-    let x509 = X509::new(hsm_lock, auto_generated_ca_lifetime)
+    let x509 = X509::new(hsm_lock, auto_generated_ca_lifetime_seconds)
         .context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
 
     let hsm_version = x509
@@ -1388,7 +1388,7 @@ where
     let (work_tx, work_rx) = oneshot::channel();
 
     let edgelet_cert_props = CertificateProperties::new(
-        settings.certificates().auto_generated_ca_lifetime(),
+        settings.certificates().auto_generated_ca_lifetime_seconds(),
         IOTEDGED_TLS_COMMONNAME.to_string(),
         CertificateType::Server,
         "iotedge-tls".to_string(),
