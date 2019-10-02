@@ -118,19 +118,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Unit]
         public async void CrdCommandExecuteDeploysModulesWithEnvVars()
         {
-            CombinedDockerConfig config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
-            IDictionary<string, EnvVal> moduleEnvVars = new Dictionary<string, EnvVal>()
-            {
-                { "ACamelCaseEnvVar", new EnvVal("ACamelCaseEnvVarValue") }
-            };
-
-            IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, moduleEnvVars);
-            var km1 = new KubernetesModule((IModule<DockerConfig>)m1, config);
-            KubernetesModule[] modules = { km1 };
-            var token = default(CancellationToken);
-            var auth = new AuthConfig() { Username = "username", Password = "password", ServerAddress = "docker.io" };
-            var configProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
-            configProvider.Setup(cp => cp.GetCombinedConfig(km1, Runtime)).Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(auth)));
+            IDictionary<string, EnvVal> moduleEnvVars = new Dictionary<string, EnvVal> { { "ACamelCaseEnvVar", new EnvVal("ACamelCaseEnvVarValue") } };
+            IModule dockerModule = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, moduleEnvVars);
+            var dockerConfigProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
+            dockerConfigProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
+                .Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(DockerAuth)));
+            var kubernetesConfigProvider = new Mock<ICombinedConfigProvider<CombinedKubernetesConfig>>();
+            kubernetesConfigProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
+                .Returns(() => new CombinedKubernetesConfig("test-image:1", new CreatePodParameters { Image = "test-image:1" }, Option.Maybe(KubernetesAuth)));
             EdgeDeploymentDefinition postedEdgeDeploymentDefinition = null;
             bool postCrdCalled = false;
 
@@ -162,13 +157,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                     return false;
                 }))
             {
-                var client = new Kubernetes(
-                    new KubernetesClientConfiguration
-                    {
-                        Host = server.Uri
-                    });
-                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, modules, Runtime, configProvider.Object);
-                await cmd.ExecuteAsync(token);
+                var client = new Kubernetes(new KubernetesClientConfiguration { Host = server.Uri });
+                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule }, Runtime, dockerConfigProvider.Object, kubernetesConfigProvider.Object);
+
+                await cmd.ExecuteAsync(CancellationToken.None);
 
                 Assert.True(postCrdCalled);
                 Assert.Equal("module1", postedEdgeDeploymentDefinition.Spec[0].Name);

@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using Xunit;
 
