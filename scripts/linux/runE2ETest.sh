@@ -19,6 +19,9 @@ function clean_up() {
     rm -rf /var/run/iotedge/
     rm -rf /etc/iotedge/config.yaml
 
+    echo 'Remove mounted storage folder'
+    rm -rf $mounted_storage_path
+
     if [ "$CLEAN_ALL" = '1' ]; then
         echo 'Prune docker system'
         docker system prune -af --volumes || true
@@ -851,9 +854,17 @@ function run_test()
     exit $ret
 }
 
+function setup_mounted_storage() {
+    if [ ! -d $mounted_storage_path ]; then
+        mkdir $mounted_storage_path
+    fi
+    chmod a+rw $mounted_storage_path
+}
+
 function test_setup() {
     validate_test_parameters
     clean_up
+    setup_mounted_storage
     prepare_test_from_artifacts
     create_iotedge_service_config
 }
@@ -1013,5 +1024,6 @@ stress_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployme
 deployment_working_file="$working_folder/deployment.json"
 quickstart_working_folder="$working_folder/quickstart"
 leafdevice_working_folder="$working_folder/leafdevice"
+mounted_storage_path="/home/edgehub-mounted-storage"
 
 run_test
