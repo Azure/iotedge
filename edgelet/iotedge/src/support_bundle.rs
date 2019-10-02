@@ -148,8 +148,10 @@ where
     fn write_check_to_file(mut state: BundleState<M>) -> Result<BundleState<M>, Error> {
         let iotedge = env::args().into_iter().nth(0).unwrap();
         //TODO: change error
+        println!("Calling iotedge check");
         let check = ShellCommand::new(iotedge)
             .arg("check")
+            .args(&["-o", "json"])
             .output()
             .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))?;
 
@@ -163,6 +165,7 @@ where
             .write(&check.stdout)
             .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))?;
 
+        println!("Wrote check output to file");
         Ok(state)
     }
 }
