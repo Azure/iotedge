@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::env;
 use std::fs::File;
 use std::path::Path;
+use std::process::Command as ShellCommand;
 
 use chrono::{DateTime, Local, NaiveDateTime, Utc};
 use failure::Fail;
@@ -38,6 +40,7 @@ where
     fn execute(self) -> Self::Future {
         let result = future::result(self.make_state())
             .and_then(SupportBundle::write_all_logs)
+            .and_then(SupportBundle::write_check_to_file)
             .map(drop)
             .map(|_| println!("Wrote all logs to file"));
 
@@ -140,6 +143,27 @@ where
                     }
                 })
             })
+    }
+
+    fn write_check_to_file(mut state: BundleState<M>) -> Result<BundleState<M>, Error> {
+        let iotedge = env::args().into_iter().nth(0).unwrap();
+        //TODO: change error
+        let check = ShellCommand::new(iotedge)
+            .arg("check")
+            .output()
+            .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))?;
+
+        state
+            .zip_writer
+            .start_file_from_path(&Path::new("check.json"), state.file_options)
+            .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))?;
+
+        state
+            .zip_writer
+            .write(&check.stdout)
+            .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))?;
+
+        Ok(state)
     }
 }
 
