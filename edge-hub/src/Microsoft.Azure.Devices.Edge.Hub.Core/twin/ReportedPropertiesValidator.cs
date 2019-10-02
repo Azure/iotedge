@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                 {
                     if (kvp.Value.Type is JTokenType.Integer)
                     {
-                        ValidateIntegerValue(kvp.Name, (long) kvp.Value);
+                        ValidateIntegerValue(kvp.Name, (long)kvp.Value);
                     }
                     else
                     {
