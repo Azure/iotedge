@@ -166,7 +166,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             Events.ProcessingMessages(this, messages);
             SendMessage command = Commands.SendMessage(messages);
             await this.machine.RunAsync(command);
+            Events.Log.LogInformation((int)Events.EventIds.ProcessingMessages, Invariant($"[ProcessingMessages] {messages.Length} messages enqueued for FSM Id: {this.machine.Id}"));
             await command.Completion;
+            Events.Log.LogInformation((int)Events.EventIds.ProcessingMessages, Invariant($"[ProcessingMessages] {messages.Length} sent for FSM Id: {this.machine.Id}"));
         }
 
         void Dispose(bool disposing)
@@ -235,9 +237,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
         static class Events
         {
             const int IdStart = Routing.EventIds.StoringAsyncEndpointExecutor;
-            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<StoringAsyncEndpointExecutor>();
+            public static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<StoringAsyncEndpointExecutor>();
 
-            enum EventIds
+            public enum EventIds
             {
                 AddMessageSuccess = IdStart,
                 StartSendMessagesPump,
@@ -256,7 +258,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 
             public static void AddMessageSuccess(StoringAsyncEndpointExecutor executor, long offset)
             {
-                Log.LogDebug((int)EventIds.AddMessageSuccess, $"[AddMessageSuccess] Successfully added message to store for EndpointId: {executor.Endpoint.Id}, Message offset: {offset}");
+                Log.LogInformation((int)EventIds.AddMessageSuccess, $"[AddMessageSuccess] Successfully added message to store for EndpointId: {executor.Endpoint.Id}, Message offset: {offset}");
             }
 
             public static void AddMessageFailure(StoringAsyncEndpointExecutor executor, Exception ex)
@@ -278,16 +280,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
             {
                 if (messages.Count > 0)
                 {
-                    Log.LogDebug((int)EventIds.ProcessMessagesSuccess, Invariant($"[ProcessMessagesSuccess] Successfully processed {messages.Count} messages for EndpointId: {executor.Endpoint.Id}."));
+                    Log.LogInformation((int)EventIds.ProcessMessagesSuccess, Invariant($"[ProcessMessagesSuccess] Successfully processed {messages.Count} messages for EndpointId: {executor.Endpoint.Id}."));
                 }
             }
 
             public static void ProcessingMessages(StoringAsyncEndpointExecutor executor, ICollection<IMessage> messages)
             {
-                if (messages.Count > 0)
-                {
-                    Log.LogDebug((int)EventIds.ProcessingMessages, Invariant($"[ProcessingMessages] Processing {messages.Count} messages for EndpointId: {executor.Endpoint.Id}."));
-                }
+                Log.LogInformation((int)EventIds.ProcessingMessages, Invariant($"[ProcessingMessages] Processing {messages.Count} messages for EndpointId: {executor.Endpoint.Id}."));
             }
 
             public static void SendMessagesPumpFailure(StoringAsyncEndpointExecutor executor, Exception ex)

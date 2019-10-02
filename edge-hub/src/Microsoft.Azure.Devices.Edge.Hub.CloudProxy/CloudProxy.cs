@@ -130,8 +130,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.timer.Reset();
             try
             {
+                Events.SendMessage(this, 1);
                 await this.client.SendEventAsync(message);
-                Events.SendMessage(this);
+                Events.SendMessageComplete(this);
             }
             catch (Exception ex)
             {
@@ -149,8 +150,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             this.timer.Reset();
             try
             {
+                Events.SendMessage(this, inputMessages.Count());
                 await this.client.SendEventBatchAsync(messages);
-                Events.SendMessage(this);
+                Events.SendMessageComplete(this);
             }
             catch (Exception ex)
             {
@@ -474,19 +476,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 Log.LogDebug((int)EventIds.GetTwin, Invariant($"Getting twin for device {cloudProxy.clientId}"));
             }
 
-            public static void SendMessage(CloudProxy cloudProxy)
+            public static void SendMessage(CloudProxy cloudProxy, int count)
             {
-                Log.LogDebug((int)EventIds.SendMessage, Invariant($"Sending message for device {cloudProxy.clientId}"));
+                Log.LogInformation((int)EventIds.SendMessage, Invariant($"Sending {count} message(s) for device {cloudProxy.clientId}"));
+            }
+
+            public static void SendMessageComplete(CloudProxy cloudProxy)
+            {
+                Log.LogInformation((int)EventIds.SendMessage, Invariant($"Message(s) sent for device {cloudProxy.clientId}"));
             }
 
             public static void ErrorSendingMessage(CloudProxy cloudProxy, Exception ex)
             {
-                Log.LogDebug((int)EventIds.SendMessageError, ex, Invariant($"Error sending message for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
+                Log.LogWarning((int)EventIds.SendMessageError, ex, Invariant($"Error sending message for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
             }
 
             public static void ErrorSendingBatchMessage(CloudProxy cloudProxy, Exception ex)
             {
-                Log.LogDebug((int)EventIds.SendMessageBatchError, ex, Invariant($"Error sending message batch for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
+                Log.LogWarning((int)EventIds.SendMessageBatchError, ex, Invariant($"Error sending message batch for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
             }
 
             public static void UpdateReportedProperties(CloudProxy cloudProxy)
@@ -566,12 +573,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void HandleNre(Exception ex, CloudProxy cloudProxy)
             {
-                Log.LogDebug((int)EventIds.HandleNre, ex, Invariant($"Got a non-recoverable error from client for {cloudProxy.clientId}. Closing the cloud proxy since it may be in a bad state."));
+                Log.LogError((int)EventIds.HandleNre, ex, Invariant($"Got a non-recoverable error from client for {cloudProxy.clientId}. Closing the cloud proxy since it may be in a bad state."));
             }
 
             internal static void ExceptionInHandleException(CloudProxy cloudProxy, Exception handlingException, Exception caughtException)
             {
-                Log.LogDebug((int)EventIds.ExceptionInHandleException, Invariant($"Cloud proxy {cloudProxy.id} got exception {caughtException} while handling exception {handlingException}"));
+                Log.LogWarning((int)EventIds.ExceptionInHandleException, Invariant($"Cloud proxy {cloudProxy.id} got exception {caughtException} while handling exception {handlingException}"));
             }
 
             internal static void TerminatingErrorReceivingMessage(CloudProxy cloudProxy, Exception e)

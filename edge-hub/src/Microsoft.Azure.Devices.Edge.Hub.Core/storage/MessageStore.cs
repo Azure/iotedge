@@ -411,7 +411,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
             internal static void ObtainedNextBatch(string entityName, long startingOffset, int count)
             {
-                Log.LogDebug((int)EventIds.ObtainedNextBatch, $"Obtained next batch for endpoint {entityName} with batch size {count}. Next start offset = {startingOffset}.");
+                if (count > 0)
+                {
+                    Log.LogInformation((int)EventIds.ObtainedNextBatch, $"Obtained next batch for endpoint {entityName} with batch size {count}. Next start offset = {startingOffset}.");
+                }
             }
 
             internal static void CleanupCheckpointState(string endpointId, CheckpointData checkpointData)

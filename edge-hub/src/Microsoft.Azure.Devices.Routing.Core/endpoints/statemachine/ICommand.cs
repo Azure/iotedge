@@ -51,8 +51,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
         /// Copies send message command and task completion source.
         /// This is to allow resending of messages with the same task completion source.
         /// </summary>
-        /// <param name="messages"></param>
-        /// <returns></returns>
+        /// <param name="messages">messages collection</param>
+        /// <returns>command</returns>
         public SendMessage Copy(ICollection<IMessage> messages)
         {
             return new SendMessage(messages, this.tcs);

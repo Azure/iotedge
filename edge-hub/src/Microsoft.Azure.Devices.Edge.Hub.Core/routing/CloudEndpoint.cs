@@ -310,7 +310,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             public static void ProcessingMessages(ICollection<IRoutingMessage> routingMessages)
             {
-                Log.LogDebug((int)EventIds.ProcessingMessages, Invariant($"Sending {routingMessages.Count} message(s) upstream."));
+                Log.LogInformation((int)EventIds.ProcessingMessages, Invariant($"Sending {routingMessages.Count} message(s) upstream."));
             }
 
             public static void CancelledProcessingMessages(ICollection<IRoutingMessage> messages)
@@ -318,17 +318,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 if (messages.Count > 0)
                 {
                     IRoutingMessage firstMessage = messages.OrderBy(m => m.Offset).First();
-                    Log.LogDebug((int)EventIds.CancelledProcessing, $"Cancelled sending messages from offset {firstMessage.Offset}");
+                    Log.LogInformation((int)EventIds.CancelledProcessing, $"Cancelled sending messages from offset {firstMessage.Offset}");
                 }
                 else
                 {
-                    Log.LogDebug((int)EventIds.CancelledProcessing, "Cancelled sending messages");
+                    Log.LogInformation((int)EventIds.CancelledProcessing, "Cancelled sending messages");
                 }
             }
 
             public static void CancelledProcessingMessage(IRoutingMessage message)
             {
-                Log.LogDebug((int)EventIds.CancelledProcessing, $"Cancelled sending messages from offset {message.Offset}");
+                Log.LogInformation((int)EventIds.CancelledProcessing, $"Cancelled sending messages from offset {message.Offset}");
             }
 
             public static void InvalidMessageNoIdentity()
@@ -338,7 +338,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             public static void ProcessingMessageGroups(ICollection<IRoutingMessage> routingMessages, int groups, int fanoutFactor)
             {
-                Log.LogDebug((int)EventIds.ProcessingMessages, Invariant($"Sending {routingMessages.Count} message(s) upstream, divided into {groups} groups. Processing maximum {fanoutFactor} groups in parallel."));
+                Log.LogInformation((int)EventIds.ProcessingMessages, Invariant($"Sending {routingMessages.Count} message(s) upstream, divided into {groups} groups. Processing maximum {fanoutFactor} groups in parallel."));
             }
 
             public static void Created(string id, int maxbatchSize, int fanoutFactor)
@@ -353,7 +353,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             internal static void RetryingMessage(string id, Exception ex)
             {
-                Log.LogDebug((int)EventIds.RetryingMessages, Invariant($"Retrying sending message from {id} to Iot Hub due to exception {ex.GetType()}:{ex.Message}."));
+                Log.LogInformation((int)EventIds.RetryingMessages, Invariant($"Retrying sending message from {id} to Iot Hub due to exception {ex.GetType()}:{ex.Message}."));
             }
 
             internal static void InvalidMessage(string id, Exception ex)
@@ -369,7 +369,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 }
                 else
                 {
-                    Log.LogDebug((int)EventIds.DoneProcessing, "Finished processing messages to upstream");
+                    Log.LogInformation((int)EventIds.DoneProcessing, "Finished processing messages to upstream");
                 }
             }
         }

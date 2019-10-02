@@ -76,6 +76,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             { new StateCommandPair(State.Closed, CommandType.SendMessage), new StateTransition(State.Closed, SendMessageClosedAsync) },
         };
 
+        static int fsmNextId = 0;
+
         readonly EndpointExecutorConfig config;
         readonly Timer retryTimer;
         readonly AsyncLock sync = new AsyncLock();
@@ -89,6 +91,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
         Option<DateTime> unhealthySince;
         volatile IProcessor processor;
         TimeSpan retryPeriod;
+        int fsmId;
 
         public EndpointExecutorFsm(Endpoint endpoint, ICheckpointer checkpointer, EndpointExecutorConfig config)
             : this(endpoint, checkpointer, config, SystemTime.Instance)
@@ -106,6 +109,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             this.lastFailedRevivalTime = checkpointer.LastFailedRevivalTime;
             this.unhealthySince = checkpointer.UnhealthySince;
 
+            this.fsmId = fsmNextId++;
+
             if (checkpointer.LastFailedRevivalTime.HasValue)
             {
                 this.state = State.DeadIdle;
@@ -116,6 +121,8 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                 this.state = State.Idle;
             }
         }
+
+        public int Id => this.fsmId;
 
         public Endpoint Endpoint => this.processor.Endpoint;
 
@@ -558,9 +565,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             const string TimeSpanFormat = "c";
             const int IdStart = Routing.EventIds.EndpointExecutorFsm;
 
-            static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<EndpointExecutorFsm>();
+            public static readonly ILogger Log = Routing.LoggerFactory.CreateLogger<EndpointExecutorFsm>();
 
-            enum EventIds
+            public enum EventIds
             {
                 StateEnter = IdStart,
                 StateExit,
@@ -606,12 +613,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
 
             public static void Send(EndpointExecutorFsm fsm, ICollection<IMessage> messages, ICollection<IMessage> admitted)
             {
-                Log.LogDebug(
+                Log.LogInformation(
                     (int)EventIds.Send,
-                    "[Send Sending began. BatchSize: {0}, AdmittedSize: {1}, MaxAdmittedOffset: {2}, {3}",
+                    "[Send Sending began. BatchSize: {0}, AdmittedSize: {1}, MaxAdmittedOffset: {2}, FSM Id: {3}, {4}",
                     messages.Count,
                     admitted.Count,
                     admitted.Max(m => m.Offset),
+                    fsm.Id,
                     GetContextString(fsm));
             }
 
@@ -624,13 +632,14 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
                     Log.LogError((int)EventIds.CounterFailure, "[LogExternalWriteLatencyCounterFailed] {0}", error);
                 }
 
-                Log.LogDebug(
+                Log.LogInformation(
                     (int)EventIds.SendSuccess,
-                    "[SendSuccess] Sending succeeded. AdmittedSize: {0}, SuccessfulSize: {1}, FailedSize: {2}, InvalidSize: {3}, {4}",
+                    "[SendSuccess] Sending succeeded. AdmittedSize: {0}, SuccessfulSize: {1}, FailedSize: {2}, InvalidSize: {3}, FSM Id: {4}, {5}",
                     admitted.Count,
                     result.Succeeded.Count,
                     result.Failed.Count,
                     result.InvalidDetailsList.Count,
+                    fsm.Id,
                     GetContextString(fsm));
             }
 
@@ -677,7 +686,7 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
 
             public static void SendNone(EndpointExecutorFsm fsm)
             {
-                Log.LogDebug((int)EventIds.SendNone, "[SendNone] Admitted no messages. {0}", GetContextString(fsm));
+                Log.LogInformation((int)EventIds.SendNone, "[SendNone] Admitted no messages. FSM Id: {0} {1}", fsm.Id, GetContextString(fsm));
             }
 
             public static void Checkpoint(EndpointExecutorFsm fsm, ISinkResult<IMessage> result)
@@ -728,12 +737,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             {
                 DateTime next = fsm.systemTime.UtcNow.SafeAdd(fsm.Status.RetryPeriod);
 
-                Log.LogDebug(
+                Log.LogInformation(
                     (int)EventIds.Retry,
-                    "[Retry] Retrying. Retry.Attempts: {0}, Retry.Period: {1}, Retry.Next: {2}, {3}",
+                    "[Retry] Retrying. Retry.Attempts: {0}, Retry.Period: {1}, Retry.Next: {2}, FSM Id: {3} {4}",
                     fsm.Status.RetryAttempts,
                     fsm.Status.RetryPeriod.ToString(TimeSpanFormat),
                     next.ToString(DateTimeFormat),
+                    fsm.Id,
                     GetContextString(fsm));
             }
 
@@ -741,12 +751,13 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints.StateMachine
             {
                 DateTime next = fsm.systemTime.UtcNow.SafeAdd(fsm.Status.RetryPeriod);
 
-                Log.LogDebug(
+                Log.LogInformation(
                     (int)EventIds.RetryDelay,
-                    "[RetryDelay] Waiting to retry. Retry.Attempts: {0}, Retry.Period: {1}, Retry.Next: {2}, {3}",
+                    "[RetryDelay] Waiting to retry. Retry.Attempts: {0}, Retry.Period: {1}, Retry.Next: {2}, FSM Id: {3} {4}",
                     fsm.Status.RetryAttempts,
                     fsm.Status.RetryPeriod.ToString(TimeSpanFormat),
                     next.ToString(DateTimeFormat),
+                    fsm.Id,
                     GetContextString(fsm));
             }
 
