@@ -7,10 +7,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
     public class KubernetesExperimentalFeatures
     {
-        KubernetesExperimentalFeatures(bool enabled, bool enableK8SExtensions)
+        KubernetesExperimentalFeatures(bool enabled, bool enableExtensions)
         {
             this.Enabled = enabled;
-            this.EnableK8SExtensions = enableK8SExtensions;
+            this.EnableExtensions = enableExtensions;
         }
 
         public static KubernetesExperimentalFeatures Create(IConfiguration experimentalFeaturesConfig, ILogger logger)
@@ -24,6 +24,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
         public bool Enabled { get; }
 
-        public bool EnableK8SExtensions { get; }
+        public bool EnableExtensions { get; }
     }
 }

@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     public class KubernetesModule : Module
     {
         readonly ResourceName resourceName;
-        readonly string edgeDeviceHostname;
+        readonly string edgeDeviceHostName;
         readonly string proxyImage;
         readonly string proxyConfigPath;
         readonly string proxyConfigVolumeName;
@@ -49,11 +49,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly Option<IWebProxy> proxy;
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan idleTimeout;
+        readonly string networkId;
         readonly KubernetesExperimentalFeatures experimentalFeatures;
 
         public KubernetesModule(
             string iotHubHostname,
             string deviceId,
+            string networkId,
             string edgeDeviceHostName,
             string proxyImage,
             string proxyConfigPath,
@@ -77,7 +79,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             KubernetesExperimentalFeatures experimentalFeatures)
         {
             this.resourceName = new ResourceName(iotHubHostname, deviceId);
-            this.edgeDeviceHostname = Preconditions.CheckNonWhiteSpace(edgeDeviceHostName, nameof(edgeDeviceHostName));
+            this.edgeDeviceHostName = Preconditions.CheckNonWhiteSpace(edgeDeviceHostName, nameof(edgeDeviceHostName));
+            this.networkId = networkId;
             this.proxyImage = Preconditions.CheckNonWhiteSpace(proxyImage, nameof(proxyImage));
             this.proxyConfigPath = Preconditions.CheckNonWhiteSpace(proxyConfigPath, nameof(proxyConfigPath));
             this.proxyConfigVolumeName = Preconditions.CheckNonWhiteSpace(proxyConfigVolumeName, nameof(proxyConfigVolumeName));
@@ -146,36 +149,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IModuleIdentityLifecycleManager
-            var identityBuilder = new ModuleIdentityProviderServiceBuilder(this.resourceName.Hostname, this.resourceName.DeviceId, this.edgeDeviceHostname);
+            var identityBuilder = new ModuleIdentityProviderServiceBuilder(this.resourceName.Hostname, this.resourceName.DeviceId, this.edgeDeviceHostName);
             builder.Register(c => new KubernetesModuleIdentityLifecycleManager(c.Resolve<IIdentityManager>(), identityBuilder, this.workloadUri))
                 .As<IModuleIdentityLifecycleManager>()
                 .SingleInstance();
 
             // CombinedKubernetesConfigProvider
             builder.Register(
-                    async c =>
+                    c =>
                     {
-                        IConfigSource configSource = await c.Resolve<Task<IConfigSource>>();
-                        return new CombinedKubernetesConfigProvider(this.dockerAuthConfig, configSource);
+                        bool enableKubernetesExtensions = this.experimentalFeatures.Enabled && this.experimentalFeatures.EnableExtensions;
+                        return new CombinedKubernetesConfigProvider(this.dockerAuthConfig, this.edgeDeviceHostName, this.networkId, this.workloadUri, this.managementUri, enableKubernetesExtensions);
                     })
-                .As<Task<CombinedKubernetesConfigProvider>>()
+                .As<ICombinedConfigProvider<CombinedDockerConfig>>()
+                .As<ICombinedConfigProvider<CombinedKubernetesConfig>>()
                 .SingleInstance();
-
-            // ICombinedConfigProvider<CombinedDockerConfig>>
-            builder.Register(async c =>
-                {
-                    ICombinedConfigProvider<CombinedDockerConfig> provider = await c.Resolve<Task<CombinedKubernetesConfigProvider>>();
-                    return provider;
-                })
-                .As<Task<ICombinedConfigProvider<CombinedDockerConfig>>>();
-
-            // ICombinedConfigProvider<CombinedKubernetesConfig>>
-            builder.Register(async c =>
-                {
-                    ICombinedConfigProvider<CombinedKubernetesConfig> provider = await c.Resolve<Task<CombinedKubernetesConfigProvider>>();
-                    return provider;
-                })
-                .As<Task<ICombinedConfigProvider<CombinedKubernetesConfig>>>();
 
             // ICommandFactory
             builder.Register(
@@ -193,8 +181,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                     async c =>
                     {
-                        var dockerConfigProvider = await c.Resolve<Task<ICombinedConfigProvider<CombinedDockerConfig>>>();
-                        var kubernetesConfigProvider = await c.Resolve<Task<ICombinedConfigProvider<CombinedKubernetesConfig>>>();
+                        var dockerConfigProvider = c.Resolve<ICombinedConfigProvider<CombinedDockerConfig>>();
+                        var kubernetesConfigProvider = c.Resolve<ICombinedConfigProvider<CombinedKubernetesConfig>>();
                         ICommandFactory commandFactory = await c.Resolve<Task<ICommandFactory>>();
                         IPlanner planner = new KubernetesPlanner(this.deviceNamespace, this.resourceName, c.Resolve<IKubernetes>(), commandFactory, dockerConfigProvider, kubernetesConfigProvider);
                         return planner;
@@ -212,7 +200,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                     c => new KubernetesDeploymentMapper(
                         this.deviceNamespace,
-                        this.edgeDeviceHostname,
+                        this.edgeDeviceHostName,
                         this.proxyImage,
                         this.proxyConfigPath,
                         this.proxyConfigVolumeName,

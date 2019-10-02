@@ -90,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             List<V1EnvVar> envVars = this.CollectEnv(module, identity);
 
             // Convert docker labels to annotations because docker labels don't have the same restrictions as Kubernetes labels.
-            var annotations = Option.Maybe(module.Config.CreateOptions?.Labels)
+            Dictionary<string, string> annotations = Option.Maybe(module.Config.CreateOptions?.Labels)
                 .Map(dockerLabels => dockerLabels.ToDictionary(label => KubeUtils.SanitizeAnnotationKey(label.Key), label => label.Value))
                 .GetOrElse(() => new Dictionary<string, string>());
             annotations[KubernetesConstants.K8sEdgeOriginalModuleId] = ModuleIdentityHelper.GetModuleName(identity.ModuleId);
@@ -127,7 +127,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             Option<List<V1LocalObjectReference>> imageSecret = module.Config.AuthConfig
                 .Map(auth => new List<V1LocalObjectReference> { new V1LocalObjectReference(auth.Name) });
 
-            var modulePodSpec = new V1PodSpec(containers, volumes: volumes, imagePullSecrets: imageSecret.OrDefault(), serviceAccountName: name);
+            Option<IDictionary<string, string>> nodeSelector = Option.Maybe(module.Config.CreateOptions).FlatMap(options => options.NodeSelector);
+
+            var modulePodSpec = new V1PodSpec(containers, volumes: volumes, imagePullSecrets: imageSecret.OrDefault(), serviceAccountName: name, nodeSelector: nodeSelector.OrDefault());
 
             var objectMeta = new V1ObjectMeta(name: name, labels: labels, annotations: annotations);
             return new V1PodTemplateSpec(objectMeta, modulePodSpec);

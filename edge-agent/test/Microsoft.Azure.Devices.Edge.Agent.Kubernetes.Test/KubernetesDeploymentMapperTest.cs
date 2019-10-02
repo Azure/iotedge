@@ -94,5 +94,39 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             // Lets make sure that it is read only
             Assert.True(mount.ReadOnlyProperty);
         }
+
+        [Fact]
+        public void AppliesNodeSelectorFromCreateOptionsToPodSpec()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "ModuleId", Mock.Of<ICredentials>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
+            IDictionary<string, string> nodeSelector = new Dictionary<string, string>
+            {
+                ["disktype"] = "ssd"
+            };
+            var config = new CombinedKubernetesConfig("image", new CreatePodParameters { NodeSelector = Option.Some(nodeSelector) }, Option.None<AuthConfig>());
+            var module = new KubernetesModule(docker, config);
+            var mapper = new KubernetesDeploymentMapper("namespace", "edgehub", "proxy", "configPath", "configVolumeName", "configMapName", "trustBundlePAth", "trustBundleVolumeName", "trustBindleConfigMapName", "apiVersion", new Uri("http://workload"), new Uri("http://management"));
+            var labels = new Dictionary<string, string>();
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            Assert.Equal(nodeSelector, deployment.Spec.Template.Spec.NodeSelector, new DictionaryComparer<string, string>());
+        }
+
+        [Fact]
+        public void LeaveNodeSelectorEmptyWhenNothingProvidedInCreateOptions()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "ModuleId", Mock.Of<ICredentials>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
+            var config = new CombinedKubernetesConfig("image", new CreatePodParameters { NodeSelector = Option.None<IDictionary<string, string>>() }, Option.None<AuthConfig>());
+            var module = new KubernetesModule(docker, config);
+            var mapper = new KubernetesDeploymentMapper("namespace", "edgehub", "proxy", "configPath", "configVolumeName", "configMapName", "trustBundlePAth", "trustBundleVolumeName", "trustBindleConfigMapName", "apiVersion", new Uri("http://workload"), new Uri("http://management"));
+            var labels = new Dictionary<string, string>();
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            Assert.Null(deployment.Spec.Template.Spec.NodeSelector);
+        }
     }
 }

@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [InlineData("\" \"")]
         public void UnableToDeserializeImagePullSecretNameFromEmptyString(string json)
         {
-            Assert.Throws<ArgumentException>(()=> JsonConvert.DeserializeObject<ImagePullSecretName>(json));
+            Assert.Throws<ArgumentException>(() => JsonConvert.DeserializeObject<ImagePullSecretName>(json));
         }
 
         class AuthWrapper
