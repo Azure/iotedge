@@ -72,7 +72,10 @@ where
         };
         println!(
             "Writing all logs {}since {} (local time {}) to {}",
-            max_lines, since_time, since_local, self.location.to_str().unwrap_or_default()
+            max_lines,
+            since_time,
+            since_local,
+            self.location.to_str().unwrap_or_default()
         );
 
         /* Make state */
