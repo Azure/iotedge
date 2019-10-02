@@ -44,6 +44,12 @@ pub enum ErrorKind {
 
     #[fail(display = "Could not write to file")]
     WriteToFile,
+
+    #[fail(display = "Unable to bundle iotedge check")]
+    BundleCheck,
+
+    #[fail(display = "Unable to call docker inspect")]
+    Docker,
 }
 
 impl Fail for Error {

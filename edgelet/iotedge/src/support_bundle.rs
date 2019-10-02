@@ -153,13 +153,12 @@ where
 
     fn write_check_to_file(mut state: BundleState<M>) -> Result<BundleState<M>, Error> {
         let iotedge = env::args().into_iter().nth(0).unwrap();
-        //TODO: change error
         println!("Calling iotedge check");
         let check = ShellCommand::new(iotedge)
             .arg("check")
             .args(&["-o", "json"])
             .output()
-            .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))?;
+            .map_err(|err| Error::from(err.context(ErrorKind::BundleCheck)))?;
 
         state
             .zip_writer
@@ -184,7 +183,7 @@ where
             .arg("inspect")
             .arg(&module_name)
             .output()
-            .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))?;
+            .map_err(|err| Error::from(err.context(ErrorKind::Docker)))?;
 
         let (file_name, output) = if inspect.status.success() {
             (format!("inspect/{}.json", module_name), inspect.stdout)
