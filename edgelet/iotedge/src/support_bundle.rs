@@ -41,6 +41,7 @@ where
     fn execute(self) -> Self::Future {
         let result = future::result(self.make_state())
             .and_then(SupportBundle::write_all_logs)
+            .and_then(SupportBundle::write_edgelet_log_to_file)
             .and_then(SupportBundle::write_check_to_file)
             .and_then(SupportBundle::write_all_inspects)
             .map(drop)
@@ -133,9 +134,9 @@ where
             mut zip_writer,
         } = state;
 
-        let file_name = format!("logs/{}_log.txt", module_name);
+        let file_name = format!("{}_log.txt", module_name);
         zip_writer
-            .start_file_from_path(&Path::new(&file_name), file_options)
+            .start_file_from_path(&Path::new("logs").join(file_name), file_options)
             .into_future()
             .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))
             .and_then(move |_| {
@@ -150,6 +151,44 @@ where
                     }
                 })
             })
+    }
+
+    fn write_edgelet_log_to_file(mut state: BundleState<M>) -> Result<BundleState<M>, Error> {
+        println!("Getting system logs for iotedge");
+        let since_time: DateTime<Utc> = DateTime::from_utc(
+            NaiveDateTime::from_timestamp(state.log_options.since().into(), 0),
+            Utc,
+        );
+
+        let inspect = ShellCommand::new("journalctl")
+            .args(&["-u", "iotedge"])
+            .args(&["-S", &since_time.format("%F %T").to_string()])
+            .arg("--no-pager")
+            .output();
+
+        let (file_name, output) = if let Ok(result) = inspect {
+            if result.status.success() {
+                ("edgelet.txt", result.stdout)
+            } else {
+                ("edgelet_err.txt", result.stderr)
+            }
+        } else {
+            let err_message = inspect.err().unwrap().description().to_owned();
+            println!("Could not find system logs for iotedge. Including error in bundle.\nError message: {}", err_message);
+            ("edgelet_err.txt", err_message.as_bytes().to_vec())
+        };
+
+        state
+            .zip_writer
+            .start_file_from_path(&Path::new("logs").join(file_name), state.file_options)
+            .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))?;
+
+        state
+            .zip_writer
+            .write(&output)
+            .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))?;
+
+        Ok(state)
     }
 
     fn write_check_to_file(mut state: BundleState<M>) -> Result<BundleState<M>, Error> {
@@ -193,8 +232,14 @@ where
             }
         } else {
             let err_message = inspect.err().unwrap().description().to_owned();
-            println!("Could not reach docker. Error message: {}", err_message);
-            (format!("inspect/{}_err_docker.txt", module_name), err_message.as_bytes().to_vec())
+            println!(
+                "Could not reach docker. Including error in bundle.\nError message: {}",
+                err_message
+            );
+            (
+                format!("inspect/{}_err_docker.txt", module_name),
+                err_message.as_bytes().to_vec(),
+            )
         };
 
         state
