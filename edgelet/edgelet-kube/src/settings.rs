@@ -28,30 +28,19 @@ pub struct Settings {
     proxy_trust_bundle_path: String,
     proxy_trust_bundle_config_map_name: String,
     image_pull_policy: String,
-    service_account_name: String,
     device_hub_selector: String,
 }
 
 impl Settings {
-    pub fn new(filename: Option<&Path>) -> Result<Self, Error> {
-        let filename = filename.map(|filename| {
-            filename.to_str().unwrap_or_else(|| {
-                panic!(
-                    "cannot load config from {} because it is not a utf-8 path",
-                    filename.display()
-                )
-            })
-        });
+    pub fn new(filename: &Path) -> Result<Self, Error> {
         let mut config = Config::default();
         config
             .merge(YamlFileSource::String(DEFAULTS))
             .context(ErrorKind::Config)?;
 
-        if let Some(file) = filename {
-            config
-                .merge(YamlFileSource::File(file.into()))
-                .context(ErrorKind::Config)?;
-        }
+        config
+            .merge(YamlFileSource::File(filename.into()))
+            .context(ErrorKind::Config)?;
 
         config
             .merge(Environment::with_prefix("iotedge"))
@@ -110,10 +99,6 @@ impl Settings {
 
     pub fn image_pull_policy(&self) -> &str {
         &self.image_pull_policy
-    }
-
-    pub fn service_account_name(&self) -> &str {
-        &self.service_account_name
     }
 
     pub fn device_hub_selector(&self) -> &str {

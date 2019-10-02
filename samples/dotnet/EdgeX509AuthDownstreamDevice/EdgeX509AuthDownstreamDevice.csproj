@@ -10,4 +10,13 @@
     <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.*" />
     <PackageReference Include="Portable.BouncyCastle" Version="1.8.2" />
   </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="..\..\..\stylecop.json" Link="stylecop.json" />
+  </ItemGroup>
+  <PropertyGroup>
+    <CodeAnalysisRuleSet>..\..\..\stylecop.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>  
+  <Import Project="..\..\..\stylecop.props" />
+
 </Project>

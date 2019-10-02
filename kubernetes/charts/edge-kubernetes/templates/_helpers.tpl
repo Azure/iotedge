@@ -7,24 +7,6 @@ Expand the name of the chart.
 {{- end -}}
 
 {{/*
-Create a default fully qualified app name.
-We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
-If release name contains chart name it will be used as a full name.
-*/}}
-{{- define "edge-kubernetes.fullname" -}}
-{{- if .Values.fullnameOverride -}}
-{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" -}}
-{{- else -}}
-{{- $name := default .Chart.Name .Values.nameOverride -}}
-{{- if contains $name .Release.Name -}}
-{{- .Release.Name | trunc 63 | trimSuffix "-" -}}
-{{- else -}}
-{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
-{{- end -}}
-{{- end -}}
-{{- end -}}
-
-{{/*
 Create chart name and version as used by the chart label.
 */}}
 {{- define "edge-kubernetes.chart" -}}
@@ -58,21 +40,20 @@ agent:
     {{ end }}
 hostname: {{ .Values.edgeAgent.hostname }}
 connect:
-  management_uri: "http://localhost:{{ .Values.iotedged.ports.management }}"
-  workload_uri: "http://localhost:{{ .Values.iotedged.ports.workload }}"
+  management_uri: "https://localhost:{{ .Values.iotedged.ports.management }}"
+  workload_uri: "https://localhost:{{ .Values.iotedged.ports.workload }}"
 listen:
-  management_uri: "http://0.0.0.0:{{ .Values.iotedged.ports.management }}"
-  workload_uri: "http://0.0.0.0:{{ .Values.iotedged.ports.workload }}"
+  management_uri: "https://0.0.0.0:{{ .Values.iotedged.ports.management }}"
+  workload_uri: "https://0.0.0.0:{{ .Values.iotedged.ports.workload }}"
 homedir: {{ .Values.iotedged.data.targetPath | quote }}
 namespace: {{ .Release.Namespace | quote }}
 use_pvc: False
 proxy_image:  "{{.Values.iotedgedProxy.image.repository}}:{{.Values.iotedgedProxy.image.tag}}"
-proxy_config_path: "/etc/traefik"
+proxy_config_path: "/etc/iotedge-proxy"
 proxy_config_map_name: "iotedged-proxy-config"
 proxy_trust_bundle_path: "/etc/trust-bundle"
 proxy_trust_bundle_config_map_name: "iotedged-proxy-trust-bundle"
 image_pull_policy: {{ .Values.iotedgedProxy.image.pullPolicy | quote }}
-service_account_name: "iotedge"
 device_hub_selector: ""
 {{ end }}
 

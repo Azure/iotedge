@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27130.0
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29009.5
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "agent", "agent", "{EC8E6AC9-7AD8-4749-88F3-5D0CDD52D7B0}"
 	ProjectSection(SolutionItems) = preProject
@@ -44,6 +44,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "doc", "doc", "{A9F6AF55-719
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Service", "edge-agent\src\Microsoft.Azure.Devices.Edge.Agent.Service\Microsoft.Azure.Devices.Edge.Agent.Service.csproj", "{37129265-046F-4A46-A1BD-C067E6C06264}"
+	ProjectSection(ProjectDependencies) = postProject
+		{B63C506E-5CB5-4DE8-8275-F7BA8354799E} = {B63C506E-5CB5-4DE8-8275-F7BA8354799E}
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Hub.CloudProxy", "edge-hub\src\Microsoft.Azure.Devices.Edge.Hub.CloudProxy\Microsoft.Azure.Devices.Edge.Hub.CloudProxy.csproj", "{F3F1EFBD-CCD0-4579-99EE-C91A1B6D5C5D}"
 EndProject
