@@ -121,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
             CombinedDockerConfig config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
             IDictionary<string, EnvVal> moduleEnvVars = new Dictionary<string, EnvVal>()
             {
-                { "ACamelCaseEnvVar", new EnvVal("ACamelCaseEnvVarValue")}
+                { "ACamelCaseEnvVar", new EnvVal("ACamelCaseEnvVarValue") }
             };
 
             IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, moduleEnvVars);
@@ -170,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                 Assert.True(postCrdCalled);
                 Assert.Equal("module1", postedEdgeDeploymentDefinition.Spec[0].Name);
                 Assert.Equal("test-image:1", postedEdgeDeploymentDefinition.Spec[0].Config.Image);
-                Assert.True(postedEdgeDeploymentDefinition.Spec[0].Env.Contains(new KeyValuePair<string,EnvVal>( "ACamelCaseEnvVar", new EnvVal("ACamelCaseEnvVarValue"))));
+                Assert.True(postedEdgeDeploymentDefinition.Spec[0].Env.Contains(new KeyValuePair<string, EnvVal>("ACamelCaseEnvVar", new EnvVal("ACamelCaseEnvVarValue"))));
             }
         }
 
