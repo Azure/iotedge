@@ -10,12 +10,11 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::process;
 
+use chrono::{DateTime, Duration, Local};
 use clap::{crate_description, crate_name, App, AppSettings, Arg, SubCommand};
 use failure::{Fail, ResultExt};
 use futures::Future;
 use url::Url;
-
-use chrono::{DateTime, Duration, Local};
 
 use edgelet_core::{LogOptions, LogTail};
 use edgelet_http_mgmt::ModuleClient;
@@ -338,12 +337,12 @@ fn run() -> Result<(), Error> {
                 .map_err(|err: edgelet_core::Error| {
                     Error::from(err.context(ErrorKind::BadTailParameter))
                 })?
-                .unwrap_or_default();
+                .expect("arg has a default value");
             let since = args
                 .value_of("since")
                 .map(|s| parse_since(s))
                 .transpose()?
-                .unwrap_or_default();
+                .expect("arg has a default value");
             let options = LogOptions::new()
                 .with_follow(follow)
                 .with_tail(tail)
@@ -352,12 +351,14 @@ fn run() -> Result<(), Error> {
         }
         ("version", _) => tokio_runtime.block_on(Version::new().execute()),
         ("support-bundle", Some(args)) => {
-            let location = args.value_of("location").unwrap_or_default();
+            let location = args
+                .value_of("location")
+                .expect("arg has a default value");
             let since = args
                 .value_of("since")
                 .map(|s| parse_since(s))
                 .transpose()?
-                .unwrap_or_default();
+                .expect("arg has a default value");
             let options = LogOptions::new()
                 .with_follow(false)
                 .with_tail(LogTail::All)
@@ -437,7 +438,7 @@ mod tests {
 
     #[test]
     fn parse_default() {
-        assert!(parse_since("asdfasdf").is_err());
+        let _ = parse_since("asdfasdf").unwrap_err();
     }
 
     fn assert_near(a: i32, b: i32, tol: i32) {

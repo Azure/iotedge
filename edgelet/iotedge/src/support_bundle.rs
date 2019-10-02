@@ -9,8 +9,8 @@ use futures::{Future, Stream};
 use tokio::prelude::*;
 use zip;
 
-use crate::error::{Error, ErrorKind};
 use edgelet_core::{LogOptions, LogTail, Module, ModuleRuntime};
+use crate::error::{Error, ErrorKind};
 
 use crate::logs::pull_logs;
 use crate::Command;
