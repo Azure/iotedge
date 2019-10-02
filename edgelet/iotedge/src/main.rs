@@ -253,7 +253,7 @@ fn run() -> Result<(), Error> {
                 )
                 .arg(
                     Arg::with_name("since")
-                        .help("Only return logs since this time, as a duration (1 day, 90 minutes, 2 days 3 hours 2 minutes), rfc3339 timestamp, or UNIX timestamp")
+                        .help("Only return logs since this time, as a duration (1d, 90m, 2h30m), rfc3339 timestamp, or UNIX timestamp")
                         .long("since")
                         .takes_value(true)
                         .value_name("DURATION or TIMESTAMP")
@@ -262,8 +262,7 @@ fn run() -> Result<(), Error> {
                 .arg(
                     Arg::with_name("include-ms-only")
                         .help("Follow output log")
-                        .short("ms")
-                        .long("include-ms-only")
+                        .long("ms-only")
                         .takes_value(false),
                 ),
         )
