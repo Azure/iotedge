@@ -17,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
+    using Newtonsoft.Json.Serialization;
     using Constants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
     public class EdgeDeploymentCommand : ICommand
@@ -55,7 +56,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     new Dictionary<Type, string[]>
                     {
                         [typeof(KubernetesModule)] = new[] { nameof(KubernetesModule.Name) }
-                    }),
+                    })
+                {
+                    // Environment variable (env) property JSON casing should be left alone
+                    NamingStrategy = new CamelCaseNamingStrategy
+                    {
+                        ProcessDictionaryKeys = false
+                    }
+                }
             };
         }
 
