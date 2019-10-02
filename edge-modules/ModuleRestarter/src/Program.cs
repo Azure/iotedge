@@ -9,16 +9,16 @@ namespace ModuleRestarter
 
     class Program
     {
-        static readonly string ConnectionString = Environment.GetEnvironmentVariable("IoTHubConnectionString");
-        static readonly string DeviceId = Environment.GetEnvironmentVariable("DeviceId");
-        static readonly string ModulesCSV = Environment.GetEnvironmentVariable("DesiredModulesToRestartCSV");
-        static readonly int RandomRestartIntervalInMins = int.Parse(Environment.GetEnvironmentVariable("RandomRestartIntervalInMins"));
+        static readonly string IoTHubConnectionString = Settings.Current.IoTHubConnectionString;
+        static readonly string DeviceId = Settings.Current.DeviceId;
+        static readonly string DesiredModulesToRestartCSV = Settings.Current.DesiredModulesToRestartCSV;
+        static readonly int RandomRestartIntervalInMins = Settings.Current.RandomRestartIntervalInMins;
 
         public static int Main() => MainAsync().Result;
 
         static async Task<int> MainAsync()
         {
-            if (string.IsNullOrEmpty(ModulesCSV))
+            if (string.IsNullOrEmpty(DesiredModulesToRestartCSV))
             {
                 Console.WriteLine("No modules specified to restart. Stopping.");
                 return 0;
@@ -38,11 +38,11 @@ namespace ModuleRestarter
         static async Task RestartModules(CancellationTokenSource cts, int randomRestartIntervalInMins)
         {
             Console.WriteLine("Device ID: {0}", DeviceId);
-            Console.WriteLine("Module CSV received: {0}", ModulesCSV);
+            Console.WriteLine("Module CSV received: {0}", DesiredModulesToRestartCSV);
             Console.WriteLine("Random restart interval: {0}", RandomRestartIntervalInMins);
 
-            string[] moduleNames = ModulesCSV.Split(",");
-            ServiceClient iotHubServiceClient = ServiceClient.CreateFromConnectionString(ConnectionString);
+            string[] moduleNames = DesiredModulesToRestartCSV.Split(",");
+            ServiceClient iotHubServiceClient = ServiceClient.CreateFromConnectionString(IoTHubConnectionString);
             CloudToDeviceMethod c2dMethod = new CloudToDeviceMethod("RestartModule");
             Random random = new Random();
 

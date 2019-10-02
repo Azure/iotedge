@@ -1,0 +1,6 @@
+{
+  "IoTHubConnectionString": "",
+  "DeviceId": "",
+  "DesiredModulesToRestartCSV": "",
+  "RandomRestartIntervalInMins": "5"
+}
