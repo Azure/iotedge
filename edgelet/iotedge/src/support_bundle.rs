@@ -20,12 +20,13 @@ pub struct SupportBundle<M> {
     runtime: M,
     log_options: LogOptions,
     location: OsString,
+    include_ms_only: bool,
 }
 
 struct BundleState<M> {
     runtime: M,
     log_options: LogOptions,
-    location: OsString,
+    include_ms_only: bool,
     file_options: zip::write::FileOptions,
     zip_writer: zip::ZipWriter<File>,
 }
@@ -50,11 +51,17 @@ impl<M> SupportBundle<M>
 where
     M: 'static + ModuleRuntime + Clone + Send + Sync,
 {
-    pub fn new(log_options: LogOptions, location: OsString, runtime: M) -> Self {
+    pub fn new(
+        log_options: LogOptions,
+        location: OsString,
+        include_ms_only: bool,
+        runtime: M,
+    ) -> Self {
         SupportBundle {
             runtime,
             log_options,
             location,
+            include_ms_only,
         }
     }
 
@@ -90,7 +97,7 @@ where
         Ok(BundleState {
             runtime: self.runtime,
             log_options: self.log_options,
-            location: self.location,
+            include_ms_only: self.include_ms_only,
             file_options,
             zip_writer,
         })
@@ -105,11 +112,15 @@ where
     fn get_modules(
         state: BundleState<M>,
     ) -> impl Future<Item = (Vec<String>, BundleState<M>), Error = Error> {
+        let ms_modules = &["edgeHub", "edgeAgent"];
+        let include_ms_only = state.include_ms_only;
+
         state
             .runtime
             .list_with_details()
             .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))
-            .map(|(module, _s)| module.name().to_string())
+            .map(|(module, _s)| module.name().to_owned())
+            .filter(move |name| !include_ms_only || ms_modules.iter().any(|ms| ms == name))
             .collect()
             .map(|names| (names, state))
     }
@@ -122,7 +133,7 @@ where
         let BundleState {
             runtime,
             log_options,
-            location,
+            include_ms_only,
             file_options,
             mut zip_writer,
         } = state;
@@ -138,7 +149,7 @@ where
                     BundleState {
                         runtime,
                         log_options,
-                        location,
+                        include_ms_only,
                         file_options,
                         zip_writer: zw,
                     }
@@ -169,7 +180,7 @@ mod tests {
     #[test]
     fn get_logs() {
         let module_name = "test-module";
-        let runtime = make_runtime();
+        let runtime = make_runtime(module_name);
 
         let options = LogOptions::new()
             .with_follow(false)
@@ -184,21 +195,58 @@ mod tests {
     }
 
     #[test]
-    fn write_logs_to_file() {
-        let runtime = make_runtime();
-
-        let options = LogOptions::new()
-            .with_follow(false)
-            .with_tail(LogTail::Num(0))
-            .with_since(0);
-
+    fn get_modules() {
+        let runtime = make_runtime("test-module");
         let tmp_dir = tempdir().unwrap();
-
         let bundle = SupportBundle::new(
-            options,
+            LogOptions::default(),
             OsString::from(tmp_dir.path().to_str().unwrap()),
+            false,
             runtime,
         );
+
+        let state = bundle.make_state().unwrap();
+
+        let (modules, mut state) = SupportBundle::get_modules(state).wait().unwrap();
+        assert_eq!(modules.len(), 1);
+
+        state.include_ms_only = true;
+
+        let (modules, _state) = SupportBundle::get_modules(state).wait().unwrap();
+        assert_eq!(modules.len(), 0);
+
+        /* with edge agent */
+        let runtime = make_runtime("edgeAgent");
+        let tmp_dir = tempdir().unwrap();
+        let bundle = SupportBundle::new(
+            LogOptions::default(),
+            OsString::from(tmp_dir.path().to_str().unwrap()),
+            false,
+            runtime,
+        );
+
+        let state = bundle.make_state().unwrap();
+
+        let (modules, mut state) = SupportBundle::get_modules(state).wait().unwrap();
+        assert_eq!(modules.len(), 1);
+
+        state.include_ms_only = true;
+
+        let (modules, _state) = SupportBundle::get_modules(state).wait().unwrap();
+        assert_eq!(modules.len(), 1);
+    }
+
+    #[test]
+    fn write_logs_to_file() {
+        let runtime = make_runtime("test-module");
+        let tmp_dir = tempdir().unwrap();
+        let bundle = SupportBundle::new(
+            LogOptions::default(),
+            OsString::from(tmp_dir.path().to_str().unwrap()),
+            false,
+            runtime,
+        );
+
         bundle.execute().wait().unwrap();
 
         let result_path = tmp_dir
@@ -210,8 +258,7 @@ mod tests {
         File::open(result_path).unwrap();
     }
 
-    fn make_runtime() -> TestRuntime<Error, TestSettings> {
-        let module_name = "test-module";
+    fn make_runtime(module_name: &str) -> TestRuntime<Error, TestSettings> {
         let logs = vec![
             &[0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0d, b'R', b'o'][..],
             &b"ses are"[..],
@@ -221,9 +268,8 @@ mod tests {
             &b" are blue"[..],
         ];
 
-        let image_name = "microsoft/test-image";
         let state: Result<ModuleRuntimeState, Error> = Ok(ModuleRuntimeState::default());
-        let config = TestConfig::new(image_name.to_owned());
+        let config = TestConfig::new(format!("microsoft/{}", module_name));
         let module = TestModule::new_with_logs(module_name.to_owned(), config, state, logs);
 
         TestRuntime::make_runtime(

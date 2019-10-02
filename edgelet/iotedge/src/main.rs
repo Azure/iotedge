@@ -257,6 +257,13 @@ fn run() -> Result<(), Error> {
                         .takes_value(true)
                         .value_name("DURATION or TIMESTAMP")
                         .default_value("1 day"),
+                )
+                .arg(
+                    Arg::with_name("include-ms-only")
+                        .help("Follow output log")
+                        .short("ms")
+                        .long("include-ms-only")
+                        .takes_value(false),
                 ),
         )
         .get_matches();
@@ -363,8 +370,9 @@ fn run() -> Result<(), Error> {
                 .with_follow(false)
                 .with_tail(LogTail::All)
                 .with_since(since);
+            let include_ms_only = args.is_present("include-ms-only");
             tokio_runtime
-                .block_on(SupportBundle::new(options, location.to_owned(), runtime()?).execute())
+                .block_on(SupportBundle::new(options, location.to_owned(), include_ms_only, runtime()?).execute())
         }
         (command, _) => tokio_runtime.block_on(Unknown::new(command.to_string()).execute()),
     }
