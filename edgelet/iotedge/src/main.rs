@@ -358,9 +358,7 @@ fn run() -> Result<(), Error> {
         }
         ("version", _) => tokio_runtime.block_on(Version::new().execute()),
         ("support-bundle", Some(args)) => {
-            let location = args
-                .value_of_os("output")
-                .expect("arg has a default value");
+            let location = args.value_of_os("output").expect("arg has a default value");
             let since = args
                 .value_of("since")
                 .map(|s| parse_since(s))
@@ -371,8 +369,10 @@ fn run() -> Result<(), Error> {
                 .with_tail(LogTail::All)
                 .with_since(since);
             let include_ms_only = args.is_present("include-ms-only");
-            tokio_runtime
-                .block_on(SupportBundle::new(options, location.to_owned(), include_ms_only, runtime()?).execute())
+            tokio_runtime.block_on(
+                SupportBundle::new(options, location.to_owned(), include_ms_only, runtime()?)
+                    .execute(),
+            )
         }
         (command, _) => tokio_runtime.block_on(Unknown::new(command.to_string()).execute()),
     }
