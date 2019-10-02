@@ -62,10 +62,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
         public V1Deployment CreateDeployment(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels)
         {
             var deployment = this.PrepareDeployment(identity, module, labels);
-            deployment.Metadata.Annotations = new Dictionary<string, string>
-            {
-                [KubernetesConstants.CreationString] = JsonConvert.SerializeObject(deployment)
-            };
+            deployment.Metadata.Annotations[KubernetesConstants.CreationString] = JsonConvert.SerializeObject(deployment);
+
             return deployment;
         }
 
@@ -83,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             var selector = new V1LabelSelector(matchLabels: labels);
             var deploymentSpec = new V1DeploymentSpec(replicas: 1, selector: selector, template: podSpec);
 
-            var deploymentMeta = new V1ObjectMeta(name: name, labels: labels);
+            var deploymentMeta = new V1ObjectMeta(name: name, labels: labels, annotations: new Dictionary<string, string>());
             return new V1Deployment(metadata: deploymentMeta, spec: deploymentSpec);
         }
 
@@ -100,8 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             // Per container settings:
             // exposed ports
             Option<List<V1ContainerPort>> exposedPorts = Option.Maybe(module.Config?.CreateOptions?.ExposedPorts)
-                .FlatMap(PortExtensions.GetExposedPorts)
-                .Map(ports => ports.Select(tuple => new V1ContainerPort(tuple.Port, protocol: tuple.Protocol)).ToList());
+                .Map(PortExtensions.GetContainerPorts);
 
             // privileged container
             Option<V1SecurityContext> securityContext = Option.Maybe(module.Config?.CreateOptions?.HostConfig?.Privileged)
