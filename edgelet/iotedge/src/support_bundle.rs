@@ -43,7 +43,7 @@ where
             .and_then(SupportBundle::write_check_to_file)
             .and_then(SupportBundle::write_all_inspects)
             .map(drop)
-            .map(|_| println!("Wrote all logs to file"));
+            .map(|_| println!("Created support bundle"));
 
         Box::new(result)
     }
@@ -62,23 +62,6 @@ where
     }
 
     fn make_state(self) -> Result<BundleState<M>, Error> {
-        /* Print status */
-        let since_time: DateTime<Utc> = DateTime::from_utc(
-            NaiveDateTime::from_timestamp(self.log_options.since().into(), 0),
-            Utc,
-        );
-        let since_local: DateTime<Local> = DateTime::from(since_time);
-        let max_lines = if let LogTail::Num(tail) = self.log_options.tail() {
-            format!("(maximum {} lines) ", tail)
-        } else {
-            "".to_owned()
-        };
-        println!(
-            "Writing all logs {}since {} (local time {}) to {}",
-            max_lines, since_time, since_local, self.location
-        );
-
-        /* Make state */
         let file_options =
             zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
 
@@ -97,6 +80,22 @@ where
     }
 
     fn write_all_logs(s1: BundleState<M>) -> impl Future<Item = BundleState<M>, Error = Error> {
+        /* Print status */
+        let since_time: DateTime<Utc> = DateTime::from_utc(
+            NaiveDateTime::from_timestamp(s1.log_options.since().into(), 0),
+            Utc,
+        );
+        let since_local: DateTime<Local> = DateTime::from(since_time);
+        let max_lines = if let LogTail::Num(tail) = s1.log_options.tail() {
+            format!("(maximum {} lines) ", tail)
+        } else {
+            "".to_owned()
+        };
+        println!(
+            "Writing all logs {}since {} (local time {}) to {}",
+            max_lines, since_time, since_local, s1.location
+        );
+
         SupportBundle::get_modules(s1).and_then(|(names, s2)| {
             stream::iter_ok(names).fold(s2, SupportBundle::write_log_to_file)
         })
@@ -202,7 +201,7 @@ where
             .write(&output)
             .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))?;
 
-        println!("Wrote check output to file");
+        println!("Wrote docker inspect for {} to file", module_name);
         Ok(state)
     }
 }
