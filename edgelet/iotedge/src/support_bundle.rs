@@ -41,6 +41,7 @@ where
         let result = future::result(self.make_state())
             .and_then(SupportBundle::write_all_logs)
             .and_then(SupportBundle::write_check_to_file)
+            .and_then(SupportBundle::write_all_inspects)
             .map(drop)
             .map(|_| println!("Wrote all logs to file"));
 
@@ -101,6 +102,12 @@ where
         })
     }
 
+    fn write_all_inspects(s1: BundleState<M>) -> impl Future<Item = BundleState<M>, Error = Error> {
+        SupportBundle::get_modules(s1).and_then(|(names, s2)| {
+            stream::iter_ok(names).fold(s2, SupportBundle::write_inspect_to_file)
+        })
+    }
+
     fn get_modules(
         state: BundleState<M>,
     ) -> impl Future<Item = (Vec<String>, BundleState<M>), Error = Error> {
@@ -117,7 +124,7 @@ where
         state: BundleState<M>,
         module_name: String,
     ) -> impl Future<Item = BundleState<M>, Error = Error> {
-        println!("Writing {} to file", module_name);
+        println!("Writing {} logs to file", module_name);
         let BundleState {
             runtime,
             log_options,
@@ -133,7 +140,7 @@ where
             .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))
             .and_then(move |_| {
                 pull_logs(&runtime, &module_name, &log_options, zip_writer).map(move |zw| {
-                    println!("Wrote {} to file", module_name);
+                    println!("Wrote {} logs to file", module_name);
                     BundleState {
                         runtime,
                         log_options,
@@ -163,6 +170,36 @@ where
         state
             .zip_writer
             .write(&check.stdout)
+            .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))?;
+
+        println!("Wrote check output to file");
+        Ok(state)
+    }
+
+    fn write_inspect_to_file(
+        mut state: BundleState<M>,
+        module_name: String,
+    ) -> Result<BundleState<M>, Error> {
+        println!("Running docker inspect for {}", module_name);
+        let inspect = ShellCommand::new("docker")
+            .arg("inspect")
+            .arg(&module_name)
+            .output()
+            .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))?;
+
+        let (file_name, output) = if inspect.status == 0 {
+            (format!("inspect/{}.json", module_name), inspect.stdout)
+        } else {
+            (format!("inspect/{}_err.json", module_name), inspect.stderr)
+        };
+        state
+            .zip_writer
+            .start_file_from_path(&Path::new(&file_name), state.file_options)
+            .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))?;
+
+        state
+            .zip_writer
+            .write(&output)
             .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))?;
 
         println!("Wrote check output to file");
