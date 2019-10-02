@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::ffi::OsString;
 use std::fs::File;
 use std::path::Path;
 
@@ -9,8 +10,8 @@ use futures::{Future, Stream};
 use tokio::prelude::*;
 use zip;
 
-use edgelet_core::{LogOptions, LogTail, Module, ModuleRuntime};
 use crate::error::{Error, ErrorKind};
+use edgelet_core::{LogOptions, LogTail, Module, ModuleRuntime};
 
 use crate::logs::pull_logs;
 use crate::Command;
@@ -18,13 +19,13 @@ use crate::Command;
 pub struct SupportBundle<M> {
     runtime: M,
     log_options: LogOptions,
-    location: String,
+    location: OsString,
 }
 
 struct BundleState<M> {
     runtime: M,
     log_options: LogOptions,
-    location: String,
+    location: OsString,
     file_options: zip::write::FileOptions,
     zip_writer: zip::ZipWriter<File>,
 }
@@ -49,7 +50,7 @@ impl<M> SupportBundle<M>
 where
     M: 'static + ModuleRuntime + Clone + Send + Sync,
 {
-    pub fn new(log_options: LogOptions, location: String, runtime: M) -> Self {
+    pub fn new(log_options: LogOptions, location: OsString, runtime: M) -> Self {
         SupportBundle {
             runtime,
             log_options,
@@ -71,7 +72,7 @@ where
         };
         println!(
             "Writing all logs {}since {} (local time {}) to {}",
-            max_lines, since_time, since_local, self.location
+            max_lines, since_time, since_local, self.location.to_str().unwrap_or_default()
         );
 
         /* Make state */
@@ -79,7 +80,7 @@ where
             zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
 
         let zip_writer = zip::ZipWriter::new(
-            File::create(format!("{}/iotedge_bundle.zip", self.location.to_owned()))
+            File::create(Path::new(&self.location).join("iotedge_bundle.zip"))
                 .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))?,
         );
 
@@ -123,9 +124,9 @@ where
             mut zip_writer,
         } = state;
 
-        let file_name = format!("logs/{}_log.txt", module_name);
+        let path = Path::new("logs").join(format!("{}_log.txt", module_name));
         zip_writer
-            .start_file_from_path(&Path::new(&file_name), file_options)
+            .start_file_from_path(&path, file_options)
             .into_future()
             .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))
             .and_then(move |_| {
@@ -192,7 +193,7 @@ mod tests {
 
         let bundle = SupportBundle::new(
             options,
-            tmp_dir.path().to_str().unwrap().to_owned(),
+            OsString::from(tmp_dir.path().to_str().unwrap()),
             runtime,
         );
         bundle.execute().wait().unwrap();

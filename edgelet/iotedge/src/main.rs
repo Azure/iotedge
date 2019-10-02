@@ -352,7 +352,7 @@ fn run() -> Result<(), Error> {
         ("version", _) => tokio_runtime.block_on(Version::new().execute()),
         ("support-bundle", Some(args)) => {
             let location = args
-                .value_of("location")
+                .value_of_os("location")
                 .expect("arg has a default value");
             let since = args
                 .value_of("since")
