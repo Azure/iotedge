@@ -60,7 +60,6 @@ impl Client {
     /// and the next [Paginate] range (if pagination is being used)
     ///
     /// Returned data should deserialize into [`oci_distribution::v2::Catalog`]
-    // TODO: Make this return a stream?
     pub async fn get_raw_catalog(
         &self,
         paginate: Option<Paginate>,
@@ -102,14 +101,12 @@ impl Client {
     /// (if pagination is being used)
     ///
     /// Returned data should deserialize into [`oci_distribution::v2::Tags`]
-    // TODO: Make this return a stream?
     pub async fn get_raw_tags(
         &self,
         repo: &str,
         paginate: Option<Paginate>,
     ) -> Result<(Bytes, Option<Paginate>)> {
-        // TODO: double check this scope
-        let scope = Scope::new(Resource::repo(repo), &[Action::Pull]);
+        let scope = Scope::new(Resource::repo(repo), &[Action::Pull, Action::MetadataRead]);
 
         let mut url = self
             .registry_base

@@ -4,6 +4,7 @@
 //! - https://github.com/docker/distribution/blob/f656e60de56ff4d83e660af01b44bc595ad09cb6/registry/handlers/app.go#L906
 //! - https://docs.docker.com/registry/spec/auth/scope/
 
+use std::collections::HashSet;
 use std::str::FromStr;
 
 use pest::Parser;
@@ -19,14 +20,46 @@ pub use error::Error;
 
 use std::string::ToString;
 
-/// A collection of [`Scope`]s for one more more resources. Backed by a
-/// `Vec<Scope>`.
+/// A collection of [`Scope`]s for one more more resources.
+#[derive(Debug)]
 pub struct Scopes(Vec<Scope>);
 
 impl Scopes {
-    /// Consume self, returning the underlying `Vec<Scope>`
-    pub fn into_vec(self) -> Vec<Scope> {
-        self.0
+    /// Create a new collection of [`Scope`]s
+    pub fn new(scopes: impl IntoIterator<Item = Scope>) -> Scopes {
+        Scopes(scopes.into_iter().collect())
+    }
+
+    /// Returns an iterator over the scopes
+    pub fn iter(&self) -> impl Iterator<Item = &Scope> {
+        self.0.iter()
+    }
+
+    /// Checks if any of the scopes in `self` are supersets of `scope`.
+    /// i.e: They reference the same resource, and `scope`'s actions are a
+    /// subset of `self`'s actions.
+    pub fn is_superset(&self, scope: &Scope) -> bool {
+        self.iter().any(|s| s.is_superset(scope))
+    }
+
+    /// Checks if any of the scopes in `self` overlap with `scope`.
+    /// i.e: They reference the same resource, and share at least one action.
+    pub fn is_disjoint(&self, scope: &Scope) -> bool {
+        self.iter().any(|s| s.is_disjoint(scope))
+    }
+
+    /// Add an additional scope to the collection
+    pub fn add(&mut self, scope: Scope) {
+        self.0.push(scope)
+    }
+}
+
+impl IntoIterator for Scopes {
+    type Item = Scope;
+    type IntoIter = ::std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
@@ -37,17 +70,17 @@ impl Scopes {
 /// **NOTE:** When parsing scopes from a WWW-Authenticate header, make sure to
 /// parse into a `Scopes` structure, as there may be multiple resource-scopes in
 /// a single scope string
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Scope {
-    actions: Vec<Action>,
+    actions: HashSet<Action>,
     resource: Resource,
 }
 
 impl Scope {
     /// Create a new scope given a `resource` and a set of `actions`
-    pub fn new(resource: Resource, actions: &[Action]) -> Scope {
+    pub fn new<'a>(resource: Resource, actions: impl IntoIterator<Item = &'a Action>) -> Scope {
         Scope {
-            actions: actions.to_vec(),
+            actions: actions.into_iter().cloned().collect(),
             resource,
         }
     }
@@ -60,6 +93,25 @@ impl Scope {
     /// Iterate over the actions associated with this scope
     pub fn actions(&self) -> impl Iterator<Item = &Action> {
         self.actions.iter()
+    }
+
+    /// Checks if `self` is a subset of the given `scope`
+    /// i.e: They reference the same resource, and `scope`'s actions are a
+    /// subset of `self`'s actions.
+    pub fn is_superset(&self, scope: &Scope) -> bool {
+        if self.resource != scope.resource {
+            return false;
+        }
+        self.actions.is_superset(&scope.actions)
+    }
+
+    /// Checks if `self` is disjoint with the given `scope`.
+    /// i.e: They reference the same resource, and share no actions in common.
+    pub fn is_disjoint(&self, scope: &Scope) -> bool {
+        if self.resource != scope.resource {
+            return false;
+        }
+        self.actions.is_disjoint(&scope.actions)
     }
 }
 
@@ -92,7 +144,7 @@ impl FromStr for Scope {
             .map(|action_p| action_p.as_str().parse::<Action>().unwrap()) // infallible parse
             .collect::<Vec<_>>();
 
-        Ok(Scope::new(Resource::new(kind, name), &actions))
+        Ok(Scope::new(Resource::new(kind, name), actions.iter()))
     }
 }
 
