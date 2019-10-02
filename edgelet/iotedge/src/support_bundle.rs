@@ -187,7 +187,7 @@ where
             .output()
             .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))?;
 
-        let (file_name, output) = if inspect.status == 0 {
+        let (file_name, output) = if inspect.status.success() {
             (format!("inspect/{}.json", module_name), inspect.stdout)
         } else {
             (format!("inspect/{}_err.json", module_name), inspect.stderr)
