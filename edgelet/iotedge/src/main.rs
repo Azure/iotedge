@@ -10,12 +10,11 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::process;
 
+use chrono::{DateTime, Duration, Local};
 use clap::{crate_description, crate_name, App, AppSettings, Arg, SubCommand};
 use failure::{Fail, ResultExt};
 use futures::Future;
 use url::Url;
-
-use chrono::{DateTime, Duration, Local};
 
 use edgelet_core::{LogOptions, LogTail};
 use edgelet_http_mgmt::ModuleClient;
@@ -244,20 +243,27 @@ fn run() -> Result<(), Error> {
             SubCommand::with_name("support-bundle")
                 .about("Bundles troubleshooting information")
                 .arg(
-                    Arg::with_name("location")
-                        .help("Directory to store bundle")
-                        .long("location")
+                    Arg::with_name("output")
+                        .help("output file")
+                        .long("output")
+                        .short("o")
                         .takes_value(true)
                         .value_name("DIRECTORY")
-                        .default_value("."),
+                        .default_value("support_bundle.zip"),
                 )
                 .arg(
                     Arg::with_name("since")
-                        .help("Only return logs since this time, as a duration (1 day, 90 minutes, 2 days 3 hours 2 minutes), rfc3339 timestamp, or UNIX timestamp")
+                        .help("Only return logs since this time, as a duration (1d, 90m, 2h30m), rfc3339 timestamp, or UNIX timestamp")
                         .long("since")
                         .takes_value(true)
                         .value_name("DURATION or TIMESTAMP")
                         .default_value("1 day"),
+                )
+                .arg(
+                    Arg::with_name("include-ms-only")
+                        .help("Follow output log")
+                        .long("ms-only")
+                        .takes_value(false),
                 ),
         )
         .get_matches();
@@ -338,12 +344,12 @@ fn run() -> Result<(), Error> {
                 .map_err(|err: edgelet_core::Error| {
                     Error::from(err.context(ErrorKind::BadTailParameter))
                 })?
-                .unwrap_or_default();
+                .expect("arg has a default value");
             let since = args
                 .value_of("since")
                 .map(|s| parse_since(s))
                 .transpose()?
-                .unwrap_or_default();
+                .expect("arg has a default value");
             let options = LogOptions::new()
                 .with_follow(follow)
                 .with_tail(tail)
@@ -352,18 +358,21 @@ fn run() -> Result<(), Error> {
         }
         ("version", _) => tokio_runtime.block_on(Version::new().execute()),
         ("support-bundle", Some(args)) => {
-            let location = args.value_of("location").unwrap_or_default();
+            let location = args.value_of_os("output").expect("arg has a default value");
             let since = args
                 .value_of("since")
                 .map(|s| parse_since(s))
                 .transpose()?
-                .unwrap_or_default();
+                .expect("arg has a default value");
             let options = LogOptions::new()
                 .with_follow(false)
                 .with_tail(LogTail::All)
                 .with_since(since);
-            tokio_runtime
-                .block_on(SupportBundle::new(options, location.to_owned(), runtime()?).execute())
+            let include_ms_only = args.is_present("include-ms-only");
+            tokio_runtime.block_on(
+                SupportBundle::new(options, location.to_owned(), include_ms_only, runtime()?)
+                    .execute(),
+            )
         }
         (command, _) => tokio_runtime.block_on(Unknown::new(command.to_string()).execute()),
     }
@@ -437,7 +446,7 @@ mod tests {
 
     #[test]
     fn parse_default() {
-        assert!(parse_since("asdfasdf").is_err());
+        let _ = parse_since("asdfasdf").unwrap_err();
     }
 
     fn assert_near(a: i32, b: i32, tol: i32) {
