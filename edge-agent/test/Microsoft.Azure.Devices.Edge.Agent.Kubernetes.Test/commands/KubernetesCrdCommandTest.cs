@@ -136,7 +136,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
 
             using (var server = new KubernetesApiServer(
                 resp: string.Empty,
-                shouldNext: httpContext =>
+                shouldNext: async httpContext =>
                 {
                     string pathStr = httpContext.Request.Path.Value;
                     string method = httpContext.Request.Method;
@@ -151,12 +151,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Commands
                         if (pathStr.Contains($"namespaces/{Namespace}/{Constants.EdgeDeployment.Plural}"))
                         {
                             postCrdCalled = true;
-                            postedEdgeDeploymentDefinition = JsonConvert.DeserializeObject<EdgeDeploymentDefinition>(new StreamReader(httpContext.Response.Body)
-                                                                                                                         .ReadToEnd());
+                            using (var reader = new StreamReader(httpContext.Response.Body))
+                            {
+                                string crdBody = await reader.ReadToEndAsync();
+                                postedEdgeDeploymentDefinition = JsonConvert.DeserializeObject<EdgeDeploymentDefinition>(crdBody);
+                            }
                         }
                     }
 
-                    return Task.FromResult(false);
+                    return false;
                 }))
             {
                 var client = new Kubernetes(
