@@ -158,6 +158,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         string proxyTrustBundleConfigMapName = configuration.GetValue<string>(K8sConstants.ProxyTrustBundleConfigMapEnvKey);
                         KubernetesPortMapServiceType mappedServiceDefault = GetDefaultServiceType(configuration);
                         bool enableServiceCallTracing = configuration.GetValue<bool>(K8sConstants.EnableK8sServiceCallTracingName);
+                        string persistentVolumeName = configuration.GetValue<string>(K8sConstants.PersistentVolumeName);
+                        string storageClassName = configuration.GetValue<string>(K8sConstants.StorageClassName);
+                        uint persistentVolumeClaimDefaultSizeMb = configuration.GetValue<uint>(K8sConstants.PersistentVolumeClaimDefaultSizeInMb);
                         string deviceNamespace = configuration.GetValue<string>(K8sConstants.K8sNamespaceKey);
 
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId)));
@@ -181,6 +184,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                             Option.Some(productInfo),
                             mappedServiceDefault,
                             enableServiceCallTracing,
+                            persistentVolumeName,
+                            storageClassName,
+                            persistentVolumeClaimDefaultSizeMb,
                             proxy,
                             closeOnIdleTimeout,
                             idleTimeout));

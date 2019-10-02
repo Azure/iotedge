@@ -27,6 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
         readonly string proxyTrustBundlePath;
         readonly string proxyTrustBundleVolumeName;
         readonly string proxyTrustBundleConfigMapName;
+        readonly bool usePvc;
         readonly string workloadApiVersion;
         readonly Uri workloadUri;
         readonly Uri managementUri;
@@ -41,6 +42,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             string proxyTrustBundlePath,
             string proxyTrustBundleVolumeName,
             string proxyTrustBundleConfigMapName,
+            string persistentVolumeName,
+            string storageClassName,
+            uint persistentVolumeClaimSizeMb,
             string workloadApiVersion,
             Uri workloadUri,
             Uri managementUri)
@@ -54,6 +58,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             this.proxyTrustBundlePath = proxyTrustBundlePath;
             this.proxyTrustBundleVolumeName = proxyTrustBundleVolumeName;
             this.proxyTrustBundleConfigMapName = proxyTrustBundleConfigMapName;
+            this.usePvc = !(string.IsNullOrWhiteSpace(persistentVolumeName) &&
+                          string.IsNullOrWhiteSpace(storageClassName));
             this.workloadApiVersion = workloadApiVersion;
             this.workloadUri = workloadUri;
             this.managementUri = managementUri;
@@ -256,9 +262,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                     {
                         string name = KubeUtils.SanitizeDNSValue(mount.Source);
                         string mountPath = mount.Target;
-                        volumeList.Add(new V1Volume(name, emptyDir: new V1EmptyDirVolumeSource()));
-
                         bool readOnly = mount.ReadOnly;
+                        if (this.usePvc)
+                        {
+                            volumeList.Add(new V1Volume(name, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(name, readOnly)));
+                        }
+                        else
+                        {
+                            volumeList.Add(new V1Volume(name, emptyDir: new V1EmptyDirVolumeSource()));
+                        }
+
                         volumeMountList.Add(new V1VolumeMount(mountPath, name, readOnlyProperty: readOnly));
                     }
                 }

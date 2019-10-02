@@ -18,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deployment;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.ServiceAccount;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners;
@@ -48,6 +49,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly Option<string> productInfo;
         readonly PortMapServiceType defaultMapServiceType;
         readonly bool enableServiceCallTracing;
+        readonly string persistentVolumeName;
+        readonly string storageClassName;
+        readonly uint persistentVolumeClaimSizeMb;
         readonly Option<IWebProxy> proxy;
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan idleTimeout;
@@ -72,6 +76,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             Option<string> productInfo,
             PortMapServiceType defaultMapServiceType,
             bool enableServiceCallTracing,
+            string persistentVolumeName,
+            string storageClassName,
+            uint persistentVolumeClaimSizeMb,
             Option<IWebProxy> proxy,
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout)
@@ -94,6 +101,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.productInfo = productInfo;
             this.defaultMapServiceType = defaultMapServiceType;
             this.enableServiceCallTracing = enableServiceCallTracing;
+            this.persistentVolumeName = persistentVolumeName;
+            this.storageClassName = storageClassName;
+            this.persistentVolumeClaimSizeMb = persistentVolumeClaimSizeMb;
             this.proxy = proxy;
             this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.idleTimeout = idleTimeout;
@@ -203,6 +213,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         this.proxyTrustBundlePath,
                         this.proxyTrustBundleVolumeName,
                         this.proxyTrustBundleConfigMapName,
+                        this.persistentVolumeName,
+                        this.storageClassName,
+                        this.persistentVolumeClaimSizeMb,
                         this.apiVersion,
                         this.workloadUri,
                         this.managementUri))
@@ -211,6 +224,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             // KubernetesServiceProvider
             builder.Register(c => new KubernetesServiceMapper(this.defaultMapServiceType))
                 .As<IKubernetesServiceMapper>();
+
+            builder.Register(c => new KubernetesPvcMapper(this.persistentVolumeName, this.storageClassName, this.persistentVolumeClaimSizeMb))
+            .As<IKubernetesPvcMapper>();
 
             // KubernetesServiceAccountProvider
             builder.Register(c => new KubernetesServiceAccountMapper())
@@ -229,6 +245,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             c.Resolve<IModuleIdentityLifecycleManager>(),
                             c.Resolve<IKubernetesServiceMapper>(),
                             c.Resolve<IKubernetesDeploymentMapper>(),
+                            c.Resolve<IKubernetesPvcMapper>(),
                             c.Resolve<IKubernetesServiceAccountMapper>());
 
                         return watchOperator;
