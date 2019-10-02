@@ -90,7 +90,7 @@ where
             zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
 
         let zip_writer = zip::ZipWriter::new(
-            File::create(Path::new(&self.location).join("iotedge_bundle.zip"))
+            File::create(Path::new(&self.location))
                 .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))?,
         );
 
@@ -198,9 +198,15 @@ mod tests {
     fn get_modules() {
         let runtime = make_runtime("test-module");
         let tmp_dir = tempdir().unwrap();
+        let file_path = tmp_dir
+            .path()
+            .join("iotedge_bundle.zip")
+            .to_str()
+            .unwrap()
+            .to_owned();
         let bundle = SupportBundle::new(
             LogOptions::default(),
-            OsString::from(tmp_dir.path().to_str().unwrap()),
+            OsString::from(file_path.to_owned()),
             false,
             runtime,
         );
@@ -217,10 +223,9 @@ mod tests {
 
         /* with edge agent */
         let runtime = make_runtime("edgeAgent");
-        let tmp_dir = tempdir().unwrap();
         let bundle = SupportBundle::new(
             LogOptions::default(),
-            OsString::from(tmp_dir.path().to_str().unwrap()),
+            OsString::from(file_path),
             false,
             runtime,
         );
@@ -240,22 +245,23 @@ mod tests {
     fn write_logs_to_file() {
         let runtime = make_runtime("test-module");
         let tmp_dir = tempdir().unwrap();
+        let file_path = tmp_dir
+            .path()
+            .join("iotedge_bundle.zip")
+            .to_str()
+            .unwrap()
+            .to_owned();
+
         let bundle = SupportBundle::new(
             LogOptions::default(),
-            OsString::from(tmp_dir.path().to_str().unwrap()),
+            OsString::from(file_path.to_owned()),
             false,
             runtime,
         );
 
         bundle.execute().wait().unwrap();
 
-        let result_path = tmp_dir
-            .path()
-            .join("iotedge_bundle.zip")
-            .to_str()
-            .unwrap()
-            .to_owned();
-        File::open(result_path).unwrap();
+        File::open(file_path).unwrap();
     }
 
     fn make_runtime(module_name: &str) -> TestRuntime<Error, TestSettings> {

@@ -243,12 +243,13 @@ fn run() -> Result<(), Error> {
             SubCommand::with_name("support-bundle")
                 .about("Bundles troubleshooting information")
                 .arg(
-                    Arg::with_name("location")
-                        .help("Directory to store bundle")
-                        .long("location")
+                    Arg::with_name("output")
+                        .help("output file")
+                        .long("output")
+                        .short("o")
                         .takes_value(true)
                         .value_name("DIRECTORY")
-                        .default_value("."),
+                        .default_value("support_bundle.zip"),
                 )
                 .arg(
                     Arg::with_name("since")
@@ -359,7 +360,7 @@ fn run() -> Result<(), Error> {
         ("version", _) => tokio_runtime.block_on(Version::new().execute()),
         ("support-bundle", Some(args)) => {
             let location = args
-                .value_of_os("location")
+                .value_of_os("output")
                 .expect("arg has a default value");
             let since = args
                 .value_of("since")
