@@ -178,13 +178,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                         var other = b.OrDefault();
 
                         return authConfig.Name == other.Name;
-                        // return string.Equals(authConfig.Auth, other.Auth) &&
-                        //     string.Equals(authConfig.Email, other.Email) &&
-                        //     string.Equals(authConfig.IdentityToken, other.IdentityToken) &&
-                        //     string.Equals(authConfig.Password, other.Password) &&
-                        //     string.Equals(authConfig.RegistryToken, other.RegistryToken) &&
-                        //     string.Equals(authConfig.ServerAddress, other.ServerAddress) &&
-                        //     string.Equals(authConfig.Username, other.Username);
                     }
 
                     return false;

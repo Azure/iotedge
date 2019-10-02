@@ -10,11 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
         public override ImagePullSecretName ReadJson(JsonReader reader, Type objectType, ImagePullSecretName existingValue, bool hasExistingValue, JsonSerializer serializer)
         {
-            if (reader.TokenType == JsonToken.Null)
-            {
-                return null;
-            }
-
             if (reader.TokenType != JsonToken.String)
             {
                 throw new JsonSerializationException($"Unable to deserialize {typeof(ImagePullSecretName)}");
