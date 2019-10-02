@@ -1676,7 +1676,7 @@ static int generate_edge_hsm_certificates_if_needed(uint64_t auto_generated_ca_l
 static int get_tg_env_vars(char **trusted_certs_path, char **device_ca_path, char **device_pk_path)
 {
     int result;
-    char *tb_path = NULL, *cert_path = NULL, *pk_path = NULL, *ca_lifetime = NULL;
+    char *tb_path = NULL, *cert_path = NULL, *pk_path = NULL;
 
     if (hsm_get_env(ENV_TRUSTED_CA_CERTS_PATH, &tb_path) != 0)
     {
