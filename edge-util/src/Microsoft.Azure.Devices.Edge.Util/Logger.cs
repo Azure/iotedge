@@ -13,9 +13,9 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
     static class FileLogger
     {
+        static bool enabled = false;
         static StreamWriter writer = GetWriter();
         static ReaderWriterLock locker = new ReaderWriterLock();
-        static bool enabled = false;
 
         static StreamWriter GetWriter()
         {
