@@ -9,6 +9,7 @@ edition = "2018"
 
 [dependencies]
 atty = "0.2"
+byte-unit = "3.0.3"
 bytes = "0.4"
 chrono = { version = "0.4.7", features = ["serde"] }
 chrono-humanize = "0.0.11"

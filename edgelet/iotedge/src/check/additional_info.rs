@@ -1,5 +1,7 @@
 use std::env::consts::ARCH;
+use std::str;
 
+use byte_unit::{Byte, ByteUnit};
 use sysinfo::{DiskExt, SystemExt};
 
 /// Additional info for the JSON output of `iotedge check`
