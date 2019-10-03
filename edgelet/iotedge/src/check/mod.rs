@@ -570,7 +570,7 @@ impl Check {
                         });
                     }
 
-                    Ok(CheckResult::Warning(err)) | Err(err) => {
+                    Ok(CheckResult::Warning(err)) | Ok(CheckResult::Failed(err)) => {
                         num_errors += 1;
 
                         checks.insert(
