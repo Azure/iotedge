@@ -13,11 +13,33 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
     static class FileLogger
     {
-        static StreamWriter writer = new StreamWriter("/tmp/iotedge_hub_message_logs", true);
+        static StreamWriter writer = GetWriter();
         static ReaderWriterLock locker = new ReaderWriterLock();
+        static bool enabled = false;
+
+        static StreamWriter GetWriter()
+        {
+            StreamWriter w = null;
+
+            try
+            {
+                w = new StreamWriter("/tmp/iotedge_hub_message_logs", true);
+                enabled = true;
+            }
+            catch
+            {
+            }
+
+            return w;
+        }
 
         public static void WriteLineToFile(string line)
         {
+            if (!enabled)
+            {
+                return;
+            }
+
             try
             {
                 locker.AcquireWriterLock(int.MaxValue);
