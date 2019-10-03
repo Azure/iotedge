@@ -43,10 +43,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void CompareModule()
         {
-            var auth1 = new AuthConfig { Username = "auth1", Password = "auth1", ServerAddress = "auth1" };
-            var auth2 = new AuthConfig { Username = "auth2", Password = "auth1", ServerAddress = "auth1" };
-            var auth3 = new AuthConfig { Username = "auth1", Password = "auth2", ServerAddress = "auth1" };
-            var auth4 = new AuthConfig { Username = "auth1", Password = "auth1", ServerAddress = "auth2" };
+            var auth1 = new AuthConfig { Username = "auth1", Password = "secret-password", ServerAddress = "test1-server.com" };
+            var auth2 = new AuthConfig { Username = "auth2", Password = "secret-password", ServerAddress = "test1-server.com" };
+            var auth3 = new AuthConfig { Username = "auth1", Password = "shhhh", ServerAddress = "test1-server.com" };
+            var auth4 = new AuthConfig { Username = "auth1", Password = "secret-password", ServerAddress = "test2-server.com" };
             Dictionary<string, EnvVal> goodEnv = new Dictionary<string, EnvVal>();
             Dictionary<string, EnvVal> newEnv = new Dictionary<string, EnvVal> { ["a"] = new EnvVal("B") };
             IList<string> dockerEnv = new List<string> { "c=d" };
