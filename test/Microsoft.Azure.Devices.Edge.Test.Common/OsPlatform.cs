@@ -18,32 +18,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public static bool IsWindows() => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
-        protected async Task<EdgeCertificates> GenerateEdgeCertificatesAsync(
-            string deviceId,
-            string basePath,
-            (string name, string args) command,
-            CancellationToken token)
-        {
-            await Profiler.Run(
-                async () =>
-                {
-                    string[] output = await Process.RunAsync(command.name, command.args, token);
-                    Log.Verbose(string.Join("\n", output));
-                },
-                "Created certificates for edge device");
-
-            var files = new[]
-            {
-                $"certs/iot-edge-device-{deviceId}-full-chain.cert.pem",
-                $"private/iot-edge-device-{deviceId}.key.pem",
-                "certs/azure-iot-test-only.root.ca.cert.pem"
-            };
-
-            files = NormalizeFiles(files, basePath);
-
-            return new EdgeCertificates(files[0], files[1], files[2]);
-        }
-
         protected EdgeCertificates GetEdgeQuickstartCertificates(string basePath) =>
             new EdgeCertificates(
                 Directory.GetFiles(Path.Combine(basePath, "certs"), "device_ca_alias*.pem")[0],
@@ -100,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 path =>
                 {
                     var file = new FileInfo(Path.Combine(basePath, path));
-                    Preconditions.CheckArgument(file.Exists);
+                    Preconditions.CheckArgument(file.Exists, $"File Not Found: {file.FullName}");
                     return file.FullName;
                 }).ToArray();
         }

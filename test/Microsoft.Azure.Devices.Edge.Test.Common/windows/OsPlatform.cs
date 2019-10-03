@@ -45,13 +45,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             return new Certificate(deviceId, scriptPath);
         }
 
-        public Task<EdgeCertificates> GenerateEdgeCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
+        public async Task<EdgeCertificates> GenerateEdgeCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
         {
             string command = BuildCertCommand(
                 $"New-CACertsEdgeDevice '{deviceId}'",
                 scriptPath);
-
-            return this.GenerateEdgeCertificatesAsync(deviceId, scriptPath, ("powershell", command), token);
+            await this.RunScriptAsync(("powershell", command), token);
+            return new EdgeCertificates(deviceId, scriptPath);
         }
 
         public EdgeCertificates GetEdgeQuickstartCertificates()

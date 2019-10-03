@@ -6,12 +6,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
     using System.Security.Cryptography.X509Certificates;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class EdgeCertificates
+    using Serilog; // BEARWASHERE TO be removed
+
+    public class EdgeCertificates : Certificate
     {
-        public string CertificatePath { get; }
-
-        public string KeyPath { get; }
-
         public string TrustedCertificatesPath { get; }
 
         public IEnumerable<X509Certificate2> TrustedCertificates =>
@@ -19,6 +17,25 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
             {
                 new X509Certificate2(X509Certificate.CreateFromCertFile(this.TrustedCertificatesPath))
             };
+
+        private string[] GetEdgeCertFileLocation(string deviceId)
+        {
+            return new[]
+            {
+                $"certs/iot-edge-device-{deviceId}-full-chain.cert.pem",
+                $"private/iot-edge-device-{deviceId}.key.pem",
+                "certs/azure-iot-test-only.root.ca.cert.pem"
+            };
+        }
+
+        public EdgeCertificates(string deviceId, string scriptPath)
+        {
+            var location = this.GetEdgeCertFileLocation(deviceId);
+            var files = OsPlatform.NormalizeFiles(location, scriptPath);
+            this.CertificatePath = files[0];
+            this.KeyPath = files[1];
+            this.TrustedCertificatesPath = files[2];
+        }
 
         public EdgeCertificates(string certificatePath, string keyPath, string trustedCertsPath)
         {

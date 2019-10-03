@@ -12,9 +12,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
             };
         }
 
-        public string CertificatePath { get; }
+        public string CertificatePath { get; protected set; }
 
-        public string KeyPath { get; }
+        public string KeyPath { get; protected set; }
+
+        protected Certificate()
+        {
+        }
 
         public Certificate(string deviceId, string scriptPath)
         {
