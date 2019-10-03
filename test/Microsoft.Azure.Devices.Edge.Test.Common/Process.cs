@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             {
                 FileName = name,
                 Arguments = args,
+                RedirectStandardInput = true,
             };
 
             using (ProcessResults result = await ProcessEx.RunAsync(info, token))

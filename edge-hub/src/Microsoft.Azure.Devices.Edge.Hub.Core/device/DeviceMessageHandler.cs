@@ -102,7 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
                 }
                 else
                 {
-                    taskCompletionSource.SetException(new EdgeHubIOException($"Message not completed by client {this.Identity.Id}"));
+                    taskCompletionSource.SetException(new EdgeHubMessageRejectedException($"Message not completed by client {this.Identity.Id}"));
                 }
             }
             else if (this.c2dMessageTaskCompletionSources.TryRemove(messageId, out bool value) && value)

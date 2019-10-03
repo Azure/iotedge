@@ -52,6 +52,7 @@ spec:
             httpGet:
               path: "/systeminfo?api-version={{ .Values.iotedged.apiVersion }}"
               port: {{ .Values.iotedged.ports.management }}
+      serviceAccount: "iotedged"
       {{- /* Render image pull secrets if they have been provided. */ -}}
       {{- if .Values.registryCredentials }}
       imagePullSecrets:

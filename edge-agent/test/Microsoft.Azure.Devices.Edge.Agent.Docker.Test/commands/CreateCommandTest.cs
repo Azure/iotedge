@@ -19,6 +19,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
     using Microsoft.Extensions.Configuration;
     using Moq;
     using Xunit;
+    using CreateContainerParameters = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.CreateContainerParameters;
+    using HostConfig = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.HostConfig;
+    using PortBinding = Microsoft.Azure.Devices.Edge.Agent.Docker.Models.PortBinding;
 
     [ExcludeFromCodeCoverage]
     [Collection("Docker")]
@@ -159,7 +162,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     Assert.False(container.HostConfig.PortBindings.ContainsKey("443/tcp"));
                     // logging
                     Assert.Equal("json-file", container.HostConfig.LogConfig.Type);
-                    Assert.True(container.HostConfig.LogConfig.Config.Count == 1);
+
+                    // While we only set one log config for max-size, there may be other log-configs in docker's daemon.json that the container will inherit.
+                    // So there can be more than one.
+                    Assert.True(container.HostConfig.LogConfig.Config.Count >= 1);
+
                     Assert.Equal("100M", container.HostConfig.LogConfig.Config["max-size"]);
                 }
             }
@@ -349,10 +356,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             const string VolumeName = "vol1";
             const string VolumePath = "/azure-edge/vol1";
 
-            CreateContainerParameters createContainerParameters = null;
+            global::Docker.DotNet.Models.CreateContainerParameters createContainerParameters = null;
             var containerOperations = new Mock<IContainerOperations>();
-            containerOperations.Setup(co => co.CreateContainerAsync(It.IsAny<CreateContainerParameters>(), It.IsAny<CancellationToken>()))
-                .Callback((CreateContainerParameters ccp, CancellationToken tok) => createContainerParameters = ccp)
+            containerOperations
+                .Setup(co => co.CreateContainerAsync(It.IsAny<global::Docker.DotNet.Models.CreateContainerParameters>(), It.IsAny<CancellationToken>()))
+                .Callback((global::Docker.DotNet.Models.CreateContainerParameters ccp, CancellationToken tok) => createContainerParameters = ccp)
                 .ReturnsAsync(new CreateContainerResponse());
 
             var dockerClient = new Mock<IDockerClient>();
@@ -421,10 +429,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
             const string VolumeName = "vol1";
             const string VolumePath = "/azure-edge/vol1";
 
-            CreateContainerParameters createContainerParameters = null;
+            global::Docker.DotNet.Models.CreateContainerParameters createContainerParameters = null;
             var containerOperations = new Mock<IContainerOperations>();
-            containerOperations.Setup(co => co.CreateContainerAsync(It.IsAny<CreateContainerParameters>(), It.IsAny<CancellationToken>()))
-                .Callback((CreateContainerParameters ccp, CancellationToken tok) => createContainerParameters = ccp)
+            containerOperations
+                .Setup(co => co.CreateContainerAsync(It.IsAny<global::Docker.DotNet.Models.CreateContainerParameters>(), It.IsAny<CancellationToken>()))
+                .Callback((global::Docker.DotNet.Models.CreateContainerParameters ccp, CancellationToken tok) => createContainerParameters = ccp)
                 .ReturnsAsync(new CreateContainerResponse());
 
             var dockerClient = new Mock<IDockerClient>();

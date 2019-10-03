@@ -1,13 +1,15 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
 {
+    using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
     using RootCaKeys = System.ValueTuple<string, string, string>;
 
     public class CertificateAuthority
     {
-        readonly string scriptPath;
+        readonly Option<string> scriptPath;
 
         public EdgeCertificates Certificates { get; }
 
@@ -19,13 +21,29 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
             return new CertificateAuthority(certs, scriptPath);
         }
 
+        public static CertificateAuthority GetQuickstart()
+        {
+            EdgeCertificates certs = OsPlatform.Current.GetEdgeQuickstartCertificates();
+            return new CertificateAuthority(certs);
+        }
+
+        CertificateAuthority(EdgeCertificates certs)
+        {
+            this.Certificates = certs;
+            this.scriptPath = Option.None<string>();
+        }
+
         CertificateAuthority(EdgeCertificates certs, string scriptPath)
         {
             this.Certificates = certs;
-            this.scriptPath = scriptPath;
+            this.scriptPath = Option.Maybe(scriptPath);
         }
 
-        public Task<LeafCertificates> GenerateLeafCertificatesAsync(string leafDeviceId, CancellationToken token) =>
-            OsPlatform.Current.GenerateLeafCertificatesAsync(leafDeviceId, this.scriptPath, token);
+        public Task<LeafCertificates> GenerateLeafCertificatesAsync(string leafDeviceId, CancellationToken token)
+        {
+            const string Err = "Cannot generate certificates without script";
+            string scriptPath = this.scriptPath.Expect(() => new InvalidOperationException(Err));
+            return OsPlatform.Current.GenerateLeafCertificatesAsync(leafDeviceId, scriptPath, token);
+        }
     }
 }

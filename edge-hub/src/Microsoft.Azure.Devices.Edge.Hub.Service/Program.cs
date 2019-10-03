@@ -62,6 +62,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             var metricsProvider = container.Resolve<IMetricsProvider>();
             Metrics.Init(metricsProvider, metricsListener, logger);
 
+            // Init V0 Metrics
+            MetricsV0.BuildMetricsCollector(configuration);
+
             // EdgeHub and CloudConnectionProvider have a circular dependency. So need to Bind the EdgeHub to the CloudConnectionProvider.
             IEdgeHub edgeHub = await container.Resolve<Task<IEdgeHub>>();
             ICloudConnectionProvider cloudConnectionProvider = await container.Resolve<Task<ICloudConnectionProvider>>();
@@ -82,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             logger.LogInformation("Initializing configuration");
             IConfigSource configSource = await container.Resolve<Task<IConfigSource>>();
             ConfigUpdater configUpdater = await container.Resolve<Task<ConfigUpdater>>();
-            configUpdater.Init(configSource);
+            await configUpdater.Init(configSource);
 
             if (!Enum.TryParse(configuration.GetValue("AuthenticationMode", string.Empty), true, out AuthenticationMode authenticationMode)
                 || authenticationMode != AuthenticationMode.Cloud)

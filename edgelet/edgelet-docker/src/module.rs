@@ -28,6 +28,15 @@ pub struct DockerModule<C: Connect> {
     config: DockerConfig,
 }
 
+impl<C> std::fmt::Debug for DockerModule<C>
+where
+    C: Connect,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DockerModule").finish()
+    }
+}
+
 impl<C: 'static + Connect> DockerModule<C> {
     pub fn new(client: DockerClient<C>, name: String, config: DockerConfig) -> Result<Self> {
         ensure_not_empty_with_context(&name, || ErrorKind::InvalidModuleName(name.clone()))?;
@@ -242,25 +251,23 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn empty_name_fails() {
-        let _docker_module = DockerModule::new(
+        let _ = DockerModule::new(
             create_api_client("boo"),
             "".to_string(),
             DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None).unwrap(),
         )
-        .unwrap();
+        .unwrap_err();
     }
 
     #[test]
-    #[should_panic]
     fn white_space_name_fails() {
-        let _docker_module = DockerModule::new(
+        let _ = DockerModule::new(
             create_api_client("boo"),
             "     ".to_string(),
             DockerConfig::new("ubuntu".to_string(), ContainerCreateBody::new(), None).unwrap(),
         )
-        .unwrap();
+        .unwrap_err();
     }
 
     fn get_inputs() -> Vec<(&'static str, i64, ModuleStatus)> {
