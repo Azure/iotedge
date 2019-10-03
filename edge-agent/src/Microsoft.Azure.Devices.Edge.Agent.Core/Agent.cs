@@ -118,7 +118,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                     }
 
                     DeploymentConfig deploymentConfig = deploymentConfigInfo.DeploymentConfig;
-                    if (deploymentConfig != DeploymentConfig.Empty)
+                    if (deploymentConfig.Equals(DeploymentConfig.Empty))
+                    {
+                        status = DeploymentStatus.Success;
+                    }
+                    else
                     {
                         ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
                         // TODO - Update this logic to create identities only when needed, in the Command factory, instead of creating all the identities
@@ -127,6 +131,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                         // But that required ModuleSet.Diff to be updated to include modules updated by deployment, and modules updated by state change.
                         IImmutableDictionary<string, IModuleIdentity> identities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desiredModuleSet, current);
                         Plan plan = await this.planner.PlanAsync(desiredModuleSet, current, deploymentConfig.Runtime, identities);
+
                         if (plan.IsEmpty)
                         {
                             status = DeploymentStatus.Success;
@@ -149,10 +154,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                                 throw;
                             }
                         }
-                    }
-                    else
-                    {
-                        status = DeploymentStatus.Success;
                     }
                 }
                 catch (Exception ex) when (!ex.IsFatal())
