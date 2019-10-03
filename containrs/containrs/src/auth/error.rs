@@ -44,9 +44,6 @@ pub enum AuthError {
 
     #[fail(display = "Auth server token is invalid")]
     AuthServerInvalidToken,
-
-    #[fail(display = "Auth cache Rwlock was poisoned")]
-    CacheLock,
 }
 
 impl From<AuthError> for Error {

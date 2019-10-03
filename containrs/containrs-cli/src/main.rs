@@ -1,3 +1,5 @@
+#![allow(clippy::cognitive_complexity)]
+
 use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -18,6 +20,21 @@ use containrs::{Blob, Client, Credentials, Paginate};
 
 mod parse_range;
 use crate::parse_range::ParsableRange;
+
+lazy_static! {
+    static ref MEDIA_TYPE_TO_FILE_EXT: HashMap<&'static str, &'static str> = {
+        use ociv1::media_type::*;
+        let mut m: HashMap<&str, &str> = HashMap::new();
+        m.insert(IMAGE_LAYER, "tar");
+        m.insert(IMAGE_LAYER_GZIP, "tar.gz");
+        m.insert(IMAGE_LAYER_GZIP_DOCKER, "tar.gz");
+        m.insert(IMAGE_LAYER_ZSTD, "tar.zst");
+        m.insert(IMAGE_LAYER_NON_DISTRIBUTABLE, "tar");
+        m.insert(IMAGE_LAYER_NON_DISTRIBUTABLE_GZIP, "tar.gz");
+        m.insert(IMAGE_LAYER_NON_DISTRIBUTABLE_ZSTD, "tar.zst");
+        m
+    };
+}
 
 #[tokio::main]
 async fn main() {
@@ -195,8 +212,9 @@ async fn true_main() -> Result<(), failure::Error> {
                     }
                 }
                 ("tags", Some(sub_m)) => {
-                    // won't panic, as this is a required argument
-                    let repo = sub_m.value_of("repo").unwrap();
+                    let repo = sub_m
+                        .value_of("repo")
+                        .expect("repo should be a required argument");
                     let init_paginate = match sub_m.value_of("n") {
                         Some(n) => Some(Paginate::new(n.parse()?, "".to_string())),
                         None => None,
@@ -224,8 +242,9 @@ async fn true_main() -> Result<(), failure::Error> {
                     }
                 }
                 ("manifest", Some(sub_m)) => {
-                    // won't panic, as these are required arguments
-                    let image = sub_m.value_of("image").unwrap();
+                    let image = sub_m
+                        .value_of("image")
+                        .expect("image should be a required argument");
 
                     let image = Reference::parse(image, default_registry, docker_compat)?;
                     eprintln!("canonical: {:#?}", image);
@@ -250,8 +269,9 @@ async fn true_main() -> Result<(), failure::Error> {
                     progress.finish();
                 }
                 ("blob", Some(sub_m)) => {
-                    // won't panic, as these are required arguments
-                    let repo_digest = sub_m.value_of("repo@digest").unwrap();
+                    let repo_digest = sub_m
+                        .value_of("repo@digest")
+                        .expect("repo@digest should be a required argument");
 
                     let image = Reference::parse(repo_digest, default_registry, docker_compat)?;
                     eprintln!("canonical: {:#?}", image);
@@ -291,58 +311,32 @@ async fn true_main() -> Result<(), failure::Error> {
             }
         }
         ("download", Some(sub_m)) => {
-            // won't panic, as these are required arguments
-            let outdir = sub_m.value_of("outdir").unwrap();
-            let image = sub_m.value_of("image").unwrap();
-
-            let start_time = Instant::now();
-
-            let image = Reference::parse(image, default_registry, docker_compat)?;
-            eprintln!("canonical: {:#?}", image);
-
-            let client = Client::new(transport_scheme, image.registry(), credentials)?;
-
-            let overall_progress = MultiProgress::new();
-
-            let manifest_progress = overall_progress.add(ProgressBar::new(0));
-            manifest_progress.set_message("manifest.json");
-            manifest_progress.set_style(PB_STYLE.clone());
-
-            let config_progress = overall_progress.add(ProgressBar::new(0));
-            config_progress.set_message("config.json");
-            config_progress.set_style(PB_STYLE.clone());
-
-            let containrs::flows::ImageDownload {
-                manifest_digest,
-                manifest_json,
-                config_json,
-                layers,
-            } = containrs::flows::download_image(&client, &image).await?;
-
-            eprintln!("flows::download_image() time: {:?}", start_time.elapsed());
-
-            // asyncronously dump the bodies to disk
-
-            lazy_static! {
-                static ref MEDIA_TYPE_TO_FILE_EXT: HashMap<&'static str, &'static str> = {
-                    use ociv1::media_type::*;
-                    let mut m: HashMap<&str, &str> = HashMap::new();
-                    m.insert(IMAGE_LAYER, "tar");
-                    m.insert(IMAGE_LAYER_GZIP, "tar.gz");
-                    m.insert(IMAGE_LAYER_GZIP_DOCKER, "tar.gz");
-                    m.insert(IMAGE_LAYER_ZSTD, "tar.zst");
-                    m.insert(IMAGE_LAYER_NON_DISTRIBUTABLE, "tar");
-                    m.insert(IMAGE_LAYER_NON_DISTRIBUTABLE_GZIP, "tar.gz");
-                    m.insert(IMAGE_LAYER_NON_DISTRIBUTABLE_ZSTD, "tar.zst");
-                    m
-                };
-            }
+            let outdir = sub_m
+                .value_of("outdir")
+                .expect("outdir should be a required argument");
+            let image = sub_m
+                .value_of("image")
+                .expect("image should be a required argument");
 
             let out_dir = Path::new(outdir);
-
             if !out_dir.exists() {
                 return Err(failure::err_msg("outdir does not exist"));
             }
+
+            let start_time = Instant::now();
+
+            // parse image reference
+            let image = Reference::parse(image, default_registry, docker_compat)?;
+            eprintln!("canonical: {:#?}", image);
+
+            // setup client
+            let client = Client::new(transport_scheme, image.registry(), credentials)?;
+
+            // fetch manifest
+            let (manifest_blob, manifest_digest) = client.get_raw_manifest(&image).await?;
+            eprintln!("downloading manifest.json...");
+            let manifest_json = manifest_blob.bytes().await?;
+            eprintln!("downloaded manifest.json");
 
             // create an output directory based on the manifest's digest
             let out_dir = out_dir.join(manifest_digest.replace(':', "-"));
@@ -351,9 +345,48 @@ async fn true_main() -> Result<(), failure::Error> {
                 .context(format!("{:?}", out_dir))
                 .context("failed to create directory")?;
 
+            // validate manifest
+            let manifest = serde_json::from_slice::<ociv1::Manifest>(&manifest_json)
+                .context("while parsing manifest.json")?;
+
+            // fire off downloads in parallel
+            let mut blob_futures = Vec::new();
+
+            // fetch layers
+            blob_futures.extend(
+                manifest
+                    .layers
+                    .iter()
+                    .map(|layer| client.get_raw_blob(image.repo(), &layer.digest)),
+            );
+
+            // fetch config
+            blob_futures.push(client.get_raw_blob(image.repo(), &manifest.config.digest));
+
+            // TODO: no need to checkpoint how long firing off download requests takes.
+            // this is mainly here to validate the performance of the auth cache.
+            let mut blobs = future::try_join_all(blob_futures).await?;
+            eprintln!(
+                "fired off all layer download requests in {:?}",
+                start_time.elapsed()
+            );
+
+            let config_json = blobs.pop().unwrap();
+            let layers = blobs
+                .into_iter()
+                .zip(manifest.layers)
+                .collect::<Vec<(Blob, ociv1::Descriptor)>>();
+            // repackage manifest as blob so as to reuse the `write_blob_to_file` method
+            let manifest_json = Blob::new_immediate(manifest_json);
+
+            // asynchronously dump the bodies to disk
+            let overall_progress = MultiProgress::new();
             let mut downloads = Vec::new();
 
             // dump manifest.json to disk
+            let manifest_progress = overall_progress.add(ProgressBar::new(0));
+            manifest_progress.set_message("manifest.json");
+            manifest_progress.set_style(PB_STYLE.clone());
             manifest_progress.set_length(manifest_json.len().unwrap_or(0));
             downloads.push(write_blob_to_file(
                 out_dir.join("manifest.json"),
@@ -362,6 +395,9 @@ async fn true_main() -> Result<(), failure::Error> {
             ));
 
             // dump config.json to disk
+            let config_progress = overall_progress.add(ProgressBar::new(0));
+            config_progress.set_message("config.json");
+            config_progress.set_style(PB_STYLE.clone());
             config_progress.set_length(config_json.len().unwrap_or(0));
             downloads.push(write_blob_to_file(
                 out_dir.join("config.json"),
@@ -379,10 +415,11 @@ async fn true_main() -> Result<(), failure::Error> {
                         .unwrap_or(&"unknown")
                 );
 
-                let layer_progress =
-                    overall_progress.add(ProgressBar::new(blob.len().unwrap_or(0)));
+                let layer_progress = overall_progress.add(ProgressBar::new(0));
                 layer_progress.set_message(&layer.digest.split(':').nth(1).unwrap()[..16]);
                 layer_progress.set_style(PB_STYLE.clone());
+                layer_progress.set_length(blob.len().unwrap_or(0));
+
                 write_blob_to_file(out_dir.join(filename), blob, layer_progress)
             }));
 
@@ -393,7 +430,7 @@ async fn true_main() -> Result<(), failure::Error> {
             future::try_join_all(downloads).await?;
             let _ = progress_handle.join();
 
-            eprintln!("Full download flow time: {:?}", start_time.elapsed());
+            eprintln!("full download flow time: {:?}", start_time.elapsed());
 
             // TODO: validate downloaded data (JSON structure, digests, etc...)
         }

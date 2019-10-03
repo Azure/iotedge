@@ -97,7 +97,7 @@ impl AuthClient {
         if let Some(headers) = self
             .scope_cache
             .read()
-            .map_err(|_| AuthError::CacheLock)?
+            .expect("cache lock was poisoned")
             .get(expected_scope)
         {
             // TODO?: store expiration time alongside scope, and check for expiry
@@ -112,7 +112,7 @@ impl AuthClient {
         // have disjoint scopes.
 
         // hold lock while authenticating
-        let mut scope_cache = self.scope_cache.write().map_err(|_| AuthError::CacheLock)?;
+        let mut scope_cache = self.scope_cache.write().expect("cache lock was poisoned");
 
         // do one more check to be _certain_ that no other requests have already
         // performed the authentication flow in the time between the first check and

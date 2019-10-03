@@ -1,7 +1,7 @@
 use bytes::Bytes;
 use reqwest::Response;
 
-enum BlobKind {
+pub enum BlobKind {
     Streaming(Response),
     Immediate(Option<Bytes>),
 }
@@ -12,14 +12,14 @@ pub struct Blob {
 
 impl Blob {
     /// Create a new streaming Blob from a response
-    pub(crate) fn new(res: Response) -> Blob {
+    pub fn new(res: Response) -> Blob {
         Blob {
             inner: BlobKind::Streaming(res),
         }
     }
 
     /// Create a new Immediate blob from a set of bytes
-    pub(crate) fn new_immediate(data: Bytes) -> Blob {
+    pub fn new_immediate(data: Bytes) -> Blob {
         Blob {
             inner: BlobKind::Immediate(Some(data)),
         }

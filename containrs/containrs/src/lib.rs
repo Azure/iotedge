@@ -6,10 +6,8 @@ mod client;
 mod error;
 mod paginate;
 
-pub mod flows;
-
 pub use auth::Credentials;
-pub use blob::Blob;
+pub use blob::{Blob, BlobKind};
 pub use client::Client;
 pub use error::{Error, ErrorKind, Result};
 pub use paginate::Paginate;
