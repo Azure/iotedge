@@ -1,6 +1,6 @@
 use std::env::consts::ARCH;
 
-use sysinfo::SystemExt;
+use sysinfo::{DiskExt, SystemExt};
 
 /// Additional info for the JSON output of `iotedge check`
 #[derive(Clone, Debug, serde_derive::Serialize)]
@@ -193,33 +193,71 @@ pub(super) fn os_version() -> Result<
         ))
     }
 }
-
 #[derive(Clone, Debug, serde_derive::Serialize)]
 struct SystemInfo {
-    used_ram: u64,
-    total_ram: u64,
-    used_swap: u64,
-    total_swap: u64,
+    used_ram: String,
+    total_ram: String,
+    used_swap: String,
+    total_swap: String,
 
-    disks: Vec<String>,
+    disks: Vec<DiskInfo>,
 }
 
 impl SystemInfo {
-    pub fn new() -> Self {
+    fn new() -> Self {
         let mut system = sysinfo::System::new();
         system.refresh_all();
 
         SystemInfo {
-            total_ram: system.get_total_memory(),
-            used_ram: system.get_used_memory(),
-            total_swap: system.get_total_swap(),
-            used_swap: system.get_used_swap(),
+            total_ram: pretty_kbyte(system.get_total_memory()),
+            used_ram: pretty_kbyte(system.get_used_memory()),
+            total_swap: pretty_kbyte(system.get_total_swap()),
+            used_swap: pretty_kbyte(system.get_used_swap()),
 
-            disks: system
-                .get_disks()
-                .iter()
-                .map(|d| format!("{:?}", d))
-                .collect(),
+            disks: system.get_disks().iter().map(DiskInfo::new).collect(),
         }
+    }
+}
+
+#[derive(Clone, Debug, serde_derive::Serialize)]
+struct DiskInfo {
+    name: String,
+    percent_free: String,
+    avaliable_space: String,
+    total_space: String,
+    file_system: String,
+    file_type: String,
+}
+
+impl DiskInfo {
+    fn new<T>(disk: &T) -> Self
+    where
+        T: DiskExt,
+    {
+        let avaliable_space = disk.get_available_space();
+        let total_space = disk.get_total_space();
+
+        DiskInfo {
+            name: disk.get_name().to_str().unwrap().to_owned(),
+            percent_free: format!(
+                "{:.1}%",
+                avaliable_space as f64 / total_space as f64 * 100.0
+            ),
+            avaliable_space: Byte::from_bytes(avaliable_space as u128)
+                .get_appropriate_unit(true)
+                .format(2),
+            total_space: Byte::from_bytes(total_space as u128)
+                .get_appropriate_unit(true)
+                .format(2),
+            file_system: str::from_utf8(disk.get_file_system()).unwrap().to_owned(),
+            file_type: format!("{:?}", disk.get_type()),
+        }
+    }
+}
+
+fn pretty_kbyte(bytes: u64) -> String {
+    match Byte::from_unit(bytes as f64, ByteUnit::KiB) {
+        Ok(b) => b.get_appropriate_unit(true).format(2),
+        Err(_) => "Could not find bytes".to_owned(),
     }
 }
