@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                             await this.daemon.ConfigureAsync(
                                 config =>
                                 {
-                                    config.SetCertificates(this.ca.Certificates);
+                                    config.SetCertificates(this.ca.EdgeCertificate);
                                     config.Update();
                                     return Task.FromResult(("with edge certificates", Array.Empty<object>()));
                                 },

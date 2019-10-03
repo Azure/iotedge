@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 async () =>
                 {
                     ITransportSettings transport = protocol.ToTransportSettings();
-                    OsPlatform.Current.InstallEdgeCertificates(ca.Certificates.TrustedCertificates, transport);
+                    OsPlatform.Current.InstallEdgeCertificates(ca.EdgeCertificate.TrustedCertificates, transport);
 
                     string edgeHostname = Dns.GetHostName().ToLower();
 
@@ -171,7 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 token,
                 async () =>
                 {
-                    Certificate certFiles = await ca.GenerateLeafCertificatesAsync(leafDeviceId, token);
+                    Certificates certFiles = await ca.GenerateLeafCertificatesAsync(leafDeviceId, token);
 
                     (X509Certificate2 leafCert, IEnumerable<X509Certificate2> trustedCerts) =
                         CertificateHelper.GetServerCertificateAndChainFromFile(certFiles.CertificatePath, certFiles.KeyPath);
@@ -201,10 +201,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string edgeHostname,
             CancellationToken token)
         {
-            Certificate primary = await ca.GenerateLeafCertificatesAsync(
+            Certificates primary = await ca.GenerateLeafCertificatesAsync(
                 IdentityLimits.CheckCommonName($"{leafDeviceId}-1"),
                 token);
-            Certificate secondary = await ca.GenerateLeafCertificatesAsync(
+            Certificates secondary = await ca.GenerateLeafCertificatesAsync(
                 IdentityLimits.CheckCommonName($"{leafDeviceId}-2"),
                 token);
 
@@ -250,7 +250,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 token,
                 () =>
                 {
-                    Certificate certFiles = useSecondaryCertificate ? secondary : primary;
+                    Certificates certFiles = useSecondaryCertificate ? secondary : primary;
 
                     (X509Certificate2 leafCert, _) =
                         CertificateHelper.GetServerCertificateAndChainFromFile(certFiles.CertificatePath, certFiles.KeyPath);

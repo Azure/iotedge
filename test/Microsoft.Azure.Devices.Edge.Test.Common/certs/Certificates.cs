@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
 {
-    public class Certificate
+    public class Certificates
     {
         private string[] GetFileLocation(string deviceId)
         {
@@ -16,11 +16,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
 
         public string KeyPath { get; protected set; }
 
-        protected Certificate()
+        protected Certificates()
         {
         }
 
-        public Certificate(string deviceId, string scriptPath)
+        public Certificates(string deviceId, string scriptPath)
         {
             var location = this.GetFileLocation(deviceId);
             var files = OsPlatform.NormalizeFiles(location, scriptPath);

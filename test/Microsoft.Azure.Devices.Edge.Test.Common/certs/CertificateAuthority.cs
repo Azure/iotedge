@@ -13,9 +13,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
     {
         readonly Option<string> scriptPath;
 
-        public EdgeCertificates Certificates { get; }
+        public EdgeCertificates EdgeCertificate { get; }
 
-        public Certificate genericCertificates { get; }
+        public Certificates Certificate { get; }
 
         public static async Task<CertificateAuthority> CreateAsync(string deviceId, RootCaKeys rootCa, string scriptPath, CancellationToken token)
         {
@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
                 Log.Verbose("----------------------------------------");
             }
 
-            Certificate X509Certificate = await OsPlatform.Current.CreateDeviceCertificatesAsync(deviceId, scriptPath, token);
+            Certificates X509Certificate = await OsPlatform.Current.CreateDeviceCertificatesAsync(deviceId, scriptPath, token);
             return new CertificateAuthority(X509Certificate, scriptPath);
         }
 
@@ -55,23 +55,23 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
 
         CertificateAuthority(EdgeCertificates certs)
         {
-            this.Certificates = certs;
+            this.EdgeCertificate = certs;
             this.scriptPath = Option.None<string>();
         }
 
         CertificateAuthority(EdgeCertificates certs, string scriptPath)
         {
-            this.Certificates = certs;
+            this.EdgeCertificate = certs;
             this.scriptPath = Option.Maybe(scriptPath);
         }
 
-        CertificateAuthority(Certificate certs, string scriptPath)
+        CertificateAuthority(Certificates certs, string scriptPath)
         {
-            this.genericCertificates = certs;
+            this.Certificate = certs;
             this.scriptPath = Option.Maybe(scriptPath);
         }
 
-        public Task<Certificate> GenerateLeafCertificatesAsync(string leafDeviceId, CancellationToken token)
+        public Task<Certificates> GenerateLeafCertificatesAsync(string leafDeviceId, CancellationToken token)
         {
             const string Err = "Cannot generate certificates without script";
             string scriptPath = this.scriptPath.Expect(() => new InvalidOperationException(Err));

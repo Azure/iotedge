@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
 
     using Serilog; // BEARWASHERE TO be removed
 
-    public class EdgeCertificates : Certificate
+    public class EdgeCertificates : Certificates
     {
         public string TrustedCertificatesPath { get; }
 

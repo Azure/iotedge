@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
 
         public IEdgeDaemon CreateEdgeDaemon(Option<string> installerPath) => new EdgeDaemon(installerPath);
 
-        public async Task<Certificate> CreateDeviceCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
+        public async Task<Certificates> CreateDeviceCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
         {
             var command = BuildCertCommand($"New-CACertsDevice '{deviceId}'", scriptPath);
             await this.RunScriptAsync(("powershell", command), token);
@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             await this.RunScriptAsync(("powershell", $"Import-Certificate -CertStoreLocation 'cert:\\LocalMachine\\Root' -FilePath " + Path.Combine(scriptPath, "certs", "azure-iot-test-only.root.ca.cert.pem") + " | Out-Host"), token);
             await this.RunScriptAsync(("powershell", $"Import-Certificate -CertStoreLocation 'cert:\\LocalMachine\\Root' -FilePath " + Path.Combine(scriptPath, "certs", "azure-iot-test-only.intermediate.cert.pem") + " | Out-Host"), token);
 
-            return new Certificate(deviceId, scriptPath);
+            return new Certificates(deviceId, scriptPath);
         }
 
         public async Task<EdgeCertificates> GenerateEdgeCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)

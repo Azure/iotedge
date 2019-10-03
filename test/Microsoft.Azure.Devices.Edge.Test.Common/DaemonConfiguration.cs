@@ -59,8 +59,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public void SetDpsX509(string idScope, string registrationId, CertificateAuthority ca)
         {
-            Uri CertUri = new Uri(ca.genericCertificates.CertificatePath, UriKind.Absolute);
-            Uri pKeyUri = new Uri(ca.genericCertificates.KeyPath, UriKind.Absolute);
+            Uri CertUri = new Uri(ca.Certificate.CertificatePath, UriKind.Absolute);
+            Uri pKeyUri = new Uri(ca.Certificate.KeyPath, UriKind.Absolute);
 
             this.config.RemoveIfExists("provisioning");
             this.config.ReplaceOrAdd("provisioning.source", "dps");
