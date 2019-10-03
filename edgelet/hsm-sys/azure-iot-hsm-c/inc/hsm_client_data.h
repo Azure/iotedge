@@ -358,7 +358,7 @@ extern const HSM_CLIENT_TPM_INTERFACE* hsm_client_tpm_interface();
 extern const HSM_CLIENT_X509_INTERFACE* hsm_client_x509_interface();
 extern const HSM_CLIENT_CRYPTO_INTERFACE* hsm_client_crypto_interface();
 
-extern int hsm_client_x509_init();
+extern int hsm_client_x509_init(uint64_t);
 extern void hsm_client_x509_deinit();
 extern int hsm_client_tpm_init();
 extern void hsm_client_tpm_deinit();
