@@ -38,6 +38,8 @@ use self::stdout::Stdout;
 mod upstream_protocol_port;
 use self::upstream_protocol_port::UpstreamProtocolPort;
 
+mod checker;
+
 static CHECKS: &[(
     &str, // Section name
     &[(
@@ -227,7 +229,7 @@ pub enum OutputFormat {
 ///
 /// Check functions return `Result<CheckResult, failure::Error>` where `Err` represents the check failed.
 #[derive(Debug)]
-enum CheckResult {
+pub(crate) enum CheckResult {
     /// Check succeeded.
     Ok,
 
