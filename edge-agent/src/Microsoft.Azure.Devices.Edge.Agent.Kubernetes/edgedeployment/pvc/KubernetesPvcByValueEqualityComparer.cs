@@ -2,13 +2,14 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
 {
     using System.Collections.Generic;
+    using System.Linq;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public sealed class KubernetesPvcByValueEqualityComparer : IEqualityComparer<V1PersistentVolumeClaim>
     {
         const string Storage = "storage";
-        static readonly DictionaryComparer<string, string> labelComparer = DictionaryComparer.StringDictionaryComparer;
+        static readonly DictionaryComparer<string, string> LabelComparer = DictionaryComparer.StringDictionaryComparer;
 
         public bool Equals(V1PersistentVolumeClaim x, V1PersistentVolumeClaim y)
         {
@@ -32,18 +33,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
                 return false;
             }
 
+            if (x.Spec?.AccessModes == null || y.Spec?.AccessModes == null)
+            {
+                return false;
+            }
+
             return x.Metadata?.Name == y.Metadata?.Name &&
-                   labelComparer.Equals(x.Metadata?.Labels, y.Metadata?.Labels) &&
-                   x.Spec?.VolumeName == y.Spec?.VolumeName &&
-                   x.Spec?.StorageClassName == y.Spec?.StorageClassName &&
-                   x.Spec?.AccessModes == y.Spec?.AccessModes &&
-                   this.GetStorage(x) == this.GetStorage(y);
+                  LabelComparer.Equals(x.Metadata?.Labels, y.Metadata?.Labels) &&
+                  x.Spec?.VolumeName == y.Spec?.VolumeName &&
+                  x.Spec?.StorageClassName == y.Spec?.StorageClassName &&
+                  x.Spec.AccessModes.SequenceEqual(y.Spec.AccessModes) &&
+                  this.GetStorage(x) == this.GetStorage(y);
         }
 
         Option<ResourceQuantity> GetStorage(V1PersistentVolumeClaim claim)
         {
-            ResourceQuantity storage;
-            if (claim.Spec?.Resources?.Requests != null && claim.Spec.Resources.Requests.TryGetValue(Storage, out storage))
+            if (claim.Spec?.Resources?.Requests != null && claim.Spec.Resources.Requests.TryGetValue(Storage, out var storage))
             {
                 return Option.Maybe(storage);
             }
