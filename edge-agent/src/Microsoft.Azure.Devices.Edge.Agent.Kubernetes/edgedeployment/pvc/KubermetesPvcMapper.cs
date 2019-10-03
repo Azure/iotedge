@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
                 return Option.None<V1PersistentVolumeClaim>();
             }
 
-            string name = KubeUtils.SanitizeDNSValue(mount.Source);
+            string name = KubeUtils.SanitizeK8sValue(mount.Source);
             bool readOnly = mount.ReadOnly;
             var persistentVolumeClaimSpec = new V1PersistentVolumeClaimSpec()
             {
