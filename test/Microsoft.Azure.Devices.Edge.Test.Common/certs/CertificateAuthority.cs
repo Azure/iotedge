@@ -71,11 +71,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
             this.scriptPath = Option.Maybe(scriptPath);
         }
 
-        public Task<LeafCertificates> GenerateLeafCertificatesAsync(string leafDeviceId, CancellationToken token)
+        public Task<Certificate> GenerateLeafCertificatesAsync(string leafDeviceId, CancellationToken token)
         {
             const string Err = "Cannot generate certificates without script";
             string scriptPath = this.scriptPath.Expect(() => new InvalidOperationException(Err));
-            return OsPlatform.Current.GenerateLeafCertificatesAsync(leafDeviceId, scriptPath, token);
+            return OsPlatform.Current.CreateDeviceCertificatesAsync(leafDeviceId, scriptPath, token);
         }
     }
 }

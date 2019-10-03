@@ -12,9 +12,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    // BEARWASHERE - to be removed
-    using Serilog;
-
     public class OsPlatform : Common.OsPlatform, IOsPlatform
     {
         public async Task<string> CollectDaemonLogsAsync(DateTime testStartTime, string filePrefix, CancellationToken token)
@@ -55,15 +52,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                 scriptPath);
 
             return this.GenerateEdgeCertificatesAsync(deviceId, scriptPath, ("powershell", command), token);
-        }
-
-        public Task<LeafCertificates> GenerateLeafCertificatesAsync(string leafDeviceId, string scriptPath, CancellationToken token)
-        {
-            string command = BuildCertCommand(
-                $"New-CACertsDevice '{leafDeviceId}'",
-                scriptPath);
-
-            return this.GenerateLeafCertificatesAsync(leafDeviceId, scriptPath, ("powershell", command), token);
         }
 
         public EdgeCertificates GetEdgeQuickstartCertificates()

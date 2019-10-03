@@ -44,31 +44,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return new EdgeCertificates(files[0], files[1], files[2]);
         }
 
-        protected async Task<LeafCertificates> GenerateLeafCertificatesAsync(
-            string leafDeviceId,
-            string basePath,
-            (string name, string args) command,
-            CancellationToken token)
-        {
-            await Profiler.Run(
-                async () =>
-                {
-                    string[] output = await Process.RunAsync(command.name, command.args, token);
-                    Log.Verbose(string.Join("\n", output));
-                },
-                "Created certificates for leaf device");
-
-            var files = new[]
-            {
-                $"certs/iot-device-{leafDeviceId}-full-chain.cert.pem",
-                $"private/iot-device-{leafDeviceId}.key.pem"
-            };
-
-            files = NormalizeFiles(files, basePath);
-
-            return new LeafCertificates(files[0], files[1]);
-        }
-
         protected EdgeCertificates GetEdgeQuickstartCertificates(string basePath) =>
             new EdgeCertificates(
                 Directory.GetFiles(Path.Combine(basePath, "certs"), "device_ca_alias*.pem")[0],

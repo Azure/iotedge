@@ -171,7 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 token,
                 async () =>
                 {
-                    LeafCertificates certFiles = await ca.GenerateLeafCertificatesAsync(leafDeviceId, token);
+                    Certificate certFiles = await ca.GenerateLeafCertificatesAsync(leafDeviceId, token);
 
                     (X509Certificate2 leafCert, IEnumerable<X509Certificate2> trustedCerts) =
                         CertificateHelper.GetServerCertificateAndChainFromFile(certFiles.CertificatePath, certFiles.KeyPath);
@@ -201,10 +201,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             string edgeHostname,
             CancellationToken token)
         {
-            LeafCertificates primary = await ca.GenerateLeafCertificatesAsync(
+            Certificate primary = await ca.GenerateLeafCertificatesAsync(
                 IdentityLimits.CheckCommonName($"{leafDeviceId}-1"),
                 token);
-            LeafCertificates secondary = await ca.GenerateLeafCertificatesAsync(
+            Certificate secondary = await ca.GenerateLeafCertificatesAsync(
                 IdentityLimits.CheckCommonName($"{leafDeviceId}-2"),
                 token);
 
@@ -250,7 +250,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 token,
                 () =>
                 {
-                    LeafCertificates certFiles = useSecondaryCertificate ? secondary : primary;
+                    Certificate certFiles = useSecondaryCertificate ? secondary : primary;
 
                     (X509Certificate2 leafCert, _) =
                         CertificateHelper.GetServerCertificateAndChainFromFile(certFiles.CertificatePath, certFiles.KeyPath);

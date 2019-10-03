@@ -40,12 +40,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
             return this.GenerateEdgeCertificatesAsync(deviceId, scriptPath, ("bash", command), token);
         }
 
-        public Task<LeafCertificates> GenerateLeafCertificatesAsync(string leafDeviceId, string scriptPath, CancellationToken token)
-        {
-            var command = BuildCertCommand($"create_device_certificate '{leafDeviceId}'", scriptPath);
-            return this.GenerateLeafCertificatesAsync(leafDeviceId, scriptPath, ("bash", command), token);
-        }
-
         public EdgeCertificates GetEdgeQuickstartCertificates() =>
             this.GetEdgeQuickstartCertificates("/var/lib/iotedge/hsm");
 

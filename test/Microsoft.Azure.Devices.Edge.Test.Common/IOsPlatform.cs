@@ -26,11 +26,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         //  private/iot-edge-device-{deviceId}.key.pem
         Task<EdgeCertificates> GenerateEdgeCertificatesAsync(string deviceId, string scriptPath, CancellationToken token);
 
-        // After calling this function, the following files will be available under {scriptPath}:
-        //  certs/iot-device-{leafDeviceId}-full-chain.cert.pem
-        //  private/iot-device-{leafDeviceId}.key.pem
-        Task<LeafCertificates> GenerateLeafCertificatesAsync(string leafDeviceId, string scriptPath, CancellationToken token);
-
         EdgeCertificates GetEdgeQuickstartCertificates();
 
         void InstallEdgeCertificates(IEnumerable<X509Certificate2> certs, ITransportSettings transportSettings);
