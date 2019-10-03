@@ -1,3 +1,5 @@
+use std::env::consts::ARCH;
+
 use sysinfo::SystemExt;
 
 /// Additional info for the JSON output of `iotedge check`
@@ -6,6 +8,7 @@ pub(super) struct AdditionalInfo {
     pub(super) docker_version: Option<String>,
     pub(super) iotedged_version: Option<String>,
     now: chrono::DateTime<chrono::Utc>,
+    arch: &'static str,
     os: OsInfo,
 }
 
@@ -16,6 +19,7 @@ impl AdditionalInfo {
             iotedged_version: None,
             now: chrono::Utc::now(),
             os: OsInfo::new(),
+            arch: ARCH,
         }
     }
 }
@@ -192,10 +196,10 @@ pub(super) fn os_version() -> Result<
 
 #[derive(Clone, Debug, serde_derive::Serialize)]
 struct SystemInfo {
-    total_ram: u64,
     used_ram: u64,
-    total_swap: u64,
+    total_ram: u64,
     used_swap: u64,
+    total_swap: u64,
 
     disks: Vec<String>,
 }
