@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Routing.Core
 {
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
     public static class Routing
@@ -10,7 +11,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
         static IRoutingUserAnalyticsLogger userAnalyticsLogger;
         static IRoutingUserMetricLogger userMetricLogger;
 
-        public static ILoggerFactory LoggerFactory { get; set; } = new LoggerFactory();
+        public static ILoggerFactory LoggerFactory { get; set; } = new FileLoggerWrapperFactory(new LoggerFactory());
 
         public static IRoutingPerfCounter PerfCounter
         {

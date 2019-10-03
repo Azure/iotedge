@@ -3,11 +3,94 @@ namespace Microsoft.Azure.Devices.Edge.Util
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
+    using System.Threading;
     using Microsoft.Extensions.Logging;
     using Serilog;
     using Serilog.Configuration;
     using Serilog.Core;
     using Serilog.Events;
+
+    static class FileLogger
+    {
+        static StreamWriter writer = new StreamWriter("/tmp/iotedge_hub_message_logs", true);
+        static ReaderWriterLock locker = new ReaderWriterLock();
+
+        public static void WriteLineToFile(string line)
+        {
+            try
+            {
+                locker.AcquireWriterLock(int.MaxValue);
+                writer.WriteLine(line);
+                writer.Flush();
+            }
+            finally
+            {
+                locker.ReleaseWriterLock();
+            }
+        }
+    }
+
+    public class FileLoggerWrapper : Microsoft.Extensions.Logging.ILogger
+    {
+        Microsoft.Extensions.Logging.ILogger underlyingLogger;
+
+        public FileLoggerWrapper(Microsoft.Extensions.Logging.ILogger logger)
+        {
+            this.underlyingLogger = logger;
+        }
+
+        public IDisposable BeginScope<TState>(TState state)
+        {
+            return this.underlyingLogger.BeginScope<TState>(state);
+        }
+
+        public bool IsEnabled(LogLevel logLevel)
+        {
+            return this.underlyingLogger.IsEnabled(logLevel);
+        }
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+        {
+            // Log to our text file
+            string text = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff zzz") + " " + eventId.ToString() + " " + state.ToString();
+
+            if (exception != null)
+            {
+                text += "\n" + exception.ToString();
+            }
+
+            FileLogger.WriteLineToFile(text);
+
+            // Log to the real logger
+            this.underlyingLogger.Log<TState>(logLevel, eventId, state, exception, formatter);
+        }
+    }
+
+    public class FileLoggerWrapperFactory : Microsoft.Extensions.Logging.ILoggerFactory
+    {
+        ILoggerFactory underlyingFactory;
+
+        public FileLoggerWrapperFactory(ILoggerFactory factory)
+        {
+            this.underlyingFactory = factory;
+        }
+
+        public void Dispose()
+        {
+            this.underlyingFactory.Dispose();
+        }
+
+        public void AddProvider(ILoggerProvider provider)
+        {
+            this.underlyingFactory.AddProvider(provider);
+        }
+
+        public Microsoft.Extensions.Logging.ILogger CreateLogger(string categoryName)
+        {
+            return new FileLoggerWrapper(this.underlyingFactory.CreateLogger(categoryName));
+        }
+    }
 
     public static class Logger
     {
@@ -46,7 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             LoggerConfiguration ConsoleSinkMap(LoggerSinkConfiguration loggerSinkConfiguration)
                 => loggerSinkConfiguration.Console(outputTemplate: outputTemplate);
 
-            return GetLoggerFactory(logLevel, ConsoleSinkMap);
+            return new FileLoggerWrapperFactory(GetLoggerFactory(logLevel, ConsoleSinkMap));
         }
 
         internal static ILoggerFactory GetLoggerFactory(LogEventLevel logEventLevel, Func<LoggerSinkConfiguration, LoggerConfiguration> loggerSink)
