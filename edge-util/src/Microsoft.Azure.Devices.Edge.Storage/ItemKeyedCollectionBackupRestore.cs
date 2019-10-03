@@ -1,0 +1,86 @@
+// Copyright (c) Microsoft. All rights reserved.
+namespace Microsoft.Azure.Devices.Edge.Storage
+{
+    using System;
+    using System.Collections.Generic;
+    using System.Collections.ObjectModel;
+    using System.IO;
+    using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using System.Web;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Nito.AsyncEx;
+    using ProtoBuf;
+
+    /// <summary>
+    /// Provides an in memory implementation of the IDbStore with backup and restore functionality.
+    /// </summary>
+    class ItemKeyedCollectionBackupRestore : IItemKeyedCollectionBackupRestore
+    {
+        readonly string backupPath;
+
+        public ItemKeyedCollectionBackupRestore(string backupPath)
+        {
+            Preconditions.CheckNonWhiteSpace(backupPath, nameof(backupPath));
+            this.backupPath = backupPath;
+        }
+
+        public Task<ItemKeyedCollection> RestoreAsync()
+        {
+            //string backupFileName = HttpUtility.UrlEncode(this.entityName);
+            //string entityBackupPath = Path.Combine(backupPath, $"{backupFileName}.bin");
+            if (!File.Exists(this.backupPath))
+            {
+                throw new IOException($"The backup data at {this.backupPath} doesn't exist.");
+            }
+
+            ItemKeyedCollection itemKeyedCollection = new ItemKeyedCollection(new ByteArrayComparer());
+            try
+            {
+                using (FileStream file = File.OpenRead(this.backupPath))
+                {
+                    IList<Item> backedUpItems = Serializer.Deserialize<IList<Item>>(file);
+                    foreach (Item item in backedUpItems)
+                    {
+                        itemKeyedCollection.Add(item);
+                    }
+                }
+            }
+            catch (IOException exception)
+            {
+                //throw new IOException($"The restore operation for {this.entityName} failed with error.", exception);
+                throw new IOException($"The restore operation failed with error.", exception);
+            }
+
+            return Task.FromResult(itemKeyedCollection);
+        }
+
+        public Task BackupAsync(ItemKeyedCollection itemKeyedCollection)
+        {
+            //string backupFileName = HttpUtility.UrlEncode(this.entityName);
+            //string newBackupPath = Path.Combine(backupPath, $"{backupFileName}.bin");
+
+            try
+            {
+                using (FileStream file = File.Create(this.backupPath))
+                {
+                    Serializer.Serialize(file, itemKeyedCollection.AllItems);
+                }
+            }
+            catch (IOException exception)
+            {
+                // Delete the backup data if anything was created as it will likely be corrupt.
+                if (File.Exists(this.backupPath))
+                {
+                    File.Delete(this.backupPath);
+                }
+
+                //throw new IOException($"The backup operation for {this.entityName} failed with error.", exception);
+                throw new IOException($"The backup operation failed with error.", exception);
+            }
+
+            return Task.CompletedTask;
+        }
+    }
+}

@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
     public class Program
     {
-        static readonly TimeSpan ShutdownWaitPeriod = TimeSpan.FromSeconds(60);
+        const int DefaultShutdownWaitPeriod = 60;
 
         public static int Main()
         {
@@ -95,7 +95,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 connectionReauthenticator.Init();
             }
 
-            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(ShutdownWaitPeriod, logger);
+            TimeSpan shutdownWaitPeriod = TimeSpan.FromSeconds(configuration.GetValue("ShutdownWaitPeriod", DefaultShutdownWaitPeriod));
+            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(shutdownWaitPeriod, logger);
 
             using (IProtocolHead protocolHead = await GetEdgeHubProtocolHeadAsync(logger, configuration, container, hosting))
             using (var renewal = new CertificateRenewal(certificates, logger))
@@ -106,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 await protocolHead.CloseAsync(CancellationToken.None);
                 logger.LogInformation("Protocol heads stopped.");
 
-                CloseDbStoreProvider(container);
+                await CloseDbStoreProviderAsync(container);
             }
 
             completed.Set();
@@ -145,10 +146,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             return new EdgeHubProtocolHead(protocolHeads, logger);
         }
 
-        static void CloseDbStoreProvider(IContainer container)
+        static async Task CloseDbStoreProviderAsync(IContainer container)
         {
             IDbStoreProvider dbStoreProvider = container.Resolve<IDbStoreProvider>();
-            dbStoreProvider.Close();
+            await dbStoreProvider.CloseAsync();
         }
 
         static void LogLogo(ILogger logger)

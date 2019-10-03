@@ -3,7 +3,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 {
     using System.Threading.Tasks;
 
-    public interface IDbStore : IKeyValueStore<byte[], byte[]>
+    public interface IDbBackupRestore : IDbStore
     {
+        Task BackupAsync(string backupPath);
+
+        Task RestoreAsync(string backupPath);
     }
 }

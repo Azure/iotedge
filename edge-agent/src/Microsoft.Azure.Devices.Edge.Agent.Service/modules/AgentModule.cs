@@ -29,9 +29,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string moduleId;
         readonly Option<string> moduleGenerationId;
         readonly bool useBackupAndRestore;
-        readonly string storageBackupPath;
+        readonly Option<string> storageBackupPath;
 
-        public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds, bool usePersistentStorage, string storagePath, bool useBackupAndRestore, string storageBackupPath)
+        public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds, bool usePersistentStorage, string storagePath, bool useBackupAndRestore, Option<string> storageBackupPath)
             : this(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.None<Uri>(), Option.None<string>(), Constants.EdgeAgentModuleIdentityName, Option.None<string>(), useBackupAndRestore, storageBackupPath)
         {
         }
@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             string moduleId,
             Option<string> moduleGenerationId,
             bool useBackupAndRestore,
-            string storageBackupPath)
+            Option<string> storageBackupPath)
         {
             this.maxRestartCount = maxRestartCount;
             this.intensiveCareTime = intensiveCareTime;
@@ -164,7 +164,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             {
                                 logger.LogError(ex, "Error creating RocksDB store. Falling back to in-memory store.");
                                 return new InMemoryDbStoreProvider(
-                                    Option.Some(this.storageBackupPath),
+                                    this.storageBackupPath,
                                     this.useBackupAndRestore);
                             }
                         }
@@ -172,7 +172,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         {
                             logger.LogInformation($"Using in-memory store");
                             return new InMemoryDbStoreProvider(
-                                Option.Some(this.storageBackupPath),
+                                this.storageBackupPath,
                                 this.useBackupAndRestore);
                         }
                     })

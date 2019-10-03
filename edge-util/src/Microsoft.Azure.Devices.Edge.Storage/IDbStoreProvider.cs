@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Storage
 {
     using System;
+    using System.Threading.Tasks;
 
     /// <summary>
     /// Provides DB Key/Value store
@@ -14,6 +15,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         void RemoveDbStore(string partitionName);
 
-        void Close();
+        Task CloseAsync();
     }
 }

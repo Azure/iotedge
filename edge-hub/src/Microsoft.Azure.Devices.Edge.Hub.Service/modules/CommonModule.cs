@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly string proxy;
         readonly MetricsConfig metricsConfig;
         readonly bool useBackupAndRestore;
-        readonly string storageBackupPath;
+        readonly Option<string> storageBackupPath;
 
         public CommonModule(
             string productInfo,
@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             string proxy,
             MetricsConfig metricsConfig,
             bool useBackupAndRestore,
-            string storageBackupPath)
+            Option<string> storageBackupPath)
         {
             this.productInfo = productInfo;
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
@@ -166,7 +166,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             {
                                 logger.LogError(ex, "Error creating RocksDB store. Falling back to in-memory store.");
                                 return new InMemoryDbStoreProvider(
-                                    Option.Some(this.storageBackupPath),
+                                    this.storageBackupPath,
                                     this.useBackupAndRestore);
                             }
                         }
@@ -174,7 +174,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         {
                             logger.LogInformation($"Using in-memory store");
                             return new InMemoryDbStoreProvider(
-                                Option.Some(this.storageBackupPath),
+                                this.storageBackupPath,
                                 this.useBackupAndRestore);
                         }
                     })

@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     using Newtonsoft.Json;
     using Newtonsoft.Json.Converters;
 
-    public class InMemoryDbStoreProvider : IDbStoreProvider
+    public class InMemoryDbStoreProviderWithBackupRestore : IDbStoreProvider
     {
         const string BackupMetadataFileName = "meta.json";
         const string DefaultPartitionName = "$Default";
@@ -20,12 +20,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         readonly Option<string> backupPath;
         readonly bool useBackupAndRestore;
 
-        public InMemoryDbStoreProvider()
+        InMemoryDbStoreProviderWithBackupRestore()
             : this(Option.None<string>(), false)
         {
         }
 
-        public InMemoryDbStoreProvider(Option<string> backupPath, bool useBackupAndRestore)
+        InMemoryDbStoreProviderWithBackupRestore(Option<string> backupPath, bool useBackupAndRestore)
         {
             this.backupPath = backupPath;
             this.useBackupAndRestore = useBackupAndRestore;
@@ -38,6 +38,18 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
                 this.RestoreDb(backupPathValue);
             }
+        }
+
+        public static async Task<InMemoryDbStoreProviderWithBackupRestore> CreateAsync(string backupPath)
+        {
+            Preconditions.CheckNonWhiteSpace(backupPath, nameof(backupPath));
+
+            string backupFileName = HttpUtility.UrlEncode(entityName);
+            string entityBackupPath = Path.Combine(backupPath, $"{backupFileName}.bin");
+            IItemKeyedCollectionBackupRestore itemKeyedCollectionBackupRestore = new ItemKeyedCollectionBackupRestore(entityBackupPath);
+            InMemoryDbStoreWithBackupRestore store = new InMemoryDbStoreWithBackupRestore(entityName, itemKeyedCollectionBackupRestore, new InMemoryDbStore());
+            await store.RestoreAsync();
+            return store;
         }
 
         private void RestoreDb(string backupPath)
@@ -141,11 +153,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                     CleanupKnownBackups(backupPathValue, backupMetadataList);
                 }
             }
-        }
-
-        public void Dispose()
-        {
-            // No-op
         }
 
         private static void CleanupAllBackups(string backupPath)

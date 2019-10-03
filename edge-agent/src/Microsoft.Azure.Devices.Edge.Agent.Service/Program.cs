@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream;
     using Microsoft.Azure.Devices.Edge.Agent.Service.Modules;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
@@ -71,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             bool usePersistentStorage;
             string storagePath;
             bool enableStorageBackupAndRestore;
-            string storageBackupPath;
+            Option<string> storageBackupPath = Option.None<string>();
             string edgeDeviceHostName;
             string dockerLoggingDriver;
             Dictionary<string, string> dockerLoggingOptions;
@@ -87,9 +88,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 intensiveCareTime = TimeSpan.FromMinutes(configuration.GetValue<int>("IntensiveCareTimeInMinutes"));
                 coolOffTimeUnitInSeconds = configuration.GetValue("CoolOffTimeUnitInSeconds", 10);
                 usePersistentStorage = configuration.GetValue("UsePersistentStorage", true);
-                storagePath = GetStoragePath(configuration);
+
+                // Note: Keep in sync with iotedge-check's edge-agent-storage-mounted-from-host check (edgelet/iotedge/src/check/mod.rs)
+                storagePath = GetOrCreateDirectoryPath(configuration.GetValue<string>("StorageFolder"), EdgeAgentStorageFolder);
                 enableStorageBackupAndRestore = configuration.GetValue("EnableStorageBackupAndRestore", false);
-                storageBackupPath = GetStorageBackupPath(configuration);
+
+                if (enableStorageBackupAndRestore)
+                {
+                    storageBackupPath = Option.Some(GetOrCreateDirectoryPath(configuration.GetValue<string>("BackupFolder"), EdgeAgentStorageBackupFolder));
+                }
+
                 edgeDeviceHostName = configuration.GetValue<string>(Constants.EdgeDeviceHostNameKey);
                 dockerLoggingDriver = configuration.GetValue<string>("DockerLoggingDriver");
                 dockerLoggingOptions = configuration.GetSection("DockerLoggingOptions").Get<Dictionary<string, string>>() ?? new Dictionary<string, string>();
@@ -229,6 +237,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
                 // Attempt to report shutdown of Agent
                 await Cleanup(agentOption, logger);
+                await CloseDbStoreProviderAsync(container);
                 completed.Set();
             }
 
@@ -267,35 +276,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
         }
 
-        // Note: Keep in sync with iotedge-check's edge-agent-storage-mounted-from-host check (edgelet/iotedge/src/check/mod.rs)
-        static string GetStoragePath(IConfiguration configuration)
+        static string GetOrCreateDirectoryPath(string baseDirectoryPath, string directoryName)
         {
-            string baseStoragePath = configuration.GetValue<string>("StorageFolder");
-            if (string.IsNullOrWhiteSpace(baseStoragePath) || !Directory.Exists(baseStoragePath))
+            if (string.IsNullOrWhiteSpace(baseDirectoryPath) || !Directory.Exists(baseDirectoryPath))
             {
-                baseStoragePath = Path.GetTempPath();
+                baseDirectoryPath = Path.GetTempPath();
             }
 
-            string storagePath = Path.Combine(baseStoragePath, EdgeAgentStorageFolder);
-            if (!Directory.Exists(storagePath))
+            string directoryPath = Path.Combine(baseDirectoryPath, directoryName);
+            if (!Directory.Exists(directoryPath))
             {
-                Directory.CreateDirectory(storagePath);
+                Directory.CreateDirectory(directoryPath);
             }
 
-            return storagePath;
-        }
-
-        static string GetStorageBackupPath(IConfiguration configuration)
-        {
-            string baseBackupStoragePath = configuration.GetValue<string>("BackupFolder");
-            if (string.IsNullOrWhiteSpace(baseBackupStoragePath) || !Directory.Exists(baseBackupStoragePath))
-            {
-                baseBackupStoragePath = Path.GetTempPath();
-            }
-
-            string backupStoragePath = Path.Combine(baseBackupStoragePath, EdgeAgentStorageBackupFolder);
-            Directory.CreateDirectory(backupStoragePath);
-            return backupStoragePath;
+            return directoryPath;
         }
 
         static string GetLocalConfigFilePath(IConfiguration configuration, ILogger logger)
@@ -310,6 +304,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             logger.LogInformation($"Local config path: {localConfigPath}");
             return localConfigPath;
+        }
+
+        static async Task CloseDbStoreProviderAsync(IContainer container)
+        {
+            IDbStoreProvider dbStoreProvider = container.Resolve<IDbStoreProvider>();
+            await dbStoreProvider.CloseAsync();
         }
 
         static void LogLogo(ILogger logger)
