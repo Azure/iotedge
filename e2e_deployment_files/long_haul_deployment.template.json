@@ -29,17 +29,14 @@
             "type": "docker",
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-hub:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"443/tcp\": [{\"HostPort\": \"443\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
+              "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"443/tcp\": [{\"HostPort\": \"443\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]},\"Binds\":[\"/home/edgehub-mounted-storage/:/iotedge/storage/\"]}}"
             },
             "env": {
               "CollectMetrics": {
                 "value": "true"
               },
-              "MetricsStoreType": {
-                "value": "influxdb"
-              },
-              "InfluxDbUrl": {
-                "value": "http://influxdb:8086"
+              "storageFolder": {
+                "value": "/iotedge/storage/"
               }
             },
             "status": "running",
@@ -173,12 +170,6 @@
               "ALERT_URL": {
                 "value": "<Snitch.AlertUrl>"
               },
-              "INFLUX_URL": {
-                "value": "http://influxdb:8086"
-              },
-              "INFLUX_DB_NAME": {
-                "value": "_internal"
-              },
               "ANALYZER_URL": {
                 "value": "http://analyzer:15000/api/report"
               },
@@ -197,7 +188,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/snitcher:<Snitch.BuildNumber>-linux-<Architecture>",
-              "createOptions": "{\"HostConfig\":{\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\"]}}"
+              "createOptions": "{\"HostConfig\":{\"Binds\":[\"/var/run/iotedge/mgmt.sock:/var/run/iotedge/mgmt.sock\"]}}"
             }
           },
           "analyzer": {
@@ -215,16 +206,6 @@
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-analyzer:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"15000/tcp\":[{\"HostPort\":\"15000\"}]}}}"
-            }
-          },
-          "influxdb": {
-            "version": "1.0",
-            "type": "docker",
-            "status": "running",
-            "restartPolicy": "on-unhealthy",
-            "settings": {
-              "image": "influxdb:1.7.5",
-              "createOptions": "{\"ExposedPorts\":{\"8086/tcp\":{}},\"HostConfig\":{\"PortBindings\":{\"8086/tcp\":[{\"HostPort\":\"8086\"}]}}}"
             }
           },
           "DirectMethodCloudSender": {
