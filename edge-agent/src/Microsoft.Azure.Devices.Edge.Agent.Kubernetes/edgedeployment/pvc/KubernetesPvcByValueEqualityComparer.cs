@@ -38,10 +38,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
                 return false;
             }
 
+            // For storage class name and volume name, k8s api fills out the missing fields.
+            // for equivalence here, either VolumeName or StorageClassName have to be the same.
             return x.Metadata?.Name == y.Metadata?.Name &&
                   LabelComparer.Equals(x.Metadata?.Labels, y.Metadata?.Labels) &&
-                  x.Spec?.VolumeName == y.Spec?.VolumeName &&
-                  x.Spec?.StorageClassName == y.Spec?.StorageClassName &&
+                  (x.Spec?.VolumeName == y.Spec?.VolumeName ||
+                  x.Spec?.StorageClassName == y.Spec?.StorageClassName) &&
                   x.Spec.AccessModes.SequenceEqual(y.Spec.AccessModes) &&
                   this.GetStorage(x) == this.GetStorage(y);
         }

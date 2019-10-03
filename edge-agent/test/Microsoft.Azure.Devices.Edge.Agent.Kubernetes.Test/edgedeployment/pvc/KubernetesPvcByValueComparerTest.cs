@@ -109,13 +109,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
             x.Metadata.Labels[KubernetesConstants.K8sEdgeDeviceLabel] = "device1";
             Assert.True(comparer.Equals(x, y));
 
+            // Match Either VolumeName or StorageClassName
             x.Spec.VolumeName = "artemus";
-            Assert.False(comparer.Equals(x, y));
+            Assert.True(comparer.Equals(x, y));
             x.Spec.VolumeName = "steve";
+            x.Spec.StorageClassName = "dakota";
             Assert.True(comparer.Equals(x, y));
 
+            // Both VolumeName and StorageClassName differ
+            x.Spec.VolumeName = "artemus";
             x.Spec.StorageClassName = "dakota";
             Assert.False(comparer.Equals(x, y));
+            x.Spec.VolumeName = "steve";
             x.Spec.StorageClassName = "angela";
             Assert.True(comparer.Equals(x, y));
 

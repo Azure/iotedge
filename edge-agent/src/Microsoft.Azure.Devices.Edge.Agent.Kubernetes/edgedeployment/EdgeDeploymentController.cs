@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
@@ -177,7 +178,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     name =>
                     {
                         Events.DeleteDeployment(name);
-                        return this.client.DeleteNamespacedDeployment1Async(name, this.deviceNamespace);
+                        return this.client.DeleteNamespacedDeployment1Async(
+                            name,
+                            this.deviceNamespace,
+                            propagationPolicy: "Foreground",
+                            body: new V1DeleteOptions(propagationPolicy: "Foreground"));
                     });
             await Task.WhenAll(removingTasks);
 
@@ -213,31 +218,37 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     update =>
                     {
                         Events.UpdatePvc(update.To);
-
                         this.pvcMapper.UpdatePersistentVolumeClaim(update.To, update.From);
                         return this.client.ReplaceNamespacedPersistentVolumeClaimAsync(update.To, update.To.Metadata.Name, this.deviceNamespace);
                     });
             await Task.WhenAll(updatingTask);
 
-            // Remove all PVCs that are not in the desired list, and are labled (created by Agent)
-            var removingTasks = diff.Removed
-                .Select(
-                    name =>
-                    {
-                        Events.DeletePvc(name);
-                        return this.client.DeleteNamespacedPersistentVolumeClaimAsync(name, this.deviceNamespace);
-                    });
-            await Task.WhenAll(removingTasks);
+            try
+            {
+                // Remove all PVCs that are not in the desired list, and are labled (created by Agent)
+                var removingTasks = diff.Removed
+                    .Select(
+                        name =>
+                        {
+                            Events.DeletePvc(name);
+                            return this.client.DeleteNamespacedPersistentVolumeClaimAsync(name, this.deviceNamespace);
+                        });
+                await Task.WhenAll(removingTasks);
 
-            // Create all new desired PVCs.
-            var addingTasks = diff.Added
-                .Select(
-                    pvc =>
-                    {
-                        Events.CreatePvc(pvc);
-                        return this.client.CreateNamespacedPersistentVolumeClaimAsync(pvc, this.deviceNamespace);
-                    });
-            await Task.WhenAll(addingTasks);
+                // Create all new desired PVCs.
+                var addingTasks = diff.Added
+                    .Select(
+                        pvc =>
+                        {
+                            Events.CreatePvc(pvc);
+                            return this.client.CreateNamespacedPersistentVolumeClaimAsync(pvc, this.deviceNamespace);
+                        });
+                await Task.WhenAll(addingTasks);
+            }
+            catch (Exception ex) when (!ex.IsFatal())
+            {
+                Events.PvcException(ex);
+            }
         }
 
         bool IsCreatedByController(V1PersistentVolumeClaim claim)
@@ -375,6 +386,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 CreatePvc,
                 DeletePvc,
                 UpdatePvc,
+                PvcException,
                 CreateServiceAccount,
                 DeleteServiceAccount,
                 UpdateServiceAccount
@@ -418,6 +430,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             public static void UpdatePvc(V1PersistentVolumeClaim pvc)
             {
                 Log.LogInformation((int)EventIds.UpdatePvc, $"Update PVC {pvc.Metadata.Name}");
+            }
+
+            public static void PvcException(Exception ex)
+            {
+                Log.LogWarning((int)EventIds.PvcException, ex, "PVC update or deletion failed. This should reconcile over time.");
             }
 
             public static void InvalidCreationString(string kind, string name)
