@@ -1,3 +1,5 @@
+use sysinfo::SystemExt;
+
 /// Additional info for the JSON output of `iotedge check`
 #[derive(Clone, Debug, serde_derive::Serialize)]
 pub(super) struct AdditionalInfo {
@@ -38,6 +40,7 @@ pub(super) struct OsInfo {
     id: Option<String>,
     version_id: Option<String>,
     bitness: usize,
+    system_info: SystemInfo,
 }
 
 impl OsInfo {
@@ -49,6 +52,7 @@ impl OsInfo {
             // Technically wrong if someone compiles and runs a x86 build on an x64 OS, but we don't provide
             // Windows x86 builds.
             bitness: std::mem::size_of::<usize>() * 8,
+            system_info: SystemInfo::new(),
         };
 
         result.version_id = os_version()
@@ -76,6 +80,7 @@ impl OsInfo {
             // Technically wrong if someone runs an arm32 build on arm64,
             // but we have dedicated arm64 builds so hopefully they don't.
             bitness: std::mem::size_of::<usize>() * 8,
+            system_info: SystemInfo::new(),
         };
 
         if let Ok(os_release) = File::open("/etc/os-release") {
@@ -182,5 +187,35 @@ pub(super) fn os_version() -> Result<
             os_version_info.dwBuildNumber,
             csd_version,
         ))
+    }
+}
+
+#[derive(Clone, Debug, serde_derive::Serialize)]
+struct SystemInfo {
+    total_ram: u64,
+    used_ram: u64,
+    total_swap: u64,
+    used_swap: u64,
+
+    disks: Vec<String>,
+}
+
+impl SystemInfo {
+    pub fn new() -> Self {
+        let mut system = sysinfo::System::new();
+        system.refresh_all();
+
+        SystemInfo {
+            total_ram: system.get_total_memory(),
+            used_ram: system.get_used_memory(),
+            total_swap: system.get_total_swap(),
+            used_swap: system.get_used_swap(),
+
+            disks: system
+                .get_disks()
+                .iter()
+                .map(|d| format!("{:?}", d))
+                .collect(),
+        }
     }
 }
