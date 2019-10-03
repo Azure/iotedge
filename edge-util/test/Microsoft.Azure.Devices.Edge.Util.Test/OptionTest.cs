@@ -259,5 +259,42 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                 });
             Assert.Equal(2, i);
         }
+
+        [Fact]
+        [Unit]
+        public void TestFilterMap_NoPredicate_DropsNones()
+        {
+            var values = new Option<int>[]
+                         {
+                            Option.Some(1),
+                            Option.Some(2),
+                            Option.None<int>(),
+                            Option.Some(3),
+                            Option.None<int>(),
+                         };
+
+            var result = values.FilterMap().ToList();
+
+            Assert.Equal(new[] { 1, 2, 3 }, result);
+        }
+
+        [Fact]
+        [Unit]
+        public void TestFilterMap_PredicateFilters_and_DropsNones()
+        {
+            var values = new Option<int>[]
+                         {
+                            Option.Some(1),
+                            Option.Some(2),
+                            Option.None<int>(),
+                            Option.Some(3),
+                            Option.None<int>(),
+                            Option.Some(4)
+                         };
+
+            var result = values.FilterMap(x => x % 2 == 0).ToList();
+
+            Assert.Equal(new[] { 2, 4 }, result);
+        }
     }
 }

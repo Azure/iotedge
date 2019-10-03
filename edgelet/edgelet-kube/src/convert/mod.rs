@@ -12,10 +12,25 @@ pub use self::to_k8s::{
     trust_bundle_to_config_map,
 };
 
+const DNS_DOMAIN_MAX_SIZE: usize = 253;
+
+pub fn sanitize_dns_domain(domain: &str) -> Result<String> {
+    let sanitized = domain
+        .split('.')
+        .map(|label| sanitize_dns_value(label))
+        .collect::<Result<Vec<String>>>()?
+        .join(".");
+    if sanitized.len() <= DNS_DOMAIN_MAX_SIZE {
+        Ok(sanitized)
+    } else {
+        Err(ErrorKind::InvalidDnsName(domain.to_owned()).into())
+    }
+}
+
 pub fn sanitize_dns_value(name: &str) -> Result<String> {
     let name_string = sanitize_dns_label(name);
     if name_string.is_empty() {
-        Err(ErrorKind::InvalidModuleName(name.to_owned()))?
+        Err(ErrorKind::InvalidModuleName(name.to_owned()).into())
     } else {
         Ok(name_string)
     }

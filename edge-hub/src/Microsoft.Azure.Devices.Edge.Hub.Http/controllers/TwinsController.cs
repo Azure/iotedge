@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
     using System.Net;
     using System.Text;
     using System.Threading.Tasks;
-    using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.Mvc.Filters;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
@@ -16,6 +15,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 
     public class TwinsController : Controller
     {
+        static readonly string supportedContentType = "application/json; charset=utf-8";
+
         readonly Task<IEdgeHub> edgeHubGetter;
         readonly IValidator<MethodRequest> validator;
         IIdentity identity;
@@ -38,30 +39,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 
         [HttpPost]
         [Route("twins/{deviceId}/methods")]
-        public Task<IActionResult> InvokeDeviceMethodAsync([FromRoute] string deviceId, [FromBody] MethodRequest methodRequest)
+        public async Task InvokeDeviceMethodAsync([FromRoute] string deviceId, [FromBody] MethodRequest methodRequest)
         {
             deviceId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId)));
             this.validator.Validate(methodRequest);
 
             var directMethodRequest = new DirectMethodRequest(deviceId, methodRequest.MethodName, methodRequest.PayloadBytes, methodRequest.ResponseTimeout, methodRequest.ConnectTimeout);
-            return this.InvokeMethodAsync(directMethodRequest);
+            var methodResult = await this.InvokeMethodAsync(directMethodRequest);
+            await this.SendResponse(methodResult);
         }
 
         [HttpPost]
         [Route("twins/{deviceId}/modules/{moduleId}/methods")]
-        public Task<IActionResult> InvokeModuleMethodAsync([FromRoute] string deviceId, [FromRoute] string moduleId, [FromBody] MethodRequest methodRequest)
+        public async Task InvokeModuleMethodAsync([FromRoute] string deviceId, [FromRoute] string moduleId, [FromBody] MethodRequest methodRequest)
         {
             deviceId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId)));
             moduleId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId)));
             this.validator.Validate(methodRequest);
 
             var directMethodRequest = new DirectMethodRequest($"{deviceId}/{moduleId}", methodRequest.MethodName, methodRequest.PayloadBytes, methodRequest.ResponseTimeout, methodRequest.ConnectTimeout);
-            return this.InvokeMethodAsync(directMethodRequest);
+            var methodResult = await this.InvokeMethodAsync(directMethodRequest);
+            await this.SendResponse(methodResult);
         }
 
         internal static MethodResult GetMethodResult(DirectMethodResponse directMethodResponse) =>
-            directMethodResponse.Exception.Map(e => new MethodErrorResult(directMethodResponse.Status, null, e.Message, string.Empty) as MethodResult)
-                .GetOrElse(() => new MethodResult(directMethodResponse.Status, GetRawJson(directMethodResponse.Data)));
+            directMethodResponse.Exception.Map(e => new MethodErrorResult(directMethodResponse.HttpStatusCode, e.Message) as MethodResult)
+                .GetOrElse(() => new MethodSuccessResult(directMethodResponse.Status, GetRawJson(directMethodResponse.Data)));
 
         internal static JRaw GetRawJson(byte[] bytes)
         {
@@ -74,13 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             return new JRaw(json);
         }
 
-        static int GetContentLength(MethodResult methodResult)
-        {
-            string json = JsonConvert.SerializeObject(methodResult);
-            return json.Length;
-        }
-
-        async Task<IActionResult> InvokeMethodAsync(DirectMethodRequest directMethodRequest)
+        async Task<MethodResult> InvokeMethodAsync(DirectMethodRequest directMethodRequest)
         {
             Events.ReceivedMethodCall(directMethodRequest, this.identity);
             IEdgeHub edgeHub = await this.edgeHubGetter;
@@ -88,13 +85,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             Events.ReceivedMethodCallResponse(directMethodRequest, this.identity);
 
             MethodResult methodResult = GetMethodResult(directMethodResponse);
-            HttpResponse response = this.Request?.HttpContext?.Response;
-            if (response != null)
-            {
-                response.ContentLength = GetContentLength(methodResult);
-            }
 
-            return this.StatusCode((int)directMethodResponse.HttpStatusCode, methodResult);
+            return methodResult;
+        }
+
+        async Task SendResponse(MethodResult methodResult)
+        {
+            var resultJsonContent = JsonConvert.SerializeObject(methodResult);
+            var resultUtf8Bytes = Encoding.UTF8.GetBytes(resultJsonContent);
+
+            this.Response.ContentLength = resultUtf8Bytes.Length;
+            this.Response.ContentType = supportedContentType;
+            this.Response.StatusCode = (int)methodResult.StatusCode;
+
+            await this.Response.Body.WriteAsync(resultUtf8Bytes, 0, resultUtf8Bytes.Length);
         }
 
         static class Events

@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public async Task ReconcileAsync(CancellationToken token)
         {
-            Option<DeploymentStatus> status = Option.None<DeploymentStatus>();
+            DeploymentStatus status = DeploymentStatus.Unknown;
             ModuleSet moduleSetToReport = null;
             using (await this.reconcileLock.LockAsync(token))
             {
@@ -127,7 +127,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                         // But that required ModuleSet.Diff to be updated to include modules updated by deployment, and modules updated by state change.
                         IImmutableDictionary<string, IModuleIdentity> identities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desiredModuleSet, current);
                         Plan plan = await this.planner.PlanAsync(desiredModuleSet, current, deploymentConfig.Runtime, identities);
-                        if (!plan.IsEmpty)
+                        if (plan.IsEmpty)
+                        {
+                            status = DeploymentStatus.Success;
+                        }
+                        else
                         {
                             try
                             {
@@ -135,7 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                                 await this.UpdateCurrentConfig(deploymentConfigInfo);
                                 if (result)
                                 {
-                                    status = Option.Some(DeploymentStatus.Success);
+                                    status = DeploymentStatus.Success;
                                 }
                             }
                             catch (Exception ex) when (!ex.IsFatal())
@@ -148,7 +152,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                     }
                     else
                     {
-                        status = Option.Some(DeploymentStatus.Success);
+                        status = DeploymentStatus.Success;
                     }
                 }
                 catch (Exception ex) when (!ex.IsFatal())
@@ -156,22 +160,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                     switch (ex)
                     {
                         case ConfigEmptyException _:
-                            status = Option.Some(new DeploymentStatus(DeploymentStatusCode.ConfigEmptyError, ex.Message));
+                            status = new DeploymentStatus(DeploymentStatusCode.ConfigEmptyError, ex.Message);
                             Events.EmptyConfig(ex);
                             break;
 
                         case InvalidSchemaVersionException _:
-                            status = Option.Some(new DeploymentStatus(DeploymentStatusCode.InvalidSchemaVersion, ex.Message));
+                            status = new DeploymentStatus(DeploymentStatusCode.InvalidSchemaVersion, ex.Message);
                             Events.InvalidSchemaVersion(ex);
                             break;
 
                         case ConfigFormatException _:
-                            status = Option.Some(new DeploymentStatus(DeploymentStatusCode.ConfigFormatError, ex.Message));
+                            status = new DeploymentStatus(DeploymentStatusCode.ConfigFormatError, ex.Message);
                             Events.InvalidConfigFormat(ex);
                             break;
 
                         default:
-                            status = Option.Some(new DeploymentStatus(DeploymentStatusCode.Failed, ex.Message));
+                            status = new DeploymentStatus(DeploymentStatusCode.Failed, ex.Message);
                             Events.UnknownFailure(ex);
                             break;
                     }

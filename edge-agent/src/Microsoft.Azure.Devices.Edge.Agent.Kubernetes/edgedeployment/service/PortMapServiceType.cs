@@ -1,9 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
+namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service
 {
-    using System;
-    using System.Collections.Generic;
     using System.Runtime.Serialization;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Converters;
