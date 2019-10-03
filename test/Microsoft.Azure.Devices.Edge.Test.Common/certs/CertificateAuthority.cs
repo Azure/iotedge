@@ -2,12 +2,12 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
 {
     using System;
+    using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
-    using System.IO;
     using Microsoft.Azure.Devices.Edge.Util;
-    using RootCaKeys = System.ValueTuple<string, string, string>;
     using Serilog;
+    using RootCaKeys = System.ValueTuple<string, string, string>;
 
     public class CertificateAuthority
     {
@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
 
         public static async Task<CertificateAuthority> CreateDpsX509CaAsync(string deviceId, RootCaKeys rootCa, string scriptPath, CancellationToken token)
         {
-            if(!File.Exists(Path.Combine(scriptPath, "certs", "azure-iot-test-only.root.ca.cert.pem")))
+            if (!File.Exists(Path.Combine(scriptPath, "certs", "azure-iot-test-only.root.ca.cert.pem")))
             {
                 // [9/26/2019] Setup all the environment for the certificates.
                 // More info: /iotedge/scripts/linux/runE2ETest.sh : run_test()
@@ -43,8 +43,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
                 Log.Verbose("----------------------------------------");
             }
 
-            Certificates X509Certificate = await OsPlatform.Current.CreateDeviceCertificatesAsync(deviceId, scriptPath, token);
-            return new CertificateAuthority(X509Certificate, scriptPath);
+            Certificates x509Certificate = await OsPlatform.Current.CreateDeviceCertificatesAsync(deviceId, scriptPath, token);
+            return new CertificateAuthority(x509Certificate, scriptPath);
         }
 
         public static CertificateAuthority GetQuickstart()

@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public void SetDpsX509(string idScope, string registrationId, CertificateAuthority ca)
         {
-            Uri CertUri = new Uri(ca.Certificate.CertificatePath, UriKind.Absolute);
+            Uri certUri = new Uri(ca.Certificate.CertificatePath, UriKind.Absolute);
             Uri pKeyUri = new Uri(ca.Certificate.KeyPath, UriKind.Absolute);
 
             this.config.RemoveIfExists("provisioning");
@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config.ReplaceOrAdd("provisioning.global_endpoint", GlobalEndPoint);
             this.config.ReplaceOrAdd("provisioning.scope_id", idScope);
             this.config.ReplaceOrAdd("provisioning.attestation.method", "x509");
-            this.config.ReplaceOrAdd("provisioning.attestation.identity_cert", CertUri.ToString());
+            this.config.ReplaceOrAdd("provisioning.attestation.identity_cert", certUri.ToString());
             this.config.ReplaceOrAdd("provisioning.attestation.identity_pk", pKeyUri.ToString());
             this.config.ReplaceOrAdd("provisioning.attestation.registration_id", registrationId);
         }
