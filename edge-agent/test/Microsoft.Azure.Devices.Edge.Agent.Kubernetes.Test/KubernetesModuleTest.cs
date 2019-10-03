@@ -16,22 +16,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Dictionary<string, EnvVal> goodEnv = new Dictionary<string, EnvVal>();
             Dictionary<string, EnvVal> newEnv = new Dictionary<string, EnvVal> { ["a"] = new EnvVal("B") };
             IList<string> dockerEnv = new List<string> { "c=d" };
-            CombinedKubernetesConfig goodConfig = new CombinedKubernetesConfig("image:tag", new CreatePodParameters(), Option.None<AuthConfig>());
-            CombinedKubernetesConfig imageDifferent = new CombinedKubernetesConfig("image:newtag", new CreatePodParameters(), Option.None<AuthConfig>());
+            CombinedKubernetesConfig goodConfig = new CombinedKubernetesConfig("image:tag", CreateOptions(), Option.None<AuthConfig>());
+            CombinedKubernetesConfig imageDifferent = new CombinedKubernetesConfig("image:newtag", CreateOptions(), Option.None<AuthConfig>());
 
             var auth1 = new AuthConfig("secret1");
-            CombinedKubernetesConfig auth1Config = new CombinedKubernetesConfig("image:tag", new CreatePodParameters(), Option.Some(auth1));
+            CombinedKubernetesConfig auth1Config = new CombinedKubernetesConfig("image:tag", CreateOptions(), Option.Some(auth1));
 
             var auth2 = new AuthConfig("secret2");
-            CombinedKubernetesConfig auth2Config = new CombinedKubernetesConfig("image:tag", new CreatePodParameters(), Option.Some(auth2));
+            CombinedKubernetesConfig auth2Config = new CombinedKubernetesConfig("image:tag", CreateOptions(), Option.Some(auth2));
 
             var auth3 = new AuthConfig("secret3");
-            CombinedKubernetesConfig auth3Config = new CombinedKubernetesConfig("image:tag", new CreatePodParameters(), Option.Some(auth3));
+            CombinedKubernetesConfig auth3Config = new CombinedKubernetesConfig("image:tag", CreateOptions(), Option.Some(auth3));
 
             var auth4 = new AuthConfig("secret4");
-            CombinedKubernetesConfig auth4Config = new CombinedKubernetesConfig("image:tag", new CreatePodParameters(), Option.Some(auth4));
+            CombinedKubernetesConfig auth4Config = new CombinedKubernetesConfig("image:tag", CreateOptions(), Option.Some(auth4));
 
-            CombinedKubernetesConfig createContainerConfigDifferent = new CombinedKubernetesConfig("image:tag", new CreatePodParameters { Env = dockerEnv }, Option.None<AuthConfig>());
+            CombinedKubernetesConfig createContainerConfigDifferent = new CombinedKubernetesConfig("image:tag", CreateOptions(dockerEnv), Option.None<AuthConfig>());
 
             ConfigurationInfo goodInfo = new ConfigurationInfo(string.Empty);
 
@@ -45,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var m6 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Stopped, RestartPolicy.Always, goodInfo, goodEnv, goodConfig, ImagePullPolicy.OnCreate);
 
             var m7 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, goodInfo, goodEnv, goodConfig, ImagePullPolicy.OnCreate);
-            var m8 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Never,  goodInfo, goodEnv, goodConfig, ImagePullPolicy.OnCreate);
+            var m8 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Never, goodInfo, goodEnv, goodConfig, ImagePullPolicy.OnCreate);
 
             var m9 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, goodInfo, goodEnv, imageDifferent, ImagePullPolicy.OnCreate);
             var m10 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, goodInfo, goodEnv, auth1Config, ImagePullPolicy.OnCreate);
@@ -76,5 +76,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Assert.False(m1.IsOnlyModuleStatusChanged(m2));
             Assert.False(m1.IsOnlyModuleStatusChanged(m9));
         }
+
+        static CreatePodParameters CreateOptions(IList<string> env = null)
+            => new CreatePodParameters(env, null, null, null, null, null);
     }
 }

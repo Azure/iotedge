@@ -90,18 +90,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             List<V1EnvVar> envVars = this.CollectEnv(module, identity);
 
             // Convert docker labels to annotations because docker labels don't have the same restrictions as Kubernetes labels.
-            Dictionary<string, string> annotations = Option.Maybe(module.Config.CreateOptions?.Labels)
+            Dictionary<string, string> annotations = module.Config.CreateOptions.Labels
                 .Map(dockerLabels => dockerLabels.ToDictionary(label => KubeUtils.SanitizeAnnotationKey(label.Key), label => label.Value))
                 .GetOrElse(() => new Dictionary<string, string>());
             annotations[KubernetesConstants.K8sEdgeOriginalModuleId] = ModuleIdentityHelper.GetModuleName(identity.ModuleId);
 
             // Per container settings:
             // exposed ports
-            Option<List<V1ContainerPort>> exposedPorts = Option.Maybe(module.Config?.CreateOptions?.ExposedPorts)
+            Option<List<V1ContainerPort>> exposedPorts = module.Config.CreateOptions.ExposedPorts
                 .Map(PortExtensions.GetContainerPorts);
 
             // privileged container
-            Option<V1SecurityContext> securityContext = Option.Maybe(module.Config?.CreateOptions?.HostConfig?.Privileged)
+            Option<V1SecurityContext> securityContext = module.Config.CreateOptions.HostConfig
+                .Filter(config => config.Privileged)
                 .Map(config => new V1SecurityContext(privileged: true));
 
             // Bind mounts
@@ -139,18 +140,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
         {
             var envList = module.Env.Select(env => new V1EnvVar(env.Key, env.Value.Value)).ToList();
 
-            char[] envSplit = { '=' };
-            if (module.Config?.CreateOptions?.Env != null)
-            {
-                foreach (string hostEnv in module.Config?.CreateOptions?.Env)
-                {
-                    string[] keyValue = hostEnv.Split(envSplit, 2);
-                    if (keyValue.Length == 2)
-                    {
-                        envList.Add(new V1EnvVar(keyValue[0], keyValue[1]));
-                    }
-                }
-            }
+            module.Config.CreateOptions.Env
+                .Map(env => env.Select(hostEnv => hostEnv.Split('=')).Where(keyValue => keyValue.Length == 2).Select(keyValue => new V1EnvVar(keyValue[0], keyValue[1])))
+                .ForEach(hostEnv => envList.AddRange(hostEnv));
 
             envList.Add(new V1EnvVar(CoreConstants.IotHubHostnameVariableName, identity.IotHubHostname));
             envList.Add(new V1EnvVar(CoreConstants.EdgeletAuthSchemeVariableName, "sasToken"));
@@ -209,51 +201,43 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
 
             var volumeMountList = new List<V1VolumeMount>(proxyMountList);
 
-            if (module.Config?.CreateOptions?.HostConfig?.Binds != null)
-            {
-                foreach (string bind in module.Config?.CreateOptions?.HostConfig?.Binds)
-                {
-                    string[] bindSubstrings = bind.Split(':');
-                    if (bindSubstrings.Length >= 2)
-                    {
-                        string name = KubeUtils.SanitizeDNSValue(bindSubstrings[0]);
-                        string type = "DirectoryOrCreate";
-                        string hostPath = bindSubstrings[0];
-                        volumeList.Add(new V1Volume(name, hostPath: new V1HostPathVolumeSource(hostPath, type)));
+            // collect volumes and volumes from HostConfig.Binds section
+            var binds = module.Config.CreateOptions.HostConfig
+                .FlatMap(config => Option.Maybe(config.Binds))
+                .Map(
+                    hostBinds => hostBinds
+                        .Select(bind => bind.Split(':'))
+                        .Where(bind => bind.Length >= 2)
+                        .Select(bind => new { Name = KubeUtils.SanitizeDNSValue(bind[0]), HostPath = bind[0], MountPath = bind[1], IsReadOnly = bind.Length > 2 && bind[2].Contains("ro") })
+                        .ToList());
 
-                        string mountPath = bindSubstrings[1];
-                        bool readOnly = bindSubstrings.Length > 2 && bindSubstrings[2].Contains("ro");
-                        volumeMountList.Add(new V1VolumeMount(mountPath, name, readOnlyProperty: readOnly));
-                    }
-                }
-            }
+            binds.Map(hostBinds => hostBinds.Select(bind => new V1Volume(bind.Name, hostPath: new V1HostPathVolumeSource(bind.HostPath, "DirectoryOrCreate"))))
+                .ForEach(volumes => volumeList.AddRange(volumes));
 
-            if (module.Config?.CreateOptions?.HostConfig?.Mounts != null)
-            {
-                foreach (Mount mount in module.Config?.CreateOptions?.HostConfig?.Mounts)
-                {
-                    if (mount.Type.Equals("bind", StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        string name = KubeUtils.SanitizeDNSValue(mount.Source);
-                        string type = "DirectoryOrCreate";
-                        string hostPath = mount.Source;
-                        volumeList.Add(new V1Volume(name, hostPath: new V1HostPathVolumeSource(hostPath, type)));
+            binds.Map(hostBinds => hostBinds.Select(bind => new V1VolumeMount(bind.MountPath, bind.Name, readOnlyProperty: bind.IsReadOnly)))
+                .ForEach(mounts => volumeMountList.AddRange(mounts));
 
-                        string mountPath = mount.Target;
-                        bool readOnly = mount.ReadOnly;
-                        volumeMountList.Add(new V1VolumeMount(mountPath, name, readOnlyProperty: readOnly));
-                    }
-                    else if (mount.Type.Equals("volume", StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        string name = KubeUtils.SanitizeDNSValue(mount.Source);
-                        string mountPath = mount.Target;
-                        volumeList.Add(new V1Volume(name, emptyDir: new V1EmptyDirVolumeSource()));
+            // collect volumes and volumes from HostConfig.Mounts section for binds to host path
+            var bindMounts = module.Config.CreateOptions.HostConfig
+                .FlatMap(config => Option.Maybe(config.Mounts))
+                .Map(mounts => mounts.Where(mount => mount.Type.Equals("bind", StringComparison.InvariantCultureIgnoreCase)).ToList());
 
-                        bool readOnly = mount.ReadOnly;
-                        volumeMountList.Add(new V1VolumeMount(mountPath, name, readOnlyProperty: readOnly));
-                    }
-                }
-            }
+            bindMounts.Map(mounts => mounts.Select(mount => new V1Volume(KubeUtils.SanitizeDNSValue(mount.Source), hostPath: new V1HostPathVolumeSource(mount.Source, "DirectoryOrCreate"))))
+                .ForEach(volumes => volumeList.AddRange(volumes));
+
+            bindMounts.Map(mounts => mounts.Select(mount => new V1VolumeMount(mount.Target, KubeUtils.SanitizeDNSValue(mount.Source), readOnlyProperty: mount.ReadOnly)))
+                .ForEach(mounts => volumeMountList.AddRange(mounts));
+
+            // collect volumes and volumes from HostConfig.Mounts section for volumes via emptyDir
+            var volumeMounts = module.Config.CreateOptions.HostConfig
+                .FlatMap(config => Option.Maybe(config.Mounts))
+                .Map(mounts => mounts.Where(mount => mount.Type.Equals("volume", StringComparison.InvariantCultureIgnoreCase)).ToList());
+
+            volumeMounts.Map(mounts => mounts.Select(mount => new V1Volume(KubeUtils.SanitizeDNSValue(mount.Source), emptyDir: new V1EmptyDirVolumeSource())))
+                .ForEach(volumes => volumeList.AddRange(volumes));
+
+            volumeMounts.Map(mounts => mounts.Select(mount => new V1VolumeMount(mount.Target, KubeUtils.SanitizeDNSValue(mount.Source), readOnlyProperty: mount.ReadOnly)))
+                .ForEach(mounts => volumeMountList.AddRange(mounts));
 
             return (volumeList, proxyMountList, volumeMountList);
         }

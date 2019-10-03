@@ -18,8 +18,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.NodeSelector = nodeSelector;
         }
 
+        static class ExperimentalParameterNames
+        {
+            public const string Section = "k8s-experimental";
+            public const string NodeSelector = "NodeSelector";
+        }
+
         public static Option<KubernetesExperimentalCreatePodParameters> Parse(IDictionary<string, JToken> other)
-            => Option.Maybe(other).FlatMap(options => options.Get("k8s-experimental").FlatMap(ParseParameters));
+            => Option.Maybe(other).FlatMap(options => options.Get(ExperimentalParameterNames.Section).FlatMap(ParseParameters));
 
         static Option<KubernetesExperimentalCreatePodParameters> ParseParameters(JToken experimental)
             => Option.Maybe(experimental as JObject)
@@ -35,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         {
             Dictionary<string, JToken> options = PrepareSupportedOptionsStore(experimental);
 
-            Option<IDictionary<string, string>> nodeSelector = options.Get("NodeSelector")
+            Option<IDictionary<string, string>> nodeSelector = options.Get(ExperimentalParameterNames.NodeSelector)
                 .FlatMap(selector => Option.Maybe(selector.ToObject<IDictionary<string, string>>()))
                 .Filter(selector => selector.Any());
 

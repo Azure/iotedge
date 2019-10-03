@@ -17,10 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         [JsonConstructor]
         CombinedKubernetesConfig(string image, CreatePodParameters createOptions, AuthConfig auth)
+            : this(image, createOptions, Option.Maybe(auth))
         {
-            this.Image = Preconditions.CheckNonWhiteSpace(image, nameof(image)).Trim();
-            this.CreateOptions = Preconditions.CheckNotNull(createOptions, nameof(createOptions));
-            this.AuthConfig = Option.Maybe(auth);
         }
 
         [JsonProperty(Required = Required.Always, PropertyName = "image")]

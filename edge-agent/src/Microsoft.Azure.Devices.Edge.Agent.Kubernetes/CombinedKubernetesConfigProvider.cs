@@ -45,15 +45,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         {
             CombinedDockerConfig dockerConfig = this.GetCombinedConfig(module, runtimeInfo);
 
-            CreatePodParameters createOptions = new CreatePodParameters
-            {
-                Env = dockerConfig.CreateOptions.Env,
-                Image = dockerConfig.CreateOptions.Image,
-                Labels = dockerConfig.CreateOptions.Labels,
-                ExposedPorts = dockerConfig.CreateOptions.ExposedPorts,
-                HostConfig = dockerConfig.CreateOptions.HostConfig,
-                NetworkingConfig = dockerConfig.CreateOptions.NetworkingConfig,
-            };
+            CreatePodParameters createOptions = new CreatePodParameters(
+                dockerConfig.CreateOptions.Env,
+                dockerConfig.CreateOptions.ExposedPorts,
+                dockerConfig.CreateOptions.HostConfig,
+                dockerConfig.CreateOptions.Image,
+                dockerConfig.CreateOptions.Labels,
+                dockerConfig.CreateOptions.NetworkingConfig);
 
             if (this.enableKubernetesExtensions)
             {
