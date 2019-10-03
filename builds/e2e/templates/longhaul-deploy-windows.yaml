@@ -14,12 +14,7 @@ parameters:
   loadGen.message.frequency: ''
 
 steps:
-  - task: CopyFiles@2
-    displayName: 'Copy Edgelet Artifact'
-    inputs:
-      SourceFolder: "$(Build.StagingDirectory)/${{ parameters['edgelet.artifact.name'] }}"
-      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['edgelet.artifact.name'] }}"
-      CleanTargetFolder: true
+  # Normally, we would also have a Copy Edgelet Artifact step, however this breaks the build for 1.0.8
   - task: CopyFiles@2
     displayName: 'Copy Images Artifact'
     inputs:
