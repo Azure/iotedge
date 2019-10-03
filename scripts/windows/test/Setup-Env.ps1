@@ -71,7 +71,7 @@ Invoke-Expression $InstallationScriptPath
 $MountedStoragePath = "C:\data\edgehub"
 If ((Test-Path $MountedStoragePath))
 {
-    Remove-Item $MountedStoragePath -Recurse -Force
+    Remove-Item $MountedStoragePath -Recurse -Force | Out-Null
 }
 
 If ($osEdition -eq "IoTUAP")    # Windows IoT Core - update iotedge
