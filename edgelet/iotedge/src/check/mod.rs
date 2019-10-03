@@ -17,6 +17,7 @@ use futures::{Future, IntoFuture, Stream};
 #[cfg(unix)]
 use libc;
 use regex::Regex;
+use serde::{Serialize, Serializer};
 use serde_json;
 
 use edgelet_core::{
@@ -211,11 +212,12 @@ pub struct Check {
 
     additional_info: AdditionalInfo,
 
+    iothub_hostname: Option<String>,
+
     // These optional fields are populated by the checks
     settings: Option<Settings>,
     docker_host_arg: Option<String>,
     docker_server_version: Option<String>,
-    iothub_hostname: Option<String>,
     device_ca_cert_path: Option<PathBuf>,
 }
 
@@ -242,8 +244,24 @@ pub(crate) enum CheckResult {
     /// Check was skipped because of errors from some previous checks. Should be treated as an error.
     Skipped,
 
+    /// Check failed, and further checks should be performed.
+    Failed(failure::Error),
+
     /// Check failed, and further checks should not be performed.
     Fatal(failure::Error),
+}
+impl Default for CheckResult {
+    fn default() -> Self {
+        CheckResult::Ok
+    }
+}
+impl Serialize for CheckResult {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.collect_str(&format!("{:?}", self))
+    }
 }
 
 impl Check {

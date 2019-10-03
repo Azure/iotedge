@@ -24,31 +24,30 @@ use edgelet_docker::Settings;
 use edgelet_http::client::ClientImpl;
 use edgelet_http::MaybeProxyClient;
 
-use crate::check::{CheckResult, Check};
+use crate::check::{Check, CheckResult};
 use crate::error::{Error, ErrorKind, FetchLatestVersionsReason};
 use crate::LatestVersions;
 
 pub(crate) trait Checker {
     fn id(&self) -> &'static str;
     fn description(&self) -> &'static str;
-    fn check(&mut self, state: &mut Check) -> Result<CheckResult, failure::Error>;
+    fn result(&self) -> &CheckResult;
 }
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct WellFormedConfig {
-    iothub_hostname: Option<String>,
+    result: CheckResult,
+    settings: Option<Settings>,
 }
-impl Checker for WellFormedConfig {
-    fn id(&self) -> &'static str {
-        "config-yaml-well-formed"
+impl WellFormedConfig {
+    fn new(check: &Check) -> Self {
+        let mut checker = Self::default();
+        checker.result = checker.execute(check).unwrap_or_else(CheckResult::Failed);
+        checker
     }
 
-    fn description(&self) -> &'static str {
-        "config.yaml is well-formed"
-    }
-
-    fn check(&mut self, state: &mut Check) -> Result<CheckResult, failure::Error> {
-        let config_file = &state.config_file;
+    fn execute(&mut self, check: &Check) -> Result<CheckResult, failure::Error> {
+        let config_file = &check.config_file;
 
         // The config crate just returns a "file not found" error when it can't open the file for any reason,
         // even if the real error was a permissions issue.
@@ -78,7 +77,7 @@ impl Checker for WellFormedConfig {
         let settings = match Settings::new(config_file) {
             Ok(settings) => settings,
             Err(err) => {
-                let message = if state.verbose {
+                let message = if check.verbose {
                     format!(
                     "The IoT Edge daemon's configuration file {} is not well-formed.\n\
                      Note: In case of syntax errors, the error may not be exactly at the reported line number and position.",
@@ -94,27 +93,37 @@ impl Checker for WellFormedConfig {
             }
         };
 
-        state.settings = Some(settings);
+        self.settings = Some(settings);
 
         Ok(CheckResult::Ok)
+    }
+}
+impl Checker for WellFormedConfig {
+    fn id(&self) -> &'static str {
+        "config-yaml-well-formed"
+    }
+    fn description(&self) -> &'static str {
+        "config.yaml is well-formed"
+    }
+    fn result(&self) -> &CheckResult {
+        &self.result
     }
 }
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct WellFormedConnectionString {
+    result: CheckResult,
     iothub_hostname: Option<String>,
 }
-impl Checker for WellFormedConnectionString {
-    fn id(&self) -> &'static str {
-        "connection-string"
+impl WellFormedConnectionString {
+    fn new(check: &Check, config: &WellFormedConfig) -> Self {
+        let mut checker = Self::default();
+        checker.result = checker.execute(check, config).unwrap_or_else(CheckResult::Failed);
+        checker
     }
 
-    fn description(&self) -> &'static str {
-        "config.yaml has well-formed connection string"
-    }
-
-    fn check(&mut self, state: &mut Check) -> Result<CheckResult, failure::Error> {
-        let settings = if let Some(settings) = &state.settings {
+    fn execute(&mut self, check: &Check, config: &WellFormedConfig) -> Result<CheckResult, failure::Error> {
+        let settings = if let Some(settings) = &config.settings {
             settings
         } else {
             return Ok(CheckResult::Skipped);
@@ -131,12 +140,26 @@ impl Checker for WellFormedConnectionString {
                 }
                 ManualAuthMethod::X509(x509) => x509.iothub_hostname().to_owned(),
             };
-            state.iothub_hostname = Some(hub.to_owned());
+
             self.iothub_hostname = Some(hub.to_owned());
-        } else if state.iothub_hostname.is_none() {
-            return Err(Context::new("Device is not using manual provisioning, so Azure IoT Hub hostname needs to be specified with --iothub-hostname").into());
+        } else {
+            self.iothub_hostname = check.iothub_hostname.clone();
+            if check.iothub_hostname.is_none() {
+                return Err(Context::new("Device is not using manual provisioning, so Azure IoT Hub hostname needs to be specified with --iothub-hostname").into());
+            }
         };
 
         Ok(CheckResult::Ok)
+    }
+}
+impl Checker for WellFormedConnectionString {
+    fn id(&self) -> &'static str {
+        "connection-string"
+    }
+    fn description(&self) -> &'static str {
+        "config.yaml has well-formed connection string"
+    }
+    fn result(&self) -> &CheckResult {
+        &self.result
     }
 }
