@@ -1,12 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Storage
 {
     public enum SerializationFormat
     {
-        Unknown = -1,
         ProtoBuf = 0,
     }
 }

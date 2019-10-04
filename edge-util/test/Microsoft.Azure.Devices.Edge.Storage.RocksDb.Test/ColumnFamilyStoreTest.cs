@@ -73,12 +73,5 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
             Assert.Equal(lastKey, lastEntry.key.FromBytes());
             Assert.Equal(lastValue, lastEntry.value.FromBytes());
         }
-
-        [Fact]
-        public async Task BackupNotImplementedTest()
-        {
-            IDbStore columnFamilyDbStore = this.rocksDbStoreProvider.GetDbStore("firstLastTest");
-            await Assert.ThrowsAsync<NotImplementedException>(() => columnFamilyDbStore.BackupAsync(string.Empty));
-        }
     }
 }

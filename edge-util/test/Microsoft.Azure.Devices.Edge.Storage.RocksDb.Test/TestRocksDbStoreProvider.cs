@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
 {
     using System;
     using System.IO;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public class TestRocksDbStoreProvider : IDbStoreProvider
@@ -26,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
 
         public void Dispose()
         {
-            this.rocksDbStoreProvider?.Close();
+            this.rocksDbStoreProvider?.CloseAsync().Wait();
             this.rocksDbStoreProvider?.Dispose();
             if (!string.IsNullOrWhiteSpace(this.rocksDbFolder) && Directory.Exists(this.rocksDbFolder))
             {
@@ -40,9 +41,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
 
         public void RemoveDbStore(string partitionName) => throw new NotImplementedException();
 
-        public void Close()
+        public void RemoveDbStore() => throw new NotImplementedException();
+
+        public Task CloseAsync()
         {
-            // No-op.
+            return Task.CompletedTask;
         }
     }
 }

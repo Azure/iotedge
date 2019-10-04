@@ -123,7 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     string.Empty,
                     metricsConfig,
                     false,
-                    string.Empty));
+                    Option.None<string>()));
 
             builder.RegisterModule(
                 new RoutingModule(

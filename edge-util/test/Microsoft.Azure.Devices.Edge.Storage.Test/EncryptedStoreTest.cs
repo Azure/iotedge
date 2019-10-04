@@ -262,7 +262,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         }
 
         static IEntityStore<TK, TV> GetEntityStore<TK, TV>(string entityName)
-            => new EntityStore<TK, TV>(new KeyValueStoreMapper<TK, byte[], TV, byte[]>(new InMemoryDbStore(entityName), new BytesMapper<TK>(), new BytesMapper<TV>()), entityName);
+            => new EntityStore<TK, TV>(new KeyValueStoreMapper<TK, byte[], TV, byte[]>(new InMemoryDbStore(), new BytesMapper<TK>(), new BytesMapper<TV>()), entityName);
 
         public class KeyAuth
         {

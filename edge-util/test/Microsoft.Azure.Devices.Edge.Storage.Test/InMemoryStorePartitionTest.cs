@@ -10,13 +10,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
     [Unit]
     public class InMemoryStorePartitionTest
     {
-        private const string DefaultDbName = "TestDb";
-
         [Fact]
         public async Task GetMultipleOperationsTest()
         {
             int totalCount = 10000;
-            var inMemoryStorePartition = new InMemoryDbStore(DefaultDbName);
+            var inMemoryStorePartition = new InMemoryDbStore();
             for (int i = 0; i <= totalCount; i++)
             {
                 await inMemoryStorePartition.Put($"key{i}".ToBytes(), $"val{i}".ToBytes());
@@ -36,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         [Fact]
         public async Task GetFirstLastValueTest()
         {
-            var inMemoryStorePartition = new InMemoryDbStore(DefaultDbName);
+            var inMemoryStorePartition = new InMemoryDbStore();
             await inMemoryStorePartition.Put("key1".ToBytes(), "val1".ToBytes());
             await inMemoryStorePartition.Put("key2".ToBytes(), "val2".ToBytes());
             await inMemoryStorePartition.Put("key3".ToBytes(), "val3".ToBytes());
@@ -57,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         [Fact]
         public async Task IterateBatchTest()
         {
-            var inMemoryStorePartition = new InMemoryDbStore(DefaultDbName);
+            var inMemoryStorePartition = new InMemoryDbStore();
             for (int i = 0; i < 100; i++)
             {
                 await inMemoryStorePartition.Put($"key{i}".ToBytes(), $"val{i}".ToBytes());
@@ -91,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         [Fact]
         public async Task IterateEmptyBatchTest()
         {
-            var inMemoryStorePartition = new InMemoryDbStore(DefaultDbName);
+            var inMemoryStorePartition = new InMemoryDbStore();
             bool callbackCalled = false;
             await inMemoryStorePartition.IterateBatch(
                 20,
@@ -108,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         public async Task UpdateDuringIterateTest()
         {
             int totalCount = 100;
-            var inMemoryStorePartition = new InMemoryDbStore(DefaultDbName);
+            var inMemoryStorePartition = new InMemoryDbStore();
             for (int i = 0; i <= totalCount; i++)
             {
                 await inMemoryStorePartition.Put($"key{i}".ToBytes(), $"val{i}".ToBytes());

@@ -31,6 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             this.backupPath = Preconditions.CheckNonWhiteSpace(backupPath, nameof(backupPath));
             this.dbStoreBackupRestore = Preconditions.CheckNotNull(dbStoreBackupRestore, nameof(dbStoreBackupRestore));
             this.backupFormat = backupFormat;
+            this.dbStores = new HashSet<string>();
             this.events = new Events(this.Log);
         }
 
