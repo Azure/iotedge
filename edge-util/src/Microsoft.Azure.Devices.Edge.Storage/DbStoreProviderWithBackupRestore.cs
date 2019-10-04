@@ -17,17 +17,30 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         const string DefaultStoreBackupName = "$Default";
         readonly string backupPath;
         readonly ISet<string> dbStores;
+        readonly IDbStoreBackupRestore dbStoreBackupRestore;
+        readonly SerializationFormat backupFormat;
+        readonly Events events;
 
-        DbStoreProviderWithBackupRestore(string backupPath, IDbStoreProvider dbStoreProvider)
+        DbStoreProviderWithBackupRestore(
+            IDbStoreProvider dbStoreProvider,
+            string backupPath,
+            IDbStoreBackupRestore dbStoreBackupRestore,
+            SerializationFormat backupFormat)
             : base(dbStoreProvider)
         {
-            Preconditions.CheckNonWhiteSpace(backupPath, nameof(backupPath));
-            this.backupPath = backupPath;
+            this.backupPath = Preconditions.CheckNonWhiteSpace(backupPath, nameof(backupPath));
+            this.dbStoreBackupRestore = Preconditions.CheckNotNull(dbStoreBackupRestore, nameof(dbStoreBackupRestore));
+            this.backupFormat = backupFormat;
+            this.events = new Events(this.Log);
         }
 
-        public static async Task<DbStoreProviderWithBackupRestore> CreateAsync(string backupPath, IDbStoreProvider dbStoreProvider)
+        public static async Task<IDbStoreProvider> CreateAsync(
+            IDbStoreProvider dbStoreProvider,
+            string backupPath,
+            IDbStoreBackupRestore dbStoreBackupRestore,
+            SerializationFormat backupFormat)
         {
-            DbStoreProviderWithBackupRestore provider = new DbStoreProviderWithBackupRestore(backupPath, dbStoreProvider);
+            DbStoreProviderWithBackupRestore provider = new DbStoreProviderWithBackupRestore(dbStoreProvider, backupPath, dbStoreBackupRestore, backupFormat);
             await provider.RestoreAsync();
             return provider;
         }
@@ -38,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
             if (!File.Exists(backupMetadataFilePath))
             {
-                Events.NoBackupsForRestore();
+                this.events.NoBackupsForRestore();
                 return;
             }
 
@@ -47,12 +60,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 string fileText = File.ReadAllText(backupMetadataFilePath);
                 BackupMetadataList backupMetadataList = JsonConvert.DeserializeObject<BackupMetadataList>(fileText);
                 BackupMetadata backupMetadata = backupMetadataList.Backups[0];
-                Events.BackupInformation(backupMetadata.Id, backupMetadata.SerializationFormat, backupMetadata.TimestampUtc, backupMetadata.Stores);
+                this.events.BackupInformation(backupMetadata.Id, backupMetadata.SerializationFormat, backupMetadata.TimestampUtc, backupMetadata.Stores);
 
                 string latestBackupDirPath = Path.Combine(backupPath, backupMetadata.Id.ToString());
                 if (Directory.Exists(latestBackupDirPath))
                 {
-                    Events.RestoringFromBackup(backupMetadata.Id);
+                    this.events.RestoringFromBackup(backupMetadata.Id);
                     foreach (string store in backupMetadata.Stores)
                     {
                         IDbStore dbStore;
@@ -64,21 +77,21 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                             dbStore = this.GetDbStore();
                         }
 
-                        await this.RestoreDbStoreAsync(store, dbStore, latestBackupDirPath);
+                        await this.dbStoreBackupRestore.RestoreAsync(store, dbStore, latestBackupDirPath);
                     }
 
-                    Events.RestoreComplete();
+                    this.events.RestoreComplete();
                 }
                 else
                 {
-                    Events.NoBackupsForRestore();
+                    this.events.NoBackupsForRestore();
                 }
 
-                CleanupAllBackups(backupPath);
+                this.CleanupAllBackups(backupPath);
             }
             catch (IOException exception)
             {
-                Events.RestoreFailure($"The restore operation failed with error ${exception}.");
+                this.events.RestoreFailure($"The restore operation failed with error ${exception}.");
 
                 // Clean up any restored state in the dictionary if the backup fails midway.
                 foreach (string store in this.dbStores)
@@ -89,7 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 this.RemoveDbStore();
 
                 // Delete all backups as the last backup itself is corrupt.
-                CleanupAllBackups(backupPath);
+                this.CleanupAllBackups(backupPath);
             }
         }
 
@@ -112,12 +125,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public async override Task CloseAsync()
         {
-            Events.StartingBackup();
+            this.events.StartingBackup();
             string backupPathValue = this.backupPath;
             Guid backupId = Guid.NewGuid();
             string dbBackupDirectory = Path.Combine(backupPathValue, backupId.ToString());
 
-            BackupMetadata newBackupMetadata = new BackupMetadata(backupId, SerializationFormat.ProtoBuf, DateTime.UtcNow, this.dbStores.ToList());
+            BackupMetadata newBackupMetadata = new BackupMetadata(backupId, this.backupFormat, DateTime.UtcNow, this.dbStores.ToList());
             BackupMetadataList backupMetadataList = new BackupMetadataList(new List<BackupMetadata> { newBackupMetadata });
             try
             {
@@ -125,13 +138,13 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
                 // Backup default store.
                 IDbStore dbStore = this.dbStoreProvider.GetDbStore();
-                await this.BackupDbStoreAsync(DefaultStoreBackupName, dbStore, dbBackupDirectory);
+                await this.dbStoreBackupRestore.BackupAsync(DefaultStoreBackupName, dbStore, dbBackupDirectory);
 
                 // Backup other stores.
                 foreach (string store in this.dbStores)
                 {
                     dbStore = this.dbStoreProvider.GetDbStore(store);
-                    await this.BackupDbStoreAsync(store, dbStore, dbBackupDirectory);
+                    await this.dbStoreBackupRestore.BackupAsync(store, dbStore, dbBackupDirectory);
                 }
 
                 using (StreamWriter file = File.CreateText(Path.Combine(backupPathValue, BackupMetadataFileName)))
@@ -140,21 +153,21 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                     serializer.Serialize(file, backupMetadataList);
                 }
 
-                Events.BackupComplete();
+                this.events.BackupComplete();
 
                 // Clean any old backups.
-                CleanupUnknownBackups(backupPathValue, backupMetadataList);
+                this.CleanupUnknownBackups(backupPathValue, backupMetadataList);
             }
             catch (IOException exception)
             {
-                Events.BackupFailure($"The backup operation failed with error ${exception}.");
+                this.events.BackupFailure($"The backup operation failed with error ${exception}.");
 
                 // Clean up any artifacts of the attempted backup.
-                CleanupKnownBackups(backupPathValue, backupMetadataList);
+                this.CleanupKnownBackups(backupPathValue, backupMetadataList);
             }
         }
 
-        private static void CleanupAllBackups(string backupPath)
+        private void CleanupAllBackups(string backupPath)
         {
             DirectoryInfo backupDirInfo = new DirectoryInfo(backupPath);
             foreach (FileInfo file in backupDirInfo.GetFiles())
@@ -167,10 +180,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 dir.Delete(true);
             }
 
-            Events.AllBackupsDeleted();
+            this.events.AllBackupsDeleted();
         }
 
-        private static void CleanupUnknownBackups(string backupPath, BackupMetadataList metadataList)
+        private void CleanupUnknownBackups(string backupPath, BackupMetadataList metadataList)
         {
             DirectoryInfo backupDirInfo = new DirectoryInfo(backupPath);
             HashSet<string> knownBackupDirNames = new HashSet<string>(metadataList.Backups.Select(x => x.Id.ToString()), StringComparer.OrdinalIgnoreCase);
@@ -182,10 +195,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 }
             }
 
-            Events.UnknownBackupsDeleted();
+            this.events.UnknownBackupsDeleted();
         }
 
-        private static void CleanupKnownBackups(string backupPath, BackupMetadataList metadataList)
+        private void CleanupKnownBackups(string backupPath, BackupMetadataList metadataList)
         {
             DirectoryInfo backupDirInfo = new DirectoryInfo(backupPath);
             HashSet<string> knownBackupDirNames = new HashSet<string>(metadataList.Backups.Select(x => x.Id.ToString()), StringComparer.OrdinalIgnoreCase);
@@ -197,48 +210,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 }
             }
 
-            Events.BackupArtifactsCleanedUp();
-        }
-
-        private async Task RestoreDbStoreAsync(string entityName, IDbStore dbStore, string backupPath)
-        {
-            IItemKeyedCollectionBackupRestore itemKeyedCollectionBackupRestore = new ItemKeyedCollectionBackupRestore(backupPath);
-            try
-            {
-                ItemKeyedCollection items = await itemKeyedCollectionBackupRestore.RestoreAsync(entityName);
-                foreach (Item item in items)
-                {
-                    await dbStore.Put(item.Key, item.Value);
-                }
-            }
-            catch (IOException exception)
-            {
-                throw new IOException($"The restore operation for {entityName} failed with error.", exception);
-            }
-        }
-
-        private async Task BackupDbStoreAsync(string entityName, IDbStore dbStore, string backupPath)
-        {
-            IItemKeyedCollectionBackupRestore itemKeyedCollectionBackupRestore = new ItemKeyedCollectionBackupRestore(backupPath);
-            try
-            {
-                // This is a hack, make it better by not having to create another in-memory collection of items
-                // to be backed up.
-                ItemKeyedCollection items = new ItemKeyedCollection(new ByteArrayComparer());
-                await dbStore.IterateBatch(
-                int.MaxValue,
-                (key, value) =>
-                {
-                    items.Add(new Item(key, value));
-                    return Task.CompletedTask;
-                });
-
-                await itemKeyedCollectionBackupRestore.BackupAsync(entityName, items);
-            }
-            catch (IOException exception)
-            {
-                throw new IOException($"The backup operation for {entityName} failed with error.", exception);
-            }
+            this.events.BackupArtifactsCleanedUp();
         }
 
         class BackupMetadataList
@@ -279,15 +251,15 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             public DateTime TimestampUtc { get; set; }
         }
 
-        enum SerializationFormat
+        class Events
         {
-            ProtoBuf = 0,
-        }
+            const int IdStart = UtilEventsIds.DbStoreProviderWithBackupRestore;
+            readonly ILogger Log;
 
-        static class Events
-        {
-            const int IdStart = UtilEventsIds.InMemoryDbStoreProvider;
-            static readonly ILogger Log = Logger.Factory.CreateLogger<InMemoryDbStoreProvider>();
+            internal Events(ILogger logger)
+            {
+                this.Log = Preconditions.CheckNotNull(logger, nameof(logger));
+            }
 
             enum EventIds
             {
@@ -305,64 +277,64 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 RestoreFailure
             }
 
-            internal static void StartingBackup()
+            internal void StartingBackup()
             {
                 Log.LogInformation((int)EventIds.StartingBackup, "Starting backup of database.");
             }
 
-            internal static void BackupComplete()
+            internal void BackupComplete()
             {
-                Log.LogInformation((int)EventIds.BackupComplete, $"Backup of database complete.");
+                this.Log.LogInformation((int)EventIds.BackupComplete, $"Backup of database complete.");
             }
 
-            internal static void BackupDirectoryNotFound(string backupDirectoryPath)
+            internal void BackupDirectoryNotFound(string backupDirectoryPath)
             {
-                Log.LogInformation((int)EventIds.BackupDirectoryNotFound, $"The database backup directory {backupDirectoryPath} doesn't exist.");
+                this.Log.LogInformation((int)EventIds.BackupDirectoryNotFound, $"The database backup directory {backupDirectoryPath} doesn't exist.");
             }
 
-            internal static void BackupInformation(Guid backupId, SerializationFormat format, DateTime backupTimestamp, IList<string> stores)
+            internal void BackupInformation(Guid backupId, SerializationFormat format, DateTime backupTimestamp, IList<string> stores)
             {
-                Log.LogDebug((int)EventIds.BackupInformation, $"Backup Info: Timestamp={backupTimestamp}, ID={backupId}, Serialization Format={format}, Stores={string.Join(",", stores)}");
+                this.Log.LogDebug((int)EventIds.BackupInformation, $"Backup Info: Timestamp={backupTimestamp}, ID={backupId}, Serialization Format={format}, Stores={string.Join(",", stores)}");
             }
 
-            internal static void BackupFailure(string details = null)
+            internal void BackupFailure(string details = null)
             {
-                Log.LogError((int)EventIds.BackupFailure, $"Error occurred while attempting to create a database backup. Details: {details}.");
+                this.Log.LogError((int)EventIds.BackupFailure, $"Error occurred while attempting to create a database backup. Details: {details}.");
             }
 
-            internal static void AllBackupsDeleted()
+            internal void AllBackupsDeleted()
             {
-                Log.LogInformation((int)EventIds.AllBackupsDeleted, "All existing backups have been deleted.");
+                this.Log.LogInformation((int)EventIds.AllBackupsDeleted, "All existing backups have been deleted.");
             }
 
-            internal static void UnknownBackupsDeleted()
+            internal void UnknownBackupsDeleted()
             {
-                Log.LogInformation((int)EventIds.UnknownBackupsDeleted, "All unknown backups have been cleaned up.");
+                this.Log.LogInformation((int)EventIds.UnknownBackupsDeleted, "All unknown backups have been cleaned up.");
             }
 
-            internal static void BackupArtifactsCleanedUp()
+            internal void BackupArtifactsCleanedUp()
             {
-                Log.LogInformation((int)EventIds.BackupArtifactsCleanedUp, "Cleaned up the current backup's artifacts.");
+                this.Log.LogInformation((int)EventIds.BackupArtifactsCleanedUp, "Cleaned up the current backup's artifacts.");
             }
 
-            internal static void RestoringFromBackup(Guid backupId)
+            internal void RestoringFromBackup(Guid backupId)
             {
-                Log.LogInformation((int)EventIds.RestoringFromBackup, $"Starting restore of database from backup {backupId}.");
+                this.Log.LogInformation((int)EventIds.RestoringFromBackup, $"Starting restore of database from backup {backupId}.");
             }
 
-            internal static void NoBackupsForRestore()
+            internal void NoBackupsForRestore()
             {
-                Log.LogInformation((int)EventIds.NoBackupsForRestore, "No backups were found to restore database with.");
+                this.Log.LogInformation((int)EventIds.NoBackupsForRestore, "No backups were found to restore database with.");
             }
 
-            internal static void RestoreComplete()
+            internal void RestoreComplete()
             {
-                Log.LogInformation((int)EventIds.RestoreComplete, "Database restore from backup complete.");
+                this.Log.LogInformation((int)EventIds.RestoreComplete, "Database restore from backup complete.");
             }
 
-            internal static void RestoreFailure(string details = null)
+            internal void RestoreFailure(string details = null)
             {
-                Log.LogError((int)EventIds.RestoreFailure, $"Error occurred while attempting a database restore from the last available backup. Details: {details}.");
+                this.Log.LogError((int)EventIds.RestoreFailure, $"Error occurred while attempting a database restore from the last available backup. Details: {details}.");
             }
         }
     }

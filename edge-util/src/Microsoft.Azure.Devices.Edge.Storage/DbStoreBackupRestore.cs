@@ -1,19 +1,26 @@
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Storage
 {
+    using System.Collections.Generic;
     using System.IO;
     using System.Threading.Tasks;
 
     public class DbStoreBackupRestore : IDbStoreBackupRestore
     {
+        readonly IBackupRestore backupRestore;
+
+        public DbStoreBackupRestore(IBackupRestore backupRestore)
+        {
+            this.backupRestore = backupRestore;
+        }
+
         public async Task BackupAsync(string entityName, IDbStore dbStore, string backupPath)
         {
-            IItemKeyedCollectionBackupRestore itemKeyedCollectionBackupRestore = new ItemKeyedCollectionBackupRestore(backupPath);
             try
             {
                 // This is a hack, make it better by not having to create another in-memory collection of items
                 // to be backed up.
-                ItemKeyedCollection items = new ItemKeyedCollection(new ByteArrayComparer());
+                IList<Item> items = new List<Item>();
                 await dbStore.IterateBatch(
                 int.MaxValue,
                 (key, value) =>
@@ -22,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                     return Task.CompletedTask;
                 });
 
-                await itemKeyedCollectionBackupRestore.BackupAsync(entityName, items);
+                await this.backupRestore.BackupAsync(entityName, backupPath, items);
             }
             catch (IOException exception)
             {
@@ -32,10 +39,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public async Task RestoreAsync(string entityName, IDbStore dbStore, string backupPath)
         {
-            IItemKeyedCollectionBackupRestore itemKeyedCollectionBackupRestore = new ItemKeyedCollectionBackupRestore(backupPath);
             try
             {
-                ItemKeyedCollection items = await itemKeyedCollectionBackupRestore.RestoreAsync(entityName);
+                IList<Item> items = await this.backupRestore.RestoreAsync<IList<Item>>(entityName, backupPath);
                 foreach (Item item in items)
                 {
                     await dbStore.Put(item.Key, item.Value);

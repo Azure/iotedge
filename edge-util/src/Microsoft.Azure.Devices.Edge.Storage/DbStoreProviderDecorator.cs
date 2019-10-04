@@ -1,19 +1,24 @@
-using Microsoft.Azure.Devices.Edge.Util;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Storage
 {
+    using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
+
     public abstract class DbStoreProviderDecorator : IDbStoreProvider
     {
+        static readonly ILogger LoggerInstance = Logger.Factory.CreateLogger("DbStoreProviderExt");
         protected IDbStoreProvider dbStoreProvider;
 
         public DbStoreProviderDecorator(IDbStoreProvider dbStoreProvider)
         {
             Preconditions.CheckNotNull(dbStoreProvider, nameof(dbStoreProvider));
             this.dbStoreProvider = dbStoreProvider;
+        }
+
+        protected ILogger Log
+        {
+            get { return LoggerInstance; }
         }
 
         public virtual Task CloseAsync()

@@ -140,9 +140,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<IRocksDbOptionsProvider>()
                 .SingleInstance();
 
-            // IDbStore
+            if (!this.usePersistentStorage && this.useBackupAndRestore)
+            {
+                // Backup and restore serialization
+                builder.Register(c => new ProtoBufBackupRestore())
+                    .As<IBackupRestore>()
+                    .SingleInstance();
+
+                // Backup and restore of IDbStore.
+                builder.Register(c => new DbStoreBackupRestore(c.Resolve<IBackupRestore>()))
+                    .As<IDbStoreBackupRestore>()
+                    .SingleInstance();
+            }
+
+            // IDbStoreProvider
             builder.Register(
-                    c =>
+                    async c =>
                     {
                         var loggerFactory = c.Resolve<ILoggerFactory>();
                         ILogger logger = loggerFactory.CreateLogger(typeof(AgentModule));
@@ -163,20 +176,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             catch (Exception ex) when (!ExceptionEx.IsFatal(ex))
                             {
                                 logger.LogError(ex, "Error creating RocksDB store. Falling back to in-memory store.");
-                                return new InMemoryDbStoreProvider(
-                                    this.storageBackupPath,
-                                    this.useBackupAndRestore);
+                                IDbStoreProvider dbStoreProvider = await this.BuildInMemoryDbStoreProvider(c);
+                                return dbStoreProvider;
                             }
                         }
                         else
                         {
                             logger.LogInformation($"Using in-memory store");
-                            return new InMemoryDbStoreProvider(
-                                this.storageBackupPath,
-                                this.useBackupAndRestore);
+                            IDbStoreProvider dbStoreProvider = await this.BuildInMemoryDbStoreProvider(c);
+                            return dbStoreProvider;
                         }
                     })
-                .As<IDbStoreProvider>()
+                .As<Task<IDbStoreProvider>>()
                 .SingleInstance();
 
             // IStoreProvider
@@ -265,6 +276,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             base.Load(builder);
+        }
+
+        async Task<IDbStoreProvider> BuildInMemoryDbStoreProvider(IComponentContext container)
+        {
+            IDbStoreProvider dbStoreProvider = DbStoreProviderFactory.GetInMemoryDbStore();
+            if (this.useBackupAndRestore)
+            {
+                var backupRestore = container.Resolve<IBackupRestore>();
+                SerializationFormat format = BackupRestoreFactory.GetFormat(backupRestore);
+
+                var dbStoreBackupRestore = container.Resolve<IDbStoreBackupRestore>();
+                string backupPathValue = this.storageBackupPath.Expect(() => new InvalidOperationException("Storage backup path missing"));
+                dbStoreProvider = await dbStoreProvider.WithBackupRestore(backupPathValue, dbStoreBackupRestore, format);
+            }
+
+            return dbStoreProvider;
         }
     }
 }
