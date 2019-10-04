@@ -657,7 +657,7 @@ where
         match &self.certificates {
             None => &Certificates {
                 device_cert: None,
-                auto_generated_ca_lifetime: 90,
+                auto_generated_ca_lifetime_days: 90,
             },
             Some(c) => c,
         }
