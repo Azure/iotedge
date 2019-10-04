@@ -20,6 +20,6 @@ fn x509_get_identity_cert_fails() {
     let _setup_home_dir = TestHSMEnvSetup::new(&LOCK, None);
 
     let hsm_lock = HsmLock::new();
-    let x509 = X509::new(hsm_lock).unwrap();
+    let x509 = X509::new(hsm_lock, 1000).unwrap();
     assert!(x509.get().is_err());
 }

@@ -1222,7 +1222,7 @@ mod tests {
             unimplemented!()
         }
 
-        fn certificates(&self) -> Option<&Certificates> {
+        fn certificates(&self) -> &Certificates {
             unimplemented!()
         }
 
