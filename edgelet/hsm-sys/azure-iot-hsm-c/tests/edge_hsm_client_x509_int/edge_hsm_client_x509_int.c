@@ -222,7 +222,7 @@ BEGIN_TEST_SUITE(edge_hsm_client_x509_int)
         //arrange
 
         // act
-        TEST_VALIDITY;
+        hsm_client_x509_init(TEST_VALIDITY);
 
         // assert
 
