@@ -40,6 +40,7 @@ mod upstream_protocol_port;
 use self::upstream_protocol_port::UpstreamProtocolPort;
 
 mod checker;
+mod checks;
 
 static CHECKS: &[(
     &str, // Section name
