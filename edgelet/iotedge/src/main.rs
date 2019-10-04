@@ -261,7 +261,7 @@ fn run() -> Result<(), Error> {
                 .arg(
                     Arg::with_name("include-edge-runtime-only")
                         .help("Only include logs from Microsoft-owned Edge modules")
-                        .long("runtime-only")
+                        .long("include-edge-runtime-only")
                         .short("e")
                         .takes_value(false),
                 ),
