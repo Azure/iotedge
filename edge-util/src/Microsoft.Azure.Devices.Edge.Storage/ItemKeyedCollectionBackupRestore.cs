@@ -26,11 +26,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             this.backupPath = backupPath;
         }
 
-        public Task<ItemKeyedCollection> RestoreAsync()
+        public Task<ItemKeyedCollection> RestoreAsync(string name)
         {
-            //string backupFileName = HttpUtility.UrlEncode(this.entityName);
-            //string entityBackupPath = Path.Combine(backupPath, $"{backupFileName}.bin");
-            if (!File.Exists(this.backupPath))
+            string backupFileName = HttpUtility.UrlEncode(name);
+            string entityBackupPath = Path.Combine(backupPath, $"{backupFileName}.bin");
+            if (!File.Exists(entityBackupPath))
             {
                 throw new IOException($"The backup data at {this.backupPath} doesn't exist.");
             }
@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             ItemKeyedCollection itemKeyedCollection = new ItemKeyedCollection(new ByteArrayComparer());
             try
             {
-                using (FileStream file = File.OpenRead(this.backupPath))
+                using (FileStream file = File.OpenRead(entityBackupPath))
                 {
                     IList<Item> backedUpItems = Serializer.Deserialize<IList<Item>>(file);
                     foreach (Item item in backedUpItems)
@@ -56,14 +56,14 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return Task.FromResult(itemKeyedCollection);
         }
 
-        public Task BackupAsync(ItemKeyedCollection itemKeyedCollection)
+        public Task BackupAsync(string name, ItemKeyedCollection itemKeyedCollection)
         {
-            //string backupFileName = HttpUtility.UrlEncode(this.entityName);
-            //string newBackupPath = Path.Combine(backupPath, $"{backupFileName}.bin");
+            string backupFileName = HttpUtility.UrlEncode(name);
+            string newBackupPath = Path.Combine(this.backupPath, $"{backupFileName}.bin");
 
             try
             {
-                using (FileStream file = File.Create(this.backupPath))
+                using (FileStream file = File.Create(newBackupPath))
                 {
                     Serializer.Serialize(file, itemKeyedCollection.AllItems);
                 }
@@ -71,9 +71,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             catch (IOException exception)
             {
                 // Delete the backup data if anything was created as it will likely be corrupt.
-                if (File.Exists(this.backupPath))
+                if (File.Exists(newBackupPath))
                 {
-                    File.Delete(this.backupPath);
+                    File.Delete(newBackupPath);
                 }
 
                 //throw new IOException($"The backup operation for {this.entityName} failed with error.", exception);

@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Storage
 {
     using System;
-    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
@@ -12,49 +11,30 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     using Newtonsoft.Json;
     using Newtonsoft.Json.Converters;
 
-    public class InMemoryDbStoreProviderWithBackupRestore : IDbStoreProvider
+    public class DbStoreProviderWithBackupRestore : DbStoreProviderDecorator
     {
         const string BackupMetadataFileName = "meta.json";
-        const string DefaultPartitionName = "$Default";
-        readonly ConcurrentDictionary<string, IDbStore> partitionDbStoreDictionary = new ConcurrentDictionary<string, IDbStore>();
-        readonly Option<string> backupPath;
-        readonly bool useBackupAndRestore;
+        const string DefaultStoreBackupName = "$Default";
+        readonly string backupPath;
+        readonly ISet<string> dbStores;
 
-        InMemoryDbStoreProviderWithBackupRestore()
-            : this(Option.None<string>(), false)
-        {
-        }
-
-        InMemoryDbStoreProviderWithBackupRestore(Option<string> backupPath, bool useBackupAndRestore)
-        {
-            this.backupPath = backupPath;
-            this.useBackupAndRestore = useBackupAndRestore;
-
-            // Restore from a previous backup if enabled.
-            if (useBackupAndRestore)
-            {
-                string backupPathValue = this.backupPath.Expect(() => new ArgumentException($"The value of {nameof(backupPath)} needs to be specified if backup and restore is enabled."));
-                Preconditions.CheckNonWhiteSpace(backupPathValue, nameof(backupPath));
-
-                this.RestoreDb(backupPathValue);
-            }
-        }
-
-        public static async Task<InMemoryDbStoreProviderWithBackupRestore> CreateAsync(string backupPath)
+        DbStoreProviderWithBackupRestore(string backupPath, IDbStoreProvider dbStoreProvider)
+            : base(dbStoreProvider)
         {
             Preconditions.CheckNonWhiteSpace(backupPath, nameof(backupPath));
-
-            string backupFileName = HttpUtility.UrlEncode(entityName);
-            string entityBackupPath = Path.Combine(backupPath, $"{backupFileName}.bin");
-            IItemKeyedCollectionBackupRestore itemKeyedCollectionBackupRestore = new ItemKeyedCollectionBackupRestore(entityBackupPath);
-            InMemoryDbStoreWithBackupRestore store = new InMemoryDbStoreWithBackupRestore(entityName, itemKeyedCollectionBackupRestore, new InMemoryDbStore());
-            await store.RestoreAsync();
-            return store;
+            this.backupPath = backupPath;
         }
 
-        private void RestoreDb(string backupPath)
+        public static async Task<DbStoreProviderWithBackupRestore> CreateAsync(string backupPath, IDbStoreProvider dbStoreProvider)
         {
-            string backupMetadataFilePath = Path.Combine(backupPath, BackupMetadataFileName);
+            DbStoreProviderWithBackupRestore provider = new DbStoreProviderWithBackupRestore(backupPath, dbStoreProvider);
+            await provider.RestoreAsync();
+            return provider;
+        }
+
+        private async Task RestoreAsync()
+        {
+            string backupMetadataFilePath = Path.Combine(this.backupPath, BackupMetadataFileName);
 
             if (!File.Exists(backupMetadataFilePath))
             {
@@ -75,8 +55,16 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                     Events.RestoringFromBackup(backupMetadata.Id);
                     foreach (string store in backupMetadata.Stores)
                     {
-                        InMemoryDbStore dbStore = new InMemoryDbStore(store, latestBackupDirPath);
-                        this.partitionDbStoreDictionary.AddOrUpdate(store, dbStore, (_, __) => dbStore);
+                        IDbStore dbStore;
+                        if (!store.Equals(DefaultStoreBackupName, StringComparison.OrdinalIgnoreCase)) {
+                            dbStore = this.GetDbStore(store);
+                        }
+                        else
+                        {
+                            dbStore = this.GetDbStore();
+                        }
+
+                        await this.RestoreDbStoreAsync(store, dbStore, latestBackupDirPath);
                     }
 
                     Events.RestoreComplete();
@@ -93,65 +81,76 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 Events.RestoreFailure($"The restore operation failed with error ${exception}.");
 
                 // Clean up any restored state in the dictionary if the backup fails midway.
-                this.partitionDbStoreDictionary.Clear();
+                foreach (string store in this.dbStores)
+                {
+                    this.RemoveDbStore(store);
+                }
+
+                this.RemoveDbStore();
 
                 // Delete all backups as the last backup itself is corrupt.
                 CleanupAllBackups(backupPath);
             }
         }
 
-        public IDbStore GetDbStore(string partitionName)
+        public override IDbStore GetDbStore(string partitionName)
         {
-            Preconditions.CheckNonWhiteSpace(partitionName, nameof(partitionName));
-            IDbStore dbStore = this.partitionDbStoreDictionary.GetOrAdd(partitionName, new InMemoryDbStore(partitionName));
-            return dbStore;
+            this.dbStores.Add(partitionName);
+            return base.GetDbStore(partitionName);
         }
 
-        public IDbStore GetDbStore() => this.GetDbStore(DefaultPartitionName);
-
-        public void RemoveDbStore(string partitionName)
+        public override IDbStore GetDbStore()
         {
-            Preconditions.CheckNonWhiteSpace(partitionName, nameof(partitionName));
-            this.partitionDbStoreDictionary.TryRemove(partitionName, out IDbStore _);
+            return base.GetDbStore();
         }
 
-        public async Task CloseAsync()
+        public override void RemoveDbStore(string partitionName)
         {
-            if (this.useBackupAndRestore)
+            this.dbStores.Remove(partitionName);
+            base.RemoveDbStore(partitionName);
+        }
+
+        public async override Task CloseAsync()
+        {
+            Events.StartingBackup();
+            string backupPathValue = this.backupPath;
+            Guid backupId = Guid.NewGuid();
+            string dbBackupDirectory = Path.Combine(backupPathValue, backupId.ToString());
+
+            BackupMetadata newBackupMetadata = new BackupMetadata(backupId, SerializationFormat.ProtoBuf, DateTime.UtcNow, this.dbStores.ToList());
+            BackupMetadataList backupMetadataList = new BackupMetadataList(new List<BackupMetadata> { newBackupMetadata });
+            try
             {
-                Events.StartingBackup();
-                string backupPathValue = this.backupPath.Expect(() => new InvalidOperationException($"The value of {nameof(this.backupPath)} is expected to be a valid path if backup and restore is enabled."));
-                Guid backupId = Guid.NewGuid();
-                string dbBackupDirectory = Path.Combine(backupPathValue, backupId.ToString());
+                Directory.CreateDirectory(dbBackupDirectory);
 
-                BackupMetadata newBackupMetadata = new BackupMetadata(backupId, SerializationFormat.ProtoBuf, DateTime.UtcNow, this.partitionDbStoreDictionary.Keys.ToList());
-                BackupMetadataList backupMetadataList = new BackupMetadataList(new List<BackupMetadata> { newBackupMetadata });
-                try
+                // Backup default store.
+                IDbStore dbStore = this.dbStoreProvider.GetDbStore();
+                await this.BackupDbStoreAsync(DefaultStoreBackupName, dbStore, dbBackupDirectory);
+
+                // Backup other stores.
+                foreach (string store in this.dbStores)
                 {
-                    Directory.CreateDirectory(dbBackupDirectory);
-                    foreach (IDbStore dbStore in this.partitionDbStoreDictionary.Values)
-                    {
-                        await dbStore.BackupAsync(dbBackupDirectory);
-                    }
-
-                    using (StreamWriter file = File.CreateText(Path.Combine(backupPathValue, BackupMetadataFileName)))
-                    {
-                        JsonSerializer serializer = new JsonSerializer();
-                        serializer.Serialize(file, backupMetadataList);
-                    }
-
-                    Events.BackupComplete();
-
-                    // Clean any old backups.
-                    CleanupUnknownBackups(backupPathValue, backupMetadataList);
+                    dbStore = this.dbStoreProvider.GetDbStore(store);
+                    await this.BackupDbStoreAsync(store, dbStore, dbBackupDirectory);
                 }
-                catch (IOException exception)
+
+                using (StreamWriter file = File.CreateText(Path.Combine(backupPathValue, BackupMetadataFileName)))
                 {
-                    Events.BackupFailure($"The backup operation failed with error ${exception}.");
-
-                    // Clean up any artifacts of the attempted backup.
-                    CleanupKnownBackups(backupPathValue, backupMetadataList);
+                    JsonSerializer serializer = new JsonSerializer();
+                    serializer.Serialize(file, backupMetadataList);
                 }
+
+                Events.BackupComplete();
+
+                // Clean any old backups.
+                CleanupUnknownBackups(backupPathValue, backupMetadataList);
+            }
+            catch (IOException exception)
+            {
+                Events.BackupFailure($"The backup operation failed with error ${exception}.");
+
+                // Clean up any artifacts of the attempted backup.
+                CleanupKnownBackups(backupPathValue, backupMetadataList);
             }
         }
 
@@ -199,6 +198,47 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             }
 
             Events.BackupArtifactsCleanedUp();
+        }
+
+        private async Task RestoreDbStoreAsync(string entityName, IDbStore dbStore, string backupPath)
+        {
+            IItemKeyedCollectionBackupRestore itemKeyedCollectionBackupRestore = new ItemKeyedCollectionBackupRestore(backupPath);
+            try
+            {
+                ItemKeyedCollection items = await itemKeyedCollectionBackupRestore.RestoreAsync(entityName);
+                foreach (Item item in items)
+                {
+                    await dbStore.Put(item.Key, item.Value);
+                }
+            }
+            catch (IOException exception)
+            {
+                throw new IOException($"The restore operation for {entityName} failed with error.", exception);
+            }
+        }
+
+        private async Task BackupDbStoreAsync(string entityName, IDbStore dbStore, string backupPath)
+        {
+            IItemKeyedCollectionBackupRestore itemKeyedCollectionBackupRestore = new ItemKeyedCollectionBackupRestore(backupPath);
+            try
+            {
+                // This is a hack, make it better by not having to create another in-memory collection of items
+                // to be backed up.
+                ItemKeyedCollection items = new ItemKeyedCollection(new ByteArrayComparer());
+                await dbStore.IterateBatch(
+                int.MaxValue,
+                (key, value) =>
+                {
+                    items.Add(new Item(key, value));
+                    return Task.CompletedTask;
+                });
+
+                await itemKeyedCollectionBackupRestore.BackupAsync(entityName, items);
+            }
+            catch (IOException exception)
+            {
+                throw new IOException($"The backup operation for {entityName} failed with error.", exception);
+            }
         }
 
         class BackupMetadataList

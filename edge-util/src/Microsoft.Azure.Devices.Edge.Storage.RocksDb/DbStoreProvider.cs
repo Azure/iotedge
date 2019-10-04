@@ -109,6 +109,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             }
         }
 
+        public void RemoveDbStore() => this.RemoveDbStore(DefaultPartitionName);
+
         static class Events
         {
             // Use an ID not used by other components

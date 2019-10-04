@@ -16,22 +16,20 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     /// <summary>
     /// Provides an in memory implementation of the IDbStore with backup and restore functionality.
     /// </summary>
-    class InMemoryDbStoreWithBackupRestore : IDbStore
+    class InMemoryDbStoreWithBackupRestore : DbStoreWithBackupRestore
     {
         readonly string entityName;
-        IItemKeyedCollectionBackupRestore itemKeyedCollectionBackupRestore;
-        IDbStore dbStore;
+        //IItemKeyedCollectionBackupRestore itemKeyedCollectionBackupRestore;
 
-        InMemoryDbStoreWithBackupRestore(string entityName, IItemKeyedCollectionBackupRestore itemKeyedCollectionBackupRestore, IDbStore dbStore)
-            //: base()
+        //InMemoryDbStoreWithBackupRestore(string entityName, IItemKeyedCollectionBackupRestore itemKeyedCollectionBackupRestore, IDbStore dbStore)
+        InMemoryDbStoreWithBackupRestore(string entityName, IDbStore dbStore)
+            : base(dbStore)
         {
             Preconditions.CheckNonWhiteSpace(entityName, nameof(entityName));
-            Preconditions.CheckNotNull(itemKeyedCollectionBackupRestore, nameof(itemKeyedCollectionBackupRestore));
-            Preconditions.CheckNotNull(dbStore, nameof(dbStore));
+            //Preconditions.CheckNotNull(itemKeyedCollectionBackupRestore, nameof(itemKeyedCollectionBackupRestore));
 
             this.entityName = entityName;
-            this.itemKeyedCollectionBackupRestore = itemKeyedCollectionBackupRestore;
-            this.dbStore = dbStore;
+            //this.itemKeyedCollectionBackupRestore = itemKeyedCollectionBackupRestore;
         }
 
         public static async Task<InMemoryDbStoreWithBackupRestore> CreateAsync(string entityName, string backupPath)
@@ -39,19 +37,20 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             Preconditions.CheckNonWhiteSpace(entityName, nameof(entityName));
             Preconditions.CheckNonWhiteSpace(backupPath, nameof(backupPath));
 
-            string backupFileName = HttpUtility.UrlEncode(entityName);
-            string entityBackupPath = Path.Combine(backupPath, $"{backupFileName}.bin");
-            IItemKeyedCollectionBackupRestore itemKeyedCollectionBackupRestore = new ItemKeyedCollectionBackupRestore(entityBackupPath);
-            InMemoryDbStoreWithBackupRestore store = new InMemoryDbStoreWithBackupRestore(entityName, itemKeyedCollectionBackupRestore, new InMemoryDbStore());
-            await store.RestoreAsync();
+            //string backupFileName = HttpUtility.UrlEncode(entityName);
+            //string entityBackupPath = Path.Combine(backupPath, $"{backupFileName}.bin");
+            //IItemKeyedCollectionBackupRestore itemKeyedCollectionBackupRestore = new ItemKeyedCollectionBackupRestore(entityBackupPath);
+            InMemoryDbStoreWithBackupRestore store = new InMemoryDbStoreWithBackupRestore(entityName, new InMemoryDbStore());
+            await store.RestoreAsync(backupPath);
             return store;
         }
 
-        async Task RestoreAsync()
+        async Task RestoreAsync(string backupPath)
         {
+            IItemKeyedCollectionBackupRestore itemKeyedCollectionBackupRestore = new ItemKeyedCollectionBackupRestore(backupPath);
             try
             {
-                ItemKeyedCollection items = await this.itemKeyedCollectionBackupRestore.RestoreAsync();
+                ItemKeyedCollection items = await itemKeyedCollectionBackupRestore.RestoreAsync(this.entityName);
                 foreach (Item item in items)
                 {
                     await this.dbStore.Put(item.Key, item.Value);
@@ -63,8 +62,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             }
         }
 
-        public async Task BackupAsync()
+        public async Task BackupAsync(string backupPath)
         {
+            //string backupFileName = HttpUtility.UrlEncode(this.entityName);
+            //string entityBackupPath = Path.Combine(backupPath, $"{backupFileName}.bin");
+            IItemKeyedCollectionBackupRestore itemKeyedCollectionBackupRestore = new ItemKeyedCollectionBackupRestore(backupPath);
             try
             {
                 // This is a hack, make it better by not having to create another in-memory collection of items
@@ -78,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                     return Task.CompletedTask;
                 });
 
-                await this.itemKeyedCollectionBackupRestore.BackupAsync(items);
+                await itemKeyedCollectionBackupRestore.BackupAsync(this.entityName, items);
             }
             catch (IOException exception)
             {
@@ -86,89 +88,89 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             }
         }
 
-        public Task Put(byte[] key, byte[] value)
-        {
-            return ((IDbStore)this.dbStore).Put(key, value);
-        }
+        //public Task Put(byte[] key, byte[] value)
+        //{
+        //    return ((IDbStore)this.dbStore).Put(key, value);
+        //}
 
-        public Task<Option<byte[]>> Get(byte[] key)
-        {
-            return ((IDbStore)this.dbStore).Get(key);
-        }
+        //public Task<Option<byte[]>> Get(byte[] key)
+        //{
+        //    return ((IDbStore)this.dbStore).Get(key);
+        //}
 
-        public Task Remove(byte[] key)
-        {
-            return ((IDbStore)this.dbStore).Remove(key);
-        }
+        //public Task Remove(byte[] key)
+        //{
+        //    return ((IDbStore)this.dbStore).Remove(key);
+        //}
 
-        public Task<bool> Contains(byte[] key)
-        {
-            return ((IDbStore)this.dbStore).Contains(key);
-        }
+        //public Task<bool> Contains(byte[] key)
+        //{
+        //    return ((IDbStore)this.dbStore).Contains(key);
+        //}
 
-        public Task<Option<(byte[] key, byte[] value)>> GetFirstEntry()
-        {
-            return ((IDbStore)this.dbStore).GetFirstEntry();
-        }
+        //public Task<Option<(byte[] key, byte[] value)>> GetFirstEntry()
+        //{
+        //    return ((IDbStore)this.dbStore).GetFirstEntry();
+        //}
 
-        public Task<Option<(byte[] key, byte[] value)>> GetLastEntry()
-        {
-            return ((IDbStore)this.dbStore).GetLastEntry();
-        }
+        //public Task<Option<(byte[] key, byte[] value)>> GetLastEntry()
+        //{
+        //    return ((IDbStore)this.dbStore).GetLastEntry();
+        //}
 
-        public Task IterateBatch(int batchSize, Func<byte[], byte[], Task> perEntityCallback)
-        {
-            return ((IDbStore)this.dbStore).IterateBatch(batchSize, perEntityCallback);
-        }
+        //public Task IterateBatch(int batchSize, Func<byte[], byte[], Task> perEntityCallback)
+        //{
+        //    return ((IDbStore)this.dbStore).IterateBatch(batchSize, perEntityCallback);
+        //}
 
-        public Task IterateBatch(byte[] startKey, int batchSize, Func<byte[], byte[], Task> perEntityCallback)
-        {
-            return ((IDbStore)this.dbStore).IterateBatch(startKey, batchSize, perEntityCallback);
-        }
+        //public Task IterateBatch(byte[] startKey, int batchSize, Func<byte[], byte[], Task> perEntityCallback)
+        //{
+        //    return ((IDbStore)this.dbStore).IterateBatch(startKey, batchSize, perEntityCallback);
+        //}
 
-        public Task Put(byte[] key, byte[] value, CancellationToken cancellationToken)
-        {
-            return ((IDbStore)this.dbStore).Put(key, value, cancellationToken);
-        }
+        //public Task Put(byte[] key, byte[] value, CancellationToken cancellationToken)
+        //{
+        //    return ((IDbStore)this.dbStore).Put(key, value, cancellationToken);
+        //}
 
-        public Task<Option<byte[]>> Get(byte[] key, CancellationToken cancellationToken)
-        {
-            return ((IDbStore)this.dbStore).Get(key, cancellationToken);
-        }
+        //public Task<Option<byte[]>> Get(byte[] key, CancellationToken cancellationToken)
+        //{
+        //    return ((IDbStore)this.dbStore).Get(key, cancellationToken);
+        //}
 
-        public Task Remove(byte[] key, CancellationToken cancellationToken)
-        {
-            return ((IDbStore)this.dbStore).Remove(key, cancellationToken);
-        }
+        //public Task Remove(byte[] key, CancellationToken cancellationToken)
+        //{
+        //    return ((IDbStore)this.dbStore).Remove(key, cancellationToken);
+        //}
 
-        public Task<bool> Contains(byte[] key, CancellationToken cancellationToken)
-        {
-            return ((IDbStore)this.dbStore).Contains(key, cancellationToken);
-        }
+        //public Task<bool> Contains(byte[] key, CancellationToken cancellationToken)
+        //{
+        //    return ((IDbStore)this.dbStore).Contains(key, cancellationToken);
+        //}
 
-        public Task<Option<(byte[] key, byte[] value)>> GetFirstEntry(CancellationToken cancellationToken)
-        {
-            return ((IDbStore)this.dbStore).GetFirstEntry(cancellationToken);
-        }
+        //public Task<Option<(byte[] key, byte[] value)>> GetFirstEntry(CancellationToken cancellationToken)
+        //{
+        //    return ((IDbStore)this.dbStore).GetFirstEntry(cancellationToken);
+        //}
 
-        public Task<Option<(byte[] key, byte[] value)>> GetLastEntry(CancellationToken cancellationToken)
-        {
-            return ((IDbStore)this.dbStore).GetLastEntry(cancellationToken);
-        }
+        //public Task<Option<(byte[] key, byte[] value)>> GetLastEntry(CancellationToken cancellationToken)
+        //{
+        //    return ((IDbStore)this.dbStore).GetLastEntry(cancellationToken);
+        //}
 
-        public Task IterateBatch(int batchSize, Func<byte[], byte[], Task> perEntityCallback, CancellationToken cancellationToken)
-        {
-            return ((IDbStore)this.dbStore).IterateBatch(batchSize, perEntityCallback, cancellationToken);
-        }
+        //public Task IterateBatch(int batchSize, Func<byte[], byte[], Task> perEntityCallback, CancellationToken cancellationToken)
+        //{
+        //    return ((IDbStore)this.dbStore).IterateBatch(batchSize, perEntityCallback, cancellationToken);
+        //}
 
-        public Task IterateBatch(byte[] startKey, int batchSize, Func<byte[], byte[], Task> perEntityCallback, CancellationToken cancellationToken)
-        {
-            return ((IDbStore)this.dbStore).IterateBatch(startKey, batchSize, perEntityCallback, cancellationToken);
-        }
+        //public Task IterateBatch(byte[] startKey, int batchSize, Func<byte[], byte[], Task> perEntityCallback, CancellationToken cancellationToken)
+        //{
+        //    return ((IDbStore)this.dbStore).IterateBatch(startKey, batchSize, perEntityCallback, cancellationToken);
+        //}
 
-        public void Dispose()
-        {
-            ((IDbStore)this.dbStore).Dispose();
-        }
+        //public void Dispose()
+        //{
+        //    ((IDbStore)this.dbStore).Dispose();
+        //}
     }
 }

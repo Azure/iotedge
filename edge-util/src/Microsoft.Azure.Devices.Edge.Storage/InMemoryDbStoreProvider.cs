@@ -194,6 +194,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             Events.BackupArtifactsCleanedUp();
         }
 
+        public void RemoveDbStore()
+        {
+            this.RemoveDbStore(DefaultPartitionName);
+        }
+
         class BackupMetadataList
         {
             BackupMetadataList()

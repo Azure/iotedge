@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
     public abstract class DbStoreWithBackupRestore : IDbStore
     {
-        IDbStore dbStore;
+        protected IDbStore dbStore;
 
         public DbStoreWithBackupRestore(IDbStore dbStore)
         {

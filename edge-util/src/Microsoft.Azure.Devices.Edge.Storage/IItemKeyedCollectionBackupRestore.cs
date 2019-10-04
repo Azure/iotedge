@@ -5,8 +5,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
     public interface IItemKeyedCollectionBackupRestore
     {
-        Task BackupAsync(ItemKeyedCollection itemKeyedCollection);
+        Task BackupAsync(string name, ItemKeyedCollection itemKeyedCollection);
 
-        Task<ItemKeyedCollection> RestoreAsync();
+        Task<ItemKeyedCollection> RestoreAsync(string name);
     }
 }
