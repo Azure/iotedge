@@ -31,6 +31,7 @@ static void test_hook_gballoc_free(void* ptr)
 
 #include "testrunnerswitcher.h"
 #include "umock_c/umock_c.h"
+#include "umock_c/umocktypes_stdint.h"
 #include "umock_c/umock_c_negative_tests.h"
 #include "umock_c/umocktypes_charptr.h"
 
@@ -518,6 +519,8 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_unittests)
 
             REGISTER_GLOBAL_MOCK_HOOK(generate_rand_buffer, test_hook_generate_rand_buffer);
             REGISTER_GLOBAL_MOCK_FAIL_RETURN(generate_rand_buffer, 1);
+
+            (void)umocktypes_stdint_register_types();
         }
 
         TEST_SUITE_CLEANUP(TestClassCleanup)

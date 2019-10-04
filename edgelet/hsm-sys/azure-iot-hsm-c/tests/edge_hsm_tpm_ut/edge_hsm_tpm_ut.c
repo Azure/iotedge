@@ -33,6 +33,7 @@ static void test_hook_gballoc_free(void* ptr)
 #include "umock_c/umock_c.h"
 #include "umock_c/umock_c_negative_tests.h"
 #include "umock_c/umocktypes_charptr.h"
+#include "umock_c/umocktypes_stdint.h"
 
 //#############################################################################
 // Declare and enable MOCK definitions
@@ -445,6 +446,8 @@ BEGIN_TEST_SUITE(edge_hsm_tpm_unittests)
 
             REGISTER_GLOBAL_MOCK_HOOK(mocked_hsm_client_key_decrypt, test_hook_hsm_client_key_decrypt);
             REGISTER_GLOBAL_MOCK_FAIL_RETURN(mocked_hsm_client_key_decrypt, 1);
+
+            (void)umocktypes_stdint_register_types();
         }
 
         TEST_SUITE_CLEANUP(TestClassCleanup)
