@@ -150,7 +150,7 @@ provisioning:
 #   device_ca_cert: "<ADD URI TO DEVICE CA CERTIFICATE HERE>"
 #   device_ca_pk: "<ADD URI TO DEVICE CA PRIVATE KEY HERE>"
 #   trusted_ca_certs: "<ADD URI TO TRUSTED CA CERTIFICATES HERE>"
-#   auto_generated_ca_lifetime_days: <Default is 90>
+#   auto_generated_ca_lifetime_days: "<Default is 90 days>"
 
 ###############################################################################
 # Edge Agent module spec
