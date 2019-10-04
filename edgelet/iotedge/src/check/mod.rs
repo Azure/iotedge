@@ -305,7 +305,7 @@ impl Check {
     }
 
     fn execute_inner(&mut self) -> Result<(), Error> {
-        let mut checks: BTreeMap<&str, (CheckResultSerializable, String)> = Default::default();
+        let mut checks: BTreeMap<&str, (CheckResultSerializable, serde_json::Value)> = Default::default();
         let mut check_data = Check::checks();
 
         let mut stdout = Stdout::new(self.output_format);
@@ -345,7 +345,7 @@ impl Check {
                 let mut erased_serializer = erased_serde::Serializer::erase(serializer);
                 check.erased_serialize(&mut erased_serializer);
                 drop(erased_serializer);
-                let additional_check_info: String = String::from_utf8(info).unwrap(); // String::from_utf8(info).unwrap();
+                let additional_check_info: serde_json::Value = serde_json::json!(String::from_utf8(info).unwrap());
 
                 match check_result {
                     CheckResult::Ok => {
@@ -589,7 +589,7 @@ fn write_lines<'a>(
 #[derive(Debug, serde_derive::Serialize)]
 struct CheckResultsSerializable<'a> {
     additional_info: &'a AdditionalInfo,
-    checks: BTreeMap<&'static str, (CheckResultSerializable, String)>,
+    checks: BTreeMap<&'static str, (CheckResultSerializable, serde_json::Value)>,
 }
 
 #[derive(Debug, serde_derive::Serialize)]
