@@ -259,9 +259,10 @@ fn run() -> Result<(), Error> {
                         .default_value("1 day"),
                 )
                 .arg(
-                    Arg::with_name("include-ms-only")
+                    Arg::with_name("include-edge-runtime-only")
                         .help("Only include logs from Microsoft-owned Edge modules")
-                        .long("ms-only")
+                        .long("runtime-only")
+                        .short("e")
                         .takes_value(false),
                 ),
         )
@@ -367,7 +368,7 @@ fn run() -> Result<(), Error> {
                 .with_follow(false)
                 .with_tail(LogTail::All)
                 .with_since(since);
-            let include_ms_only = args.is_present("include-ms-only");
+            let include_ms_only = args.is_present("include-edge-runtime-only");
             tokio_runtime.block_on(
                 SupportBundle::new(options, location.to_owned(), include_ms_only, runtime()?)
                     .execute(),
