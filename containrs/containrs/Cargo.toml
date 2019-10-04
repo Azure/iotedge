@@ -7,6 +7,7 @@ edition = "2018"
 [dependencies]
 docker-reference = { path = "../docker-reference" }
 docker-scope = { path = "../docker-scope" }
+oci-digest = { path = "../oci-digest" }
 oci-distribution = { path = "../oci-distribution" }
 oci-image = { path = "../oci-image" }
 www-authenticate = { path = "../www-authenticate" }

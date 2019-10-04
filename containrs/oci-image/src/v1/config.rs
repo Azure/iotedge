@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
+use oci_digest::Digest;
+
 use super::{media_type, MediaType};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -63,9 +65,8 @@ pub struct RootFS {
 
     /// DiffIDs is an array of layer content hashes (DiffIDs), in order from
     /// bottom-most to top-most.
-    // TODO: use actual digest type instead of a plain string
     #[serde(rename = "diff_ids")]
-    pub diff_ids: Vec<String>,
+    pub diff_ids: Vec<Digest>,
 }
 
 /// History describes the history of a layer.

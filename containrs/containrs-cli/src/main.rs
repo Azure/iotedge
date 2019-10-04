@@ -15,6 +15,7 @@ use tokio::fs::{self, File};
 use tokio::prelude::*;
 
 use docker_reference::{Reference, ReferenceKind};
+use oci_digest::Digest;
 
 use containrs::{Blob, Client, Credentials, Paginate};
 
@@ -285,7 +286,7 @@ async fn true_main() -> Result<(), failure::Error> {
 
                     let progress = ProgressBar::new(0);
                     progress.set_style(PB_STYLE.clone());
-                    progress.set_message(&digest.split(':').nth(1).unwrap()[..16]);
+                    progress.set_message(&digest.as_str().split(':').nth(1).unwrap()[..16]);
 
                     let mut blob = match sub_m.value_of("range") {
                         Some(s) => {
@@ -299,13 +300,24 @@ async fn true_main() -> Result<(), failure::Error> {
 
                     progress.set_length(blob.len().unwrap_or(0));
 
-                    // dump the blob to stdout, chunk by chunk
+                    // dump the blob to stdout, chunk by chunk, validating it along the way
+                    let mut validator = digest.new_validator();
                     let mut stdout = tokio::io::stdout();
                     while let Some(data) = blob.chunk().await? {
+                        validator.input(&data);
                         let bytes_written = stdout.write(data.as_ref()).await?;
                         progress.inc(bytes_written as u64);
                     }
                     progress.finish();
+
+                    eprintln!(
+                        "Calculated digest {} the expected digest",
+                        if validator.validate() {
+                            "matches"
+                        } else {
+                            "**does not** match"
+                        }
+                    );
                 }
                 _ => unreachable!(),
             }
@@ -339,7 +351,7 @@ async fn true_main() -> Result<(), failure::Error> {
             eprintln!("downloaded manifest.json");
 
             // create an output directory based on the manifest's digest
-            let out_dir = out_dir.join(manifest_digest.replace(':', "-"));
+            let out_dir = out_dir.join(manifest_digest.as_str().replace(':', "-"));
             fs::create_dir(&out_dir)
                 .await
                 .context(format!("{:?}", out_dir))
@@ -391,6 +403,7 @@ async fn true_main() -> Result<(), failure::Error> {
             downloads.push(write_blob_to_file(
                 out_dir.join("manifest.json"),
                 manifest_json,
+                manifest_digest,
                 manifest_progress,
             ));
 
@@ -402,6 +415,7 @@ async fn true_main() -> Result<(), failure::Error> {
             downloads.push(write_blob_to_file(
                 out_dir.join("config.json"),
                 config_json,
+                manifest.config.digest,
                 config_progress,
             ));
 
@@ -409,30 +423,34 @@ async fn true_main() -> Result<(), failure::Error> {
             downloads.extend(layers.into_iter().map(|(blob, layer)| {
                 let filename = format!(
                     "{}.{}",
-                    layer.digest.replace(':', "-"),
+                    layer.digest.as_str().replace(':', "-"),
                     MEDIA_TYPE_TO_FILE_EXT
                         .get(layer.media_type.as_str())
                         .unwrap_or(&"unknown")
                 );
 
                 let layer_progress = overall_progress.add(ProgressBar::new(0));
-                layer_progress.set_message(&layer.digest.split(':').nth(1).unwrap()[..16]);
+                layer_progress.set_message(&layer.digest.as_str().split(':').nth(1).unwrap()[..16]);
                 layer_progress.set_style(PB_STYLE.clone());
                 layer_progress.set_length(blob.len().unwrap_or(0));
 
-                write_blob_to_file(out_dir.join(filename), blob, layer_progress)
+                write_blob_to_file(out_dir.join(filename), blob, layer.digest, layer_progress)
             }));
 
             let progress_handle = std::thread::spawn(move || {
                 let _ = overall_progress.join();
             });
 
-            future::try_join_all(downloads).await?;
+            let validations = future::try_join_all(downloads).await?;
             let _ = progress_handle.join();
 
             eprintln!("full download flow time: {:?}", start_time.elapsed());
 
-            // TODO: validate downloaded data (JSON structure, digests, etc...)
+            for (path, validated) in validations {
+                if !validated {
+                    eprintln!("Digest mismatch! {:?}", path.file_name().unwrap());
+                }
+            }
         }
         _ => unreachable!(),
     }
@@ -440,11 +458,16 @@ async fn true_main() -> Result<(), failure::Error> {
     Ok(())
 }
 
+/// Writes a blob to disk, and validates the calculated digest matches the
+/// actual digest.
 async fn write_blob_to_file(
     file_path: PathBuf,
     mut blob: Blob,
+    digest: Digest,
     progress: ProgressBar,
-) -> Result<(), failure::Error> {
+) -> Result<(PathBuf, bool), failure::Error> {
+    let mut validator = digest.new_validator();
+
     let mut file = File::create(&file_path)
         .await
         .context(format!("could not create {:?}", file_path))?;
@@ -454,6 +477,7 @@ async fn write_blob_to_file(
         .await
         .context(format!("error while downloading {:?}", file_path))?
     {
+        validator.input(&data);
         let bytes_written = file
             .write(data.as_ref())
             .await
@@ -461,5 +485,5 @@ async fn write_blob_to_file(
         progress.inc(bytes_written as u64);
     }
     progress.finish();
-    Ok(())
+    Ok((file_path, validator.validate()))
 }

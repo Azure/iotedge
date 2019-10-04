@@ -1,6 +1,8 @@
 use failure::Fail;
 use pest::error::Error as PestError;
 
+use oci_digest::DigestParseError;
+
 pub type Result<T> = ::std::result::Result<T, Error>;
 
 #[derive(Debug, Fail)]
@@ -10,5 +12,7 @@ pub enum Error {
 
     #[fail(display = "Image name is too long (>255 chars)")]
     NameTooLong,
-    // TODO: add digest errors
+
+    #[fail(display = "Failed to parse Digest")]
+    Digest(DigestParseError),
 }

@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
+use oci_digest::Digest;
+
 use super::{media_type, MediaType};
 
 /// Descriptor describes the disposition of targeted content.
@@ -14,9 +16,8 @@ pub struct Descriptor {
     pub media_type: String,
 
     /// Digest is the digest of the targeted content.
-    // TODO: replace digest string with an actual digest structure
     #[serde(rename = "digest")]
-    pub digest: String,
+    pub digest: Digest,
 
     /// Size specifies the size in bytes of the blob.
     #[serde(rename = "size")]

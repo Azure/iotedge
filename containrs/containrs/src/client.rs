@@ -11,13 +11,14 @@ use reqwest::header::{self, HeaderMap};
 use reqwest::{Client as ReqwestClient, Method, Response, StatusCode, Url};
 
 use docker_reference::Reference;
+use docker_scope::{Action, Resource, Scope};
+use oci_digest::Digest;
 use oci_image::{v1::Manifest, MediaType};
 
 use crate::auth::{AuthClient, Credentials};
 use crate::blob::Blob;
 use crate::error::*;
 use crate::paginate::Paginate;
-use docker_scope::{Action, Resource, Scope};
 
 /// Client for interacting with container registries that conform to the OCI
 /// distribution specification (i.e: Docker Registry HTTP API V2 protocol)
@@ -145,8 +146,7 @@ impl Client {
     /// alongside the manifest's digest (as reported by the server).
     ///
     /// Returned data should deserialize into [`oci_image::v1::Manifest`]
-    // TODO: use actual digest type instead of String
-    pub async fn get_raw_manifest(&self, reference: &Reference) -> Result<(Blob, String)> {
+    pub async fn get_raw_manifest(&self, reference: &Reference) -> Result<(Blob, Digest)> {
         // TODO: double check this scope
         let scope = Scope::new(Resource::repo(reference.repo()), &[Action::Pull]);
 
@@ -170,8 +170,8 @@ impl Client {
                     .ok_or_else(|| ErrorKind::ApiMissingHeader("Docker-Content-Digest"))?
                     .to_str()
                     .context(ErrorKind::ApiMalformedHeader("Docker-Content-Digest"))?
-                    // TODO: validate string is actually a Digest
-                    .to_string();
+                    .parse::<Digest>()
+                    .context(ErrorKind::ApiInvalidDigestHeader)?;
                 Ok((Blob::new(res), digest))
             }
             StatusCode::UNAUTHORIZED => {
@@ -183,8 +183,7 @@ impl Client {
     }
 
     /// Retrieve the blob with given `digest` from the specified `repo`.
-    #[allow(clippy::ptr_arg)] // TODO: use proper Digest type instead of String
-    pub async fn get_raw_blob(&self, repo: &str, digest: &String) -> Result<Blob> {
+    pub async fn get_raw_blob(&self, repo: &str, digest: &Digest) -> Result<Blob> {
         self.get_raw_blob_part(repo, digest, ..).await
     }
 
@@ -192,11 +191,10 @@ impl Client {
     ///
     /// If the server doesn't support the use of a  Range header, this function
     /// will return a [ErrorKind::ApiRangeHeaderNotSupported]
-    #[allow(clippy::ptr_arg)] // TODO: use proper Digest type instead of String
     pub async fn get_raw_blob_part(
         &self,
         repo: &str,
-        digest: &String,
+        digest: &Digest,
         range: impl RangeBounds<u64>,
     ) -> Result<Blob> {
         // TODO: double check this scope

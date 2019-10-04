@@ -53,6 +53,9 @@ pub enum ErrorKind {
     #[fail(display = "API response returned a malformed required header: {}", _0)]
     ApiMalformedHeader(&'static str),
 
+    #[fail(display = "API returned a invalid Docker-Content-Digest header")]
+    ApiInvalidDigestHeader,
+
     #[fail(
         display = "API returned an out of spec response (status code: {}). See debug logs for response contents.",
         _0

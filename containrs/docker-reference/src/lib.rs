@@ -38,6 +38,8 @@ use std::str::FromStr;
 use pest::Parser;
 use pest_derive::Parser;
 
+use oci_digest::Digest;
+
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
 struct PestReferenceParser;
@@ -55,7 +57,7 @@ pub use error::{Error, Result};
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub enum ReferenceKind {
     Tag(String),
-    Digest(String), // TODO: replace with proper digest type
+    Digest(Digest),
 }
 
 impl std::fmt::Display for ReferenceKind {
@@ -113,7 +115,7 @@ pub struct RawReference {
     pub name: String,
     pub domain: Option<String>,
     pub tag: Option<String>,
-    pub digest: Option<String>,
+    pub digest: Option<Digest>,
 }
 
 impl RawReference {
@@ -224,9 +226,7 @@ impl FromStr for RawReference {
 
         let mut digest = None;
         if let Some(digest_str) = digest_str {
-            // TODO: validate digest, and convert it to a proper Digest type
-            // return an error if the digest is invalid
-            digest = Some(digest_str);
+            digest = Some(digest_str.parse().map_err(Error::Digest)?);
         }
 
         Ok(RawReference {

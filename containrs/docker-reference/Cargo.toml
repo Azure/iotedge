@@ -5,6 +5,8 @@ authors = ["Azure IoT Edge Devs"]
 edition = "2018"
 
 [dependencies]
+oci-digest = { path = "../oci-digest" }
+
 failure = "0.1"
 pest = "2.1"
 pest_derive = "2.1"

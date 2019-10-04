@@ -107,7 +107,8 @@ fn domain_port_digest() {
             tag: None,
             digest: Some(
                 "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-                    .to_string()
+                    .parse()
+                    .unwrap()
             )
         }
     );
@@ -121,7 +122,7 @@ fn domain_port_tag_digest() {
             name: "repo".to_string(),
             domain: Some("test:5000".to_string()),
             tag: Some("tag".to_string()),
-            digest: Some("sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff".to_string())
+            digest: Some("sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff".parse().unwrap())
         }
     );
 }
@@ -150,16 +151,14 @@ fn short_digest() {
     assert!("@sha256:fffffffffffffffff".parse::<RawReference>().is_err());
 }
 
-#[rustfmt::skip]
-// FIXME: uncomment once digest validation is implemented
-// #[test]
-// fn unsupported_digest() {
-//     assert!(
-//         "validname@bruhhash:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-//             .parse::<RawReference>()
-//             .is_err()
-//     );
-// }
+#[test]
+fn unsupported_digest() {
+    assert!(
+        "validname@bruhhash:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            .parse::<RawReference>()
+            .is_err()
+    );
+}
 
 #[test]
 fn uppercase_name() {
@@ -279,7 +278,7 @@ fn complex_domain_doubledash_digest() {
             name: "myimage".to_string(),
             domain: Some("xn--7o8h.com".to_string()),
             tag: Some("xn--7o8h.com".to_string()),
-            digest: Some("sha512:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff".to_string())
+            digest: Some("sha512:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff".parse().unwrap())
         }
     );
 }

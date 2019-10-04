@@ -5,6 +5,7 @@
 //! - https://docs.docker.com/registry/spec/auth/scope/
 
 use std::collections::HashSet;
+use std::fmt;
 use std::str::FromStr;
 
 use pest::Parser;
@@ -210,18 +211,18 @@ pub enum Action {
     Unknown(String),
 }
 
-impl ToString for Action {
-    fn to_string(&self) -> String {
+impl fmt::Display for Action {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use self::Action::*;
-        match self {
+        let s = match self {
             Pull => "pull",
             Push => "push",
             Delete => "delete",
             Wildcard => "*",
             MetadataRead => "metadata_read",
             Unknown(s) => s,
-        }
-        .to_string()
+        };
+        f.write_str(s)
     }
 }
 
@@ -251,15 +252,15 @@ pub enum ResourceKind {
     Unknown(String),
 }
 
-impl ToString for ResourceKind {
-    fn to_string(&self) -> String {
+impl fmt::Display for ResourceKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use self::ResourceKind::*;
-        match self {
+        let s = match self {
             Repository => "repository",
             Registry => "registry",
             Unknown(s) => s,
-        }
-        .to_string()
+        };
+        f.write_str(s)
     }
 }
 
