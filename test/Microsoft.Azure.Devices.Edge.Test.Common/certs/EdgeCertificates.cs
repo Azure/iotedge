@@ -27,6 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
         }
 
         public EdgeCertificates(string deviceId, string scriptPath)
+            : base()
         {
             var location = this.GetEdgeCertFileLocation(deviceId);
             var files = OsPlatform.NormalizeFiles(location, scriptPath);
@@ -36,6 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
         }
 
         public EdgeCertificates(string certificatePath, string keyPath, string trustedCertsPath)
+            : base()
         {
             Preconditions.CheckArgument(File.Exists(certificatePath));
             Preconditions.CheckArgument(File.Exists(keyPath));

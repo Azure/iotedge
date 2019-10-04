@@ -117,8 +117,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
             var agent = new EdgeAgent(registrationId, this.iotHub);
             await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
-            Log.Information("Device ID: " + registrationId);
-
             await agent.PingAsync(token);
 
             Option<EdgeDevice> device = await EdgeDevice.GetIdentityAsync(
