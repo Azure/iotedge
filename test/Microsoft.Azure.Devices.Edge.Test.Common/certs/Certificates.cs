@@ -16,10 +16,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
 
         public string KeyPath { get; protected set; }
 
-        protected Certificates()
-        {
-        }
-
         public Certificates(string deviceId, string scriptPath)
         {
             var location = this.GetFileLocation(deviceId);

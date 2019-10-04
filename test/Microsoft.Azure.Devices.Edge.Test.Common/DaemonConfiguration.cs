@@ -47,16 +47,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config.ReplaceOrAdd("provisioning.attestation.symmetric_key", deviceKey);
         }
 
-        public void SetDpsTpm(string idScope, string registrationId)
-        {
-            this.config.RemoveIfExists("provisioning");
-            this.config.ReplaceOrAdd("provisioning.source", "dps");
-            this.config.ReplaceOrAdd("provisioning.global_endpoint", GlobalEndPoint);
-            this.config.ReplaceOrAdd("provisioning.scope_id", idScope);
-            this.config.ReplaceOrAdd("provisioning.attestation.method", "tpm");
-            this.config.ReplaceOrAdd("provisioning.attestation.registration_id", registrationId);
-        }
-
         public void SetDpsX509(string idScope, string registrationId, CertificateAuthority ca)
         {
             Uri certUri = new Uri(ca.Certificate.CertificatePath, UriKind.Absolute);

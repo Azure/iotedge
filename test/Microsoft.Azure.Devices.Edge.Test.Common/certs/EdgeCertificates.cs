@@ -6,8 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
     using System.Security.Cryptography.X509Certificates;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    using Serilog; // BEARWASHERE TO be removed
-
     public class EdgeCertificates : Certificates
     {
         public string TrustedCertificatesPath { get; }

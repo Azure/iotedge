@@ -10,7 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Serilog;
 
     public class OsPlatform : Common.OsPlatform, IOsPlatform
     {
