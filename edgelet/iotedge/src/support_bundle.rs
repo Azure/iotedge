@@ -113,7 +113,7 @@ where
         state: BundleState<M>,
     ) -> impl Future<Item = (Vec<String>, BundleState<M>), Error = Error> {
         const MS_MODULES: &[&str] = &["edgeAgent", "edgeHub"];
-        
+
         let include_ms_only = state.include_ms_only;
 
         state
