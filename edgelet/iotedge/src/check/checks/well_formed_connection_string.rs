@@ -1,14 +1,11 @@
-use std;
-use std::fs::File;
+use failure::{self, Context, ResultExt};
 
-use failure::{self, Fail};
+use edgelet_core::{self, ManualAuthMethod, Provisioning, RuntimeSettings};
 
-use edgelet_docker::Settings;
-
-use crate::check::{checker::Checker, Check, CheckResult};
+use crate::check::{checker::Checker, checks::WellFormedConfig, Check, CheckResult};
 
 #[derive(Default, serde_derive::Serialize)]
-pub(crate) struct WellFormedConnectionString {
+pub struct WellFormedConnectionString {
     result: CheckResult,
     iothub_hostname: Option<String>,
 }

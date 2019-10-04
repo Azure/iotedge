@@ -1,14 +1,13 @@
 use std;
-use std::fs::File;
+use std::ffi::OsStr;
+use std::process::Command;
 
-use failure::{self, Fail};
+use failure::{self, Context, Fail};
 
-use edgelet_docker::Settings;
-
-use crate::check::{checker::Checker, Check, CheckResult};
+use crate::check::{checker::Checker, checks::WellFormedConfig, CheckResult};
 
 #[derive(Default, serde_derive::Serialize)]
-pub(crate) struct ContainerEngineInstalled {
+pub struct ContainerEngineInstalled {
     result: CheckResult,
     docker_host_arg: Option<String>,
     docker_server_version: Option<String>,
@@ -26,17 +25,16 @@ impl Checker for ContainerEngineInstalled {
     }
 }
 impl ContainerEngineInstalled {
-    pub fn new(check: &Check, config: &WellFormedConfig) -> Self {
+    pub fn new(config: &WellFormedConfig) -> Self {
         let mut checker = Self::default();
         checker.result = checker
-            .execute(check, config)
+            .execute(config)
             .unwrap_or_else(CheckResult::Failed);
         checker
     }
 
     fn execute(
         &mut self,
-        check: &Check,
         config: &WellFormedConfig,
     ) -> Result<CheckResult, failure::Error> {
         let settings = if let Some(settings) = &config.settings {
