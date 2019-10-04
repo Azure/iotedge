@@ -264,7 +264,8 @@ where
         set_iot_edge_env_vars(&settings, &external_provisioning_info)
             .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
 
-        let auto_generated_ca_lifetime_seconds = settings.certificates().auto_generated_ca_lifetime_seconds();
+        let auto_generated_ca_lifetime_seconds =
+            settings.certificates().auto_generated_ca_lifetime_seconds();
 
         info!("Initializing hsm...");
         let crypto = Crypto::new(hsm_lock.clone(), auto_generated_ca_lifetime_seconds)
