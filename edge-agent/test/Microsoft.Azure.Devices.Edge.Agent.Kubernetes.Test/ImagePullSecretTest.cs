@@ -5,7 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     using System.Collections.Generic;
     using System.Text;
     using global::Docker.DotNet.Models;
-    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json.Linq;
     using Xunit;
@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     {
         public static IEnumerable<object[]> GenerateAuthConfig()
         {
-            yield return new object[] { new AuthConfig() { Username = "one", Password = "two", ServerAddress = "three" } };
+            yield return new object[] { new AuthConfig { Username = "one", Password = "two", ServerAddress = "three" } };
         }
 
         [Theory]

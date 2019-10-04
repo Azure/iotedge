@@ -30,6 +30,8 @@ pub enum ErrorKind {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ExternalProvisioningErrorReason {
+    IdentityCertificateNotSpecified,
+    IdentityPrivateKeyNotSpecified,
     InvalidAuthenticationType,
     InvalidCredentialSource,
     InvalidSymmetricKey,
@@ -41,6 +43,14 @@ pub enum ExternalProvisioningErrorReason {
 impl fmt::Display for ExternalProvisioningErrorReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            ExternalProvisioningErrorReason::IdentityCertificateNotSpecified => {
+                write!(f, "The identity certificate was not specified.")
+            }
+
+            ExternalProvisioningErrorReason::IdentityPrivateKeyNotSpecified => {
+                write!(f, "The identity private key was not specified.")
+            }
+
             ExternalProvisioningErrorReason::InvalidAuthenticationType => {
                 write!(f, "Invalid authentication type specified.")
             }

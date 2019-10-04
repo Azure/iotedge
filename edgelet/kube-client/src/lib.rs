@@ -16,4 +16,4 @@ pub mod kube;
 
 pub use self::client::{Client, HttpClient};
 pub use self::config::{get_config, Config, TokenSource, ValueToken};
-pub use self::error::{Error, ErrorKind};
+pub use self::error::{Error, ErrorKind, RequestType};

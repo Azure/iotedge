@@ -144,7 +144,7 @@ impl From<&ErrorKind> for i32 {
             ErrorKind::Initialize(InitializeErrorReason::InvalidDeviceConfig) => 150,
             ErrorKind::Initialize(InitializeErrorReason::InvalidHubConfig) => 151,
             ErrorKind::InvalidSignedToken => 152,
-            ErrorKind::Initialize(InitializeErrorReason::NotConfigured) => 153,
+            ErrorKind::Initialize(InitializeErrorReason::LoadSettings) => 153,
             _ => 1,
         }
     }
@@ -167,8 +167,10 @@ pub enum InitializeErrorReason {
     HttpClient,
     HybridAuthDirCreate,
     HybridAuthKeyCreate,
+    HybridAuthKeyGet,
     HybridAuthKeyLoad,
     HybridAuthKeyInvalid,
+    HybridAuthKeySign,
     IncompatibleHsmVersion,
     IdentityCertificateSettings,
     InvalidDeviceCertCredentials,
@@ -180,7 +182,6 @@ pub enum InitializeErrorReason {
     ManagementService,
     ManualProvisioningClient,
     ModuleRuntime,
-    NotConfigured,
     PrepareWorkloadCa,
     #[cfg(windows)]
     RegisterWindowsService,
@@ -195,8 +196,12 @@ pub enum InitializeErrorReason {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ExternalProvisioningErrorReason {
     ClientInitialization,
+    DownloadIdentityCertificate,
+    DownloadIdentityPrivateKey,
+    ExternalProvisioningDirCreate,
     HsmInitialization,
     HsmKeyRetrieval,
+    HybridKeyPreparation,
     InvalidAuthenticationType,
     InvalidCredentials,
     Provisioning,
@@ -259,12 +264,21 @@ impl fmt::Display for InitializeErrorReason {
                 write!(f, "Could not create the hybrid identity key")
             }
 
+            InitializeErrorReason::HybridAuthKeyGet => write!(
+                f,
+                "Could not get the hybrid identity key from the key store"
+            ),
+
             InitializeErrorReason::HybridAuthKeyLoad => {
                 write!(f, "Could not load the hybrid identity key")
             }
 
             InitializeErrorReason::HybridAuthKeyInvalid => {
                 write!(f, "The loaded hybrid identity key was invalid")
+            }
+
+            InitializeErrorReason::HybridAuthKeySign => {
+                write!(f, "Could not sign using the hybrid identity key")
             }
 
             InitializeErrorReason::IncompatibleHsmVersion => {
@@ -307,18 +321,6 @@ impl fmt::Display for InitializeErrorReason {
                 write!(f, "Could not initialize module runtime")
             }
 
-            InitializeErrorReason::NotConfigured => write!(
-                f,
-                "Edge device information is required.\n\
-                 Please update the config.yaml and provide the IoTHub connection information.\n\
-                 See {} for more details.",
-                if cfg!(windows) {
-                    "https://aka.ms/iot-edge-configure-windows"
-                } else {
-                    "https://aka.ms/iot-edge-configure-linux"
-                }
-            ),
-
             InitializeErrorReason::PrepareWorkloadCa => {
                 write!(f, "Could not prepare workload CA certificate")
             }
@@ -353,12 +355,30 @@ impl fmt::Display for ExternalProvisioningErrorReason {
                 write!(f, "Could not create the external provisioning client.")
             }
 
+            ExternalProvisioningErrorReason::DownloadIdentityCertificate => write!(
+                f,
+                "The download of the identity certificate from the external environment failed."
+            ),
+
+            ExternalProvisioningErrorReason::DownloadIdentityPrivateKey => write!(
+                f,
+                "The download of the identity private key from the external environment failed."
+            ),
+
+            ExternalProvisioningErrorReason::ExternalProvisioningDirCreate => {
+                write!(f, "Could not create the external provisioning directory.")
+            }
+
             ExternalProvisioningErrorReason::HsmInitialization => {
                 write!(f, "Could not initialize the HSM interface.")
             }
 
             ExternalProvisioningErrorReason::HsmKeyRetrieval => {
                 write!(f, "Could not retrieve the device's key from the HSM.")
+            }
+
+            ExternalProvisioningErrorReason::HybridKeyPreparation => {
+                write!(f, "Could not prepare the hybrid key.")
             }
 
             ExternalProvisioningErrorReason::InvalidAuthenticationType => {

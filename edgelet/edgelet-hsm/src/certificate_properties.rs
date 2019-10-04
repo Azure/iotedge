@@ -134,5 +134,4 @@ mod tests {
             &super::convert_properties(&core_props, "device_ca_test"),
         );
     }
-
 }

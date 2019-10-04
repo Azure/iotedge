@@ -1,10 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
-    using global::Docker.DotNet.Models;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Json;
     using Newtonsoft.Json;
+    using AuthConfig = global::Docker.DotNet.Models.AuthConfig;
 
     public class CombinedDockerConfig
     {
@@ -13,6 +14,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             this.Image = Preconditions.CheckNonWhiteSpace(image, nameof(image)).Trim();
             this.CreateOptions = Preconditions.CheckNotNull(createOptions, nameof(createOptions));
             this.AuthConfig = authConfig;
+        }
+
+        [JsonConstructor]
+        CombinedDockerConfig(string image, CreateContainerParameters createOptions, AuthConfig auth)
+        {
+            this.Image = Preconditions.CheckNonWhiteSpace(image, nameof(image)).Trim();
+            this.CreateOptions = Preconditions.CheckNotNull(createOptions, nameof(createOptions));
+            this.AuthConfig = Option.Maybe(auth);
         }
 
         [JsonProperty(Required = Required.Always, PropertyName = "image")]

@@ -119,7 +119,7 @@ mod tests {
             res.into_body()
                 .concat2()
                 .map(Chunk::into_bytes)
-                .map_err(Error::from)
+                .map_err(|_| Error::from(ErrorKind::Generic))
         });
 
         let mut runtime = Runtime::new().unwrap();
@@ -146,7 +146,7 @@ mod tests {
                             .to_string(),
                     )
                 })
-                .map_err(Error::from)
+                .map_err(|_| Error::from(ErrorKind::Generic))
         });
 
         let mut runtime = Runtime::new().unwrap();
@@ -175,7 +175,7 @@ mod tests {
                             .to_string(),
                     )
                 })
-                .map_err(Error::from)
+                .map_err(|_| Error::from(ErrorKind::Generic))
         });
 
         let mut runtime = Runtime::new().unwrap();

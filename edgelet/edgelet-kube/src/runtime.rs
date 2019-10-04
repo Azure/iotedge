@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -19,9 +20,7 @@ use edgelet_core::{
     RuntimeOperation, SystemInfo,
 };
 use edgelet_docker::DockerConfig;
-use kube_client::{
-    get_config, Client as KubeClient, Error as KubeClientError, HttpClient, TokenSource, ValueToken,
-};
+use kube_client::{get_config, Client as KubeClient, HttpClient, TokenSource, ValueToken};
 use provisioning::ProvisioningResult;
 
 use crate::convert::{auth_to_image_pull_secret, pod_to_module};
@@ -76,7 +75,7 @@ where
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
     S::Future: Send,
 {
     type Error = Error;
@@ -89,16 +88,16 @@ where
         if let Some(auth) = config.auth() {
             // Have authorization for this module spec, create this if it doesn't exist.
             let fut = auth_to_image_pull_secret(self.settings().namespace(), auth)
-                .map_err(Error::from)
                 .map(|(secret_name, pull_secret)| {
                     let client_copy = self.client.clone();
                     let namespace_copy = self.settings().namespace().to_owned();
+
                     self.client
                         .lock()
                         .expect("Unexpected lock error")
                         .borrow_mut()
                         .list_secrets(self.settings().namespace(), Some(secret_name.as_str()))
-                        .map_err(Error::from)
+                        .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                         .and_then(move |secrets| {
                             if let Some(current_secret) = secrets.items.into_iter().find(|secret| {
                                 secret.metadata.as_ref().map_or(false, |meta| {
@@ -117,7 +116,9 @@ where
                                             secret_name.as_str(),
                                             &pull_secret,
                                         )
-                                        .map_err(Error::from)
+                                        .map_err(|err| {
+                                            Error::from(err.context(ErrorKind::KubeClient))
+                                        })
                                         .map(|_| ());
 
                                     Either::A(Either::B(f))
@@ -128,7 +129,7 @@ where
                                     .expect("Unexpected lock error")
                                     .borrow_mut()
                                     .create_secret(namespace_copy.as_str(), &pull_secret)
-                                    .map_err(Error::from)
+                                    .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                                     .map(|_| ());
 
                                 Either::B(f)
@@ -136,7 +137,8 @@ where
                         })
                 })
                 .into_future()
-                .flatten();
+                .flatten()
+                .map_err(|err| Error::from(err.context(ErrorKind::RegistryOperation)));
 
             Box::new(fut)
         } else {
@@ -170,7 +172,7 @@ impl MakeModuleRuntime
 
         let fut = get_config()
             .map(|config| KubeModuleRuntime::new(KubeClient::new(config), settings))
-            .map_err(Error::from)
+            .map_err(|err| Error::from(err.context(ErrorKind::Initialization)))
             .map(|runtime| init_trust_bundle(&runtime, &crypto).map(|_| runtime))
             .into_future()
             .flatten();
@@ -186,7 +188,7 @@ where
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
     S::Future: Send,
 {
     type Error = Error;
@@ -235,11 +237,52 @@ where
     }
 
     fn system_info(&self) -> Self::SystemInfoFuture {
-        // TODO: Implement this.
-        Box::new(future::ok(SystemInfo::new(
-            "linux".to_string(),
-            "x86_64".to_string(),
-        )))
+        #[derive(Debug, serde_derive::Serialize)]
+        pub struct Architecture {
+            name: String,
+            nodes_count: u32,
+        };
+
+        let fut = self
+            .client
+            .lock()
+            .expect("Unexpected lock error")
+            .borrow_mut()
+            .list_nodes()
+            .map_err(|err| {
+                Error::from(err.context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo)))
+            })
+            .map(|nodes| {
+                // Accumulate the architectures and their node counts into a map
+                let architectures = nodes
+                    .items
+                    .into_iter()
+                    .filter_map(|node| {
+                        node.status
+                            .and_then(|status| status.node_info.map(|info| info.architecture))
+                    })
+                    .fold(HashMap::new(), |mut architectures, current_arch| {
+                        let count = architectures.entry(current_arch).or_insert(0);
+                        *count += 1;
+                        architectures
+                    });
+
+                // Convert a map to a list of architectures
+                let architectures = architectures
+                    .into_iter()
+                    .map(|(name, count)| Architecture {
+                        name,
+                        nodes_count: count,
+                    })
+                    .collect::<Vec<Architecture>>();
+
+                SystemInfo::new(
+                    "Kubernetes".to_string(),
+                    serde_json::to_string(&architectures).unwrap(),
+                )
+            });
+
+        Box::new(fut)
     }
 
     fn list(&self) -> Self::ListFuture {
@@ -252,7 +295,9 @@ where
                 self.settings().namespace(),
                 Some(&self.settings().device_hub_selector()),
             )
-            .map_err(Error::from)
+            .map_err(|err| {
+                Error::from(err.context(ErrorKind::RuntimeOperation(RuntimeOperation::ListModules)))
+            })
             .and_then(|pods| {
                 pods.items
                     .into_iter()
@@ -293,7 +338,7 @@ where
     S::ReqBody: From<Vec<u8>>,
     S::ResBody: Stream,
     Body: From<S::ResBody>,
-    S::Error: Into<KubeClientError>,
+    S::Error: Fail,
     S::Future: Send,
 {
     type Error = Error;
@@ -353,5 +398,96 @@ impl Extend<u8> for Chunk {
 impl AsRef<[u8]> for Chunk {
     fn as_ref(&self) -> &[u8] {
         self.0.as_ref()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use hyper::service::service_fn;
+    use hyper::{Body, Method, Request, StatusCode};
+    use maplit::btreemap;
+    use serde_json::json;
+    use tokio::runtime::Runtime;
+
+    use edgelet_core::ModuleRuntime;
+    use edgelet_test_utils::routes;
+    use edgelet_test_utils::web::{
+        make_req_dispatcher, HttpMethod, RequestHandler, RequestPath, ResponseFuture,
+    };
+
+    use crate::tests::{create_runtime, make_settings, not_found_handler, response};
+
+    #[test]
+    fn runtime_get_system_info() {
+        let settings = make_settings(None);
+
+        let dispatch_table = routes!(
+            GET "/api/v1/nodes" => list_node_handler(),
+        );
+
+        let handler = make_req_dispatcher(dispatch_table, Box::new(not_found_handler));
+        let service = service_fn(handler);
+        let runtime = create_runtime(settings, service);
+
+        let task = runtime.system_info();
+
+        let mut runtime = Runtime::new().unwrap();
+        let info = runtime.block_on(task).unwrap();
+
+        assert_eq!(
+            info.architecture(),
+            "[{\"name\":\"amd64\",\"nodes_count\":2}]"
+        );
+    }
+
+    fn list_node_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
+        move |_| {
+            response(StatusCode::OK, || {
+                json!({
+                    "kind" : "NodeList",
+                    "items" : [
+                        {
+                            "kind" : "Node",
+                            "status" :
+                            {
+                                "nodeInfo":
+                                {
+                                  "machineID": "5aedea612a1a481a9f967578995b2930",
+                                  "systemUUID": "0331B348-6DBE-4344-BF93-6A3407C31879",
+                                  "bootID": "e8c73b01-12e6-45d1-a008-aeb3b5ae4225",
+                                  "kernelVersion": "4.15.0-1052-azure",
+                                  "osImage": "Ubuntu 16.04.6 LTS",
+                                  "containerRuntimeVersion": "docker://3.0.6",
+                                  "kubeletVersion": "v1.13.10",
+                                  "kubeProxyVersion": "v1.13.10",
+                                  "operatingSystem": "linux",
+                                  "architecture": "amd64"
+                                },
+                            }
+                        },
+                        {
+                            "kind" : "Node",
+                            "status" :
+                            {
+                                "nodeInfo":
+                                {
+                                  "machineID": "5aedea612a1a481a9f967578995b2930",
+                                  "systemUUID": "0331B348-6DBE-4344-BF93-6A3407C31879",
+                                  "bootID": "e8c73b01-12e6-45d1-a008-aeb3b5ae4225",
+                                  "kernelVersion": "4.15.0-1052-azure",
+                                  "osImage": "Ubuntu 16.04.6 LTS",
+                                  "containerRuntimeVersion": "docker://3.0.6",
+                                  "kubeletVersion": "v1.13.10",
+                                  "kubeProxyVersion": "v1.13.10",
+                                  "operatingSystem": "linux",
+                                  "architecture": "amd64"
+                                },
+                            }
+                        }
+                    ]
+                })
+                .to_string()
+            })
+        }
     }
 }

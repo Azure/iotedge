@@ -5,6 +5,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
+    using App.Metrics;
+    using App.Metrics.Counter;
+    using App.Metrics.Timer;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -51,9 +54,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             Preconditions.CheckNotNull(message, nameof(message));
             Preconditions.CheckNotNull(identity, nameof(identity));
             Events.MessageReceived(identity, message);
-            IRoutingMessage routingMessage = this.ProcessMessageInternal(message, true);
-            Metrics.AddMessageSize(routingMessage.Size(), identity.Id);
-            return this.router.RouteAsync(routingMessage);
+            MetricsV0.MessageCount(identity, 1);
+            using (MetricsV0.MessageLatency(identity))
+            {
+                IRoutingMessage routingMessage = this.ProcessMessageInternal(message, true);
+                Metrics.AddMessageSize(routingMessage.Size(), identity.Id);
+                return this.router.RouteAsync(routingMessage);
+            }
         }
 
         public Task ProcessDeviceMessageBatch(IIdentity identity, IEnumerable<IMessage> messages)
@@ -61,6 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             IList<IMessage> messagesList = messages as IList<IMessage>
                                            ?? Preconditions.CheckNotNull(messages, nameof(messages)).ToList();
             Events.MessagesReceived(identity, messagesList);
+            MetricsV0.MessageCount(identity, messagesList.Count);
 
             IEnumerable<IRoutingMessage> routingMessages = messagesList
                 .Select(
@@ -259,6 +267,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 new List<string> { "id" });
 
             public static void AddMessageSize(long size, string id) => MessagesHistogram.Update(size, new[] { id });
+        }
+
+        static class MetricsV0
+        {
+            static readonly CounterOptions EdgeHubMessageReceivedCountOptions = new CounterOptions
+            {
+                Name = "EdgeHubMessageReceivedCount",
+                MeasurementUnit = Unit.Events,
+                ResetOnReporting = true,
+            };
+
+            static readonly TimerOptions EdgeHubMessageLatencyOptions = new TimerOptions
+            {
+                Name = "EdgeHubMessageLatencyMs",
+                MeasurementUnit = Unit.None,
+                DurationUnit = TimeUnit.Milliseconds,
+                RateUnit = TimeUnit.Seconds
+            };
+
+            public static void MessageCount(IIdentity identity, long count) => Util.Metrics.MetricsV0.CountIncrement(GetTags(identity), EdgeHubMessageReceivedCountOptions, count);
+
+            public static IDisposable MessageLatency(IIdentity identity) => Util.Metrics.MetricsV0.Latency(GetTags(identity), EdgeHubMessageLatencyOptions);
+
+            static MetricTags GetTags(IIdentity identity)
+            {
+                return new MetricTags("Id", identity.Id);
+            }
         }
     }
 }

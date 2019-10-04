@@ -3,15 +3,9 @@
 use std::fmt;
 use std::fmt::Display;
 
-use config::ConfigError;
 use failure::{Backtrace, Context, Fail};
-use hyper::Error as HyperError;
-use serde_json::Error as JsonError;
-use typed_headers::Error as HeaderError;
 
 use edgelet_core::{ModuleRuntimeErrorReason, RuntimeOperation};
-use edgelet_docker::Error as DockerError;
-use kube_client::Error as KubeClientError;
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
@@ -22,14 +16,14 @@ pub struct Error {
 
 #[derive(Debug, Fail, PartialEq)]
 pub enum ErrorKind {
-    #[fail(display = "Kubernetes error")]
-    Kubernetes,
-
-    #[fail(display = "Could not initialize module runtime")]
+    #[fail(display = "Could not initialize kubernetes module runtime")]
     Initialization,
 
     #[fail(display = "Invalid module name {:?}", _0)]
     InvalidModuleName(String),
+
+    #[fail(display = "Invalid DNS name {:?}", _0)]
+    InvalidDnsName(String),
 
     #[fail(display = "Device Id was not found")]
     MissingDeviceId,
@@ -43,41 +37,26 @@ pub enum ErrorKind {
     #[fail(display = "Image not found in PodSpec")]
     ImageNotFound,
 
-    #[fail(display = "Invalid Runtime parameter {:?} : {:?}", _0, _1)]
-    InvalidRunTimeParameter(String, String),
-
-    #[fail(display = "{}", _0)]
+    #[fail(display = "Could not execute runtime operation: {}", _0)]
     RuntimeOperation(RuntimeOperation),
 
+    #[fail(display = "Could not execute registry operation")]
+    RegistryOperation,
+
     #[fail(display = "Invalid authentication token")]
-    ModuleAuthenticationError,
+    InvalidAuthToken,
 
-    #[fail(display = "Auth name not valid")]
-    AuthName,
+    #[fail(display = "Authentication failed")]
+    Authentication,
 
-    #[fail(display = "Auth server address not present ")]
-    AuthServerAddress,
-
-    #[fail(display = "Auth user name not present")]
-    AuthUser,
-
-    #[fail(display = "Auth password not present")]
-    AuthPassword,
-
-    #[fail(display = "Metadata missing from Deployment")]
-    DeploymentMeta,
-
-    #[fail(display = "Name field missing from Deployment")]
-    DeploymentName,
+    #[fail(display = "Pull image validation error: {}", _0)]
+    PullImage(PullImageErrorReason),
 
     #[fail(display = "Kubernetes client error")]
     KubeClient,
 
-    #[fail(display = "Docker crate error")]
-    DockerError,
-
-    #[fail(display = "Json convert error")]
-    JsonError,
+    #[fail(display = "Could not convert pod definition to kubernetes module")]
+    PodToModule,
 
     #[fail(display = "{}", _0)]
     NotFound(String),
@@ -85,11 +64,29 @@ pub enum ErrorKind {
     #[fail(display = "Config parsing error")]
     Config,
 
-    #[fail(display = "HTTP connection error")]
-    Hyper,
-
     #[fail(display = "An error occurred obtaining the client identity certificate")]
     IdentityCertificate,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum PullImageErrorReason {
+    AuthName,
+    AuthServerAddress,
+    AuthUser,
+    AuthPassword,
+    Json,
+}
+
+impl Display for PullImageErrorReason {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::AuthName => write!(f, "Auth name not valid"),
+            Self::AuthServerAddress => write!(f, "Auth server address not present"),
+            Self::AuthUser => write!(f, "Auth user name not present"),
+            Self::AuthPassword => write!(f, "Auth password not present"),
+            Self::Json => write!(f, "Json convert error"),
+        }
+    }
 }
 
 impl Fail for Error {
@@ -133,54 +130,6 @@ impl<'a> From<&'a Error> for ModuleRuntimeErrorReason {
         match Fail::find_root_cause(err).downcast_ref::<ErrorKind>() {
             Some(ErrorKind::NotFound(_)) => ModuleRuntimeErrorReason::NotFound,
             _ => ModuleRuntimeErrorReason::Other,
-        }
-    }
-}
-
-impl From<KubeClientError> for Error {
-    fn from(error: KubeClientError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::KubeClient),
-        }
-    }
-}
-
-impl From<DockerError> for Error {
-    fn from(error: DockerError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::DockerError),
-        }
-    }
-}
-
-impl From<JsonError> for Error {
-    fn from(error: JsonError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::JsonError),
-        }
-    }
-}
-
-impl From<HeaderError> for Error {
-    fn from(error: HeaderError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::ModuleAuthenticationError),
-        }
-    }
-}
-
-impl From<ConfigError> for Error {
-    fn from(error: ConfigError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Config),
-        }
-    }
-}
-
-impl From<HyperError> for Error {
-    fn from(error: HyperError) -> Self {
-        Error {
-            inner: error.context(ErrorKind::Hyper),
         }
     }
 }

@@ -51,10 +51,10 @@ use edgelet_core::crypto::{
 use edgelet_core::watchdog::Watchdog;
 use edgelet_core::{
     AttestationMethod, Authenticator, Certificate, CertificateIssuer, CertificateProperties,
-    CertificateType, Dps, MakeModuleRuntime, Manual, Module, ModuleRuntime,
-    ModuleRuntimeErrorReason, ModuleSpec, Provisioning,
-    ProvisioningResult as CoreProvisioningResult, RuntimeSettings, SymmetricKeyAttestationInfo,
-    TpmAttestationInfo, WorkloadConfig, DEFAULT_CONNECTION_STRING,
+    CertificateType, Dps, External, MakeModuleRuntime, ManualAuthMethod,
+    ManualDeviceConnectionString, ManualX509Auth, Module, ModuleRuntime, ModuleRuntimeErrorReason,
+    ModuleSpec, Provisioning, ProvisioningResult as CoreProvisioningResult, RuntimeSettings,
+    SymmetricKeyAttestationInfo, TpmAttestationInfo, WorkloadConfig,
 };
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::{Crypto, HsmLock, X509};
@@ -72,9 +72,9 @@ use hsm::tpm::Tpm;
 use hsm::ManageTpmKeys;
 use iothubservice::DeviceClient;
 use provisioning::provisioning::{
-    AuthType, BackupProvisioning, DpsSymmetricKeyProvisioning, DpsTpmProvisioning,
-    DpsX509Provisioning, ExternalProvisioning, ManualProvisioning, Provision, ProvisioningResult,
-    ReprovisioningStatus,
+    AuthType, BackupProvisioning, CredentialSource, DpsSymmetricKeyProvisioning,
+    DpsTpmProvisioning, DpsX509Provisioning, ExternalProvisioning, ManualProvisioning, Provision,
+    ProvisioningResult, ReprovisioningStatus,
 };
 
 use crate::error::ExternalProvisioningErrorReason;
@@ -156,6 +156,15 @@ const EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME: &str = "iotedge_hybrid_key";
 /// This is the name of the hybrid X509-SAS initialization vector
 const EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME: &str = "iotedge_hybrid_iv";
 
+/// This is the name of the external provisioning subdirectory that will
+/// contain the device's identity certificate, private key and other related files
+const EDGE_EXTERNAL_PROVISIONING_SUBDIR: &str = "external_prov";
+
+/// This is the name of the identity X509 certificate file
+const EDGE_EXTERNAL_PROVISIONING_ID_CERT_FILENAME: &str = "id_cert";
+/// This is the name of the identity X509 private key file
+const EDGE_EXTERNAL_PROVISIONING_ID_KEY_FILENAME: &str = "id_key";
+
 /// Size in bytes of the master identity key
 /// The length has been chosen to be compliant with the underlying
 /// default implementation of the HSM lib encryption algorithm. In the future
@@ -176,10 +185,13 @@ const EDGE_SETTINGS_SUBDIR: &str = "cache";
 
 /// This is the DPS registration ID env variable key
 const DPS_REGISTRATION_ID_ENV_KEY: &str = "IOTEDGE_REGISTRATION_ID";
-/// This is the DPS identity certificate file path/uri env variable key
-const DPS_DEVICE_ID_CERT_ENV_KEY: &str = "IOTEDGE_DEVICE_IDENTITY_CERT";
-/// This is the DPS identity private key file path/uri env variable key
-const DPS_DEVICE_ID_KEY_ENV_KEY: &str = "IOTEDGE_DEVICE_IDENTITY_PK";
+
+/// This is the edge device identity certificate file path env variable key.
+/// This is used for both DPS attestation and manual authentication modes.
+const DEVICE_IDENTITY_CERT_PATH_ENV_KEY: &str = "IOTEDGE_DEVICE_IDENTITY_CERT";
+/// This is the edge device identity private key file path env variable key.
+/// This is used for both DPS attestation and manual authentication modes.
+const DEVICE_IDENTITY_KEY_PATH_ENV_KEY: &str = "IOTEDGE_DEVICE_IDENTITY_PK";
 
 /// These are the properties of the workload CA certificate
 const IOTEDGED_VALIDITY: u64 = 7_776_000;
@@ -215,6 +227,7 @@ enum ProvisioningAuthMethod {
     SharedAccessKey,
 }
 
+#[derive(Debug)]
 struct IdentityCertificateData {
     common_name: String,
     thumbprint: String,
@@ -248,23 +261,10 @@ where
         let mut tokio_runtime = tokio::runtime::Runtime::new()
             .context(ErrorKind::Initialize(InitializeErrorReason::Tokio))?;
 
-        if let Provisioning::Manual(ref manual) = settings.provisioning() {
-            if manual.device_connection_string() == DEFAULT_CONNECTION_STRING {
-                return Err(Error::from(ErrorKind::Initialize(
-                    InitializeErrorReason::NotConfigured,
-                )));
-            }
-        }
+        let external_provisioning_info =
+            get_external_provisioning_info(&settings, &mut tokio_runtime)?;
 
-        if let Provisioning::External(ref external) = settings.provisioning() {
-            // Set the external provisioning endpoint environment variable for use by the custom HSM library.
-            env::set_var(
-                EXTERNAL_PROVISIONING_ENDPOINT_KEY,
-                external.endpoint().as_str(),
-            );
-        }
-
-        set_iot_edge_env_vars(&settings)
+        set_iot_edge_env_vars(&settings, &external_provisioning_info)
             .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
 
         info!("Initializing hsm...");
@@ -291,8 +291,11 @@ where
         ))?;
         info!("Finished initializing hsm.");
 
-        let (hyper_client, device_cert_identity_data) =
-            prepare_httpclient_and_identity_data(hsm_lock.clone(), &settings)?;
+        let (hyper_client, device_cert_identity_data) = prepare_httpclient_and_identity_data(
+            hsm_lock.clone(),
+            &settings,
+            external_provisioning_info.as_ref(),
+        )?;
 
         let cache_subdir_path = Path::new(&settings.homedir()).join(EDGE_SETTINGS_SUBDIR);
         // make sure the cache directory exists
@@ -380,44 +383,61 @@ where
             &hybrid_id_subdir_path,
             EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
             EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+            external_provisioning_info.as_ref(),
         )?;
 
         match settings.provisioning() {
             Provisioning::Manual(manual) => {
-                info!("Starting provisioning edge device via manual mode...");
-                let (key_store, provisioning_result, root_key) =
-                    manual_provision(&manual, &mut tokio_runtime)?;
-                start_edgelet!(
-                    key_store,
-                    provisioning_result,
-                    root_key,
-                    force_module_reprovision,
-                    None,
-                );
+                match manual.authentication_method() {
+                    ManualAuthMethod::DeviceConnectionString(cs) => {
+                        info!("Starting provisioning edge device via manual mode using a device connection string...");
+                        let (key_store, provisioning_result, root_key) =
+                            manual_provision_connection_string(&cs, &mut tokio_runtime)?;
+                        start_edgelet!(
+                            key_store,
+                            provisioning_result,
+                            root_key,
+                            force_module_reprovision,
+                            None,
+                        );
+                    }
+                    ManualAuthMethod::X509(x509) => {
+                        info!("Starting provisioning edge device via manual mode using X509 identity certificate...");
+
+                        let id_data = device_cert_identity_data.ok_or_else(|| {
+                            ErrorKind::Initialize(InitializeErrorReason::ManualProvisioningClient)
+                        })?;
+
+                        let key_bytes = hybrid_identity_key.ok_or_else(|| {
+                            ErrorKind::Initialize(InitializeErrorReason::ManualProvisioningClient)
+                        })?;
+
+                        let (key_store, provisioning_result, root_key) = manual_provision_x509(
+                            x509,
+                            &mut tokio_runtime,
+                            &key_bytes,
+                            id_data.thumbprint.clone(),
+                        )?;
+                        let thumbprint_op = Some(id_data.thumbprint.as_str());
+                        start_edgelet!(
+                            key_store,
+                            provisioning_result,
+                            root_key,
+                            force_module_reprovision,
+                            thumbprint_op,
+                        );
+                    }
+                };
             }
-            Provisioning::External(external) => {
+            Provisioning::External(_external) => {
                 info!("Starting provisioning edge device via external provisioning mode...");
-                let external_provisioning_client =
-                    ExternalProvisioningClient::new(external.endpoint()).context(
-                        ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient(
-                            ExternalProvisioningErrorReason::ClientInitialization,
-                        )),
-                    )?;
-                let external_provisioning = ExternalProvisioning::new(external_provisioning_client);
+                let provisioning_result = external_provisioning_info.ok_or_else(|| {
+                    ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient(
+                        ExternalProvisioningErrorReason::Provisioning,
+                    ))
+                })?;
 
-                let provision_fut = external_provisioning
-                    .provision(MemoryKeyStore::new())
-                    .map_err(|err| {
-                        Error::from(err.context(ErrorKind::Initialize(
-                            InitializeErrorReason::ExternalProvisioningClient(
-                                ExternalProvisioningErrorReason::Provisioning,
-                            ),
-                        )))
-                    });
-
-                let prov_result = tokio_runtime.block_on(provision_fut)?;
-
-                let credentials = if let Some(credentials) = prov_result.credentials() {
+                let credentials = if let Some(credentials) = provisioning_result.credentials() {
                     credentials
                 } else {
                     info!("Credentials are expected to be populated for external provisioning.");
@@ -435,7 +455,7 @@ where
                             let (derived_key_store, memory_key) = external_provision_payload(key);
                             start_edgelet!(
                                 derived_key_store,
-                                prov_result,
+                                provisioning_result,
                                 memory_key,
                                 force_module_reprovision,
                                 None,
@@ -445,20 +465,36 @@ where
                                 external_provision_tpm(hsm_lock.clone())?;
                             start_edgelet!(
                                 derived_key_store,
-                                prov_result,
+                                provisioning_result,
                                 tpm_key,
                                 force_module_reprovision,
                                 None,
                             );
                         }
                     }
-                    AuthType::X509(_) => {
-                        info!("Unexpected auth type. Only symmetric keys are expected");
-                        return Err(Error::from(ErrorKind::Initialize(
-                            InitializeErrorReason::ExternalProvisioningClient(
-                                ExternalProvisioningErrorReason::InvalidAuthenticationType,
-                            ),
-                        )));
+                    AuthType::X509(_x509) => {
+                        let id_data = device_cert_identity_data.ok_or_else(|| {
+                            ErrorKind::Initialize(InitializeErrorReason::DpsProvisioningClient)
+                        })?;
+
+                        let key_bytes = hybrid_identity_key.ok_or_else(|| {
+                            ErrorKind::Initialize(InitializeErrorReason::DpsProvisioningClient)
+                        })?;
+
+                        let thumbprint_op = Some(id_data.thumbprint.as_str());
+                        let (key_store, root_key) = external_provision_x509(
+                            &provisioning_result,
+                            &key_bytes,
+                            id_data.thumbprint.as_str(),
+                        )?;
+
+                        start_edgelet!(
+                            key_store,
+                            provisioning_result,
+                            root_key,
+                            force_module_reprovision,
+                            thumbprint_op,
+                        );
                     }
                 };
             }
@@ -528,13 +564,13 @@ where
                             &key_bytes,
                             id_data.thumbprint.clone(),
                         )?;
-                        let thumprint_op = Some(id_data.thumbprint.as_str());
+                        let thumbprint_op = Some(id_data.thumbprint.as_str());
                         start_edgelet!(
                             key_store,
                             provisioning_result,
                             root_key,
                             force_module_reprovision,
-                            thumprint_op,
+                            thumbprint_op,
                         );
                     }
                 }
@@ -546,7 +582,114 @@ where
     }
 }
 
-fn set_iot_edge_env_vars<S>(settings: &S) -> Result<(), Error>
+fn retrieve_external_provisioning_info(
+    external: &External,
+    tokio_runtime: &mut tokio::runtime::Runtime,
+) -> Result<ProvisioningResult, Error> {
+    info!("Retrieving provisioning information from the external endpoint...");
+    let external_provisioning_client = ExternalProvisioningClient::new(external.endpoint())
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::ExternalProvisioningClient(
+                ExternalProvisioningErrorReason::ClientInitialization,
+            ),
+        ))?;
+    let external_provisioning = ExternalProvisioning::new(external_provisioning_client);
+
+    let provision_fut = external_provisioning
+        .provision(MemoryKeyStore::new())
+        .map_err(|err| {
+            Error::from(err.context(ErrorKind::Initialize(
+                InitializeErrorReason::ExternalProvisioningClient(
+                    ExternalProvisioningErrorReason::Provisioning,
+                ),
+            )))
+        });
+
+    tokio_runtime.block_on(provision_fut)
+}
+
+fn get_external_provisioning_info<S>(
+    settings: &S,
+    tokio_runtime: &mut tokio::runtime::Runtime,
+) -> Result<Option<ProvisioningResult>, Error>
+where
+    S: RuntimeSettings,
+{
+    if let Provisioning::External(external) = settings.provisioning() {
+        // Set the external provisioning endpoint environment variable for use by the custom HSM library.
+        env::set_var(
+            EXTERNAL_PROVISIONING_ENDPOINT_KEY,
+            external.endpoint().as_str(),
+        );
+
+        let prov_info = retrieve_external_provisioning_info(external, tokio_runtime)?;
+
+        if let Some(credentials) = prov_info.credentials() {
+            if let CredentialSource::Payload = credentials.source() {
+                if let AuthType::X509(x509) = credentials.auth_type() {
+                    let subdir_path =
+                        Path::new(&settings.homedir()).join(EDGE_EXTERNAL_PROVISIONING_SUBDIR);
+
+                    // Ignore errors from this operation because we could be recovering from a previous bad
+                    // configuration and shouldn't stall the current configuration because of that
+                    let _u = fs::remove_dir_all(&subdir_path);
+                    DirBuilder::new()
+                        .recursive(true)
+                        .create(&subdir_path)
+                        .context(ErrorKind::Initialize(
+                            InitializeErrorReason::ExternalProvisioningClient(
+                                ExternalProvisioningErrorReason::ExternalProvisioningDirCreate,
+                            ),
+                        ))?;
+
+                    let cert_bytes = base64::decode(x509.identity_cert()).context(
+                        ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient(
+                            ExternalProvisioningErrorReason::DownloadIdentityCertificate,
+                        )),
+                    )?;
+                    let pk_bytes = base64::decode(x509.identity_private_key()).context(
+                        ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient(
+                            ExternalProvisioningErrorReason::DownloadIdentityPrivateKey,
+                        )),
+                    )?;
+
+                    let path = subdir_path.join(EDGE_EXTERNAL_PROVISIONING_ID_CERT_FILENAME);
+                    let mut file = File::create(path).context(ErrorKind::Initialize(
+                        InitializeErrorReason::ExternalProvisioningClient(
+                            ExternalProvisioningErrorReason::DownloadIdentityCertificate,
+                        ),
+                    ))?;
+                    file.write_all(&cert_bytes).context(ErrorKind::Initialize(
+                        InitializeErrorReason::ExternalProvisioningClient(
+                            ExternalProvisioningErrorReason::DownloadIdentityCertificate,
+                        ),
+                    ))?;
+
+                    let path = subdir_path.join(EDGE_EXTERNAL_PROVISIONING_ID_KEY_FILENAME);
+                    let mut file = File::create(path).context(ErrorKind::Initialize(
+                        InitializeErrorReason::ExternalProvisioningClient(
+                            ExternalProvisioningErrorReason::DownloadIdentityPrivateKey,
+                        ),
+                    ))?;
+                    file.write_all(&pk_bytes).context(ErrorKind::Initialize(
+                        InitializeErrorReason::ExternalProvisioningClient(
+                            ExternalProvisioningErrorReason::DownloadIdentityPrivateKey,
+                        ),
+                    ))?;
+                }
+            }
+        };
+
+        Ok(Some(prov_info))
+    } else {
+        Ok(None)
+    }
+}
+
+fn set_iot_edge_env_vars<S>(
+    settings: &S,
+    provisioning_result: &Option<ProvisioningResult>,
+) -> Result<(), Error>
 where
     S: RuntimeSettings,
 {
@@ -592,8 +735,53 @@ where
         }
     };
 
-    if let Provisioning::Dps(dps) = settings.provisioning() {
-        match dps.attestation() {
+    match settings.provisioning() {
+        Provisioning::Manual(manual) => {
+            if let ManualAuthMethod::X509(x509) = manual.authentication_method() {
+                let path = x509.identity_cert().context(ErrorKind::Initialize(
+                    InitializeErrorReason::IdentityCertificateSettings,
+                ))?;
+                env::set_var(DEVICE_IDENTITY_CERT_PATH_ENV_KEY, path.as_os_str());
+
+                let path = x509.identity_pk().context(ErrorKind::Initialize(
+                    InitializeErrorReason::IdentityCertificateSettings,
+                ))?;
+                env::set_var(DEVICE_IDENTITY_KEY_PATH_ENV_KEY, path.as_os_str());
+            }
+        }
+        Provisioning::External(_external) => {
+            let prov_result = provisioning_result.as_ref().ok_or_else(|| {
+                ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient(
+                    ExternalProvisioningErrorReason::Provisioning,
+                ))
+            })?;
+
+            if let Some(credentials) = prov_result.credentials() {
+                if let AuthType::X509(x509) = credentials.auth_type() {
+                    match credentials.source() {
+                        CredentialSource::Hsm => {
+                            env::set_var(DEVICE_IDENTITY_CERT_PATH_ENV_KEY, x509.identity_cert());
+                            env::set_var(
+                                DEVICE_IDENTITY_KEY_PATH_ENV_KEY,
+                                x509.identity_private_key(),
+                            );
+                        }
+                        CredentialSource::Payload => {
+                            let external_prov_subdir_path = Path::new(&settings.homedir())
+                                .join(EDGE_EXTERNAL_PROVISIONING_SUBDIR);
+                            let cert_path = external_prov_subdir_path
+                                .join(EDGE_EXTERNAL_PROVISIONING_ID_CERT_FILENAME);
+                            let key_path = external_prov_subdir_path
+                                .join(EDGE_EXTERNAL_PROVISIONING_ID_KEY_FILENAME);
+
+                            env::set_var(DEVICE_IDENTITY_CERT_PATH_ENV_KEY, cert_path.as_os_str());
+                            env::set_var(DEVICE_IDENTITY_KEY_PATH_ENV_KEY, key_path.as_os_str());
+                        }
+                    }
+                }
+            }
+        }
+        Provisioning::Dps(dps) => match dps.attestation() {
             AttestationMethod::Tpm(ref tpm) => {
                 env::set_var(
                     DPS_REGISTRATION_ID_ENV_KEY,
@@ -614,15 +802,16 @@ where
                 let path = x509_info.identity_cert().context(ErrorKind::Initialize(
                     InitializeErrorReason::IdentityCertificateSettings,
                 ))?;
-                env::set_var(DPS_DEVICE_ID_CERT_ENV_KEY, path.as_os_str());
+                env::set_var(DEVICE_IDENTITY_CERT_PATH_ENV_KEY, path.as_os_str());
 
                 let path = x509_info.identity_pk().context(ErrorKind::Initialize(
                     InitializeErrorReason::IdentityCertificateSettings,
                 ))?;
-                env::set_var(DPS_DEVICE_ID_KEY_ENV_KEY, path.as_os_str());
+                env::set_var(DEVICE_IDENTITY_KEY_PATH_ENV_KEY, path.as_os_str());
             }
-        }
+        },
     }
+
     info!("Finished configuring provisioning environment variables and certificates.");
     Ok(())
 }
@@ -630,63 +819,70 @@ where
 fn prepare_httpclient_and_identity_data<S>(
     hsm_lock: Arc<HsmLock>,
     settings: &S,
+    provisioning_result: Option<&ProvisioningResult>,
 ) -> Result<(MaybeProxyClient, Option<IdentityCertificateData>), Error>
 where
     S: RuntimeSettings,
 {
-    if get_provisioning_auth_method(settings) == ProvisioningAuthMethod::X509 {
-        info!("Initializing hsm X509 interface...");
-        let x509 =
-            X509::new(hsm_lock).context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
-
-        let hsm_version = x509
-            .get_version()
-            .context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
-
-        if hsm_version != IOTEDGE_COMPAT_HSM_VERSION {
-            info!(
-                "Incompatible HSM X.509 identity interface version. Found {}, required {}",
-                hsm_version, IOTEDGE_COMPAT_HSM_VERSION
-            );
-            return Err(Error::from(ErrorKind::Initialize(
-                InitializeErrorReason::IncompatibleHsmVersion,
-            )));
-        }
-
-        let device_identity_cert = x509
-            .get()
-            .context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
-
-        let common_name = device_identity_cert
-            .get_common_name()
-            .context(ErrorKind::Initialize(
-                InitializeErrorReason::InvalidDeviceCertCredentials,
-            ))?;
-
-        let thumbprint = get_thumbprint(&device_identity_cert).context(ErrorKind::Initialize(
-            InitializeErrorReason::InvalidDeviceCertCredentials,
-        ))?;
-
-        let pem = PemCertificate::from(&device_identity_cert).context(ErrorKind::Initialize(
-            InitializeErrorReason::InvalidDeviceCertCredentials,
-        ))?;
-
-        let hyper_client = MaybeProxyClient::new(get_proxy_uri(None)?, Some(pem), None)
-            .context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?;
-
-        let cert_data = IdentityCertificateData {
-            common_name,
-            thumbprint,
-        };
-        info!("Finished initializing hsm X509 interface...");
-
-        Ok((hyper_client, Some(cert_data)))
+    if get_provisioning_auth_method(settings, provisioning_result)? == ProvisioningAuthMethod::X509
+    {
+        prepare_httpclient_and_identity_data_for_x509_provisioning(hsm_lock)
     } else {
         let hyper_client = MaybeProxyClient::new(get_proxy_uri(None)?, None, None)
             .context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?;
 
         Ok((hyper_client, None))
     }
+}
+
+fn prepare_httpclient_and_identity_data_for_x509_provisioning(
+    hsm_lock: Arc<HsmLock>,
+) -> Result<(MaybeProxyClient, Option<IdentityCertificateData>), Error> {
+    info!("Initializing hsm X509 interface...");
+    let x509 = X509::new(hsm_lock).context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
+
+    let hsm_version = x509
+        .get_version()
+        .context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
+
+    if hsm_version != IOTEDGE_COMPAT_HSM_VERSION {
+        info!(
+            "Incompatible HSM X.509 identity interface version. Found {}, required {}",
+            hsm_version, IOTEDGE_COMPAT_HSM_VERSION
+        );
+        return Err(Error::from(ErrorKind::Initialize(
+            InitializeErrorReason::IncompatibleHsmVersion,
+        )));
+    }
+
+    let device_identity_cert = x509
+        .get()
+        .context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
+
+    let common_name = device_identity_cert
+        .get_common_name()
+        .context(ErrorKind::Initialize(
+            InitializeErrorReason::InvalidDeviceCertCredentials,
+        ))?;
+
+    let thumbprint = get_thumbprint(&device_identity_cert).context(ErrorKind::Initialize(
+        InitializeErrorReason::InvalidDeviceCertCredentials,
+    ))?;
+
+    let pem = PemCertificate::from(&device_identity_cert).context(ErrorKind::Initialize(
+        InitializeErrorReason::InvalidDeviceCertCredentials,
+    ))?;
+
+    let hyper_client = MaybeProxyClient::new(get_proxy_uri(None)?, Some(pem), None)
+        .context(ErrorKind::Initialize(InitializeErrorReason::HttpClient))?;
+
+    let cert_data = IdentityCertificateData {
+        common_name,
+        thumbprint,
+    };
+    info!("Finished initializing hsm X509 interface...");
+
+    Ok((hyper_client, Some(cert_data)))
 }
 
 fn get_thumbprint<T: Certificate>(id_cert: &T) -> Result<String, Error> {
@@ -791,12 +987,14 @@ fn prepare_master_hybrid_identity_key<S, C>(
     subdir: &Path,
     hybrid_id_filename: &str,
     iv_filename: &str,
+    provisioning_result: Option<&ProvisioningResult>,
 ) -> Result<(bool, Option<Vec<u8>>), Error>
 where
     S: RuntimeSettings,
     C: CreateCertificate + Decrypt + Encrypt + MakeRandom,
 {
-    if get_provisioning_auth_method(settings) == ProvisioningAuthMethod::X509 {
+    if get_provisioning_auth_method(settings, provisioning_result)? == ProvisioningAuthMethod::X509
+    {
         let (new_key_created, hybrid_id_key) =
             get_or_create_hybrid_identity_key(crypto, subdir, hybrid_id_filename, iv_filename)?;
         Ok((new_key_created, Some(hybrid_id_key)))
@@ -1045,16 +1243,39 @@ where
     Ok(())
 }
 
-fn get_provisioning_auth_method<S>(settings: &S) -> ProvisioningAuthMethod
+fn get_provisioning_auth_method<S>(
+    settings: &S,
+    provisioning_result: Option<&ProvisioningResult>,
+) -> Result<ProvisioningAuthMethod, Error>
 where
     S: RuntimeSettings,
 {
-    if let Provisioning::Dps(dps) = settings.provisioning() {
-        if let AttestationMethod::X509(_) = dps.attestation() {
-            return ProvisioningAuthMethod::X509;
+    match settings.provisioning() {
+        Provisioning::Manual(manual) => {
+            if let ManualAuthMethod::X509(_) = manual.authentication_method() {
+                return Ok(ProvisioningAuthMethod::X509);
+            }
+        }
+        Provisioning::External(_external) => {
+            let prov_result = provisioning_result.as_ref().ok_or_else(|| {
+                ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient(
+                    ExternalProvisioningErrorReason::Provisioning,
+                ))
+            })?;
+
+            if let Some(credentials) = prov_result.credentials() {
+                if let AuthType::X509(_x509) = credentials.auth_type() {
+                    return Ok(ProvisioningAuthMethod::X509);
+                }
+            }
+        }
+        Provisioning::Dps(dps) => {
+            if let AttestationMethod::X509(_) = dps.attestation() {
+                return Ok(ProvisioningAuthMethod::X509);
+            }
         }
     }
-    ProvisioningAuthMethod::SharedAccessKey
+    Ok(ProvisioningAuthMethod::SharedAccessKey)
 }
 
 fn reconfigure<M, C>(
@@ -1271,16 +1492,13 @@ where
     Ok(runtime)
 }
 
-fn manual_provision(
-    provisioning: &Manual,
+fn manual_provision_connection_string(
+    cs: &ManualDeviceConnectionString,
     tokio_runtime: &mut tokio::runtime::Runtime,
 ) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey), Error> {
-    let (key, device_id, hub) =
-        provisioning
-            .parse_device_connection_string()
-            .context(ErrorKind::Initialize(
-                InitializeErrorReason::ManualProvisioningClient,
-            ))?;
+    let (key, device_id, hub) = cs
+        .parse_device_connection_string()
+        .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
     let manual = ManualProvisioning::new(key, device_id, hub);
     let memory_hsm = MemoryKeyStore::new();
     let provision = manual
@@ -1302,6 +1520,38 @@ fn manual_provision(
                     let derived_key_store = DerivedKeyStore::new(k.clone());
                     Ok((derived_key_store, prov_result, k))
                 })
+        });
+    tokio_runtime.block_on(provision)
+}
+
+fn manual_provision_x509(
+    x509: &ManualX509Auth,
+    tokio_runtime: &mut tokio::runtime::Runtime,
+    hybrid_identity_key: &[u8],
+    cert_thumbprint: String,
+) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey), Error> {
+    let key = MemoryKey::new(hybrid_identity_key);
+    let manual = ManualProvisioning::new(
+        key,
+        x509.device_id().to_string(),
+        x509.iothub_hostname().to_string(),
+    );
+    let memory_hsm = MemoryKeyStore::new();
+    let provision = manual
+        .provision(memory_hsm.clone())
+        .map_err(|err| {
+            Error::from(err.context(ErrorKind::Initialize(
+                InitializeErrorReason::ManualProvisioningClient,
+            )))
+        })
+        .and_then(move |prov_result| {
+            let (derived_key_store, hybrid_derived_key) = prepare_derived_hybrid_key(
+                &memory_hsm,
+                &cert_thumbprint,
+                prov_result.hub_name(),
+                prov_result.device_id(),
+            )?;
+            Ok((derived_key_store, prov_result, hybrid_derived_key))
         });
     tokio_runtime.block_on(provision)
 }
@@ -1371,13 +1621,13 @@ fn prepare_derived_hybrid_key(
     let k = key_store
         .get(&KeyIdentity::Device, "primary")
         .context(ErrorKind::Initialize(
-            InitializeErrorReason::DpsProvisioningClient,
+            InitializeErrorReason::HybridAuthKeyGet,
         ))?;
     let sign_data = format!("{}/devices/{}/{}", hub_name, device_id, cert_thumbprint);
     let digest = k
         .sign(SignatureAlgorithm::HMACSHA256, sign_data.as_bytes())
         .context(ErrorKind::Initialize(
-            InitializeErrorReason::DpsProvisioningClient,
+            InitializeErrorReason::HybridAuthKeySign,
         ))?;
     let hybrid_derived_key = MemoryKey::new(digest.as_bytes());
     let derived_key_store = DerivedKeyStore::new(hybrid_derived_key.clone());
@@ -1421,6 +1671,30 @@ fn external_provision_tpm(
             let derived_key_store = DerivedKeyStore::new(k.clone());
             Ok((derived_key_store, k))
         })
+}
+
+fn external_provision_x509(
+    provisioning_result: &ProvisioningResult,
+    hybrid_identity_key: &[u8],
+    cert_thumbprint: &str,
+) -> Result<(DerivedKeyStore<MemoryKey>, MemoryKey), Error> {
+    let memory_key = MemoryKey::new(hybrid_identity_key);
+    let mut memory_hsm = MemoryKeyStore::new();
+    memory_hsm.insert(&KeyIdentity::Device, "primary", memory_key.clone());
+
+    let (derived_key_store, hybrid_derived_key) = prepare_derived_hybrid_key(
+        &memory_hsm,
+        cert_thumbprint,
+        provisioning_result.hub_name(),
+        provisioning_result.device_id(),
+    )
+    .context(ErrorKind::Initialize(
+        InitializeErrorReason::ExternalProvisioningClient(
+            ExternalProvisioningErrorReason::HybridKeyPreparation,
+        ),
+    ))?;
+
+    Ok((derived_key_store, hybrid_derived_key))
 }
 
 fn dps_symmetric_key_provision<HC>(
@@ -1603,14 +1877,26 @@ where
     );
     env.insert(DEVICEID_KEY.to_string(), device_id.to_string());
     env.insert(MODULEID_KEY.to_string(), EDGE_RUNTIME_MODULEID.to_string());
-    env.insert(
-        WORKLOAD_URI_KEY.to_string(),
+
+    #[cfg(feature = "runtime-docker")]
+    let (workload_uri, management_uri) = (
         settings.connect().workload_uri().to_string(),
-    );
-    env.insert(
-        MANAGEMENT_URI_KEY.to_string(),
         settings.connect().management_uri().to_string(),
     );
+    #[cfg(feature = "runtime-kubernetes")]
+    let (workload_uri, management_uri) = (
+        format!(
+            "http://localhost:{}",
+            settings.connect().workload_uri().port().unwrap_or(80u16)
+        ),
+        format!(
+            "http://localhost:{}",
+            settings.connect().management_uri().port().unwrap_or(80u16)
+        ),
+    );
+
+    env.insert(WORKLOAD_URI_KEY.to_string(), workload_uri);
+    env.insert(MANAGEMENT_URI_KEY.to_string(), management_uri);
     env.insert(AUTHSCHEME_KEY.to_string(), AUTH_SCHEME.to_string());
     env.insert(
         EDGE_RUNTIME_MODE_KEY.to_string(),
@@ -1731,18 +2017,24 @@ mod tests {
     use std::fmt;
     use std::io::Read;
     use std::path::Path;
+    use std::sync::Mutex;
 
     use chrono::{Duration, Utc};
+    use lazy_static::lazy_static;
     use rand::RngCore;
     use serde_json::json;
     use tempdir::TempDir;
 
-    use edgelet_core::ModuleRuntimeState;
-    use edgelet_core::{KeyBytes, PrivateKey};
+    use edgelet_core::{KeyBytes, ModuleRuntimeState, PrivateKey};
     use edgelet_docker::{DockerConfig, DockerModuleRuntime, Settings};
     use edgelet_test_utils::cert::TestCert;
     use edgelet_test_utils::crypto::TestHsm;
     use edgelet_test_utils::module::*;
+
+    use provisioning::provisioning::{
+        AuthType, CredentialSource, Credentials, ProvisioningResult, ReprovisioningStatus,
+        SymmetricKeyCredential, X509Credential,
+    };
 
     use super::*;
     use docker::models::ContainerCreateBody;
@@ -1760,6 +2052,15 @@ mod tests {
     #[cfg(unix)]
     static GOOD_SETTINGS_DPS_DEFAULT: &str =
         "../edgelet-docker/test/linux/sample_settings.dps.default.yaml";
+    #[cfg(unix)]
+    static EMPTY_CONNECTION_STRING_SETTINGS: &str =
+        "../edgelet-docker/test/linux/bad_sample_settings.cs.3.yaml";
+    #[cfg(unix)]
+    static DEFAULT_CONNECTION_STRING_SETTINGS: &str =
+        "../edgelet-docker/test/linux/bad_sample_settings.cs.4.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_EXTERNAL: &str =
+        "../edgelet-docker/test/linux/sample_settings.external.yaml";
 
     #[cfg(windows)]
     static GOOD_SETTINGS: &str = "../edgelet-docker/test/windows/sample_settings.yaml";
@@ -1774,6 +2075,15 @@ mod tests {
     #[cfg(windows)]
     static GOOD_SETTINGS_DPS_DEFAULT: &str =
         "../edgelet-docker/test/windows/sample_settings.dps.default.yaml";
+    #[cfg(windows)]
+    static EMPTY_CONNECTION_STRING_SETTINGS: &str =
+        "../edgelet-docker/test/windows/bad_sample_settings.cs.3.yaml";
+    #[cfg(windows)]
+    static DEFAULT_CONNECTION_STRING_SETTINGS: &str =
+        "../edgelet-docker/test/windows/bad_sample_settings.cs.4.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_EXTERNAL: &str =
+        "../edgelet-docker/test/windows/sample_settings.external.yaml";
 
     #[derive(Clone, Copy, Debug, Fail)]
     pub struct Error;
@@ -1895,21 +2205,42 @@ mod tests {
         }
     }
 
+    lazy_static! {
+        // Tests that call Main::new cannot run in parallel because they initialize hsm-sys
+        // (via hsm_client_crypto_init) which is not thread-safe.
+        static ref LOCK: Mutex<()> = Mutex::new(());
+    }
+
     #[test]
-    fn default_settings_raise_unconfigured_error() {
-        let settings = Settings::new(None).unwrap();
+    fn default_settings_raise_load_error() {
+        let _guard = LOCK.lock().unwrap();
+
+        let settings = Settings::new(Path::new(DEFAULT_CONNECTION_STRING_SETTINGS)).unwrap();
         let main = Main::<DockerModuleRuntime>::new(settings);
         let result = main.run_until(signal::shutdown);
         match result.unwrap_err().kind() {
-            ErrorKind::Initialize(InitializeErrorReason::NotConfigured) => (),
-            kind => panic!("Expected `NotConfigured` but got {:?}", kind),
+            ErrorKind::Initialize(InitializeErrorReason::LoadSettings) => (),
+            kind => panic!("Expected `LoadSettings` but got {:?}", kind),
+        }
+    }
+
+    #[test]
+    fn empty_connection_string_raises_load_error() {
+        let _guard = LOCK.lock().unwrap();
+
+        let settings = Settings::new(Path::new(EMPTY_CONNECTION_STRING_SETTINGS)).unwrap();
+        let main = Main::<DockerModuleRuntime>::new(settings);
+        let result = main.run_until(signal::shutdown);
+        match result.unwrap_err().kind() {
+            ErrorKind::Initialize(InitializeErrorReason::LoadSettings) => (),
+            kind => panic!("Expected `LoadSettings` but got {:?}", kind),
         }
     }
 
     #[test]
     fn settings_with_invalid_issuer_ca_fails() {
         let tmp_dir = TempDir::new("blah").unwrap();
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
         let config = DockerConfig::new(
             "microsoft/test-image".to_string(),
             ContainerCreateBody::new(),
@@ -1952,7 +2283,7 @@ mod tests {
     #[test]
     fn settings_with_expired_issuer_ca_fails() {
         let tmp_dir = TempDir::new("blah").unwrap();
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
         let config = DockerConfig::new(
             "microsoft/test-image".to_string(),
             ContainerCreateBody::new(),
@@ -1995,7 +2326,7 @@ mod tests {
     #[test]
     fn settings_manual_connection_string_auth_first_time_creates_backup() {
         let tmp_dir = TempDir::new("blah").unwrap();
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
         let config = DockerConfig::new(
             "microsoft/test-image".to_string(),
             ContainerCreateBody::new(),
@@ -2055,7 +2386,7 @@ mod tests {
     #[test]
     fn settings_dps_symm_key_auth_first_time_creates_backup() {
         let tmp_dir = TempDir::new("blah").unwrap();
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_SYMM_KEY))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_DPS_SYMM_KEY)).unwrap();
         let config = DockerConfig::new(
             "microsoft/test-image".to_string(),
             ContainerCreateBody::new(),
@@ -2115,7 +2446,7 @@ mod tests {
     #[test]
     fn settings_dps_tpm_auth_first_time_creates_backup() {
         let tmp_dir = TempDir::new("blah").unwrap();
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_TPM1))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_DPS_TPM1)).unwrap();
         let config = DockerConfig::new(
             "microsoft/test-image".to_string(),
             ContainerCreateBody::new(),
@@ -2175,7 +2506,7 @@ mod tests {
     #[test]
     fn settings_change_creates_new_backup() {
         let tmp_dir = TempDir::new("blah").unwrap();
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
         let config = DockerConfig::new(
             "microsoft/test-image".to_string(),
             ContainerCreateBody::new(),
@@ -2216,7 +2547,7 @@ mod tests {
             .read_to_string(&mut written)
             .unwrap();
 
-        let settings1 = Settings::new(Some(Path::new(GOOD_SETTINGS1))).unwrap();
+        let settings1 = Settings::new(Path::new(GOOD_SETTINGS1)).unwrap();
         let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
         check_settings_state::<TestRuntime<_, Settings>, _>(
             tmp_dir.path(),
@@ -2284,7 +2615,7 @@ mod tests {
     fn diff_with_same_cached_returns_false() {
         let tmp_dir = TempDir::new("blah").unwrap();
         let path = tmp_dir.path().join("cache");
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
         let settings_to_write = serde_json::to_string(&settings).unwrap();
         let sha_to_write = Sha256::digest_str(&settings_to_write);
         let base64_to_write = base64::encode(&sha_to_write);
@@ -2299,7 +2630,7 @@ mod tests {
     fn diff_with_tpm_default_and_explicit_returns_false() {
         let tmp_dir = TempDir::new("blah").unwrap();
         let path = tmp_dir.path().join("cache");
-        let settings1 = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_DEFAULT))).unwrap();
+        let settings1 = Settings::new(Path::new(GOOD_SETTINGS_DPS_DEFAULT)).unwrap();
         let settings_to_write = serde_json::to_string(&settings1).unwrap();
         let sha_to_write = Sha256::digest_str(&settings_to_write);
         let base64_to_write = base64::encode(&sha_to_write);
@@ -2307,7 +2638,7 @@ mod tests {
             .unwrap()
             .write_all(base64_to_write.as_bytes())
             .unwrap();
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_TPM1))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_DPS_TPM1)).unwrap();
         assert!(!diff_with_cached(&settings, &path, None));
     }
 
@@ -2315,7 +2646,7 @@ mod tests {
     fn diff_with_tpm_explicit_and_default_returns_false() {
         let tmp_dir = TempDir::new("blah").unwrap();
         let path = tmp_dir.path().join("cache");
-        let settings1 = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_TPM1))).unwrap();
+        let settings1 = Settings::new(Path::new(GOOD_SETTINGS_DPS_TPM1)).unwrap();
         let settings_to_write = serde_json::to_string(&settings1).unwrap();
         let sha_to_write = Sha256::digest_str(&settings_to_write);
         let base64_to_write = base64::encode(&sha_to_write);
@@ -2323,7 +2654,7 @@ mod tests {
             .unwrap()
             .write_all(base64_to_write.as_bytes())
             .unwrap();
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_DEFAULT))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_DPS_DEFAULT)).unwrap();
         assert!(!diff_with_cached(&settings, &path, None));
     }
 
@@ -2331,7 +2662,7 @@ mod tests {
     fn diff_with_same_cached_env_var_unordered_returns_false() {
         let tmp_dir = TempDir::new("blah").unwrap();
         let path = tmp_dir.path().join("cache");
-        let settings1 = Settings::new(Some(Path::new(GOOD_SETTINGS2))).unwrap();
+        let settings1 = Settings::new(Path::new(GOOD_SETTINGS2)).unwrap();
         let settings_to_write = serde_json::to_string(&settings1).unwrap();
         let sha_to_write = Sha256::digest_str(&settings_to_write);
         let base64_to_write = base64::encode(&sha_to_write);
@@ -2339,7 +2670,7 @@ mod tests {
             .unwrap()
             .write_all(base64_to_write.as_bytes())
             .unwrap();
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
         assert!(!diff_with_cached(&settings, &path, None));
     }
 
@@ -2347,7 +2678,7 @@ mod tests {
     fn diff_with_different_cached_returns_true() {
         let tmp_dir = TempDir::new("blah").unwrap();
         let path = tmp_dir.path().join("cache");
-        let settings1 = Settings::new(Some(Path::new(GOOD_SETTINGS1))).unwrap();
+        let settings1 = Settings::new(Path::new(GOOD_SETTINGS1)).unwrap();
         let settings_to_write = serde_json::to_string(&settings1).unwrap();
         let sha_to_write = Sha256::digest_str(&settings_to_write);
         let base64_to_write = base64::encode(&sha_to_write);
@@ -2355,40 +2686,104 @@ mod tests {
             .unwrap()
             .write_all(base64_to_write.as_bytes())
             .unwrap();
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
         assert!(diff_with_cached(&settings, &path, None));
     }
 
     #[test]
     fn diff_with_no_file_returns_true() {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
         assert!(diff_with_cached(&settings, Path::new("i dont exist"), None));
     }
 
     #[test]
     fn get_provisioning_auth_method_returns_sas_key_for_manual_connection_string() {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS1))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS1)).unwrap();
         assert_eq!(
             ProvisioningAuthMethod::SharedAccessKey,
-            get_provisioning_auth_method(&settings)
+            get_provisioning_auth_method(&settings, None).unwrap()
         );
     }
 
     #[test]
     fn get_provisioning_auth_method_returns_saskey_for_dps_tpm_provisioning() {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_TPM1))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_DPS_TPM1)).unwrap();
         assert_eq!(
             ProvisioningAuthMethod::SharedAccessKey,
-            get_provisioning_auth_method(&settings)
+            get_provisioning_auth_method(&settings, None).unwrap()
         );
     }
 
     #[test]
     fn get_provisioning_auth_method_returns_saskey_for_dps_symm_key_provisioning() {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_SYMM_KEY))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_DPS_SYMM_KEY)).unwrap();
         assert_eq!(
             ProvisioningAuthMethod::SharedAccessKey,
-            get_provisioning_auth_method(&settings)
+            get_provisioning_auth_method(&settings, None).unwrap()
+        );
+    }
+
+    #[test]
+    fn get_provisioning_auth_method_returns_x509_for_external_provisioning_with_x509_auth_type() {
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_EXTERNAL)).unwrap();
+
+        let x509_credential = X509Credential::new("".to_string(), "".to_string());
+        let credentials =
+            Credentials::new(AuthType::X509(x509_credential), CredentialSource::Payload);
+
+        let hub_name = "TestHub";
+        let device_id = "TestDevice";
+
+        let provisioning_result = Some(ProvisioningResult::new(
+            device_id,
+            hub_name,
+            None,
+            ReprovisioningStatus::InitialAssignment,
+            Some(credentials),
+        ));
+        assert_eq!(
+            ProvisioningAuthMethod::X509,
+            get_provisioning_auth_method(&settings, provisioning_result.as_ref()).unwrap()
+        );
+    }
+
+    #[test]
+    fn get_provisioning_auth_method_returns_sas_key_for_external_provisioning_with_sas_key_auth_type(
+    ) {
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_EXTERNAL)).unwrap();
+
+        let symmetric_key_credential = SymmetricKeyCredential::new(vec![0_u8; 10]);
+        let credentials = Credentials::new(
+            AuthType::SymmetricKey(symmetric_key_credential),
+            CredentialSource::Payload,
+        );
+
+        let hub_name = "TestHub";
+        let device_id = "TestDevice";
+
+        let provisioning_result = Some(ProvisioningResult::new(
+            device_id,
+            hub_name,
+            None,
+            ReprovisioningStatus::InitialAssignment,
+            Some(credentials),
+        ));
+        assert_eq!(
+            ProvisioningAuthMethod::SharedAccessKey,
+            get_provisioning_auth_method(&settings, provisioning_result.as_ref()).unwrap()
+        );
+    }
+
+    #[test]
+    fn get_provisioning_auth_method_returns_error_with_no_provisioning_result_in_external_provisioning(
+    ) {
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_EXTERNAL)).unwrap();
+
+        assert_eq!(
+            &ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient(
+                ExternalProvisioningErrorReason::Provisioning,
+            )),
+            get_provisioning_auth_method(&settings, None).expect_err("An error is expected when no provisioning result is specified with the external provisioning mode.").kind()
         );
     }
 
@@ -2443,10 +2838,10 @@ mod tests {
         let settings_path = tmp_dir.path().join("test_settings.yaml");
 
         prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
-        let settings = Settings::new(Some(&settings_path)).unwrap();
+        let settings = Settings::new(&settings_path).unwrap();
         assert_eq!(
             ProvisioningAuthMethod::X509,
-            get_provisioning_auth_method(&settings)
+            get_provisioning_auth_method(&settings, None).unwrap()
         );
     }
 
@@ -2458,7 +2853,7 @@ mod tests {
         let settings_path = tmp_dir.path().join("test_settings.yaml");
 
         prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
-        let settings = Settings::new(Some(&settings_path)).unwrap();
+        let settings = Settings::new(&settings_path).unwrap();
 
         let path = tmp_dir.path().join("cache");
         let base64_to_write = compute_settings_digest(&settings, Some("thumbprint-1")).unwrap();
@@ -2488,7 +2883,7 @@ mod tests {
         let settings_path = tmp_dir.path().join("test_settings.yaml");
 
         prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
-        let settings = Settings::new(Some(&settings_path)).unwrap();
+        let settings = Settings::new(&settings_path).unwrap();
 
         let crypto = TestCrypto {
             use_expired_ca: false,
@@ -2502,6 +2897,7 @@ mod tests {
             tmp_dir.path(),
             EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
             EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+            None,
         )
         .unwrap();
 
@@ -2541,7 +2937,7 @@ mod tests {
         let settings_path = tmp_dir.path().join("test_settings.yaml");
 
         prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
-        let settings = Settings::new(Some(&settings_path)).unwrap();
+        let settings = Settings::new(&settings_path).unwrap();
 
         let crypto = TestCrypto {
             use_expired_ca: false,
@@ -2556,6 +2952,7 @@ mod tests {
                 tmp_dir.path(),
                 EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
                 EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+                None,
             )
             .unwrap();
 
@@ -2593,6 +2990,7 @@ mod tests {
             tmp_dir.path(),
             EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
             EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+            None,
         )
         .unwrap();
 
@@ -2646,7 +3044,7 @@ mod tests {
         let settings_path = tmp_dir.path().join("test_settings.yaml");
 
         prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &cert_key_path);
-        let settings = Settings::new(Some(&settings_path)).unwrap();
+        let settings = Settings::new(&settings_path).unwrap();
 
         let crypto = TestCrypto {
             use_expired_ca: false,
@@ -2661,6 +3059,7 @@ mod tests {
             tmp_dir.path(),
             EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
             EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+            None,
         )
         .unwrap();
 
@@ -2699,7 +3098,7 @@ mod tests {
         let settings_path = tmp_dir.path().join("test_settings.yaml");
 
         prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
-        let settings = Settings::new(Some(&settings_path)).unwrap();
+        let settings = Settings::new(&settings_path).unwrap();
 
         let crypto = TestCrypto {
             use_expired_ca: false,
@@ -2715,6 +3114,7 @@ mod tests {
             tmp_dir.path(),
             EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
             EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+            None,
         )
         .unwrap_err();
     }
@@ -2727,7 +3127,7 @@ mod tests {
         let settings_path = tmp_dir.path().join("test_settings.yaml");
 
         prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
-        let settings = Settings::new(Some(&settings_path)).unwrap();
+        let settings = Settings::new(&settings_path).unwrap();
 
         let crypto = TestCrypto {
             use_expired_ca: false,
@@ -2743,6 +3143,7 @@ mod tests {
                 tmp_dir.path(),
                 EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
                 EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+                None,
             )
             .unwrap();
 
@@ -2791,6 +3192,7 @@ mod tests {
                 tmp_dir.path(),
                 EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
                 EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+                None,
             )
             .unwrap();
 
@@ -2835,7 +3237,7 @@ mod tests {
         let settings_path = tmp_dir.path().join("test_settings.yaml");
 
         prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
-        let settings = Settings::new(Some(&settings_path)).unwrap();
+        let settings = Settings::new(&settings_path).unwrap();
 
         let crypto = TestCrypto {
             use_expired_ca: false,
@@ -2851,6 +3253,7 @@ mod tests {
                 tmp_dir.path(),
                 EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
                 EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+                None,
             )
             .unwrap();
 
@@ -2899,6 +3302,7 @@ mod tests {
                 tmp_dir.path(),
                 EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
                 EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+                None,
             )
             .unwrap();
 
@@ -2956,7 +3360,7 @@ mod tests {
             .expect("Stale iv file could not be written");
 
         // prepare a non x509 provisioning configuration
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
 
         let crypto = TestCrypto {
             use_expired_ca: false,
@@ -2971,6 +3375,7 @@ mod tests {
             tmp_dir.path(),
             EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME,
             EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME,
+            None,
         )
         .unwrap();
 

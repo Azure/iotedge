@@ -4,7 +4,7 @@ use std::env;
 use std::fs;
 use std::path::Path;
 
-use failure::Fail;
+use failure::{Fail, ResultExt};
 use log::info;
 use native_tls::{Certificate, Identity, TlsConnector};
 use openssl::pkcs12::Pkcs12;
@@ -12,7 +12,7 @@ use openssl::pkey::PKey;
 use openssl::x509::X509;
 use url::Url;
 
-use crate::error::{Error, ErrorKind, Result};
+use crate::error::{Error, ErrorKind, KubeConfigErrorReason, Result};
 use crate::kube::{Config as KubeConfig, Lookup};
 
 pub trait TokenSource {
@@ -66,32 +66,52 @@ impl<T: TokenSource> Config<T> {
     where
         P: AsRef<Path>,
     {
-        let config_contents = fs::read_to_string(path)?;
-        let kube_config: KubeConfig = serde_yaml::from_str(&config_contents)?;
+        let config_contents = fs::read_to_string(&path).context(ErrorKind::KubeConfig(
+            KubeConfigErrorReason::LoadConfig(path.as_ref().display().to_string()),
+        ))?;
+        let kube_config =
+            serde_yaml::from_str::<KubeConfig>(&config_contents).context(ErrorKind::KubeConfig(
+                KubeConfigErrorReason::LoadConfig(path.as_ref().display().to_string()),
+            ))?;
 
         // if there's no "current context" or if entry is invalid then we bail
         if kube_config.current_context().is_empty() {
-            return Err(Error::from(ErrorKind::MissingOrInvalidKubeContext));
+            return Err(Error::from(ErrorKind::KubeConfig(
+                KubeConfigErrorReason::MissingOrInvalidKubeContext,
+            )));
         }
         let current_context = kube_config
             .contexts()
             .get(kube_config.current_context())
-            .ok_or_else(|| Error::from(ErrorKind::MissingOrInvalidKubeContext))?;
+            .ok_or_else(|| {
+                Error::from(ErrorKind::KubeConfig(
+                    KubeConfigErrorReason::MissingOrInvalidKubeContext,
+                ))
+            })?;
         let cluster = kube_config
             .clusters()
             .get(current_context.cluster())
-            .ok_or_else(|| Error::from(ErrorKind::MissingOrInvalidKubeContext))?;
+            .ok_or_else(|| {
+                Error::from(ErrorKind::KubeConfig(
+                    KubeConfigErrorReason::MissingOrInvalidKubeContext,
+                ))
+            })?;
 
         // add the root ca cert to the TLS settings
         let root_ca = Certificate::from_pem(&file_or_data_bytes(
             cluster.certificate_authority(),
             cluster.certificate_authority_data(),
-        )?)?;
+        )?)
+        .context(ErrorKind::KubeConfig(
+            KubeConfigErrorReason::LoadCertificate,
+        ))?;
 
         let user = kube_config
             .users()
             .get(current_context.user())
-            .ok_or_else(|| Error::from(ErrorKind::MissingUser))?;
+            .ok_or_else(|| {
+                Error::from(ErrorKind::KubeConfig(KubeConfigErrorReason::MissingUser))
+            })?;
 
         // build a client identity if necessary
         let connector = if let Ok(client_cert) =
@@ -106,15 +126,24 @@ impl<T: TokenSource> Config<T> {
             TlsConnector::builder()
                 .add_root_certificate(root_ca)
                 .identity(identity)
-                .build()?
+                .build()
+                .context(ErrorKind::KubeConfig(KubeConfigErrorReason::Tls))?
         } else {
             TlsConnector::builder()
                 .add_root_certificate(root_ca)
-                .build()?
+                .build()
+                .context(ErrorKind::KubeConfig(KubeConfigErrorReason::Tls))?
         };
 
+        let server_url = cluster
+            .server()
+            .parse::<Url>()
+            .context(ErrorKind::KubeConfig(KubeConfigErrorReason::UrlParse(
+                cluster.server().to_string(),
+            )))?;
+
         Ok(Config::new(
-            cluster.server().parse()?,
+            server_url,
             "/api".to_string(),
             ValueToken(file_or_data_string(user.token_file(), user.token()).ok()),
             connector,
@@ -153,7 +182,11 @@ pub fn get_config() -> Result<Config<ValueToken>> {
             Ok(val)
         }
         Err(_) => dirs::home_dir()
-            .ok_or_else(|| Error::from(ErrorKind::MissingKubeConfig))
+            .ok_or_else(|| {
+                Error::from(ErrorKind::KubeConfig(
+                    KubeConfigErrorReason::MissingKubeConfig,
+                ))
+            })
             .and_then(|mut home_dir| {
                 info!("Attempting to use config from ~/.kube/config file.");
                 home_dir.push(".kube/config");
@@ -163,20 +196,36 @@ pub fn get_config() -> Result<Config<ValueToken>> {
 }
 
 fn get_host() -> Result<Url> {
-    let url = format!("https://{}:443", env::var("KUBERNETES_SERVICE_HOST")?,);
+    let host = env::var("KUBERNETES_SERVICE_HOST").context(ErrorKind::KubeConfig(
+        KubeConfigErrorReason::MissingEnvVar("KUBERNETES_SERVICE_HOST".into()),
+    ))?;
 
-    Ok(url.parse()?)
+    let url = format!("https://{}:443", host,);
+    let url = url
+        .parse::<Url>()
+        .context(ErrorKind::KubeConfig(KubeConfigErrorReason::UrlParse(url)))?;
+
+    Ok(url)
 }
 
 fn get_token_and_tls_connector() -> Result<(ValueToken, TlsConnector)> {
     const TOKEN_FILE: &str = "/var/run/secrets/kubernetes.io/serviceaccount/token";
     const ROOT_CA_FILE: &str = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt";
 
-    let token = fs::read_to_string(TOKEN_FILE)?;
-    let root_ca = Certificate::from_pem(fs::read_to_string(ROOT_CA_FILE)?.as_bytes())?;
+    let token = fs::read_to_string(TOKEN_FILE)
+        .context(ErrorKind::KubeConfig(KubeConfigErrorReason::LoadToken))?;
+
+    let cert = fs::read(ROOT_CA_FILE).context(ErrorKind::KubeConfig(
+        KubeConfigErrorReason::LoadCertificate,
+    ))?;
+    let root_ca = Certificate::from_pem(&cert).context(ErrorKind::KubeConfig(
+        KubeConfigErrorReason::LoadCertificate,
+    ))?;
+
     let tls_connector = TlsConnector::builder()
         .add_root_certificate(root_ca)
-        .build()?;
+        .build()
+        .context(ErrorKind::KubeConfig(KubeConfigErrorReason::Tls))?;
 
     Ok((ValueToken(Some(token)), tls_connector))
 }
@@ -186,20 +235,42 @@ fn identity_from_cert_key(user_name: &str, cert: &[u8], key: &[u8]) -> Result<Id
     // from PEM encoded cert and key. So we use OpenSSL to convert PEM format cert/key
     // into a pkcs12 format cert from which we then build the identity. This unfortunately
     // creates a dependency on OpenSSL.
-    let key = PKey::private_key_from_pem(&key)?;
-    let cert = X509::from_pem(&cert)?;
+    let key = PKey::private_key_from_pem(&key).context(ErrorKind::KubeConfig(
+        KubeConfigErrorReason::LoadCertificate,
+    ))?;
+    let cert = X509::from_pem(&cert).context(ErrorKind::KubeConfig(
+        KubeConfigErrorReason::LoadCertificate,
+    ))?;
 
-    let pkcs_cert = Pkcs12::builder().build("", user_name, &key, &cert)?;
-    Ok(Identity::from_pkcs12(&pkcs_cert.to_der()?, "")?)
+    let pkcs_cert = Pkcs12::builder()
+        .build("", user_name, &key, &cert)
+        .context(ErrorKind::KubeConfig(
+            KubeConfigErrorReason::LoadCertificate,
+        ))?;
+
+    let cert_der = &pkcs_cert.to_der().context(ErrorKind::KubeConfig(
+        KubeConfigErrorReason::LoadCertificate,
+    ))?;
+
+    let identity = Identity::from_pkcs12(cert_der, "").context(ErrorKind::KubeConfig(
+        KubeConfigErrorReason::LoadCertificate,
+    ))?;
+
+    Ok(identity)
 }
 
 fn file_or_data_bytes(path: Option<&str>, data: Option<&str>) -> Result<Vec<u8>> {
     // the "data" always overrides the file path
     match data {
-        Some(data) => Ok(base64::decode(data)?),
+        Some(data) => Ok(base64::decode(data)
+            .context(ErrorKind::KubeConfig(KubeConfigErrorReason::Base64Decode))?),
         None => match path {
-            None => Err(Error::from(ErrorKind::MissingData)),
-            Some(path) => Ok(fs::read(path)?),
+            None => Err(Error::from(ErrorKind::KubeConfig(
+                KubeConfigErrorReason::MissingData,
+            ))),
+            Some(path) => Ok(fs::read(path).context(ErrorKind::KubeConfig(
+                KubeConfigErrorReason::LoadCertificate,
+            ))?),
         },
     }
 }
@@ -209,8 +280,11 @@ fn file_or_data_string(path: Option<&str>, data: Option<&str>) -> Result<String>
     match data {
         Some(data) => Ok(data.to_string()),
         None => match path {
-            None => Err(Error::from(ErrorKind::MissingData)),
-            Some(path) => Ok(fs::read_to_string(path)?),
+            None => Err(Error::from(ErrorKind::KubeConfig(
+                KubeConfigErrorReason::MissingData,
+            ))),
+            Some(path) => Ok(fs::read_to_string(path)
+                .context(ErrorKind::KubeConfig(KubeConfigErrorReason::LoadToken))?),
         },
     }
 }
@@ -288,5 +362,4 @@ mod tests {
         assert!(file_or_data_string(None, None).is_err());
         assert!(file_or_data_string(invalid_path.to_str(), None).is_err());
     }
-
 }

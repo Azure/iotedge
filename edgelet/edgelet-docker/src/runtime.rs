@@ -38,8 +38,6 @@ use crate::settings::Settings;
 
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
-const WAIT_BEFORE_KILL_SECONDS: i32 = 10;
-
 static LABEL_KEY: &str = "net.azure-devices.edge.owner";
 static LABEL_VALUE: &str = "Microsoft.Azure.Devices.Edge.Agent";
 
@@ -466,16 +464,15 @@ impl ModuleRuntime for DockerModuleRuntime {
         }
 
         #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        let wait_timeout = wait_before_kill.and_then(|s| match s.as_secs() {
+            s if s > i32::max_value() as u64 => Some(i32::max_value()),
+            s => Some(s as i32),
+        });
+
         Box::new(
             self.client
                 .container_api()
-                .container_stop(
-                    &id,
-                    wait_before_kill.map_or(WAIT_BEFORE_KILL_SECONDS, |s| match s.as_secs() {
-                        s if s > i32::max_value() as u64 => i32::max_value(),
-                        s => s as i32,
-                    }),
-                )
+                .container_stop(&id, wait_timeout)
                 .then(|result| match result {
                     Ok(_) => {
                         info!("Successfully stopped module {}", id);
@@ -506,7 +503,7 @@ impl ModuleRuntime for DockerModuleRuntime {
         Box::new(
             self.client
                 .container_api()
-                .container_restart(&id, WAIT_BEFORE_KILL_SECONDS)
+                .container_restart(&id, None)
                 .then(|result| match result {
                     Ok(_) => {
                         info!("Successfully restarted module {}", id);
