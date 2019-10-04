@@ -15,8 +15,15 @@ pub struct Digest {
 
 impl Digest {
     /// Return a new validator for this digest
-    pub fn new_validator(&self) -> Validator {
+    pub fn validator(&self) -> Validator {
         Validator::new(self)
+    }
+
+    /// Convenience method to validate a one-off slice of data
+    pub fn validate(&self, data: &[u8]) -> bool {
+        let mut validator = self.validator();
+        validator.input(data);
+        validator.validate()
     }
 
     /// View the digest as a raw str

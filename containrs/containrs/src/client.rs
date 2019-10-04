@@ -10,7 +10,7 @@ use log::*;
 use reqwest::header::{self, HeaderMap};
 use reqwest::{Client as ReqwestClient, Method, Response, StatusCode, Url};
 
-use docker_reference::Reference;
+use docker_reference::{Reference, ReferenceKind};
 use docker_scope::{Action, Resource, Scope};
 use oci_digest::Digest;
 use oci_image::{v1::Manifest, MediaType};
@@ -146,7 +146,7 @@ impl Client {
     /// alongside the manifest's digest (as reported by the server).
     ///
     /// Returned data should deserialize into [`oci_image::v1::Manifest`]
-    pub async fn get_raw_manifest(&self, reference: &Reference) -> Result<(Blob, Digest)> {
+    pub async fn get_raw_manifest(&self, reference: &Reference) -> Result<Blob> {
         // TODO: double check this scope
         let scope = Scope::new(Resource::repo(reference.repo()), &[Action::Pull]);
 
@@ -164,15 +164,17 @@ impl Client {
 
         match res.status() {
             StatusCode::OK => {
-                let digest = res
-                    .headers()
-                    .get("Docker-Content-Digest")
-                    .ok_or_else(|| ErrorKind::ApiMissingHeader("Docker-Content-Digest"))?
-                    .to_str()
-                    .context(ErrorKind::ApiMalformedHeader("Docker-Content-Digest"))?
-                    .parse::<Digest>()
-                    .context(ErrorKind::ApiInvalidDigestHeader)?;
-                Ok((Blob::new(res), digest))
+                let server_digest = extract_digest_from_headers(res.headers())?;
+
+                // If we already know the expected digest, make sure the server returned the
+                // same digest header
+                if let ReferenceKind::Digest(ref d) = reference.kind() {
+                    if d != &server_digest {
+                        return Err(ErrorKind::ApiInvalidDigestHeader.into());
+                    }
+                }
+
+                Ok(Blob::new_streaming(res, server_digest))
             }
             StatusCode::UNAUTHORIZED => {
                 // TODO: attempt to re-authenticate
@@ -242,7 +244,25 @@ impl Client {
         let res = req.send().await?;
 
         match res.status() {
-            status if status.is_success() => Ok(Blob::new(res)),
+            status if status.is_success() => {
+                // TODO?: check if server digest matches expected digest
+                //
+                // It's not mission critical to implement, as the only benefit would be to
+                // detect a misbehaving server.
+                //
+                // this is surprisingly tricky to do, since request transparently handles
+                // redirects. this is usually exactly what we want, but unfortunately, the
+                // initial redirect response is the one with the digest header...
+
+                // let server_digest = extract_digest_from_headers(res.headers())?;
+
+                // // Make sure the server returned the same digest header
+                // if digest != &server_digest {
+                //     return Err(ErrorKind::ApiInvalidDigestHeader.into());
+                // }
+
+                Ok(Blob::new_streaming(res, digest.clone()))
+            }
             StatusCode::UNAUTHORIZED => {
                 // TODO: attempt to re-authenticate
                 unimplemented!("get_raw_blob: UNAUTHORIZED")
@@ -250,6 +270,16 @@ impl Client {
             _ => Err(new_api_error(res).await),
         }
     }
+}
+
+fn extract_digest_from_headers(headers: &HeaderMap) -> Result<Digest> {
+    Ok(headers
+        .get("Docker-Content-Digest")
+        .ok_or_else(|| ErrorKind::ApiMissingHeader("Docker-Content-Digest"))?
+        .to_str()
+        .context(ErrorKind::ApiMalformedHeader("Docker-Content-Digest"))?
+        .parse::<Digest>()
+        .context(ErrorKind::ApiInvalidDigestHeader)?)
 }
 
 /// Given a response that _should_ contain a well-structured ApiErrors JSON
