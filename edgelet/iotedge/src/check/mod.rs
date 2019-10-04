@@ -232,10 +232,10 @@ impl Check {
         }))
     }
 
-    fn checks(&self) -> [(&'static str, Vec<Box<dyn Checker>>); 2] {
-        let well_formed_config = WellFormedConfig::new(self);
-        let well_formed_conn_string = WellFormedConnectionString::new(self, &well_formed_config);
-        let container_engine_installed = ContainerEngineInstalled::new(&well_formed_config);
+    fn checks() -> [(&'static str, Vec<Box<dyn Checker>>); 2] {
+        let well_formed_config = WellFormedConfig::default();
+        let well_formed_conn_string = WellFormedConnectionString::default();
+        let container_engine_installed = ContainerEngineInstalled::default();
 
         [
             (
@@ -250,9 +250,8 @@ impl Check {
         ]
     }
 
-    pub fn possible_ids(&self) -> impl Iterator<Item = &'static str> {
-        let result: Vec<&'static str> = self
-            .checks()
+    pub fn possible_ids() -> impl Iterator<Item = &'static str> {
+        let result: Vec<&'static str> = Check::checks()
             .iter()
             .flat_map(|(_, section_checks)| section_checks)
             .map(|check| check.id())
@@ -261,17 +260,15 @@ impl Check {
         result.into_iter()
     }
 
-    pub fn print_list(&self) -> Result<(), Error> {
+    pub fn print_list() -> Result<(), Error> {
         // All our text is ASCII, so we can measure text width in bytes rather than using unicode-segmentation to count graphemes.
-        let widest_section_name_len = self
-            .checks()
+        let widest_section_name_len = Check::checks()
             .iter()
             .map(|(section_name, _)| section_name.len())
             .max()
             .expect("Have at least one section");
         let section_name_column_width = widest_section_name_len + 1;
-        let widest_check_id_len = self
-            .checks()
+        let widest_check_id_len = Check::checks()
             .iter()
             .flat_map(|(_, section_checks)| section_checks)
             .map(|check| check.id().len())
@@ -288,7 +285,7 @@ impl Check {
         );
         println!();
 
-        for (section_name, section_checks) in &self.checks() {
+        for (section_name, section_checks) in &Check::checks() {
             for check in section_checks {
                 println!(
                     "{:section_name_column_width$}{:check_id_column_width$}{}",
@@ -308,6 +305,7 @@ impl Check {
 
     fn execute_inner(&mut self) -> Result<(), Error> {
         let mut checks: BTreeMap<&str, _> = Default::default();
+        let mut check_data = Check::checks();
 
         let mut stdout = Stdout::new(self.output_format);
 
@@ -317,7 +315,7 @@ impl Check {
         let mut num_fatal = 0_usize;
         let mut num_errors = 0_usize;
 
-        for (section_name, section_checks) in &self.checks() {
+        for (section_name, section_checks) in &mut check_data {
             if num_fatal > 0 {
                 break;
             }
@@ -337,8 +335,10 @@ impl Check {
 
                 let check_result = if self.dont_run.contains(check.id()) {
                     &CheckResult::Ignored
+                } else if let Some(result) = check.result(self) {
+                    result
                 } else {
-                    check.result()
+                    unreachable!();
                 };
                 match check_result {
                     CheckResult::Ok => {

@@ -9,8 +9,8 @@ use crate::check::{checker::Checker, Check, CheckResult};
 
 #[derive(Default, serde_derive::Serialize)]
 pub struct WellFormedConfig {
-    result: CheckResult,
-    pub settings: Option<Settings>,
+    result: Option<CheckResult>,
+    settings: Option<Settings>,
 }
 impl Checker for WellFormedConfig {
     fn id(&self) -> &'static str {
@@ -19,18 +19,13 @@ impl Checker for WellFormedConfig {
     fn description(&self) -> &'static str {
         "config.yaml is well-formed"
     }
-    fn result(&self) -> &CheckResult {
+    fn result(&mut self, check: &mut Check) -> &Option<CheckResult> {
+        self.result = Some(self.execute(check).unwrap_or_else(CheckResult::Failed));
         &self.result
     }
 }
 impl WellFormedConfig {
-    pub fn new(check: &Check) -> Self {
-        let mut checker = Self::default();
-        checker.result = checker.execute(check).unwrap_or_else(CheckResult::Failed);
-        checker
-    }
-
-    fn execute(&mut self, check: &Check) -> Result<CheckResult, failure::Error> {
+    fn execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         let config_file = &check.config_file;
 
         // The config crate just returns a "file not found" error when it can't open the file for any reason,
@@ -77,7 +72,8 @@ impl WellFormedConfig {
             }
         };
 
-        self.settings = Some(settings);
+        check.settings = Some(settings);
+        self.settings = check.settings.clone();
 
         Ok(CheckResult::Ok)
     }

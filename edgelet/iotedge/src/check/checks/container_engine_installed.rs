@@ -4,15 +4,15 @@ use std::process::Command;
 
 use failure::{self, Context, Fail};
 
-use crate::check::{checker::Checker, checks::WellFormedConfig, CheckResult};
+use crate::check::{checker::Checker, Check, CheckResult};
 
 #[derive(Default, serde_derive::Serialize)]
 pub struct ContainerEngineInstalled {
-    result: CheckResult,
+    result: Option<CheckResult>,
     docker_host_arg: Option<String>,
     docker_server_version: Option<String>,
-    //TODO: add docker server version to additional info
 }
+
 impl Checker for ContainerEngineInstalled {
     fn id(&self) -> &'static str {
         "container-engine-uri"
@@ -20,24 +20,15 @@ impl Checker for ContainerEngineInstalled {
     fn description(&self) -> &'static str {
         "container engine is installed and functional"
     }
-    fn result(&self) -> &CheckResult {
+    fn result(&mut self, check: &mut Check) -> &Option<CheckResult> {
+        self.result = Some(self.execute(check).unwrap_or_else(CheckResult::Failed));
         &self.result
     }
 }
-impl ContainerEngineInstalled {
-    pub fn new(config: &WellFormedConfig) -> Self {
-        let mut checker = Self::default();
-        checker.result = checker
-            .execute(config)
-            .unwrap_or_else(CheckResult::Failed);
-        checker
-    }
 
-    fn execute(
-        &mut self,
-        config: &WellFormedConfig,
-    ) -> Result<CheckResult, failure::Error> {
-        let settings = if let Some(settings) = &config.settings {
+impl ContainerEngineInstalled {
+    fn execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+        let settings = if let Some(settings) = &check.settings {
             settings
         } else {
             return Ok(CheckResult::Skipped);
@@ -99,8 +90,13 @@ impl ContainerEngineInstalled {
             }
         };
 
-        self.docker_host_arg = Some(docker_host_arg);
-        self.docker_server_version = Some(String::from_utf8_lossy(&output).trim().to_owned());
+        check.docker_host_arg = Some(docker_host_arg);
+
+        check.docker_server_version = Some(String::from_utf8_lossy(&output).trim().to_owned());
+        check.additional_info.docker_version = check.docker_server_version.clone();
+
+        self.docker_host_arg = check.docker_host_arg.clone();
+        self.docker_server_version = check.docker_server_version.clone();
 
         Ok(CheckResult::Ok)
     }
