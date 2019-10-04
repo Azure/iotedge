@@ -318,6 +318,23 @@ where
             .flatten()
     }
 
+    pub fn list_nodes(&mut self) -> impl Future<Item = api_core::NodeList, Error = Error> {
+        api_core::Node::list_node(api_core::ListNodeOptional::default())
+            .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::NodeList))))
+            .map(|req| {
+                self.request(req)
+                    .and_then(|response| match response {
+                        api_core::ListNodeResponse::Ok(list) => Ok(list),
+                        _ => Err(Error::from(ErrorKind::Response(RequestType::NodeList))),
+                    })
+                    .map_err(|err| {
+                        Error::from(err.context(ErrorKind::Response(RequestType::NodeList)))
+                    })
+            })
+            .into_future()
+            .flatten()
+    }
+
     pub fn list_secrets(
         &mut self,
         namespace: &str,
@@ -854,6 +871,60 @@ mod tests {
 
         if let Err(err) = Runtime::new().unwrap().block_on(fut) {
             assert_eq!(err.kind(), &ErrorKind::Response(RequestType::PodList))
+        } else {
+            panic!("Expected and error result")
+        }
+    }
+
+    const LIST_NODE_RESPONSE: &str = r###"{
+            "kind" : "NodeList",
+            "items" : [
+                {
+                    "kind" : "Node"
+                },
+                {
+                    "kind" : "Node"
+                }
+            ]
+        }"###;
+
+    #[test]
+    fn list_nodes_success() {
+        let service = service_fn(
+            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
+                Ok(Response::new(Body::from(LIST_NODE_RESPONSE)))
+            },
+        );
+
+        let mut client = make_test_client(service);
+
+        let fut = client.list_nodes().map(|nodes| {
+            assert_eq!(2, nodes.items.len());
+        });
+
+        Runtime::new()
+            .unwrap()
+            .block_on(fut)
+            .expect("Expected future to be OK");
+    }
+
+    #[test]
+    fn list_nodes_error_response() {
+        let service = service_fn(
+            |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
+                let res = Response::builder()
+                    .status(StatusCode::SERVICE_UNAVAILABLE)
+                    .body(Body::empty())
+                    .unwrap();
+                Ok(res)
+            },
+        );
+
+        let mut client = make_test_client(service);
+        let fut = client.list_nodes();
+
+        if let Err(err) = Runtime::new().unwrap().block_on(fut) {
+            assert_eq!(err.kind(), &ErrorKind::Response(RequestType::NodeList))
         } else {
             panic!("Expected and error result")
         }

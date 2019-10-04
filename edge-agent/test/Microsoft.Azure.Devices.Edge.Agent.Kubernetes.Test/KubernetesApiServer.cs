@@ -2,9 +2,11 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using System.Net;
     using System.Threading.Tasks;
+    using k8s;
     using Microsoft.AspNetCore;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
@@ -12,11 +14,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     using Microsoft.AspNetCore.Http;
     using Microsoft.AspNetCore.Server.Kestrel.Core;
 
-    public class MockKubeApiServer : IDisposable
+    public class KubernetesApiServer : IDisposable
     {
         readonly IWebHost webHost;
 
-        public MockKubeApiServer(Func<HttpContext, Task<bool>> shouldNext, string resp = null, Action<ListenOptions> listenConfigure = null)
+        public KubernetesApiServer(Func<HttpContext, Task<bool>> shouldNext, string resp = null, Action<ListenOptions> listenConfigure = null)
         {
             shouldNext = shouldNext ?? (_ => Task.FromResult(true));
             listenConfigure = listenConfigure ?? (_ => { });
@@ -37,15 +39,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             this.webHost.Start();
         }
 
-        public Uri Uri => this.webHost.ServerFeatures.Get<IServerAddressesFeature>().Addresses
-            .Select(a => new Uri(a)).First();
-
-        public static async Task WriteStreamLine(HttpContext httpContext, string reponseLine)
+        public string Uri
         {
-            const string crlf = "\r\n";
-            await httpContext.Response.WriteAsync(reponseLine.Replace(crlf, string.Empty));
-            await httpContext.Response.WriteAsync(crlf);
-            await httpContext.Response.Body.FlushAsync();
+            get
+            {
+                return this.webHost.ServerFeatures.Get<IServerAddressesFeature>().Addresses.First();
+            }
         }
 
         public void Dispose()
@@ -53,5 +52,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             this.webHost.StopAsync();
             this.webHost.WaitForShutdown();
         }
+
+        public static KubernetesApiServer Watch<T>(IEnumerable<Watcher<T>.WatchEvent> events) =>
+            new KubernetesApiServer(
+                async context =>
+                {
+                    foreach (var @event in events)
+                    {
+                        await context.Write(@event);
+                    }
+
+                    return false;
+                });
     }
 }

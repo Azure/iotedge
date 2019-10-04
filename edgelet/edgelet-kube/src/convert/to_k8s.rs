@@ -16,8 +16,9 @@ use k8s_openapi::ByteString;
 use log::warn;
 use serde_json;
 
+use crate::constants::env::*;
 use crate::constants::*;
-use crate::convert::sanitize_dns_value;
+use crate::convert::{sanitize_dns_domain, sanitize_dns_value};
 use crate::error::{ErrorKind, PullImageErrorReason, Result};
 use crate::settings::Settings;
 
@@ -119,6 +120,7 @@ pub fn auth_to_image_pull_secret(
                 namespace: Some(namespace.to_string()),
                 ..api_meta::ObjectMeta::default()
             }),
+            type_: Some(PULL_SECRET_DATA_TYPE.to_string()),
             ..api_core::Secret::default()
         },
     ))
@@ -160,13 +162,33 @@ fn spec_to_podspec(
         })
         .collect();
     // Pass along "USE_PERSISTENT_VOLUMES" to EdgeAgent
-    if settings.use_pvc() && EDGE_EDGE_AGENT_NAME == module_label_value {
-        let env_var = api_core::EnvVar {
-            name: USE_PERSISTENT_VOLUME_CLAIMS.to_string(),
-            value: Some("True".to_string()),
-            ..api_core::EnvVar::default()
-        };
-        env_vars.push(env_var);
+    if EDGE_EDGE_AGENT_NAME == module_label_value {
+        if settings.use_pvc() {
+            env_vars.push(env(USE_PERSISTENT_VOLUME_KEY, "True"));
+        }
+
+        env_vars.push(env(EDGE_NETWORKID_KEY, ""));
+        env_vars.push(env(NAMESPACE_KEY, settings.namespace()));
+        env_vars.push(env(EDGE_AGENT_MODE_KEY, EDGE_AGENT_MODE));
+        env_vars.push(env(PROXY_IMAGE_KEY, settings.proxy_image()));
+        env_vars.push(env(PROXY_CONFIG_VOLUME_KEY, PROXY_CONFIG_VOLUME_NAME));
+        env_vars.push(env(
+            PROXY_CONFIG_MAP_NAME_KEY,
+            settings.proxy_config_map_name(),
+        ));
+        env_vars.push(env(PROXY_CONFIG_PATH_KEY, settings.proxy_config_path()));
+        env_vars.push(env(
+            PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME_KEY,
+            settings.proxy_trust_bundle_config_map_name(),
+        ));
+        env_vars.push(env(
+            PROXY_TRUST_BUNDLE_VOLUME_KEY,
+            PROXY_TRUST_BUNDLE_VOLUME_NAME,
+        ));
+        env_vars.push(env(
+            PROXY_TRUST_BUNDLE_PATH_KEY,
+            settings.proxy_trust_bundle_path(),
+        ));
     }
 
     // Bind/volume mounts
@@ -375,6 +397,14 @@ fn spec_to_podspec(
     })
 }
 
+fn env<V: Into<String>>(key: &str, value: V) -> api_core::EnvVar {
+    api_core::EnvVar {
+        name: key.to_string(),
+        value: Some(value.into()),
+        ..api_core::EnvVar::default()
+    }
+}
+
 /// Converts Docker Module Spec into a K8S Deployment.
 pub fn spec_to_deployment(
     settings: &Settings,
@@ -384,7 +414,7 @@ pub fn spec_to_deployment(
     let module_label_value = sanitize_dns_value(spec.name())?;
     let device_label_value =
         sanitize_dns_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?)?;
-    let hubname_label = sanitize_dns_value(
+    let hubname_label = sanitize_dns_domain(
         settings
             .iot_hub_hostname()
             .ok_or(ErrorKind::MissingHubName)?,
@@ -453,7 +483,7 @@ pub fn spec_to_service_account(
     let module_label_value = sanitize_dns_value(spec.name())?;
     let device_label_value =
         sanitize_dns_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?)?;
-    let hubname_label = sanitize_dns_value(
+    let hubname_label = sanitize_dns_domain(
         settings
             .iot_hub_hostname()
             .ok_or(ErrorKind::MissingHubName)?,
@@ -493,7 +523,7 @@ pub fn spec_to_role_binding(
     let module_label_value = sanitize_dns_value(spec.name())?;
     let device_label_value =
         sanitize_dns_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?)?;
-    let hubname_label = sanitize_dns_value(
+    let hubname_label = sanitize_dns_domain(
         settings
             .iot_hub_hostname()
             .ok_or(ErrorKind::MissingHubName)?,
@@ -542,7 +572,7 @@ pub fn trust_bundle_to_config_map(
 ) -> Result<(String, api_core::ConfigMap)> {
     let device_label_value =
         sanitize_dns_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?)?;
-    let hubname_label = sanitize_dns_value(
+    let hubname_label = sanitize_dns_domain(
         settings
             .iot_hub_hostname()
             .ok_or(ErrorKind::MissingHubName)?,
@@ -578,6 +608,7 @@ mod tests {
     use std::collections::{BTreeMap, HashMap};
     use std::str;
 
+    use k8s_openapi::api::core::v1 as api_core;
     use k8s_openapi::apimachinery::pkg::apis::meta::v1 as api_meta;
 
     use docker::models::AuthConfig;
@@ -588,13 +619,14 @@ mod tests {
     use edgelet_docker::DockerConfig;
     use edgelet_test_utils::cert::TestCert;
 
+    use crate::constants::env::*;
     use crate::constants::*;
     use crate::convert::to_k8s::{Auth, AuthEntry};
     use crate::convert::{
         auth_to_image_pull_secret, spec_to_deployment, spec_to_role_binding,
         spec_to_service_account, trust_bundle_to_config_map,
     };
-    use crate::tests::make_settings;
+    use crate::tests::{make_settings, PROXY_CONFIG_MAP_NAME, PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME};
     use crate::ErrorKind;
 
     fn create_module_spec() -> ModuleSpec<DockerConfig> {
@@ -694,8 +726,7 @@ mod tests {
             if let Some(podspec) = spec.template.spec.as_ref() {
                 assert_eq!(podspec.containers.len(), 2);
                 if let Some(module) = podspec.containers.iter().find(|c| c.name == "edgeagent") {
-                    // 2 from module spec, 1 for use_pvc
-                    assert_eq!(module.env.as_ref().map(Vec::len).unwrap(), 3);
+                    validate_container_env(module.env.as_ref().unwrap());
                     assert_eq!(module.volume_mounts.as_ref().map(Vec::len).unwrap(), 6);
                     assert_eq!(module.image.as_ref().unwrap(), "my-image:v1.0");
                     assert_eq!(module.image_pull_policy.as_ref().unwrap(), "IfNotPresent");
@@ -705,8 +736,7 @@ mod tests {
                     .iter()
                     .find(|c| c.name == PROXY_CONTAINER_NAME)
                 {
-                    // 2 from module spec, 1 for use_pvc
-                    assert_eq!(proxy.env.as_ref().map(Vec::len).unwrap(), 3);
+                    validate_container_env(proxy.env.as_ref().unwrap());
                     assert_eq!(proxy.volume_mounts.as_ref().map(Vec::len).unwrap(), 2);
                     assert_eq!(proxy.image.as_ref().unwrap(), "proxy:latest");
                     assert_eq!(proxy.image_pull_policy.as_ref().unwrap(), "IfNotPresent");
@@ -717,6 +747,37 @@ mod tests {
                 assert_eq!(podspec.volumes.as_ref().map(Vec::len).unwrap(), 8);
             }
         }
+    }
+
+    fn validate_container_env(env: &[api_core::EnvVar]) {
+        assert_eq!(env.len(), 13);
+        assert!(env.contains(&super::env("a", "b")));
+        assert!(env.contains(&super::env("C", "D")));
+        assert!(env.contains(&super::env(USE_PERSISTENT_VOLUME_KEY, "True")));
+        assert!(env.contains(&super::env(NAMESPACE_KEY, "default")));
+        assert!(env.contains(&super::env(EDGE_AGENT_MODE_KEY, EDGE_AGENT_MODE)));
+        assert!(env.contains(&super::env(PROXY_IMAGE_KEY, "proxy:latest")));
+        assert!(env.contains(&super::env(
+            PROXY_CONFIG_VOLUME_KEY,
+            PROXY_CONFIG_VOLUME_NAME
+        )));
+        assert!(env.contains(&super::env(PROXY_CONFIG_PATH_KEY, "/etc/traefik")));
+        assert!(env.contains(&super::env(
+            PROXY_CONFIG_MAP_NAME_KEY,
+            PROXY_CONFIG_MAP_NAME
+        )));
+        assert!(env.contains(&super::env(
+            PROXY_TRUST_BUNDLE_VOLUME_KEY,
+            PROXY_TRUST_BUNDLE_VOLUME_NAME,
+        )));
+        assert!(env.contains(&super::env(
+            &PROXY_TRUST_BUNDLE_PATH_KEY,
+            "/etc/trust-bundle"
+        )));
+        assert!(env.contains(&super::env(
+            &PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME_KEY,
+            PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME
+        )));
     }
 
     #[test]
@@ -734,6 +795,7 @@ mod tests {
         let (name, secret) = auth_to_image_pull_secret("namespace", &auth_config).unwrap();
         assert_eq!(name, "user-registry");
 
+        assert_eq!(secret.type_, Some(PULL_SECRET_DATA_TYPE.to_string()));
         assert!(secret.metadata.is_some());
         if let Some(meta) = secret.metadata.as_ref() {
             assert_eq!(meta.name, Some(name));
