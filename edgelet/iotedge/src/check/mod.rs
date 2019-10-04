@@ -478,6 +478,7 @@ impl Check {
                     check(self)
                 };
                 match check_result {
+                    Err(_) => {},
                     Ok(CheckResult::Ok) => {
                         num_successful += 1;
 

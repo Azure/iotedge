@@ -24,7 +24,7 @@ impl Checker for WellFormedConfig {
     }
 }
 impl WellFormedConfig {
-    fn new(check: &Check) -> Self {
+    pub fn new(check: &Check) -> Self {
         let mut checker = Self::default();
         checker.result = checker.execute(check).unwrap_or_else(CheckResult::Failed);
         checker
