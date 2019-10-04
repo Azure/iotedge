@@ -2,6 +2,7 @@
 
 use std;
 use std::collections::{BTreeMap, BTreeSet};
+use std::fmt::Debug;
 use std::io::Write;
 use std::path::PathBuf;
 
@@ -304,7 +305,7 @@ impl Check {
     }
 
     fn execute_inner(&mut self) -> Result<(), Error> {
-        let mut checks: BTreeMap<&str, _> = Default::default();
+        let mut checks: BTreeMap<&str, (CheckResultSerializable, String)> = Default::default();
         let mut check_data = Check::checks();
 
         let mut stdout = Stdout::new(self.output_format);
@@ -334,17 +335,23 @@ impl Check {
                 }
 
                 let check_result = if self.dont_run.contains(check.id()) {
-                    &CheckResult::Ignored
-                } else if let Some(result) = check.result(self) {
-                    result
+                    CheckResult::Ignored
                 } else {
-                    unreachable!();
+                    check.result(self)
                 };
+
+                let mut info = Vec::<u8>::new();
+                let serializer = &mut serde_json::Serializer::new(&mut info);
+                let mut erased_serializer = erased_serde::Serializer::erase(serializer);
+                check.erased_serialize(&mut erased_serializer);
+                drop(erased_serializer);
+                let additional_check_info: String = String::from_utf8(info).unwrap(); // String::from_utf8(info).unwrap();
+
                 match check_result {
                     CheckResult::Ok => {
                         num_successful += 1;
 
-                        checks.insert(check_id, CheckResultSerializable::Ok);
+                        checks.insert(check_id, (CheckResultSerializable::Ok, additional_check_info));
 
                         stdout.write_success(|stdout| {
                             writeln!(stdout, "\u{221a} {} - OK", check_name)?;
@@ -357,9 +364,15 @@ impl Check {
 
                         checks.insert(
                             check_id,
-                            CheckResultSerializable::Warning {
-                                details: warning.iter_chain().map(ToString::to_string).collect(),
-                            },
+                            (
+                                CheckResultSerializable::Warning {
+                                    details: warning
+                                        .iter_chain()
+                                        .map(ToString::to_string)
+                                        .collect(),
+                                },
+                                additional_check_info,
+                            ),
                         );
 
                         stdout.write_warning(|stdout| {
@@ -385,13 +398,13 @@ impl Check {
                     }
 
                     CheckResult::Ignored => {
-                        checks.insert(check_id, CheckResultSerializable::Ignored);
+                        checks.insert(check_id, (CheckResultSerializable::Ignored, additional_check_info));
                     }
 
                     CheckResult::Skipped => {
                         num_skipped += 1;
 
-                        checks.insert(check_id, CheckResultSerializable::Skipped);
+                        checks.insert(check_id, (CheckResultSerializable::Skipped, additional_check_info));
 
                         if self.verbose {
                             stdout.write_warning(|stdout| {
@@ -407,9 +420,12 @@ impl Check {
 
                         checks.insert(
                             check_id,
-                            CheckResultSerializable::Fatal {
-                                details: err.iter_chain().map(ToString::to_string).collect(),
-                            },
+                            (
+                                CheckResultSerializable::Fatal {
+                                    details: err.iter_chain().map(ToString::to_string).collect(),
+                                },
+                                additional_check_info,
+                            ),
                         );
 
                         stdout.write_error(|stdout| {
@@ -439,9 +455,12 @@ impl Check {
 
                         checks.insert(
                             check_id,
-                            CheckResultSerializable::Error {
-                                details: err.iter_chain().map(ToString::to_string).collect(),
-                            },
+                            (
+                                CheckResultSerializable::Error {
+                                    details: err.iter_chain().map(ToString::to_string).collect(),
+                                },
+                                additional_check_info,
+                            ),
                         );
 
                         stdout.write_error(|stdout| {
@@ -570,7 +589,7 @@ fn write_lines<'a>(
 #[derive(Debug, serde_derive::Serialize)]
 struct CheckResultsSerializable<'a> {
     additional_info: &'a AdditionalInfo,
-    checks: BTreeMap<&'static str, CheckResultSerializable>,
+    checks: BTreeMap<&'static str, (CheckResultSerializable, String)>,
 }
 
 #[derive(Debug, serde_derive::Serialize)]

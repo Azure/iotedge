@@ -6,7 +6,6 @@ use crate::check::{checker::Checker, Check, CheckResult};
 
 #[derive(Default, serde_derive::Serialize)]
 pub struct WellFormedConnectionString {
-    result: Option<CheckResult>,
     iothub_hostname: Option<String>,
 }
 impl Checker for WellFormedConnectionString {
@@ -16,10 +15,8 @@ impl Checker for WellFormedConnectionString {
     fn description(&self) -> &'static str {
         "config.yaml has well-formed connection string"
     }
-    fn result(&mut self, check: &mut Check) -> &Option<CheckResult> {
-        let result = self.execute(check).unwrap_or_else(CheckResult::Failed);
-        self.result = Some(result);
-        &self.result
+    fn result(&mut self, check: &mut Check) -> CheckResult {
+        self.execute(check).unwrap_or_else(CheckResult::Failed)
     }
 }
 impl WellFormedConnectionString {

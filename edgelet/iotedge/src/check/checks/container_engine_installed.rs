@@ -8,7 +8,6 @@ use crate::check::{checker::Checker, Check, CheckResult};
 
 #[derive(Default, serde_derive::Serialize)]
 pub struct ContainerEngineInstalled {
-    result: Option<CheckResult>,
     docker_host_arg: Option<String>,
     docker_server_version: Option<String>,
 }
@@ -20,9 +19,8 @@ impl Checker for ContainerEngineInstalled {
     fn description(&self) -> &'static str {
         "container engine is installed and functional"
     }
-    fn result(&mut self, check: &mut Check) -> &Option<CheckResult> {
-        self.result = Some(self.execute(check).unwrap_or_else(CheckResult::Failed));
-        &self.result
+    fn result(&mut self, check: &mut Check) -> CheckResult {
+        self.execute(check).unwrap_or_else(CheckResult::Failed)
     }
 }
 

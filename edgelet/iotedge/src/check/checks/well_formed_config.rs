@@ -9,7 +9,6 @@ use crate::check::{checker::Checker, Check, CheckResult};
 
 #[derive(Default, serde_derive::Serialize)]
 pub struct WellFormedConfig {
-    result: Option<CheckResult>,
     settings: Option<Settings>,
 }
 impl Checker for WellFormedConfig {
@@ -19,9 +18,8 @@ impl Checker for WellFormedConfig {
     fn description(&self) -> &'static str {
         "config.yaml is well-formed"
     }
-    fn result(&mut self, check: &mut Check) -> &Option<CheckResult> {
-        self.result = Some(self.execute(check).unwrap_or_else(CheckResult::Failed));
-        &self.result
+    fn result(&mut self, check: &mut Check) -> CheckResult {
+        self.execute(check).unwrap_or_else(CheckResult::Failed)
     }
 }
 impl WellFormedConfig {
