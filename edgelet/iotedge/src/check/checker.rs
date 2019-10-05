@@ -1,5 +1,4 @@
 use crate::check::{Check, CheckResult};
-use serde_json::json;
 
 pub(crate) trait Checker {
     fn id(&self) -> &'static str;

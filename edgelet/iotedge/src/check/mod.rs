@@ -88,19 +88,6 @@ pub(crate) enum CheckResult {
     /// Check failed, and further checks should not be performed.
     Fatal(failure::Error),
 }
-impl Default for CheckResult {
-    fn default() -> Self {
-        CheckResult::Ok
-    }
-}
-impl Serialize for CheckResult {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.collect_str(&format!("{:?}", self))
-    }
-}
 
 impl Check {
     pub fn new(
@@ -339,14 +326,6 @@ impl Check {
                 } else {
                     check.result(self)
                 };
-
-                // let mut info = Vec::<u8>::new();
-                // let serializer = &mut serde_json::Serializer::new(&mut info);
-                // let mut erased_serializer = erased_serde::Serializer::erase(serializer);
-                // check.erased_serialize(&mut erased_serializer);
-                // drop(erased_serializer);
-                // let check: serde_json::Value =
-                //     serde_json::json!(String::from_utf8(info).unwrap());
 
                 match check_result {
                     CheckResult::Ok => {
@@ -628,12 +607,3 @@ struct CheckOutputSerializable {
     result: CheckResultSerializable,
     additional_info: serde_json::Value,
 }
-// impl Serialize for CheckOutputSerializable {
-//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-//     where
-//         S: Serializer,
-//     {
-//         serializer.serialize_some(&self.result)?;
-//         serializer.serialize_some(&self.additional_info.get_json())
-//     }
-// }
