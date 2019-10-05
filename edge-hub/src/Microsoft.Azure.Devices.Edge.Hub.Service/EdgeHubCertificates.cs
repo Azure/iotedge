@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
     public class EdgeHubCertificates
     {
-        public EdgeHubCertificates(X509Certificate2 serverCertificate, IList<X509Certificate2> certificateChain, IList<X509Certificate2> trustBundle)
+        EdgeHubCertificates(X509Certificate2 serverCertificate, IList<X509Certificate2> certificateChain, IList<X509Certificate2> trustBundle)
         {
             this.ServerCertificate = Preconditions.CheckNotNull(serverCertificate, nameof(serverCertificate));
             this.CertificateChain = Preconditions.CheckNotNull(certificateChain, nameof(certificateChain));
