@@ -190,10 +190,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<Task<IDbStoreProvider>>()
                 .SingleInstance();
 
-            // IStoreProvider
-            builder.Register(async c => new StoreProvider(await c.Resolve<Task<IDbStoreProvider>>()))
-                .As<Task<IStoreProvider>>()
-                .SingleInstance();
+            // Task<IStoreProvider>
+            builder.Register(async c => {
+                var dbStoreProvider = await c.Resolve<Task<IDbStoreProvider>>();
+                IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
+                return storeProvider;
+            })
+            .As<Task<IStoreProvider>>()
+            .SingleInstance();
 
             // IEntityStore<string, ModuleState>
             builder.Register(async c => {

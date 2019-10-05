@@ -219,7 +219,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             // Task<IStoreProvider>
             builder.Register(async c => {
                 var dbStoreProvider = await c.Resolve<Task<IDbStoreProvider>>();
-                return new StoreProvider(dbStoreProvider);
+                IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
+                return storeProvider;
                 })
                 .As<Task<IStoreProvider>>()
                 .SingleInstance();
@@ -230,7 +231,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     {
                         var storeProvider = await c.Resolve<Task<IStoreProvider>>();
                         IKeyValueStore<string, string> entityStore = storeProvider.GetEntityStore<string, string>("ProductInfo");
-                        return new ProductInfoStore(entityStore, this.productInfo);
+                        IProductInfoStore productInfoStore = new ProductInfoStore(entityStore, this.productInfo);
+                        return productInfoStore;
                     })
                 .As<Task<IProductInfoStore>>()
                 .SingleInstance();

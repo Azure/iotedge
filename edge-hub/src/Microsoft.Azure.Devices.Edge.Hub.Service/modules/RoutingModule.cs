@@ -357,7 +357,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         {
                             var dbStoreProvider = await c.Resolve<Task<IDbStoreProvider>>();
                             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
-                            return CheckpointStore.Create(storeProvider);
+                            ICheckpointStore checkpointStore = CheckpointStore.Create(storeProvider);
+                            return checkpointStore;
                         })
                     .As<Task<ICheckpointStore>>()
                     .SingleInstance();
