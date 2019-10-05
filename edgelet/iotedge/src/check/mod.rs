@@ -12,7 +12,6 @@ use futures::future::{self, FutureResult};
 use futures::{Future, IntoFuture, Stream};
 #[cfg(unix)]
 use libc;
-use serde::{Serialize, Serializer};
 use serde_json;
 
 use edgelet_docker::Settings;
@@ -224,6 +223,7 @@ impl Check {
         let well_formed_config = WellFormedConfig::default();
         let well_formed_conn_string = WellFormedConnectionString::default();
         let container_engine_installed = ContainerEngineInstalled::default();
+        let windows_host_version = WindowsHostVersion::default();
 
         [
             (
@@ -232,6 +232,7 @@ impl Check {
                     Box::new(well_formed_config),
                     Box::new(well_formed_conn_string),
                     Box::new(container_engine_installed),
+                    Box::new(windows_host_version),
                 ],
             ),
             ("Connectivity checks", vec![]),
