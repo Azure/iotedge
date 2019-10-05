@@ -192,17 +192,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<Task<IDbStoreProvider>>()
                 .SingleInstance();
 
-            // Task<IProductInfoStore>
-            builder.Register(
-                    async c =>
-                    {
-                        var storeProvider = await c.Resolve<Task<IStoreProvider>>();
-                        IKeyValueStore<string, string> entityStore = storeProvider.GetEntityStore<string, string>("ProductInfo");
-                        return new ProductInfoStore(entityStore, this.productInfo);
-                    })
-                .As<Task<IProductInfoStore>>()
-                .SingleInstance();
-
             // Task<Option<IEncryptionProvider>>
             builder.Register(
                     async c =>
@@ -230,6 +219,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             // Task<IStoreProvider>
             builder.Register(async c => new StoreProvider(await c.Resolve<Task<IDbStoreProvider>>()))
                 .As<Task<IStoreProvider>>()
+                .SingleInstance();
+
+            // Task<IProductInfoStore>
+            builder.Register(
+                    async c =>
+                    {
+                        var storeProvider = await c.Resolve<Task<IStoreProvider>>();
+                        IKeyValueStore<string, string> entityStore = storeProvider.GetEntityStore<string, string>("ProductInfo");
+                        return new ProductInfoStore(entityStore, this.productInfo);
+                    })
+                .As<Task<IProductInfoStore>>()
                 .SingleInstance();
 
             // ITokenProvider
