@@ -394,7 +394,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         {
                             var checkpointStore = await c.Resolve<Task<ICheckpointStore>>();
                             var routerConfig = c.Resolve<RouterConfig>();
-                            var endpointExecutorFactory = c.Resolve<IEndpointExecutorFactory>();
+                            var endpointExecutorFactory = await c.Resolve<Task<IEndpointExecutorFactory>>();
                             return await Router.CreateAsync(Guid.NewGuid().ToString(), this.iotHubName, routerConfig, endpointExecutorFactory, checkpointStore);
                         })
                     .As<Task<Router>>()
