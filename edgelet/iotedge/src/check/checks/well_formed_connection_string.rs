@@ -18,6 +18,9 @@ impl Checker for WellFormedConnectionString {
     fn result(&mut self, check: &mut Check) -> CheckResult {
         self.execute(check).unwrap_or_else(CheckResult::Failed)
     }
+    fn get_json(&self) -> serde_json::Value {
+        serde_json::to_value(self).unwrap()
+    }
 }
 impl WellFormedConnectionString {
     fn execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {

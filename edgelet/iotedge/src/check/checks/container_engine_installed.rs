@@ -22,6 +22,9 @@ impl Checker for ContainerEngineInstalled {
     fn result(&mut self, check: &mut Check) -> CheckResult {
         self.execute(check).unwrap_or_else(CheckResult::Failed)
     }
+    fn get_json(&self) -> serde_json::Value {
+        serde_json::to_value(self).unwrap()
+    }
 }
 
 impl ContainerEngineInstalled {
