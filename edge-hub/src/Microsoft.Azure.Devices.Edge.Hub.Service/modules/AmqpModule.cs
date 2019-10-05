@@ -59,19 +59,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<ITransportListenerProvider>()
                 .SingleInstance();
 
-            // ILinkHandlerProvider
+            // Task<ILinkHandlerProvider>
             builder.Register(
-                    c =>
+                    async c =>
                     {
                         IMessageConverter<AmqpMessage> messageConverter = new AmqpMessageConverter();
                         IMessageConverter<AmqpMessage> twinMessageConverter = new AmqpTwinMessageConverter();
                         IMessageConverter<AmqpMessage> directMethodMessageConverter = new AmqpDirectMethodMessageConverter();
                         var identityProvider = c.Resolve<IIdentityProvider>();
-                        var productInfoStore = c.Resolve<IProductInfoStore>();
+                        var productInfoStore = await c.Resolve<Task<IProductInfoStore>>();
                         ILinkHandlerProvider linkHandlerProvider = new LinkHandlerProvider(messageConverter, twinMessageConverter, directMethodMessageConverter, identityProvider, productInfoStore);
                         return linkHandlerProvider;
                     })
-                .As<ILinkHandlerProvider>()
+                .As<Task<ILinkHandlerProvider>>()
                 .SingleInstance();
 
             // Task<AmqpProtocolHead>
@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         var identityFactory = c.Resolve<IClientCredentialsFactory>();
                         var transportSettingsTask = c.Resolve<Task<ITransportSettings>>();
                         var transportListenerProvider = c.Resolve<ITransportListenerProvider>();
-                        var linkHandlerProvider = c.Resolve<ILinkHandlerProvider>();
+                        var linkHandlerProvider = await c.Resolve<Task<ILinkHandlerProvider>>();
                         var credentialsCacheTask = c.Resolve<Task<ICredentialsCache>>();
                         var authenticatorTask = c.Resolve<Task<IAuthenticator>>();
                         var connectionProviderTask = c.Resolve<Task<IConnectionProvider>>();

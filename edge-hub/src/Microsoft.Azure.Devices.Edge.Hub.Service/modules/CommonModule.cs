@@ -192,15 +192,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<Task<IDbStoreProvider>>()
                 .SingleInstance();
 
-            // IProductInfoStore
+            // Task<IProductInfoStore>
             builder.Register(
-                    c =>
+                    async c =>
                     {
-                        var storeProvider = c.Resolve<IStoreProvider>();
+                        var storeProvider = await c.Resolve<Task<IStoreProvider>>();
                         IKeyValueStore<string, string> entityStore = storeProvider.GetEntityStore<string, string>("ProductInfo");
                         return new ProductInfoStore(entityStore, this.productInfo);
                     })
-                .As<IProductInfoStore>()
+                .As<Task<IProductInfoStore>>()
                 .SingleInstance();
 
             // Task<Option<IEncryptionProvider>>
@@ -227,9 +227,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<Task<Option<IEncryptionProvider>>>()
                 .SingleInstance();
 
-            // IStoreProvider
-            builder.Register(c => new StoreProvider(c.Resolve<IDbStoreProvider>()))
-                .As<IStoreProvider>()
+            // Task<IStoreProvider>
+            builder.Register(async c => new StoreProvider(await c.Resolve<Task<IDbStoreProvider>>()))
+                .As<Task<IStoreProvider>>()
                 .SingleInstance();
 
             // ITokenProvider
@@ -390,7 +390,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
         static async Task<IKeyValueStore<string, string>> GetEncryptedStore(IComponentContext context, string entityName)
         {
-            var storeProvider = context.Resolve<IStoreProvider>();
+            var storeProvider = await context.Resolve<Task<IStoreProvider>>();
             Option<IEncryptionProvider> encryptionProvider = await context.Resolve<Task<Option<IEncryptionProvider>>>();
             IKeyValueStore<string, string> encryptedStore = encryptionProvider
                 .Map(

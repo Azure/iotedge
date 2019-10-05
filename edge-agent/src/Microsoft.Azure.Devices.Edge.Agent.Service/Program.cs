@@ -308,7 +308,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
         static async Task CloseDbStoreProviderAsync(IContainer container)
         {
-            IDbStoreProvider dbStoreProvider = container.Resolve<IDbStoreProvider>();
+            IDbStoreProvider dbStoreProvider = await container.Resolve<Task<IDbStoreProvider>>();
             await dbStoreProvider.CloseAsync();
         }
 

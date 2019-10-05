@@ -191,18 +191,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IStoreProvider
-            builder.Register(c => new StoreProvider(c.Resolve<IDbStoreProvider>()))
-                .As<IStoreProvider>()
+            builder.Register(async c => new StoreProvider(await c.Resolve<Task<IDbStoreProvider>>()))
+                .As<Task<IStoreProvider>>()
                 .SingleInstance();
 
             // IEntityStore<string, ModuleState>
-            builder.Register(c => c.Resolve<IStoreProvider>().GetEntityStore<string, ModuleState>("moduleState"))
-                .As<IEntityStore<string, ModuleState>>()
+            builder.Register(async c => {
+                IStoreProvider storeProvider = await c.Resolve<Task<IStoreProvider>>();
+                return storeProvider.GetEntityStore<string, ModuleState>("moduleState");
+                })
+                .As<Task<IEntityStore<string, ModuleState>>>()
                 .SingleInstance();
 
             // IEntityStore<string, DeploymentConfigInfo>
-            builder.Register(c => c.Resolve<IStoreProvider>().GetEntityStore<string, string>("deploymentConfig"))
-                .As<IEntityStore<string, string>>()
+            builder.Register(async c => {
+                IStoreProvider storeProvider = await c.Resolve<Task<IStoreProvider>>();
+                return storeProvider.GetEntityStore<string, string>("deploymentConfig");
+                })
+                .As<Task<IEntityStore<string, string>>>()
                 .SingleInstance();
 
             // IRestartManager
@@ -214,7 +220,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                     async c => new HealthRestartPlanner(
                         await c.Resolve<Task<ICommandFactory>>(),
-                        c.Resolve<IEntityStore<string, ModuleState>>(),
+                        await c.Resolve<Task<IEntityStore<string, ModuleState>>>(),
                         this.intensiveCareTime,
                         c.Resolve<IRestartPolicyManager>()) as IPlanner)
                 .As<Task<IPlanner>>()
@@ -259,7 +265,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         var reporter = c.Resolve<IReporter>();
                         var moduleIdentityLifecycleManager = c.Resolve<IModuleIdentityLifecycleManager>();
                         var deploymentConfigInfoSerde = c.Resolve<ISerde<DeploymentConfigInfo>>();
-                        var deploymentConfigInfoStore = c.Resolve<IEntityStore<string, string>>();
+                        var deploymentConfigInfoStore = await c.Resolve<Task<IEntityStore<string, string>>>();
                         var encryptionProvider = c.Resolve<Task<IEncryptionProvider>>();
                         return await Agent.Create(
                             await configSource,
