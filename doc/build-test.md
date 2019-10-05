@@ -25,7 +25,7 @@ Our builds fall into these categories:
 Test
 ----
 
-Our C# tests use [xUnit](https://xunit.github.io/docs/getting-started-dotnet-core). Each test is tagged with one of the following attributes:
+Our C# tests use [xUnit](https://xunit.net/docs/getting-started/netcore/cmdline) for almost all test assemblies except Microsoft.Azure.Devices.Edge.Test where used [NUnit](https://github.com/nunit/docs/wiki). Each XUnit test is tagged with one of the following attributes:
 
 | Attribute   | Goal                                                                                            | Notes                                                                                 | Runs in build(s)  |
 |-------------|-------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------|-------------------|
