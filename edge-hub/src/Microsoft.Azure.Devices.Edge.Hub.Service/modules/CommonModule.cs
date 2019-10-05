@@ -217,7 +217,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // Task<IStoreProvider>
-            builder.Register(async c => new StoreProvider(await c.Resolve<Task<IDbStoreProvider>>()))
+            builder.Register(async c => {
+                var dbStoreProvider = await c.Resolve<Task<IDbStoreProvider>>();
+                return new StoreProvider(dbStoreProvider);
+                })
                 .As<Task<IStoreProvider>>()
                 .SingleInstance();
 
