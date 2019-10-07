@@ -1,3 +1,4 @@
+#[cfg(windows)]
 use failure::{self, Context, ResultExt};
 
 use crate::check::{checker::Checker, Check, CheckResult};
