@@ -7,7 +7,7 @@ use crate::check::{checker::Checker, Check, CheckResult};
 
 #[derive(Default, serde_derive::Serialize)]
 pub struct IotedgedVersion {
-    iothub_hostname: Option<String>,
+    version: Option<String>,
 }
 impl Checker for IotedgedVersion {
     fn id(&self) -> &'static str {
@@ -71,6 +71,7 @@ impl IotedgedVersion {
             .get(1)
             .expect("unreachable: regex defines one capturing group")
             .as_str();
+        self.version = Some(version.to_owned());
 
         check.additional_info.iotedged_version = Some(version.to_owned());
 
