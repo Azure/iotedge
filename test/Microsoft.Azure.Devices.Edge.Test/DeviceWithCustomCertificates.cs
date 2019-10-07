@@ -17,7 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
             [Values] TestAuthenticationType testAuth,
             [Values(Protocol.Mqtt, Protocol.Amqp)] Protocol protocol)
         {
-
             if (!OsPlatform.IsWindows())
             {
                 if (protocol == Protocol.Amqp)
@@ -28,11 +27,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         case TestAuthenticationType.SelfSignedSecondary:
                         case TestAuthenticationType.CertificateAuthority:
                             Assert.Ignore("Skipping the test case due to BUG 5234369");
-                        break;
+                            break;
 
                         default:
                             // Intentionally left blank
-                        break;
+                            break;
                     }
                 }
             }
