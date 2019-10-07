@@ -205,7 +205,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
 
             var volumeMountList = new List<V1VolumeMount>(proxyMountList);
 
-            // collect volumes and volumes from HostConfig.Binds section
+            // collect volumes and volume mounts from HostConfig.Binds section
             var binds = module.Config.CreateOptions.HostConfig
                 .FlatMap(config => Option.Maybe(config.Binds))
                 .Map(
