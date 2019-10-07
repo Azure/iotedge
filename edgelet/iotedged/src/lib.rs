@@ -2246,6 +2246,24 @@ mod tests {
     }
 
     #[test]
+    fn settings_without_cert_life_uses_default() {
+        let _guard = LOCK.lock().unwrap();
+
+        let settings = Settings::new(Path::new(GOOD_SETTINGS1)).unwrap();
+        // Default is 90 days so check for that in seconds
+        assert_eq!(7776000, settings.certificates().auto_generated_ca_lifetime_seconds());
+    }
+
+    #[test]
+    fn settings_with_cert_life_uses_value() {
+        let _guard = LOCK.lock().unwrap();
+
+        let settings = Settings::new(Path::new(GOOD_SETTINGS2)).unwrap();
+        // Provided value is 1 day so check for that in seconds
+        assert_eq!(86400, settings.certificates().auto_generated_ca_lifetime_seconds());
+    }
+
+    #[test]
     fn settings_with_invalid_issuer_ca_fails() {
         let tmp_dir = TempDir::new("blah").unwrap();
         let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
