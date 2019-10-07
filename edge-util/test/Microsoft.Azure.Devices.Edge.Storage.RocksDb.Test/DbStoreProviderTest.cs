@@ -3,6 +3,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
 {
     using System;
     using System.IO;
+    using System.Linq;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
@@ -33,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
         }
 
         [Fact]
-        public void CreateTestAsync()
+        public void CreateTest()
         {
             var options = new RocksDbOptionsProvider(new SystemEnvironment(), true);
 
@@ -65,6 +67,33 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
             using (IDbStoreProvider rocksDbStoreProvider = DbStoreProvider.Create(options, this.rocksDbFolder, partitionsList3))
             {
                 Assert.NotNull(rocksDbStoreProvider);
+            }
+        }
+
+        [Fact]
+        public async Task GetRemoveDefaultPartitionTestAsync()
+        {
+            var options = new RocksDbOptionsProvider(new SystemEnvironment(), true);
+
+            var partitionsList = new[]
+            {
+                "Partition1"
+            };
+
+            using (IDbStoreProvider rocksDbStoreProvider = DbStoreProvider.Create(options, this.rocksDbFolder, partitionsList))
+            {
+                Assert.NotNull(rocksDbStoreProvider);
+
+                IDbStore store = rocksDbStoreProvider.GetDbStore();
+
+                string key = "key";
+                string val = "val";
+                byte[] valBytes = val.ToBytes();
+                await store.Put(key.ToBytes(), valBytes);
+                Option<byte[]> valRetrieved = await store.Get("key".ToBytes());
+
+                byte[] valRetrievedBytes = valRetrieved.GetOrElse(string.Empty.ToBytes());
+                Assert.True(valRetrievedBytes.SequenceEqual(valBytes));
             }
         }
     }

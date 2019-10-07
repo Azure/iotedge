@@ -3,19 +3,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 {
     using System;
 
-    public static class BackupRestoreFactory
+    public static class BackupRestoreUtil
     {
-        public static IBackupRestore GetInstance(SerializationFormat format)
-        {
-            switch (format)
-            {
-                case SerializationFormat.ProtoBuf:
-                    return new ProtoBufBackupRestore();
-                default:
-                    throw new NotSupportedException();
-            }
-        }
-
         public static SerializationFormat GetFormat(IBackupRestore backupRestore)
         {
             if (typeof(ProtoBufBackupRestore).IsInstanceOfType(backupRestore))

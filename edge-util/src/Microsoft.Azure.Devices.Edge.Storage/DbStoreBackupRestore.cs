@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Storage
 {
+    using Microsoft.Azure.Devices.Edge.Util;
     using System.Collections.Generic;
     using System.IO;
     using System.Threading.Tasks;
@@ -16,18 +17,21 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public async Task BackupAsync(string entityName, IDbStore dbStore, string backupPath)
         {
+            Preconditions.CheckNonWhiteSpace(entityName, nameof(entityName));
+            Preconditions.CheckNotNull(dbStore, nameof(dbStore));
+            Preconditions.CheckNonWhiteSpace(backupPath, nameof(backupPath));
+
             try
             {
-                // This is a hack, make it better by not having to create another in-memory collection of items
-                // to be backed up.
                 IList<Item> items = new List<Item>();
                 await dbStore.IterateBatch(
-                int.MaxValue,
-                (key, value) =>
-                {
-                    items.Add(new Item(key, value));
-                    return Task.CompletedTask;
-                });
+                    int.MaxValue,
+                    (key, value) =>
+                    {
+                        items.Add(new Item(key, value));
+                        return Task.CompletedTask;
+                    }
+                );
 
                 await this.backupRestore.BackupAsync(entityName, backupPath, items);
             }
@@ -39,12 +43,20 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public async Task RestoreAsync(string entityName, IDbStore dbStore, string backupPath)
         {
+            Preconditions.CheckNonWhiteSpace(entityName, nameof(entityName));
+            Preconditions.CheckNotNull(dbStore, nameof(dbStore));
+            Preconditions.CheckNonWhiteSpace(backupPath, nameof(backupPath));
+
             try
             {
                 IList<Item> items = await this.backupRestore.RestoreAsync<IList<Item>>(entityName, backupPath);
-                foreach (Item item in items)
+
+                if (items != null)
                 {
-                    await dbStore.Put(item.Key, item.Value);
+                    foreach (Item item in items)
+                    {
+                        await dbStore.Put(item.Key, item.Value);
+                    }
                 }
             }
             catch (IOException exception)

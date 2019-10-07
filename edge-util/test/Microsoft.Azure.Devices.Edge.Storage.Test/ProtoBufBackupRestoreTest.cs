@@ -6,19 +6,19 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
     using System.IO;
     using System.Linq;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using ProtoBuf;
     using Xunit;
 
     [Unit]
-    public class InMemoryDbStoreProviderTest
+    public class ProtoBufBackupRestoreTest
     {
         readonly string backupFolder;
 
-        public InMemoryDbStoreProviderTest()
+        public ProtoBufBackupRestoreTest()
         {
             string tempFolder = Path.GetTempPath();
-            this.backupFolder = Path.Combine(tempFolder, $"edgeTestBackup{Guid.NewGuid()}");
+            this.backupFolder = Path.Combine(tempFolder, $"protoBufTestBackup{Guid.NewGuid()}");
             if (Directory.Exists(this.backupFolder))
             {
                 Directory.Delete(this.backupFolder);
@@ -27,12 +27,80 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             Directory.CreateDirectory(this.backupFolder);
         }
 
-        //[Fact]
-        //public void ConstructorInvalidBackupPathTest()
-        //{
-        //    Assert.Throws<ArgumentException>(() => new InMemoryDbStoreProvider(Option.None<string>(), true));
-        //    Assert.Throws<ArgumentException>(() => new InMemoryDbStoreProvider(Option.Some(" "), true));
-        //}
+        ~ProtoBufBackupRestoreTest()
+        {
+            if (!string.IsNullOrWhiteSpace(this.backupFolder) && Directory.Exists(this.backupFolder))
+            {
+                Directory.Delete(this.backupFolder, true);
+            }
+        }
+
+        [Fact]
+        public async Task BackupInvalidInputTestAsync()
+        {
+            ProtoBufBackupRestore backupRestore = new ProtoBufBackupRestore();
+            await Assert.ThrowsAsync<ArgumentException>(() => backupRestore.BackupAsync(null, "abc", "test"));
+            await Assert.ThrowsAsync<ArgumentException>(() => backupRestore.BackupAsync(" ", "abc", "test"));
+
+            await Assert.ThrowsAsync<ArgumentException>(() => backupRestore.BackupAsync("abc", null, "test"));
+            await Assert.ThrowsAsync<ArgumentException>(() => backupRestore.BackupAsync("abc", " ", "test"));
+
+            await Assert.ThrowsAsync<IOException>(() => backupRestore.BackupAsync("abc", "abc", "C:\\" + Guid.NewGuid().ToString()));
+        }
+
+        [Fact]
+        public async Task RestoreInvalidInputTestAsync()
+        {
+            ProtoBufBackupRestore backupRestore = new ProtoBufBackupRestore();
+            await Assert.ThrowsAsync<ArgumentException>(() => backupRestore.RestoreAsync<string>(null, "abc"));
+            await Assert.ThrowsAsync<ArgumentException>(() => backupRestore.RestoreAsync<string>(" ", "abc"));
+
+            await Assert.ThrowsAsync<ArgumentException>(() => backupRestore.RestoreAsync<string>("abc", null));
+            await Assert.ThrowsAsync<ArgumentException>(() => backupRestore.RestoreAsync<string>("abc", " "));
+
+            await Assert.ThrowsAsync<IOException>(() => backupRestore.BackupAsync("abc", "abc", "C:\\" + Guid.NewGuid().ToString()));
+        }
+
+        [Fact]
+        public async Task RestoreInvalidBackupDataTestAsync()
+        {
+            ProtoBufBackupRestore backupRestore = new ProtoBufBackupRestore();
+
+            Item item1 = new Item("key1".ToBytes(), "val1".ToBytes());
+            Item item2 = new Item("key2".ToBytes(), "val2".ToBytes());
+            IList<Item> items = new List<Item> { item1, item2 };
+
+            string name = "test";
+            await backupRestore.BackupAsync(name, backupFolder, items);
+
+            // Corrupt the backup file.
+            using (FileStream file = File.OpenWrite(Path.Combine(backupFolder, $"{name}.bin")))
+            {
+                file.Write(new byte[] { 1, 2 }, 1, 1);
+            }
+
+            // Attempting a restore should now fail.
+            Exception ex = await Assert.ThrowsAsync<IOException>(() => backupRestore.RestoreAsync<IList<Item>>(name, backupFolder));
+            Assert.True(ex.InnerException is ProtoException);
+        }
+
+        [Fact]
+        public async Task BackupRestoreSuccessTest()
+        {
+            ProtoBufBackupRestore backupRestore = new ProtoBufBackupRestore();
+
+            Item item1 = new Item("key1".ToBytes(), "val1".ToBytes());
+            Item item2 = new Item("key2".ToBytes(), "val2".ToBytes());
+            IList<Item> items = new List<Item> { item1, item2 };
+
+            string name = "test";
+            await backupRestore.BackupAsync(name, backupFolder, items);
+
+            // Attempt a restore to validate that that backup succeeds.
+            IList<Item> restoredItems = await backupRestore.RestoreAsync<IList<Item>>(name, backupFolder);
+            Assert.Equal(items.Count, restoredItems.Count);
+            Assert.All(items, x => restoredItems.Any(y => x.Key.SequenceEqual(y.Key) && x.Value.SequenceEqual(y.Value)));
+        }
 
         //[Fact]
         //public async Task BackupSuccessTest()

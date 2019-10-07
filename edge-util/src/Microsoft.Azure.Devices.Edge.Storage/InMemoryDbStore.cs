@@ -15,8 +15,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     /// </summary>
     class InMemoryDbStore : IDbStore
     {
-        protected readonly ItemKeyedCollection keyValues;
-        protected readonly AsyncReaderWriterLock listLock = new AsyncReaderWriterLock();
+        readonly ItemKeyedCollection keyValues;
+        readonly AsyncReaderWriterLock listLock = new AsyncReaderWriterLock();
 
         public InMemoryDbStore()
         {
@@ -138,7 +138,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             }
         }
 
-        internal async Task<List<(byte[], byte[])>> GetSnapshot(CancellationToken cancellationToken)
+        async Task<List<(byte[], byte[])>> GetSnapshot(CancellationToken cancellationToken)
         {
             using (await this.listLock.ReaderLockAsync(cancellationToken))
             {
@@ -146,7 +146,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             }
         }
 
-        public class ByteArrayComparer : IEqualityComparer<byte[]>
+        class ByteArrayComparer : IEqualityComparer<byte[]>
         {
             public bool Equals(byte[] x, byte[] y) => (x == null && y == null) || x.SequenceEqual(y);
 
@@ -162,7 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             }
         }
 
-        public class ItemKeyedCollection : KeyedCollection<byte[], Item>
+        class ItemKeyedCollection : KeyedCollection<byte[], Item>
         {
             public ItemKeyedCollection(IEqualityComparer<byte[]> keyEqualityComparer)
                 : base(keyEqualityComparer)
@@ -172,10 +172,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             public IList<(byte[], byte[])> ItemList => this.Items
                 .Select(i => (i.Key, i.Value))
                 .ToList();
-
-            // Exposing the items through this property so that it can be used for serialization
-            // using ProtoBuf when backups are created.
-            internal IList<Item> AllItems => this.Items;
 
             protected override byte[] GetKeyForItem(Item item) => item.Key;
         }
