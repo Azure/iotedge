@@ -18,6 +18,7 @@ mod error;
 mod list;
 mod logs;
 mod restart;
+mod support_bundle;
 mod unknown;
 mod version;
 
@@ -26,13 +27,14 @@ pub use crate::error::{Error, ErrorKind, FetchLatestVersionsReason};
 pub use crate::list::List;
 pub use crate::logs::Logs;
 pub use crate::restart::Restart;
+pub use crate::support_bundle::SupportBundle;
 pub use crate::unknown::Unknown;
 pub use crate::version::Version;
 
 pub trait Command {
     type Future: Future<Item = ()> + Send;
 
-    fn execute(&mut self) -> Self::Future;
+    fn execute(self) -> Self::Future;
 }
 
 #[derive(Debug, Deserialize)]

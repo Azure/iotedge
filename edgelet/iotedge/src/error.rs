@@ -15,6 +15,12 @@ pub enum ErrorKind {
     #[fail(display = "Invalid value for --host parameter")]
     BadHostParameter,
 
+    #[fail(display = "Invalid value for --since parameter")]
+    BadSinceParameter,
+
+    #[fail(display = "Invalid value for --tail parameter")]
+    BadTailParameter,
+
     #[fail(display = "")]
     Diagnostics,
 
@@ -35,6 +41,9 @@ pub enum ErrorKind {
 
     #[fail(display = "Could not write to stdout")]
     WriteToStdout,
+
+    #[fail(display = "Could not write to file")]
+    WriteToFile,
 }
 
 impl Fail for Error {
