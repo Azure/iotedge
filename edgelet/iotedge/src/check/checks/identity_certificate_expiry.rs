@@ -69,12 +69,12 @@ impl IdentityCertificateExpiry {
 pub struct CertificateValidity {
     cert_name: String,
     cert_path: PathBuf,
-    not_after: chrono::DateTime<chrono::Utc>,
+    pub not_after: chrono::DateTime<chrono::Utc>,
     not_before: chrono::DateTime<chrono::Utc>,
 }
 
 impl CertificateValidity {
-    fn parse(cert_name: String, cert_path: PathBuf) -> Result<Self, failure::Error> {
+    pub(crate) fn parse(cert_name: String, cert_path: PathBuf) -> Result<Self, failure::Error> {
         fn parse_openssl_time(
             time: &openssl::asn1::Asn1TimeRef,
         ) -> chrono::ParseResult<chrono::DateTime<chrono::Utc>> {
@@ -115,7 +115,7 @@ impl CertificateValidity {
         })
     }
 
-    fn to_check_result(&self) -> Result<CheckResult, failure::Error> {
+    pub(crate) fn to_check_result(&self) -> Result<CheckResult, failure::Error> {
         let cert_path_displayable = self.cert_path.display();
 
         let now = chrono::Utc::now();

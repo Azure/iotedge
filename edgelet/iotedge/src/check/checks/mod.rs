@@ -1,3 +1,4 @@
+pub mod certificates_quickstart;
 pub mod connect_management_uri;
 pub mod container_engine_dns;
 pub mod container_engine_installed;
@@ -11,6 +12,7 @@ pub mod well_formed_config;
 pub mod well_formed_connection_string;
 pub mod windows_host_version;
 
+pub use self::certificates_quickstart::CertificatesQuickstart;
 pub use self::connect_management_uri::ConnectManagementUri;
 pub use self::container_engine_dns::ContainerEngineDns;
 pub use self::container_engine_installed::ContainerEngineInstalled;
