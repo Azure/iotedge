@@ -233,10 +233,13 @@ where
         module_name: String,
     ) -> Result<BundleState<M>, Error> {
         println!("Running docker inspect for {}", module_name);
-        let inspect = ShellCommand::new("docker")
-            .arg("inspect")
-            .arg(&module_name)
-            .output();
+        let mut inspect = ShellCommand::new("docker");
+        inspect.arg("inspect").arg(&module_name);
+
+        #[cfg(windows)]
+        inspect.args(&["-H", "npipe://./pipe/iotedge_moby_engine"]);
+
+        let inspect = inspect.output();
 
         let (file_name, output) = if let Ok(result) = inspect {
             if result.status.success() {
