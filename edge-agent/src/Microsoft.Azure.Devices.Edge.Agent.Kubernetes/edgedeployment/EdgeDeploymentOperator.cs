@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 {
     using System;
+    using System.Linq;
     using System.Threading.Tasks;
     using k8s;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -9,6 +10,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
     using Microsoft.Rest;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
     using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
     // TODO add unit tests
@@ -19,8 +22,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         readonly IEdgeDeploymentController controller;
         readonly ResourceName resourceName;
         readonly string deviceNamespace;
+        readonly JsonSerializerSettings serializerSettings;
         Option<Watcher<EdgeDeploymentDefinition>> operatorWatch;
         ModuleSet currentModules;
+        EdgeDeploymentStatus currentStatus;
+
+        static readonly EdgeDeploymentStatus DefaultStatus = new EdgeDeploymentStatus(EdgeDeploymentStatusType.Failure, string.Empty);
 
         public EdgeDeploymentOperator(
             ResourceName resourceName,
@@ -35,7 +42,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             this.operatorWatch = Option.None<Watcher<EdgeDeploymentDefinition>>();
             this.controller = Preconditions.CheckNotNull(controller, nameof(controller));
 
+            this.serializerSettings = EdgeDeploymentSerialization.SerializerSettings;
             this.currentModules = ModuleSet.Empty;
+            this.currentStatus = DefaultStatus;
         }
 
         public void Start() => this.StartListEdgeDeployments();
@@ -64,9 +73,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                         {
                             await this.HandleEdgeDeploymentChangedAsync(type, item);
                         }
-                        catch (Exception ex) when (!ex.IsFatal())
+                        catch (Exception ex)
                         {
                             Events.EdgeDeploymentWatchFailed(ex);
+                            await this.ReportDeploymentFailure(ex, item);
+                            throw;
                         }
                     },
                     onClosed: () =>
@@ -99,13 +110,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 {
                     case WatchEventType.Added:
                     case WatchEventType.Modified:
-                        var modules = await this.controller.DeployModulesAsync(edgeDeploymentDefinition.Spec, this.currentModules);
-                        this.currentModules = modules;
+                        var desiredModules = ModuleSet.Create(edgeDeploymentDefinition.Spec.ToArray());
+                        var status = await this.controller.DeployModulesAsync(desiredModules, this.currentModules);
+                        await this.ReportEdgeDeploymentStatus(edgeDeploymentDefinition, status);
+                        this.currentModules = desiredModules;
+                        this.currentStatus = status;
                         break;
 
                     case WatchEventType.Deleted:
                         await this.controller.PurgeModulesAsync();
                         this.currentModules = ModuleSet.Empty;
+                        this.currentStatus = DefaultStatus;
                         break;
 
                     case WatchEventType.Error:
@@ -114,6 +129,46 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
                     default:
                         throw new ArgumentOutOfRangeException(nameof(type), type, null);
+                }
+            }
+        }
+
+        async Task ReportDeploymentFailure(Exception ex, EdgeDeploymentDefinition item)
+        {
+            using (await this.watchLock.LockAsync())
+            {
+                var status = new EdgeDeploymentStatus(EdgeDeploymentStatusType.Failure, ex.Message);
+                await this.ReportEdgeDeploymentStatus(item, status);
+                this.currentStatus = status;
+            }
+        }
+
+        async Task ReportEdgeDeploymentStatus(EdgeDeploymentDefinition edgeDeploymentDefinition, EdgeDeploymentStatus status)
+        {
+            if (!status.Equals(this.currentStatus))
+            {
+                var edgeDeploymentStatus = new EdgeDeploymentDefinition(
+                    edgeDeploymentDefinition.ApiVersion,
+                    edgeDeploymentDefinition.Kind,
+                    edgeDeploymentDefinition.Metadata,
+                    edgeDeploymentDefinition.Spec,
+                    status);
+
+                var crdObject = JObject.FromObject(edgeDeploymentStatus, JsonSerializer.Create(this.serializerSettings));
+
+                try
+                {
+                    await this.client.ReplaceNamespacedCustomObjectStatusWithHttpMessagesAsync(
+                        crdObject,
+                        KubernetesConstants.EdgeDeployment.Group,
+                        KubernetesConstants.EdgeDeployment.Version,
+                        this.deviceNamespace,
+                        KubernetesConstants.EdgeDeployment.Plural,
+                        this.resourceName);
+                }
+                catch (HttpOperationException e)
+                {
+                    Events.DeploymentStatusFailed(e);
                 }
             }
         }
@@ -129,6 +184,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 DeploymentStatus,
                 DeploymentError,
                 DeploymentNameMismatch,
+                DeploymentStatusFailed,
                 WatchClosed,
             }
 
@@ -150,6 +206,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             public static void DeploymentNameMismatch(string received, ResourceName expected)
             {
                 Log.LogDebug((int)EventIds.DeploymentNameMismatch, $"Watching for edge deployments for '{expected}', received notification for '{received}'");
+            }
+
+            public static void DeploymentStatusFailed(Exception ex)
+            {
+                Log.LogWarning((int)EventIds.DeploymentStatusFailed, ex, "Failed to update Deployment status.");
             }
 
             public static void EdgeDeploymentWatchClosed()

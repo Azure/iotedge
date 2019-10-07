@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
@@ -12,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Rest;
     using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
     using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
     using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
@@ -49,45 +51,51 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             this.serviceAccountMapper = serviceAccountMapper;
         }
 
-        public async Task<ModuleSet> DeployModulesAsync(IList<KubernetesModule> modules, ModuleSet currentModules)
+        public async Task<EdgeDeploymentStatus> DeployModulesAsync(ModuleSet desiredModules, ModuleSet currentModules)
         {
-            var desiredModules = ModuleSet.Create(modules.ToArray());
-            var moduleIdentities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desiredModules, currentModules);
+            try
+            {
+                var moduleIdentities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desiredModules, currentModules);
 
-            var labels = modules
-                .ToDictionary(
-                    module => module.Name,
-                    module => new Dictionary<string, string>
-                    {
-                        [KubernetesConstants.K8sEdgeModuleLabel] = moduleIdentities[module.Name].DeploymentName(),
-                        [KubernetesConstants.K8sEdgeDeviceLabel] = KubeUtils.SanitizeLabelValue(this.resourceName.DeviceId),
-                        [KubernetesConstants.K8sEdgeHubNameLabel] = KubeUtils.SanitizeLabelValue(this.resourceName.Hostname)
-                    });
+                var labels = desiredModules.Modules
+                    .ToDictionary(
+                        module => module.Key,
+                        module => new Dictionary<string, string>
+                        {
+                            [KubernetesConstants.K8sEdgeModuleLabel] = moduleIdentities[module.Key].DeploymentName(),
+                            [KubernetesConstants.K8sEdgeDeviceLabel] = KubeUtils.SanitizeLabelValue(this.resourceName.DeviceId),
+                            [KubernetesConstants.K8sEdgeHubNameLabel] = KubeUtils.SanitizeLabelValue(this.resourceName.Hostname)
+                        });
 
-            var desiredServices = modules
-                .Select(module => this.serviceMapper.CreateService(moduleIdentities[module.Name], module, labels[module.Name]))
-                .Where(service => service.HasValue)
-                .Select(service => service.OrDefault())
-                .ToList();
+                var desiredServices = desiredModules.Modules
+                    .Select(module => this.serviceMapper.CreateService(moduleIdentities[module.Key], module.Value as KubernetesModule, labels[module.Key]))
+                    .Where(service => service.HasValue)
+                    .Select(service => service.OrDefault())
+                    .ToList();
 
-            V1ServiceList currentServices = await this.client.ListNamespacedServiceAsync(this.deviceNamespace, labelSelector: this.deploymentSelector);
-            await this.ManageServices(currentServices, desiredServices);
+                V1ServiceList currentServices = await this.client.ListNamespacedServiceAsync(this.deviceNamespace, labelSelector: this.deploymentSelector);
+                await this.ManageServices(currentServices, desiredServices);
 
-            var desiredDeployments = modules
-                .Select(module => this.deploymentMapper.CreateDeployment(moduleIdentities[module.Name], module, labels[module.Name]))
-                .ToList();
+                var desiredDeployments = desiredModules.Modules
+                    .Select(module => this.deploymentMapper.CreateDeployment(moduleIdentities[module.Key], module.Value as KubernetesModule, labels[module.Key]))
+                    .ToList();
 
-            V1DeploymentList currentDeployments = await this.client.ListNamespacedDeploymentAsync(this.deviceNamespace, labelSelector: this.deploymentSelector);
-            await this.ManageDeployments(currentDeployments, desiredDeployments);
+                V1DeploymentList currentDeployments = await this.client.ListNamespacedDeploymentAsync(this.deviceNamespace, labelSelector: this.deploymentSelector);
+                await this.ManageDeployments(currentDeployments, desiredDeployments);
 
-            var desiredServiceAccounts = modules
-                .Select(module => this.serviceAccountMapper.CreateServiceAccount(moduleIdentities[module.Name], labels[module.Name]))
-                .ToList();
+                var desiredServiceAccounts = desiredModules.Modules
+                    .Select(module => this.serviceAccountMapper.CreateServiceAccount(moduleIdentities[module.Key], labels[module.Key]))
+                    .ToList();
 
-            V1ServiceAccountList currentServiceAccounts = await this.client.ListNamespacedServiceAccountAsync(this.deviceNamespace, labelSelector: this.deploymentSelector);
-            await this.ManageServiceAccounts(currentServiceAccounts, desiredServiceAccounts);
+                V1ServiceAccountList currentServiceAccounts = await this.client.ListNamespacedServiceAccountAsync(this.deviceNamespace, labelSelector: this.deploymentSelector);
+                await this.ManageServiceAccounts(currentServiceAccounts, desiredServiceAccounts);
 
-            return desiredModules;
+                return new EdgeDeploymentStatus(EdgeDeploymentStatusType.Success, "200(OK)");
+            }
+            catch (HttpOperationException e)
+            {
+                return new EdgeDeploymentStatus(EdgeDeploymentStatusType.Failure, e.Message);
+            }
         }
 
         async Task ManageServices(V1ServiceList existing, IEnumerable<V1Service> desired)
