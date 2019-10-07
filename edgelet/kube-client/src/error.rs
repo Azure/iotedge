@@ -137,6 +137,7 @@ pub enum RequestType {
     DeploymentCreate,
     DeploymentReplace,
     PodList,
+    NodeList,
     SecretList,
     SecretCreate,
     SecretReplace,

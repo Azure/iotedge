@@ -42,8 +42,8 @@ iotedged:
 
 iotedgedProxy:
   image:
-    repository: traefik
-    tag: v1.7-alpine
+    repository: azureiotedge/azureiotedge-proxy
+    tag: 0.1.0-alpha
     pullPolicy: Always
 
 # Edge Agent image configuration
@@ -88,6 +88,10 @@ edgeAgent:
 #   <SERVER ADDRESS>:
 #     username: '<USERNAME>'
 #     password: '<PASSWORD>'
+
+# TODO: Re-enable edge-deployment-crd dependency when namespace specific CRD is supported in Helm
+edge-kubernetes-crd:
+  enabled: false
 
 # Azure IoT Hub device connection string
 deviceConnectionString: '<ADD DEVICE CONNECTION STRING HERE>'

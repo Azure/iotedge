@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     /// <summary>
     /// Initializes Edgelet specific types.
     /// TODO: Right now, it assumes Edgelet supports docker. Need to make it completely implementation agnostic
-    /// But that requires IModule implementations to be made generic
+    /// But that requires IModule implementations to be made generic.
     /// </summary>
     public class EdgeletModule : Module
     {

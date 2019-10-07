@@ -1877,14 +1877,26 @@ where
     );
     env.insert(DEVICEID_KEY.to_string(), device_id.to_string());
     env.insert(MODULEID_KEY.to_string(), EDGE_RUNTIME_MODULEID.to_string());
-    env.insert(
-        WORKLOAD_URI_KEY.to_string(),
+
+    #[cfg(feature = "runtime-docker")]
+    let (workload_uri, management_uri) = (
         settings.connect().workload_uri().to_string(),
-    );
-    env.insert(
-        MANAGEMENT_URI_KEY.to_string(),
         settings.connect().management_uri().to_string(),
     );
+    #[cfg(feature = "runtime-kubernetes")]
+    let (workload_uri, management_uri) = (
+        format!(
+            "http://localhost:{}",
+            settings.connect().workload_uri().port().unwrap_or(80u16)
+        ),
+        format!(
+            "http://localhost:{}",
+            settings.connect().management_uri().port().unwrap_or(80u16)
+        ),
+    );
+
+    env.insert(WORKLOAD_URI_KEY.to_string(), workload_uri);
+    env.insert(MANAGEMENT_URI_KEY.to_string(), management_uri);
     env.insert(AUTHSCHEME_KEY.to_string(), AUTH_SCHEME.to_string());
     env.insert(
         EDGE_RUNTIME_MODE_KEY.to_string(),
