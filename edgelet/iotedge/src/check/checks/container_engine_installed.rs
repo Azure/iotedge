@@ -103,7 +103,7 @@ impl ContainerEngineInstalled {
     }
 }
 
-fn docker<I>(docker_host_arg: &str, args: I) -> Result<Vec<u8>, (Option<String>, failure::Error)>
+pub fn docker<I>(docker_host_arg: &str, args: I) -> Result<Vec<u8>, (Option<String>, failure::Error)>
 where
     I: IntoIterator,
     <I as IntoIterator>::Item: AsRef<OsStr>,
