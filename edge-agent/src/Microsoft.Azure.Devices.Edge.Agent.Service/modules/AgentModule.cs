@@ -191,7 +191,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // Task<IStoreProvider>
-            builder.Register(async c => {
+            builder.Register(async c =>
+            {
                 var dbStoreProvider = await c.Resolve<Task<IDbStoreProvider>>();
                 IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
                 return storeProvider;
@@ -200,7 +201,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             .SingleInstance();
 
             // IEntityStore<string, ModuleState>
-            builder.Register(async c => {
+            builder.Register(async c =>
+                {
                 IStoreProvider storeProvider = await c.Resolve<Task<IStoreProvider>>();
                 return storeProvider.GetEntityStore<string, ModuleState>("moduleState");
                 })
@@ -208,7 +210,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IEntityStore<string, DeploymentConfigInfo>
-            builder.Register(async c => {
+            builder.Register(async c =>
+                {
                 IStoreProvider storeProvider = await c.Resolve<Task<IStoreProvider>>();
                 return storeProvider.GetEntityStore<string, string>("deploymentConfig");
                 })

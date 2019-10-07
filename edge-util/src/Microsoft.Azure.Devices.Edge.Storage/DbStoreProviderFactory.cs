@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return new InMemoryDbStoreProvider();
         }
 
-        public async static Task<IDbStoreProvider> WithBackupRestore(
+        public static async Task<IDbStoreProvider> WithBackupRestore(
             this IDbStoreProvider dbStoreProvider,
             string backupPath,
             IDbStoreBackupRestore dbStoreBackupRestore,

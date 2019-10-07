@@ -5,7 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     using System.Threading.Tasks;
 
     /// <summary>
-    /// Provides DB Key/Value store
+    /// Provides DB Key/Value store.
     /// </summary>
     public interface IDbStoreProvider : IDisposable
     {

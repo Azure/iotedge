@@ -63,14 +63,15 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 BackupMetadata backupMetadata = backupMetadataList.Backups[0];
                 this.events.BackupInformation(backupMetadata.Id, backupMetadata.SerializationFormat, backupMetadata.TimestampUtc, backupMetadata.Stores);
 
-                string latestBackupDirPath = Path.Combine(backupPath, backupMetadata.Id.ToString());
+                string latestBackupDirPath = Path.Combine(this.backupPath, backupMetadata.Id.ToString());
                 if (Directory.Exists(latestBackupDirPath))
                 {
                     this.events.RestoringFromBackup(backupMetadata.Id);
                     foreach (string store in backupMetadata.Stores)
                     {
                         IDbStore dbStore;
-                        if (!store.Equals(DefaultStoreBackupName, StringComparison.OrdinalIgnoreCase)) {
+                        if (!store.Equals(DefaultStoreBackupName, StringComparison.OrdinalIgnoreCase))
+                        {
                             dbStore = this.GetDbStore(store);
                         }
                         else
@@ -88,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                     this.events.NoBackupsForRestore();
                 }
 
-                this.CleanupAllBackups(backupPath);
+                this.CleanupAllBackups(this.backupPath);
             }
             catch (IOException exception)
             {
@@ -103,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 this.RemoveDbStore();
 
                 // Delete all backups as the last backup itself is corrupt.
-                this.CleanupAllBackups(backupPath);
+                this.CleanupAllBackups(this.backupPath);
             }
         }
 
@@ -257,7 +258,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         class Events
         {
             const int IdStart = UtilEventsIds.DbStoreProviderWithBackupRestore;
-            readonly ILogger Log;
+
+            ILogger Log { get; }
 
             internal Events(ILogger logger)
             {
@@ -282,7 +284,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
             internal void StartingBackup()
             {
-                Log.LogInformation((int)EventIds.StartingBackup, "Starting backup of database.");
+                this.Log.LogInformation((int)EventIds.StartingBackup, "Starting backup of database.");
             }
 
             internal void BackupComplete()

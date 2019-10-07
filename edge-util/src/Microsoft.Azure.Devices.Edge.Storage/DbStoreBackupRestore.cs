@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Storage
 {
-    using Microsoft.Azure.Devices.Edge.Util;
     using System.Collections.Generic;
     using System.IO;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public class DbStoreBackupRestore : IDbStoreBackupRestore
     {
@@ -30,8 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                     {
                         items.Add(new Item(key, value));
                         return Task.CompletedTask;
-                    }
-                );
+                    });
 
                 await this.backupRestore.BackupAsync(entityName, backupPath, items);
             }

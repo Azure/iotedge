@@ -40,8 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             exception is IOException
             || exception is ProtoException)
             {
-                //throw new IOException($"The restore operation for {this.entityName} failed with error.", exception);
-                throw new IOException($"The restore operation failed with error.", exception);
+                throw new IOException($"The restore operation for {name} failed with error.", exception);
             }
         }
 
@@ -70,8 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                     File.Delete(newBackupPath);
                 }
 
-                //throw new IOException($"The backup operation for {this.entityName} failed with error.", exception);
-                throw new IOException($"The backup operation failed with error.", exception);
+                throw new IOException($"The backup operation for {name} failed with error.", exception);
             }
 
             return Task.CompletedTask;
