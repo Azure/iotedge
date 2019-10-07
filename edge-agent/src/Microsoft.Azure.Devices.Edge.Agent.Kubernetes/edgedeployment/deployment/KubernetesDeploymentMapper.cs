@@ -116,7 +116,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                     image: module.Config.Image,
                     volumeMounts: volumeMounts,
                     securityContext: securityContext.OrDefault(),
-                    ports: exposedPorts.OrDefault()),
+                    ports: exposedPorts.OrDefault(),
+                    resources: module.Config.CreateOptions.Resources.OrDefault()),
 
                 new V1Container(
                     "proxy",

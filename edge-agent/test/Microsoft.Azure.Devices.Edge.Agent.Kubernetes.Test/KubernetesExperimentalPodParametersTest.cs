@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 {
     using System.Collections.Generic;
+    using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json.Linq;
@@ -64,16 +65,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
             // Assert.False(parameters.Volumes.HasValue);
             Assert.False(parameters.NodeSelector.HasValue);
-            // Assert.False(parameters.Resources.HasValue);
+            Assert.False(parameters.Resources.HasValue);
         }
 
-        [Theory]
-        [MemberData(nameof(EmptyNodeSelector))]
-        public void ParsesNoneNodeSelectorExperimentalOptions(string nodeSelector)
+        [Fact]
+        public void ParsesNoneNodeSelectorExperimentalOptions()
         {
             var experimental = new Dictionary<string, JToken>
             {
-                ["k8s-experimental"] = JToken.Parse(nodeSelector)
+                ["k8s-experimental"] = JToken.Parse("{ nodeSelector: null }")
             };
 
             var parameters = KubernetesExperimentalCreatePodParameters.Parse(experimental).OrDefault();
@@ -81,12 +81,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Assert.False(parameters.NodeSelector.HasValue);
         }
 
-        public static IEnumerable<object[]> EmptyNodeSelector =>
-            new List<object[]>
+        [Fact]
+        public void ParsesEmptyNodeSelectorExperimentalOptions()
+        {
+            var experimental = new Dictionary<string, JToken>
             {
-                new object[] { "{ nodeSelector: {  } }" },
-                new object[] { "{ nodeSelector: null }" }
+                ["k8s-experimental"] = JToken.Parse("{ nodeSelector: {  } }")
             };
+
+            var parameters = KubernetesExperimentalCreatePodParameters.Parse(experimental).OrDefault();
+
+            Assert.True(parameters.NodeSelector.HasValue);
+            parameters.NodeSelector.ForEach(Assert.Empty);
+        }
 
         [Fact]
         public void ParsesSomeNodeSelectorExperimentalOptions()
@@ -102,6 +109,64 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             parameters.NodeSelector.ForEach(selector => Assert.Equal(2, selector.Count));
             parameters.NodeSelector.ForEach(selector => Assert.Equal("ssd", selector["disktype"]));
             parameters.NodeSelector.ForEach(selector => Assert.Equal("true", selector["gpu"]));
+        }
+
+        [Fact]
+        public void ParsesNoneResourcesExperimentalOptions()
+        {
+            var experimental = new Dictionary<string, JToken>
+            {
+                ["k8s-experimental"] = JToken.Parse("{ resources: null }")
+            };
+
+            var parameters = KubernetesExperimentalCreatePodParameters.Parse(experimental).OrDefault();
+
+            Assert.False(parameters.Resources.HasValue);
+        }
+
+        [Fact]
+        public void ParsesEmptyResourcesExperimentalOptions()
+        {
+            var experimental = new Dictionary<string, JToken>
+            {
+                ["k8s-experimental"] = JToken.Parse("{ resources: {  } }")
+            };
+
+            var parameters = KubernetesExperimentalCreatePodParameters.Parse(experimental).OrDefault();
+
+            Assert.True(parameters.Resources.HasValue);
+            parameters.Resources.ForEach(resources => Assert.Null(resources.Limits));
+            parameters.Resources.ForEach(resources => Assert.Null(resources.Requests));
+        }
+
+        [Fact]
+        public void ParsesEmptyRequirementsResourcesExperimentalOptions()
+        {
+            var experimental = new Dictionary<string, JToken>
+            {
+                ["k8s-experimental"] = JToken.Parse("{ resources: { limits: {}, requests: {} } }")
+            };
+
+            var parameters = KubernetesExperimentalCreatePodParameters.Parse(experimental).OrDefault();
+
+            Assert.True(parameters.Resources.HasValue);
+            parameters.Resources.ForEach(resources => Assert.Empty(resources.Limits));
+            parameters.Resources.ForEach(resources => Assert.Empty(resources.Requests));
+        }
+
+        [Fact]
+        public void ParsesSomeResourcesExperimentalOptions()
+        {
+            var experimental = new Dictionary<string, JToken>
+            {
+                ["k8s-experimental"] = JToken.Parse("{ resources: { limits: { \"memory\": \"128Mi\" }, requests: { \"cpu\": \"250m\" } } }")
+            };
+
+            var parameters = KubernetesExperimentalCreatePodParameters.Parse(experimental).OrDefault();
+
+            Assert.True(parameters.Resources.HasValue);
+            parameters.Resources.ForEach(resources => Assert.Equal(new Dictionary<string, ResourceQuantity> { ["memory"] = new ResourceQuantity("128Mi") }, resources.Limits));
+            parameters.Resources.ForEach(resources => Assert.Equal(new Dictionary<string, ResourceQuantity> { ["cpu"] = new ResourceQuantity("250m") }, resources.Requests));
         }
     }
 }

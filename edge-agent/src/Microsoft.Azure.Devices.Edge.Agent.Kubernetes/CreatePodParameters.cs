@@ -2,7 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
     using System.Collections.Generic;
-    using System.Data;
+    using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Json;
@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             string image,
             IDictionary<string, string> labels,
             NetworkingConfig networkingConfig)
-            : this(env, exposedPorts, hostConfig, image, labels, networkingConfig, null)
+            : this(env, exposedPorts, hostConfig, image, labels, networkingConfig, null, null)
         {
         }
 
@@ -29,7 +29,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             string image,
             IDictionary<string, string> labels,
             NetworkingConfig networkingConfig,
-            IDictionary<string, string> nodeSelector)
+            IDictionary<string, string> nodeSelector,
+            V1ResourceRequirements resources)
         {
             this.Env = Option.Maybe(env);
             this.ExposedPorts = Option.Maybe(exposedPorts);
@@ -38,6 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.Labels = Option.Maybe(labels);
             this.NetworkingConfig = Option.Maybe(networkingConfig);
             this.NodeSelector = Option.Maybe(nodeSelector);
+            this.Resources = Option.Maybe(resources);
         }
 
         [JsonProperty("Env", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
@@ -67,5 +69,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         [JsonProperty("NodeSelector", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [JsonConverter(typeof(OptionConverter<IDictionary<string, string>>))]
         public Option<IDictionary<string, string>> NodeSelector { get; set; }
+
+        [JsonProperty("Resources", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [JsonConverter(typeof(OptionConverter<V1ResourceRequirements>))]
+        public Option<V1ResourceRequirements> Resources { get; set; }
     }
 }
