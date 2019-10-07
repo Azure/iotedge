@@ -86,54 +86,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         }
 
         [Fact]
-        public void InjectNetworkAliasTest()
-        {
-            // Arrange
-            var runtimeInfo = new Mock<IRuntimeInfo<DockerRuntimeConfig>>();
-            runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
-
-            var module = new Mock<IModule<DockerConfig>>();
-            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest"));
-            module.SetupGet(m => m.Name).Returns("mod1");
-
-            CombinedKubernetesConfigProvider provider = new CombinedKubernetesConfigProvider(new[] { new AuthConfig(), }, "edhk1", "testnetwork1", new Uri("unix:///var/run/iotedgedworkload.sock"), new Uri("unix:///var/run/iotedgedmgmt.sock"), false);
-
-            // Act
-            CombinedKubernetesConfig config = ((ICombinedConfigProvider<CombinedKubernetesConfig>)provider).GetCombinedConfig(module.Object, runtimeInfo.Object);
-
-            // Assert
-            Assert.NotNull(config.CreateOptions);
-            Assert.True(config.CreateOptions.NetworkingConfig.HasValue);
-            config.CreateOptions.NetworkingConfig.ForEach(networkingConfig => Assert.NotNull(networkingConfig.EndpointsConfig));
-            config.CreateOptions.NetworkingConfig.ForEach(networkingConfig => Assert.Contains("testnetwork1", networkingConfig.EndpointsConfig));
-            config.CreateOptions.NetworkingConfig.ForEach(networkingConfig => Assert.Null(networkingConfig.EndpointsConfig["testnetwork1"].Aliases));
-        }
-
-        [Fact]
-        public void InjectNetworkAliasEdgeHubTest()
-        {
-            // Arrange
-            var runtimeInfo = new Mock<IRuntimeInfo<DockerRuntimeConfig>>();
-            runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
-
-            var module = new Mock<IModule<DockerConfig>>();
-            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest"));
-            module.SetupGet(m => m.Name).Returns(CoreConstants.EdgeHubModuleName);
-
-            CombinedKubernetesConfigProvider provider = new CombinedKubernetesConfigProvider(new[] { new AuthConfig(), }, "edhk1", "testnetwork1", new Uri("http://workload"), new Uri("http://management"), false);
-
-            // Act
-            CombinedKubernetesConfig config = ((ICombinedConfigProvider<CombinedKubernetesConfig>)provider).GetCombinedConfig(module.Object, runtimeInfo.Object);
-
-            // Assert
-            Assert.NotNull(config.CreateOptions);
-            Assert.True(config.CreateOptions.NetworkingConfig.HasValue);
-            config.CreateOptions.NetworkingConfig.ForEach(networkingConfig => Assert.NotNull(networkingConfig.EndpointsConfig));
-            config.CreateOptions.NetworkingConfig.ForEach(networkingConfig => Assert.Contains("testnetwork1", networkingConfig.EndpointsConfig));
-            config.CreateOptions.NetworkingConfig.ForEach(networkingConfig => Assert.Equal("edhk1", networkingConfig.EndpointsConfig["testnetwork1"].Aliases[0]));
-        }
-
-        [Fact]
         public void InjectNetworkAliasHostNetworkTest()
         {
             // Arrange

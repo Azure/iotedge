@@ -140,8 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
         {
             var envList = module.Env.Select(env => new V1EnvVar(env.Key, env.Value.Value)).ToList();
 
-            module.Config.CreateOptions.Env
-                .Map(env => env.Select(hostEnv => hostEnv.Split('=')).Where(keyValue => keyValue.Length == 2).Select(keyValue => new V1EnvVar(keyValue[0], keyValue[1])))
+            module.Config.CreateOptions.Env.Map(ParseEnv)
                 .ForEach(hostEnv => envList.AddRange(hostEnv));
 
             envList.Add(new V1EnvVar(CoreConstants.IotHubHostnameVariableName, identity.IotHubHostname));
@@ -184,6 +183,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
 
             return envList;
         }
+
+        static IEnumerable<V1EnvVar> ParseEnv(IList<string> env) =>
+            env.Select(hostEnv => hostEnv.Split('='))
+                .Where(keyValue => keyValue.Length == 2)
+                .Select(keyValue => new V1EnvVar(keyValue[0], keyValue[1]));
 
         (List<V1Volume>, List<V1VolumeMount>, List<V1VolumeMount>) GetVolumesFromModule(KubernetesModule module)
         {

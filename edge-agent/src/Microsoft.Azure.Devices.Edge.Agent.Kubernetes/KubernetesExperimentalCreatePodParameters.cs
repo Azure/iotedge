@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             return options;
         }
 
-        static readonly HashSet<string> KnownExperimentalOptions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { nameof(NodeSelector) };
+        static readonly HashSet<string> KnownExperimentalOptions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ExperimentalParameterNames.NodeSelector };
 
         static class Events
         {

@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         }
 
         [Fact]
-        public void EqualsImagePullSecretesByValue()
+        public void EqualsImagePullSecretsByValue()
         {
             var name = new ImagePullSecretName("secret");
 

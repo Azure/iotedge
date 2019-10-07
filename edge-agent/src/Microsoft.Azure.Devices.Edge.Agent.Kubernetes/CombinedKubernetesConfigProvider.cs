@@ -75,11 +75,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             CreateContainerParameters createOptions = CloneOrCreateParams(combinedConfig.CreateOptions);
             this.MountSockets(module, createOptions);
 
-            if (!string.IsNullOrWhiteSpace(this.networkId))
-            {
-                this.InjectNetworkAliases(module, createOptions);
-            }
-
             return new CombinedDockerConfig(combinedConfig.Image, createOptions, combinedConfig.AuthConfig);
         }
 
@@ -121,32 +116,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? Path.GetDirectoryName(uri.LocalPath)
                 : uri.AbsolutePath;
-        }
-
-        void InjectNetworkAliases(IModule module, CreateContainerParameters createOptions)
-        {
-            if (createOptions.NetworkingConfig?.EndpointsConfig != null)
-            {
-                return;
-            }
-
-            var endpointSettings = new EndpointSettings();
-            if (module.Name.Equals(Core.Constants.EdgeHubModuleName, StringComparison.OrdinalIgnoreCase)
-                && !string.IsNullOrWhiteSpace(this.edgeDeviceHostName))
-            {
-                endpointSettings.Aliases = new List<string>
-                {
-                    this.edgeDeviceHostName
-                };
-            }
-
-            createOptions.NetworkingConfig = new NetworkingConfig
-            {
-                EndpointsConfig = new Dictionary<string, EndpointSettings>
-                {
-                    [this.networkId] = endpointSettings
-                }
-            };
         }
     }
 }
