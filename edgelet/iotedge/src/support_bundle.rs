@@ -13,9 +13,9 @@ use futures::{Future, Stream};
 use tokio::prelude::*;
 use zip;
 
-use crate::error::{Error, ErrorKind};
 use edgelet_core::{LogOptions, LogTail, Module, ModuleRuntime};
 
+use crate::error::{Error, ErrorKind};
 use crate::logs::pull_logs;
 use crate::Command;
 
@@ -120,7 +120,8 @@ where
     fn get_modules(
         state: BundleState<M>,
     ) -> impl Future<Item = (Vec<String>, BundleState<M>), Error = Error> {
-        let ms_modules = &["edgeHub", "edgeAgent"];
+        const MS_MODULES: &[&str] = &["edgeAgent", "edgeHub"];
+
         let include_ms_only = state.include_ms_only;
 
         state
@@ -128,7 +129,7 @@ where
             .list_with_details()
             .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))
             .map(|(module, _s)| module.name().to_owned())
-            .filter(move |name| !include_ms_only || ms_modules.iter().any(|ms| ms == name))
+            .filter(move |name| !include_ms_only || MS_MODULES.iter().any(|ms| ms == name))
             .collect()
             .map(|names| (names, state))
     }

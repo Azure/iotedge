@@ -238,17 +238,16 @@ fn run() -> Result<(), Error> {
                         .long("follow"),
                 ),
         )
-        .subcommand(SubCommand::with_name("version").about("Show the version information"))
         .subcommand(
             SubCommand::with_name("support-bundle")
                 .about("Bundles troubleshooting information")
                 .arg(
                     Arg::with_name("output")
-                        .help("output file")
+                        .help("Path of output file")
                         .long("output")
                         .short("o")
                         .takes_value(true)
-                        .value_name("DIRECTORY")
+                        .value_name("FILENAME")
                         .default_value("support_bundle.zip"),
                 )
                 .arg(
@@ -260,12 +259,14 @@ fn run() -> Result<(), Error> {
                         .default_value("1 day"),
                 )
                 .arg(
-                    Arg::with_name("include-ms-only")
-                        .help("Follow output log")
-                        .long("ms-only")
+                    Arg::with_name("include-edge-runtime-only")
+                        .help("Only include logs from Microsoft-owned Edge modules")
+                        .long("include-edge-runtime-only")
+                        .short("e")
                         .takes_value(false),
                 ),
         )
+        .subcommand(SubCommand::with_name("version").about("Show the version information"))
         .get_matches();
 
     let runtime = || -> Result<_, Error> {
@@ -356,7 +357,6 @@ fn run() -> Result<(), Error> {
                 .with_since(since);
             tokio_runtime.block_on(Logs::new(id, options, runtime()?).execute())
         }
-        ("version", _) => tokio_runtime.block_on(Version::new().execute()),
         ("support-bundle", Some(args)) => {
             let location = args.value_of_os("output").expect("arg has a default value");
             let since = args
@@ -368,12 +368,13 @@ fn run() -> Result<(), Error> {
                 .with_follow(false)
                 .with_tail(LogTail::All)
                 .with_since(since);
-            let include_ms_only = args.is_present("include-ms-only");
+            let include_ms_only = args.is_present("include-edge-runtime-only");
             tokio_runtime.block_on(
                 SupportBundle::new(options, location.to_owned(), include_ms_only, runtime()?)
                     .execute(),
             )
         }
+        ("version", _) => tokio_runtime.block_on(Version::new().execute()),
         (command, _) => tokio_runtime.block_on(Unknown::new(command.to_string()).execute()),
     }
 }
