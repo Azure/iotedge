@@ -1,5 +1,6 @@
 pub mod connect_management_uri;
 pub mod container_engine_installed;
+pub mod container_local_time;
 pub mod host_local_time;
 pub mod hostname;
 pub mod iotedged_version;
@@ -9,6 +10,7 @@ pub mod windows_host_version;
 
 pub use self::connect_management_uri::ConnectManagementUri;
 pub use self::container_engine_installed::ContainerEngineInstalled;
+pub use self::container_local_time::ContainerLocalTime;
 pub use self::host_local_time::HostLocalTime;
 pub use self::hostname::Hostname;
 pub use self::iotedged_version::IotedgedVersion;
