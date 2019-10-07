@@ -202,22 +202,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
             // KubernetesDeploymentProvider
             builder.Register(
-                    c => new KubernetesDeploymentMapper(
-                        this.deviceNamespace,
-                        this.edgeDeviceHostname,
-                        this.proxyImage,
-                        this.proxyConfigPath,
-                        this.proxyConfigVolumeName,
-                        this.proxyConfigMapName,
-                        this.proxyTrustBundlePath,
-                        this.proxyTrustBundleVolumeName,
-                        this.proxyTrustBundleConfigMapName,
-                        this.persistentVolumeName,
-                        this.storageClassName,
-                        this.persistentVolumeClaimSizeMb,
-                        this.apiVersion,
-                        this.workloadUri,
-                        this.managementUri))
+                    c =>
+                    {
+                        bool usePvc = !(string.IsNullOrWhiteSpace(this.persistentVolumeName) &&
+                                        string.IsNullOrWhiteSpace(this.storageClassName));
+                        return new KubernetesDeploymentMapper(
+                            this.deviceNamespace,
+                            this.edgeDeviceHostname,
+                            this.proxyImage,
+                            this.proxyConfigPath,
+                            this.proxyConfigVolumeName,
+                            this.proxyConfigMapName,
+                            this.proxyTrustBundlePath,
+                            this.proxyTrustBundleVolumeName,
+                            this.proxyTrustBundleConfigMapName,
+                            usePvc,
+                            this.apiVersion,
+                            this.workloadUri,
+                            this.managementUri);
+                    })
                 .As<IKubernetesDeploymentMapper>();
 
             // KubernetesServiceProvider

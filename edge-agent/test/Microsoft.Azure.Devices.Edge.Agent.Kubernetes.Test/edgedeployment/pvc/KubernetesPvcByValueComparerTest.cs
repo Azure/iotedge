@@ -9,12 +9,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
 
     using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
+    [Unit]
     public class KubernetesPvcByValueComparerTest
     {
         static KubernetesPvcByValueEqualityComparer comparer = new KubernetesPvcByValueEqualityComparer();
 
         [Fact]
-        [Unit]
         public void ReferenceComparisonTest()
         {
             var pvc1 = new V1PersistentVolumeClaim();
@@ -25,7 +25,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
         }
 
         [Fact]
-        [Unit]
         public void NoAccessModeTest()
         {
             var x = new V1PersistentVolumeClaim
@@ -62,7 +61,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
         }
 
         [Fact]
-        [Unit]
         public void FieldComparisonTests()
         {
             var x = new V1PersistentVolumeClaim
@@ -139,7 +137,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
         }
 
         [Fact]
-        [Unit]
         public void SuccessComparisonTest()
         {
             var x = new V1PersistentVolumeClaim

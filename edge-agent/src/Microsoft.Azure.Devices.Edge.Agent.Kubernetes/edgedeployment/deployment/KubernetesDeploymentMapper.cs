@@ -42,9 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             string proxyTrustBundlePath,
             string proxyTrustBundleVolumeName,
             string proxyTrustBundleConfigMapName,
-            string persistentVolumeName,
-            string storageClassName,
-            uint persistentVolumeClaimSizeMb,
+            bool usePvc,
             string workloadApiVersion,
             Uri workloadUri,
             Uri managementUri)
@@ -58,8 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             this.proxyTrustBundlePath = proxyTrustBundlePath;
             this.proxyTrustBundleVolumeName = proxyTrustBundleVolumeName;
             this.proxyTrustBundleConfigMapName = proxyTrustBundleConfigMapName;
-            this.usePvc = !(string.IsNullOrWhiteSpace(persistentVolumeName) &&
-                          string.IsNullOrWhiteSpace(storageClassName));
+            this.usePvc = usePvc;
             this.workloadApiVersion = workloadApiVersion;
             this.workloadUri = workloadUri;
             this.managementUri = managementUri;

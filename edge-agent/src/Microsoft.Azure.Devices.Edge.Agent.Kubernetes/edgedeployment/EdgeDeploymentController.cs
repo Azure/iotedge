@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Rest;
     using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
     using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
     using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
@@ -69,10 +70,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                         [KubernetesConstants.K8sEdgeHubNameLabel] = KubeUtils.SanitizeLabelValue(this.resourceName.Hostname)
                     });
             var deviceOnlyLabels = new Dictionary<string, string>
-                {
-                    [KubernetesConstants.K8sEdgeDeviceLabel] = KubeUtils.SanitizeLabelValue(this.resourceName.DeviceId),
-                    [KubernetesConstants.K8sEdgeHubNameLabel] = KubeUtils.SanitizeLabelValue(this.resourceName.Hostname)
-                };
+            {
+                [KubernetesConstants.K8sEdgeDeviceLabel] = KubeUtils.SanitizeLabelValue(this.resourceName.DeviceId),
+                [KubernetesConstants.K8sEdgeHubNameLabel] = KubeUtils.SanitizeLabelValue(this.resourceName.Hostname)
+            };
 
             var desiredServices = modules
                 .Select(module => this.serviceMapper.CreateService(moduleIdentities[module.Name], module, labels[module.Name]))
@@ -245,27 +246,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                         });
                 await Task.WhenAll(addingTasks);
             }
-            catch (Exception ex) when (!ex.IsFatal())
+            catch (HttpOperationException ex)
             {
+                // Some PVCs may not allow updates, depending on the PV, the reasons for update,
+                // or the k8s server version.
+                // Also some PVCs may not allow deletion immediately (while pod still exists), 
+                // or may require user intervention, like deleting the PV created under a storage class.
+                // Our best option is to log it and wait for a resolution.
                 Events.PvcException(ex);
             }
-        }
-
-        bool IsCreatedByController(V1PersistentVolumeClaim claim)
-        {
-            var labels = claim.Metadata?.Labels;
-            if (labels == null)
-            {
-                return false;
-            }
-
-            if (!labels.ContainsKey(KubernetesConstants.K8sEdgeDeviceLabel) || !labels.ContainsKey(KubernetesConstants.K8sEdgeHubNameLabel))
-            {
-                return false;
-            }
-
-            return labels[KubernetesConstants.K8sEdgeDeviceLabel] == KubeUtils.SanitizeLabelValue(this.resourceName.DeviceId) &&
-                    labels[KubernetesConstants.K8sEdgeHubNameLabel] == KubeUtils.SanitizeLabelValue(this.resourceName.Hostname);
         }
 
         Diff<V1PersistentVolumeClaim> FindPvcDiff(
@@ -289,6 +278,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     fullDiff.Removed.Where(name => this.IsCreatedByController(existingDict[name])),
                     fullDiff.Updated.Where(update => this.IsCreatedByController(update.From)));
         }
+
+        bool IsCreatedByController(V1PersistentVolumeClaim claim)
+        {
+            var labels = claim.Metadata?.Labels;
+            if (labels == null)
+            {
+                return false;
+            }
+
+            if (!labels.ContainsKey(KubernetesConstants.K8sEdgeDeviceLabel) || !labels.ContainsKey(KubernetesConstants.K8sEdgeHubNameLabel))
+            {
+                return false;
+            }
+
+            return labels[KubernetesConstants.K8sEdgeDeviceLabel] == KubeUtils.SanitizeLabelValue(this.resourceName.DeviceId) &&
+                    labels[KubernetesConstants.K8sEdgeHubNameLabel] == KubeUtils.SanitizeLabelValue(this.resourceName.Hostname);
+        }
+
 
         static IEqualityComparer<V1PersistentVolumeClaim> KubernetesPvcByValueEqualityComparer { get; } = new KubernetesPvcByValueEqualityComparer();
 
@@ -434,7 +441,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
             public static void PvcException(Exception ex)
             {
-                Log.LogWarning((int)EventIds.PvcException, ex, "PVC update or deletion failed. This should reconcile over time.");
+                Log.LogWarning((int)EventIds.PvcException, ex, "PVC update or deletion failed. This may reconcile over time or require operator intervention.");
             }
 
             public static void InvalidCreationString(string kind, string name)

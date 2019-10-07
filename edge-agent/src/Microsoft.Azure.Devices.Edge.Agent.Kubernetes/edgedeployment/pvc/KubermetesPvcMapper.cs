@@ -15,7 +15,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
         StorageClass
     }
 
-    // TODO add unit tests
     public class KubernetesPvcMapper : IKubernetesPvcMapper
     {
         readonly string persistentVolumeName;

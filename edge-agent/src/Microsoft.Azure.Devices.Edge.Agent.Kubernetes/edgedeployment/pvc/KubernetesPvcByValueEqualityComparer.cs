@@ -33,6 +33,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
                 return false;
             }
 
+            // This should be set for all valid V1PersistentVolumeClaim in this application.
+            // (Make this check here because SequenceEquals below requires non-null objects.)
             if (x.Spec?.AccessModes == null || y.Spec?.AccessModes == null)
             {
                 return false;
