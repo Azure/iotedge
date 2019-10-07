@@ -220,19 +220,27 @@ impl Check {
     }
 
     fn checks() -> [(&'static str, Vec<Box<dyn Checker>>); 2] {
-        let well_formed_config = WellFormedConfig::default();
-        let well_formed_conn_string = WellFormedConnectionString::default();
-        let container_engine_installed = ContainerEngineInstalled::default();
-        let windows_host_version = WindowsHostVersion::default();
-
+        /* Note: keep ordering consistant. Later tests may depend on earlier tests. */
         [
             (
                 "Configuration checks",
                 vec![
-                    Box::new(well_formed_config),
-                    Box::new(well_formed_conn_string),
-                    Box::new(container_engine_installed),
-                    Box::new(windows_host_version),
+                    Box::new(WellFormedConfig::default()),
+                    Box::new(WellFormedConnectionString::default()),
+                    Box::new(ContainerEngineInstalled::default()),
+                    Box::new(WindowsHostVersion::default()),
+                    Box::new(Hostname::default()),
+                    Box::new(IotedgedVersion::default()),
+                    Box::new(HostLocalTime::default()),
+                    Box::new(ContainerLocalTime::default()),
+                    Box::new(ContainerEngineDns::default()),
+                    Box::new(ContainerEngineIPv6::default()),
+                    Box::new(IdentityCertificateExpiry::default()),
+                    Box::new(CertificatesQuickstart::default()),
+                    Box::new(ContainerEngineIsMoby::default()),
+                    Box::new(ContainerEngineLogrotate::default()),
+                    Box::new(EdgeAgentStorageMounted::default()),
+                    Box::new(EdgeHubStorageMounted::default()),
                 ],
             ),
             ("Connectivity checks", vec![]),
