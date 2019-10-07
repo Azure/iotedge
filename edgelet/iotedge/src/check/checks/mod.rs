@@ -1,6 +1,7 @@
 pub mod connect_management_uri;
 pub mod container_engine_dns;
 pub mod container_engine_installed;
+pub mod container_engine_ipv6;
 pub mod container_local_time;
 pub mod host_local_time;
 pub mod hostname;
@@ -12,6 +13,7 @@ pub mod windows_host_version;
 pub use self::connect_management_uri::ConnectManagementUri;
 pub use self::container_engine_dns::ContainerEngineDns;
 pub use self::container_engine_installed::ContainerEngineInstalled;
+pub use self::container_engine_ipv6::ContainerEngineIPv6;
 pub use self::container_local_time::ContainerLocalTime;
 pub use self::host_local_time::HostLocalTime;
 pub use self::hostname::Hostname;
