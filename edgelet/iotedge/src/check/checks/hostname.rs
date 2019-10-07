@@ -1,5 +1,7 @@
-use std::ffi::{CStr, OsStr, OsString};
+use std::ffi::CStr;
 
+#[cfg(unix)]
+use failure::Fail;
 use failure::{self, Context, ResultExt};
 
 use edgelet_core::{self, RuntimeSettings};

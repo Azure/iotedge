@@ -1,12 +1,11 @@
 use failure::{self, Context, ResultExt};
 
-use edgelet_core::{self, ManualAuthMethod, Provisioning, RuntimeSettings};
-
 use crate::check::{checker::Checker, Check, CheckResult};
 
 #[derive(Default, serde_derive::Serialize)]
 pub struct WindowsHostVersion {
     moby_runtime_uri: Option<String>,
+    #[cfg(windows)]
     os_version: Option<(
         winapi::shared::minwindef::DWORD,
         winapi::shared::minwindef::DWORD,
