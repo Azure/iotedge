@@ -5,6 +5,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
+    /// <summary>
+    /// A decorating wrapper over a DB store provider to provide ease of extending DB store provider behavior.
+    /// </summary>
     public abstract class DbStoreProviderDecorator : IDbStoreProvider
     {
         static readonly ILogger LoggerInstance = Logger.Factory.CreateLogger("DbStoreProviderExt");

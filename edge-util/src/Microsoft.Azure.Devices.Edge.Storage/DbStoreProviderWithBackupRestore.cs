@@ -11,6 +11,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     using Newtonsoft.Json;
     using Newtonsoft.Json.Converters;
 
+    /// <summary>
+    /// Wraps backup and restore functionality around a DB Store Provider.
+    /// </summary>
     public class DbStoreProviderWithBackupRestore : DbStoreProviderDecorator
     {
         const string BackupMetadataFileName = "meta.json";
@@ -273,7 +276,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 UnknownBackupsDeleted,
                 BackupArtifactsCleanedUp,
                 BackupComplete,
-                BackupDirectoryNotFound,
                 BackupInformation,
                 BackupFailure,
                 RestoringFromBackup,
@@ -290,11 +292,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             internal void BackupComplete()
             {
                 this.Log.LogInformation((int)EventIds.BackupComplete, $"Backup of database complete.");
-            }
-
-            internal void BackupDirectoryNotFound(string backupDirectoryPath)
-            {
-                this.Log.LogInformation((int)EventIds.BackupDirectoryNotFound, $"The database backup directory {backupDirectoryPath} doesn't exist.");
             }
 
             internal void BackupInformation(Guid backupId, SerializationFormat format, DateTime backupTimestamp, IList<string> stores)

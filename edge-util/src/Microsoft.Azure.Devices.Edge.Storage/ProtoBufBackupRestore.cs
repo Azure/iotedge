@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     using ProtoBuf;
 
     /// <summary>
-    /// Provides an in memory implementation of the IDbStore with backup and restore functionality.
+    /// Provides backup and restore functionality for storage data using the ProtoBuf serialization format.
     /// </summary>
     public class ProtoBufBackupRestore : IBackupRestore
     {

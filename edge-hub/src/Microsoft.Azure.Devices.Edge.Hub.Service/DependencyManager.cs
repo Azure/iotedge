@@ -247,7 +247,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
 
             Option<string> storageBackupPath = Option.None<string>();
-            bool useBackupAndRestore = !usePersistentStorage && this.configuration.GetValue<bool>("enableStorageBackupAndRestore");
+            bool useBackupAndRestore = !usePersistentStorage && this.configuration.GetValue<bool>("EnableStorageBackupAndRestore");
             if (useBackupAndRestore)
             {
                 storageBackupPath = Option.Some(GetOrCreateDirectoryPath(this.configuration.GetValue<string>("BackupFolder"), Constants.EdgeHubStorageBackupFolder));
