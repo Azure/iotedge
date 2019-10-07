@@ -19,11 +19,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void TestCreateValidation()
         {
-            Assert.Throws<ArgumentNullException>(() => new CombinedKubernetesConfigProvider(null, "hostname", "network", new Uri("http://workload"), new Uri("http://management"), false));
-            Assert.Throws<ArgumentNullException>(() => new CombinedKubernetesConfigProvider(new[] { new AuthConfig(), }, null, "network", new Uri("http://workload"), new Uri("http://management"), false));
-            Assert.Throws<ArgumentNullException>(() => new CombinedKubernetesConfigProvider(new[] { new AuthConfig(), }, "hostname", null, new Uri("http://workload"), new Uri("http://management"), false));
-            Assert.Throws<ArgumentNullException>(() => new CombinedKubernetesConfigProvider(new[] { new AuthConfig(), }, "hostname", "network", null, new Uri("http://management"), false));
-            Assert.Throws<ArgumentNullException>(() => new CombinedKubernetesConfigProvider(new[] { new AuthConfig(), }, "hostname", "network", new Uri("http://workload"), null, false));
+            Assert.Throws<ArgumentNullException>(() => new CombinedKubernetesConfigProvider(null, new Uri("http://workload"), new Uri("http://management"), false));
+            Assert.Throws<ArgumentNullException>(() => new CombinedKubernetesConfigProvider(new[] { new AuthConfig(), }, null, new Uri("http://management"), false));
+            Assert.Throws<ArgumentNullException>(() => new CombinedKubernetesConfigProvider(new[] { new AuthConfig(), }, new Uri("http://workload"), null, false));
         }
 
         [Fact]
@@ -41,10 +39,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 ? (new Uri("unix:///C:/path/to/workload/sock"), new Uri("unix:///C:/path/to/mgmt/sock"))
                 : (new Uri("unix:///path/to/workload.sock"), new Uri("unix:///path/to/mgmt.sock"));
 
-            CombinedKubernetesConfigProvider provider = new CombinedKubernetesConfigProvider(new[] { new AuthConfig() }, "hostname", "network", workloadUri, managementUri, false);
+            CombinedKubernetesConfigProvider provider = new CombinedKubernetesConfigProvider(new[] { new AuthConfig() }, workloadUri, managementUri, false);
 
             // Act
-            CombinedKubernetesConfig config = ((ICombinedConfigProvider<CombinedKubernetesConfig>)provider).GetCombinedConfig(module.Object, runtimeInfo.Object);
+            CombinedKubernetesConfig config = provider.GetCombinedConfig(module.Object, runtimeInfo.Object);
 
             // Assert
             Assert.NotNull(config.CreateOptions);
@@ -75,42 +73,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest"));
             module.SetupGet(m => m.Name).Returns(CoreConstants.EdgeAgentModuleName);
 
-            CombinedKubernetesConfigProvider provider = new CombinedKubernetesConfigProvider(new[] { new AuthConfig() }, "hostname", "network", new Uri("http://localhost:2375/"), new Uri("http://localhost:2376/"), false);
+            CombinedKubernetesConfigProvider provider = new CombinedKubernetesConfigProvider(new[] { new AuthConfig() }, new Uri("http://localhost:2375/"), new Uri("http://localhost:2376/"), false);
 
             // Act
-            CombinedKubernetesConfig config = ((ICombinedConfigProvider<CombinedKubernetesConfig>)provider).GetCombinedConfig(module.Object, runtimeInfo.Object);
+            CombinedKubernetesConfig config = provider.GetCombinedConfig(module.Object, runtimeInfo.Object);
 
             // Assert
             Assert.NotNull(config.CreateOptions);
             Assert.False(config.CreateOptions.HostConfig.HasValue);
-        }
-
-        [Fact]
-        public void InjectNetworkAliasHostNetworkTest()
-        {
-            // Arrange
-            var runtimeInfo = new Mock<IRuntimeInfo<DockerRuntimeConfig>>();
-            runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
-
-            string hostNetworkCreateOptions = "{\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}},\"HostConfig\":{\"NetworkMode\":\"host\"}}";
-            var module = new Mock<IModule<DockerConfig>>();
-            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", hostNetworkCreateOptions));
-            module.SetupGet(m => m.Name).Returns("mod1");
-
-            CombinedKubernetesConfigProvider provider = new CombinedKubernetesConfigProvider(new[] { new AuthConfig(), }, "edhk1", "testnetwork1", new Uri("unix:///var/run/iotedgedworkload.sock"), new Uri("unix:///var/run/iotedgedmgmt.sock"), false);
-
-            // Act
-            CombinedKubernetesConfig config = ((ICombinedConfigProvider<CombinedKubernetesConfig>)provider).GetCombinedConfig(module.Object, runtimeInfo.Object);
-
-            // Assert
-            Assert.NotNull(config.CreateOptions);
-            Assert.True(config.CreateOptions.NetworkingConfig.HasValue);
-            config.CreateOptions.NetworkingConfig.ForEach(networkingConfig => Assert.NotNull(networkingConfig.EndpointsConfig));
-            config.CreateOptions.NetworkingConfig.ForEach(networkingConfig => Assert.DoesNotContain("testnetwork1", networkingConfig.EndpointsConfig));
-            config.CreateOptions.NetworkingConfig.ForEach(networkingConfig => Assert.NotNull(networkingConfig.EndpointsConfig["host"]));
-            config.CreateOptions.NetworkingConfig.ForEach(networkingConfig => Assert.Null(networkingConfig.EndpointsConfig["host"].Aliases));
-            Assert.True(config.CreateOptions.HostConfig.HasValue);
-            config.CreateOptions.HostConfig.ForEach(hostConfig => Assert.Equal("host", hostConfig.NetworkMode));
         }
 
         [Fact]
@@ -125,10 +95,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", createOptions));
             module.SetupGet(m => m.Name).Returns("mod1");
 
-            CombinedKubernetesConfigProvider provider = new CombinedKubernetesConfigProvider(new[] { new AuthConfig() }, "edhk1", "testnetwork1", new Uri("unix:///var/run/iotedgedworkload.sock"), new Uri("unix:///var/run/iotedgedmgmt.sock"), false);
+            CombinedKubernetesConfigProvider provider = new CombinedKubernetesConfigProvider(new[] { new AuthConfig() }, new Uri("unix:///var/run/iotedgedworkload.sock"), new Uri("unix:///var/run/iotedgedmgmt.sock"), false);
 
             // Act
-            CombinedKubernetesConfig config = ((ICombinedConfigProvider<CombinedKubernetesConfig>)provider).GetCombinedConfig(module.Object, runtimeInfo.Object);
+            CombinedKubernetesConfig config = provider.GetCombinedConfig(module.Object, runtimeInfo.Object);
 
             // Assert
             Assert.False(config.CreateOptions.NodeSelector.HasValue);
@@ -146,10 +116,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", createOptions));
             module.SetupGet(m => m.Name).Returns("mod1");
 
-            CombinedKubernetesConfigProvider provider = new CombinedKubernetesConfigProvider(new[] { new AuthConfig() }, "edhk1", "testnetwork1", new Uri("unix:///var/run/iotedgedworkload.sock"), new Uri("unix:///var/run/iotedgedmgmt.sock"), true);
+            CombinedKubernetesConfigProvider provider = new CombinedKubernetesConfigProvider(new[] { new AuthConfig() }, new Uri("unix:///var/run/iotedgedworkload.sock"), new Uri("unix:///var/run/iotedgedmgmt.sock"), true);
 
             // Act
-            CombinedKubernetesConfig config = ((ICombinedConfigProvider<CombinedKubernetesConfig>)provider).GetCombinedConfig(module.Object, runtimeInfo.Object);
+            CombinedKubernetesConfig config = provider.GetCombinedConfig(module.Object, runtimeInfo.Object);
 
             // Assert
             Assert.True(config.CreateOptions.NodeSelector.HasValue);
@@ -169,14 +139,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
             var authConfig = new AuthConfig { Username = "user", Password = "password", ServerAddress = "docker.io" };
 
-            CombinedKubernetesConfigProvider provider = new CombinedKubernetesConfigProvider(new[] { authConfig }, "edhk1", "testnetwork1", new Uri("unix:///var/run/iotedgedworkload.sock"), new Uri("unix:///var/run/iotedgedmgmt.sock"), false);
+            CombinedKubernetesConfigProvider provider = new CombinedKubernetesConfigProvider(new[] { authConfig }, new Uri("unix:///var/run/iotedgedworkload.sock"), new Uri("unix:///var/run/iotedgedmgmt.sock"), false);
 
             // Act
-            CombinedKubernetesConfig config = ((ICombinedConfigProvider<CombinedKubernetesConfig>)provider).GetCombinedConfig(module.Object, runtimeInfo.Object);
+            CombinedKubernetesConfig config = provider.GetCombinedConfig(module.Object, runtimeInfo.Object);
 
             // Assert
-            Assert.True(config.AuthConfig.HasValue);
-            config.AuthConfig.ForEach(auth => Assert.Equal("user-docker.io", auth.Name));
+            Assert.True(config.ImagePullSecret.HasValue);
+            config.ImagePullSecret.ForEach(secret => Assert.Equal("user-docker.io", secret.Name));
         }
     }
 }

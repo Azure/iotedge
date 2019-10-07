@@ -8,13 +8,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
-    public class KubernetesModule : IModule<CombinedKubernetesConfig>
+    public class KubernetesModule : IModule<KubernetesConfig>
     {
         static readonly DictionaryComparer<string, EnvVal> EnvDictionaryComparer = new DictionaryComparer<string, EnvVal>();
 
         static readonly CombinedKubernetesConfigEqualityComparer ConfigComparer = new CombinedKubernetesConfigEqualityComparer();
 
-        public KubernetesModule(IModule module, CombinedKubernetesConfig config)
+        public KubernetesModule(IModule module, KubernetesConfig config)
         {
             this.Name = module.Name;
             this.Version = module.Version;
@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             RestartPolicy restartPolicy,
             ConfigurationInfo configurationInfo,
             IDictionary<string, EnvVal> env,
-            CombinedKubernetesConfig settings,
+            KubernetesConfig settings,
             ImagePullPolicy imagePullPolicy)
         {
             this.Name = name;
@@ -75,12 +75,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public IDictionary<string, EnvVal> Env { get; }
 
         [JsonProperty(PropertyName = "settings")]
-        [JsonConverter(typeof(ObjectToStringConverter<CombinedKubernetesConfig>))]
-        public CombinedKubernetesConfig Config { get; }
+        [JsonConverter(typeof(ObjectToStringConverter<KubernetesConfig>))]
+        public KubernetesConfig Config { get; }
 
         public virtual bool Equals(IModule other) => this.Equals(other as KubernetesModule);
 
-        public bool Equals(IModule<CombinedKubernetesConfig> other) => this.Equals(other as KubernetesModule);
+        public bool Equals(IModule<KubernetesConfig> other) => this.Equals(other as KubernetesModule);
 
         public bool Equals(KubernetesModule other)
         {
@@ -136,11 +136,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 EnvDictionaryComparer.Equals(this.Env, other.Env);
         }
 
-        internal class CombinedKubernetesConfigEqualityComparer : IEqualityComparer<CombinedKubernetesConfig>
+        internal class CombinedKubernetesConfigEqualityComparer : IEqualityComparer<KubernetesConfig>
         {
             static readonly AuthConfigEqualityComparer AuthConfigComparer = new AuthConfigEqualityComparer();
 
-            public bool Equals(CombinedKubernetesConfig a, CombinedKubernetesConfig b)
+            public bool Equals(KubernetesConfig a, KubernetesConfig b)
             {
                 if ((ReferenceEquals(null, a) && !ReferenceEquals(null, b)) ||
                     (!ReferenceEquals(null, a) && ReferenceEquals(null, b)))
@@ -161,7 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                     && string.Equals(thisOptions, otherOptions);
             }
 
-            public int GetHashCode(CombinedKubernetesConfig obj) => obj.GetHashCode();
+            public int GetHashCode(KubernetesConfig obj) => obj.GetHashCode();
 
             internal class AuthConfigEqualityComparer : IEqualityComparer<Option<AuthConfig>>
             {

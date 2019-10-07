@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 // string.Empty is an invalid label name
                 { string.Empty, "test" }
             };
-            var config = new CombinedKubernetesConfig("image", CreateOptions(labels: labels), Option.None<AuthConfig>());
+            var config = new KubernetesConfig("image", CreateOptions(labels: labels), Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesDeploymentMapper("namespace", "edgehub", "proxy", "configPath", "configVolumeName", "configMapName", "trustBundlePAth", "trustBundleVolumeName", "trustBindleConfigMapName", "apiVersion", new Uri("http://workload"), new Uri("http://management"));
@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         public void SimplePodCreationHappyPath()
         {
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "ModuleId", Mock.Of<ICredentials>());
-            var config = new CombinedKubernetesConfig("image", CreateOptions(), Option.None<AuthConfig>());
+            var config = new KubernetesConfig("image", CreateOptions(), Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesDeploymentMapper("namespace", "edgehub", "proxy", "configPath", "configVolumeName", "configMapName", "trustBundlePAth", "trustBundleVolumeName", "trustBindleConfigMapName", "apiVersion", new Uri("http://workload"), new Uri("http://management"));
@@ -70,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 // Add a readonly mount
                 Binds = new List<string> { "/home/blah:/home/blah2:ro" }
             };
-            var config = new CombinedKubernetesConfig("image", CreateOptions(labels: labels, hostConfig: hostConfig), Option.None<AuthConfig>());
+            var config = new KubernetesConfig("image", CreateOptions(labels: labels, hostConfig: hostConfig), Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesDeploymentMapper("namespace", "edgehub", "proxy", "configPath", "configVolumeName", "configMapName", "trustBundlePAth", "trustBundleVolumeName", "trustBindleConfigMapName", "apiVersion", new Uri("http://workload"), new Uri("http://management"));
@@ -106,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             {
                 ["disktype"] = "ssd"
             };
-            var config = new CombinedKubernetesConfig("image", CreateOptions(nodeSelector: nodeSelector), Option.None<AuthConfig>());
+            var config = new KubernetesConfig("image", CreateOptions(nodeSelector: nodeSelector), Option.None<AuthConfig>());
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesDeploymentMapper("namespace", "edgehub", "proxy", "configPath", "configVolumeName", "configMapName", "trustBundlePAth", "trustBundleVolumeName", "trustBindleConfigMapName", "apiVersion", new Uri("http://workload"), new Uri("http://management"));
             var labels = new Dictionary<string, string>();
@@ -121,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         {
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "ModuleId", Mock.Of<ICredentials>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
-            var config = new CombinedKubernetesConfig("image", CreateOptions(), Option.None<AuthConfig>());
+            var config = new KubernetesConfig("image", CreateOptions(), Option.None<AuthConfig>());
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesDeploymentMapper("namespace", "edgehub", "proxy", "configPath", "configVolumeName", "configMapName", "trustBundlePAth", "trustBundleVolumeName", "trustBindleConfigMapName", "apiVersion", new Uri("http://workload"), new Uri("http://management"));
             var labels = new Dictionary<string, string>();

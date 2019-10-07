@@ -20,23 +20,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
         readonly ICommandFactory commandFactory;
         readonly string deviceNamespace;
         readonly ResourceName resourceName;
-        readonly ICombinedConfigProvider<CombinedDockerConfig> dockerConfigProvider;
-        readonly ICombinedConfigProvider<CombinedKubernetesConfig> kubernetesConfigProvider;
+        readonly ICombinedConfigProvider<CombinedKubernetesConfig> configProvider;
 
         public KubernetesPlanner(
             string deviceNamespace,
             ResourceName resourceName,
             IKubernetes client,
             ICommandFactory commandFactory,
-            ICombinedConfigProvider<CombinedDockerConfig> dockerConfigProvider,
-            ICombinedConfigProvider<CombinedKubernetesConfig> kubernetesConfigProvider)
+            ICombinedConfigProvider<CombinedKubernetesConfig> configProvider)
         {
             this.resourceName = Preconditions.CheckNotNull(resourceName, nameof(resourceName));
             this.deviceNamespace = Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace));
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.commandFactory = Preconditions.CheckNotNull(commandFactory, nameof(commandFactory));
-            this.dockerConfigProvider = Preconditions.CheckNotNull(dockerConfigProvider, nameof(dockerConfigProvider));
-            this.kubernetesConfigProvider = Preconditions.CheckNotNull(kubernetesConfigProvider, nameof(kubernetesConfigProvider));
+            this.configProvider = Preconditions.CheckNotNull(configProvider, nameof(configProvider));
         }
 
         public async Task<Plan> PlanAsync(
@@ -74,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
                 // The "Plan" here is very simple - if we have any change, publish all desired modules to a EdgeDeployment CRD.
                 // The CRD allows us to give the customer a Kubernetes-centric way to see the deployment
                 // and the status of that deployment through the "edgedeployments" API.
-                var crdCommand = new EdgeDeploymentCommand(this.deviceNamespace, this.resourceName, this.client, desired.Modules.Values, runtimeInfo, this.dockerConfigProvider, this.kubernetesConfigProvider);
+                var crdCommand = new EdgeDeploymentCommand(this.deviceNamespace, this.resourceName, this.client, desired.Modules.Values, runtimeInfo, this.configProvider);
                 var planCommand = await this.commandFactory.WrapAsync(crdCommand);
                 var planList = new List<ICommand>
                 {

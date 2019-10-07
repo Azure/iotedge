@@ -11,7 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     using k8s;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
@@ -26,8 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         readonly IReadOnlyCollection<IModule> modules;
         readonly IRuntimeInfo runtimeInfo;
         readonly Lazy<string> id;
-        readonly ICombinedConfigProvider<CombinedDockerConfig> combinedConfigProvider;
-        readonly ICombinedConfigProvider<CombinedKubernetesConfig> kubernetesConfigProvider;
+        readonly ICombinedConfigProvider<CombinedKubernetesConfig> configProvider;
         readonly string deviceNamespace;
         readonly ResourceName resourceName;
         readonly JsonSerializerSettings serializerSettings;
@@ -42,16 +40,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             IKubernetes client,
             IEnumerable<IModule> modules,
             IRuntimeInfo runtimeInfo,
-            ICombinedConfigProvider<CombinedDockerConfig> combinedConfigProvider,
-            ICombinedConfigProvider<CombinedKubernetesConfig> kubernetesConfigProvider)
+            ICombinedConfigProvider<CombinedKubernetesConfig> configProvider)
         {
             this.deviceNamespace = KubeUtils.SanitizeK8sValue(Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace)));
             this.resourceName = Preconditions.CheckNotNull(resourceName, nameof(resourceName));
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.modules = Preconditions.CheckNotNull(modules, nameof(modules)).ToList();
             this.runtimeInfo = Preconditions.CheckNotNull(runtimeInfo, nameof(runtimeInfo));
-            this.combinedConfigProvider = Preconditions.CheckNotNull(combinedConfigProvider, nameof(combinedConfigProvider));
-            this.kubernetesConfigProvider = Preconditions.CheckNotNull(kubernetesConfigProvider, nameof(kubernetesConfigProvider));
+            this.configProvider = Preconditions.CheckNotNull(configProvider, nameof(configProvider));
             this.id = new Lazy<string>(() => this.modules.Aggregate(string.Empty, (prev, module) => module.Name + prev));
             this.serializerSettings = new JsonSerializerSettings
             {
@@ -80,9 +76,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         {
             // Modules may share an image pull secret, so only pick unique ones to add to the dictionary.
             List<ImagePullSecret> secrets = this.modules
-                .Select(module => this.combinedConfigProvider.GetCombinedConfig(module, this.runtimeInfo))
-                .Select(config => config.AuthConfig.Map(auth => new ImagePullSecret(auth)).OrDefault())
-                .Where(secret => secret != null)
+                .Select(module => this.configProvider.GetCombinedConfig(module, this.runtimeInfo))
+                .Select(config => config.ImagePullSecret)
+                .FilterMap()
                 .GroupBy(secret => secret.Name)
                 .Select(secretGroup => secretGroup.First())
                 .ToList();
@@ -141,7 +137,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         async Task PushEdgeDeployment(CancellationToken token)
         {
             List<KubernetesModule> modulesList = this.modules
-                .Select(module => new KubernetesModule(module, this.kubernetesConfigProvider.GetCombinedConfig(module, this.runtimeInfo)))
+                .Select(
+                    module =>
+                    {
+                        var combinedConfig = this.configProvider.GetCombinedConfig(module, this.runtimeInfo);
+                        var authConfig = combinedConfig.ImagePullSecret.Map(secret => new AuthConfig(secret.Name));
+                        return new KubernetesModule(module, new KubernetesConfig(combinedConfig.Image, combinedConfig.CreateOptions, authConfig));
+                    })
                 .ToList();
 
             Option<EdgeDeploymentDefinition> activeDeployment;

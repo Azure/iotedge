@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             // string.Empty is an invalid label name
             var labels = new Dictionary<string, string> { { string.Empty, "test" } };
             var createOptions = new CreatePodParameters(null, null, null, null, labels, null);
-            var config = new CombinedKubernetesConfig("image", createOptions, Option.None<AuthConfig>());
+            var config = new KubernetesConfig("image", createOptions, Option.None<AuthConfig>());
             var moduleId = new ModuleIdentity("hub", "gateway", "deviceId", "moduleid", Mock.Of<ICredentials>());
             var docker = new DockerModule(moduleId.ModuleId, "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             var module = new KubernetesModule(docker, config);
@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         public void NoPortsExposedMeansNoServiceCreated()
         {
             var createOptions = new CreatePodParameters(null, null, null, null, null, null);
-            var config = new CombinedKubernetesConfig("image", createOptions, Option.None<AuthConfig>());
+            var config = new KubernetesConfig("image", createOptions, Option.None<AuthConfig>());
             var moduleId = new ModuleIdentity("hub", "gateway", "deviceId", "moduleid", Mock.Of<ICredentials>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             var module = new KubernetesModule(docker, config);
@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             // Add invalid port
             var exposedPorts = new Dictionary<string, EmptyStruct> { { "aa/TCP", default(EmptyStruct) } };
             var createOptions = new CreatePodParameters(null, exposedPorts, null, null, null, null);
-            var config = new CombinedKubernetesConfig("image", createOptions, Option.None<AuthConfig>());
+            var config = new KubernetesConfig("image", createOptions, Option.None<AuthConfig>());
             var moduleId = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             var module = new KubernetesModule(docker, config);
@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             // Add unknown protocol
             var exposedPorts = new Dictionary<string, EmptyStruct> { { "123/XXX", default(EmptyStruct) } };
             var createOptions = new CreatePodParameters(null, exposedPorts, null, null, null, null);
-            var config = new CombinedKubernetesConfig("image", createOptions, Option.None<AuthConfig>());
+            var config = new KubernetesConfig("image", createOptions, Option.None<AuthConfig>());
             var moduleId = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             var module = new KubernetesModule(docker, config);
@@ -96,7 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var exposedPorts = new Dictionary<string, EmptyStruct> { ["10/TCP"] = default(EmptyStruct) };
             var labels = new Dictionary<string, string> { ["GPU"] = "Enabled" };
             var createOptions = new CreatePodParameters(null, exposedPorts, null, null, labels, null);
-            var config = new CombinedKubernetesConfig("image", createOptions, Option.None<AuthConfig>());
+            var config = new KubernetesConfig("image", createOptions, Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             var module = new KubernetesModule(docker, config);
             var moduleLabels = new Dictionary<string, string>();
@@ -118,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         {
             var exposedPorts = new Dictionary<string, EmptyStruct> { ["10/TCP"] = default(EmptyStruct) };
             var createOptions = new CreatePodParameters(null, exposedPorts, null, null, null, null);
-            var config = new CombinedKubernetesConfig("image", createOptions, Option.None<AuthConfig>());
+            var config = new KubernetesConfig("image", createOptions, Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             var module = new KubernetesModule(docker, config);
             var moduleLabels = new Dictionary<string, string> { { "Label1", "VaLue1" } };
@@ -148,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 }
             };
             var createOptions = new CreatePodParameters(null, null, hostConfig, null, null, null);
-            var config = new CombinedKubernetesConfig("image", createOptions, Option.None<AuthConfig>());
+            var config = new KubernetesConfig("image", createOptions, Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             var module = new KubernetesModule(docker, config);
             var moduleLabels = new Dictionary<string, string>();
@@ -174,7 +174,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 }
             };
             var createOptions = new CreatePodParameters(null, exposedPorts, hostConfig, null, null, null);
-            var config = new CombinedKubernetesConfig("image", createOptions, Option.None<AuthConfig>());
+            var config = new KubernetesConfig("image", createOptions, Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             var module = new KubernetesModule(docker, config);
             var moduleLabels = new Dictionary<string, string>();
@@ -193,7 +193,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         {
             var exposedPorts = new Dictionary<string, EmptyStruct> { ["10/TCP"] = default(EmptyStruct) };
             var createOptions = new CreatePodParameters(null, exposedPorts, null, null, null, null);
-            var config = new CombinedKubernetesConfig("image", createOptions, Option.None<AuthConfig>());
+            var config = new KubernetesConfig("image", createOptions, Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             var module = new KubernetesModule(docker, config);
             var moduleLabels = new Dictionary<string, string>();

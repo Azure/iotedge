@@ -27,30 +27,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         static readonly ResourceName ResourceName = new ResourceName("hostname", "deviceId");
         static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>();
         static readonly global::Docker.DotNet.Models.AuthConfig DockerAuth = new global::Docker.DotNet.Models.AuthConfig { Username = "username", Password = "password", ServerAddress = "docker.io" };
-        static readonly AuthConfig KubernetesAuth = new AuthConfig("username-docker,io");
+        static readonly ImagePullSecret ImagePullSecret = new ImagePullSecret(DockerAuth);
         static readonly DockerConfig Config1 = new DockerConfig("test-image:1");
         static readonly DockerConfig Config2 = new DockerConfig("test-image:2");
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
         static readonly IKubernetes DefaultClient = Mock.Of<IKubernetes>();
-        static readonly ICombinedConfigProvider<CombinedDockerConfig> DockerConfigProvider = Mock.Of<ICombinedConfigProvider<CombinedDockerConfig>>();
-        static readonly ICombinedConfigProvider<CombinedKubernetesConfig> KubernetesConfigProvider = Mock.Of<ICombinedConfigProvider<CombinedKubernetesConfig>>();
+        static readonly ICombinedConfigProvider<CombinedKubernetesConfig> ConfigProvider = Mock.Of<ICombinedConfigProvider<CombinedKubernetesConfig>>();
         static readonly IRuntimeInfo Runtime = Mock.Of<IRuntimeInfo>();
 
         [Fact]
         [Unit]
         public void ConstructorThrowsOnInvalidParams()
         {
-            CombinedKubernetesConfig config = new CombinedKubernetesConfig("image", CreateOptions(), Option.None<AuthConfig>());
+            KubernetesConfig config = new KubernetesConfig("image", CreateOptions(), Option.None<AuthConfig>());
             IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             KubernetesModule km1 = new KubernetesModule(m1, config);
             KubernetesModule[] modules = { km1 };
-            Assert.Throws<ArgumentException>(() => new EdgeDeploymentCommand(null, ResourceName, DefaultClient, modules, Runtime, DockerConfigProvider, KubernetesConfigProvider));
-            Assert.Throws<ArgumentException>(() => new EdgeDeploymentCommand(null, null, DefaultClient, modules, Runtime, DockerConfigProvider, KubernetesConfigProvider));
-            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, null, modules, Runtime, DockerConfigProvider, KubernetesConfigProvider));
-            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, DefaultClient, null, Runtime, DockerConfigProvider, KubernetesConfigProvider));
-            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, DefaultClient, modules, Runtime, null, KubernetesConfigProvider));
-            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, DefaultClient, modules, Runtime, DockerConfigProvider, null));
-            Assert.Throws<ArgumentException>(() => new EdgeDeploymentCommand(null, ResourceName, DefaultClient, modules, Runtime, DockerConfigProvider, KubernetesConfigProvider));
+            Assert.Throws<ArgumentException>(() => new EdgeDeploymentCommand(null, ResourceName, DefaultClient, modules, Runtime, ConfigProvider));
+            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, null, DefaultClient, modules, Runtime, ConfigProvider));
+            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, null, modules, Runtime, ConfigProvider));
+            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, DefaultClient, null, Runtime, ConfigProvider));
+            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, DefaultClient, modules, null, ConfigProvider));
+            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, DefaultClient, modules, Runtime, null));
         }
 
         [Fact]
@@ -61,9 +59,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var dockerConfigProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
             dockerConfigProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
                 .Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(DockerAuth)));
-            var kubernetesConfigProvider = new Mock<ICombinedConfigProvider<CombinedKubernetesConfig>>();
-            kubernetesConfigProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
-                .Returns(() => new CombinedKubernetesConfig("test-image:1", CreateOptions(image: "test-image:1"), Option.Maybe(KubernetesAuth)));
+            var configProvider = new Mock<ICombinedConfigProvider<CombinedKubernetesConfig>>();
+            configProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
+                .Returns(() => new CombinedKubernetesConfig("test-image:1", CreateOptions(image: "test-image:1"), Option.Maybe(ImagePullSecret)));
             bool getSecretCalled = false;
             bool postSecretCalled = false;
             bool getCrdCalled = false;
@@ -105,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 }))
             {
                 var client = new Kubernetes(new KubernetesClientConfiguration { Host = server.Uri });
-                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule }, Runtime, dockerConfigProvider.Object, kubernetesConfigProvider.Object);
+                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule }, Runtime, configProvider.Object);
 
                 await cmd.ExecuteAsync(CancellationToken.None);
 
@@ -125,9 +123,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var dockerConfigProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
             dockerConfigProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
                 .Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(DockerAuth)));
-            var kubernetesConfigProvider = new Mock<ICombinedConfigProvider<CombinedKubernetesConfig>>();
-            kubernetesConfigProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
-                .Returns(() => new CombinedKubernetesConfig("test-image:1", CreateOptions(image: "test-image:1"), Option.Maybe(KubernetesAuth)));
+            var configProvider = new Mock<ICombinedConfigProvider<CombinedKubernetesConfig>>();
+            configProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
+                .Returns(() => new CombinedKubernetesConfig("test-image:1", CreateOptions(image: "test-image:1"), Option.Maybe(ImagePullSecret)));
             EdgeDeploymentDefinition postedEdgeDeploymentDefinition = null;
             bool postCrdCalled = false;
 
@@ -160,7 +158,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 }))
             {
                 var client = new Kubernetes(new KubernetesClientConfiguration { Host = server.Uri });
-                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule }, Runtime, dockerConfigProvider.Object, kubernetesConfigProvider.Object);
+                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule }, Runtime, configProvider.Object);
 
                 await cmd.ExecuteAsync(CancellationToken.None);
 
@@ -182,9 +180,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var dockerConfigProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
             dockerConfigProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
                 .Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(DockerAuth)));
-            var kubernetesConfigProvider = new Mock<ICombinedConfigProvider<CombinedKubernetesConfig>>();
-            kubernetesConfigProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
-                .Returns(() => new CombinedKubernetesConfig("test-image:1", CreateOptions(image: "test-image:1"), Option.Maybe(KubernetesAuth)));
+            var configProvider = new Mock<ICombinedConfigProvider<CombinedKubernetesConfig>>();
+            configProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
+                .Returns(() => new CombinedKubernetesConfig("test-image:1", CreateOptions(image: "test-image:1"), Option.Maybe(ImagePullSecret)));
 
             var existingSecret = new V1Secret("v1", secretData, type: Constants.K8sPullSecretType, kind: "Secret", metadata: secretMeta);
             var existingDeployment = new EdgeDeploymentDefinition(Constants.EdgeDeployment.ApiVersion, Constants.EdgeDeployment.Kind, new V1ObjectMeta(name: ResourceName), new List<KubernetesModule>());
@@ -229,7 +227,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 }))
             {
                 var client = new Kubernetes(new KubernetesClientConfiguration { Host = server.Uri });
-                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule }, Runtime, dockerConfigProvider.Object, kubernetesConfigProvider.Object);
+                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule }, Runtime, configProvider.Object);
 
                 await cmd.ExecuteAsync(CancellationToken.None);
 
@@ -250,9 +248,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var dockerConfigProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
             dockerConfigProvider.Setup(cp => cp.GetCombinedConfig(It.IsAny<DockerModule>(), Runtime))
                 .Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(DockerAuth)));
-            var kubernetesConfigProvider = new Mock<ICombinedConfigProvider<CombinedKubernetesConfig>>();
-            kubernetesConfigProvider.Setup(cp => cp.GetCombinedConfig(It.IsAny<DockerModule>(), Runtime))
-                .Returns(() => new CombinedKubernetesConfig("test-image:1", CreateOptions(image: "test-image:1"), Option.Maybe(KubernetesAuth)));
+            var configProvider = new Mock<ICombinedConfigProvider<CombinedKubernetesConfig>>();
+            configProvider.Setup(cp => cp.GetCombinedConfig(It.IsAny<DockerModule>(), Runtime))
+                .Returns(() => new CombinedKubernetesConfig("test-image:1", CreateOptions(image: "test-image:1"), Option.Maybe(ImagePullSecret)));
             bool getSecretCalled = false;
             bool putSecretCalled = false;
             int postSecretCalled = 0;
@@ -320,7 +318,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 }))
             {
                 var client = new Kubernetes(new KubernetesClientConfiguration { Host = server.Uri });
-                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule1, dockerModule2 }, Runtime, dockerConfigProvider.Object, kubernetesConfigProvider.Object);
+                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule1, dockerModule2 }, Runtime, configProvider.Object);
 
                 await cmd.ExecuteAsync(CancellationToken.None);
 

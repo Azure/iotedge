@@ -159,9 +159,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     c =>
                     {
                         bool enableKubernetesExtensions = this.experimentalFeatures.Enabled && this.experimentalFeatures.EnableExtensions;
-                        return new CombinedKubernetesConfigProvider(this.dockerAuthConfig, this.edgeDeviceHostName, this.networkId, this.workloadUri, this.managementUri, enableKubernetesExtensions);
+                        return new CombinedKubernetesConfigProvider(this.dockerAuthConfig, this.workloadUri, this.managementUri, enableKubernetesExtensions);
                     })
-                .As<ICombinedConfigProvider<CombinedDockerConfig>>()
                 .As<ICombinedConfigProvider<CombinedKubernetesConfig>>()
                 .SingleInstance();
 
@@ -181,10 +180,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                     async c =>
                     {
-                        var dockerConfigProvider = c.Resolve<ICombinedConfigProvider<CombinedDockerConfig>>();
-                        var kubernetesConfigProvider = c.Resolve<ICombinedConfigProvider<CombinedKubernetesConfig>>();
+                        var configProvider = c.Resolve<ICombinedConfigProvider<CombinedKubernetesConfig>>();
                         ICommandFactory commandFactory = await c.Resolve<Task<ICommandFactory>>();
-                        IPlanner planner = new KubernetesPlanner(this.deviceNamespace, this.resourceName, c.Resolve<IKubernetes>(), commandFactory, dockerConfigProvider, kubernetesConfigProvider);
+                        IPlanner planner = new KubernetesPlanner(this.deviceNamespace, this.resourceName, c.Resolve<IKubernetes>(), commandFactory, configProvider);
                         return planner;
                     })
                 .As<Task<IPlanner>>()

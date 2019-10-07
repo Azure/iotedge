@@ -16,22 +16,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Dictionary<string, EnvVal> goodEnv = new Dictionary<string, EnvVal>();
             Dictionary<string, EnvVal> newEnv = new Dictionary<string, EnvVal> { ["a"] = new EnvVal("B") };
             IList<string> dockerEnv = new List<string> { "c=d" };
-            CombinedKubernetesConfig goodConfig = new CombinedKubernetesConfig("image:tag", CreateOptions(), Option.None<AuthConfig>());
-            CombinedKubernetesConfig imageDifferent = new CombinedKubernetesConfig("image:newtag", CreateOptions(), Option.None<AuthConfig>());
+            KubernetesConfig goodConfig = new KubernetesConfig("image:tag", CreateOptions(), Option.None<AuthConfig>());
+            KubernetesConfig imageDifferent = new KubernetesConfig("image:newtag", CreateOptions(), Option.None<AuthConfig>());
 
             var auth1 = new AuthConfig("secret1");
-            CombinedKubernetesConfig auth1Config = new CombinedKubernetesConfig("image:tag", CreateOptions(), Option.Some(auth1));
+            KubernetesConfig auth1Config = new KubernetesConfig("image:tag", CreateOptions(), Option.Some(auth1));
 
             var auth2 = new AuthConfig("secret2");
-            CombinedKubernetesConfig auth2Config = new CombinedKubernetesConfig("image:tag", CreateOptions(), Option.Some(auth2));
+            KubernetesConfig auth2Config = new KubernetesConfig("image:tag", CreateOptions(), Option.Some(auth2));
 
             var auth3 = new AuthConfig("secret3");
-            CombinedKubernetesConfig auth3Config = new CombinedKubernetesConfig("image:tag", CreateOptions(), Option.Some(auth3));
+            KubernetesConfig auth3Config = new KubernetesConfig("image:tag", CreateOptions(), Option.Some(auth3));
 
             var auth4 = new AuthConfig("secret4");
-            CombinedKubernetesConfig auth4Config = new CombinedKubernetesConfig("image:tag", CreateOptions(), Option.Some(auth4));
+            KubernetesConfig auth4Config = new KubernetesConfig("image:tag", CreateOptions(), Option.Some(auth4));
 
-            CombinedKubernetesConfig createContainerConfigDifferent = new CombinedKubernetesConfig("image:tag", CreateOptions(dockerEnv), Option.None<AuthConfig>());
+            KubernetesConfig createContainerConfigDifferent = new KubernetesConfig("image:tag", CreateOptions(dockerEnv), Option.None<AuthConfig>());
 
             ConfigurationInfo goodInfo = new ConfigurationInfo(string.Empty);
 
