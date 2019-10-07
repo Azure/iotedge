@@ -32,27 +32,41 @@ where
 {
     type Future = Box<dyn Future<Item = (), Error = Error> + Send>;
 
-    fn execute(&mut self) -> Self::Future {
+    fn execute(self) -> Self::Future {
         let id = self.id.clone();
-        let result = self
-            .runtime
-            .logs(&id, &self.options)
-            .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))
-            .and_then(move |logs| {
-                let chunked =
-                    Chunked::new(logs.map_err(|_| io::Error::new(io::ErrorKind::Other, "unknown")));
-                LogDecode::new(chunked)
-                    .for_each(|chunk| {
-                        match chunk {
-                            LogChunk::Stdin(b)
-                            | LogChunk::Stdout(b)
-                            | LogChunk::Stderr(b)
-                            | LogChunk::Unknown(b) => io::stdout().write(&b)?,
-                        };
-                        Ok(())
-                    })
-                    .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))
-            });
+        let result = pull_logs(&self.runtime, &id, &self.options, io::stdout()).map(drop);
         Box::new(result)
     }
+}
+
+pub fn pull_logs<M, W>(
+    runtime: &M,
+    id: &str,
+    options: &LogOptions,
+    writer: W,
+) -> impl Future<Item = W, Error = Error> + Send
+where
+    M: 'static + ModuleRuntime,
+    W: 'static + Write + Send,
+{
+    runtime
+        .logs(id, options)
+        .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))
+        .and_then(move |logs| {
+            let chunked =
+                Chunked::new(logs.map_err(|_| io::Error::new(io::ErrorKind::Other, "unknown")));
+            LogDecode::new(chunked)
+                .map_err(|err| Error::from(err.context(ErrorKind::ModuleRuntime)))
+                .fold(writer, |mut w, chunk| -> Result<W, Error> {
+                    match chunk {
+                        LogChunk::Stdin(b)
+                        | LogChunk::Stdout(b)
+                        | LogChunk::Stderr(b)
+                        | LogChunk::Unknown(b) => w
+                            .write(&b)
+                            .map_err(|err| Error::from(err.context(ErrorKind::WriteToStdout)))?,
+                    };
+                    Ok(w)
+                })
+        })
 }
