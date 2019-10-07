@@ -38,6 +38,9 @@
     .PARAMETER ContainerRegistryPassword
         Password of given username for container registory
 
+    .PARAMETER DesiredModulesToRestartCSV
+        Optional CSV string of module names for long haul specifying what modules to restart. If specified, then "randomRestartIntervalInMins" must be specified as well.
+
     .PARAMETER IoTHubConnectionString
         IoT hub connection string for creating edge device
 
@@ -49,6 +52,9 @@
 
     .PARAMETER LoadGenMessageFrequency
         Frequency to send messages in LoadGen module for long haul and stress test. Default is 00.00.01 for long haul and 00:00:00.03 for stress test.
+
+    .PARAMETER RandomRestartIntervalInMins
+        Optional value for long haul specifying how often a random module will restart. If specified, then "desiredModulesToRestartJsonPath" must be specified as well.
 
     .PARAMETER SnitchAlertUrl
         Alert Url pointing to Azure Logic App for email preparation and sending for long haul and stress test.
@@ -197,6 +203,8 @@ Param (
     [ValidateNotNullOrEmpty()]
     [string] $ContainerRegistryPassword = $(Throw "Container registry password is required"),
 
+    [string] $DesiredModulesToRestartCSV = $null
+
     [ValidateNotNullOrEmpty()]
     [string] $DpsScopeId = $null,
 
@@ -222,8 +230,6 @@ Param (
     [string] $ProxyUri = $null,
 
     [string] $RandomRestartIntervalInMins = $null
-
-    [string] $DesiredModulesToRestartCSV = $null
 
     [ValidateNotNullOrEmpty()]
     [string] $SnitchAlertUrl = $null,
