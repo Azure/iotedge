@@ -172,12 +172,34 @@ where
             NaiveDateTime::from_timestamp(state.log_options.since().into(), 0),
             Utc,
         );
+        let since = since_time.format("%F %T").to_string();
 
-        //TODO: windows case
+        #[cfg(unix)]
         let inspect = ShellCommand::new("journalctl")
             .args(&["-u", "iotedge"])
-            .args(&["-S", &since_time.format("%F %T").to_string()])
+            .args(&["-S", &since])
             .arg("--no-pager")
+            .output();
+
+        #[cfg(windows)]
+        let inspect = ShellCommand::new("Get-WinEvent")
+            .args(&[
+                "-ea",
+                "SilentlyContinue",
+                "-FilterHashtable",
+                &format!(
+                    "@{{ProviderName='iotedged';LogName='application';StartTime={}}}",
+                    since
+                ),
+                "Select",
+                "TimeCreated",
+                "Message",
+                "Sort-Object",
+                "@{Expression='TimeCreated';Descending=$false}",
+                "Format-Table",
+                "-AutoSize",
+                "-Wrap",
+            ])
             .output();
 
         let (file_name, output) = if let Ok(result) = inspect {
@@ -234,11 +256,11 @@ where
     ) -> Result<BundleState<M>, Error> {
         println!("Running docker inspect for {}", module_name);
         let mut inspect = ShellCommand::new("docker");
-        inspect.arg("inspect").arg(&module_name);
 
         #[cfg(windows)]
         inspect.args(&["-H", "npipe://./pipe/iotedge_moby_engine"]);
 
+        inspect.arg("inspect").arg(&module_name);
         let inspect = inspect.output();
 
         let (file_name, output) = if let Ok(result) = inspect {
