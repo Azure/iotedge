@@ -6,9 +6,11 @@ namespace ModuleRestarter
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
 
     class Program
     {
+        static readonly ILogger Log = Logger.Factory.CreateLogger<Program>();
         static readonly string IoTHubConnectionString = Settings.Current.IoTHubConnectionString;
         static readonly string DeviceId = Settings.Current.DeviceId;
         static readonly string DesiredModulesToRestartCSV = Settings.Current.DesiredModulesToRestartCSV;
@@ -20,7 +22,7 @@ namespace ModuleRestarter
         {
             if (string.IsNullOrEmpty(DesiredModulesToRestartCSV))
             {
-                Console.WriteLine("No modules specified to restart. Stopping.");
+                Log.LogInformation("No modules specified to restart. Stopping.");
                 return 0;
             }
 
@@ -37,9 +39,9 @@ namespace ModuleRestarter
         /// </summary>
         static async Task RestartModules(CancellationTokenSource cts, int randomRestartIntervalInMins)
         {
-            Console.WriteLine("Device ID: {0}", DeviceId);
-            Console.WriteLine("Module CSV received: {0}", DesiredModulesToRestartCSV);
-            Console.WriteLine("Random restart interval: {0}", RandomRestartIntervalInMins);
+            Log.LogInformation("Device ID: {0}", DeviceId);
+            Log.LogInformation("Module CSV received: {0}", DesiredModulesToRestartCSV);
+            Log.LogInformation("Random restart interval: {0}", RandomRestartIntervalInMins);
 
             string[] moduleNames = DesiredModulesToRestartCSV.Split(",");
             ServiceClient iotHubServiceClient = ServiceClient.CreateFromConnectionString(IoTHubConnectionString);
@@ -50,7 +52,7 @@ namespace ModuleRestarter
             {
                 string payload = "{{ \"SchemaVersion\": \"1.0\", \"Id\": \"{0}\" }}";
                 payload = string.Format(payload, moduleNames[random.Next(0, moduleNames.Length)]);
-                Console.WriteLine("RestartModule Method Payload: {0}", payload);
+                Log.LogInformation("RestartModule Method Payload: {0}", payload);
                 c2dMethod.SetPayloadJson(payload);
 
                 await iotHubServiceClient.InvokeDeviceMethodAsync(DeviceId, "$edgeAgent", c2dMethod);
