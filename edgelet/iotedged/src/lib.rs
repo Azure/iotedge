@@ -2251,7 +2251,10 @@ mod tests {
 
         let settings = Settings::new(Path::new(GOOD_SETTINGS1)).unwrap();
         // Default is 90 days so check for that in seconds
-        assert_eq!(7776000, settings.certificates().auto_generated_ca_lifetime_seconds());
+        assert_eq!(
+            7_776_000,
+            settings.certificates().auto_generated_ca_lifetime_seconds()
+        );
     }
 
     #[test]
@@ -2260,7 +2263,10 @@ mod tests {
 
         let settings = Settings::new(Path::new(GOOD_SETTINGS2)).unwrap();
         // Provided value is 1 day so check for that in seconds
-        assert_eq!(86400, settings.certificates().auto_generated_ca_lifetime_seconds());
+        assert_eq!(
+            86_400,
+            settings.certificates().auto_generated_ca_lifetime_seconds()
+        );
     }
 
     #[test]
