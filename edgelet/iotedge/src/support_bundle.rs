@@ -24,12 +24,14 @@ pub struct SupportBundle<M> {
     log_options: LogOptions,
     location: OsString,
     include_ms_only: bool,
+    iothub_hostname: Option<String>,
 }
 
 struct BundleState<M> {
     runtime: M,
     log_options: LogOptions,
     include_ms_only: bool,
+    iothub_hostname: Option<String>,
     file_options: zip::write::FileOptions,
     zip_writer: zip::ZipWriter<File>,
 }
@@ -61,6 +63,7 @@ where
         log_options: LogOptions,
         location: OsString,
         include_ms_only: bool,
+        iothub_hostname: Option<String>,
         runtime: M,
     ) -> Self {
         SupportBundle {
@@ -68,6 +71,7 @@ where
             log_options,
             location,
             include_ms_only,
+            iothub_hostname,
         }
     }
 
@@ -77,13 +81,14 @@ where
 
         let zip_writer = zip::ZipWriter::new(
             File::create(Path::new(&self.location))
-                .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))?,
+                .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?,
         );
 
         Ok(BundleState {
             runtime: self.runtime,
             log_options: self.log_options,
             include_ms_only: self.include_ms_only,
+            iothub_hostname: self.iothub_hostname,
             file_options,
             zip_writer,
         })
@@ -143,6 +148,7 @@ where
             runtime,
             log_options,
             include_ms_only,
+            iothub_hostname,
             file_options,
             mut zip_writer,
         } = state;
@@ -151,7 +157,7 @@ where
         zip_writer
             .start_file_from_path(&Path::new("logs").join(file_name), file_options)
             .into_future()
-            .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))
+            .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))
             .and_then(move |_| {
                 pull_logs(&runtime, &module_name, &log_options, zip_writer).map(move |zw| {
                     println!("Wrote {} logs to file", module_name);
@@ -159,6 +165,7 @@ where
                         runtime,
                         log_options,
                         include_ms_only,
+                        iothub_hostname,
                         file_options,
                         zip_writer: zw,
                     }
@@ -176,7 +183,7 @@ where
 
         #[cfg(unix)]
         let inspect = ShellCommand::new("journalctl")
-            .args(&["-u", "iotedge"])
+            .args(&["-u", "-a", "iotedge"])
             .args(&["-S", &since])
             .arg("--no-pager")
             .output();
@@ -217,34 +224,39 @@ where
         state
             .zip_writer
             .start_file_from_path(&Path::new("logs").join(file_name), state.file_options)
-            .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))?;
+            .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         state
             .zip_writer
             .write(&output)
-            .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))?;
+            .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         Ok(state)
     }
 
     fn write_check_to_file(mut state: BundleState<M>) -> Result<BundleState<M>, Error> {
-        let iotedge = env::args().into_iter().nth(0).unwrap();
+        let iotedge = env::args().nth(0).unwrap();
         println!("Calling iotedge check");
-        let check = ShellCommand::new(iotedge)
-            .arg("check")
-            .args(&["-o", "json"])
+
+        let mut check = ShellCommand::new(iotedge);
+        check.arg("check").args(&["-o", "json"]);
+
+        if let Some(host_name) = state.iothub_hostname.clone() {
+            check.args(&["--iothub-hostname", &host_name]);
+        }
+        let check = check
             .output()
-            .map_err(|err| Error::from(err.context(ErrorKind::BundleCheck)))?;
+            .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         state
             .zip_writer
             .start_file_from_path(&Path::new("check.json"), state.file_options)
-            .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))?;
+            .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         state
             .zip_writer
             .write(&check.stdout)
-            .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))?;
+            .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         println!("Wrote check output to file");
         Ok(state)
@@ -257,6 +269,12 @@ where
         println!("Running docker inspect for {}", module_name);
         let mut inspect = ShellCommand::new("docker");
 
+        /***
+         * Note: this assumes using windows containers on a windows machine.
+         * This is the expected production scenario.
+         * Since the bundle command does not read the config.yaml, it will fail if Linux containers are used.
+         * This will not fail the bundle, only note the failure to the user and in the bundle.
+         */
         #[cfg(windows)]
         inspect.args(&["-H", "npipe://./pipe/iotedge_moby_engine"]);
 
@@ -284,12 +302,12 @@ where
         state
             .zip_writer
             .start_file_from_path(&Path::new(&file_name), state.file_options)
-            .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))?;
+            .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         state
             .zip_writer
             .write(&output)
-            .map_err(|err| Error::from(err.context(ErrorKind::WriteToFile)))?;
+            .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         Ok(state)
     }
@@ -345,6 +363,7 @@ mod tests {
             LogOptions::default(),
             OsString::from(file_path.to_owned()),
             false,
+            Some("".to_owned()),
             runtime,
         );
 
@@ -364,6 +383,7 @@ mod tests {
             LogOptions::default(),
             OsString::from(file_path),
             false,
+            Some("".to_owned()),
             runtime,
         );
 
@@ -393,6 +413,7 @@ mod tests {
             LogOptions::default(),
             OsString::from(file_path.to_owned()),
             false,
+            Some("".to_owned()),
             runtime,
         );
 
