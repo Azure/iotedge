@@ -173,6 +173,7 @@ where
             Utc,
         );
 
+        //TODO: windows case
         let inspect = ShellCommand::new("journalctl")
             .args(&["-u", "iotedge"])
             .args(&["-S", &since_time.format("%F %T").to_string()])

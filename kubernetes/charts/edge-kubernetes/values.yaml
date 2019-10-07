@@ -89,5 +89,9 @@ edgeAgent:
 #     username: '<USERNAME>'
 #     password: '<PASSWORD>'
 
+# TODO: Re-enable edge-deployment-crd dependency when namespace specific CRD is supported in Helm
+edge-kubernetes-crd:
+  enabled: false
+
 # Azure IoT Hub device connection string
 deviceConnectionString: '<ADD DEVICE CONNECTION STRING HERE>'
