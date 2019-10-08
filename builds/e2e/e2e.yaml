@@ -96,7 +96,6 @@ jobs:
         - agent-osbits -equals 64
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals ARM
-        - run-stress -equals true
 
     variables:
       os: linux
