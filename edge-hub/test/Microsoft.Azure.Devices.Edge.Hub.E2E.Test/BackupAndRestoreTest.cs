@@ -62,70 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         [MemberData(nameof(TestSettings.AmqpTransportTestSettings), MemberType = typeof(TestSettings))]
         async Task BackupAndRestoreMessageDeliveryTest(ITransportSettings[] transportSettings)
         {
-            ProtocolHeadFixture protocolHeadFixture = this.edgeHubFixture.GetFixture();
-            int messagesCount = 10;
-            TestModule sender = null;
-            TestModule receiver = null;
-
-            string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
-            IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
-
-            try
-            {
-                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", transportSettings);
-
-                // Send 10 messages before a receiver is registered.
-                Task<int> task1 = sender.SendMessagesByCountAsync("output1", 0, messagesCount, TimeSpan.FromMinutes(2));
-                int sentMessagesCount = await task1;
-                Assert.Equal(messagesCount, sentMessagesCount);
-
-                // Wait for a while and then close the test fixture which will in turn close the protocol heads and the in-memory DB store thus creating a backup.
-                await Task.Delay(TimeSpan.FromSeconds(5));
-                await protocolHeadFixture.CloseAsync();
-
-                // Get new fixture to re-initialize the edge hub container.
-                protocolHeadFixture = this.edgeHubFixture.GetFixture();
-
-                receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", transportSettings);
-                await receiver.SetupReceiveMessageHandler();
-
-                // Send 10 more messages after the receiver is registered.
-                Task<int> task2 = sender.SendMessagesByCountAsync("output1", messagesCount, messagesCount, TimeSpan.FromMinutes(2));
-                sentMessagesCount = await task2;
-                Assert.Equal(messagesCount, sentMessagesCount);
-
-                // Validate that all the messages were received (both sent earlier and the new messages).
-                await Task.Delay(TimeSpan.FromSeconds(5));
-                ISet<int> receivedMessages = receiver.GetReceivedMessageIndices();
-
-                Assert.Equal(messagesCount * 2, receivedMessages.Count);
-            }
-            finally
-            {
-                if (rm != null)
-                {
-                    await rm.CloseAsync();
-                    rm.Dispose();
-                }
-
-                if (sender != null)
-                {
-                    await sender.Disconnect();
-                    sender.Dispose();
-                }
-
-                if (receiver != null)
-                {
-                    await receiver.Disconnect();
-                    receiver.Dispose();
-                }
-
-                await protocolHeadFixture.CloseAsync();
-            }
-
-            // wait for the connection to be closed on the Edge side
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            await this.BackupAndRestoreMessageDeliveryTestBase(transportSettings, 10, 10, 20, () => { });
         }
 
         [Theory]
@@ -133,177 +70,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         async Task BackupAndRestoreLargeBackupSizeTest(ITransportSettings[] transportSettings)
         {
             int.TryParse(ConfigHelper.TestConfig["BackupAndRestoreLargeBackupSize_MessagesCount_SingleSender"], out int messagesCount);
-
-            ProtocolHeadFixture protocolHeadFixture = this.edgeHubFixture.GetFixture();
-            TestModule sender = null;
-            TestModule receiver = null;
-
-            string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
-            IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
-
-            try
-            {
-                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", transportSettings);
-
-                // Send a large number of messages before a receiver is registered.
-                Task<int> task1 = sender.SendMessagesByCountAsync("output1", 0, messagesCount, TimeSpan.FromMinutes(10));
-                int sentMessagesCount = await task1;
-                Assert.Equal(messagesCount, sentMessagesCount);
-
-                // Wait for a while and then close the test fixture which will in turn close the protocol heads and the in-memory DB store thus creating a backup.
-                await Task.Delay(TimeSpan.FromSeconds(20));
-                await protocolHeadFixture.CloseAsync();
-
-                // Get new fixture to re-initialize the edge hub container.
-                protocolHeadFixture = this.edgeHubFixture.GetFixture();
-
-                receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", transportSettings);
-                await receiver.SetupReceiveMessageHandler();
-
-                // Send 10 more messages after the receiver is registered.
-                int newMessagesCount = 10;
-                Task<int> task2 = sender.SendMessagesByCountAsync("output1", messagesCount, newMessagesCount, TimeSpan.FromMinutes(2));
-                sentMessagesCount = await task2;
-                Assert.Equal(newMessagesCount, sentMessagesCount);
-
-                // Validate that all the messages were received (both sent earlier and the new messages).
-                await Task.Delay(TimeSpan.FromMinutes(8));
-                ISet<int> receivedMessages = receiver.GetReceivedMessageIndices();
-
-                Assert.Equal(messagesCount + newMessagesCount, receivedMessages.Count);
-            }
-            finally
-            {
-                if (rm != null)
-                {
-                    await rm.CloseAsync();
-                    rm.Dispose();
-                }
-
-                if (sender != null)
-                {
-                    await sender.Disconnect();
-                    sender.Dispose();
-                }
-
-                if (receiver != null)
-                {
-                    await receiver.Disconnect();
-                    receiver.Dispose();
-                }
-
-                await protocolHeadFixture.CloseAsync();
-            }
-
-            // wait for the connection to be closed on the Edge side
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            await this.BackupAndRestoreMessageDeliveryTestBase(transportSettings, messagesCount, 10, messagesCount + 10, () => { });
         }
 
         [Theory]
         [MemberData(nameof(TestSettings.AmqpTransportTestSettings), MemberType = typeof(TestSettings))]
         async Task BackupAndRestoreCorruptBackupMetadataTest(ITransportSettings[] transportSettings)
         {
-            ProtocolHeadFixture protocolHeadFixture = this.edgeHubFixture.GetFixture();
-            int messagesCount = 10;
-            TestModule sender = null;
-            TestModule receiver = null;
-
-            string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
-            IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
-
-            try
+            Action corruptBackupMetadata = () =>
             {
-                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", transportSettings);
-
-                // Send 10 messages before a receiver is registered.
-                Task<int> task1 = sender.SendMessagesByCountAsync("output1", 0, messagesCount, TimeSpan.FromMinutes(2));
-                int sentMessagesCount = await task1;
-                Assert.Equal(messagesCount, sentMessagesCount);
-
-                // Wait for a while and then close the test fixture which will in turn close the protocol heads and the in-memory DB store thus creating a backup.
-                await Task.Delay(TimeSpan.FromSeconds(5));
-                await protocolHeadFixture.CloseAsync();
-
                 // Corrupt the backup metadata.
                 using (FileStream file = File.OpenWrite(Path.Combine(this.backupFolder, "meta.json")))
                 {
                     file.Write(new byte[] { 1, 2 }, 1, 1);
                 }
-
-                // Get new fixture to re-initialize the edge hub container.
-                protocolHeadFixture = this.edgeHubFixture.GetFixture();
-
-                receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", transportSettings);
-                await receiver.SetupReceiveMessageHandler();
-
-                // Send 10 more messages after the receiver is registered.
-                int newMessagesCount = 15;
-                Task<int> task2 = sender.SendMessagesByCountAsync("output1", messagesCount, newMessagesCount, TimeSpan.FromMinutes(2));
-                sentMessagesCount = await task2;
-                Assert.Equal(newMessagesCount, sentMessagesCount);
-
-                // Validate that only the new messages were received.
-                await Task.Delay(TimeSpan.FromSeconds(5));
-                ISet<int> receivedMessages = receiver.GetReceivedMessageIndices();
-
-                Assert.Equal(newMessagesCount, receivedMessages.Count);
-            }
-            finally
-            {
-                if (rm != null)
-                {
-                    await rm.CloseAsync();
-                    rm.Dispose();
-                }
-
-                if (sender != null)
-                {
-                    await sender.Disconnect();
-                    sender.Dispose();
-                }
-
-                if (receiver != null)
-                {
-                    await receiver.Disconnect();
-                    receiver.Dispose();
-                }
-
-                await protocolHeadFixture.CloseAsync();
-            }
-
-            // wait for the connection to be closed on the Edge side
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            };
+            
+            await this.BackupAndRestoreMessageDeliveryTestBase(transportSettings, 15, 10, 10, corruptBackupMetadata);
         }
 
         [Theory]
         [MemberData(nameof(TestSettings.AmqpTransportTestSettings), MemberType = typeof(TestSettings))]
         async Task BackupAndRestoreCorruptBackupDataTest(ITransportSettings[] transportSettings)
         {
-            ProtocolHeadFixture protocolHeadFixture = this.edgeHubFixture.GetFixture();
-            int messagesCount = 10;
-            TestModule sender = null;
-            TestModule receiver = null;
-
-            string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
-            IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
-            RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
-
-            try
+            Action corruptBackupMetadata = () =>
             {
-                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", transportSettings);
-
-                // Send 10 messages before a receiver is registered.
-                Task<int> task1 = sender.SendMessagesByCountAsync("output1", 0, messagesCount, TimeSpan.FromMinutes(2));
-                int sentMessagesCount = await task1;
-                Assert.Equal(messagesCount, sentMessagesCount);
-
-                // Wait for a while and then close the test fixture which will in turn close the protocol heads and the in-memory DB store thus creating a backup.
-                await Task.Delay(TimeSpan.FromSeconds(5));
-                await protocolHeadFixture.CloseAsync();
-
-                // Corrupt the backup metadata.
+                // Corrupt the backup data.
                 DirectoryInfo[] directories = new DirectoryInfo(this.backupFolder).GetDirectories();
                 DirectoryInfo newBackupDir = directories.Where(x => x.GetFiles().Count() > 0).ToArray()[0];
                 FileInfo someBackupFile = newBackupDir.GetFiles()[0];
@@ -311,55 +103,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 {
                     file.Write(new byte[] { 1, 2 }, 1, 1);
                 }
+            };
 
-                // Get new fixture to re-initialize the edge hub container.
-                protocolHeadFixture = this.edgeHubFixture.GetFixture();
-
-                receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", transportSettings);
-                await receiver.SetupReceiveMessageHandler();
-
-                // Send 10 more messages after the receiver is registered.
-                int newMessagesCount = 15;
-                Task<int> task2 = sender.SendMessagesByCountAsync("output1", messagesCount, newMessagesCount, TimeSpan.FromMinutes(2));
-                sentMessagesCount = await task2;
-                Assert.Equal(newMessagesCount, sentMessagesCount);
-
-                // Validate that only the new messages were received.
-                await Task.Delay(TimeSpan.FromSeconds(5));
-                ISet<int> receivedMessages = receiver.GetReceivedMessageIndices();
-
-                Assert.Equal(newMessagesCount, receivedMessages.Count);
-            }
-            finally
-            {
-                if (rm != null)
-                {
-                    await rm.CloseAsync();
-                    rm.Dispose();
-                }
-
-                if (sender != null)
-                {
-                    await sender.Disconnect();
-                    sender.Dispose();
-                }
-
-                if (receiver != null)
-                {
-                    await receiver.Disconnect();
-                    receiver.Dispose();
-                }
-
-                await protocolHeadFixture.CloseAsync();
-            }
-
-            // wait for the connection to be closed on the Edge side
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            await this.BackupAndRestoreMessageDeliveryTestBase(transportSettings, 15, 10, 10, corruptBackupMetadata);
         }
 
         async Task BackupAndRestoreMessageDeliveryTestBase(
             ITransportSettings[] transportSettings,
-            int initialMessageCount,
+            int beforeBackupMessageCount,
+            int afterBackupMessageCount,
             int expectedMessageCountAfterRestore,
             Action postBackupModifier)
         {
@@ -376,9 +128,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", transportSettings);
 
                 // Send 10 messages before a receiver is registered.
-                Task<int> task1 = sender.SendMessagesByCountAsync("output1", 0, initialMessageCount, TimeSpan.FromMinutes(10));
+                Task<int> task1 = sender.SendMessagesByCountAsync("output1", 0, beforeBackupMessageCount, TimeSpan.FromMinutes(10));
                 int sentMessagesCount = await task1;
-                Assert.Equal(initialMessageCount, sentMessagesCount);
+                Assert.Equal(beforeBackupMessageCount, sentMessagesCount);
 
                 // Wait for a while and then close the test fixture which will in turn close the protocol heads and the in-memory DB store thus creating a backup.
                 await Task.Delay(TimeSpan.FromSeconds(5));
@@ -392,11 +144,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", transportSettings);
                 await receiver.SetupReceiveMessageHandler();
 
-                // Send 10 more messages after the receiver is registered.
-                int newMessageCount = 10;
-                Task<int> task2 = sender.SendMessagesByCountAsync("output1", initialMessageCount, newMessageCount, TimeSpan.FromMinutes(2));
+                // Send more messages after the receiver is registered.
+                Task<int> task2 = sender.SendMessagesByCountAsync("output1", beforeBackupMessageCount, afterBackupMessageCount, TimeSpan.FromMinutes(2));
                 sentMessagesCount = await task2;
-                Assert.Equal(newMessageCount, sentMessagesCount);
+                Assert.Equal(afterBackupMessageCount, sentMessagesCount);
 
                 // Validate that all the messages were received (both sent earlier and the new messages).
                 await Task.Delay(TimeSpan.FromSeconds(5));
