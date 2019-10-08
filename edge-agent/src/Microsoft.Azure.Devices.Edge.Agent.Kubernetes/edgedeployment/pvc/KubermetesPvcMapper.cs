@@ -21,14 +21,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
         {
             this.persistentVolumeName = Option.Maybe(persistentVolumeName)
                 .Filter(p => !string.IsNullOrWhiteSpace(p));
-            this.storageClassName = Option.Maybe(storageClassName)
-                .Filter(s => !string.IsNullOrWhiteSpace(s));
+            this.storageClassName = Option.Maybe(storageClassName);
             this.persistentVolumeClaimSizeMb = persistentVolumeClaimSizeMb;
         }
 
         public Option<List<V1PersistentVolumeClaim>> CreatePersistentVolumeClaims(KubernetesModule module, IDictionary<string, string> labels) =>
             module.Config.CreateOptions.HostConfig
-                .Map(hostConfig => hostConfig.Mounts.Where(this.ShouldCreatePvc).Select(mount => this.ExtractPvc(mount, labels)).ToList())
+                .FlatMap(hostConfig => Option.Maybe(hostConfig.Mounts))
+                .Map(mounts => mounts.Where(this.ShouldCreatePvc).Select(mount => this.ExtractPvc(mount, labels)).ToList())
                 .Filter(mounts => mounts.Any());
 
         bool ShouldCreatePvc(Mount mount)

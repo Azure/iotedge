@@ -44,6 +44,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
                 }
             }
         };
+        static readonly HostConfig VolumeNullMount = new HostConfig()
+        {
+            Mounts = null
+        };
         static readonly Dictionary<string, string> DefaultLabels = new Dictionary<string, string>
         {
             [KubernetesConstants.K8sEdgeDeviceLabel] = KubeUtils.SanitizeLabelValue("device1"),
@@ -51,12 +55,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
         };
 
         [Fact]
+        public void NullMountsNoClaims()
+        {
+            var config = new KubernetesConfig("image", CreateOptions(hostConfig: VolumeNullMount), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
+            var module = new KubernetesModule(docker, config);
+            var mapper = new KubernetesPvcMapper(string.Empty, "storage", 1);
+
+            var pvcs = mapper.CreatePersistentVolumeClaims(module, DefaultLabels);
+
+            Assert.False(pvcs.HasValue);
+        }
+
+        [Fact]
         public void NoMountsNoclaims()
         {
             var config = new KubernetesConfig("image", CreateOptions(), Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
             var module = new KubernetesModule(docker, config);
-            var mapper = new KubernetesPvcMapper(string.Empty, string.Empty, 0);
+            var mapper = new KubernetesPvcMapper(string.Empty, "storage", 1);
 
             var pvcs = mapper.CreatePersistentVolumeClaims(module, DefaultLabels);
 
@@ -69,11 +86,55 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
             var config = new KubernetesConfig("image", CreateOptions(hostConfig: VolumeMountHostConfig), Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
             var module = new KubernetesModule(docker, config);
-            var mapper = new KubernetesPvcMapper(string.Empty, string.Empty, 0);
+            var mapper = new KubernetesPvcMapper(null, null, 0);
 
             var pvcs = mapper.CreatePersistentVolumeClaims(module, DefaultLabels);
 
             Assert.False(pvcs.HasValue);
+        }
+
+        [Fact]
+        public void EmptyDirMappingForVolume2()
+        {
+            var config = new KubernetesConfig("image", CreateOptions(hostConfig: VolumeMountHostConfig), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
+            var module = new KubernetesModule(docker, config);
+            var mapper = new KubernetesPvcMapper(string.Empty, null, 0);
+
+            var pvcs = mapper.CreatePersistentVolumeClaims(module, DefaultLabels);
+
+            Assert.False(pvcs.HasValue);
+        }
+
+        [Fact]
+        public void DefaultStorageClassMappingForVolume()
+        {
+            var config = new KubernetesConfig("image", CreateOptions(hostConfig: VolumeMountHostConfig), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
+            var module = new KubernetesModule(docker, config);
+            var mapper = new KubernetesPvcMapper(string.Empty, string.Empty, 10);
+            var resourceQuantity = new ResourceQuantity("10Mi");
+
+            var pvcs = mapper.CreatePersistentVolumeClaims(module, DefaultLabels);
+
+            Assert.True(pvcs.HasValue);
+            var pvcList = pvcs.OrDefault();
+            Assert.True(pvcList.Any());
+            Assert.Equal(2, pvcList.Count);
+
+            var aVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == "a-volume");
+            Assert.True(aVolumeClaim.Metadata.Labels.SequenceEqual(DefaultLabels));
+            Assert.Equal("ReadOnlyMany", aVolumeClaim.Spec.AccessModes[0]);
+            Assert.Null(aVolumeClaim.Spec.VolumeName);
+            Assert.Equal(string.Empty, aVolumeClaim.Spec.StorageClassName);
+            Assert.Equal(resourceQuantity, aVolumeClaim.Spec.Resources.Requests["storage"]);
+
+            var bVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == "b-volume");
+            Assert.True(bVolumeClaim.Metadata.Labels.SequenceEqual(DefaultLabels));
+            Assert.Equal("ReadWriteMany", bVolumeClaim.Spec.AccessModes[0]);
+            Assert.Null(bVolumeClaim.Spec.VolumeName);
+            Assert.Equal(string.Empty, bVolumeClaim.Spec.StorageClassName);
+            Assert.Equal(resourceQuantity, bVolumeClaim.Spec.Resources.Requests["storage"]);
         }
 
         [Fact]

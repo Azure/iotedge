@@ -60,8 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             this.proxyTrustBundleConfigMapName = proxyTrustBundleConfigMapName;
             this.persistentVolumeName = Option.Maybe(persistentVolumeName)
                 .Filter(p => !string.IsNullOrWhiteSpace(p));
-            this.storageClassName = Option.Maybe(storageClassName)
-                .Filter(s => !string.IsNullOrWhiteSpace(s));
+            this.storageClassName = Option.Maybe(storageClassName);
             this.workloadApiVersion = workloadApiVersion;
             this.workloadUri = workloadUri;
             this.managementUri = managementUri;
