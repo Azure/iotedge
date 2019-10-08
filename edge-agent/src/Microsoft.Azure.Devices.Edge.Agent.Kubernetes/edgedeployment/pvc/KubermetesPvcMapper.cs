@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
             {
                 // What happens if the PV access mode is not compatible with the access we're requesting?
                 // Deployment will be created and will be in a failed state. The user will see this as
-                // module running == false. 
+                // module running == false.
                 AccessModes = new List<string> { readOnly ? "ReadOnlyMany" : "ReadWriteMany" },
                 Resources = new V1ResourceRequirements()
                 {
