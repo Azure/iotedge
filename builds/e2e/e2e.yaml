@@ -92,7 +92,7 @@ jobs:
       name: $(pool.name)
       demands:
         - sh
-        - run-e2e-tests -equals true
+        - stealingThisToRunNewE2E -equals true
         - agent-osbits -equals 64
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals ARM
