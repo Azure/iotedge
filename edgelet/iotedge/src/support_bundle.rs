@@ -297,6 +297,7 @@ where
             .write(&output)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
+        drop(module_name);
         Ok(state)
     }
 }
