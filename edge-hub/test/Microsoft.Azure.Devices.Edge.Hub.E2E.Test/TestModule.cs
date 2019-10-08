@@ -14,11 +14,39 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         readonly ModuleClient moduleClient;
         readonly IDictionary<string, ISet<int>> receivedForInput;
         IList<MethodRequest> receivedMethodRequests;
+        bool disposed = false;
 
         TestModule(ModuleClient moduleClient)
         {
             this.moduleClient = moduleClient;
             this.receivedForInput = new Dictionary<string, ISet<int>>();
+        }
+
+        ~TestModule()
+        {
+            Dispose(false);
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        public void Dispose(bool disposing)
+        {
+            Console.WriteLine("Dispose edge hub fix");
+            if (disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                this.moduleClient?.Dispose();
+            }
+
+            disposed = true;
         }
 
         public static async Task<TestModule> CreateAndConnect(string connectionString, ITransportSettings[] settings)
@@ -103,6 +131,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             for (; i < startIndex + count && s.Elapsed < duration; i++)
             {
                 await this.moduleClient.SendEventAsync(output, this.GetMessage(i.ToString()));
+
+                //Message m = this.GetMessage(i.ToString());
+                //this.moduleClient.SendEventAsync(output, m).Wait();
+
                 await Task.Delay(sleepTime);
             }
 

@@ -94,7 +94,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
                 this.CleanupAllBackups(this.backupPath);
             }
-            catch (IOException exception)
+            catch (Exception exception) when (
+            exception is IOException
+            || exception is JsonException)
             {
                 this.events.RestoreFailure($"The restore operation failed with error ${exception}.");
 
@@ -165,7 +167,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 // Clean any old backups.
                 this.CleanupUnknownBackups(this.backupPath, backupMetadataList);
             }
-            catch (IOException exception)
+            catch (Exception exception) when (
+            exception is IOException
+            || exception is JsonException)
             {
                 this.events.BackupFailure($"The backup operation failed with error ${exception}.");
 

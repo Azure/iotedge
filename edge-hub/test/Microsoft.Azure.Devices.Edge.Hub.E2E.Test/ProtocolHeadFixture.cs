@@ -31,6 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         public void Dispose()
         {
+            Console.WriteLine("Dispose phf fix");
             this.internalFixture?.Dispose();
         }
 
@@ -122,6 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                 if (disposing)
                 {
+                    this.CloseAsync().Wait();
                     this.protocolHead?.Dispose();
                     this.hosting?.Container?.Dispose();
                 }

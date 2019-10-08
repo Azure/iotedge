@@ -195,6 +195,61 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             IsDirectoryEmpty(this.backupFolder);
         }
 
+        [Fact]
+        public async Task RestoreCorruptMetadataFailureTest()
+        {
+            var dbStoreBackupRestore = new Mock<IDbStoreBackupRestore>();
+            var dbStoreProvider = new Mock<IDbStoreProvider>();
+
+            IDbStoreProvider dbStoreProviderWithBackupRestore =
+                await DbStoreProviderWithBackupRestore.CreateAsync(dbStoreProvider.Object, this.backupFolder, dbStoreBackupRestore.Object, SerializationFormat.ProtoBuf);
+
+            dbStoreProvider.Setup(x => x.GetDbStore()).Returns(Mock.Of<IDbStore>());
+            dbStoreProvider.Setup(x => x.GetDbStore(It.IsAny<string>())).Returns(Mock.Of<IDbStore>());
+
+            // Get default DB store.
+            dbStoreProviderWithBackupRestore.GetDbStore();
+
+            // Create custom DB stores.
+            string[] storeNames = new[] { "store1", "store2", "store3" };
+            storeNames.Select(x => dbStoreProviderWithBackupRestore.GetDbStore(x)).ToList();
+
+            // Close the DB store provider now. This should execute the backup operations.
+            await dbStoreProviderWithBackupRestore.CloseAsync();
+
+            // Assert that all the remaining stores created above were backed up.
+            dbStoreBackupRestore.Verify(m => m.BackupAsync(It.IsAny<string>(), It.IsAny<IDbStore>(), It.IsAny<string>()), Times.Exactly(storeNames.Length + 1));
+
+            ValidateBackupArtifacts(this.backupFolder);
+
+            // Create mock directories in the backup folder to test if the restore failure operation cleans up all artifacts or not.
+            IList<DirectoryInfo> mockBackupDirectories = new List<DirectoryInfo>(2);
+            for (int i = 0; i < 2; i++)
+            {
+                mockBackupDirectories.Add(Directory.CreateDirectory(Path.Combine(this.backupFolder, Guid.NewGuid().ToString())));
+            }
+
+            // Corrupt the backup metadata.
+            using (FileStream file = File.OpenWrite(Path.Combine(this.backupFolder, "meta.json")))
+            {
+                file.Write(new byte[] { 1, 2 }, 1, 1);
+            }
+
+            // Test restore failure.
+            dbStoreProviderWithBackupRestore =
+                await DbStoreProviderWithBackupRestore.CreateAsync(dbStoreProvider.Object, this.backupFolder, dbStoreBackupRestore.Object, SerializationFormat.ProtoBuf);
+
+            // No attempts to restore a DB should have been made as the metadata itself was bad.
+            dbStoreBackupRestore.Verify(m => m.RestoreAsync(It.IsAny<string>(), It.IsAny<IDbStore>(), It.IsAny<string>()), Times.Never);
+
+            // Attempts to remove only the default DB stores should have been made.
+            dbStoreProvider.Verify(x => x.RemoveDbStore(), Times.Once);
+            dbStoreProvider.Verify(x => x.RemoveDbStore(It.IsAny<string>()), Times.Never);
+
+            // All backups should be deleted after a successful restore.
+            IsDirectoryEmpty(this.backupFolder);
+        }
+
         static bool IsDirectoryEmpty(string path)
         {
             DirectoryInfo dirInfo = new DirectoryInfo(path);
