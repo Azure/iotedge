@@ -189,24 +189,13 @@ where
             .output();
 
         #[cfg(windows)]
-        let inspect = ShellCommand::new("Get-WinEvent")
-            .args(&[
-                "-ea",
-                "SilentlyContinue",
-                "-FilterHashtable",
-                &format!(
-                    "@{{ProviderName='iotedged';LogName='application';StartTime={}}}",
-                    since
-                ),
-                "Select",
-                "TimeCreated",
-                "Message",
-                "Sort-Object",
-                "@{Expression='TimeCreated';Descending=$false}",
-                "Format-Table",
-                "-AutoSize",
-                "-Wrap",
-            ])
+         let inspect = ShellCommand::new("powershell.exe")
+            .arg("-Command")
+            .arg("-NoProfile")
+            .arg(&format!(r"Get-WinEvent -ea SilentlyContinue -FilterHashtable @{{ProviderName='iotedged';LogName='application';StartTime='{}'}} |
+                            Select TimeCreated, Message |
+                            Sort-Object @{{Expression='TimeCreated';Descending=$false}} |
+                            Format-Table -AutoSize -Wrap", since))
             .output();
 
         let (file_name, output) = if let Ok(result) = inspect {
@@ -276,7 +265,7 @@ where
          * This will not fail the bundle, only note the failure to the user and in the bundle.
          */
         #[cfg(windows)]
-        inspect.args(&["-H", "npipe://./pipe/iotedge_moby_engine"]);
+        inspect.args(&["-H", "npipe:////./pipe/iotedge_moby_engine"]);
 
         inspect.arg("inspect").arg(&module_name);
         let inspect = inspect.output();
