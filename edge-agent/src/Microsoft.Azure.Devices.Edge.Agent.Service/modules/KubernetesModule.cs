@@ -206,11 +206,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
             // KubernetesDeploymentProvider
             builder.Register(
-                    c =>
-                    {
-                        bool usePvc = !(string.IsNullOrWhiteSpace(this.persistentVolumeName) &&
-                                        string.IsNullOrWhiteSpace(this.storageClassName));
-                        return new KubernetesDeploymentMapper(
+                    c => new KubernetesDeploymentMapper(
                             this.deviceNamespace,
                             this.edgeDeviceHostName,
                             this.proxyImage,
@@ -220,11 +216,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             this.proxyTrustBundlePath,
                             this.proxyTrustBundleVolumeName,
                             this.proxyTrustBundleConfigMapName,
-                            usePvc,
+                            this.persistentVolumeName,
+                            this.storageClassName,
                             this.apiVersion,
                             this.workloadUri,
-                            this.managementUri);
-                    })
+                            this.managementUri))
                 .As<IKubernetesDeploymentMapper>();
 
             // KubernetesServiceProvider

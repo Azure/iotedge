@@ -27,7 +27,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
         readonly string proxyTrustBundlePath;
         readonly string proxyTrustBundleVolumeName;
         readonly string proxyTrustBundleConfigMapName;
-        readonly bool usePvc;
+        readonly Option<string> persistentVolumeName;
+        readonly Option<string> storageClassName;
         readonly string workloadApiVersion;
         readonly Uri workloadUri;
         readonly Uri managementUri;
@@ -42,7 +43,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             string proxyTrustBundlePath,
             string proxyTrustBundleVolumeName,
             string proxyTrustBundleConfigMapName,
-            bool usePvc,
+            string persistentVolumeName,
+            string storageClassName,
             string workloadApiVersion,
             Uri workloadUri,
             Uri managementUri)
@@ -56,7 +58,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             this.proxyTrustBundlePath = proxyTrustBundlePath;
             this.proxyTrustBundleVolumeName = proxyTrustBundleVolumeName;
             this.proxyTrustBundleConfigMapName = proxyTrustBundleConfigMapName;
-            this.usePvc = usePvc;
+            this.persistentVolumeName = Option.Maybe(persistentVolumeName)
+                .Filter(p => !string.IsNullOrWhiteSpace(p));
+            this.storageClassName = Option.Maybe(storageClassName)
+                .Filter(s => !string.IsNullOrWhiteSpace(s));
             this.workloadApiVersion = workloadApiVersion;
             this.workloadUri = workloadUri;
             this.managementUri = managementUri;
@@ -252,7 +257,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
         V1Volume GetVolume(Mount mount)
         {
             string name = KubeUtils.SanitizeDNSValue(mount.Source);
-            if (this.usePvc)
+            if (this.ShouldUsePvc())
             {
                 string mountPath = mount.Target;
                 bool readOnly = mount.ReadOnly;
@@ -262,6 +267,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             {
                 return new V1Volume(name, emptyDir: new V1EmptyDirVolumeSource());
             }
+        }
+
+        bool ShouldUsePvc()
+        {
+            return this.persistentVolumeName.HasValue || this.storageClassName.HasValue;
         }
     }
 }
