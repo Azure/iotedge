@@ -30,6 +30,9 @@ jobs:
         # cleanup of root-owned files ourselves (anything created during
         # `sudo dotnet vstest ...`)
         sudo git clean -ffdx . || true
+        echo "Who am I: " $(whoami)
+        echo "My Path: " $PATH
+        echo "pwsh: " $(which pwsh)
 
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
