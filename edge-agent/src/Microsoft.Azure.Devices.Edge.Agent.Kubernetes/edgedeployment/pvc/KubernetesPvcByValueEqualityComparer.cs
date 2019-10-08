@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using k8s.Models;
@@ -62,6 +63,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
             }
         }
 
-        public int GetHashCode(V1PersistentVolumeClaim obj) => obj.GetHashCode();
+        public int GetHashCode(V1PersistentVolumeClaim obj)
+        {
+            unchecked
+            {
+                int hashCode = obj.Spec?.AccessModes != null ? obj.Spec.AccessModes.GetHashCode() : 0;
+                hashCode = (hashCode * 397) ^ (obj.Metadata?.Name != null ? obj.Metadata.Name.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (obj.Metadata?.Labels != null ? obj.Metadata.Labels.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (obj.Spec?.Resources != null ? obj.Spec.Resources.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (obj.Spec?.StorageClassName != null ? obj.Spec.StorageClassName.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (obj.Spec?.VolumeName != null ? obj.Spec.VolumeName.GetHashCode() : 0);
+                return hashCode;
+            }
+        }
     }
 }
