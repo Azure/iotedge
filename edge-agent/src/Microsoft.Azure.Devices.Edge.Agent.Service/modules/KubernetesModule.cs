@@ -228,7 +228,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<IKubernetesServiceMapper>();
 
             builder.Register(c => new KubernetesPvcMapper(this.persistentVolumeName, this.storageClassName, this.persistentVolumeClaimSizeMb))
-            .As<IKubernetesPvcMapper>();
+                .As<IKubernetesPvcMapper>();
 
             // KubernetesServiceAccountProvider
             builder.Register(c => new KubernetesServiceAccountMapper())
