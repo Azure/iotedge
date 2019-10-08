@@ -245,10 +245,10 @@ impl DiskInfo {
                 "{:.1}%",
                 avaliable_space as f64 / total_space as f64 * 100.0
             ),
-            avaliable_space: Byte::from_bytes(avaliable_space as u128)
+            avaliable_space: Byte::from_bytes(u128::from(avaliable_space))
                 .get_appropriate_unit(true)
                 .format(2),
-            total_space: Byte::from_bytes(total_space as u128)
+            total_space: Byte::from_bytes(u128::from(total_space))
                 .get_appropriate_unit(true)
                 .format(2),
             file_system: str::from_utf8(disk.get_file_system()).unwrap().to_owned(),

@@ -204,7 +204,7 @@ where
     }
 
     fn write_check_to_file(mut state: BundleState<M>) -> Result<BundleState<M>, Error> {
-        let iotedge = env::args().into_iter().nth(0).unwrap();
+        let iotedge = env::args().nth(0).unwrap();
         println!("Calling iotedge check");
         let check = ShellCommand::new(iotedge)
             .arg("check")

@@ -24,7 +24,6 @@ impl Checker for WellFormedConfig {
     fn get_json(&self) -> serde_json::Value {
         serde_json::to_value(self).unwrap()
     }
-
 }
 impl WellFormedConfig {
     fn execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {

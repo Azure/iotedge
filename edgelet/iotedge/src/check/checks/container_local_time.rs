@@ -34,7 +34,7 @@ impl ContainerLocalTime {
         let expected_duration = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .context("Could not query local time of host")?;
-        self.expected_duration = Some(expected_duration.clone());
+        self.expected_duration = Some(expected_duration.to_owned());
 
         let output = super::container_engine_installed::docker(
             docker_host_arg,

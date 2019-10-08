@@ -10,8 +10,6 @@ use failure::Fail;
 use failure::{self, ResultExt};
 use futures::future::{self, FutureResult};
 use futures::{Future, IntoFuture, Stream};
-#[cfg(unix)]
-use libc;
 use serde_json;
 
 use edgelet_docker::Settings;
