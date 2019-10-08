@@ -92,7 +92,7 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
-        - sh -exists
+        - sh
         - agent-osbits -equals 64
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals ARM64
