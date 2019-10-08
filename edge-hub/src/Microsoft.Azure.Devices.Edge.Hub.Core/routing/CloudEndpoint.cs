@@ -161,8 +161,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                         succeeded.AddRange(res.Succeeded);
                         failed.AddRange(res.Failed);
                         invalid.AddRange(res.InvalidDetailsList);
-                        // Different branches could have different results, but only the first one will be reported
-                        if (!sendFailureDetails.HasValue)
+                        // Different branches could have different results, but only the most significant will be reported
+                        if (IsMoreSignificant(sendFailureDetails, res.SendFailureDetails))
                         {
                             sendFailureDetails = res.SendFailureDetails;
                         }
@@ -183,7 +183,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 var failed = new List<IRoutingMessage>();
                 var invalid = new List<InvalidDetails<IRoutingMessage>>();
                 Devices.Routing.Core.Util.Option<SendFailureDetails> sendFailureDetails =
-                    Option.None<SendFailureDetails>();
+                    Devices.Routing.Core.Util.Option.None<SendFailureDetails>();
 
                 // Find the maximum message size, and divide messages into largest batches
                 // not exceeding max allowed IoTHub message size.
@@ -195,7 +195,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     succeeded.AddRange(res.Succeeded);
                     failed.AddRange(res.Failed);
                     invalid.AddRange(res.InvalidDetailsList);
-                    sendFailureDetails = res.SendFailureDetails;
+
+                    if (IsMoreSignificant(sendFailureDetails, res.SendFailureDetails))
+                    {
+                        sendFailureDetails = res.SendFailureDetails;
+                    }
                 }
 
                 return new SinkResult<IRoutingMessage>(
@@ -203,6 +207,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     failed,
                     invalid,
                     sendFailureDetails.GetOrElse(null));
+            }
+
+            static bool IsMoreSignificant(Devices.Routing.Core.Util.Option<SendFailureDetails> baseDetails, Devices.Routing.Core.Util.Option<SendFailureDetails> currentDetails)
+            {
+                // whatever happend before, if no details now, that cannot be more significant
+                if (currentDetails == Devices.Routing.Core.Util.Option.None<SendFailureDetails>())
+                    return false;
+
+                // if something wrong happened now, but nothing before, then that is more significant
+                if (baseDetails == Devices.Routing.Core.Util.Option.None<SendFailureDetails>())
+                    return true;
+
+                // at this point something has happened before, as well as now. Pick the more significant
+                var baseUnwrapped = baseDetails.OrDefault();
+                var currentUnwrapped = currentDetails.OrDefault();
+
+                // in theory this case is represened by Option.None and handled earlier, but let's check it just for sure
+                if (currentUnwrapped.FailureKind == FailureKind.None)
+                    return false;
+
+                // Transient beats non-transient
+                if (baseUnwrapped.FailureKind != FailureKind.Transient && currentUnwrapped.FailureKind == FailureKind.Transient)
+                    return true;
+
+                return false;
             }
 
             async Task<ISinkResult<IRoutingMessage>> ProcessClientMessagesBatch(string id, List<IRoutingMessage> routingMessages, CancellationToken token)
