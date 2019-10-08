@@ -183,7 +183,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 var failed = new List<IRoutingMessage>();
                 var invalid = new List<InvalidDetails<IRoutingMessage>>();
                 Devices.Routing.Core.Util.Option<SendFailureDetails> sendFailureDetails =
-                    Option.None<SendFailureDetails>();
+                    Devices.Routing.Core.Util.Option.None<SendFailureDetails>();
 
                 // Find the maximum message size, and divide messages into largest batches
                 // not exceeding max allowed IoTHub message size.
@@ -209,19 +209,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     sendFailureDetails.GetOrElse(null));
             }
 
-            static bool IsMoreSignificant(Option<SendFailureDetails> baseDetails, Option<SendFailureDetails> currentDetails)
+            static bool IsMoreSignificant(Devices.Routing.Core.Util.Option<SendFailureDetails> baseDetails, Devices.Routing.Core.Util.Option<SendFailureDetails> currentDetails)
             {
                 // whatever happend before, if no details now, that cannot be more significant
-                if (currentDetails == Option.None<SendFailureDetails>())
+                if (currentDetails == Devices.Routing.Core.Util.Option.None<SendFailureDetails>())
                     return false;
 
                 // if something wrong happened now, but nothing before, then that is more significant
-                if (baseDetails == Option.None<SendFailureDetails>())
+                if (baseDetails == Devices.Routing.Core.Util.Option.None<SendFailureDetails>())
                     return true;
 
                 // at this point something has happened before, as well as now. Pick the more significant
-                var baseUnwrapped = baseDetails.Expect(ThrowBadProgramLogic);
-                var currentUnwrapped = currentDetails.Expect(ThrowBadProgramLogic);
+                var baseUnwrapped = baseDetails.OrDefault();
+                var currentUnwrapped = currentDetails.OrDefault();
 
                 // in theory this case is represened by Option.None and handled earlier, but let's check it just for sure
                 if (currentUnwrapped.FailureKind == FailureKind.None)
@@ -232,8 +232,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     return true;
 
                 return false;
-
-                InvalidOperationException ThrowBadProgramLogic() => new InvalidOperationException("Error in program logic, uwrapped Option<T> should have had value");
             }
 
             async Task<ISinkResult<IRoutingMessage>> ProcessClientMessagesBatch(string id, List<IRoutingMessage> routingMessages, CancellationToken token)

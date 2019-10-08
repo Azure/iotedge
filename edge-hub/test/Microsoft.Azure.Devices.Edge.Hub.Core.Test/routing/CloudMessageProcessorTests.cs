@@ -361,7 +361,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.Equal(3 * batchSize, sinkResult.Succeeded.Count);
             Assert.Equal(0, sinkResult.Failed.Count);
             Assert.Equal(0, sinkResult.InvalidDetailsList.Count);
-            Assert.Equal(Option.None<SendFailureDetails>(), sinkResult.SendFailureDetails);
+            Assert.Equal(Devices.Routing.Core.Util.Option.None<SendFailureDetails>(), sinkResult.SendFailureDetails);
         }
 
         [Fact]
@@ -391,7 +391,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.Equal(1 * batchSize, sinkResult.Failed.Count);
             Assert.Equal(0, sinkResult.InvalidDetailsList.Count);
             Assert.True(sinkResult.SendFailureDetails.HasValue);
-            Assert.Equal(FailureKind.Transient, sinkResult.SendFailureDetails.Expect(() => new Exception()).FailureKind);
+            Assert.Equal(FailureKind.Transient, sinkResult.SendFailureDetails.OrDefault().FailureKind);
         }
 
         [Fact]
@@ -424,7 +424,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.Equal(batchSize, sinkResult.Failed.Count);
             Assert.Equal(batchSize, sinkResult.InvalidDetailsList.Count);
             Assert.True(sinkResult.SendFailureDetails.HasValue);
-            Assert.Equal(FailureKind.Transient, sinkResult.SendFailureDetails.Expect(() => new Exception()).FailureKind);
+            Assert.Equal(FailureKind.Transient, sinkResult.SendFailureDetails.OrDefault().FailureKind);
         }
 
         [Fact]
@@ -457,7 +457,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.Equal(batchSize, sinkResult.Failed.Count);
             Assert.Equal(batchSize, sinkResult.InvalidDetailsList.Count);
             Assert.True(sinkResult.SendFailureDetails.HasValue);
-            Assert.Equal(FailureKind.Transient, sinkResult.SendFailureDetails.Expect(() => new Exception()).FailureKind);
+            Assert.Equal(FailureKind.Transient, sinkResult.SendFailureDetails.OrDefault().FailureKind);
         }
 
         [Theory]
