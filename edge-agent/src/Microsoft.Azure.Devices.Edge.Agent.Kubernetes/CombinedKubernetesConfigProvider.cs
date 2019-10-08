@@ -43,13 +43,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 dockerConfig.CreateOptions.ExposedPorts,
                 hostConfig,
                 dockerConfig.CreateOptions.Image,
-                dockerConfig.CreateOptions.Labels,
-                dockerConfig.CreateOptions.NetworkingConfig);
+                dockerConfig.CreateOptions.Labels);
 
             if (this.enableKubernetesExtensions)
             {
                 Option<KubernetesExperimentalCreatePodParameters> experimentalOptions = KubernetesExperimentalCreatePodParameters.Parse(dockerConfig.CreateOptions.OtherProperties);
-                // experimentalOptions.ForEach(parameters => createOptions.Volumes = parameters.Volumes);
+                experimentalOptions.ForEach(parameters => createOptions.Volumes = parameters.Volumes);
                 experimentalOptions.ForEach(parameters => createOptions.NodeSelector = parameters.NodeSelector);
                 experimentalOptions.ForEach(parameters => createOptions.Resources = parameters.Resources);
             }

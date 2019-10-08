@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
                 Identities,
             }
 
-            public static void PlanCreated(IList<ICommand> commands)
+            public static void PlanCreated(IReadOnlyList<ICommand> commands)
             {
                 Log.LogDebug((int)EventIds.PlanCreated, $"KubernetesPlanner created Plan, with {commands.Count} command(s).");
             }
