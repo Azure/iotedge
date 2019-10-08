@@ -53,8 +53,11 @@ pub struct ContainerConnectIotHub {
     iothub_hostname: Option<String>,
     network_name: Option<String>,
     diagnostics_image_name: Option<String>,
+    #[serde(skip)]
     id: &'static str,
+    #[serde(skip)]
     description: &'static str,
+    #[serde(skip)]
     use_container_runtime_network: bool,
 }
 impl Checker for ContainerConnectIotHub {
