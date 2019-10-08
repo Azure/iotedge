@@ -119,6 +119,14 @@ jobs:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
 
+    - bash: |
+        sudo rm -f /usr/local/bin/powershell
+        sudo rm -f /usr/bin/pwsh
+        sudo rm -rf ~/powershell
+        sudo apt-get purge libunwind8
+
+
+
 ################################################################################	
   - job: windows_amd64
 ################################################################################	
