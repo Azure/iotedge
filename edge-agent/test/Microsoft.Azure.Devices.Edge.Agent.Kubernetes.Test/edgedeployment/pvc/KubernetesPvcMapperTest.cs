@@ -4,10 +4,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using global::Docker.DotNet.Models;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
     using Moq;
     using Xunit;
 
-    using AgentModels = global::Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
+    using EmptyStruct = global::Docker.DotNet.Models.EmptyStruct;
     using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
     [Unit]
@@ -24,18 +24,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
         static readonly IDictionary<string, EnvVal> EnvVarsDict = new Dictionary<string, EnvVal>();
         static readonly DockerConfig Config1 = new DockerConfig("test-image:1");
-        static readonly AgentModels.HostConfig VolumeMountHostConfig = new AgentModels.HostConfig
+        static readonly HostConfig VolumeMountHostConfig = new HostConfig
         {
-            Mounts = new List<AgentModels.Mount>
+            Mounts = new List<Mount>
             {
-                new AgentModels.Mount()
+                new Mount()
                 {
                     Type = "volume",
                     ReadOnly = true,
                     Source = "a-volume",
                     Target = "/tmp/volumea"
                 },
-                new AgentModels.Mount()
+                new Mount()
                 {
                     Type = "volume",
                     ReadOnly = false,
@@ -51,26 +51,35 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
         };
 
         [Fact]
-        public void EmptyDirMappingForVolume()
+        public void NoMountsNoclaims()
         {
-            var config = new CombinedDockerConfig("image", new AgentModels.CreateContainerParameters(), Option.None<AuthConfig>());
-            config.CreateOptions.HostConfig = VolumeMountHostConfig;
+            var config = new KubernetesConfig("image", CreateOptions(), Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesPvcMapper(string.Empty, string.Empty, 0);
 
             var pvcs = mapper.CreatePersistentVolumeClaims(module, DefaultLabels);
 
-            Assert.True(pvcs.HasValue);
-            var pvcList = pvcs.OrDefault();
-            Assert.False(pvcList.Any());
+            Assert.False(pvcs.HasValue);
+        }
+
+        [Fact]
+        public void EmptyDirMappingForVolume()
+        {
+            var config = new KubernetesConfig("image", CreateOptions(hostConfig: VolumeMountHostConfig), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
+            var module = new KubernetesModule(docker, config);
+            var mapper = new KubernetesPvcMapper(string.Empty, string.Empty, 0);
+
+            var pvcs = mapper.CreatePersistentVolumeClaims(module, DefaultLabels);
+
+            Assert.False(pvcs.HasValue);
         }
 
         [Fact]
         public void StorageClassMappingForVolume()
         {
-            var config = new CombinedDockerConfig("image", new AgentModels.CreateContainerParameters(), Option.None<AuthConfig>());
-            config.CreateOptions.HostConfig = VolumeMountHostConfig;
+            var config = new KubernetesConfig("image", CreateOptions(hostConfig: VolumeMountHostConfig), Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesPvcMapper(string.Empty, "default", 10);
@@ -101,8 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
         [Fact]
         public void VolumeNameMappingForVolume()
         {
-            var config = new CombinedDockerConfig("image", new AgentModels.CreateContainerParameters(), Option.None<AuthConfig>());
-            config.CreateOptions.HostConfig = VolumeMountHostConfig;
+            var config = new KubernetesConfig("image", CreateOptions(hostConfig: VolumeMountHostConfig), Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesPvcMapper("a-pvc-name", string.Empty, 37);
@@ -129,5 +137,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
             Assert.Equal("a-pvc-name", bVolumeClaim.Spec.VolumeName);
             Assert.Equal(resourceQuantity, bVolumeClaim.Spec.Resources.Requests["storage"]);
         }
+
+        static CreatePodParameters CreateOptions(
+            IList<string> env = null,
+            IDictionary<string, EmptyStruct> exposedPorts = null,
+            HostConfig hostConfig = null,
+            string image = null,
+            IDictionary<string, string> labels = null,
+            NetworkingConfig networkingConfig = null,
+            IDictionary<string, string> nodeSelector = null)
+            => new CreatePodParameters(env, exposedPorts, hostConfig, image, labels, networkingConfig)
+            {
+                NodeSelector = Option.Maybe(nodeSelector)
+            };
     }
 }

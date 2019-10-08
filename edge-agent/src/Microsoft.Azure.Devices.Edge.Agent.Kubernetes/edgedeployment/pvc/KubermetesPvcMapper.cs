@@ -8,55 +8,41 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
     using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    enum PvcOption
-    {
-        None,
-        VolumeName,
-        StorageClass
-    }
-
     public class KubernetesPvcMapper : IKubernetesPvcMapper
     {
-        readonly string persistentVolumeName;
-        readonly string storageClassName;
+        readonly Option<string> persistentVolumeName;
+        readonly Option<string> storageClassName;
         readonly uint persistentVolumeClaimSizeMb;
-        readonly PvcOption pvcOption;
 
         public KubernetesPvcMapper(
             string persistentVolumeName,
             string storageClassName,
             uint persistentVolumeClaimSizeMb)
         {
-            this.persistentVolumeName = persistentVolumeName;
-            this.storageClassName = storageClassName;
+            this.persistentVolumeName = Option.Maybe(persistentVolumeName)
+                .Filter(p => !string.IsNullOrWhiteSpace(p));
+            this.storageClassName = Option.Maybe(storageClassName)
+                .Filter(s => !string.IsNullOrWhiteSpace(s));
             this.persistentVolumeClaimSizeMb = persistentVolumeClaimSizeMb;
-            // prefer persistent volume name to storage class name, if both are set.
-            if (!string.IsNullOrWhiteSpace(persistentVolumeName))
-            {
-                this.pvcOption = PvcOption.VolumeName;
-            }
-            else if (!string.IsNullOrWhiteSpace(storageClassName))
-            {
-                this.pvcOption = PvcOption.StorageClass;
-            }
-            else
-            {
-                this.pvcOption = PvcOption.None;
-            }
         }
 
         public Option<List<V1PersistentVolumeClaim>> CreatePersistentVolumeClaims(KubernetesModule module, IDictionary<string, string> labels) =>
-            Option.Maybe(module.Config?.CreateOptions?.HostConfig?.Mounts)
-                .Map(mounts => mounts.Select(mount => this.ExtractPvc(mount, labels)).FilterMap().ToList());
+            module.Config.CreateOptions.HostConfig
+                .Map(hostConfig => hostConfig.Mounts.Where(this.ShouldCreatePvc).Select(mount => this.ExtractPvc(mount, labels)).ToList())
+                .Filter(mounts => mounts.Any());
 
-        Option<V1PersistentVolumeClaim> ExtractPvc(Mount mount, IDictionary<string, string> labels)
+        bool ShouldCreatePvc(Mount mount)
         {
-            if (!mount.Type.Equals("volume", StringComparison.InvariantCultureIgnoreCase) ||
-                this.pvcOption == PvcOption.None)
+            if (!mount.Type.Equals("volume", StringComparison.InvariantCultureIgnoreCase))
             {
-                return Option.None<V1PersistentVolumeClaim>();
+                return false;
             }
 
+            return this.storageClassName.HasValue || this.persistentVolumeName.HasValue;
+        }
+
+        V1PersistentVolumeClaim ExtractPvc(Mount mount, IDictionary<string, string> labels)
+        {
             string name = KubeUtils.SanitizeK8sValue(mount.Source);
             bool readOnly = mount.ReadOnly;
             var persistentVolumeClaimSpec = new V1PersistentVolumeClaimSpec()
@@ -65,22 +51,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
                 Resources = new V1ResourceRequirements()
                 {
                     Requests = new Dictionary<string, ResourceQuantity>() { { "storage", new ResourceQuantity($"{this.persistentVolumeClaimSizeMb}Mi") } }
-                }
+                },
             };
-            switch (this.pvcOption)
+            // prefer persistent volume name to storage class name, if both are set.
+            if (this.persistentVolumeName.HasValue)
             {
-                case PvcOption.VolumeName:
-                    persistentVolumeClaimSpec.VolumeName = this.persistentVolumeName;
-                    break;
-                case PvcOption.StorageClass:
-                    persistentVolumeClaimSpec.StorageClassName = this.storageClassName;
-                    break;
-                case PvcOption.None:
-                default:
-                    return Option.None<V1PersistentVolumeClaim>();
+                this.persistentVolumeName.ForEach(volumeName => persistentVolumeClaimSpec.VolumeName = volumeName);
+            }
+            else if (this.storageClassName.HasValue)
+            {
+                this.storageClassName.ForEach(storageClass => persistentVolumeClaimSpec.StorageClassName = storageClass);
             }
 
-            return Option.Maybe(new V1PersistentVolumeClaim(metadata: new V1ObjectMeta(name: name, labels: labels), spec: persistentVolumeClaimSpec));
+            return new V1PersistentVolumeClaim(metadata: new V1ObjectMeta(name: name, labels: labels), spec: persistentVolumeClaimSpec);
         }
 
         public void UpdatePersistentVolumeClaim(V1PersistentVolumeClaim to, V1PersistentVolumeClaim from)

@@ -250,7 +250,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             {
                 // Some PVCs may not allow updates, depending on the PV, the reasons for update,
                 // or the k8s server version.
-                // Also some PVCs may not allow deletion immediately (while pod still exists), 
+                // Also some PVCs may not allow deletion immediately (while pod still exists),
                 // or may require user intervention, like deleting the PV created under a storage class.
                 // Our best option is to log it and wait for a resolution.
                 Events.PvcException(ex);
@@ -295,7 +295,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             return labels[KubernetesConstants.K8sEdgeDeviceLabel] == KubeUtils.SanitizeLabelValue(this.resourceName.DeviceId) &&
                     labels[KubernetesConstants.K8sEdgeHubNameLabel] == KubeUtils.SanitizeLabelValue(this.resourceName.Hostname);
         }
-
 
         static IEqualityComparer<V1PersistentVolumeClaim> KubernetesPvcByValueEqualityComparer { get; } = new KubernetesPvcByValueEqualityComparer();
 
