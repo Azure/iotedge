@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             if (!amqpOnly)
             {
-                transportSettings.Add(MqttTransportSettings);
+                transportSettings.Add(new object[] { MqttTransportSettings });
             }
 
             if (bool.TryParse(ConfigHelper.TestConfig["enableWebSocketsTests"], out bool enableWebSocketsTests) && enableWebSocketsTests)
@@ -61,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                 if (!amqpOnly)
                 {
-                    transportSettings.Add(MqttWebSocketsTransportSettings);
+                    transportSettings.Add(new object[] { MqttWebSocketsTransportSettings });
                 }
             }
 
