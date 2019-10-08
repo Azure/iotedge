@@ -5,6 +5,85 @@ trigger: none
 pr: none
 
 jobs:
+
+################################################################################	
+  - job: linux_arm32v7
+################################################################################	
+    displayName: Linux arm32v7
+
+    pool:
+      name: $(pool.name)
+      demands: rpi3-e2e-tests
+
+    variables:
+      os: linux
+      arch: arm32v7
+      artifactDir: iotedged-debian9-arm32v7
+
+    timeoutInMinutes: 90
+
+    steps:
+    - bash: |
+        # We use a self-hosted agent for this job, so we need to handle
+        # cleanup of root-owned files ourselves (anything created during
+        # `sudo dotnet vstest ...`)
+        sudo git clean -ffdx . || true
+      displayName: sudo git clean
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################	
+  - job: linux_amd64_docker
+################################################################################	
+    displayName: Linux AMD64 Docker
+
+    pool:
+      vmImage: ubuntu-16.04
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactDir: iotedged-ubuntu16.04-amd64-docker
+
+    steps:
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################	
+  - job: linux_amd64_moby
+################################################################################	
+    displayName: Linux AMD64 Moby
+
+    pool:
+      vmImage: ubuntu-16.04
+
+    variables:
+      os: linux
+      arch: amd64
+      artifactDir: iotedged-ubuntu16.04-amd64-moby
+
+    steps:
+    - bash: |
+        # Uninstall Docker CE and CLI
+        sudo apt-get remove docker-ce-cli docker-ce containerd.io
+
+        # Install Moby engine and Moby CLI
+        curl https://packages.microsoft.com/config/ubuntu/16.04/prod.list > ./microsoft-prod.list
+        sudo cp ./microsoft-prod.list /etc/apt/sources.list.d/
+        curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
+        sudo cp ./microsoft.gpg /etc/apt/trusted.gpg.d/
+        sudo apt-get update
+        sudo apt-get install moby-engine
+        sudo apt-get install moby-cli
+
+        sleep 30
+        echo "Verify docker installation"
+        docker ps
+      displayName: Uninstall Docker CE and CLI and Install Mody
+
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+
 ################################################################################	
   - job: rbpi_arm64_docker
 ################################################################################	
@@ -13,8 +92,8 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
-        - sh
-        - stealingThisToRunNewE2E -equals true
+        - pwsh
+        - run-e2e-tests -equals true
         - agent-osbits -equals 64
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals ARM
@@ -30,9 +109,44 @@ jobs:
         # cleanup of root-owned files ourselves (anything created during
         # `sudo dotnet vstest ...`)
         sudo git clean -ffdx . || true
-        echo "Who am I: " $(whoami)
-        echo "My Path: " $PATH
-        echo "pwsh: " $(which pwsh)
+      displayName: Git clean
 
     - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################	
+  - job: windows_amd64
+################################################################################	
+    displayName: Windows amd64
+
+    pool:
+      vmImage: windows-2019
+
+    variables:
+      os: windows
+      arch: amd64
+      artifactDir: iotedged-windows
+
+    steps:
+    - template: templates/e2e-setup.yaml
+
+    - pwsh: |
+        $certBytes = [system.Text.Encoding]::UTF8.GetBytes($env:PACKAGE_SIGNING_CERT)
+        $cert = [System.Security.Cryptography.X509Certificates.X509Certificate]::new($certBytes)
+        $store = New-Object System.Security.Cryptography.X509Certificates.X509Store `
+          -ArgumentList 'Root', 'LocalMachine'
+        $store.Open('ReadWrite')
+        $store.Add($cert)
+      displayName: Install CAB signing root cert
+      env:
+        PACKAGE_SIGNING_CERT: $(TestIotedgedPackageRootSigningCert)
+
+    - pwsh: |
+        Write-Output '>>> BEFORE:'
+        netsh interface ipv6 show prefixpolicies
+        netsh interface ipv6 set prefixpolicy ::ffff:0:0/96 45 4
+        Write-Output '>>> AFTER:'
+        netsh interface ipv6 show prefixpolicies
+      displayName: Prefer IPv4
+
     - template: templates/e2e-run.yaml
