@@ -18,22 +18,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
     {
         readonly IKubernetes client;
         readonly ICommandFactory commandFactory;
-        readonly ICombinedConfigProvider<CombinedDockerConfig> combinedConfigProvider;
         readonly string deviceNamespace;
         readonly ResourceName resourceName;
+        readonly ICombinedConfigProvider<CombinedKubernetesConfig> configProvider;
 
         public KubernetesPlanner(
             string deviceNamespace,
             ResourceName resourceName,
             IKubernetes client,
             ICommandFactory commandFactory,
-            ICombinedConfigProvider<CombinedDockerConfig> combinedConfigProvider)
+            ICombinedConfigProvider<CombinedKubernetesConfig> configProvider)
         {
             this.resourceName = Preconditions.CheckNotNull(resourceName, nameof(resourceName));
             this.deviceNamespace = Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace));
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.commandFactory = Preconditions.CheckNotNull(commandFactory, nameof(commandFactory));
-            this.combinedConfigProvider = Preconditions.CheckNotNull(combinedConfigProvider, nameof(combinedConfigProvider));
+            this.configProvider = Preconditions.CheckNotNull(configProvider, nameof(configProvider));
         }
 
         public async Task<Plan> PlanAsync(
@@ -47,10 +47,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
             Events.LogIdentities(moduleIdentities);
 
             // Check that module names sanitize and remain unique.
-            var groupedModules = desired.Modules.GroupBy(pair => KubeUtils.SanitizeK8sValue(pair.Key)).ToArray();
+            var groupedModules = desired.Modules.ToLookup(pair => KubeUtils.SanitizeK8sValue(pair.Key));
             if (groupedModules.Any(c => c.Count() > 1))
             {
-                string nameList = groupedModules.Where(c => c.Count() > 1).SelectMany(g => g, (pairs, pair) => pair.Key).Join(",");
+                string nameList = groupedModules
+                    .Where(c => c.Count() > 1)
+                    .SelectMany(g => g, (pairs, pair) => pair.Key)
+                    .Join(",");
                 throw new InvalidIdentityException($"Deployment will cause a name collision in Kubernetes namespace, modules: [{nameList}]");
             }
 
@@ -68,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
                 // The "Plan" here is very simple - if we have any change, publish all desired modules to a EdgeDeployment CRD.
                 // The CRD allows us to give the customer a Kubernetes-centric way to see the deployment
                 // and the status of that deployment through the "edgedeployments" API.
-                var crdCommand = new EdgeDeploymentCommand(this.deviceNamespace, this.resourceName, this.client, desired.Modules.Values, runtimeInfo, this.combinedConfigProvider);
+                var crdCommand = new EdgeDeploymentCommand(this.deviceNamespace, this.resourceName, this.client, desired.Modules.Values, runtimeInfo, this.configProvider);
                 var planCommand = await this.commandFactory.WrapAsync(crdCommand);
                 var planList = new List<ICommand>
                 {
