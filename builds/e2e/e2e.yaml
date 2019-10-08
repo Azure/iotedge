@@ -104,6 +104,15 @@ jobs:
       artifactDir: iotedged-rbpi-arm64-docker
 
     steps:
+    - bash: |
+        sudo apt-get install libunwind8
+        wget https://github.com/PowerShell/PowerShell/releases/download/v6.2.3/powershell-6.2.3-linux-arm64.tar.gz
+        mkdir ~/powershell
+        tar -xvf ./powershell-6.2.3-linux-arm64.tar.gz -C ~/powershell
+        sudo ln -s ~/powershell/pwsh /usr/bin/pwsh
+        sudo ln -s ~/powershell/pwsh /usr/local/bin/powershell
+        powershell
+
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
 
