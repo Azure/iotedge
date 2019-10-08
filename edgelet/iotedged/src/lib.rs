@@ -2033,7 +2033,7 @@ mod tests {
     use serde_json::json;
     use tempdir::TempDir;
 
-    use edgelet_core::{KeyBytes, ModuleRuntimeState, PrivateKey};
+    use edgelet_core::{DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS, KeyBytes, ModuleRuntimeState, PrivateKey};
     use edgelet_docker::{DockerConfig, DockerModuleRuntime, Settings};
     use edgelet_test_utils::cert::TestCert;
     use edgelet_test_utils::crypto::TestHsm;
@@ -2251,7 +2251,7 @@ mod tests {
 
         let settings = Settings::new(Path::new(GOOD_SETTINGS1)).unwrap();
         assert_eq!(
-            7_776_000,
+            (DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS as u64) * 86_400,
             settings.certificates().auto_generated_ca_lifetime_seconds()
         );
     }
