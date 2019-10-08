@@ -131,10 +131,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             for (; i < startIndex + count && s.Elapsed < duration; i++)
             {
                 await this.moduleClient.SendEventAsync(output, this.GetMessage(i.ToString()));
-
-                //Message m = this.GetMessage(i.ToString());
-                //this.moduleClient.SendEventAsync(output, m).Wait();
-
                 await Task.Delay(sleepTime);
             }
 
