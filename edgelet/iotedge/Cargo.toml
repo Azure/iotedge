@@ -10,7 +10,7 @@ edition = "2018"
 [dependencies]
 atty = "0.2"
 bytes = "0.4"
-chrono = { version = "0.4", features = ["serde"] }
+chrono = { version = "0.4.7", features = ["serde"] }
 chrono-humanize = "0.0.11"
 clap = "2.31"
 failure = "0.1"
@@ -19,6 +19,7 @@ hyper = "0.12"
 lazy_static = "1"
 native-tls = "0.2"
 openssl = "0.10"
+parse_duration = "2.0.1"
 regex = "0.2"
 serde = "1.0"
 serde_derive = "1.0"
@@ -27,6 +28,7 @@ tabwriter = "1.0"
 termcolor = "0.3"
 tokio = "0.1"
 url = "1.7"
+zip = "0.5.3"
 
 docker = { path = "../docker-rs" }
 edgelet-core = { path = "../edgelet-core" }
@@ -41,3 +43,7 @@ libc = "0.2"
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3", features = ["ntdef", "ntstatus", "winnt", "winsock2"] }
+
+[dev-dependencies]
+edgelet-test-utils = { path = "../edgelet-test-utils" }
+tempfile = "3.1.0"

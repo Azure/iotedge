@@ -11,7 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     using k8s;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
@@ -26,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         readonly IReadOnlyCollection<IModule> modules;
         readonly IRuntimeInfo runtimeInfo;
         readonly Lazy<string> id;
-        readonly ICombinedConfigProvider<CombinedDockerConfig> combinedConfigProvider;
+        readonly ICombinedConfigProvider<CombinedKubernetesConfig> configProvider;
         readonly string deviceNamespace;
         readonly ResourceName resourceName;
         readonly JsonSerializerSettings serializerSettings;
@@ -41,14 +40,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             IKubernetes client,
             IEnumerable<IModule> modules,
             IRuntimeInfo runtimeInfo,
-            ICombinedConfigProvider<CombinedDockerConfig> combinedConfigProvider)
+            ICombinedConfigProvider<CombinedKubernetesConfig> configProvider)
         {
             this.deviceNamespace = KubeUtils.SanitizeK8sValue(Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace)));
             this.resourceName = Preconditions.CheckNotNull(resourceName, nameof(resourceName));
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.modules = Preconditions.CheckNotNull(modules, nameof(modules)).ToList();
             this.runtimeInfo = Preconditions.CheckNotNull(runtimeInfo, nameof(runtimeInfo));
-            this.combinedConfigProvider = Preconditions.CheckNotNull(combinedConfigProvider, nameof(combinedConfigProvider));
+            this.configProvider = Preconditions.CheckNotNull(configProvider, nameof(configProvider));
             this.id = new Lazy<string>(() => this.modules.Aggregate(string.Empty, (prev, module) => module.Name + prev));
             this.serializerSettings = new JsonSerializerSettings
             {
@@ -67,21 +66,41 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             };
         }
 
-        async Task UpdateImagePullSecrets(Dictionary<string, ImagePullSecret> imagePullSecrets, CancellationToken token)
+        public async Task ExecuteAsync(CancellationToken token)
         {
-            foreach (KeyValuePair<string, ImagePullSecret> imagePullSecret in imagePullSecrets)
+            await this.ManageImagePullSecrets(token);
+            await this.PushEdgeDeployment(token);
+        }
+
+        async Task ManageImagePullSecrets(CancellationToken token)
+        {
+            // Modules may share an image pull secret, so only pick unique ones to add to the dictionary.
+            List<ImagePullSecret> secrets = this.modules
+                .Select(module => this.configProvider.GetCombinedConfig(module, this.runtimeInfo))
+                .Select(config => config.ImagePullSecret)
+                .FilterMap()
+                .GroupBy(secret => secret.Name)
+                .Select(secretGroup => secretGroup.First())
+                .ToList();
+
+            await this.UpdateImagePullSecrets(secrets, token);
+        }
+
+        async Task UpdateImagePullSecrets(IEnumerable<ImagePullSecret> imagePullSecrets, CancellationToken token)
+        {
+            foreach (var imagePullSecret in imagePullSecrets)
             {
-                var secretData = new Dictionary<string, byte[]> { [Constants.K8sPullSecretData] = Encoding.UTF8.GetBytes(imagePullSecret.Value.GenerateSecret()) };
-                var secretMeta = new V1ObjectMeta(name: imagePullSecret.Key, namespaceProperty: this.deviceNamespace);
+                var secretMeta = new V1ObjectMeta(name: imagePullSecret.Name, namespaceProperty: this.deviceNamespace);
+                var secretData = new Dictionary<string, byte[]> { [Constants.K8sPullSecretData] = Encoding.UTF8.GetBytes(imagePullSecret.GenerateSecret()) };
                 var newSecret = new V1Secret("v1", secretData, type: Constants.K8sPullSecretType, kind: "Secret", metadata: secretMeta);
                 Option<V1Secret> currentSecret;
                 try
                 {
-                    currentSecret = Option.Maybe(await this.client.ReadNamespacedSecretAsync(imagePullSecret.Key, this.deviceNamespace, cancellationToken: token));
+                    currentSecret = Option.Maybe(await this.client.ReadNamespacedSecretAsync(imagePullSecret.Name, this.deviceNamespace, cancellationToken: token));
                 }
                 catch (Exception ex) when (!ex.IsFatal())
                 {
-                    Events.FailedToFindSecret(imagePullSecret.Key, ex);
+                    Events.FailedToFindSecret(imagePullSecret.Name, ex);
                     currentSecret = Option.None<V1Secret>();
                 }
 
@@ -98,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
                             return await this.client.ReplaceNamespacedSecretAsync(
                                 newSecret,
-                                imagePullSecret.Key,
+                                imagePullSecret.Name,
                                 this.deviceNamespace,
                                 cancellationToken: token);
                         },
@@ -110,28 +129,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 }
                 catch (Exception ex) when (!ex.IsFatal())
                 {
-                    Events.SecretCreateUpdateFailed(imagePullSecret.Key, ex);
+                    Events.SecretCreateUpdateFailed(imagePullSecret.Name, ex);
                 }
             }
         }
 
-        public async Task ExecuteAsync(CancellationToken token)
+        async Task PushEdgeDeployment(CancellationToken token)
         {
-            List<KubernetesModule> modulesList = this.modules.Select(
+            List<KubernetesModule> modulesList = this.modules
+                .Select(
                     module =>
                     {
-                        var config = this.combinedConfigProvider.GetCombinedConfig(module, this.runtimeInfo);
-                        return new KubernetesModule(module, config);
+                        var combinedConfig = this.configProvider.GetCombinedConfig(module, this.runtimeInfo);
+                        var authConfig = combinedConfig.ImagePullSecret.Map(secret => new AuthConfig(secret.Name));
+                        return new KubernetesModule(module, new KubernetesConfig(combinedConfig.Image, combinedConfig.CreateOptions, authConfig));
                     })
                 .ToList();
-
-            // Modules may share an image pull secret, so only pick unique ones to add to the dictionary.
-            Dictionary<string, ImagePullSecret> secrets = modulesList
-                .Select(module => module.Config.AuthConfig.Map(auth => new ImagePullSecret(auth)).OrDefault())
-                .Where(secret => secret != null)
-                .GroupBy(secret => secret.Name)
-                .Select(secretGroup => secretGroup.First())
-                .ToDictionary(secret => secret.Name);
 
             Option<EdgeDeploymentDefinition> activeDeployment;
             try
@@ -152,8 +165,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 Events.FindActiveDeploymentFailed(this.resourceName, parseException);
                 activeDeployment = Option.None<EdgeDeploymentDefinition>();
             }
-
-            await this.UpdateImagePullSecrets(secrets, token);
 
             var metadata = new V1ObjectMeta(name: this.resourceName, namespaceProperty: this.deviceNamespace);
 

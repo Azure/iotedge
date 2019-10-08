@@ -9,12 +9,41 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
     public class ImagePullSecret
     {
+        public ImagePullSecret(AuthConfig dockerAuth)
+        {
+            this.dockerAuth = dockerAuth;
+            this.Name = ImagePullSecretName.Create(dockerAuth);
+        }
+
+        public ImagePullSecretName Name { get; }
+
+        readonly AuthConfig dockerAuth;
+
+        public string GenerateSecret()
+        {
+            // JSON struct is
+            // { "auths":
+            //   { "<registry>" :
+            //     { "username":"<user>",
+            //       "password":"<password>",
+            //       "email":"<email>" (not needed)
+            //       "auth":"<base 64 of '<user>:<password>'>"
+            //     }
+            //   }
+            // }
+            var auths = new Auth(this.dockerAuth.ServerAddress, new AuthEntry(this.dockerAuth.Username, this.dockerAuth.Password));
+
+            return JsonConvert.SerializeObject(auths);
+        }
+
         class AuthEntry
         {
             [JsonProperty(Required = Required.Always, PropertyName = "username")]
             public readonly string Username;
+
             [JsonProperty(Required = Required.Always, PropertyName = "password")]
             public readonly string Password;
+
             [JsonProperty(Required = Required.Always, PropertyName = "auth")]
             public readonly string Auth;
 
@@ -42,35 +71,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             {
                 this.Auths.Add(registry, entry);
             }
-        }
-
-        public string Name { get; }
-
-        readonly AuthConfig dockerAuth;
-
-        public string GenerateSecret()
-        {
-            // JSON struct is
-            // { "auths":
-            //   { "<registry>" :
-            //     { "username":"<user>",
-            //       "password":"<password>",
-            //       "email":"<email>" (not needed)
-            //       "auth":"<base 64 of '<user>:<password>'>"
-            //     }
-            //   }
-            // }
-            var auths = new Auth(
-                this.dockerAuth.ServerAddress,
-                new AuthEntry(this.dockerAuth.Username, this.dockerAuth.Password));
-            string authString = JsonConvert.SerializeObject(auths);
-            return authString;
-        }
-
-        public ImagePullSecret(AuthConfig dockerAuth)
-        {
-            this.dockerAuth = dockerAuth;
-            this.Name = $"{dockerAuth.Username.ToLower()}-{dockerAuth.ServerAddress.ToLower()}";
         }
     }
 }
