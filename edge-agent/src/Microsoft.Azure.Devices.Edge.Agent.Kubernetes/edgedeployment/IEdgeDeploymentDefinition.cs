@@ -13,6 +13,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         V1ObjectMeta Metadata { get; }
 
         [JsonProperty(PropertyName = "spec")]
-        IList<KubernetesModule> Spec { get; }
+        IReadOnlyList<KubernetesModule> Spec { get; }
     }
 }

@@ -49,7 +49,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly Option<IWebProxy> proxy;
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan idleTimeout;
-        readonly string networkId;
         readonly KubernetesExperimentalFeatures experimentalFeatures;
 
         public KubernetesModule(
@@ -80,7 +79,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         {
             this.resourceName = new ResourceName(iotHubHostname, deviceId);
             this.edgeDeviceHostName = Preconditions.CheckNonWhiteSpace(edgeDeviceHostName, nameof(edgeDeviceHostName));
-            this.networkId = networkId;
             this.proxyImage = Preconditions.CheckNonWhiteSpace(proxyImage, nameof(proxyImage));
             this.proxyConfigPath = Preconditions.CheckNonWhiteSpace(proxyConfigPath, nameof(proxyConfigPath));
             this.proxyConfigVolumeName = Preconditions.CheckNonWhiteSpace(proxyConfigVolumeName, nameof(proxyConfigVolumeName));
