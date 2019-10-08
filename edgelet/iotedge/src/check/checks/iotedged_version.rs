@@ -8,6 +8,7 @@ use crate::check::{checker::Checker, Check, CheckResult};
 #[derive(Default, serde_derive::Serialize)]
 pub struct IotedgedVersion {
     version: Option<String>,
+    //TODO: find if 1.* or specified
 }
 impl Checker for IotedgedVersion {
     fn id(&self) -> &'static str {

@@ -28,12 +28,6 @@ impl ContainerEngineIsMoby {
             "Device is not using a production-supported container engine (moby-engine).\n\
              Please see https://aka.ms/iotedge-prod-checklist-moby for details.";
 
-        let settings = if let Some(settings) = &check.settings {
-            settings
-        } else {
-            return Ok(CheckResult::Skipped);
-        };
-
         let docker_server_version =
             if let Some(docker_server_version) = &check.docker_server_version {
                 self.docker_server_version = Some(docker_server_version.to_owned());
@@ -42,7 +36,14 @@ impl ContainerEngineIsMoby {
                 return Ok(CheckResult::Skipped);
             };
 
-        if cfg!(windows) {
+        #[cfg(windows)]
+        {
+            let settings = if let Some(settings) = &check.settings {
+                settings
+            } else {
+                return Ok(CheckResult::Skipped);
+            };
+
             let moby_runtime_uri = settings.moby_runtime().uri().to_string();
             self.moby_runtime_uri = Some(moby_runtime_uri.to_owned());
 

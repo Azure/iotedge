@@ -9,7 +9,7 @@ use crate::check::{checker::Checker, Check, CheckResult};
 
 #[derive(Default, serde_derive::Serialize)]
 pub struct WellFormedConfig {
-    settings: Option<Settings>,
+    // settings: Option<Settings>,
 }
 impl Checker for WellFormedConfig {
     fn id(&self) -> &'static str {
@@ -75,7 +75,7 @@ impl WellFormedConfig {
         };
 
         check.settings = Some(settings);
-        self.settings = check.settings.clone();
+        // self.settings = check.settings.clone();
 
         Ok(CheckResult::Ok)
     }

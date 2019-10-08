@@ -65,6 +65,7 @@ impl ContainerEngineDns {
                 )
             })
             .context(MESSAGE)?;
+        self.dns = daemon_config.dns.to_owned();
 
         if let Some(&[]) | None = daemon_config.dns.as_ref().map(std::ops::Deref::deref) {
             return Ok(CheckResult::Warning(Context::new(MESSAGE).into()));
