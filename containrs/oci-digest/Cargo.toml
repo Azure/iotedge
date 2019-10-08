@@ -6,11 +6,9 @@ edition = "2018"
 
 [features]
 default = ["serde"]
-# asyncawait = ["tokio"]
 
 [dependencies]
 failure = "0.1"
 hex = "0.4.0"
 serde = { version = "1.0", optional = true }
 sha2 = "0.8.0"
-# tokio = { version = "0.2.0-alpha.5", optional = true }

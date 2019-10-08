@@ -269,7 +269,10 @@ async fn true_main() -> Result<(), failure::Error> {
                     progress.set_length(manifest.len().unwrap_or(0));
 
                     // dump the blob to stdout, chunk by chunk
-                    let mut validator = manifest.get_expected_digest().validator();
+                    let mut validator = manifest
+                        .get_expected_digest()
+                        .validator()
+                        .ok_or_else(|| failure::err_msg("unsupported digest algorithm"))?;
                     let mut stdout = tokio::io::stdout();
                     while let Some(data) = manifest.chunk().await? {
                         validator.input(&data);
@@ -319,7 +322,9 @@ async fn true_main() -> Result<(), failure::Error> {
                     progress.set_length(blob.len().unwrap_or(0));
 
                     // dump the blob to stdout, chunk by chunk, validating it along the way
-                    let mut validator = digest.validator();
+                    let mut validator = digest
+                        .validator()
+                        .ok_or_else(|| failure::err_msg("unsupported digest algorithm"))?;
                     let mut stdout = tokio::io::stdout();
                     while let Some(data) = blob.chunk().await? {
                         validator.input(&data);
@@ -535,7 +540,9 @@ async fn validate_file(
     digest: &Digest,
     progress: &ProgressBar,
 ) -> Result<(), failure::Error> {
-    let mut validator = digest.validator();
+    let mut validator = digest
+        .validator()
+        .ok_or_else(|| failure::err_msg("unsupported digest algorithm"))?;
 
     let mut file = File::open(&file_path)
         .await

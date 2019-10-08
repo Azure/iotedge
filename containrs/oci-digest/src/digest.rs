@@ -1,29 +1,36 @@
 use std::fmt;
 use std::str::FromStr;
 
-use crate::algorithms::Algorithm;
 use crate::error::DigestParseError;
 use crate::validator::Validator;
 
-/// A cheap wrapper around a raw String that ensures it's contents is formatted
-/// as a valid OCI digest string. i.e: the underlying string is guaranteed to
-/// be of the form `<algorithm>:<hex-digest>`
+/// A cheap newtype around a [String] that ensures it's contents are a valid OCI
+/// digest string.
+///
+/// To validate data using it's Digest, use the [`validator`] to construct a new
+/// [`Validator`].
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Digest {
     string: String,
 }
 
 impl Digest {
-    /// Return a new validator for this digest
-    pub fn validator(&self) -> Validator {
+    /// Return a new validator for this digest, or None if the algorithm is
+    /// unregistered
+    pub fn validator(&self) -> Option<Validator> {
         Validator::new(self)
     }
 
-    /// Convenience method to validate a one-off slice of data
+    /// Convenience method to validate a one-off slice of data.
+    /// Returns None if the algorithm is unregistered.
     pub fn validate(&self, data: &[u8]) -> bool {
-        let mut validator = self.validator();
-        validator.input(data);
-        validator.validate()
+        match self.validator() {
+            Some(mut validator) => {
+                validator.input(data);
+                validator.validate()
+            }
+            None => false,
+        }
     }
 
     /// View the digest as a raw str
@@ -42,28 +49,7 @@ impl FromStr for Digest {
     type Err = DigestParseError;
 
     fn from_str(s: &str) -> Result<Digest, Self::Err> {
-        let mut parts = s.split(':');
-
-        let algorithm = parts
-            .next()
-            .ok_or(DigestParseError::InvalidFormat)?
-            .parse::<Algorithm>()
-            .map_err(|_| DigestParseError::Unsupported)?;
-        let digest_str = parts.next().ok_or(DigestParseError::InvalidFormat)?;
-
-        if digest_str
-            .matches(|c: char| !(('0'..='9').contains(&c) || ('a'..='f').contains(&c)))
-            .count()
-            != 0
-        {
-            return Err(DigestParseError::InvalidFormat);
-        }
-
-        // each byte takes 2 chars when represented in a hex string
-        if digest_str.len() != algorithm.digest_len() * 2 {
-            return Err(DigestParseError::InvalidLength);
-        }
-
+        Validator::validate_digest_str(s)?;
         Ok(Digest {
             string: s.to_string(),
         })

@@ -1,8 +1,12 @@
-//! Common digest package used across the OCI ecosystem
+//! Common digest package used across the OCI ecosystem, as described in the
+//! oci-image spec.
+//!
+//! See https://github.com/opencontainers/image-spec/blob/master/descriptor.md#digests for details.
 //!
 //! Inspired by https://github.com/opencontainers/go-digest
+//!
+//! TODO: Add code to create digests (as opposed to only parsing and using them)
 
-mod algorithms;
 mod digest;
 mod error;
 mod validator;
@@ -10,7 +14,6 @@ mod validator;
 #[cfg(feature = "serde")]
 mod serde_impl;
 
-pub use algorithms::Algorithm;
 pub use digest::Digest;
 pub use error::DigestParseError;
-pub use validator::Validator;
+pub use validator::{AlgorithmKind, Validator};
