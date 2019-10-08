@@ -1,9 +1,7 @@
-use std::collections::HashMap;
-
 use serde::{de, Deserialize, Deserializer, Serialize};
 
-use super::Descriptor;
 use super::{media_type, MediaType};
+use super::{Annotations, Descriptor};
 
 /// Manifest provides `application/vnd.oci.image.manifest.v1+json` mediatype
 /// structure when marshalled to JSON.
@@ -14,7 +12,7 @@ pub struct Manifest {
     /// compatibility with older versions of Docker. The value of this field
     /// will not change. This field MAY be removed in a future version of the
     /// specification.
-    #[serde(rename = "schemaVersion", deserialize_with = "validate_is_2")]
+    #[serde(rename = "schemaVersion", deserialize_with = "validate_schema_is_2")]
     pub schema_version: i32,
 
     /// This property is reserved for use, to maintain compatibility. When used,
@@ -35,7 +33,7 @@ pub struct Manifest {
 
     /// Annotations contains arbitrary metadata for the image manifest.
     #[serde(rename = "annotations", skip_serializing_if = "Option::is_none")]
-    pub annotations: Option<HashMap<String, String>>,
+    pub annotations: Option<Annotations>,
 }
 
 impl MediaType for Manifest {
@@ -44,14 +42,14 @@ impl MediaType for Manifest {
         &["application/vnd.docker.distribution.manifest.v2+json"];
 }
 
-fn validate_is_2<'de, D>(des: D) -> Result<i32, D::Error>
+fn validate_schema_is_2<'de, D>(des: D) -> Result<i32, D::Error>
 where
     D: Deserializer<'de>,
 {
     match i32::deserialize(des)? {
         2 => Ok(2),
         _ => Err(de::Error::custom(
-            "v1::Manifest must have schemaVersion = 2",
+            "v1::Manifest must have .schemaVersion = 2",
         )),
     }
 }

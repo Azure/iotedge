@@ -1,10 +1,9 @@
-use std::collections::HashMap;
-
 use serde::{Deserialize, Serialize};
 
 use oci_digest::Digest;
 
 use super::{media_type, MediaType};
+use super::{Annotations, Platform};
 
 /// Descriptor describes the disposition of targeted content.
 /// This structure provides `application/vnd.oci.descriptor.v1+json` mediatype
@@ -12,6 +11,10 @@ use super::{media_type, MediaType};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Descriptor {
     /// MediaType is the media type of the object this schema refers to.
+    ///
+    /// Values MUST comply with RFC 6838, including the naming requirements in
+    /// its section 4.2.
+    // TODO?: validate raw Strings for media-type format compliance
     #[serde(rename = "mediaType")]
     pub media_type: String,
 
@@ -20,54 +23,42 @@ pub struct Descriptor {
     pub digest: Digest,
 
     /// Size specifies the size in bytes of the blob.
+    ///
+    /// This property exists so that a client will have an expected size for the
+    /// content before processing. If the length of the retrieved content does
+    /// not match the specified length, the content SHOULD NOT be trusted.
     #[serde(rename = "size")]
     pub size: i64,
 
     /// URLs specifies a list of URLs from which this object MAY be downloaded
+    ///
+    /// Each entry MUST conform to RFC 3986. Entries SHOULD use the http and
+    /// https schemes, as defined in RFC 7230.
     #[serde(rename = "urls", skip_serializing_if = "Option::is_none")]
     pub urls: Option<Vec<String>>,
 
     /// Annotations contains arbitrary metadata relating to the targeted
     /// content.
     #[serde(rename = "annotations", skip_serializing_if = "Option::is_none")]
-    pub annotations: Option<HashMap<String, String>>,
+    pub annotations: Option<Annotations>,
 
     /// Platform describes the platform which the image in the manifest runs on.
     ///
     /// This should only be used when referring to a manifest.
     #[serde(rename = "platform", skip_serializing_if = "Option::is_none")]
     pub platform: Option<Platform>,
+
+    /// This property is RESERVED for future versions of the specification.
+    #[serde(
+        rename = "data",
+        skip_serializing,
+        default,
+        deserialize_with = "crate::reserved_field"
+    )]
+    pub data: Option<String>,
 }
 
 impl MediaType for Descriptor {
     const MEDIA_TYPE: &'static str = media_type::DESCRIPTOR;
     const SIMILAR_MEDIA_TYPES: &'static [&'static str] = &[];
-}
-
-/// Platform describes the platform which the image in the manifest runs on.
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Platform {
-    /// Architecture field specifies the CPU architecture, for example
-    /// `amd64` or `ppc64`.
-    #[serde(rename = "architecture")]
-    pub architecture: String,
-
-    /// OS specifies the operating system, for example `linux` or `windows`.
-    #[serde(rename = "os")]
-    pub os: String,
-
-    /// OSVersion is an optional field specifying the operating system
-    /// version, for example on Windows `10.0.14393.1066`.
-    #[serde(rename = "os.version", skip_serializing_if = "Option::is_none")]
-    pub os_version: Option<String>,
-
-    /// OSFeatures is an optional field specifying an array of strings,
-    /// each listing a required OS feature (for example on Windows `win32k`).
-    #[serde(rename = "os.features", skip_serializing_if = "Option::is_none")]
-    pub os_features: Option<Vec<String>>,
-
-    /// Variant is an optional field specifying a variant of the CPU, for
-    /// example `v7` to specify ARMv7 when architecture is `arm`.
-    #[serde(rename = "variant", skip_serializing_if = "Option::is_none")]
-    pub variant: Option<String>,
 }
