@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System;
     using System.Collections.Generic;
     using System.Security.Cryptography.X509Certificates;
+    using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Client;
@@ -14,29 +15,41 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.Edge.Hub.Http;
     using Microsoft.Azure.Devices.Edge.Hub.Mqtt;
     using Microsoft.Azure.Devices.Edge.Hub.Service;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Logging;
     using Constants = Microsoft.Azure.Devices.Edge.Hub.Service.Constants;
 
     public class ProtocolHeadFixture : IDisposable
     {
+        InternalProtocolHeadFixture internalFixture;
+
         public ProtocolHeadFixture()
         {
-            this.ProtocolHead = InternalProtocolHeadFixture.Instance.ProtocolHead;
+            this.internalFixture = new InternalProtocolHeadFixture();
+            this.ProtocolHead = this.internalFixture.ProtocolHead;
+            //this.ProtocolHead = InternalProtocolHeadFixture.Instance.ProtocolHead;
+            //this.DbStoreProvider = InternalProtocolHeadFixture.Instance.DbStoreProvider;
         }
 
-        public IProtocolHead ProtocolHead { get; }
+        public IProtocolHead ProtocolHead { get; private set; }
+
+        //IDbStoreProvider DbStoreProvider { get; }
 
         public void Dispose()
         {
+            this.internalFixture?.Dispose();
+            this.ProtocolHead = null;
+            this.internalFixture = null;
         }
 
-        public class InternalProtocolHeadFixture
+        public class InternalProtocolHeadFixture : IDisposable
         {
-            IContainer container;
             IProtocolHead protocolHead;
+            Hosting hosting;
+            bool disposed = false;
 
-            InternalProtocolHeadFixture()
+            internal InternalProtocolHeadFixture()
             {
                 bool.TryParse(ConfigHelper.TestConfig["Tests_StartEdgeHubService"], out bool shouldStartEdge);
                 if (shouldStartEdge)
@@ -47,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             ~InternalProtocolHeadFixture()
             {
-                this.protocolHead?.Dispose();
+                Dispose(false);
             }
 
             public static InternalProtocolHeadFixture Instance { get; } = new InternalProtocolHeadFixture();
@@ -79,24 +92,59 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                 ConfigHelper.TestConfig[Constants.ConfigKey.IotHubConnectionString] = edgeDeviceConnectionString;
                 Hosting hosting = Hosting.Initialize(ConfigHelper.TestConfig, certificate, new DependencyManager(ConfigHelper.TestConfig, certificate, trustBundle), true);
-                this.container = hosting.Container;
+                this.hosting = hosting;
+                //this.container = hosting.Container;
+                IContainer container = hosting.Container;
 
                 // CloudConnectionProvider and RoutingEdgeHub have a circular dependency. So set the
                 // EdgeHub on the CloudConnectionProvider before any other operation
-                ICloudConnectionProvider cloudConnectionProvider = await this.container.Resolve<Task<ICloudConnectionProvider>>();
-                IEdgeHub edgeHub = await this.container.Resolve<Task<IEdgeHub>>();
+                ICloudConnectionProvider cloudConnectionProvider = await container.Resolve<Task<ICloudConnectionProvider>>();
+                IEdgeHub edgeHub = await container.Resolve<Task<IEdgeHub>>();
                 cloudConnectionProvider.BindEdgeHub(edgeHub);
 
-                IConfigSource configSource = await this.container.Resolve<Task<IConfigSource>>();
-                ConfigUpdater configUpdater = await this.container.Resolve<Task<ConfigUpdater>>();
+                IConfigSource configSource = await container.Resolve<Task<IConfigSource>>();
+                ConfigUpdater configUpdater = await container.Resolve<Task<ConfigUpdater>>();
                 await configUpdater.Init(configSource);
 
-                ILogger logger = this.container.Resolve<ILoggerFactory>().CreateLogger("EdgeHub");
-                MqttProtocolHead mqttProtocolHead = await this.container.Resolve<Task<MqttProtocolHead>>();
-                AmqpProtocolHead amqpProtocolHead = await this.container.Resolve<Task<AmqpProtocolHead>>();
+                ILogger logger = container.Resolve<ILoggerFactory>().CreateLogger("EdgeHub");
+                MqttProtocolHead mqttProtocolHead = await container.Resolve<Task<MqttProtocolHead>>();
+                AmqpProtocolHead amqpProtocolHead = await container.Resolve<Task<AmqpProtocolHead>>();
                 var httpProtocolHead = new HttpProtocolHead(hosting.WebHost);
                 this.protocolHead = new EdgeHubProtocolHead(new List<IProtocolHead> { mqttProtocolHead, amqpProtocolHead, httpProtocolHead }, logger);
                 await this.protocolHead.StartAsync();
+            }
+
+            public void Dispose()
+            {
+                Dispose(true);
+                GC.SuppressFinalize(this);
+            }
+
+            public void Dispose(bool disposing)
+            {
+                if (disposed)
+                {
+                    return;
+                }
+
+                if (disposing)
+                {
+                    this.protocolHead?.CloseAsync(CancellationToken.None).Wait();
+
+                    if (this.hosting != null)
+                    {
+                        IContainer container = this.hosting.Container;
+                        IDbStoreProvider dbStoreProvider = container.Resolve<Task<IDbStoreProvider>>().Result;
+                        dbStoreProvider.CloseAsync().Wait();
+
+                        //this.protocolHead?.Dispose();
+
+                        //this.hosting.Container.Dispose();
+                        //this.hosting.WebHost.Dispose();
+                    }
+                }
+
+                disposed = true;
             }
         }
     }
