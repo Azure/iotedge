@@ -2250,9 +2250,8 @@ mod tests {
         let _guard = LOCK.lock().unwrap();
 
         let settings = Settings::new(Path::new(GOOD_SETTINGS1)).unwrap();
-        // Default is 90 days so check for that in seconds
         assert_eq!(
-            7_776_000,
+            DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS * 86_400,
             settings.certificates().auto_generated_ca_lifetime_seconds()
         );
     }

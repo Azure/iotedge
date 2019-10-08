@@ -21,6 +21,9 @@ const HOSTNAME_REGEX: &str = r"^[a-zA-Z0-9_\-\.]+$";
 /// This is the default connection string
 pub const DEFAULT_CONNECTION_STRING: &str = "<ADD DEVICE CONNECTION STRING HERE>";
 
+/// This is the default auto generated certificate life
+pub const DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS: u16 = 90;
+
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub struct ManualX509Auth {
@@ -657,7 +660,7 @@ where
         match &self.certificates {
             None => &Certificates {
                 device_cert: None,
-                auto_generated_ca_lifetime_days: 90,
+                auto_generated_ca_lifetime_days: DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS,
             },
             Some(c) => c,
         }
