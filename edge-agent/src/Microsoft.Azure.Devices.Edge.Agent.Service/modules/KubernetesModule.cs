@@ -223,10 +223,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             this.managementUri))
                 .As<IKubernetesDeploymentMapper>();
 
-            // KubernetesServiceProvider
+            // KubernetesServiceMapper
             builder.Register(c => new KubernetesServiceMapper(this.defaultMapServiceType))
                 .As<IKubernetesServiceMapper>();
 
+            // KubernetesPvcMapper
             builder.Register(c => new KubernetesPvcMapper(this.persistentVolumeName, this.storageClassName, this.persistentVolumeClaimSizeMb))
                 .As<IKubernetesPvcMapper>();
 

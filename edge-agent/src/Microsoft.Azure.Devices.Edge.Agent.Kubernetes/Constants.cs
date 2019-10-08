@@ -59,10 +59,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public const string ProxyTrustBundleConfigMapEnvKey = "ProxyTrustBundleConfigMapName";
 
-        public const string PersistentVolumeName = "PersistentVolumeName";
+        public const string PersistentVolumeNameKey = "PersistentVolumeNameKey";
 
-        public const string StorageClassName = "StorageClassName";
+        public const string StorageClassNameKey = "StorageClassNameKey";
 
-        public const string PersistentVolumeClaimDefaultSizeInMb = "PersistentVolumeClaimDefaultSizeInMb";
+        public const string PersistentVolumeClaimDefaultSizeInMbKey = "PersistentVolumeClaimDefaultSizeInMbKey";
     }
 }

@@ -47,6 +47,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
             bool readOnly = mount.ReadOnly;
             var persistentVolumeClaimSpec = new V1PersistentVolumeClaimSpec()
             {
+                // What happens if the PV access mode is not compatible with the access we're requesting?
+                // Deployment will be created and will be in a failed state. The user will see this as
+                // module running == false. 
                 AccessModes = new List<string> { readOnly ? "ReadOnlyMany" : "ReadWriteMany" },
                 Resources = new V1ResourceRequirements()
                 {
@@ -68,8 +71,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
 
         public void UpdatePersistentVolumeClaim(V1PersistentVolumeClaim to, V1PersistentVolumeClaim from)
         {
-            // TODO: ReadWriteOnce is the Kubernetes moniker for single pod use only
-            //       What should we do if this is the 2nd module to make this claim?
             to.Metadata.ResourceVersion = from.Metadata.ResourceVersion;
         }
     }
