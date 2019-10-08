@@ -2253,7 +2253,7 @@ mod tests {
 
         let settings = Settings::new(Path::new(GOOD_SETTINGS1)).unwrap();
         assert_eq!(
-            (DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS as u64) * 86_400,
+            u64::from(DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS) * 86_400,
             settings.certificates().auto_generated_ca_lifetime_seconds()
         );
     }
