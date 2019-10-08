@@ -5,59 +5,61 @@ use crate::check::{
 pub fn get_host_container_iothub_tests() -> Vec<Box<dyn Checker>> {
     vec![
         #[cfg(unix)]
-        Box::new(ContainerConnectIotHub {
-            id: "container-default-connect-iothub-amqp",
-            description: "container on the default network can connect to IoT Hub AMQP port",
-            upstream_protocol_port: UpstreamProtocolPort::Amqp,
-            port_number: UpstreamProtocolPort::Amqp.as_port(),
-            iothub_hostname: None,
-            use_container_runtime_network: false,
-        }),
+        make_box(
+            "container-default-connect-iothub-amqp",
+            "container on the default network can connect to IoT Hub AMQP port",
+            UpstreamProtocolPort::Amqp,
+            false,
+        ),
         #[cfg(unix)]
-        Box::new(ContainerConnectIotHub {
-            id: "container-default-connect-iothub-https",
-            description:
-                "container on the default network can connect to IoT Hub HTTPS / WebSockets port",
-            upstream_protocol_port: UpstreamProtocolPort::Https,
-            port_number: UpstreamProtocolPort::Https.as_port(),
-            iothub_hostname: None,
-            use_container_runtime_network: false,
-        }),
+        make_box(
+            "container-default-connect-iothub-https",
+            "container on the default network can connect to IoT Hub HTTPS / WebSockets port",
+            UpstreamProtocolPort::Https,
+            false,
+        ),
         #[cfg(unix)]
-        Box::new(ContainerConnectIotHub {
-            id: "container-default-connect-iothub-mqtt",
-            description: "container on the default network can connect to IoT Hub MQTT port",
-            upstream_protocol_port: UpstreamProtocolPort::Mqtt,
-            port_number: UpstreamProtocolPort::Mqtt.as_port(),
-            iothub_hostname: None,
-            use_container_runtime_network: false,
-        }),
-        Box::new(ContainerConnectIotHub {
-            id: "container-connect-iothub-amqp",
-            description: "container on the IoT Edge module network can connect to IoT Hub AMQP port",
-            upstream_protocol_port: UpstreamProtocolPort::Amqp,
-            port_number: UpstreamProtocolPort::Amqp.as_port(),
-            iothub_hostname: None,
-            use_container_runtime_network: false,
-        }),
-        Box::new(ContainerConnectIotHub {
-            id: "container-connect-iothub-https",
-            description:
-                "container on the IoT Edge module network can connect to IoT Hub HTTPS / WebSockets port",
-            upstream_protocol_port: UpstreamProtocolPort::Https,
-            port_number: UpstreamProtocolPort::Https.as_port(),
-            iothub_hostname: None,
-            use_container_runtime_network: false,
-        }),
-        Box::new(ContainerConnectIotHub {
-            id: "container-connect-iothub-mqtt",
-            description: "container on the IoT Edge module network can connect to IoT Hub MQTT port",
-            upstream_protocol_port: UpstreamProtocolPort::Mqtt,
-            port_number: UpstreamProtocolPort::Mqtt.as_port(),
-            iothub_hostname: None,
-            use_container_runtime_network: false,
-        }),
+        make_box(
+            "container-default-connect-iothub-mqtt",
+            "container on the default network can connect to IoT Hub MQTT port",
+            UpstreamProtocolPort::Mqtt,
+            false,
+        ),
+        make_box(
+            "container-connect-iothub-amqp",
+            "container on the IoT Edge module network can connect to IoT Hub AMQP port",
+            UpstreamProtocolPort::Amqp,
+            true,
+        ),
+        make_box(
+            "container-connect-iothub-https",
+            "container on the IoT Edge module network can connect to IoT Hub HTTPS / WebSockets port",
+            UpstreamProtocolPort::Https,
+            true,
+        ),
+        make_box(
+            "container-connect-iothub-mqtt",
+            "container on the IoT Edge module network can connect to IoT Hub MQTT port",
+            UpstreamProtocolPort::Mqtt,
+            true,
+        ),
     ]
+}
+
+fn make_box(
+    id: &'static str,
+    description: &'static str,
+    upstream_protocol_port: UpstreamProtocolPort,
+    use_container_runtime_network: bool,
+) -> Box<ContainerConnectIotHub> {
+    Box::new(ContainerConnectIotHub {
+        id,
+        description,
+        port_number: upstream_protocol_port.as_port(),
+        upstream_protocol_port,
+        iothub_hostname: None,
+        use_container_runtime_network,
+    })
 }
 
 #[derive(serde_derive::Serialize)]

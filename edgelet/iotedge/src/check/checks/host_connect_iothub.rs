@@ -4,28 +4,21 @@ use crate::check::{
 
 pub fn get_host_connect_iothub_tests() -> Vec<Box<dyn Checker>> {
     vec![
-        Box::new(HostConnectIotHub {
-            id: "host-connect-iothub-amqp",
-            description: "host can connect to and perform TLS handshake with IoT Hub AMQP port",
-            upstream_protocol_port: UpstreamProtocolPort::Amqp,
-            port_number: UpstreamProtocolPort::Amqp.as_port(),
-            iothub_hostname: None,
-        }),
-        Box::new(HostConnectIotHub {
-            id: "host-connect-iothub-https",
-            description:
-                "host can connect to and perform TLS handshake with IoT Hub HTTPS / WebSockets port",
-            upstream_protocol_port: UpstreamProtocolPort::Https,
-            port_number: UpstreamProtocolPort::Https.as_port(),
-            iothub_hostname: None,
-        }),
-        Box::new(HostConnectIotHub {
-            id: "host-connect-iothub-mqtt",
-            description: "host can connect to and perform TLS handshake with IoT Hub MQTT port",
-            upstream_protocol_port: UpstreamProtocolPort::Mqtt,
-            port_number: UpstreamProtocolPort::Mqtt.as_port(),
-            iothub_hostname: None,
-        }),
+        make_box(
+            "host-connect-iothub-amqp",
+            "host can connect to and perform TLS handshake with IoT Hub AMQP port",
+            UpstreamProtocolPort::Amqp,
+        ),
+        make_box(
+            "host-connect-iothub-https",
+            "host can connect to and perform TLS handshake with IoT Hub HTTPS / WebSockets port",
+            UpstreamProtocolPort::Https,
+        ),
+        make_box(
+            "host-connect-iothub-mqtt",
+            "host can connect to and perform TLS handshake with IoT Hub MQTT port",
+            UpstreamProtocolPort::Mqtt,
+        ),
     ]
 }
 
@@ -68,4 +61,18 @@ impl HostConnectIotHub {
 
         Ok(CheckResult::Ok)
     }
+}
+
+fn make_box(
+    id: &'static str,
+    description: &'static str,
+    upstream_protocol_port: UpstreamProtocolPort,
+) -> Box<HostConnectIotHub> {
+    Box::new(HostConnectIotHub {
+        id,
+        description,
+        port_number: upstream_protocol_port.as_port(),
+        upstream_protocol_port,
+        iothub_hostname: None,
+    })
 }
