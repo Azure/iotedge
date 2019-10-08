@@ -191,7 +191,6 @@ where
         #[cfg(windows)]
          let inspect = ShellCommand::new("powershell.exe")
             .arg("-Command")
-            .arg("-NoProfile")
             .arg(&format!(r"Get-WinEvent -ea SilentlyContinue -FilterHashtable @{{ProviderName='iotedged';LogName='application';StartTime='{}'}} |
                             Select TimeCreated, Message |
                             Sort-Object @{{Expression='TimeCreated';Descending=$false}} |
