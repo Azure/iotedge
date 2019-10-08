@@ -338,6 +338,128 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
             Assert.Equal(device3CloudReceivedMessagesCountList, new[] { 30 });
         }
 
+        [Fact]
+        [Unit]
+        public async Task NoErrorFromCloudProxy_NoErrorDetailsReturned()
+        {
+            var batchSize = 10;
+            Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
+            string cloudEndpointId = Guid.NewGuid().ToString();
+
+            var cloudProxy = ThrowingCloudProxy
+                                .CreateWithResponses(30, ThrowingCloudProxy.Success())
+                                .Build();
+
+            Task<Option<ICloudProxy>> GetCloudProxy(string id) => Task.FromResult(Option.Some(cloudProxy));
+
+            var cloudEndpoint = new CloudEndpoint(cloudEndpointId, GetCloudProxy, routingMessageConverter, batchSize);
+            IProcessor cloudMessageProcessor = cloudEndpoint.CreateProcessor();
+
+            var sinkResult = await cloudMessageProcessor.ProcessAsync(GetMessages("device1", 3 * batchSize), CancellationToken.None);
+
+            Assert.True(sinkResult.IsSuccessful);
+            Assert.Equal(3 * batchSize, sinkResult.Succeeded.Count);
+            Assert.Equal(0, sinkResult.Failed.Count);
+            Assert.Equal(0, sinkResult.InvalidDetailsList.Count);
+            Assert.Equal(Option.None<SendFailureDetails>(), sinkResult.SendFailureDetails);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task ErrorInFirstBatch_ErrorDetailsReturned()
+        {
+            var batchSize = 10;
+            Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
+            string cloudEndpointId = Guid.NewGuid().ToString();
+
+            var cloudProxy = ThrowingCloudProxy
+                                .CreateWithResponses(3, ThrowingCloudProxy.Success())
+                                .Then(ThrowingCloudProxy.Throw<Client.Exceptions.IotHubException>())
+                                .ThenMany(batchSize - 4, ThrowingCloudProxy.Success()) // first batch ends here (3 success + 1 fail -> 10 - 4 to go)
+                                .ThenMany(2 * batchSize, ThrowingCloudProxy.Success())
+                                .Build();
+
+            Task<Option<ICloudProxy>> GetCloudProxy(string id) => Task.FromResult(Option.Some(cloudProxy));
+
+            var cloudEndpoint = new CloudEndpoint(cloudEndpointId, GetCloudProxy, routingMessageConverter);
+            IProcessor cloudMessageProcessor = cloudEndpoint.CreateProcessor();
+
+            var sinkResult = await cloudMessageProcessor.ProcessAsync(GetMessages("device1", 3 * batchSize), CancellationToken.None);
+
+            Assert.False(sinkResult.IsSuccessful);
+            Assert.Equal(2 * batchSize, sinkResult.Succeeded.Count);
+            Assert.Equal(1 * batchSize, sinkResult.Failed.Count);
+            Assert.Equal(0, sinkResult.InvalidDetailsList.Count);
+            Assert.True(sinkResult.SendFailureDetails.HasValue);
+            Assert.Equal(FailureKind.Transient, sinkResult.SendFailureDetails.Expect(() => new Exception()).FailureKind);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task TransientErrorInFirstBatch_FailureDetailsDoesNotGetOverwritten()
+        {
+            var batchSize = 10;
+            Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
+            string cloudEndpointId = Guid.NewGuid().ToString();
+
+            var cloudProxy = ThrowingCloudProxy
+                                .CreateWithResponses(3, ThrowingCloudProxy.Success())
+                                .Then(ThrowingCloudProxy.Throw<Client.Exceptions.IotHubException>()) // transient error
+                                .ThenMany(batchSize - 4, ThrowingCloudProxy.Success()) // first batch ends here (3 success + 1 fail -> 10 - 4 to go)
+                                .ThenMany(3, ThrowingCloudProxy.Success())
+                                .Then(ThrowingCloudProxy.Throw<Exception>()) // non-transient error
+                                .ThenMany(batchSize - 4, ThrowingCloudProxy.Success()) // second batch ends here
+                                .ThenMany(1 * batchSize, ThrowingCloudProxy.Success())
+                                .Build();
+
+            Task<Option<ICloudProxy>> GetCloudProxy(string id) => Task.FromResult(Option.Some(cloudProxy));
+
+            var cloudEndpoint = new CloudEndpoint(cloudEndpointId, GetCloudProxy, routingMessageConverter);
+            IProcessor cloudMessageProcessor = cloudEndpoint.CreateProcessor();
+
+            var sinkResult = await cloudMessageProcessor.ProcessAsync(GetMessages("device1", 3 * batchSize), CancellationToken.None);
+
+            Assert.False(sinkResult.IsSuccessful);
+            Assert.Equal(batchSize, sinkResult.Succeeded.Count);
+            Assert.Equal(batchSize, sinkResult.Failed.Count);
+            Assert.Equal(batchSize, sinkResult.InvalidDetailsList.Count);
+            Assert.True(sinkResult.SendFailureDetails.HasValue);
+            Assert.Equal(FailureKind.Transient, sinkResult.SendFailureDetails.Expect(() => new Exception()).FailureKind);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task TransientErrorInSecondBatch_OverwritesNonTransientFailureDetails()
+        {
+            var batchSize = 10;
+            Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
+            string cloudEndpointId = Guid.NewGuid().ToString();
+
+            var cloudProxy = ThrowingCloudProxy
+                                .CreateWithResponses(3, ThrowingCloudProxy.Success())
+                                .Then(ThrowingCloudProxy.Throw<Exception>()) // non-transient error
+                                .ThenMany(batchSize - 4, ThrowingCloudProxy.Success()) // first batch ends here (3 success + 1 fail -> 10 - 4 to go)
+                                .ThenMany(3, ThrowingCloudProxy.Success())
+                                .Then(ThrowingCloudProxy.Throw<Client.Exceptions.IotHubException>()) // transient error
+                                .ThenMany(batchSize - 4, ThrowingCloudProxy.Success()) // second batch ends here
+                                .ThenMany(1 * batchSize, ThrowingCloudProxy.Success())
+                                .Build();
+
+            Task<Option<ICloudProxy>> GetCloudProxy(string id) => Task.FromResult(Option.Some(cloudProxy));
+
+            var cloudEndpoint = new CloudEndpoint(cloudEndpointId, GetCloudProxy, routingMessageConverter);
+            IProcessor cloudMessageProcessor = cloudEndpoint.CreateProcessor();
+
+            var sinkResult = await cloudMessageProcessor.ProcessAsync(GetMessages("device1", 3 * batchSize), CancellationToken.None);
+
+            Assert.False(sinkResult.IsSuccessful);
+            Assert.Equal(batchSize, sinkResult.Succeeded.Count);
+            Assert.Equal(batchSize, sinkResult.Failed.Count);
+            Assert.Equal(batchSize, sinkResult.InvalidDetailsList.Count);
+            Assert.True(sinkResult.SendFailureDetails.HasValue);
+            Assert.Equal(FailureKind.Transient, sinkResult.SendFailureDetails.Expect(() => new Exception()).FailureKind);
+        }
+
         [Theory]
         [InlineData(10, 1024, 10)]
         [InlineData(10, 64 * 1024, 4)]
@@ -380,6 +502,90 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             var message = new RoutingMessage(TelemetryMessageSource.Instance, messageBody, properties, systemProperties);
             return message;
+        }
+    }
+
+    internal class ThrowingCloudProxy : ICloudProxy
+    {
+        private List<(int, Func<Task>)> callResponses;
+        private int callCounter;
+
+        private ThrowingCloudProxy(List<(int, Func<Task>)> callResponses)
+        {
+            this.callResponses = callResponses;
+        }
+
+        public bool IsActive => true;
+        public Task<bool> CloseAsync() => Task.FromResult(true);
+        public Task<IMessage> GetTwinAsync() => throw new NotImplementedException();
+        public Task<bool> OpenAsync() => Task.FromResult(true);
+        public Task RemoveCallMethodAsync() => throw new NotImplementedException();
+        public Task RemoveDesiredPropertyUpdatesAsync() => throw new NotImplementedException();
+        public Task SendFeedbackMessageAsync(string messageId, FeedbackStatus feedbackStatus) => throw new NotImplementedException();
+        public Task SetupCallMethodAsync() => throw new NotImplementedException();
+        public Task SetupDesiredPropertyUpdatesAsync() => throw new NotImplementedException();
+        public Task StartListening() => Task.FromResult(true);
+        public Task UpdateReportedPropertiesAsync(IMessage reportedPropertiesMessage) => throw new NotImplementedException();
+
+        public Task SendMessageAsync(IMessage message)
+        {
+            var currentAction = this.Find(++this.callCounter);
+            return currentAction();
+        }
+
+        private Func<Task> Find(int targetCount)
+        {
+            var currentCount = 0;
+            foreach (var (count, response) in this.callResponses)
+            {
+                currentCount += count;
+                if (currentCount >= targetCount)
+                    return response;
+            }
+
+            throw new InvalidOperationException("No response is defined for ThrowingCloudProxy call");
+        }
+
+        public Task SendMessageBatchAsync(IEnumerable<IMessage> inputMessages)
+        {
+            return Task.WhenAll(inputMessages.Select(m => this.SendMessageAsync(m)));
+        }
+
+        internal static Func<Task> Success() => new Func<Task>(() => Task.FromResult(true));
+        internal static Func<Task> Throw<T>()
+            where T : Exception, new()
+        {
+            return () => Task.FromException(new T());
+        }
+
+        internal static CloudProxyBuilder CreateWithResponses(int count, Func<Task> action)
+        {
+            var result = new CloudProxyBuilder();
+            result.ThenMany(count, action);
+
+            return result;
+        }
+
+        internal class CloudProxyBuilder
+        {
+            private List<(int, Func<Task>)> callResponses = new List<(int, Func<Task>)>();
+
+            internal CloudProxyBuilder Then(Func<Task> action)
+            {
+                this.callResponses.Add((1, action));
+                return this;
+            }
+
+            internal CloudProxyBuilder ThenMany(int count, Func<Task> action)
+            {
+                this.callResponses.Add((count, action));
+                return this;
+            }
+
+            internal ICloudProxy Build()
+            {
+                return new ThrowingCloudProxy(this.callResponses);
+            }
         }
     }
 }
