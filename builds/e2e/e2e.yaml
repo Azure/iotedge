@@ -43,7 +43,7 @@ jobs:
     variables:
       os: linux
       arch: amd64
-      artifactDir: iotedged-ubuntu16.04-amd64-docker
+      artifactDir: iotedged-ubuntu16.04-amd64
 
     steps:
     - template: templates/e2e-setup.yaml
@@ -60,7 +60,7 @@ jobs:
     variables:
       os: linux
       arch: amd64
-      artifactDir: iotedged-ubuntu16.04-amd64-moby
+      artifactDir: iotedged-ubuntu16.04-amd64
 
     steps:
     - bash: |
@@ -101,7 +101,7 @@ jobs:
     variables:
       os: linux
       arch: ARM64
-      artifactDir: iotedged-rbpi-arm64-docker
+      artifactDir: iotedged-ubuntu18.04-aarch64
 
     steps:
     - bash: |
