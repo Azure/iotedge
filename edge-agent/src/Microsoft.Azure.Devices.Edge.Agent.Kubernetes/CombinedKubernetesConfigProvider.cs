@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 Option<KubernetesExperimentalCreatePodParameters> experimentalOptions = KubernetesExperimentalCreatePodParameters.Parse(dockerConfig.CreateOptions.OtherProperties);
                 // experimentalOptions.ForEach(parameters => createOptions.Volumes = parameters.Volumes);
                 experimentalOptions.ForEach(parameters => createOptions.NodeSelector = parameters.NodeSelector);
-                // experimentalOptions.ForEach(parameters => createOptions.Resources = parameters.Resources);
+                experimentalOptions.ForEach(parameters => createOptions.Resources = parameters.Resources);
             }
 
             Option<ImagePullSecret> imagePullSecret = dockerConfig.AuthConfig
