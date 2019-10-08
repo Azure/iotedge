@@ -43,7 +43,7 @@ jobs:
     variables:
       os: linux
       arch: amd64
-      artifactDir: iotedged-ubuntu16.04-amd64
+      artifactDir: iotedged-ubuntu16.04-amd64-docker
 
     steps:
     - template: templates/e2e-setup.yaml
@@ -61,7 +61,7 @@ jobs:
     variables:
       os: linux
       arch: amd64
-      artifactDir: iotedged-ubuntu16.04-amd64
+      artifactDir: iotedged-ubuntu16.04-amd64-moby
 
     steps:
     - bash: |
@@ -81,6 +81,29 @@ jobs:
         echo "Verify docker installation"
         docker ps
 
+    - template: templates/e2e-setup.yaml
+    - template: templates/e2e-run.yaml
+
+################################################################################	
+  - job: rbpi_arm64_docker
+################################################################################	
+    displayName: RBPi ARM64 Docker
+
+    pool:
+      name: $(pool.name)
+      demands:
+        - sh -exists
+        - agent-osbits -equals 64
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals ARM64
+        - run-stress -equals true
+
+    variables:
+      os: linux
+      arch: ARM64
+      artifactDir: iotedged-rbpi-arm64-docker
+
+    steps:
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
 
