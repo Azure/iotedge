@@ -95,6 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 .FilterMap()
                 .SelectMany(x => x)
                 .Distinct(KubernetesPvcByValueEqualityComparer);
+
             // Modules may use PVCs created by the user, we get all PVCs and then work on ours.
             V1PersistentVolumeClaimList currentPvcList = await this.client.ListNamespacedPersistentVolumeClaimAsync(this.deviceNamespace);
             await this.ManagePvcs(currentPvcList, desiredPvcs);
