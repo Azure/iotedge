@@ -7,10 +7,10 @@ use regex::Regex;
 use url::Url;
 use url_serde;
 
-use crate::DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS;
 use crate::crypto::MemoryKey;
 use crate::error::{Error, ErrorKind};
 use crate::module::ModuleSpec;
+use crate::DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS;
 
 const DEVICEID_KEY: &str = "DeviceId";
 const HOSTNAME_KEY: &str = "HostName";
