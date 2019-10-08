@@ -1,5 +1,6 @@
 pub mod certificates_quickstart;
 pub mod connect_management_uri;
+pub mod container_connect_iothub;
 pub mod container_engine_dns;
 pub mod container_engine_installed;
 pub mod container_engine_ipv6;
@@ -19,6 +20,7 @@ pub mod windows_host_version;
 
 pub use self::certificates_quickstart::CertificatesQuickstart;
 pub use self::connect_management_uri::ConnectManagementUri;
+pub use self::container_connect_iothub::get_host_container_iothub_tests;
 pub use self::container_engine_dns::ContainerEngineDns;
 pub use self::container_engine_installed::ContainerEngineInstalled;
 pub use self::container_engine_ipv6::ContainerEngineIPv6;

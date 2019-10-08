@@ -247,6 +247,7 @@ impl Check {
                 let mut tests: Vec<Box<dyn Checker>> = Vec::new();
                 tests.push(Box::new(HostConnectDpsEndpoint::default()));
                 tests.extend(get_host_connect_iothub_tests());
+                tests.extend(get_host_container_iothub_tests());
                 tests
             }),
         ]

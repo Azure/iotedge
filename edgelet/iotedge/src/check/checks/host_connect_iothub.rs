@@ -39,10 +39,10 @@ pub struct HostConnectIotHub {
 }
 impl Checker for HostConnectIotHub {
     fn id(&self) -> &'static str {
-        "host-connect-dps-endpoint"
+        self.id
     }
     fn description(&self) -> &'static str {
-        "host can connect to and perform TLS handshake with DPS endpoint"
+        self.description
     }
     fn result(&mut self, check: &mut Check) -> CheckResult {
         self.execute(check).unwrap_or_else(CheckResult::Failed)
