@@ -622,3 +622,314 @@ struct CheckOutputSerializable {
     result: CheckResultSerializable,
     additional_info: serde_json::Value,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn config_file_checks_ok() {
+        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+
+        for filename in &["sample_settings.yaml", "sample_settings.tg.filepaths.yaml"] {
+            let config_file = format!(
+                "{}/../edgelet-docker/test/{}/{}",
+                env!("CARGO_MANIFEST_DIR"),
+                if cfg!(windows) { "windows" } else { "linux" },
+                filename,
+            );
+
+            let mut check = runtime
+                .block_on(Check::new(
+                    config_file.into(),
+                    "daemon.json".into(), // unused for this test
+                    "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                    Default::default(),
+                    Some("1.0.0".to_owned()),      // unused for this test
+                    "iotedged".into(),             // unused for this test
+                    None,                          // unused for this test
+                    "pool.ntp.org:123".to_owned(), // unused for this test
+                    super::OutputFormat::Text,     // unused for this test
+                    false,
+                    false,
+                ))
+                .unwrap();
+
+            match WellFormedConfig::default().result(&mut check) {
+                CheckResult::Ok => (),
+                check_result => panic!("parsing {} returned {:?}", filename, check_result),
+            }
+
+            match WellFormedConnectionString::default().result(&mut check) {
+                CheckResult::Ok => (),
+                check_result => panic!(
+                    "checking connection string in {} returned {:?}",
+                    filename, check_result
+                ),
+            }
+
+            match Hostname::default().result(&mut check) {
+                CheckResult::Failed(err) => {
+                    let message = err.to_string();
+                    assert!(
+                        message
+                            .starts_with("config.yaml has hostname localhost but device reports"),
+                        "checking hostname in {} produced unexpected error: {}",
+                        filename,
+                        message,
+                    );
+                }
+                check_result => panic!(
+                    "checking hostname in {} returned {:?}",
+                    filename, check_result
+                ),
+            }
+
+            // Pretend it's Moby
+            check.docker_server_version = Some("3.0.3".to_owned());
+
+            match ContainerEngineIsMoby::default().result(&mut check) {
+                CheckResult::Ok => (),
+                check_result => panic!(
+                    "checking moby_runtime.uri in {} returned {:?}",
+                    filename, check_result
+                ),
+            }
+        }
+    }
+
+    #[test]
+    fn parse_settings_err() {
+        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+
+        let filename = "bad_sample_settings.yaml";
+        let config_file = format!(
+            "{}/../edgelet-docker/test/{}/{}",
+            env!("CARGO_MANIFEST_DIR"),
+            if cfg!(windows) { "windows" } else { "linux" },
+            filename,
+        );
+
+        let mut check = runtime
+            .block_on(Check::new(
+                config_file.into(),
+                "daemon.json".into(), // unused for this test
+                "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                Default::default(),
+                Some("1.0.0".to_owned()),      // unused for this test
+                "iotedged".into(),             // unused for this test
+                None,                          // unused for this test
+                "pool.ntp.org:123".to_owned(), // unused for this test
+                super::OutputFormat::Text,     // unused for this test
+                false,
+                false,
+            ))
+            .unwrap();
+
+        match WellFormedConfig::default().result(&mut check) {
+            CheckResult::Failed(err) => {
+                let err = err
+                    .iter_causes()
+                    .nth(1)
+                    .expect("expected to find cause-of-cause-of-error");
+                assert!(
+                    err.to_string()
+                        .contains("while parsing a flow mapping, did not find expected ',' or '}' at line 10 column 5"),
+                    "parsing {} produced unexpected error: {}",
+                    filename,
+                    err,
+                );
+            }
+
+            check_result => panic!("parsing {} returned {:?}", filename, check_result),
+        }
+    }
+
+    #[test]
+    fn settings_connection_string_dps() {
+        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+
+        let filename = "sample_settings.dps.sym.yaml";
+        let config_file = format!(
+            "{}/../edgelet-docker/test/{}/{}",
+            env!("CARGO_MANIFEST_DIR"),
+            if cfg!(windows) { "windows" } else { "linux" },
+            filename,
+        );
+
+        let mut check = runtime
+            .block_on(Check::new(
+                config_file.into(),
+                "daemon.json".into(), // unused for this test
+                "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                Default::default(),
+                Some("1.0.0".to_owned()), // unused for this test
+                "iotedged".into(),        // unused for this test
+                Some("something.something.com".to_owned()), // pretend user specified --iothub-hostname
+                "pool.ntp.org:123".to_owned(),              // unused for this test
+                super::OutputFormat::Text,                  // unused for this test
+                false,
+                false,
+            ))
+            .unwrap();
+
+        match WellFormedConfig::default().result(&mut check) {
+            CheckResult::Ok => (),
+            check_result => panic!("parsing {} returned {:?}", filename, check_result),
+        }
+
+        match WellFormedConnectionString::default().result(&mut check) {
+            CheckResult::Ok => (),
+            check_result => panic!("parsing {} returned {:?}", filename, check_result),
+        }
+    }
+
+    #[test]
+    fn settings_connection_string_dps_err() {
+        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+
+        let filename = "sample_settings.dps.sym.yaml";
+        let config_file = format!(
+            "{}/../edgelet-docker/test/{}/{}",
+            env!("CARGO_MANIFEST_DIR"),
+            if cfg!(windows) { "windows" } else { "linux" },
+            filename,
+        );
+
+        let mut check = runtime
+            .block_on(Check::new(
+                config_file.into(),
+                "daemon.json".into(), // unused for this test
+                "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                Default::default(),
+                Some("1.0.0".to_owned()),      // unused for this test
+                "iotedged".into(),             // unused for this test
+                None,                          // pretend user did not specify --iothub-hostname
+                "pool.ntp.org:123".to_owned(), // unused for this test
+                super::OutputFormat::Text,     // unused for this test
+                false,
+                false,
+            ))
+            .unwrap();
+
+        match WellFormedConfig::default().result(&mut check) {
+            CheckResult::Ok => (),
+            check_result => panic!("parsing {} returned {:?}", filename, check_result),
+        }
+
+        match WellFormedConnectionString::default().result(&mut check) {
+            CheckResult::Failed(err) => assert!(err.to_string().contains("Device is not using manual provisioning, so Azure IoT Hub hostname needs to be specified with --iothub-hostname")),
+            check_result => panic!(
+                "checking connection string in {} returned {:?}",
+                filename, check_result
+            ),
+        }
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn moby_runtime_uri_windows_wants_moby_based_on_runtime_uri() {
+        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+
+        let filename = "sample_settings_notmoby.yaml";
+        let config_file = format!(
+            "{}/../edgelet-docker/test/{}/{}",
+            env!("CARGO_MANIFEST_DIR"),
+            if cfg!(windows) { "windows" } else { "linux" },
+            filename,
+        );
+
+        let mut check = runtime
+            .block_on(Check::new(
+                config_file.into(),
+                "daemon.json".into(), // unused for this test
+                "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                Default::default(),
+                Some("1.0.0".to_owned()),      // unused for this test
+                "iotedged".into(),             // unused for this test
+                None,                          // unused for this test
+                "pool.ntp.org:123".to_owned(), // unused for this test
+                super::OutputFormat::Text,     // unused for this test
+                false,
+                false,
+            ))
+            .unwrap();
+
+        match WellFormedConfig::default().result(&mut check) {
+            CheckResult::Ok => (),
+            check_result => panic!("parsing {} returned {:?}", filename, check_result),
+        }
+
+        // Pretend it's Moby even though named pipe indicates otherwise
+        check.docker_server_version = Some("3.0.3".to_owned());
+
+        match ContainerEngineIsMoby::default().result(&mut check) {
+            CheckResult::Warning(warning) => assert!(
+                warning.to_string().contains(
+                    "Device is not using a production-supported container engine (moby-engine)."
+                ),
+                "checking moby_runtime.uri in {} failed with an unexpected warning: {}",
+                filename,
+                warning
+            ),
+
+            check_result => panic!(
+                "checking moby_runtime.uri in {} returned {:?}",
+                filename, check_result
+            ),
+        }
+    }
+
+    #[test]
+    fn moby_runtime_uri_wants_moby_based_on_server_version() {
+        let mut runtime = tokio::runtime::current_thread::Runtime::new().unwrap();
+
+        let filename = "sample_settings.yaml";
+        let config_file = format!(
+            "{}/../edgelet-docker/test/{}/{}",
+            env!("CARGO_MANIFEST_DIR"),
+            if cfg!(windows) { "windows" } else { "linux" },
+            filename,
+        );
+
+        let mut check = runtime
+            .block_on(super::Check::new(
+                config_file.into(),
+                "daemon.json".into(), // unused for this test
+                "mcr.microsoft.com/azureiotedge-diagnostics:1.0.0".to_owned(), // unused for this test
+                Default::default(),
+                Some("1.0.0".to_owned()),      // unused for this test
+                "iotedged".into(),             // unused for this test
+                None,                          // unused for this test
+                "pool.ntp.org:123".to_owned(), // unused for this test
+                super::OutputFormat::Text,     // unused for this test
+                false,
+                false,
+            ))
+            .unwrap();
+
+        match WellFormedConfig::default().result(&mut check) {
+            CheckResult::Ok => (),
+            check_result => panic!("parsing {} returned {:?}", filename, check_result),
+        }
+
+        // Pretend it's Docker
+        check.docker_server_version = Some("18.09.1".to_owned());
+
+        match ContainerEngineIsMoby::default().result(&mut check) {
+            CheckResult::Warning(warning) => assert!(
+                warning.to_string().contains(
+                    "Device is not using a production-supported container engine (moby-engine)."
+                ),
+                "checking moby_runtime.uri in {} failed with an unexpected warning: {}",
+                filename,
+                warning
+            ),
+
+            check_result => panic!(
+                "checking moby_runtime.uri in {} returned {:?}",
+                filename, check_result
+            ),
+        }
+    }
+}
