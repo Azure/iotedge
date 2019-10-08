@@ -46,27 +46,13 @@ pub fn get_host_container_iothub_tests() -> Vec<Box<dyn Checker>> {
     ]
 }
 
-fn make_box(
-    id: &'static str,
-    description: &'static str,
-    upstream_protocol_port: UpstreamProtocolPort,
-    use_container_runtime_network: bool,
-) -> Box<ContainerConnectIotHub> {
-    Box::new(ContainerConnectIotHub {
-        id,
-        description,
-        port_number: upstream_protocol_port.as_port(),
-        upstream_protocol_port,
-        iothub_hostname: None,
-        use_container_runtime_network,
-    })
-}
-
 #[derive(serde_derive::Serialize)]
 pub struct ContainerConnectIotHub {
     upstream_protocol_port: UpstreamProtocolPort,
     port_number: u16,
     iothub_hostname: Option<String>,
+    network_name: Option<String>,
+    diagnostics_image_name: Option<String>,
     id: &'static str,
     description: &'static str,
     use_container_runtime_network: bool,
@@ -104,8 +90,10 @@ impl ContainerConnectIotHub {
         } else {
             return Ok(CheckResult::Skipped);
         };
+        self.iothub_hostname = Some(iothub_hostname.to_owned());
 
         let network_name = settings.moby_runtime().network().name();
+        self.network_name = Some(network_name.to_owned());
 
         let mut args = vec!["run", "--rm"];
 
@@ -124,6 +112,7 @@ impl ContainerConnectIotHub {
             "--port",
             &port,
         ]);
+        self.diagnostics_image_name = Some(check.diagnostics_image_name.to_owned());
 
         if let Err((_, err)) = super::container_engine_installed::docker(docker_host_arg, args) {
             return Err(err
@@ -142,4 +131,22 @@ impl ContainerConnectIotHub {
 
         Ok(CheckResult::Ok)
     }
+}
+
+fn make_box(
+    id: &'static str,
+    description: &'static str,
+    upstream_protocol_port: UpstreamProtocolPort,
+    use_container_runtime_network: bool,
+) -> Box<ContainerConnectIotHub> {
+    Box::new(ContainerConnectIotHub {
+        id,
+        description,
+        port_number: upstream_protocol_port.as_port(),
+        upstream_protocol_port,
+        use_container_runtime_network,
+        iothub_hostname: None,
+        network_name: None,
+        diagnostics_image_name: None,
+    })
 }
