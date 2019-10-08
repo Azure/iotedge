@@ -68,7 +68,7 @@ pub enum OutputFormat {
 ///
 /// Check functions return `Result<CheckResult, failure::Error>` where `Err` represents the check failed.
 #[derive(Debug)]
-pub(crate) enum CheckResult {
+pub enum CheckResult {
     /// Check succeeded.
     Ok,
 
@@ -243,7 +243,12 @@ impl Check {
                     Box::new(EdgeHubStorageMounted::default()),
                 ],
             ),
-            ("Connectivity checks", vec![]),
+            ("Connectivity checks", {
+                let mut tests: Vec<Box<dyn Checker>> = Vec::new();
+                tests.push(Box::new(HostConnectDpsEndpoint::default()));
+                tests.extend(get_host_connect_iothub_tests());
+                tests
+            }),
         ]
     }
 
