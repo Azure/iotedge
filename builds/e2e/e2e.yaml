@@ -24,6 +24,7 @@ jobs:
       os: linux
       arch: ARM64
       artifactDir: iotedged-ubuntu18.04-aarch64
+      DotNet_Runtime: netcoreapp3.0
 
     steps:
     - bash: |
