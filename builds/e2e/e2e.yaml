@@ -93,6 +93,7 @@ jobs:
       name: $(pool.name)
       demands:
         - pwsh
+        - dotnet -equals 3.0.100
         - run-e2e-tests -equals true
         - agent-osbits -equals 64
         - Agent.OS -equals Linux
