@@ -96,7 +96,8 @@ steps:
 - pwsh: |
     if(!$DotNet_Runtime)
     {
-      echo DotNet_Runtime is empty setting the value to default 
+      echo "DotNet_Runtime is empty setting the value to default"
+      echo $(DotNet_Runtime)
       $DotNet_Runtime = 'netcoreapp2.1';
     }
 
