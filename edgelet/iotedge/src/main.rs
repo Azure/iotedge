@@ -264,6 +264,13 @@ fn run() -> Result<(), Error> {
                         .help("Follow output log")
                         .long("ms-only")
                         .takes_value(false),
+                )
+                .arg(
+                    Arg::with_name("verbose")
+                        .help("Use verbose output")
+                        .long("verbose")
+                        .short("v")
+                        .takes_value(false),
                 ),
         )
         .get_matches();
@@ -369,8 +376,9 @@ fn run() -> Result<(), Error> {
                 .with_tail(LogTail::All)
                 .with_since(since);
             let include_ms_only = args.is_present("include-ms-only");
+            let verbose = args.is_present("verbose");
             tokio_runtime.block_on(
-                SupportBundle::new(options, location.to_owned(), include_ms_only, runtime()?)
+                SupportBundle::new(options, location.to_owned(), include_ms_only, verbose, runtime()?)
                     .execute(),
             )
         }
