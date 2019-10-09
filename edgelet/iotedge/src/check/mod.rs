@@ -661,7 +661,7 @@ impl Check {
 impl crate::Command for Check {
     type Future = FutureResult<(), Error>;
 
-    fn execute(&mut self) -> Self::Future {
+    fn execute(mut self) -> Self::Future {
         self.execute_inner().into_future()
     }
 }
