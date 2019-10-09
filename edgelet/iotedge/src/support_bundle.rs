@@ -48,7 +48,6 @@ where
             .and_then(SupportBundle::write_edgelet_log_to_file)
             .and_then(SupportBundle::write_check_to_file)
             .and_then(SupportBundle::write_all_inspects)
-            .map(drop)
             .map(|_| println!("Created support bundle"));
 
         Box::new(result)
@@ -183,13 +182,15 @@ where
 
         #[cfg(unix)]
         let inspect = ShellCommand::new("journalctl")
-            .args(&["-u", "-a", "iotedge"])
+            .arg("-a")
+            .args(&["-u", "iotedge"])
             .args(&["-S", &since])
             .arg("--no-pager")
             .output();
 
         #[cfg(windows)]
          let inspect = ShellCommand::new("powershell.exe")
+            .arg("-NoProfile")
             .arg("-Command")
             .arg(&format!(r"Get-WinEvent -ea SilentlyContinue -FilterHashtable @{{ProviderName='iotedged';LogName='application';StartTime='{}'}} |
                             Select TimeCreated, Message |
@@ -199,14 +200,14 @@ where
 
         let (file_name, output) = if let Ok(result) = inspect {
             if result.status.success() {
-                ("edgelet.txt", result.stdout)
+                ("iotedged.txt", result.stdout)
             } else {
-                ("edgelet_err.txt", result.stderr)
+                ("iotedged_err.txt", result.stderr)
             }
         } else {
             let err_message = inspect.err().unwrap().description().to_owned();
             println!("Could not find system logs for iotedge. Including error in bundle.\nError message: {}", err_message);
-            ("edgelet_err.txt", err_message.as_bytes().to_vec())
+            ("iotedged_err.txt", err_message.as_bytes().to_vec())
         };
 
         state
