@@ -1,10 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
-using Xunit;
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
+    using Xunit;
+
     [CollectionDefinition("Microsoft.Azure.Devices.Edge.Hub.E2E.EdgeHubCollection.Test")]
     public class EdgeHubCollection : ICollectionFixture<EdgeHubFixture>
     {

@@ -85,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     file.Write(new byte[] { 1, 2 }, 1, 1);
                 }
             };
-            
+
             await this.BackupAndRestoreMessageDeliveryTestBase(transportSettings, 15, 10, 10, corruptBackupMetadata);
         }
 

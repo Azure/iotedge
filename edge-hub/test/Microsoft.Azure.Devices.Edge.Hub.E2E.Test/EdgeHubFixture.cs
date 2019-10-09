@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         ~EdgeHubFixture()
         {
-            Dispose(false);
+            this.Dispose(false);
         }
 
         internal ProtocolHeadFixture GetFixture()
@@ -27,14 +27,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         public void Dispose()
         {
-            Dispose(true);
+            this.Dispose(true);
             GC.SuppressFinalize(this);
         }
 
         public void Dispose(bool disposing)
         {
             Console.WriteLine("Dispose edge hub fix");
-            if (disposed)
+            if (this.disposed)
             {
                 return;
             }
@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
             }
 
-            disposed = true;
+            this.disposed = true;
         }
     }
 }

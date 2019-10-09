@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         ~ProtocolHeadFixture()
         {
-            Dispose(false);
+            this.Dispose(false);
         }
 
         // Device SDK caches the AmqpTransportSettings that are set the first time and ignores
@@ -88,13 +88,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         public void Dispose()
         {
-            Dispose(true);
+            this.Dispose(true);
             GC.SuppressFinalize(this);
         }
 
         public void Dispose(bool disposing)
         {
-            if (disposed)
+            if (this.disposed)
             {
                 return;
             }
@@ -108,7 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 this.hosting?.Container?.Dispose();
             }
 
-            disposed = true;
+            this.disposed = true;
         }
 
         public async Task CloseAsync()

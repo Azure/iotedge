@@ -24,19 +24,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         ~TestModule()
         {
-            Dispose(false);
+            this.Dispose(false);
         }
 
         public void Dispose()
         {
-            Dispose(true);
+            this.Dispose(true);
             GC.SuppressFinalize(this);
         }
 
         public void Dispose(bool disposing)
         {
             Console.WriteLine("Dispose edge hub fix");
-            if (disposed)
+            if (this.disposed)
             {
                 return;
             }
@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 this.moduleClient?.Dispose();
             }
 
-            disposed = true;
+            this.disposed = true;
         }
 
         public static async Task<TestModule> CreateAndConnect(string connectionString, ITransportSettings[] settings)
