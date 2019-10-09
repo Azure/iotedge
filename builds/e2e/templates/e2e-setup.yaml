@@ -104,10 +104,10 @@ steps:
       $DotNet_Runtime='$(DotNet_Runtime)';
     }
 
-    echo "DotNet_Runtime = $($DotNet_Runtime)"
+    echo "DotNet_Runtime = $DotNet_Runtime"
 
     $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
-    dotnet build $testDir -c Release -p:DotNet_Runtime=$($DotNet_Runtime)
+    dotnet build $testDir -c Release -p:DotNet_Runtime=$DotNet_Runtime
 
     $binDir = $(Convert-Path (Convert-Path "$testDir/bin/Release/$($DotNet_Runtime)" | gci | select -First 1))
     echo "binDir= " $binDir
