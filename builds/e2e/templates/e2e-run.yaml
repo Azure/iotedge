@@ -26,6 +26,10 @@ steps:
     E2E_ROOT_CA_PASSWORD: $(TestRootCaPassword)
     VSTEST_CONNECTION_TIMEOUT: 60000
 
+- bash: |
+    echo "VSTEST_CONNECTION_TIMEOUT =" $VSTEST_CONNECTION_TIMEOUT
+  displayName: BEARWASHERE
+
 - task: PublishTestResults@2
   displayName: Publish test results
   inputs:
