@@ -122,18 +122,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
+            Func<int, TimeSpan> waitTimeComputer = (numberOfMessages) => TimeSpan.FromMinutes(Math.Ceiling(expectedMessageCountAfterRestore / 1000d) + 1);
 
             try
             {
                 sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", transportSettings);
 
                 // Send 10 messages before a receiver is registered.
-                Task<int> task1 = sender.SendMessagesByCountAsync("output1", 0, beforeBackupMessageCount, TimeSpan.FromMinutes(10));
+                Task<int> task1 = sender.SendMessagesByCountAsync("output1", 0, beforeBackupMessageCount, waitTimeComputer(beforeBackupMessageCount));
                 int sentMessagesCount = await task1;
                 Assert.Equal(beforeBackupMessageCount, sentMessagesCount);
 
                 // Wait for a while and then close the test fixture which will in turn close the protocol heads and the in-memory DB store thus creating a backup.
-                await Task.Delay(TimeSpan.FromSeconds(5));
+                await Task.Delay(waitTimeComputer(beforeBackupMessageCount));
                 await protocolHeadFixture.CloseAsync();
 
                 postBackupModifier();
@@ -150,7 +151,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 Assert.Equal(afterBackupMessageCount, sentMessagesCount);
 
                 // Validate that all the messages were received (both sent earlier and the new messages).
-                await Task.Delay(TimeSpan.FromSeconds(5));
+                await Task.Delay(waitTimeComputer(expectedMessageCountAfterRestore));
                 ISet<int> receivedMessages = receiver.GetReceivedMessageIndices();
 
                 Assert.Equal(expectedMessageCountAfterRestore, receivedMessages.Count);
