@@ -66,11 +66,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
             // build list of modules that are currently running but the
             // configuration has changed; these are modules that need to
-            // be "updated"
+            // be "updated" and the modules are updateable
             IEnumerable<IModule> updated = this.Modules.Keys
                 .Intersect(other.Modules.Keys)
                 .Except(desiredStatusChanged.Select(m => m.Name))
-                .Where(key => !this.Modules[key].Equals(other.Modules[key]))
+                .Where(key => !this.Modules[key].Equals(other.Modules[key]) && this.Modules[key].IsUpdateable)
                 .Select(key => this.Modules[key]);
 
             return new Diff(created.ToList(), updated.ToList(), desiredStatusChanged, removed.ToList());

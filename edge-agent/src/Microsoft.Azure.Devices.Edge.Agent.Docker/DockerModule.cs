@@ -97,6 +97,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
                 EnvDictionaryComparer.Equals(this.Env, other.Env);
         }
 
+        public bool IsUpdateable { get; set; } = true;
+        
         public override int GetHashCode()
         {
             unchecked

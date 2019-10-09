@@ -136,6 +136,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 EnvDictionaryComparer.Equals(this.Env, other.Env);
         }
 
+        public bool IsUpdateable { get; set; } = true;
+            
         internal class CombinedKubernetesConfigEqualityComparer : IEqualityComparer<KubernetesConfig>
         {
             static readonly AuthConfigEqualityComparer AuthConfigComparer = new AuthConfigEqualityComparer();

@@ -119,6 +119,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         IDictionary<string, EnvVal> Env { get; }
 
         bool IsOnlyModuleStatusChanged(IModule other);
+
+        [JsonIgnore]
+        bool IsUpdateable { get; set; }
     }
 
     public interface IModule<TConfig> : IModule, IEquatable<IModule<TConfig>>

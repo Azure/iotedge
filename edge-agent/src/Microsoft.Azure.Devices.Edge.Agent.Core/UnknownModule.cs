@@ -29,6 +29,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public bool IsOnlyModuleStatusChanged(IModule other) => other is UnknownModule;
 
+        public bool IsUpdateable { get; set; } = true;
+
         public bool Equals(IModule other) => other != null && ReferenceEquals(this, other);
     }
 

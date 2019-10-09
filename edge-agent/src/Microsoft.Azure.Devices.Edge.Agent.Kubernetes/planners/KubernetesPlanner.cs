@@ -63,6 +63,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
                 throw new InvalidModuleException($"Kubernetes deployment currently only handles type={typeof(DockerConfig).FullName}");
             }
 
+            // This is a workaround for K8s public preview refresh
+            // TODO: mark edgeagent module updateable when merging back to main release
+            if (desired.Modules.ContainsKey(Constants.EdgeAgentModuleName)) {
+                desired.Modules[Constants.EdgeAgentModuleName].IsUpdateable = false;
+            }
+
             Diff moduleDifference = desired.Diff(current);
 
             Plan plan;

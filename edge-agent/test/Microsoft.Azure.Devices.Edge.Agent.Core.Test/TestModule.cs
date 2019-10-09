@@ -108,6 +108,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             this.RestartPolicy == other.RestartPolicy &&
             this.ImagePullPolicy == other.ImagePullPolicy;
 
+        public bool IsUpdateable { get; set; } = true;
+
         public override bool Equals(object obj) => this.Equals(obj as TestModuleBase<TConfig>);
 
         public bool Equals(IModule other) => this.Equals(other as TestModuleBase<TConfig>);
