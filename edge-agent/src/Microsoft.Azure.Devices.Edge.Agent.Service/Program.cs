@@ -33,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
         public static int Main()
         {
+            Console.WriteLine($"{DateTime.UtcNow.ToLogString()} My Code!");
             Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Edge Agent Main()");
             try
             {
