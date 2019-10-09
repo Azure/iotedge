@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use bytes::Bytes;
 use failure::{Fail, ResultExt};
-use headers::HeaderMapExt;
+use headers::HeaderMapExt as TypedHeaderMapExt;
 use headers::Range as RangeHeader;
 use log::*;
 use reqwest::header::{self, HeaderMap};
@@ -13,7 +13,10 @@ use reqwest::{Client as ReqwestClient, Method, Response, StatusCode, Url};
 use docker_reference::{Reference, ReferenceKind};
 use docker_scope::{Action, Resource, Scope};
 use oci_digest::Digest;
-use oci_image::{v1::Manifest, MediaType};
+use oci_image::{
+    v1::{Descriptor, Manifest},
+    MediaType,
+};
 
 use crate::auth::{AuthClient, Credentials};
 use crate::blob::Blob;
@@ -152,7 +155,14 @@ impl Client {
 
         let url = self
             .registry_base
-            .join(format!("/v2/{}/manifests/{}", reference.repo(), reference.kind()).as_str())
+            .join(
+                format!(
+                    "/v2/{}/manifests/{}",
+                    reference.repo(),
+                    reference.kind().as_str()
+                )
+                .as_str(),
+            )
             .context(ErrorKind::InvalidApiEndpoint)?;
 
         let mut req = self.client.request(Method::GET, url, &scope).await?;
@@ -164,17 +174,22 @@ impl Client {
 
         match res.status() {
             StatusCode::OK => {
-                let server_digest = extract_digest_from_headers(res.headers())?;
+                let content_type = res.headers().get_required("Content-Type")?;
+                let server_digest = res.headers().get_required("Docker-Content-Digest")?;
+                let content_length = res.headers().get_required("Content-Length")?;
 
                 // If we already know the expected digest, make sure the server returned the
                 // same digest header
                 if let ReferenceKind::Digest(ref d) = reference.kind() {
                     if d != &server_digest {
-                        return Err(ErrorKind::ApiInvalidDigestHeader.into());
+                        return Err(ErrorKind::ApiMismatchedDigest.into());
                     }
                 }
 
-                Ok(Blob::new_streaming(res, server_digest))
+                Ok(Blob::new_streaming(
+                    res,
+                    Descriptor::new_base(content_type, server_digest, content_length),
+                ))
             }
             StatusCode::UNAUTHORIZED => {
                 // TODO: attempt to re-authenticate
@@ -254,14 +269,20 @@ impl Client {
                 // redirects. this is usually exactly what we want, but unfortunately, the
                 // initial redirect response is the one with the digest header...
 
-                // let server_digest = extract_digest_from_headers(res.headers())?;
+                // let server_digest = res.headers().get_required("Docker-Content-Digest")?;
 
                 // // Make sure the server returned the same digest header
                 // if digest != &server_digest {
                 //     return Err(ErrorKind::ApiInvalidDigestHeader.into());
                 // }
 
-                Ok(Blob::new_streaming(res, digest.clone()))
+                let content_type = res.headers().get_required("Content-Type")?;
+                let content_length = res.headers().get_required("Content-Length")?;
+
+                Ok(Blob::new_streaming(
+                    res,
+                    Descriptor::new_base(content_type, digest.clone(), content_length),
+                ))
             }
             StatusCode::UNAUTHORIZED => {
                 // TODO: attempt to re-authenticate
@@ -272,14 +293,28 @@ impl Client {
     }
 }
 
-fn extract_digest_from_headers(headers: &HeaderMap) -> Result<Digest> {
-    Ok(headers
-        .get("Docker-Content-Digest")
-        .ok_or_else(|| ErrorKind::ApiMissingHeader("Docker-Content-Digest"))?
-        .to_str()
-        .context(ErrorKind::ApiMalformedHeader("Docker-Content-Digest"))?
-        .parse::<Digest>()
-        .context(ErrorKind::ApiInvalidDigestHeader)?)
+trait HeaderMapExt {
+    /// Utility method to simplify extracting information from required headers
+    fn get_required<T>(&self, header_key: &'static str) -> Result<T>
+    where
+        T: std::str::FromStr,
+        T::Err: Fail;
+}
+
+impl HeaderMapExt for HeaderMap {
+    fn get_required<T>(&self, header_key: &'static str) -> Result<T>
+    where
+        T: std::str::FromStr,
+        T::Err: Fail,
+    {
+        Ok(self
+            .get(header_key)
+            .ok_or_else(|| ErrorKind::ApiMissingHeader(header_key))?
+            .to_str()
+            .context(ErrorKind::ApiMalformedHeader(header_key))?
+            .parse::<T>()
+            .context(ErrorKind::ApiMalformedHeader(header_key))?)
+    }
 }
 
 /// Given a response that _should_ contain a well-structured ApiErrors JSON

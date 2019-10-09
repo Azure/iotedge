@@ -151,12 +151,14 @@ fn short_digest() {
     assert!("@sha256:fffffffffffffffff".parse::<RawReference>().is_err());
 }
 
+// Passes, as even though it's not a registered digest, it conforms to the
+// digest grammar.
 #[test]
 fn unsupported_digest() {
     assert!(
         "validname@bruhhash:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
             .parse::<RawReference>()
-            .is_err()
+            .is_ok()
     );
 }
 

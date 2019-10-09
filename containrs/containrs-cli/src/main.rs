@@ -143,7 +143,7 @@ async fn true_main() -> Result<(), failure::Error> {
         )
         .subcommand(
             SubCommand::with_name("download")
-                .about("Downloads an image onto disk")
+                .about("Downloads an image, and lays it out according to the OCI Image Layout standard")
                 .arg(
                     Arg::with_name("image")
                         .help("Image reference")
@@ -263,14 +263,15 @@ async fn true_main() -> Result<(), failure::Error> {
                     let mut manifest = client.get_raw_manifest(&image).await?;
                     progress.println(format!(
                         "Server reported digest: {}",
-                        manifest.get_expected_digest()
+                        manifest.get_descriptor().digest
                     ));
 
                     progress.set_length(manifest.len().unwrap_or(0));
 
                     // dump the blob to stdout, chunk by chunk
                     let mut validator = manifest
-                        .get_expected_digest()
+                        .get_descriptor()
+                        .digest
                         .validator()
                         .ok_or_else(|| failure::err_msg("unsupported digest algorithm"))?;
                     let mut stdout = tokio::io::stdout();
@@ -371,57 +372,74 @@ async fn true_main() -> Result<(), failure::Error> {
             // fetch manifest
             let manifest_blob = client.get_raw_manifest(&image).await?;
             eprintln!("downloading manifest.json...");
-            let manifest_digest = manifest_blob.get_expected_digest().clone();
+            let mut manifest_descriptor = manifest_blob.get_descriptor().clone();
             let manifest_json = manifest_blob.bytes().await?;
             eprintln!("downloaded manifest.json");
 
             // validate manifest
-            if !manifest_digest.validate(&manifest_json) {
+            if !manifest_descriptor.digest.validate(&manifest_json) {
                 return Err(failure::err_msg("manifest.json could not be validated"));
             } else {
                 eprintln!("manifest.json validated");
             }
 
-            // create an output directory based on the manifest's digest
-            let out_dir = out_dir.join(manifest_digest.as_str().replace(':', "-"));
+            // parse and validate the syntax of the manifest.json file
+            let manifest = serde_json::from_slice::<ociv1::Manifest>(&manifest_json)
+                .context("while parsing manifest.json")?;
+
+            // before passing it off to ociv1::ImageLayout, annotate the manifest_descriptor
+            // with some useful information.
+            manifest_descriptor
+                .add_annotation(ociv1::annotations::key::REFNAME, &image.to_string());
+
+            // Calculate the OCI Image Layout for this single-manifest image.
+            let image_layout = ociv1::ImageLayout::builder()
+                .manifest(manifest, manifest_descriptor.clone())
+                .build();
+
+            // create an output directory based on the image's reference name
+            let out_dir = out_dir.join(image.to_string().replace(':', "-").replace('/', "_"));
             fs::create_dir(&out_dir)
                 .await
                 .context(format!("{:?}", out_dir))
                 .context("failed to create directory")?;
 
-            // dump manifest.json to disk
-            fs::write(out_dir.join("manifest.json"), &manifest_json).await?;
-
-            // parse and validate the syntax of the manifest.json file
-            let manifest = serde_json::from_slice::<ociv1::Manifest>(&manifest_json)
-                .context("while parsing manifest.json")?;
+            // output the oci-layout and index.json files to disk
+            let (oci_layout_path, oci_layout_data) = image_layout.oci_layout();
+            let (index_json_path, index_json_data) = image_layout.index_json();
+            let oci_layout_data = serde_json::to_string(oci_layout_data)?;
+            let index_json_data = serde_json::to_string(index_json_data)?;
+            fs::write(out_dir.join(oci_layout_path), oci_layout_data).await?;
+            fs::write(out_dir.join(index_json_path), index_json_data).await?;
 
             eprintln!("firing off download requests...");
 
-            // Use the parsed manifest to build up a list of blobs to download.
+            // FIXME?: Don't re-download Manifests when outputting as OCI Image Layout
+            // Since the manifest is one of the blobs in the ImageLayout, the following code
+            // will simply re-download it. This could be avoided with some additional
+            // checks.
+
+            // build up a list of blobs to download.
             let mut paths = Vec::new();
             let mut digests = Vec::new();
 
-            paths.push(String::from("config.json"));
-            digests.push(&manifest.config.digest);
+            for (path, descriptor) in image_layout.blobs() {
+                // ensure the directory exists
+                fs::create_dir_all(out_dir.join(path).parent().unwrap()).await?;
 
-            for layer in manifest.layers.iter() {
-                let filename = format!(
-                    "{}.{}",
-                    layer.digest.as_str().replace(':', "-"),
-                    MEDIA_TYPE_TO_FILE_EXT
-                        .get(layer.media_type.as_str())
-                        .unwrap_or(&"unknown")
-                );
+                // There's some special handling around the Manifest. Although it's stored as
+                // "just another blob" in the OCI layout spec, it's not actually a blob which
+                // can be fetched from the /blobs/ endpoint.
+                // Also, we already have it downloaded, so why re-download it?
+                if descriptor == &manifest_descriptor {
+                    // just dump the manifest to disk immediately
+                    fs::write(out_dir.join(path), &manifest_json).await?;
+                    continue;
+                }
 
-                paths.push(filename);
-                digests.push(&layer.digest);
+                paths.push(out_dir.join(path));
+                digests.push(&descriptor.digest);
             }
-
-            let paths = paths
-                .into_iter()
-                .map(|file| out_dir.join(file))
-                .collect::<Vec<_>>();
 
             // fire off downloads in parallel
             let blob_futures = digests

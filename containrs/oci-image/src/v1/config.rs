@@ -8,13 +8,13 @@ use oci_digest::Digest;
 use super::Annotations;
 use super::{media_type, MediaType};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(Debug, Serialize, Deserialize, Default, PartialEq, Eq, Hash, Copy, Clone)]
 pub struct EmptyObj {}
 
 /// Image is the JSON structure which describes some basic information about the
 /// image. This provides the `application/vnd.oci.image.config.v1+json`
 /// mediatype when marshalled to JSON.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct Image {
     /// Created is the combined date and time at which the image was created,
     /// formatted as defined by RFC 3339, section 5.6.
@@ -33,6 +33,7 @@ pub struct Image {
     /// Configurations SHOULD use, and implementations SHOULD understand, values
     /// listed in the Go Language document for
     /// [GOARCH](https://golang.org/doc/install/source#environment).
+    // TODO: this could be validated while deserializing
     #[serde(rename = "architecture")]
     pub architecture: String,
 
@@ -42,6 +43,7 @@ pub struct Image {
     /// Configurations SHOULD use, and implementations SHOULD understand, values
     /// listed in the Go Language document for
     /// [GOOS](https://golang.org/doc/install/source#environment).
+    // TODO: this could be validated while deserializing
     #[serde(rename = "os")]
     pub os: String,
 
@@ -67,7 +69,7 @@ impl MediaType for Image {
 
 /// ImageConfig defines the execution parameters which should be used as a base
 /// when running a container using an image.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct ImageConfig {
     /// User defines the username or UID which the process in the container
     /// should run as.
@@ -127,7 +129,7 @@ pub struct ImageConfig {
 }
 
 /// RootFS describes a layer content addresses
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct RootFS {
     /// Type is the type of the rootfs.
     ///
@@ -155,7 +157,7 @@ where
 }
 
 /// History describes the history of a layer.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct History {
     /// Created is the combined date and time at which the layer was created,
     /// formatted as defined by RFC 3339, section 5.6.

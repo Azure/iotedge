@@ -1,7 +1,7 @@
 use bytes::Bytes;
 use reqwest::Response;
 
-use oci_digest::Digest;
+use oci_image::v1::Descriptor;
 
 pub enum BlobKind {
     Streaming(Response),
@@ -9,31 +9,31 @@ pub enum BlobKind {
 }
 
 pub struct Blob {
-    expected_digest: Digest,
+    descriptor: Descriptor,
     inner: BlobKind,
 }
 
 impl Blob {
     /// Create a new streaming Blob from a response
     // TODO: use Stream instead of Response
-    pub fn new_streaming(res: Response, expected_digest: Digest) -> Blob {
+    pub fn new_streaming(res: Response, descriptor: Descriptor) -> Blob {
         Blob {
-            expected_digest,
+            descriptor,
             inner: BlobKind::Streaming(res),
         }
     }
 
     /// Create a new Immediate blob from a set of bytes
-    pub fn new_immediate(data: Bytes, expected_digest: Digest) -> Blob {
+    pub fn new_immediate(data: Bytes, descriptor: Descriptor) -> Blob {
         Blob {
-            expected_digest,
+            descriptor,
             inner: BlobKind::Immediate(Some(data)),
         }
     }
 
-    /// Get a reference to the blob's expected digest
-    pub fn get_expected_digest(&self) -> &Digest {
-        &self.expected_digest
+    /// Get a reference to the blob's Descriptor.
+    pub fn get_descriptor(&self) -> &Descriptor {
+        &self.descriptor
     }
 
     /// Stream a chunk of the blob.

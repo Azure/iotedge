@@ -17,9 +17,8 @@ failure = "0.1"
 headers = "0.2.3"
 http = "0.1"
 log = "0.4"
+reqwest = { version = "0.10.0-alpha.1", features = ["unstable-stream", "json"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_urlencoded = "0.5"
 tokio = "0.2.0-alpha.5"
-
-reqwest = { git = "https://github.com/seanmonstar/reqwest.git", features = ["unstable-stream", "json"] }

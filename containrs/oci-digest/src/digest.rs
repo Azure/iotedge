@@ -4,8 +4,8 @@ use std::str::FromStr;
 use crate::error::DigestParseError;
 use crate::validator::Validator;
 
-/// A cheap newtype around a [String] that ensures it's contents are a valid OCI
-/// digest string.
+/// A cheap newtype around a [String] that ensures valid OCI digest string
+/// formatting.
 ///
 /// To validate data using it's Digest, use the [`validator`] to construct a new
 /// [`Validator`].
@@ -22,7 +22,8 @@ impl Digest {
     }
 
     /// Convenience method to validate a one-off slice of data.
-    /// Returns None if the algorithm is unregistered.
+    ///
+    /// Guaranteed to return false if the algorithm is unregistered.
     pub fn validate(&self, data: &[u8]) -> bool {
         match self.validator() {
             Some(mut validator) => {
@@ -36,6 +37,16 @@ impl Digest {
     /// View the digest as a raw str
     pub fn as_str(&self) -> &str {
         &self.string
+    }
+
+    /// Reference to the algorithm component of the digest string.
+    pub fn algorithm(&self) -> &str {
+        &self.string[..self.string.find(':').unwrap()]
+    }
+
+    /// Reference to the encoded component of the digest string.
+    pub fn encoded(&self) -> &str {
+        &self.string[(self.string.find(':').unwrap() + 1)..]
     }
 }
 

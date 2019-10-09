@@ -60,11 +60,22 @@ pub enum ReferenceKind {
     Digest(Digest),
 }
 
+impl ReferenceKind {
+    /// Returns a reference to the raw underlying string (unlike Display, which
+    /// includes a ':' or '@' signifying the underlying reference type)
+    pub fn as_str(&self) -> &str {
+        match self {
+            ReferenceKind::Tag(s) => s.as_str(),
+            ReferenceKind::Digest(d) => d.as_str(),
+        }
+    }
+}
+
 impl std::fmt::Display for ReferenceKind {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            ReferenceKind::Tag(s) => write!(f, "{}", s),
-            ReferenceKind::Digest(d) => write!(f, "{}", d),
+            ReferenceKind::Tag(s) => write!(f, ":{}", s),
+            ReferenceKind::Digest(d) => write!(f, "@{}", d),
         }
     }
 }
@@ -77,6 +88,12 @@ pub struct Reference {
     repo: String,
     registry: String,
     kind: ReferenceKind,
+}
+
+impl std::fmt::Display for Reference {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}/{}{}", self.registry, self.repo, self.kind)
+    }
 }
 
 impl Reference {
