@@ -95,7 +95,7 @@ steps:
 
 - pwsh: |
     $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
-    dotnet build $testDir
+    dotnet build $testDir -c Release -p:DotNet_Runtime=$(DotNet_Runtime)
 
     $binDir = $(Convert-Path (Convert-Path "$testDir/bin/Debug/" | gci | select -First 1))
     echo "binDir= " $binDir
