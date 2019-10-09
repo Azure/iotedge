@@ -13,8 +13,9 @@ jobs:
     pool:
       name: $(pool.name)
       demands:
-        - sh
-        - stealingThisToRunNewE2E -equals true
+        - pwsh
+        - dotnet -equals 3.0.100
+        - run-e2e-tests -equals true
         - agent-osbits -equals 64
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals ARM
@@ -22,7 +23,7 @@ jobs:
     variables:
       os: linux
       arch: ARM64
-      artifactDir: iotedged-rbpi-arm64-docker
+      artifactDir: iotedged-ubuntu18.04-aarch64
 
     steps:
     - bash: |
@@ -30,9 +31,7 @@ jobs:
         # cleanup of root-owned files ourselves (anything created during
         # `sudo dotnet vstest ...`)
         sudo git clean -ffdx . || true
-        echo "Who am I: " $(whoami)
-        echo "My Path: " $PATH
-        echo "pwsh: " $(which pwsh)
+      displayName: Git clean
 
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
