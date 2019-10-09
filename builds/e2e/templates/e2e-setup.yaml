@@ -94,16 +94,9 @@ steps:
     ROOT_KEY: $(TestRootCaKey)
 
 - pwsh: |
-    #BEARWASHERE
-    echo "Testing dotnet --info"
-    echo $(dotnet --info)
-
     $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
-    cd $(Build.SourcesDirectory)
-    dotnet restore
     dotnet build $testDir
 
-    #$binDir = Convert-Path "$testDir/bin/Debug/netcoreapp2.1"
     $binDir = $(Convert-Path (Convert-Path "$testDir/bin/Debug/" | gci | select -First 1))
     Write-Output "##vso[task.setvariable variable=binDir]$binDir"
   displayName: Build tests
