@@ -135,10 +135,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
         async Task ReportDeploymentFailure(Exception ex, EdgeDeploymentDefinition item)
         {
+            string message = (ex is HttpOperationException httpEx) ?
+                $"{httpEx.Request.Method} [{httpEx.Request.RequestUri}]({httpEx.Message})" :
+                ex.Message;
+            var status = new EdgeDeploymentStatus(EdgeDeploymentStatusType.Failure, message);
+            await this.ReportEdgeDeploymentStatus(item, status);
             using (await this.watchLock.LockAsync())
             {
-                var status = new EdgeDeploymentStatus(EdgeDeploymentStatusType.Failure, ex.Message);
-                await this.ReportEdgeDeploymentStatus(item, status);
                 this.currentStatus = status;
             }
         }

@@ -94,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             }
             catch (HttpOperationException e)
             {
-                return new EdgeDeploymentStatus(EdgeDeploymentStatusType.Failure, e.Message);
+                return new EdgeDeploymentStatus(EdgeDeploymentStatusType.Failure, $"{e.Request.Method} [{e.Request.RequestUri}]({e.Message})");
             }
         }
 
