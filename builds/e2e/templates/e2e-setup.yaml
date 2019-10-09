@@ -94,7 +94,7 @@ steps:
     ROOT_KEY: $(TestRootCaKey)
 
 - pwsh: |
-    if(!$(DotNet_Runtime))
+    if(![string]::IsNullOrWhitespace($(DotNet_Runtime)))
     {
       $DotNet_Runtime='netcoreapp2.1';
       echo "DotNet_Runtime is empty setting the value to " $DotNet_Runtime
