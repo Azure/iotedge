@@ -98,6 +98,9 @@ steps:
     echo "Testing dotnet --info"
     echo $(dotnet --info)
 
+    echo "Testing dotnet restore"
+    echo $(dotnet restore)
+
     $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
     dotnet build $testDir
 
