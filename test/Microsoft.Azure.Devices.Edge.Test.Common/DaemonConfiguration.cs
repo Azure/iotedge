@@ -29,6 +29,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config.ReplaceOrAdd("agent.env.UpstreamProtocol", "AmqpWs");
         }
 
+        void SetBasicDpsParam(string idScope)
+        {
+            this.config.RemoveIfExists("provisioning");
+            this.config.ReplaceOrAdd("provisioning.source", "dps");
+            this.config.ReplaceOrAdd("provisioning.global_endpoint", GlobalEndPoint);
+            this.config.ReplaceOrAdd("provisioning.scope_id", idScope);
+        }
+
         public void SetDeviceConnectionString(string value)
         {
             this.config.RemoveIfExists("provisioning");
@@ -38,10 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public void SetDpsSymmetricKey(string idScope, string registrationId, string deviceKey)
         {
-            this.config.RemoveIfExists("provisioning");
-            this.config.ReplaceOrAdd("provisioning.source", "dps");
-            this.config.ReplaceOrAdd("provisioning.global_endpoint", GlobalEndPoint);
-            this.config.ReplaceOrAdd("provisioning.scope_id", idScope);
+            this.SetBasicDpsParam(idScope);
             this.config.ReplaceOrAdd("provisioning.attestation.method", "symmetric_key");
             this.config.ReplaceOrAdd("provisioning.attestation.registration_id", registrationId);
             this.config.ReplaceOrAdd("provisioning.attestation.symmetric_key", deviceKey);
@@ -52,10 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             Uri certUri = new Uri(ca.Certificate.CertificatePath, UriKind.Absolute);
             Uri pKeyUri = new Uri(ca.Certificate.KeyPath, UriKind.Absolute);
 
-            this.config.RemoveIfExists("provisioning");
-            this.config.ReplaceOrAdd("provisioning.source", "dps");
-            this.config.ReplaceOrAdd("provisioning.global_endpoint", GlobalEndPoint);
-            this.config.ReplaceOrAdd("provisioning.scope_id", idScope);
+            this.SetBasicDpsParam(idScope);
             this.config.ReplaceOrAdd("provisioning.attestation.method", "x509");
             this.config.ReplaceOrAdd("provisioning.attestation.identity_cert", certUri.ToString());
             this.config.ReplaceOrAdd("provisioning.attestation.identity_pk", pKeyUri.ToString());
