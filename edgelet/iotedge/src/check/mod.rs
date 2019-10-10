@@ -1303,7 +1303,7 @@ fn settings_certificates(check: &mut Check) -> Result<CheckResult, failure::Erro
     };
 
     check.device_ca_cert_path = Some({
-        if let Some(certificates) = settings.certificates() {
+        if let Some(certificates) = settings.certificates().device_cert() {
             certificates.device_ca_cert()?
         } else {
             let certs_dir = settings.homedir().join("hsm").join("certs");
@@ -1336,7 +1336,7 @@ fn settings_certificates(check: &mut Check) -> Result<CheckResult, failure::Erro
         }
     });
 
-    if settings.certificates().is_none() {
+    if settings.certificates().device_cert().is_none() {
         let CertificateValidity { not_after, .. } = CertificateValidity::parse(
             "Device CA certificate",
             check.device_ca_cert_path.as_ref().unwrap(),

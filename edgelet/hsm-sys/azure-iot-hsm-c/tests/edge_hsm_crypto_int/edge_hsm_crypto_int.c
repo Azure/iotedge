@@ -352,7 +352,7 @@ static void test_helper_teardown_homedir(void)
 static HSM_CLIENT_HANDLE test_helper_crypto_init(void)
 {
     int status;
-    status = hsm_client_crypto_init();
+    status = hsm_client_crypto_init(CA_VALIDITY);
     ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
     const HSM_CLIENT_CRYPTO_INTERFACE* interface = hsm_client_crypto_interface();
     HSM_CLIENT_HANDLE result = interface->hsm_client_crypto_create();
@@ -1009,43 +1009,43 @@ BEGIN_TEST_SUITE(edge_hsm_crypto_int_tests)
         hsm_test_util_setenv(ENV_DEVICE_CA_PATH, device_ca_path);
         hsm_test_util_unsetenv(ENV_DEVICE_PK_PATH);
         hsm_test_util_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
-        status = hsm_client_crypto_init();
+        status = hsm_client_crypto_init(CA_VALIDITY);
         ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         hsm_test_util_unsetenv(ENV_DEVICE_CA_PATH);
         hsm_test_util_setenv(ENV_DEVICE_PK_PATH, device_pk_path);
         hsm_test_util_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
-        status = hsm_client_crypto_init();
+        status = hsm_client_crypto_init(CA_VALIDITY);
         ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         hsm_test_util_setenv(ENV_DEVICE_CA_PATH, device_ca_path);
         hsm_test_util_setenv(ENV_DEVICE_PK_PATH, device_pk_path);
         hsm_test_util_unsetenv(ENV_TRUSTED_CA_CERTS_PATH);
-        status = hsm_client_crypto_init();
+        status = hsm_client_crypto_init(CA_VALIDITY);
         ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         hsm_test_util_unsetenv(ENV_DEVICE_CA_PATH);
         hsm_test_util_unsetenv(ENV_DEVICE_PK_PATH);
         hsm_test_util_setenv(ENV_TRUSTED_CA_CERTS_PATH, trusted_ca_path);
-        status = hsm_client_crypto_init();
+        status = hsm_client_crypto_init(CA_VALIDITY);
         ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         hsm_test_util_setenv(ENV_DEVICE_CA_PATH, device_ca_path);
         hsm_test_util_unsetenv(ENV_DEVICE_PK_PATH);
         hsm_test_util_setenv(ENV_TRUSTED_CA_CERTS_PATH, trusted_ca_path);
-        status = hsm_client_crypto_init();
+        status = hsm_client_crypto_init(CA_VALIDITY);
         ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         hsm_test_util_unsetenv(ENV_DEVICE_CA_PATH);
         hsm_test_util_setenv(ENV_DEVICE_PK_PATH, device_pk_path);
         hsm_test_util_setenv(ENV_TRUSTED_CA_CERTS_PATH, trusted_ca_path);
-        status = hsm_client_crypto_init();
+        status = hsm_client_crypto_init(CA_VALIDITY);
         ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         hsm_test_util_setenv(ENV_DEVICE_CA_PATH, INVALID_PATH);
         hsm_test_util_setenv(ENV_DEVICE_PK_PATH, INVALID_PATH);
         hsm_test_util_setenv(ENV_TRUSTED_CA_CERTS_PATH, INVALID_PATH);
-        status = hsm_client_crypto_init();
+        status = hsm_client_crypto_init(CA_VALIDITY);
         ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
 
         // cleanup
