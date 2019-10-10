@@ -86,12 +86,12 @@ edgeAgent:
     # storageClassName: ""
 
     # Set this to true if you wish to turn on experimental features support
-    enableExperimentalFeatures: true
+    # enableExperimentalFeatures: true
     
     # Set this to true if you wish to turn on Kubernetes create options support.
     # In order to fully enable this experimental options for work you should
     # set "true" both parameters "enableExperimentalFeatures" and "enableK8sExtensions"
-    enableK8sExtensions: true
+    # enableK8sExtensions: true
 
 # Optional registry credentials for module images
 # registryCredentials:
