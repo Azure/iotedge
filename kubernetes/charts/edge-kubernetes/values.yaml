@@ -90,9 +90,10 @@ edgeAgent:
     # find more information about experimental create options feature.
     # enableExperimentalFeatures: true
     
-    # Set this to true if you wish to turn on Kubernetes create options support.
-    # In order to fully enable this experimental options for work you should
-    # set "true" both parameters "enableExperimentalFeatures" and "enableK8sExtensions"
+    # Create options extensions for Kubernetes
+    # The feature allows the user to extend a module's create options with some Kubernetes primitives. 
+    # To activate this experimental feature, both "enableExperimentalFeatures" and "enableK8sExtensions" 
+    # must be set to "true".
     # enableK8sExtensions: true
 
 # Optional registry credentials for module images
