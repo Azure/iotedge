@@ -27,6 +27,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
         readonly string proxyTrustBundlePath;
         readonly string proxyTrustBundleVolumeName;
         readonly string proxyTrustBundleConfigMapName;
+        readonly Option<string> persistentVolumeName;
+        readonly Option<string> storageClassName;
         readonly string workloadApiVersion;
         readonly Uri workloadUri;
         readonly Uri managementUri;
@@ -41,6 +43,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             string proxyTrustBundlePath,
             string proxyTrustBundleVolumeName,
             string proxyTrustBundleConfigMapName,
+            string persistentVolumeName,
+            string storageClassName,
             string workloadApiVersion,
             Uri workloadUri,
             Uri managementUri)
@@ -54,6 +58,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             this.proxyTrustBundlePath = proxyTrustBundlePath;
             this.proxyTrustBundleVolumeName = proxyTrustBundleVolumeName;
             this.proxyTrustBundleConfigMapName = proxyTrustBundleConfigMapName;
+            this.persistentVolumeName = Option.Maybe(persistentVolumeName)
+                .Filter(p => !string.IsNullOrWhiteSpace(p));
+            this.storageClassName = Option.Maybe(storageClassName);
             this.workloadApiVersion = workloadApiVersion;
             this.workloadUri = workloadUri;
             this.managementUri = managementUri;
@@ -238,13 +245,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                 .FlatMap(config => Option.Maybe(config.Mounts))
                 .Map(mounts => mounts.Where(mount => mount.Type.Equals("volume", StringComparison.InvariantCultureIgnoreCase)).ToList());
 
-            volumeMounts.Map(mounts => mounts.Select(mount => new V1Volume(KubeUtils.SanitizeDNSValue(mount.Source), emptyDir: new V1EmptyDirVolumeSource())))
+            volumeMounts.Map(mounts => mounts.Select(mount => this.GetVolume(mount)))
                 .ForEach(volumes => volumeList.AddRange(volumes));
 
             volumeMounts.Map(mounts => mounts.Select(mount => new V1VolumeMount(mount.Target, KubeUtils.SanitizeDNSValue(mount.Source), readOnlyProperty: mount.ReadOnly)))
                 .ForEach(mounts => volumeMountList.AddRange(mounts));
 
             return (volumeList, proxyMountList, volumeMountList);
+        }
+
+        V1Volume GetVolume(Mount mount)
+        {
+            string name = KubeUtils.SanitizeDNSValue(mount.Source);
+            if (this.ShouldUsePvc())
+            {
+                return new V1Volume(name, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(name, mount.ReadOnly));
+            }
+            else
+            {
+                return new V1Volume(name, emptyDir: new V1EmptyDirVolumeSource());
+            }
+        }
+
+        bool ShouldUsePvc()
+        {
+            return this.persistentVolumeName.HasValue || this.storageClassName.HasValue;
         }
     }
 }
