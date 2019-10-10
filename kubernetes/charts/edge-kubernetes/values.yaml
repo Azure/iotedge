@@ -59,8 +59,10 @@ edgeAgent:
     # Set this to one of "LoadBalancer", "NodePort", or "ClusterIP" to tell the
     # IoT Edge runtime how you want to expose mapped ports as Services.
     portMappingServiceType: 'ClusterIP'
+    
     # Set this to false if you want to turn off verbose k8s call tracing
     enableK8sServiceCallTracing: false
+    
     # Configure edge agent log verbosity
     runtimeLogLevel: 'debug'
 
@@ -82,6 +84,14 @@ edgeAgent:
     # If you wish this to be an empty string then you'll need to use the string
     # literal "-" in liue of an empty string.
     # storageClassName: ""
+
+    # Set this to true if you wish to turn on experimental features support
+    enableExperimentalFeatures: true
+    
+    # Set this to true if you wish to turn on Kubernetes create options support.
+    # In order to fully enable this experimental options for work you should
+    # set "true" both parameters "enableExperimentalFeatures" and "enableK8sExtensions"
+    enableK8sExtensions: true
 
 # Optional registry credentials for module images
 # registryCredentials:
