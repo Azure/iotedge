@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
     using System.Linq;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
@@ -123,7 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
         {
             List<V1EnvVar> env = this.CollectModuleEnv(module, identity);
 
-            (List<V1Volume> volumes, List<V1VolumeMount> volumeMounts) = CollectModuleVolumes(module);
+            (List<V1Volume> volumes, List<V1VolumeMount> volumeMounts) = this.CollectModuleVolumes(module);
 
             Option<V1SecurityContext> securityContext = module.Config.CreateOptions.HostConfig
                 .Filter(config => config.Privileged)
@@ -197,7 +198,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                 .Where(keyValue => keyValue.Length == 2)
                 .Select(keyValue => new V1EnvVar(keyValue[0], keyValue[1]));
 
-        static (List<V1Volume>, List<V1VolumeMount>) CollectModuleVolumes(KubernetesModule module)
+        (List<V1Volume>, List<V1VolumeMount>) CollectModuleVolumes(KubernetesModule module)
         {
             var volumeList = new List<V1Volume>();
             var volumeMountList = new List<V1VolumeMount>();
@@ -234,7 +235,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                 .FlatMap(config => Option.Maybe(config.Mounts))
                 .Map(mounts => mounts.Where(mount => mount.Type.Equals("volume", StringComparison.InvariantCultureIgnoreCase)).ToList());
 
-            volumeMounts.Map(mounts => mounts.Select(mount => this.GetVolume(mount)))
+            volumeMounts.Map(mounts => mounts.Select(this.GetVolume))
                 .ForEach(volumes => volumeList.AddRange(volumes));
 
             volumeMounts.Map(mounts => mounts.Select(mount => new V1VolumeMount(mount.Target, KubeUtils.SanitizeDNSValue(mount.Source), readOnlyProperty: mount.ReadOnly)))
@@ -303,19 +304,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
         V1Volume GetVolume(Mount mount)
         {
             string name = KubeUtils.SanitizeDNSValue(mount.Source);
-            if (this.ShouldUsePvc())
-            {
-                return new V1Volume(name, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(name, mount.ReadOnly));
-            }
-            else
-            {
-                return new V1Volume(name, emptyDir: new V1EmptyDirVolumeSource());
-            }
+            return this.ShouldUsePvc()
+                ? new V1Volume(name, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(name, mount.ReadOnly))
+                : new V1Volume(name, emptyDir: new V1EmptyDirVolumeSource());
         }
 
-        bool ShouldUsePvc()
-        {
-            return this.persistentVolumeName.HasValue || this.storageClassName.HasValue;
-        }
+        bool ShouldUsePvc() => this.persistentVolumeName.HasValue || this.storageClassName.HasValue;
     }
 }
