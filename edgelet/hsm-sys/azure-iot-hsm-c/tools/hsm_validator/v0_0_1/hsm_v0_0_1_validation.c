@@ -10,7 +10,7 @@ static int validate_hsm_init_library(void)
 {
     int result = 0;
 #ifdef USE_X509_INTERFACE
-    if (hsm_client_x509_init() != 0)
+    if (hsm_client_x509_init(1000) != 0)
     {
         (void)printf("Failure calling hsm_client_x509_init\r\n");
         result = __LINE__;
