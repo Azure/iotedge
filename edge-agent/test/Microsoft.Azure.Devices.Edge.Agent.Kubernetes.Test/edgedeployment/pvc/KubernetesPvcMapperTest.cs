@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
 {
-    using System;
     using System.Collections.Generic;
     using System.Linq;
     using k8s.Models;
@@ -11,31 +10,30 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.CodeAnalysis.CSharp.Syntax;
-    using Moq;
     using Xunit;
-
-    using EmptyStruct = global::Docker.DotNet.Models.EmptyStruct;
     using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
     [Unit]
     public class KubernetesPvcMapperTest
     {
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
+
         static readonly IDictionary<string, EnvVal> EnvVarsDict = new Dictionary<string, EnvVal>();
+
         static readonly DockerConfig Config1 = new DockerConfig("test-image:1");
+
         static readonly HostConfig VolumeMountHostConfig = new HostConfig
         {
             Mounts = new List<Mount>
             {
-                new Mount()
+                new Mount
                 {
                     Type = "volume",
                     ReadOnly = true,
                     Source = "a-volume",
                     Target = "/tmp/volumea"
                 },
-                new Mount()
+                new Mount
                 {
                     Type = "volume",
                     ReadOnly = false,
@@ -44,10 +42,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
                 }
             }
         };
-        static readonly HostConfig VolumeNullMount = new HostConfig()
+
+        static readonly HostConfig VolumeNullMount = new HostConfig
         {
             Mounts = null
         };
+
         static readonly Dictionary<string, string> DefaultLabels = new Dictionary<string, string>
         {
             [KubernetesConstants.K8sEdgeDeviceLabel] = KubeUtils.SanitizeLabelValue("device1"),
@@ -57,8 +57,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
         [Fact]
         public void NullMountsNoClaims()
         {
-            var config = new KubernetesConfig("image", CreateOptions(hostConfig: VolumeNullMount), Option.None<AuthConfig>());
-            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(hostConfig: VolumeNullMount), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesPvcMapper(string.Empty, "storage", 1);
 
@@ -70,8 +70,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
         [Fact]
         public void NoMountsNoClaims()
         {
-            var config = new KubernetesConfig("image", CreateOptions(), Option.None<AuthConfig>());
-            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesPvcMapper(string.Empty, "storage", 1);
 
@@ -83,8 +83,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
         [Fact]
         public void EmptyDirMappingForVolume()
         {
-            var config = new KubernetesConfig("image", CreateOptions(hostConfig: VolumeMountHostConfig), Option.None<AuthConfig>());
-            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(hostConfig: VolumeMountHostConfig), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesPvcMapper(null, null, 0);
 
@@ -96,8 +96,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
         [Fact]
         public void EmptyDirMappingForVolume2()
         {
-            var config = new KubernetesConfig("image", CreateOptions(hostConfig: VolumeMountHostConfig), Option.None<AuthConfig>());
-            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(hostConfig: VolumeMountHostConfig), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesPvcMapper(string.Empty, null, 0);
 
@@ -109,8 +109,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
         [Fact]
         public void DefaultStorageClassMappingForVolume()
         {
-            var config = new KubernetesConfig("image", CreateOptions(hostConfig: VolumeMountHostConfig), Option.None<AuthConfig>());
-            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(hostConfig: VolumeMountHostConfig), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesPvcMapper(string.Empty, string.Empty, 10);
             var resourceQuantity = new ResourceQuantity("10Mi");
@@ -140,8 +140,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
         [Fact]
         public void StorageClassMappingForVolume()
         {
-            var config = new KubernetesConfig("image", CreateOptions(hostConfig: VolumeMountHostConfig), Option.None<AuthConfig>());
-            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(hostConfig: VolumeMountHostConfig), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesPvcMapper(string.Empty, "default", 10);
             var resourceQuantity = new ResourceQuantity("10Mi");
@@ -171,8 +171,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
         [Fact]
         public void VolumeNameMappingForVolume()
         {
-            var config = new KubernetesConfig("image", CreateOptions(hostConfig: VolumeMountHostConfig), Option.None<AuthConfig>());
-            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(hostConfig: VolumeMountHostConfig), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesPvcMapper("a-pvc-name", null, 37);
             var resourceQuantity = new ResourceQuantity("37Mi");
@@ -202,8 +202,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
         [Fact]
         public void PreferVolumeNameMappingForVolume()
         {
-            var config = new KubernetesConfig("image", CreateOptions(hostConfig: VolumeMountHostConfig), Option.None<AuthConfig>());
-            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(hostConfig: VolumeMountHostConfig), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesPvcMapper("a-pvc-name", "storageclass", 1);
             var resourceQuantity = new ResourceQuantity("1Mi");
@@ -229,18 +229,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
             Assert.Equal("a-pvc-name", bVolumeClaim.Spec.VolumeName);
             Assert.Equal(resourceQuantity, bVolumeClaim.Spec.Resources.Requests["storage"]);
         }
-
-        static CreatePodParameters CreateOptions(
-            IList<string> env = null,
-            IDictionary<string, EmptyStruct> exposedPorts = null,
-            HostConfig hostConfig = null,
-            string image = null,
-            IDictionary<string, string> labels = null,
-            NetworkingConfig networkingConfig = null,
-            IDictionary<string, string> nodeSelector = null)
-            => new CreatePodParameters(env, exposedPorts, hostConfig, image, labels, networkingConfig)
-            {
-                NodeSelector = Option.Maybe(nodeSelector)
-            };
     }
 }
