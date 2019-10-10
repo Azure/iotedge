@@ -259,9 +259,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             string name = KubeUtils.SanitizeDNSValue(mount.Source);
             if (this.ShouldUsePvc())
             {
-                string mountPath = mount.Target;
-                bool readOnly = mount.ReadOnly;
-                return new V1Volume(name, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(name, readOnly));
+                return new V1Volume(name, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(name, mount.ReadOnly));
             }
             else
             {

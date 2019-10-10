@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
 {
-    using System;
     using System.Collections.Generic;
     using System.Linq;
     using k8s.Models;
@@ -51,17 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
                   this.GetStorage(x) == this.GetStorage(y);
         }
 
-        Option<ResourceQuantity> GetStorage(V1PersistentVolumeClaim claim)
-        {
-            if (claim.Spec?.Resources?.Requests != null && claim.Spec.Resources.Requests.TryGetValue(Storage, out var storage))
-            {
-                return Option.Maybe(storage);
-            }
-            else
-            {
-                return Option.None<ResourceQuantity>();
-            }
-        }
+        Option<ResourceQuantity> GetStorage(V1PersistentVolumeClaim claim) => Option.Maybe(claim.Spec?.Resources?.Requests).FlatMap(requests => requests.Get(Storage));
 
         public int GetHashCode(V1PersistentVolumeClaim obj)
         {
