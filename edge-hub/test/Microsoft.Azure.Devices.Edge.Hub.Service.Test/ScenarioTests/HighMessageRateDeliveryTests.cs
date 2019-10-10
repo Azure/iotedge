@@ -95,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
         [RunnableInDebugOnly]
         public async Task SendWithMixedErrors()
         {
-            var retryableExceptions = new HashSet<Type>
+            var retriableExceptions = new HashSet<Type>
             {
                 typeof(TimeoutException),
                 typeof(IOException),
@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
                 typeof(Client.Exceptions.UnauthorizedException)
             };
 
-            var nonRetryableExceptions = new HashSet<Type>
+            var nonRetriableExceptions = new HashSet<Type>
             {
                 typeof(Exception),
                 typeof(NullReferenceException),
@@ -118,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             Action<IReadOnlyCollection<Core.IMessage>, Exception> handleExceptions =
                 (msg, ex) =>
                 {
-                    if (!retryableExceptions.Contains(ex.GetType()))
+                    if (!retriableExceptions.Contains(ex.GetType()))
                         deliverable.ConfirmDelivery(msg);
                 };
 
@@ -127,8 +127,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
                                 .WithSendOutAction(deliverable.ConfirmDelivery)
                                 .WithThrowingAction(handleExceptions)
                                 .WithThrowTypeStrategy<MultiThrowTypeStrategy>(
-                                    exception => exception.WithExceptionSuite(retryableExceptions)
-                                                          .WithExceptionSuite(nonRetryableExceptions))
+                                    exception => exception.WithExceptionSuite(retriableExceptions)
+                                                          .WithExceptionSuite(nonRetriableExceptions))
                                 .WithThrowTimeStrategy<RandomThrowTimeStrategy>(
                                     throwing => throwing.WithOddsToThrow(0.2));
 
