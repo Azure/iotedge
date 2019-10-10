@@ -16,11 +16,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service;
     using Microsoft.Azure.Devices.Edge.Agent.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics.NullMetrics;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Constants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
     using K8sConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
     using KubernetesModule = Microsoft.Azure.Devices.Edge.Agent.Service.Modules.KubernetesModule;
+    using MetricsListener = Util.Metrics.Prometheus.Net.MetricsListener;
 
     public class Program
     {
@@ -104,6 +108,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
 
             IContainer container;
+            string iothubHostname;
+            string deviceId;
             try
             {
                 var builder = new ContainerBuilder();
@@ -115,8 +121,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 int idleTimeoutSecs = configuration.GetValue(Constants.IdleTimeoutSecs, 300);
                 TimeSpan idleTimeout = TimeSpan.FromSeconds(idleTimeoutSecs);
                 ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(configuration.GetSection("experimentalFeatures"), logger);
-                string iothubHostname;
-                string deviceId;
                 switch (mode.ToLowerInvariant())
                 {
                     case Constants.DockerMode:
@@ -229,6 +233,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 logger.LogCritical(AgentEventIds.Agent, ex, "Fatal error building application.");
                 return 1;
             }
+
+            var metricsConfig = new MetricsConfig(true, MetricsListenerConfig.Create(configuration));
+            var metricsProvider = metricsConfig.Enabled
+                             ? new MetricsProvider("edgeAgent", iothubHostname, deviceId)
+                             : new NullMetricsProvider() as IMetricsProvider;
+            var metricsListener = metricsConfig.Enabled
+                            ? new MetricsListener(metricsConfig.ListenerConfig, metricsProvider)
+                            : new NullMetricsListener() as IMetricsListener;
+            Metrics.Init(metricsProvider, metricsListener, logger);
 
             // TODO move this code to Agent
             if (mode.ToLowerInvariant().Equals(Constants.KubernetesMode))
