@@ -348,12 +348,7 @@ mod tests {
 
         bundle.execute().wait().unwrap();
 
-        let extract_path = tmp_dir
-            .path()
-            .join("bundle")
-            .to_str()
-            .unwrap()
-            .to_owned();
+        let extract_path = tmp_dir.path().join("bundle").to_str().unwrap().to_owned();
 
         extract_zip(&file_path, &extract_path);
 
