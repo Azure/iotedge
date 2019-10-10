@@ -52,12 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             IDictionary<string, string> nodeSelector = null,
             V1ResourceRequirements resources = null,
             IReadOnlyList<KubernetesModuleVolumeSpec> volumes = null)
-            => new CreatePodParameters(env, exposedPorts, hostConfig, image, labels)
-            {
-                NodeSelector = Option.Maybe(nodeSelector),
-                Resources = Option.Maybe(resources),
-                Volumes = Option.Maybe(volumes)
-            };
+            => new CreatePodParameters(env, exposedPorts, hostConfig, image, labels, nodeSelector, resources, volumes);
 
         [JsonProperty("env", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [JsonConverter(typeof(OptionConverter<IReadOnlyList<string>>))]
