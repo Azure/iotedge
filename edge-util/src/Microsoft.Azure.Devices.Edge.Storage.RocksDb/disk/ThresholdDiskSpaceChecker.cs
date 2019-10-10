@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
         public ThresholdDiskSpaceChecker(string drive, double thresholdPercentage, TimeSpan checkFrequency, ILogger logger)
             : base(checkFrequency, logger)
         {
-            Preconditions.CheckArgument(thresholdPercentage >= 0 && thresholdPercentage <= 100, $"Invalid thresholdPercentage value {thresholdPercentage}");
+            Preconditions.CheckArgument(thresholdPercentage >= 0 && thresholdPercentage <= 1, $"Invalid thresholdPercentage value {thresholdPercentage}");
             this.drive = Preconditions.CheckNonWhiteSpace(drive, nameof(drive));
             this.thresholdPercentage = thresholdPercentage;
             logger?.LogInformation($"Created threshold percentage disk space checker with threshold of {thresholdPercentage}% of drive {drive}");
@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
         protected override DiskSpaceStatus GetDiskStatus()
         {
             var driveInfo = new DriveInfo(this.drive);
-            double percentDiskUsed = 100 - (double)driveInfo.AvailableFreeSpace * 100 / driveInfo.TotalSize;
+            double percentDiskUsed = 1 - (double)driveInfo.AvailableFreeSpace / (double)driveInfo.TotalSize;
             DiskSpaceStatus diskStatus = GetDiskStatus(percentDiskUsed, this.thresholdPercentage);
             if (diskStatus != DiskSpaceStatus.Available)
             {
@@ -35,13 +35,13 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
 
         static DiskSpaceStatus GetDiskStatus(double percentDiskUsed, double thresholdPercentage)
         {
-            double usagePercentage = percentDiskUsed * 100 / thresholdPercentage;
-            if (usagePercentage < 85)
+            double usagePercentage = percentDiskUsed / thresholdPercentage;
+            if (usagePercentage < .85)
             {
                 return DiskSpaceStatus.Available;
             }
 
-            if (usagePercentage < 100)
+            if (usagePercentage < 1)
             {
                 return DiskSpaceStatus.Critical;
             }
