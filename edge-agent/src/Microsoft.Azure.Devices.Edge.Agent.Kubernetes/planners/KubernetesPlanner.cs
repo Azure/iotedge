@@ -63,6 +63,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
                 throw new InvalidModuleException($"Kubernetes deployment currently only handles type={typeof(DockerConfig).FullName}");
             }
 
+            desired = new ModuleSet(desired.Modules.Remove(Constants.EdgeAgentModuleName));
+            current = new ModuleSet(current.Modules.Remove(Constants.EdgeAgentModuleName));
+
             Diff moduleDifference = desired.Diff(current);
 
             Plan plan;
