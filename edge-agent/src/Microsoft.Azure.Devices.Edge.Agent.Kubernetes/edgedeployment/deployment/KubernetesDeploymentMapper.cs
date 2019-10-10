@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
+    using Serilog.Events;
     using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
     using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
     using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
@@ -94,57 +95,57 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
 
         V1PodTemplateSpec GetPod(string name, IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels)
         {
-            List<V1EnvVar> envVars = this.CollectEnv(module, identity);
-
             // Convert docker labels to annotations because docker labels don't have the same restrictions as Kubernetes labels.
             Dictionary<string, string> annotations = module.Config.CreateOptions.Labels
                 .Map(dockerLabels => dockerLabels.ToDictionary(label => KubeUtils.SanitizeAnnotationKey(label.Key), label => label.Value))
                 .GetOrElse(() => new Dictionary<string, string>());
             annotations[KubernetesConstants.K8sEdgeOriginalModuleId] = ModuleIdentityHelper.GetModuleName(identity.ModuleId);
 
-            // Per container settings:
-            // exposed ports
-            Option<List<V1ContainerPort>> exposedPorts = module.Config.CreateOptions.ExposedPorts
-                .Map(PortExtensions.GetContainerPorts);
-
-            // privileged container
-            Option<V1SecurityContext> securityContext = module.Config.CreateOptions.HostConfig
-                .Filter(config => config.Privileged)
-                .Map(config => new V1SecurityContext(privileged: true));
-
-            // Bind mounts
-            (List<V1Volume> volumes, List<V1VolumeMount> proxyMounts, List<V1VolumeMount> volumeMounts) = this.GetVolumesFromModule(module);
-
-            var containers = new List<V1Container>
-            {
-                new V1Container(
-                    name,
-                    env: envVars,
-                    image: module.Config.Image,
-                    volumeMounts: volumeMounts,
-                    securityContext: securityContext.OrDefault(),
-                    ports: exposedPorts.OrDefault(),
-                    resources: module.Config.CreateOptions.Resources.OrDefault()),
-
-                new V1Container(
-                    "proxy",
-                    env: envVars, // TODO: check these for validity for proxy.
-                    image: this.proxyImage,
-                    volumeMounts: proxyMounts)
-            };
+            var (proxyContainer, proxyVolumes) = this.PrepareProxyContainer(module);
+            var (moduleContainer, moduleVolumes) = this.PrepareModuleContainer(name, identity, module);
 
             Option<List<V1LocalObjectReference>> imageSecret = module.Config.AuthConfig
                 .Map(auth => new List<V1LocalObjectReference> { new V1LocalObjectReference(auth.Name) });
 
             Option<IDictionary<string, string>> nodeSelector = Option.Maybe(module.Config.CreateOptions).FlatMap(options => options.NodeSelector);
 
-            var modulePodSpec = new V1PodSpec(containers, volumes: volumes, imagePullSecrets: imageSecret.OrDefault(), serviceAccountName: name, nodeSelector: nodeSelector.OrDefault());
+            var modulePodSpec = new V1PodSpec(
+                containers: new List<V1Container> { proxyContainer, moduleContainer },
+                volumes: proxyVolumes.Concat(moduleVolumes).ToList(),
+                imagePullSecrets: imageSecret.OrDefault(),
+                serviceAccountName: name,
+                nodeSelector: nodeSelector.OrDefault());
 
             var objectMeta = new V1ObjectMeta(name: name, labels: labels, annotations: annotations);
             return new V1PodTemplateSpec(objectMeta, modulePodSpec);
         }
 
-        List<V1EnvVar> CollectEnv(KubernetesModule module, IModuleIdentity identity)
+        (V1Container, IReadOnlyList<V1Volume>) PrepareModuleContainer(string name, IModuleIdentity identity, KubernetesModule module)
+        {
+            List<V1EnvVar> env = this.CollectModuleEnv(module, identity);
+
+            (List<V1Volume> volumes, List<V1VolumeMount> volumeMounts) = this.CollectModuleVolumes(module);
+
+            Option<V1SecurityContext> securityContext = module.Config.CreateOptions.HostConfig
+                .Filter(config => config.Privileged)
+                .Map(config => new V1SecurityContext(privileged: true));
+
+            Option<List<V1ContainerPort>> exposedPorts = module.Config.CreateOptions.ExposedPorts
+                .Map(PortExtensions.GetContainerPorts);
+
+            var container = new V1Container(
+                name,
+                env: env,
+                image: module.Config.Image,
+                volumeMounts: volumeMounts,
+                securityContext: securityContext.OrDefault(),
+                ports: exposedPorts.OrDefault(),
+                resources: module.Config.CreateOptions.Resources.OrDefault());
+
+            return (container, volumes);
+        }
+
+        List<V1EnvVar> CollectModuleEnv(KubernetesModule module, IModuleIdentity identity)
         {
             var envList = module.Env.Select(env => new V1EnvVar(env.Key, env.Value.Value)).ToList();
 
@@ -192,26 +193,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             return envList;
         }
 
-        static IEnumerable<V1EnvVar> ParseEnv(IList<string> env) =>
+        static IEnumerable<V1EnvVar> ParseEnv(IReadOnlyList<string> env) =>
             env.Select(hostEnv => hostEnv.Split('='))
                 .Where(keyValue => keyValue.Length == 2)
                 .Select(keyValue => new V1EnvVar(keyValue[0], keyValue[1]));
 
-        (List<V1Volume>, List<V1VolumeMount>, List<V1VolumeMount>) GetVolumesFromModule(KubernetesModule module)
+        (List<V1Volume>, List<V1VolumeMount>) CollectModuleVolumes(KubernetesModule module)
         {
-            var volumeList = new List<V1Volume>
-            {
-                new V1Volume(this.proxyConfigVolumeName, configMap: new V1ConfigMapVolumeSource(name: this.proxyConfigMapName)),
-                new V1Volume(this.proxyTrustBundleVolumeName, configMap: new V1ConfigMapVolumeSource(name: this.proxyTrustBundleConfigMapName))
-            };
-
-            var proxyMountList = new List<V1VolumeMount>
-            {
-                new V1VolumeMount(this.proxyConfigPath, this.proxyConfigVolumeName),
-                new V1VolumeMount(this.proxyTrustBundlePath, this.proxyTrustBundleVolumeName)
-            };
-
-            var volumeMountList = new List<V1VolumeMount>(proxyMountList);
+            var volumeList = new List<V1Volume>();
+            var volumeMountList = new List<V1VolumeMount>();
 
             // collect volumes and volume mounts from HostConfig.Binds section
             var binds = module.Config.CreateOptions.HostConfig
@@ -229,7 +219,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             binds.Map(hostBinds => hostBinds.Select(bind => new V1VolumeMount(bind.MountPath, bind.Name, readOnlyProperty: bind.IsReadOnly)))
                 .ForEach(mounts => volumeMountList.AddRange(mounts));
 
-            // collect volumes and volumes from HostConfig.Mounts section for binds to host path
+            // collect volumes and volume mounts from HostConfig.Mounts section for binds to host path
             var bindMounts = module.Config.CreateOptions.HostConfig
                 .FlatMap(config => Option.Maybe(config.Mounts))
                 .Map(mounts => mounts.Where(mount => mount.Type.Equals("bind", StringComparison.InvariantCultureIgnoreCase)).ToList());
@@ -240,36 +230,85 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             bindMounts.Map(mounts => mounts.Select(mount => new V1VolumeMount(mount.Target, KubeUtils.SanitizeDNSValue(mount.Source), readOnlyProperty: mount.ReadOnly)))
                 .ForEach(mounts => volumeMountList.AddRange(mounts));
 
-            // collect volumes and volumes from HostConfig.Mounts section for volumes via emptyDir
+            // collect volumes and volume mounts from HostConfig.Mounts section for volumes via emptyDir
             var volumeMounts = module.Config.CreateOptions.HostConfig
                 .FlatMap(config => Option.Maybe(config.Mounts))
                 .Map(mounts => mounts.Where(mount => mount.Type.Equals("volume", StringComparison.InvariantCultureIgnoreCase)).ToList());
 
-            volumeMounts.Map(mounts => mounts.Select(mount => this.GetVolume(mount)))
+            volumeMounts.Map(mounts => mounts.Select(this.GetVolume))
                 .ForEach(volumes => volumeList.AddRange(volumes));
 
             volumeMounts.Map(mounts => mounts.Select(mount => new V1VolumeMount(mount.Target, KubeUtils.SanitizeDNSValue(mount.Source), readOnlyProperty: mount.ReadOnly)))
                 .ForEach(mounts => volumeMountList.AddRange(mounts));
 
-            return (volumeList, proxyMountList, volumeMountList);
+            // collect volume and volume mounts from CreateOption.Volumes section
+            module.Config.CreateOptions.Volumes
+                .Map(volumes => volumes.Select(volume => volume.Volume).FilterMap())
+                .ForEach(volumes => volumeList.AddRange(volumes));
+
+            module.Config.CreateOptions.Volumes
+                .Map(volumes => volumes.Select(volume => volume.VolumeMounts).FilterMap())
+                .ForEach(mounts => volumeMountList.AddRange(mounts.SelectMany(x => x)));
+
+            return (volumeList, volumeMountList);
+        }
+
+        (V1Container, List<V1Volume>) PrepareProxyContainer(KubernetesModule module)
+        {
+            var env = new List<V1EnvVar>
+            {
+                new V1EnvVar("PROXY_LOG", ToProxyLogLevel(Logger.GetLogLevel()))
+            };
+
+            var volumeMounts = new List<V1VolumeMount>
+            {
+                new V1VolumeMount(this.proxyConfigPath, this.proxyConfigVolumeName),
+                new V1VolumeMount(this.proxyTrustBundlePath, this.proxyTrustBundleVolumeName)
+            };
+
+            var volumes = new List<V1Volume>
+            {
+                new V1Volume(this.proxyConfigVolumeName, configMap: new V1ConfigMapVolumeSource(name: this.proxyConfigMapName)),
+                new V1Volume(this.proxyTrustBundleVolumeName, configMap: new V1ConfigMapVolumeSource(name: this.proxyTrustBundleConfigMapName))
+            };
+
+            var container = new V1Container(
+                "proxy",
+                env: env,
+                image: this.proxyImage,
+                volumeMounts: volumeMounts);
+
+            return (container, volumes);
+        }
+
+        static readonly Dictionary<LogEventLevel, string> ProxyLogLevel = new Dictionary<LogEventLevel, string>
+        {
+            [LogEventLevel.Verbose] = "Trace",
+            [LogEventLevel.Debug] = "Debug",
+            [LogEventLevel.Information] = "Info",
+            [LogEventLevel.Warning] = "Warn",
+            [LogEventLevel.Error] = "Error",
+            [LogEventLevel.Fatal] = "Error",
+        };
+
+        static string ToProxyLogLevel(LogEventLevel level)
+        {
+            if (!ProxyLogLevel.TryGetValue(level, out string proxyLevel))
+            {
+                throw new ArgumentOutOfRangeException(nameof(level), $"Unknown log level: {level}");
+            }
+
+            return proxyLevel;
         }
 
         V1Volume GetVolume(Mount mount)
         {
             string name = KubeUtils.SanitizeDNSValue(mount.Source);
-            if (this.ShouldUsePvc())
-            {
-                return new V1Volume(name, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(name, mount.ReadOnly));
-            }
-            else
-            {
-                return new V1Volume(name, emptyDir: new V1EmptyDirVolumeSource());
-            }
+            return this.ShouldUsePvc()
+                ? new V1Volume(name, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(name, mount.ReadOnly))
+                : new V1Volume(name, emptyDir: new V1EmptyDirVolumeSource());
         }
 
-        bool ShouldUsePvc()
-        {
-            return this.persistentVolumeName.HasValue || this.storageClassName.HasValue;
-        }
+        bool ShouldUsePvc() => this.persistentVolumeName.HasValue || this.storageClassName.HasValue;
     }
 }

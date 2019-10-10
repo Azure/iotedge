@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             this.serviceAccountMapper = serviceAccountMapper;
         }
 
-        public async Task<ModuleSet> DeployModulesAsync(IList<KubernetesModule> modules, ModuleSet currentModules)
+        public async Task<ModuleSet> DeployModulesAsync(IReadOnlyList<KubernetesModule> modules, ModuleSet currentModules)
         {
             var desiredModules = ModuleSet.Create(modules.ToArray());
             var moduleIdentities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desiredModules, currentModules);

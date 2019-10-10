@@ -47,6 +47,12 @@ agent:
     {{- if .Values.edgeAgent.env.storageClassName}}
     StorageClassName: {{- if (eq "-" .Values.edgeAgent.env.storageClassName) }} "" {{- else }} {{ .Values.edgeAgent.env.storageClassName | quote }} {{- end }}
     {{- end }}
+    {{- if .Values.edgeAgent.env.enableExperimentalFeatures }}
+    ExperimentalFeatures__Enabled: {{ .Values.edgeAgent.env.enableExperimentalFeatures }}
+    {{- end }}
+    {{- if .Values.edgeAgent.env.enableK8sExtensions }}
+    ExperimentalFeatures__EnableK8SExtensions: {{ .Values.edgeAgent.env.enableK8sExtensions }}
+    {{- end }}
   {{ else }}
   env: {}
   {{ end }}
