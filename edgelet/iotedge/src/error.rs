@@ -30,20 +30,20 @@ pub enum ErrorKind {
     )]
     FetchLatestVersions(FetchLatestVersionsReason),
 
+    #[fail(display = "Could not initialize tokio runtime")]
+    InitializeTokio,
+
     #[fail(display = "Missing --host parameter")]
     MissingHostParameter,
 
     #[fail(display = "A module runtime error occurred")]
     ModuleRuntime,
 
-    #[fail(display = "Could not initialize tokio runtime")]
-    InitializeTokio,
+    #[fail(display = "Could not generate support bundle")]
+    SupportBundle,
 
     #[fail(display = "Could not write to stdout")]
     WriteToStdout,
-
-    #[fail(display = "Could not write to file")]
-    WriteToFile,
 }
 
 impl Fail for Error {
