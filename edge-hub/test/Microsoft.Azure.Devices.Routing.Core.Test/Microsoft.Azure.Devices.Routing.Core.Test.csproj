@@ -41,6 +41,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\edge-util\test\Microsoft.Azure.Devices.Edge.Util.Test.Common\Microsoft.Azure.Devices.Edge.Util.Test.Common.csproj" />
+    <ProjectReference Include="..\..\src\Microsoft.Azure.Devices.Edge.Hub.Core\Microsoft.Azure.Devices.Edge.Hub.Core.csproj" />
     <ProjectReference Include="..\..\src\Microsoft.Azure.Devices.Routing.Core\Microsoft.Azure.Devices.Routing.Core.csproj" />
   </ItemGroup>
 
