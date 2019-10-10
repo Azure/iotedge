@@ -270,36 +270,7 @@ fn run() -> Result<(), Error> {
                         .value_name("IOTHUB_HOSTNAME")
                         .help("Sets the hostname of the Azure IoT Hub that this device would connect to. If using manual provisioning, this does not need to be specified.")
                         .takes_value(true),
-                ),
-        )
-        .subcommand(SubCommand::with_name("version").about("Show the version information"))
-        .subcommand(
-            SubCommand::with_name("support-bundle")
-                .about("Bundles troubleshooting information")
-                .arg(
-                    Arg::with_name("output")
-                        .help("output file")
-                        .long("output")
-                        .short("o")
-                        .takes_value(true)
-                        .value_name("DIRECTORY")
-                        .default_value("support_bundle.zip"),
-                )
-                .arg(
-                    Arg::with_name("since")
-                        .help("Only return logs since this time, as a duration (1d, 90m, 2h30m), rfc3339 timestamp, or UNIX timestamp")
-                        .long("since")
-                        .takes_value(true)
-                        .value_name("DURATION or TIMESTAMP")
-                        .default_value("1 day"),
-                )
-                .arg(
-                    Arg::with_name("include-ms-only")
-                        .help("Follow output log")
-                        .long("ms-only")
-                        .takes_value(false),
-                )
-                .arg(
+                ).arg(
                     Arg::with_name("verbose")
                         .help("Use verbose output")
                         .long("verbose")
@@ -307,6 +278,7 @@ fn run() -> Result<(), Error> {
                         .takes_value(false),
                 ),
         )
+        .subcommand(SubCommand::with_name("version").about("Show the version information"))
         .get_matches();
 
     let runtime = || -> Result<_, Error> {
@@ -409,12 +381,14 @@ fn run() -> Result<(), Error> {
                 .with_tail(LogTail::All)
                 .with_since(since);
             let include_ms_only = args.is_present("include-edge-runtime-only");
+            let verbose = args.is_present("verbose");
             let iothub_hostname = args.value_of("iothub-hostname").map(ToOwned::to_owned);
             tokio_runtime.block_on(
                 SupportBundle::new(
                     options,
                     location.to_owned(),
                     include_ms_only,
+                    verbose,
                     iothub_hostname,
                     runtime()?,
                 )
@@ -422,24 +396,6 @@ fn run() -> Result<(), Error> {
             )
         }
         ("version", _) => tokio_runtime.block_on(Version::new().execute()),
-        ("support-bundle", Some(args)) => {
-            let location = args.value_of_os("output").expect("arg has a default value");
-            let since = args
-                .value_of("since")
-                .map(|s| parse_since(s))
-                .transpose()?
-                .expect("arg has a default value");
-            let options = LogOptions::new()
-                .with_follow(false)
-                .with_tail(LogTail::All)
-                .with_since(since);
-            let include_ms_only = args.is_present("include-ms-only");
-            let verbose = args.is_present("verbose");
-            tokio_runtime.block_on(
-                SupportBundle::new(options, location.to_owned(), include_ms_only, verbose, runtime()?)
-                    .execute(),
-            )
-        }
         (command, _) => tokio_runtime.block_on(Unknown::new(command.to_string()).execute()),
     }
 }

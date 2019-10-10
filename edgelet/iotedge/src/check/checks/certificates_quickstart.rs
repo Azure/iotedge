@@ -36,7 +36,7 @@ impl CertificatesQuickstart {
         };
 
         check.device_ca_cert_path = Some({
-            if let Some(certificates) = settings.certificates() {
+            if let Some(certificates) = settings.certificates().device_cert() {
                 certificates.device_ca_cert()?
             } else {
                 let certs_dir = settings.homedir().join("hsm").join("certs");
@@ -71,13 +71,12 @@ impl CertificatesQuickstart {
         });
         self.device_ca_cert_path = check.device_ca_cert_path.to_owned();
 
-        if settings.certificates().is_none() {
-            let cert = CertificateValidity::parse(
+
+        if settings.certificates().device_cert().is_none() {
+            let CertificateValidity { not_after, .. } = CertificateValidity::parse(
                 "Device CA certificate".to_owned(),
                 check.device_ca_cert_path.to_owned().unwrap(),
             )?;
-            self.certificate_info = Some(cert.to_owned());
-            let CertificateValidity { not_after, .. } = cert;
 
             let now = chrono::Utc::now();
 
