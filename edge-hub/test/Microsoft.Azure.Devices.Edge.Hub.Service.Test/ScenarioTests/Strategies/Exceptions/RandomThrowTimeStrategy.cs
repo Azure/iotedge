@@ -15,10 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
         {
         }
 
-        public static RandomThrowTimeStrategy Create()
-        {
-            return new RandomThrowTimeStrategy();
-        }
+        public static RandomThrowTimeStrategy Create() => new RandomThrowTimeStrategy();
 
         public RandomThrowTimeStrategy WithOddsToThrow(double oddsToThrow)
         {

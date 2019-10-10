@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
+namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
 {
     using System.Diagnostics;
     using Xunit;

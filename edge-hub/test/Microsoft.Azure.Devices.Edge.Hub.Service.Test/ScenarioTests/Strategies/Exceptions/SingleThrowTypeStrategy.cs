@@ -11,10 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
     {
         private Type exceptionType = typeof(IotHubException);
 
-        public static SingleThrowTypeStrategy Create()
-        {
-            return new SingleThrowTypeStrategy();
-        }
+        public static SingleThrowTypeStrategy Create() => new SingleThrowTypeStrategy();
 
         public SingleThrowTypeStrategy WithType<T>()
             where T : Exception

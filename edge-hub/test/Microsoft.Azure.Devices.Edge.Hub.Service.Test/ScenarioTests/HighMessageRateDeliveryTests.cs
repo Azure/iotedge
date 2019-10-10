@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 
     using Xunit;
 
-    [Unit]
+    [Scenario]
     public class HighMessageRateDeliveryTests
     {
         private const int BigPack = 10000;
@@ -193,6 +193,32 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 
             await deliverable.StartDeliveringAsync(router);
             await deliverable.WaitTillAllDeliveredAsync(this.TimeoutToken(TimeSpan.FromMinutes(60)));
+
+            deliverable.DeliveredJournal.EnsureOrdered();
+        }
+
+        [RunnableInDebugOnly]
+        public async Task SendBigMessages()
+        {
+            var deliverable = StandardDeliverable
+                                .Create()
+                                .WithPackSize(SmallPack)
+                                .WithMessageGeneratingStrategy<SimpleMessageGeneratingStrategy>(
+                                    message => message.WithBodySize((int)Core.Constants.MaxMessageSize / 4, (int)Core.Constants.MaxMessageSize))
+                                .WithTimingStrategy<NoWaitTimingStrategy>();
+
+            var cloudProxy = FlakyCloudProxy
+                                .Create()
+                                .WithSendOutAction(deliverable.ConfirmDelivery)
+                                .WithThrowTimeStrategy<DoNotThrowStrategy>();
+
+            var router = RouterBuilder
+                            .Create()
+                            .WithRoute(route => route.WithProxyGetter(cloudProxy.CreateCloudProxyGetter()))
+                            .Build();
+
+            await deliverable.StartDeliveringAsync(router);
+            await deliverable.WaitTillAllDeliveredAsync(this.TimeoutToken(TimeSpan.FromMinutes(20)));
 
             deliverable.DeliveredJournal.EnsureOrdered();
         }

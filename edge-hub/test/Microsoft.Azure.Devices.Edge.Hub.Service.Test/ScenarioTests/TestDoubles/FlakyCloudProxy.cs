@@ -18,10 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
         private Action<IReadOnlyCollection<IMessage>> sendOutAction = _ => { };
         private Action<IReadOnlyCollection<IMessage>, Exception> throwingAction = (_, __) => { };
 
-        public static FlakyCloudProxy Create()
-        {
-            return new FlakyCloudProxy();
-        }
+        public static FlakyCloudProxy Create() => new FlakyCloudProxy();
 
         public FlakyCloudProxy WithException<T>()
             where T : Exception

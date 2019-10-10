@@ -19,10 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 
         private string[] properties = { "test_prop1", "test_prop2" };
 
-        public static SimpleMessageGeneratingStrategy Create()
-        {
-            return new SimpleMessageGeneratingStrategy();
-        }
+        public static SimpleMessageGeneratingStrategy Create() => new SimpleMessageGeneratingStrategy();
 
         public SimpleMessageGeneratingStrategy WithBodySize(int minBodySize, int maxBodySize)
         {
@@ -52,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             var bodySize = default(int);
             var result = default(byte[]);
 
-            bodySize = random.Next(this.minBodySize, this.minBodySize);
+            bodySize = random.Next(this.minBodySize, this.maxBodySize);
 
             result = new byte[bodySize];
             random.NextBytes(result);

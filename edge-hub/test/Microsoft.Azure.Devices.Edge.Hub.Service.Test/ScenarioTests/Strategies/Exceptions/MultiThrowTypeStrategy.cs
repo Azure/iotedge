@@ -16,10 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
         {
         }
 
-        public static MultiThrowTypeStrategy Create()
-        {
-            return new MultiThrowTypeStrategy();
-        }
+        public static MultiThrowTypeStrategy Create() => new MultiThrowTypeStrategy();
 
         // this can be called multiple times and merges
         public MultiThrowTypeStrategy WithExceptionSuite(IEnumerable<Type> exceptions)

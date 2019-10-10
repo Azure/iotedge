@@ -13,10 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 
         private Random random = new Random(278934); // use a constant seed to be more replayable
 
-        public static RandomLaggingTimingStrategy Create()
-        {
-            return new RandomLaggingTimingStrategy();
-        }
+        public static RandomLaggingTimingStrategy Create() => new RandomLaggingTimingStrategy();
 
         public RandomLaggingTimingStrategy WithOddsToGetStuck(double oddsToGetStuck)
         {
@@ -45,17 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             return this;
         }
 
-        public Task DelayAsync()
-        {
-            if (this.RollTheDice())
-            {
-                return this.GetStuck();
-            }
-            else
-            {
-                return this.baseStrategy.DelayAsync();
-            }
-        }
+        public Task DelayAsync() => this.RollTheDice() ? this.GetStuck() : this.baseStrategy.DelayAsync();
 
         private Task GetStuck()
         {
