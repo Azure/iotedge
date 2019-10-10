@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
 
                 // Assert
                 Assert.Equal(DiskSpaceStatus.Unknown, fixedSizeSpaceChecker.DiskStatus);
-                await Task.Delay(TimeSpan.FromSeconds(4));
+                await Task.Delay(TimeSpan.FromSeconds(5));
                 Assert.Equal(DiskSpaceStatus.Available, fixedSizeSpaceChecker.DiskStatus);
 
                 // Act

@@ -26,13 +26,14 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
 
             try
             {
+                int delay = 6;
                 DriveInfo driveInfo = DiskSpaceChecker.GetMatchingDrive(testStorageFolder)
                     .Expect(() => new ArgumentException("Should find drive for temp folder"));
                 long maxStorageSize = 6 * 1024 * 1024;
                 DiskSpaceChecker diskSpaceChecker = DiskSpaceChecker.Create(testStorageFolder, maxStorageSize, TimeSpan.FromSeconds(3));
 
                 // Assert
-                await Task.Delay(TimeSpan.FromSeconds(4));
+                await Task.Delay(TimeSpan.FromSeconds(delay));
                 Assert.False(diskSpaceChecker.IsFull);
 
                 // Act
@@ -41,35 +42,35 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
                 await File.AppendAllTextAsync(filePath, dummyFileContents);
 
                 // Assert
-                await Task.Delay(TimeSpan.FromSeconds(4));
+                await Task.Delay(TimeSpan.FromSeconds(delay));
                 Assert.False(diskSpaceChecker.IsFull);
 
                 // Act
                 diskSpaceChecker.SetMaxStorageSize(4 * 1024 * 1024);
 
                 // Assert
-                await Task.Delay(TimeSpan.FromSeconds(4));
+                await Task.Delay(TimeSpan.FromSeconds(delay));
                 Assert.True(diskSpaceChecker.IsFull);
 
                 // Act
                 diskSpaceChecker.SetMaxStorageSize(8 * 1024 * 1024);
 
                 // Assert
-                await Task.Delay(TimeSpan.FromSeconds(4));
+                await Task.Delay(TimeSpan.FromSeconds(delay));
                 Assert.False(diskSpaceChecker.IsFull);
 
                 // Act
                 await File.AppendAllTextAsync(filePath, dummyFileContents);
 
                 // Assert
-                await Task.Delay(TimeSpan.FromSeconds(4));
+                await Task.Delay(TimeSpan.FromSeconds(delay));
                 Assert.True(diskSpaceChecker.IsFull);
 
                 // Act
                 File.Delete(filePath);
 
                 // Assert
-                await Task.Delay(TimeSpan.FromSeconds(4));
+                await Task.Delay(TimeSpan.FromSeconds(delay));
                 Assert.False(diskSpaceChecker.IsFull);
             }
             finally
