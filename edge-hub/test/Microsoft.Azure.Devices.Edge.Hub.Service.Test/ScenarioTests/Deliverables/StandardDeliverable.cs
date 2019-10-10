@@ -1,5 +1,6 @@
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
-{    
+{
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -104,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 
         public async Task WaitTillAllDeliveredAsync(CancellationToken token)
         {
-            while(true)
+            while (true)
             {
                 token.ThrowIfCancellationRequested();
 

@@ -1,3 +1,4 @@
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 {
     using System;
@@ -46,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 
         public Task DelayAsync()
         {
-            if (RollTheDice())
+            if (this.RollTheDice())
             {
                 return this.GetStuck();
             }
@@ -59,9 +60,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
         private Task GetStuck()
         {
             int delayMs;
-            lock (random)
+            lock (this.random)
             {
-                delayMs = random.Next(this.coreDelayMs - this.varianceMs, this.coreDelayMs + this.varianceMs);
+                delayMs = this.random.Next(this.coreDelayMs - this.varianceMs, this.coreDelayMs + this.varianceMs);
             }
 
             return Task.Delay(delayMs);

@@ -1,3 +1,4 @@
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 {
     using System;
@@ -13,30 +14,29 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
     [Unit]
     public class HighMessageRateDeliveryTests
     {
-        private const int bigPack = 10000;
-        private const int smallPack = 100;
+        private const int BigPack = 10000;
+        private const int SmallPack = 100;
 
         [RunnableInDebugOnly]
         public async Task SendWithNoError()
         {
             var deliverable = StandardDeliverable
                                 .Create()
-                                .WithPackSize(bigPack)
+                                .WithPackSize(BigPack)
                                 .WithTimingStrategy<NoWaitTimingStrategy>();
 
             var cloudProxy = FlakyCloudProxy
                                 .Create()
                                 .WithSendOutAction(deliverable.ConfirmDelivery)
                                 .WithThrowTimeStrategy<DoNotThrowStrategy>();
-                                
 
             var router = RouterBuilder
-                            .Create()                            
+                            .Create()
                             .WithRoute(route => route.WithProxyGetter(cloudProxy.CreateCloudProxyGetter()))
                             .Build();
 
             await deliverable.StartDeliveringAsync(router);
-            await deliverable.WaitTillAllDeliveredAsync(TimeoutToken(TimeSpan.FromMinutes(10)));            
+            await deliverable.WaitTillAllDeliveredAsync(this.TimeoutToken(TimeSpan.FromMinutes(10)));
 
             deliverable.DeliveredJournal.EnsureOrdered();
         }
@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
         {
             var deliverable = StandardDeliverable
                                 .Create()
-                                .WithPackSize(bigPack)
+                                .WithPackSize(BigPack)
                                 .WithTimingStrategy<NoWaitTimingStrategy>();
 
             var cloudProxy = FlakyCloudProxy
@@ -61,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
                             .Build();
 
             await deliverable.StartDeliveringAsync(router);
-            await deliverable.WaitTillAllDeliveredAsync(TimeoutToken(TimeSpan.FromMinutes(10)));
+            await deliverable.WaitTillAllDeliveredAsync(this.TimeoutToken(TimeSpan.FromMinutes(10)));
 
             deliverable.DeliveredJournal.EnsureOrdered();
         }
@@ -71,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
         {
             var deliverable = StandardDeliverable
                                 .Create()
-                                .WithPackSize(bigPack)
+                                .WithPackSize(BigPack)
                                 .WithTimingStrategy<NoWaitTimingStrategy>();
 
             var cloudProxy = FlakyCloudProxy
@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
                             .Build();
 
             await deliverable.StartDeliveringAsync(router);
-            await deliverable.WaitTillAllDeliveredAsync(TimeoutToken(TimeSpan.FromMinutes(10)));
+            await deliverable.WaitTillAllDeliveredAsync(this.TimeoutToken(TimeSpan.FromMinutes(10)));
 
             deliverable.DeliveredJournal.EnsureOrderedWithGaps();
         }
@@ -112,7 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 
             var deliverable = StandardDeliverable
                                 .Create()
-                                .WithPackSize(bigPack)
+                                .WithPackSize(BigPack)
                                 .WithTimingStrategy<NoWaitTimingStrategy>();
 
             Action<IReadOnlyCollection<Core.IMessage>, Exception> handleExceptions =
@@ -131,14 +131,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
                                                           .WithExceptionSuite(nonRetryableExceptions))
                                 .WithThrowTimeStrategy<RandomThrowTimeStrategy>(
                                     throwing => throwing.WithOddsToThrow(0.2));
-                                
+
             var router = RouterBuilder
                             .Create()
                             .WithRoute(route => route.WithProxyGetter(cloudProxy.CreateCloudProxyGetter()))
                             .Build();
 
             await deliverable.StartDeliveringAsync(router);
-            await deliverable.WaitTillAllDeliveredAsync(TimeoutToken(TimeSpan.FromMinutes(10)));
+            await deliverable.WaitTillAllDeliveredAsync(this.TimeoutToken(TimeSpan.FromMinutes(10)));
 
             deliverable.DeliveredJournal.EnsureOrderedWithGaps();
         }
@@ -148,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
         {
             var deliverable = StandardDeliverable
                                 .Create()
-                                .WithPackSize(bigPack)
+                                .WithPackSize(BigPack)
                                 .WithTimingStrategy<NoWaitTimingStrategy>();
 
             var cloudProxy = FlakyCloudProxy
@@ -163,7 +163,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
                             .Build();
 
             await deliverable.StartDeliveringAsync(router);
-            await deliverable.WaitTillAllDeliveredAsync(TimeoutToken(TimeSpan.FromMinutes(20)));
+            await deliverable.WaitTillAllDeliveredAsync(this.TimeoutToken(TimeSpan.FromMinutes(20)));
 
             deliverable.DeliveredJournal.EnsureOrdered();
         }
@@ -173,7 +173,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
         {
             var deliverable = StandardDeliverable
                                 .Create()
-                                .WithPackSize(smallPack) // careful, this test waits a lot
+                                .WithPackSize(SmallPack) // careful, this test waits a lot
                                 .WithTimingStrategy<NoWaitTimingStrategy>();
 
             var cloudProxy = FlakyCloudProxy
@@ -181,11 +181,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
                                 .WithSendOutAction(deliverable.ConfirmDelivery)
                                 .WithThrowTimeStrategy<DoNotThrowStrategy>()
                                 .WithSendDelayStrategy<RandomLaggingTimingStrategy>(
-                                     delay => delay.WithDelay(TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(4)) 
-                                                   .WithOddsToGetStuck(0.05)  // lag at every ~20th send in average
+                                     delay => delay.WithDelay(TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(4))
+                                                   .WithOddsToGetStuck(0.05) // lag at every ~20th send in average
                                                    .WithBaseStrategy<LinearTimingStrategy>(
                                                         baseDelay => baseDelay.WithDelay(300, 100))); // 0.2-0.4 sec normal delay
-                                
 
             var router = RouterBuilder
                             .Create()
@@ -193,7 +192,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
                             .Build();
 
             await deliverable.StartDeliveringAsync(router);
-            await deliverable.WaitTillAllDeliveredAsync(TimeoutToken(TimeSpan.FromMinutes(60)));
+            await deliverable.WaitTillAllDeliveredAsync(this.TimeoutToken(TimeSpan.FromMinutes(60)));
 
             deliverable.DeliveredJournal.EnsureOrdered();
         }

@@ -1,9 +1,9 @@
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Text;
 
     internal static class ExtensionUtils
     {
@@ -40,6 +40,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
                 }
             }
         }
-
     }
 }

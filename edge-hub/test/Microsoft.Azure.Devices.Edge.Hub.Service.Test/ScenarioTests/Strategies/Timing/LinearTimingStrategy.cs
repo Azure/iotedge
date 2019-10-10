@@ -1,3 +1,4 @@
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 {
     using System;
@@ -15,9 +16,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
         public async Task DelayAsync()
         {
             int delayMs;
-            lock(random)
+            lock (this.random)
             {
-                delayMs = random.Next(this.coreDelayMs - this.varianceMs, this.coreDelayMs + this.varianceMs);
+                delayMs = this.random.Next(this.coreDelayMs - this.varianceMs, this.coreDelayMs + this.varianceMs);
             }
 
             if (delayMs > 0)

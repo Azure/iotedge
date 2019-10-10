@@ -1,3 +1,4 @@
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 {
     using System;
@@ -15,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
         private IMessageConverter<bool> throwTimeStrategy = RandomThrowTimeStrategy.Create().WithOddsToThrow(0.1);
         private ITimingStrategy timingStrategy = LinearTimingStrategy.Create().WithDelay(200, 100);
         private Action<IReadOnlyCollection<IMessage>> sendOutAction = _ => { };
-        private Action<IReadOnlyCollection<IMessage>, Exception> throwingAction = (_,__) => { };
+        private Action<IReadOnlyCollection<IMessage>, Exception> throwingAction = (_, __) => { };
 
         public static FlakyCloudProxy Create()
         {
@@ -86,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             return this;
         }
 
-        public FlakyCloudProxy WithSendDelayStrategy<T>(Func<T,T> timingStrategy)
+        public FlakyCloudProxy WithSendDelayStrategy<T>(Func<T, T> timingStrategy)
             where T : ITimingStrategy, new()
         {
             this.timingStrategy = timingStrategy(new T());
@@ -103,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             await this.timingStrategy.DelayAsync();
 
             var messagesAsCollection = inputMessages as IReadOnlyCollection<IMessage> ?? inputMessages.ToArray();
-            
+
             if (this.throwTimeStrategy.Convert(inputMessages))
             {
                 var toBeThrown = this.throwTypeStrategy.Convert(inputMessages);

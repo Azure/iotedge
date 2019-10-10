@@ -1,11 +1,13 @@
-using Microsoft.Azure.Devices.Routing.Core.MessageSources;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading;
+
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
+
     // this class has several properties hardcoded and could be made customizable (e.g message properties)
     // feel free to add code for your purposes
     public class SimpleMessageGeneratingStrategy : IMessageGeneratingStrategy
@@ -32,18 +34,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 
         public Routing.Core.Message Next()
         {
-            var msgCounter = Interlocked.Increment(ref messageCounter);
+            var msgCounter = Interlocked.Increment(ref this.messageCounter);
 
-            var body = this.getBody(msgCounter);
-            var properties = this.getProperties(msgCounter);
-            var systemProperties = this.getSystemProperties(msgCounter);
+            var body = this.GetBody(msgCounter);
+            var properties = this.GetProperties(msgCounter);
+            var systemProperties = this.GetSystemProperties(msgCounter);
 
             var result = new Routing.Core.Message(TelemetryMessageSource.Instance, body, properties, systemProperties);
 
             return result;
         }
 
-        private byte[] getBody(int msgCounter)
+        private byte[] GetBody(int msgCounter)
         {
             var random = new Random(msgCounter * 23);
 
@@ -58,12 +60,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             return result;
         }
 
-        private Dictionary<string, string> getProperties(int msgCounter)
+        private Dictionary<string, string> GetProperties(int msgCounter)
         {
             var random = new Random(msgCounter * 17);
             var result = new Dictionary<string, string>();
 
-            Array.ForEach(properties, p => result.Add(p, RandomString(random, random.Next(5, 10))));
+            Array.ForEach(this.properties, p => result.Add(p, RandomString(random, random.Next(5, 10))));
 
             result.Add("counter", msgCounter.ToString());
             result.Add("generated", DateTime.Now.ToString("MM/dd-HH:mm:ss.fffffff"));
@@ -71,12 +73,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             return result;
         }
 
-        private Dictionary<string, string> getSystemProperties(int msgCounter)
+        private Dictionary<string, string> GetSystemProperties(int msgCounter)
         {
             var result = new Dictionary<string, string>()
             {
                 [Core.SystemProperties.EdgeMessageId] = Guid.NewGuid().ToString(),
-                [Core.SystemProperties.MessageId] = "test-msg-" + (msgCounter).ToString(),
+                [Core.SystemProperties.MessageId] = "test-msg-" + msgCounter.ToString(),
                 [Core.SystemProperties.ConnectionDeviceId] = "test-device"
             };
 

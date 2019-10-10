@@ -1,3 +1,4 @@
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 {
     using System.Collections.Generic;
@@ -10,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
         public bool IsActive => true;
 
         public virtual Task<bool> CloseAsync() => Task.FromResult(true);
-        public virtual Task<IMessage> GetTwinAsync() => Task.FromResult(new EdgeMessage(new byte[0], new Dictionary<string,string>(), new Dictionary<string,string>()) as IMessage);
+        public virtual Task<IMessage> GetTwinAsync() => Task.FromResult(new EdgeMessage(new byte[0], new Dictionary<string, string>(), new Dictionary<string, string>()) as IMessage);
         public virtual Task<bool> OpenAsync() => Task.FromResult(true);
         public virtual Task RemoveCallMethodAsync() => Task.FromResult(true);
         public virtual Task RemoveDesiredPropertyUpdatesAsync() => Task.FromResult(true);

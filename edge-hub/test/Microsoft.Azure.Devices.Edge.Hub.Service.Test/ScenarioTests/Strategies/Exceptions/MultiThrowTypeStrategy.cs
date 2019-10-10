@@ -1,3 +1,4 @@
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 {
     using System;
@@ -74,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
         {
             lock (this.random)
             {
-                var index = this.random.Next(exceptionSuite.Count);
+                var index = this.random.Next(this.exceptionSuite.Count);
                 return this.exceptionSuite[index];
             }
         }
@@ -83,6 +84,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
         {
             return Activator.CreateInstance(exceptionType, message) as Exception;
         }
-
     }
 }
