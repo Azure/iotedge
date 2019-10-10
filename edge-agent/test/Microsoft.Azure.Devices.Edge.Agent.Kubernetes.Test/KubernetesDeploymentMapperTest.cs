@@ -13,26 +13,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
-    using EmptyStruct = global::Docker.DotNet.Models.EmptyStruct;
 
     [Unit]
     public class KubernetesDeploymentMapperTest
     {
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
+
         static readonly IDictionary<string, EnvVal> EnvVarsDict = new Dictionary<string, EnvVal>();
+
         static readonly DockerConfig Config1 = new DockerConfig("test-image:1");
+
         static readonly HostConfig VolumeMountHostConfig = new HostConfig
         {
             Mounts = new List<Mount>
+            {
+                new Mount
                 {
-                    new Mount()
-                    {
-                        Type = "volume",
-                        ReadOnly = true,
-                        Source = "a-volume",
-                        Target = "/tmp/volume"
-                    }
+                    Type = "volume",
+                    ReadOnly = true,
+                    Source = "a-volume",
+                    Target = "/tmp/volume"
                 }
+            }
         };
 
         [Fact]
@@ -44,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 // string.Empty is an invalid label name
                 { string.Empty, "test" }
             };
-            var config = new KubernetesConfig("image", CreateOptions(labels: labels), Option.None<AuthConfig>());
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(labels: labels), Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesDeploymentMapper("namespace", "edgehub", "proxy", "configPath", "configVolumeName", "configMapName", "trustBundlePAth", "trustBundleVolumeName", "trustBundleConfigMapName", string.Empty, string.Empty, "apiVersion", new Uri("http://workload"), new Uri("http://management"));
@@ -57,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         public void SimplePodCreationHappyPath()
         {
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
-            var config = new KubernetesConfig("image", CreateOptions(), Option.None<AuthConfig>());
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesDeploymentMapper("namespace", "edgehub", "proxy", "configPath", "configVolumeName", "configMapName", "trustBundlePAth", "trustBundleVolumeName", "trustBundleConfigMapName", string.Empty, string.Empty, "apiVersion", new Uri("http://workload"), new Uri("http://management"));
@@ -84,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 // Add a readonly mount
                 Binds = new List<string> { "/home/blah:/home/blah2:ro" }
             };
-            var config = new KubernetesConfig("image", CreateOptions(labels: labels, hostConfig: hostConfig), Option.None<AuthConfig>());
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(labels: labels, hostConfig: hostConfig), Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesDeploymentMapper("namespace", "edgehub", "proxy", "configPath", "configVolumeName", "configMapName", "trustBundlePAth", "trustBundleVolumeName", "trustBundleConfigMapName", string.Empty, string.Empty, "apiVersion", new Uri("http://workload"), new Uri("http://management"));
@@ -98,17 +100,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Assert.True(pod.Metadata.Annotations.ContainsKey("demo"));
             // Two containers should exist - proxy and the module
             Assert.Equal(2, pod.Spec.Containers.Count);
-            // There should only be one container
+
+            // There should only be one module container
             var moduleContainer = pod.Spec.Containers.Single(p => p.Name != "proxy");
             // We made this container privileged
             Assert.True(moduleContainer.SecurityContext.Privileged);
-            // Validate that there are 4 mounts
-            Assert.Equal(3, moduleContainer.VolumeMounts.Count);
+            // Validate that there are 1 mounts for module container
+            Assert.Equal(1, moduleContainer.VolumeMounts.Count);
             // Validate the custom mount that we added
             Assert.Contains(moduleContainer.VolumeMounts, vm => vm.Name.Equals("homeblah"));
             var mount = moduleContainer.VolumeMounts.Single(vm => vm.Name.Equals("homeblah"));
             // Lets make sure that it is read only
             Assert.True(mount.ReadOnlyProperty);
+
+            // Validate proxy container
+            var proxyContainer = pod.Spec.Containers.Single(p => p.Name == "proxy");
+            // Validate that there are 2 mounts for proxy container: config and trust-bundle
+            Assert.Equal(2, proxyContainer.VolumeMounts.Count);
+            Assert.Contains(proxyContainer.VolumeMounts, vm => vm.Name.Equals("configVolumeName"));
+            Assert.Contains(proxyContainer.VolumeMounts, vm => vm.Name.Equals("trustBundleVolumeName"));
+
+            // Validate pod volumes
+            Assert.Equal(3, pod.Spec.Volumes.Count);
+            Assert.Contains(pod.Spec.Volumes, v => v.Name.Equals("homeblah"));
+            Assert.Contains(pod.Spec.Volumes, v => v.Name.Equals("configVolumeName"));
+            Assert.Contains(pod.Spec.Volumes, v => v.Name.Equals("trustBundleVolumeName"));
         }
 
         [Fact]
@@ -117,7 +133,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "ModuleId", Mock.Of<ICredentials>());
             var labels = new Dictionary<string, string>();
             var hostConfig = VolumeMountHostConfig;
-            var config = new KubernetesConfig("image", CreateOptions(labels: labels, hostConfig: hostConfig), Option.None<AuthConfig>());
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(labels: labels, hostConfig: hostConfig), Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesDeploymentMapper("namespace", "edgehub", "proxy", "configPath", "configVolumeName", "configMapName", "trustBundlePAth", "trustBundleVolumeName", "trustBundleConfigMapName", string.Empty, null, "apiVersion", new Uri("http://workload"), new Uri("http://management"));
@@ -139,7 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "ModuleId", Mock.Of<ICredentials>());
             var labels = new Dictionary<string, string>();
             var hostConfig = VolumeMountHostConfig;
-            var config = new KubernetesConfig("image", CreateOptions(labels: labels, hostConfig: hostConfig), Option.None<AuthConfig>());
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(labels: labels, hostConfig: hostConfig), Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesDeploymentMapper("namespace", "edgehub", "proxy", "configPath", "configVolumeName", "configMapName", "trustBundlePAth", "trustBundleVolumeName", "trustBundleConfigMapName", "elephant", string.Empty, "apiVersion", new Uri("http://workload"), new Uri("http://management"));
@@ -163,7 +179,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "ModuleId", Mock.Of<ICredentials>());
             var labels = new Dictionary<string, string>();
             var hostConfig = VolumeMountHostConfig;
-            var config = new KubernetesConfig("image", CreateOptions(labels: labels, hostConfig: hostConfig), Option.None<AuthConfig>());
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(labels: labels, hostConfig: hostConfig), Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesDeploymentMapper("namespace", "edgehub", "proxy", "configPath", "configVolumeName", "configMapName", "trustBundlePAth", "trustBundleVolumeName", "trustBundleConfigMapName", string.Empty, "azureFile", "apiVersion", new Uri("http://workload"), new Uri("http://management"));
@@ -187,7 +203,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "ModuleId", Mock.Of<ICredentials>());
             var labels = new Dictionary<string, string>();
             var hostConfig = VolumeMountHostConfig;
-            var config = new KubernetesConfig("image", CreateOptions(labels: labels, hostConfig: hostConfig), Option.None<AuthConfig>());
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(labels: labels, hostConfig: hostConfig), Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesDeploymentMapper("namespace", "edgehub", "proxy", "configPath", "configVolumeName", "configMapName", "trustBundlePAth", "trustBundleVolumeName", "trustBundleConfigMapName", string.Empty, string.Empty, "apiVersion", new Uri("http://workload"), new Uri("http://management"));
@@ -214,7 +230,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             {
                 ["disktype"] = "ssd"
             };
-            var config = new KubernetesConfig("image", CreateOptions(nodeSelector: nodeSelector), Option.None<AuthConfig>());
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(nodeSelector: nodeSelector), Option.None<AuthConfig>());
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesDeploymentMapper("namespace", "edgehub", "proxy", "configPath", "configVolumeName", "configMapName", "trustBundlePAth", "trustBundleVolumeName", "trustBundleConfigMapName", string.Empty, string.Empty, "apiVersion", new Uri("http://workload"), new Uri("http://management"));
             var labels = new Dictionary<string, string>();
@@ -229,7 +245,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         {
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
-            var config = new KubernetesConfig("image", CreateOptions(), Option.None<AuthConfig>());
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.None<AuthConfig>());
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesDeploymentMapper("namespace", "edgehub", "proxy", "configPath", "configVolumeName", "configMapName", "trustBundlePAth", "trustBundleVolumeName", "trustBundleConfigMapName", string.Empty, string.Empty, "apiVersion", new Uri("http://workload"), new Uri("http://management"));
             var labels = new Dictionary<string, string>();
@@ -257,7 +273,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                     ["cpu"] = new ResourceQuantity("250M"),
                     ["hardware-vendor.example/foo"] = 1
                 });
-            var config = new KubernetesConfig("image", CreateOptions(resources: resources), Option.None<AuthConfig>());
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(resources: resources), Option.None<AuthConfig>());
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesDeploymentMapper("namespace", "edgehub", "proxy", "configPath", "configVolumeName", "configMapName", "trustBundlePAth", "trustBundleVolumeName", "trustBundleConfigMapName", string.Empty, string.Empty, "apiVersion", new Uri("http://workload"), new Uri("http://management"));
             var labels = new Dictionary<string, string>();
@@ -274,7 +290,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         {
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
-            var config = new KubernetesConfig("image", CreateOptions(), Option.None<AuthConfig>());
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.None<AuthConfig>());
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesDeploymentMapper("namespace", "edgehub", "proxy", "configPath", "configVolumeName", "configMapName", "trustBundlePAth", "trustBundleVolumeName", "trustBundleConfigMapName", string.Empty, string.Empty, "apiVersion", new Uri("http://workload"), new Uri("http://management"));
             var labels = new Dictionary<string, string>();
@@ -285,19 +301,96 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Assert.Null(moduleContainer.Resources);
         }
 
-        static CreatePodParameters CreateOptions(
-            IList<string> env = null,
-            IDictionary<string, EmptyStruct> exposedPorts = null,
-            HostConfig hostConfig = null,
-            string image = null,
-            IDictionary<string, string> labels = null,
-            NetworkingConfig networkingConfig = null,
-            IDictionary<string, string> nodeSelector = null,
-            V1ResourceRequirements resources = null)
-            => new CreatePodParameters(env, exposedPorts, hostConfig, image, labels, networkingConfig)
+        [Fact]
+        public void AppliesVolumesFromCreateOptionsToContainerSpec()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
+            var volumes = new[]
             {
-                NodeSelector = Option.Maybe(nodeSelector),
-                Resources = Option.Maybe(resources)
+                new KubernetesModuleVolumeSpec(
+                    new V1Volume("additional-volume", configMap: new V1ConfigMapVolumeSource(name: "additional-config-map")),
+                    new[] { new V1VolumeMount(name: "additional-volume", mountPath: "/etc") })
             };
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(volumes: volumes), Option.None<AuthConfig>());
+            var module = new KubernetesModule(docker, config);
+            var mapper = new KubernetesDeploymentMapper("namespace", "edgehub", "proxy", "configPath", "configVolumeName", "configMapName", "trustBundlePath", "trustBundleVolumeName", "trustBindleConfigMapName", string.Empty, string.Empty, "apiVersion", new Uri("http://workload"), new Uri("http://management"));
+            var labels = new Dictionary<string, string>();
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            // Validate module volume mounts
+            var moduleContainer = deployment.Spec.Template.Spec.Containers.Single(container => container.Name == "module1");
+            Assert.Equal(1, moduleContainer.VolumeMounts.Count);
+            Assert.Contains(moduleContainer.VolumeMounts, vm => vm.Name.Equals("additional-volume"));
+
+            // Validate proxy volume mounts
+            var proxyContainer = deployment.Spec.Template.Spec.Containers.Single(p => p.Name == "proxy");
+            Assert.Equal(2, proxyContainer.VolumeMounts.Count);
+            Assert.Contains(proxyContainer.VolumeMounts, vm => vm.Name.Equals("configVolumeName"));
+            Assert.Contains(proxyContainer.VolumeMounts, vm => vm.Name.Equals("trustBundleVolumeName"));
+
+            // Validate pod volumes
+            Assert.Equal(3, deployment.Spec.Template.Spec.Volumes.Count);
+            Assert.Contains(deployment.Spec.Template.Spec.Volumes, v => v.Name.Equals("additional-volume"));
+            Assert.Contains(deployment.Spec.Template.Spec.Volumes, v => v.Name.Equals("configVolumeName"));
+            Assert.Contains(deployment.Spec.Template.Spec.Volumes, v => v.Name.Equals("trustBundleVolumeName"));
+        }
+
+        [Fact]
+        public void AddsVolumesFromCreateOptionsToContainerSpecEvenIfTheyOverrideExistingOnes()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
+            var volumes = new[]
+            {
+                new KubernetesModuleVolumeSpec(
+                    new V1Volume("homeblah", configMap: new V1ConfigMapVolumeSource(name: "additional-config-map")),
+                    new[] { new V1VolumeMount(name: "homeblah", mountPath: "/home/blah") })
+            };
+            var hostConfig = new HostConfig { Binds = new List<string> { "/home/blah:/home/blah2:ro" } };
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(volumes: volumes, hostConfig: hostConfig), Option.None<AuthConfig>());
+            var module = new KubernetesModule(docker, config);
+            var mapper = new KubernetesDeploymentMapper("namespace", "edgehub", "proxy", "configPath", "configVolumeName", "configMapName", "trustBundlePath", "trustBundleVolumeName", "trustBindleConfigMapName", string.Empty, string.Empty, "apiVersion", new Uri("http://workload"), new Uri("http://management"));
+            var labels = new Dictionary<string, string>();
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            // Validate module volume mounts
+            var moduleContainer = deployment.Spec.Template.Spec.Containers.Single(container => container.Name == "module1");
+            Assert.Equal(2, moduleContainer.VolumeMounts.Count(vm => vm.Name.Equals("homeblah")));
+
+            // Validate proxy volume mounts
+            var proxyContainer = deployment.Spec.Template.Spec.Containers.Single(p => p.Name == "proxy");
+            Assert.Equal(2, proxyContainer.VolumeMounts.Count);
+            Assert.Contains(proxyContainer.VolumeMounts, vm => vm.Name.Equals("configVolumeName"));
+            Assert.Contains(proxyContainer.VolumeMounts, vm => vm.Name.Equals("trustBundleVolumeName"));
+
+            // Validate pod volumes
+            Assert.Equal(4, deployment.Spec.Template.Spec.Volumes.Count);
+            Assert.Equal(2, deployment.Spec.Template.Spec.Volumes.Count(v => v.Name.Equals("homeblah")));
+            Assert.Contains(deployment.Spec.Template.Spec.Volumes, v => v.Name.Equals("configVolumeName"));
+            Assert.Contains(deployment.Spec.Template.Spec.Volumes, v => v.Name.Equals("trustBundleVolumeName"));
+        }
+
+        [Fact]
+        public void LeaveVolumesIntactWhenNothingProvidedInCreateOptions()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.None<AuthConfig>());
+            var module = new KubernetesModule(docker, config);
+            var mapper = new KubernetesDeploymentMapper("namespace", "edgehub", "proxy", "configPath", "configVolumeName", "configMapName", "trustBundlePath", "trustBundleVolumeName", "trustBindleConfigMapName", string.Empty, string.Empty, "apiVersion", new Uri("http://workload"), new Uri("http://management"));
+            var labels = new Dictionary<string, string>();
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            // 2 volumes for proxy by default
+            Assert.Equal(2, deployment.Spec.Template.Spec.Volumes.Count);
+            var moduleContainer = deployment.Spec.Template.Spec.Containers.Single(container => container.Name == "module1");
+            Assert.Equal(0, moduleContainer.VolumeMounts.Count);
+            var proxyContainer = deployment.Spec.Template.Spec.Containers.Single(container => container.Name == "proxy");
+            Assert.Equal(2, proxyContainer.VolumeMounts.Count);
+        }
     }
 }
