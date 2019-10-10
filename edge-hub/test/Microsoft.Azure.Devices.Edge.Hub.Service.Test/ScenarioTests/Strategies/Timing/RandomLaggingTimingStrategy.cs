@@ -17,6 +17,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             return new RandomLaggingTimingStrategy();
         }
 
+        public RandomLaggingTimingStrategy WithOddsToGetStuck(double oddsToGetStuck)
+        {
+            this.oddsToGetStuck = oddsToGetStuck;
+            return this;
+        }
+
+        public RandomLaggingTimingStrategy WithDelay(TimeSpan coreDelay, TimeSpan variance)
+        {
+            this.coreDelayMs = (int)coreDelay.TotalMilliseconds;
+            this.varianceMs = (int)variance.TotalMilliseconds;
+            return this;
+        }
+
         public RandomLaggingTimingStrategy WithDelay(int coreDelayMs, int varianceMs)
         {
             this.coreDelayMs = coreDelayMs;

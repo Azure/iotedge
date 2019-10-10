@@ -30,6 +30,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             }
         }
 
+        public LinearTimingStrategy WithDelay(TimeSpan coreDelay, TimeSpan variance)
+        {
+            this.coreDelayMs = (int)coreDelay.TotalMilliseconds;
+            this.varianceMs = (int)variance.TotalMilliseconds;
+            return this;
+        }
+
         public LinearTimingStrategy WithDelay(int coreDelayMs, int varianceMs)
         {
             this.coreDelayMs = coreDelayMs;

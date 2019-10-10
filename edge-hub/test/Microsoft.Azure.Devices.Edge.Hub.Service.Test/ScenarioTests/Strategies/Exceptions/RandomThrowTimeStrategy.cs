@@ -5,21 +5,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 
     using Microsoft.Azure.Devices.Edge.Hub.Core;
 
-    public class RandomThrowingStrategy : IMessageConverter<bool>
+    public class RandomThrowTimeStrategy : IMessageConverter<bool>
     {
         private Random random = new Random(645637);
         private double oddsToThrow = 0.1;
 
-        protected RandomThrowingStrategy()
+        public RandomThrowTimeStrategy()
         {
         }
 
-        public static RandomThrowingStrategy Create()
+        public static RandomThrowTimeStrategy Create()
         {
-            return new RandomThrowingStrategy();
+            return new RandomThrowTimeStrategy();
         }
 
-        public RandomThrowingStrategy WithOddsToThrow(double oddsToThrow)
+        public RandomThrowTimeStrategy WithOddsToThrow(double oddsToThrow)
         {
             this.oddsToThrow = oddsToThrow;
             return this;

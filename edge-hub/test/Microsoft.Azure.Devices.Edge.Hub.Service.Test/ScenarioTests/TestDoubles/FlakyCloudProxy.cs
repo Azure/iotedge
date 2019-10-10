@@ -11,15 +11,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 
     public class FlakyCloudProxy : AllGoodCloudProxy
     {
-        private IMessageConverter<Exception> exceptionStrategy = SimpleExceptionStrategy.Create().WithType<IotHubException>();
-        private IMessageConverter<bool> throwingStrategy = RandomThrowingStrategy.Create().WithOddsToThrow(0.1);
+        private IMessageConverter<Exception> throwTypeStrategy = SingleThrowTypeStrategy.Create().WithType<IotHubException>();
+        private IMessageConverter<bool> throwTimeStrategy = RandomThrowTimeStrategy.Create().WithOddsToThrow(0.1);
+        private ITimingStrategy timingStrategy = LinearTimingStrategy.Create().WithDelay(200, 100);
         private Action<IReadOnlyCollection<IMessage>> sendOutAction = _ => { };
         private Action<IReadOnlyCollection<IMessage>, Exception> throwingAction = (_,__) => { };
-
-        private int delayCore = 200;
-        private int delayVariance = 100;
-
-        private Random rnd = new Random();
 
         public static FlakyCloudProxy Create()
         {
@@ -29,25 +25,40 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
         public FlakyCloudProxy WithException<T>()
             where T : Exception
         {
-            this.exceptionStrategy = SimpleExceptionStrategy.Create().WithType<T>();
+            this.throwTypeStrategy = SingleThrowTypeStrategy.Create().WithType<T>();
             return this;
         }
 
-        public FlakyCloudProxy WithException(IMessageConverter<Exception> exceptionFactory)
+        public FlakyCloudProxy WithThrowTypeStrategy(IMessageConverter<Exception> throwTypeStrategy)
         {
-            this.exceptionStrategy = exceptionFactory;
+            this.throwTypeStrategy = throwTypeStrategy;
             return this;
         }
 
-        public FlakyCloudProxy WithRandomThrowingStrategy(double oddsToThrow)
+        public FlakyCloudProxy WithThrowTypeStrategy<T>(Func<T, T> throwTypeStrategy)
+            where T : IMessageConverter<Exception>, new()
         {
-            this.throwingStrategy = RandomThrowingStrategy.Create().WithOddsToThrow(oddsToThrow);
+            this.throwTypeStrategy = throwTypeStrategy(new T());
             return this;
         }
 
-        public FlakyCloudProxy WithThrowingStrategy(IMessageConverter<bool> errorStrategy)
+        public FlakyCloudProxy WithThrowTimeStrategy(IMessageConverter<bool> throwTimeStrategy)
         {
-            this.throwingStrategy = errorStrategy;
+            this.throwTimeStrategy = throwTimeStrategy;
+            return this;
+        }
+
+        public FlakyCloudProxy WithThrowTimeStrategy<T>()
+            where T : IMessageConverter<bool>, new()
+        {
+            this.throwTimeStrategy = new T();
+            return this;
+        }
+
+        public FlakyCloudProxy WithThrowTimeStrategy<T>(Func<T, T> throwTimeStrategy)
+            where T : IMessageConverter<bool>, new()
+        {
+            this.throwTimeStrategy = throwTimeStrategy(new T());
             return this;
         }
 
@@ -63,11 +74,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             return this;
         }
 
+        public FlakyCloudProxy WithSendDelay(TimeSpan coreDelay, TimeSpan delayVariance)
+        {
+            this.timingStrategy = LinearTimingStrategy.Create().WithDelay(coreDelay, delayVariance);
+            return this;
+        }
+
         public FlakyCloudProxy WithSendDelay(int delayCore, int delayVariance)
         {
-            this.delayCore = delayCore;
-            this.delayVariance = delayVariance;
+            this.timingStrategy = LinearTimingStrategy.Create().WithDelay(delayCore, delayVariance);
+            return this;
+        }
 
+        public FlakyCloudProxy WithSendDelayStrategy<T>(Func<T,T> timingStrategy)
+            where T : ITimingStrategy, new()
+        {
+            this.timingStrategy = timingStrategy(new T());
             return this;
         }
 
@@ -78,13 +100,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 
         public override async Task SendMessageBatchAsync(IEnumerable<IMessage> inputMessages)
         {
-            await this.Delay();
+            await this.timingStrategy.DelayAsync();
 
             var messagesAsCollection = inputMessages as IReadOnlyCollection<IMessage> ?? inputMessages.ToArray();
             
-            if (this.throwingStrategy.Convert(inputMessages))
+            if (this.throwTimeStrategy.Convert(inputMessages))
             {
-                var toBeThrown = this.exceptionStrategy.Convert(inputMessages);
+                var toBeThrown = this.throwTypeStrategy.Convert(inputMessages);
                 this.throwingAction(messagesAsCollection, toBeThrown);
                 throw toBeThrown;
             }
@@ -96,13 +118,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 
         public override async Task SendMessageAsync(IMessage message)
         {
-            await this.Delay();
+            await this.timingStrategy.DelayAsync();
 
             var messageAsCollection = new IMessage[] { message };
 
-            if (this.throwingStrategy.Convert(message))
+            if (this.throwTimeStrategy.Convert(message))
             {
-                var toBeThrown = this.exceptionStrategy.Convert(message);
+                var toBeThrown = this.throwTypeStrategy.Convert(message);
                 this.throwingAction(messageAsCollection, toBeThrown);
                 throw toBeThrown;
             }
@@ -110,25 +132,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             this.sendOutAction(messageAsCollection);
 
             return;
-        }
-
-        private async Task Delay()
-        {
-            var delayMs = default(int);
-
-            lock (this.rnd)
-            {
-                delayMs = this.rnd.Next(this.delayCore - this.delayVariance, this.delayCore + this.delayVariance);
-            }
-
-            if (delayMs > 0)
-            {
-                await Task.Delay(delayMs);
-            }
-            else
-            {
-                await Task.Yield();
-            }
         }
     }
 }

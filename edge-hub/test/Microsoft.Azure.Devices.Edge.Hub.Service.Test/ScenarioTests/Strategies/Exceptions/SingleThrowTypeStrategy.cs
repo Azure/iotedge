@@ -6,16 +6,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
     using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
 
-    public class SimpleExceptionStrategy : IMessageConverter<Exception>
+    public class SingleThrowTypeStrategy : IMessageConverter<Exception>
     {
         private Type exceptionType = typeof(IotHubException);
 
-        public static SimpleExceptionStrategy Create()
+        public static SingleThrowTypeStrategy Create()
         {
-            return new SimpleExceptionStrategy();
+            return new SingleThrowTypeStrategy();
         }
 
-        public SimpleExceptionStrategy WithType<T>()
+        public SingleThrowTypeStrategy WithType<T>()
             where T : Exception
         {
             this.exceptionType = typeof(T);

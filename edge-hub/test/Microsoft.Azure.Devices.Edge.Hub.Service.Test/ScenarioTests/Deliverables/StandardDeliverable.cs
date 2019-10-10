@@ -20,11 +20,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
         private List<Hub.Core.IMessage> deliveredJournal = new List<Hub.Core.IMessage>();
         private HashSet<string> pendingMessages = new HashSet<string>();
 
+        private int expectReceiveCount;
+
         public static StandardDeliverable Create() => new StandardDeliverable();
 
         public StandardDeliverable WithPackSize(int packSize)
         {
             this.packSize = packSize;
+            return this;
+        }
+
+        public StandardDeliverable WithTimingStrategy<T>()
+            where T : ITimingStrategy, new()
+        {
+            this.timingStrategy = new T();
             return this;
         }
 
@@ -42,6 +51,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             return this;
         }
 
+        // call this when we know that messages won't be sent (e.g. dropped)
+        public void DontExpectDelivery(IReadOnlyCollection<Hub.Core.IMessage> messages)
+        {
+            lock (this.lockObject)
+            {
+                foreach (var msg in messages)
+                {
+                    this.pendingMessages.Remove(msg.SystemProperties[Core.SystemProperties.EdgeMessageId]);
+                }
+            }
+        }
+
         public void ConfirmDelivery(IReadOnlyCollection<Hub.Core.IMessage> messages)
         {
             lock (this.lockObject)
@@ -52,6 +73,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
                 {
                     this.pendingMessages.Remove(msg.SystemProperties[Core.SystemProperties.EdgeMessageId]);
                 }
+
+                this.expectReceiveCount -= messages.Count;
             }
         }
 
@@ -62,6 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 
         public async Task StartDeliveringAsync(Router router)
         {
+            this.expectReceiveCount = this.packSize;
             for (var i = 0; i < this.packSize; i++)
             {
                 await this.timingStrategy.DelayAsync();
@@ -86,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 
                 lock (this.lockObject)
                 {
-                    if (this.deliveredJournal.Count >= this.packSize)
+                    if (this.deliveredJournal.Count >= this.expectReceiveCount)
                     {
                         if (this.pendingMessages.Count == 0)
                             return;
