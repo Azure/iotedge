@@ -105,7 +105,7 @@ impl RuntimeSettings for Settings {
         self.base.homedir()
     }
 
-    fn certificates(&self) -> Option<&Certificates> {
+    fn certificates(&self) -> &Certificates {
         self.base.certificates()
     }
 
@@ -654,7 +654,7 @@ mod tests {
         );
         let settings = Settings::new(&settings_path).expect("Settings create failed");
         println!("{:?}", settings);
-        let certificates = settings.certificates();
+        let certificates = settings.certificates().device_cert();
         certificates
             .map(|c| {
                 let path = c.device_ca_cert().expect("Did not obtain device CA cert");
@@ -685,7 +685,7 @@ mod tests {
         );
         let settings = Settings::new(&settings_path).unwrap();
         println!("{:?}", settings);
-        let certificates = settings.certificates();
+        let certificates = settings.certificates().device_cert();
         certificates
             .map(|c| {
                 let path = c.device_ca_cert().expect("Did not obtain device CA cert");
