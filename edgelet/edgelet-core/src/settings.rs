@@ -10,6 +10,7 @@ use url_serde;
 use crate::crypto::MemoryKey;
 use crate::error::{Error, ErrorKind};
 use crate::module::ModuleSpec;
+use crate::DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS;
 
 const DEVICEID_KEY: &str = "DeviceId";
 const HOSTNAME_KEY: &str = "HostName";
@@ -442,6 +443,13 @@ impl Listen {
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Certificates {
+    #[serde(flatten)]
+    device_cert: Option<DeviceCertificate>,
+    auto_generated_ca_lifetime_days: u16,
+}
+
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+pub struct DeviceCertificate {
     device_ca_cert: String,
     device_ca_pk: String,
     trusted_ca_certs: String,
@@ -513,7 +521,7 @@ fn convert_to_uri(maybe_uri: &str, setting_name: &'static str) -> Result<Url, Er
     }
 }
 
-impl Certificates {
+impl DeviceCertificate {
     pub fn device_ca_cert(&self) -> Result<PathBuf, Error> {
         convert_to_path(&self.device_ca_cert, "certificates.device_ca_cert")
     }
@@ -536,6 +544,17 @@ impl Certificates {
 
     pub fn trusted_ca_certs_uri(&self) -> Result<Url, Error> {
         convert_to_uri(&self.trusted_ca_certs, "certificates.trusted_ca_certs")
+    }
+}
+
+impl Certificates {
+    pub fn device_cert(&self) -> Option<&DeviceCertificate> {
+        self.device_cert.as_ref()
+    }
+
+    pub fn auto_generated_ca_lifetime_seconds(&self) -> u64 {
+        // Convert days to seconds (86,400 seconds per day)
+        u64::from(self.auto_generated_ca_lifetime_days) * 86_400
     }
 }
 
@@ -583,7 +602,7 @@ pub trait RuntimeSettings {
     fn connect(&self) -> &Connect;
     fn listen(&self) -> &Listen;
     fn homedir(&self) -> &Path;
-    fn certificates(&self) -> Option<&Certificates>;
+    fn certificates(&self) -> &Certificates;
     fn watchdog(&self) -> &WatchdogSettings;
 }
 
@@ -634,8 +653,15 @@ where
         &self.homedir
     }
 
-    fn certificates(&self) -> Option<&Certificates> {
-        self.certificates.as_ref()
+    // Certificates is left as an option for backward compat
+    fn certificates(&self) -> &Certificates {
+        match &self.certificates {
+            None => &Certificates {
+                device_cert: None,
+                auto_generated_ca_lifetime_days: DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS,
+            },
+            Some(c) => c,
+        }
     }
 
     fn watchdog(&self) -> &WatchdogSettings {
