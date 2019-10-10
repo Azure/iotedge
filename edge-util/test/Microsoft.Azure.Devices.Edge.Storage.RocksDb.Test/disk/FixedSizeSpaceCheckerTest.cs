@@ -26,6 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
 
             Directory.CreateDirectory(testStorageFolder);
             var logger = Mock.Of<ILogger>();
+            int delay = 6;
 
             try
             {
@@ -36,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
 
                 // Assert
                 Assert.Equal(DiskSpaceStatus.Unknown, fixedSizeSpaceChecker.DiskStatus);
-                await Task.Delay(TimeSpan.FromSeconds(5));
+                await Task.Delay(TimeSpan.FromSeconds(delay));
                 Assert.Equal(DiskSpaceStatus.Available, fixedSizeSpaceChecker.DiskStatus);
 
                 // Act
@@ -46,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
                 await File.WriteAllBytesAsync(filePath, buffer);
 
                 // Assert
-                await Task.Delay(TimeSpan.FromSeconds(3));
+                await Task.Delay(TimeSpan.FromSeconds(delay));
                 Assert.Equal(DiskSpaceStatus.Available, fixedSizeSpaceChecker.DiskStatus);
 
                 // Act
@@ -55,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
                 await File.WriteAllBytesAsync(filePath, buffer);
 
                 // Assert
-                await Task.Delay(TimeSpan.FromSeconds(3));
+                await Task.Delay(TimeSpan.FromSeconds(delay));
                 Assert.Equal(DiskSpaceStatus.Critical, fixedSizeSpaceChecker.DiskStatus);
 
                 // Act
@@ -64,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
                 await File.WriteAllBytesAsync(filePath, buffer);
 
                 // Assert
-                await Task.Delay(TimeSpan.FromSeconds(3));
+                await Task.Delay(TimeSpan.FromSeconds(delay));
                 Assert.Equal(DiskSpaceStatus.Full, fixedSizeSpaceChecker.DiskStatus);
             }
             finally
