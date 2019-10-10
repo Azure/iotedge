@@ -85,7 +85,9 @@ edgeAgent:
     # literal "-" in liue of an empty string.
     # storageClassName: ""
 
-    # Set this to true if you wish to turn on experimental features support
+    # Set this to true if you wish to turn on experimental features support. Please see 
+    # https://github.com/Azure/iotedge/blob/master/kubernetes/doc/create-options.md to
+    # find more information about experimental create options feature.
     # enableExperimentalFeatures: true
     
     # Set this to true if you wish to turn on Kubernetes create options support.
