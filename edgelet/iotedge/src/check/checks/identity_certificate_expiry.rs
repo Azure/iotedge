@@ -64,7 +64,6 @@ impl IdentityCertificateExpiry {
             }
             Provisioning::External(_) => {
                 self.provisioning_mode = Some("External");
-                ()
             }
         }
 

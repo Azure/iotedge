@@ -238,13 +238,15 @@ impl DiskInfo {
     {
         let available_space = disk.get_available_space();
         let total_space = disk.get_total_space();
+        #[allow(clippy::cast_precision_loss)]
+        let percent_free = format!(
+            "{:.1}%",
+            available_space as f64 / total_space as f64 * 100.0
+        );
 
         DiskInfo {
             name: disk.get_name().to_str().unwrap().to_owned(),
-            percent_free: format!(
-                "{:.1}%",
-                available_space as f64 / total_space as f64 * 100.0
-            ),
+            percent_free,
             available_space: Byte::from_bytes(u128::from(available_space))
                 .get_appropriate_unit(true)
                 .format(2),
@@ -258,6 +260,7 @@ impl DiskInfo {
 }
 
 fn pretty_kbyte(bytes: u64) -> String {
+    #[allow(clippy::cast_precision_loss)]
     match Byte::from_unit(bytes as f64, ByteUnit::KiB) {
         Ok(b) => b.get_appropriate_unit(true).format(2),
         Err(err) => format!("could not parse bytes value: {:?}", err),

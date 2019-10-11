@@ -655,12 +655,12 @@ mod tests {
                 ))
                 .unwrap();
 
-            match WellFormedConfig::default().result(&mut check) {
+            match WellFormedConfig::default().execute(&mut check) {
                 CheckResult::Ok => (),
                 check_result => panic!("parsing {} returned {:?}", filename, check_result),
             }
 
-            match WellFormedConnectionString::default().result(&mut check) {
+            match WellFormedConnectionString::default().execute(&mut check) {
                 CheckResult::Ok => (),
                 check_result => panic!(
                     "checking connection string in {} returned {:?}",
@@ -668,7 +668,7 @@ mod tests {
                 ),
             }
 
-            match Hostname::default().result(&mut check) {
+            match Hostname::default().execute(&mut check) {
                 CheckResult::Failed(err) => {
                     let message = err.to_string();
                     assert!(
@@ -688,7 +688,7 @@ mod tests {
             // Pretend it's Moby
             check.docker_server_version = Some("3.0.3".to_owned());
 
-            match ContainerEngineIsMoby::default().result(&mut check) {
+            match ContainerEngineIsMoby::default().execute(&mut check) {
                 CheckResult::Ok => (),
                 check_result => panic!(
                     "checking moby_runtime.uri in {} returned {:?}",
@@ -726,7 +726,7 @@ mod tests {
             ))
             .unwrap();
 
-        match WellFormedConfig::default().result(&mut check) {
+        match WellFormedConfig::default().execute(&mut check) {
             CheckResult::Failed(err) => {
                 let err = err
                     .iter_causes()
@@ -773,12 +773,12 @@ mod tests {
             ))
             .unwrap();
 
-        match WellFormedConfig::default().result(&mut check) {
+        match WellFormedConfig::default().execute(&mut check) {
             CheckResult::Ok => (),
             check_result => panic!("parsing {} returned {:?}", filename, check_result),
         }
 
-        match WellFormedConnectionString::default().result(&mut check) {
+        match WellFormedConnectionString::default().execute(&mut check) {
             CheckResult::Ok => (),
             check_result => panic!("parsing {} returned {:?}", filename, check_result),
         }
@@ -812,12 +812,12 @@ mod tests {
             ))
             .unwrap();
 
-        match WellFormedConfig::default().result(&mut check) {
+        match WellFormedConfig::default().execute(&mut check) {
             CheckResult::Ok => (),
             check_result => panic!("parsing {} returned {:?}", filename, check_result),
         }
 
-        match WellFormedConnectionString::default().result(&mut check) {
+        match WellFormedConnectionString::default().execute(&mut check) {
             CheckResult::Failed(err) => assert!(err.to_string().contains("Device is not using manual provisioning, so Azure IoT Hub hostname needs to be specified with --iothub-hostname")),
             check_result => panic!(
                 "checking connection string in {} returned {:?}",
@@ -855,7 +855,7 @@ mod tests {
             ))
             .unwrap();
 
-        match WellFormedConfig::default().result(&mut check) {
+        match WellFormedConfig::default().execute(&mut check) {
             CheckResult::Ok => (),
             check_result => panic!("parsing {} returned {:?}", filename, check_result),
         }
@@ -863,7 +863,7 @@ mod tests {
         // Pretend it's Moby even though named pipe indicates otherwise
         check.docker_server_version = Some("3.0.3".to_owned());
 
-        match ContainerEngineIsMoby::default().result(&mut check) {
+        match ContainerEngineIsMoby::default().execute(&mut check) {
             CheckResult::Warning(warning) => assert!(
                 warning.to_string().contains(
                     "Device is not using a production-supported container engine (moby-engine)."
@@ -908,7 +908,7 @@ mod tests {
             ))
             .unwrap();
 
-        match WellFormedConfig::default().result(&mut check) {
+        match WellFormedConfig::default().execute(&mut check) {
             CheckResult::Ok => (),
             check_result => panic!("parsing {} returned {:?}", filename, check_result),
         }
@@ -916,7 +916,7 @@ mod tests {
         // Pretend it's Docker
         check.docker_server_version = Some("18.09.1".to_owned());
 
-        match ContainerEngineIsMoby::default().result(&mut check) {
+        match ContainerEngineIsMoby::default().execute(&mut check) {
             CheckResult::Warning(warning) => assert!(
                 warning.to_string().contains(
                     "Device is not using a production-supported container engine (moby-engine)."
