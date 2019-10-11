@@ -169,8 +169,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     c =>
                     {
                         var loggerFactory = c.Resolve<ILoggerFactory>();
-                        var kubernetesCommandFactory = new KubernetesCommandFactory();
-                        ICommandFactory factory = new LoggingCommandFactory(kubernetesCommandFactory, loggerFactory);
+                        ICommandFactory factory = new KubernetesCommandFactory();
+                        factory = new MetricsCommandFactory(factory);
+                        factory = new LoggingCommandFactory(factory, loggerFactory);
                         return Task.FromResult(factory);
                     })
                 .As<Task<ICommandFactory>>()

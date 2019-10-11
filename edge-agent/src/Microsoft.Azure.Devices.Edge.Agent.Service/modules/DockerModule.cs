@@ -100,8 +100,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         var dockerLoggingConfig = c.Resolve<DockerLoggingConfig>();
                         var combinedDockerConfigProvider = c.Resolve<ICombinedConfigProvider<CombinedDockerConfig>>();
                         IConfigSource configSource = await c.Resolve<Task<IConfigSource>>();
-                        var dockerFactory = new DockerCommandFactory(dockerClient, dockerLoggingConfig, configSource, combinedDockerConfigProvider);
-                        return new LoggingCommandFactory(dockerFactory, c.Resolve<ILoggerFactory>()) as ICommandFactory;
+                        ICommandFactory factory = new DockerCommandFactory(dockerClient, dockerLoggingConfig, configSource, combinedDockerConfigProvider);
+                        factory = new MetricsCommandFactory(factory);
+                        return new LoggingCommandFactory(factory, c.Resolve<ILoggerFactory>()) as ICommandFactory;
                     })
                 .As<Task<ICommandFactory>>()
                 .SingleInstance();
