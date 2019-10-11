@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public IEdgeDaemon CreateEdgeDaemon(Option<string> _) => new EdgeDaemon();
 
-        public async Task<Certificates> CreateDeviceCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
+        public async Task<Certificates> GenerateDeviceCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
         {
             var command = BuildCertCommand($"create_device_certificate '{deviceId}'", scriptPath);
             await this.RunScriptAsync(("bash", command), token);

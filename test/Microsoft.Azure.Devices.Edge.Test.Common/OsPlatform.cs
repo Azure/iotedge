@@ -57,13 +57,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             (string name, string args) command,
             CancellationToken token)
         {
-            await Profiler.Run(
-                async () =>
-                {
-                    string[] output = await Process.RunAsync(command.name, command.args, token);
-                    Log.Verbose(string.Join("\n", output));
-                },
-                "Executed: " + command.name + ' ' + command.args );
+            Log.Verbose("Executed: " + command.name + ' ' + command.args);
+            string[] output = await Process.RunAsync(command.name, command.args, token);
+            Log.Verbose(string.Join("\n", output));
         }
 
         static void CheckFiles(IEnumerable<string> paths, string basePath) => NormalizeFiles(paths, basePath);
