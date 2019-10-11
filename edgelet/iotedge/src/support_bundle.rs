@@ -507,7 +507,7 @@ mod tests {
     }
 
     // From https://github.com/mvdnes/zip-rs/blob/master/examples/extract.rs
-    fn extract_zip(source: &str, destination: &str) -> () {
+    fn extract_zip(source: &str, destination: &str) {
         let fname = std::path::Path::new(source);
         let file = File::open(&fname).unwrap();
         let mut archive = zip::ZipArchive::new(file).unwrap();
