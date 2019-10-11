@@ -15,7 +15,8 @@ impl Checker for HostLocalTime {
         "host time is close to real time"
     }
     fn execute(&mut self, check: &mut Check) -> CheckResult {
-        self.inner_execute(check).unwrap_or_else(CheckResult::Failed)
+        self.inner_execute(check)
+            .unwrap_or_else(CheckResult::Failed)
     }
     fn get_json(&self) -> serde_json::Value {
         serde_json::to_value(self).unwrap()

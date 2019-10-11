@@ -23,7 +23,8 @@ impl Checker for WindowsHostVersion {
         "Windows host version is supported"
     }
     fn execute(&mut self, check: &mut Check) -> CheckResult {
-        self.inner_execute(check).unwrap_or_else(CheckResult::Failed)
+        self.inner_execute(check)
+            .unwrap_or_else(CheckResult::Failed)
     }
     fn get_json(&self) -> serde_json::Value {
         serde_json::to_value(self).unwrap()
@@ -31,8 +32,7 @@ impl Checker for WindowsHostVersion {
 }
 
 impl WindowsHostVersion {
-    fn inner_execute(&mut self, check:
-    &mut Check) -> Result<CheckResult, failure::Error> {
+    fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         #[cfg(unix)]
         {
             let _ = check;

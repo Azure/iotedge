@@ -120,15 +120,13 @@ fn inspect_container(
     docker_host_arg: &str,
     name: &str,
 ) -> Result<docker::models::InlineResponse200, failure::Error> {
-    Ok(
-        super::docker(docker_host_arg, &["inspect", name])
-            .map_err(|(_, err)| err)
-            .and_then(|output| {
-                let (inspect_result,): (docker::models::InlineResponse200,) =
-                    serde_json::from_slice(&output)
-                        .context("Could not parse result of docker inspect")?;
-                Ok(inspect_result)
-            })
-            .with_context(|_| format!("Could not check current state of {} container", name))?,
-    )
+    Ok(super::docker(docker_host_arg, &["inspect", name])
+        .map_err(|(_, err)| err)
+        .and_then(|output| {
+            let (inspect_result,): (docker::models::InlineResponse200,) =
+                serde_json::from_slice(&output)
+                    .context("Could not parse result of docker inspect")?;
+            Ok(inspect_result)
+        })
+        .with_context(|_| format!("Could not check current state of {} container", name))?)
 }
