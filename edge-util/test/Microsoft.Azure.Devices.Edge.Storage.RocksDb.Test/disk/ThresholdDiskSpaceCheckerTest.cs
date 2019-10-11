@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
             {
                 DriveInfo driveInfo = DiskSpaceChecker.GetMatchingDrive(testStorageFolder)
                     .Expect(() => new ArgumentException("Should find drive for temp folder"));
-                double thresholdPercentage = 1 - ((double)driveInfo.AvailableFreeSpace - (50 * 1024 * 1024)) / (double)driveInfo.TotalSize;
+                double thresholdPercentage = 100 - ((double)driveInfo.AvailableFreeSpace - (50 * 1024 * 1024)) * 100 / (double)driveInfo.TotalSize;
                 var thresholdDiskSpaceChecker = new ThresholdDiskSpaceChecker(testStorageFolder, thresholdPercentage, TimeSpan.FromSeconds(3), logger);
 
                 // Assert
@@ -50,16 +50,16 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
                     DiskSpaceStatus diskStatus = thresholdDiskSpaceChecker.DiskStatus;
                     if (diskStatus > DiskSpaceStatus.Available)
                     {
-                        double percentDiskUsed = 1 - (double)driveInfo.AvailableFreeSpace / (double)driveInfo.TotalSize;
-                        double usagePercentage = percentDiskUsed / thresholdPercentage;
+                        double percentDiskUsed = 100 - (double)driveInfo.AvailableFreeSpace * 100 / (double)driveInfo.TotalSize;
+                        double usageRatio = percentDiskUsed / thresholdPercentage;
                         if (diskStatus == DiskSpaceStatus.Critical)
                         {
-                            Assert.True(usagePercentage >= .85);
-                            Assert.True(usagePercentage < 1);
+                            Assert.True(usageRatio >= .85);
+                            Assert.True(usageRatio < 1);
                         }
                         else if (diskStatus == DiskSpaceStatus.Full)
                         {
-                            Assert.True(usagePercentage >= 1);
+                            Assert.True(usageRatio >= 1);
                             break;
                         }
                     }
