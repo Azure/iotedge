@@ -119,7 +119,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
                 (msg, ex) =>
                 {
                     if (!retriableExceptions.Contains(ex.GetType()))
-                        deliverable.ConfirmDelivery(msg);
+                        deliverable.DontExpectDelivery(msg);
                 };
 
             var cloudProxy = FlakyCloudProxy
