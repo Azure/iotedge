@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public async Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo)
         {
             FactoryMetrics.AddMessage(current, "update_from");
-            FactoryMetrics.AddMessage(next, "update_to");
+            FactoryMetrics.AddMessage(next.Module, "update_to");
             return await underlying.UpdateAsync(current, next, runtimeInfo);
         }
 
@@ -75,8 +75,8 @@ static class FactoryMetrics
 {
     static readonly IMetricsCounter MessagesMeter = Metrics.Instance.CreateCounter(
         "Modules",
-        "Events for the modules",
-        new List<string> { "ModuleName", "ModuleVersion", "Action" });
+        "Command sent to module",
+        new List<string> { "ModuleName", "ModuleVersion", "Command" });
 
     public static void AddMessage(Microsoft.Azure.Devices.Edge.Agent.Core.IModule module, string action)
     {
