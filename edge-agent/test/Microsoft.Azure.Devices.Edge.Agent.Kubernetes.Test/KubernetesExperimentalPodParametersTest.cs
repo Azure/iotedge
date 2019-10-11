@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 {
     using System.Collections.Generic;
+    using System.Linq;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -63,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
             var parameters = KubernetesExperimentalCreatePodParameters.Parse(experimental).OrDefault();
 
-            // Assert.False(parameters.Volumes.HasValue);
+            Assert.False(parameters.Volumes.HasValue);
             Assert.False(parameters.NodeSelector.HasValue);
             Assert.False(parameters.Resources.HasValue);
         }
@@ -167,6 +168,93 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Assert.True(parameters.Resources.HasValue);
             parameters.Resources.ForEach(resources => Assert.Equal(new Dictionary<string, ResourceQuantity> { ["memory"] = new ResourceQuantity("128Mi") }, resources.Limits));
             parameters.Resources.ForEach(resources => Assert.Equal(new Dictionary<string, ResourceQuantity> { ["cpu"] = new ResourceQuantity("250m") }, resources.Requests));
+        }
+
+        [Fact]
+        public void ParsesNoneVolumesExperimentalOptions()
+        {
+            var experimental = new Dictionary<string, JToken>
+            {
+                ["k8s-experimental"] = JToken.Parse("{ volumes: null }")
+            };
+
+            var parameters = KubernetesExperimentalCreatePodParameters.Parse(experimental).OrDefault();
+
+            Assert.False(parameters.Volumes.HasValue);
+        }
+
+        [Fact]
+        public void ParsesEmptyVolumesExperimentalOptions()
+        {
+            var experimental = new Dictionary<string, JToken>
+            {
+                ["k8s-experimental"] = JToken.Parse("{ volumes: [  ] }")
+            };
+
+            var parameters = KubernetesExperimentalCreatePodParameters.Parse(experimental).OrDefault();
+
+            Assert.True(parameters.Volumes.HasValue);
+            parameters.Volumes.ForEach(Assert.Empty);
+        }
+
+        [Fact]
+        public void ParsesVolumesExperimentalOptions()
+        {
+            var experimental = new Dictionary<string, JToken>
+            {
+                ["k8s-experimental"] = JToken.Parse(
+                    @"{ 
+                        ""volumes"": [
+                          {
+                            ""volume"": {
+                              ""name"": ""ModuleA"",
+                              ""configMap"": {
+                                ""optional"": ""true"",
+                                ""defaultMode"": 420,
+                                ""items"": [{
+                                    ""key"": ""config-file"",
+                                    ""path"": ""config.yaml"",
+                                    ""mode"": 420
+                                }],
+                                ""name"": ""module-config""
+                              }
+                            },
+                            ""volumeMounts"": [
+                              {
+                                ""name"": ""module-config"",
+                                ""mountPath"": ""/etc/module/config.yaml"",
+                                ""mountPropagation"": ""None"",
+                                ""readOnly"": ""true"",
+                                ""subPath"": """" 
+                              }
+                            ]
+                          }
+                        ]
+                    }")
+            };
+
+            var parameters = KubernetesExperimentalCreatePodParameters.Parse(experimental).OrDefault();
+
+            Assert.True(parameters.Volumes.HasValue);
+            var volumeSpec = parameters.Volumes.OrDefault().Single();
+
+            Assert.True(volumeSpec.Volume.HasValue);
+            volumeSpec.Volume.ForEach(volume => Assert.Equal("ModuleA", volume.Name));
+            volumeSpec.Volume.ForEach(volume => Assert.Equal(true, volume.ConfigMap.Optional));
+            volumeSpec.Volume.ForEach(volume => Assert.Equal(420, volume.ConfigMap.DefaultMode));
+            volumeSpec.Volume.ForEach(volume => Assert.Equal(1, volume.ConfigMap.Items.Count));
+            volumeSpec.Volume.ForEach(volume => Assert.Equal("config-file", volume.ConfigMap.Items[0].Key));
+            volumeSpec.Volume.ForEach(volume => Assert.Equal("config.yaml", volume.ConfigMap.Items[0].Path));
+            volumeSpec.Volume.ForEach(volume => Assert.Equal(420, volume.ConfigMap.Items[0].Mode));
+            volumeSpec.Volume.ForEach(volume => Assert.Equal("module-config", volume.ConfigMap.Name));
+
+            Assert.True(volumeSpec.VolumeMounts.HasValue);
+            volumeSpec.VolumeMounts.ForEach(mounts => Assert.Equal(1, mounts.Count));
+            volumeSpec.VolumeMounts.ForEach(mounts => Assert.Equal("module-config", mounts[0].Name));
+            volumeSpec.VolumeMounts.ForEach(mounts => Assert.Equal("/etc/module/config.yaml", mounts[0].MountPath));
+            volumeSpec.VolumeMounts.ForEach(mounts => Assert.Equal("None", mounts[0].MountPropagation));
+            volumeSpec.VolumeMounts.ForEach(mounts => Assert.Equal(true, mounts[0].ReadOnlyProperty));
+            volumeSpec.VolumeMounts.ForEach(mounts => Assert.Equal(string.Empty, mounts[0].SubPath));
         }
     }
 }

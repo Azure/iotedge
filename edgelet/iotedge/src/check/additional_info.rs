@@ -83,10 +83,10 @@ impl OsInfo {
         let mut result = OsInfo {
             id: None,
             version_id: None,
+            arch: ARCH,
             // Technically wrong if someone runs an arm32 build on arm64,
             // but we have dedicated arm64 builds so hopefully they don't.
             bitness: std::mem::size_of::<usize>() * 8,
-            system_info: SystemInfo::new(),
         };
 
         if let Ok(os_release) = File::open("/etc/os-release") {
