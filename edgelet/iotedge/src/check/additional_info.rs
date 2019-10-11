@@ -10,8 +10,8 @@ pub(super) struct AdditionalInfo {
     pub(super) docker_version: Option<String>,
     pub(super) iotedged_version: Option<String>,
     now: chrono::DateTime<chrono::Utc>,
-    arch: &'static str,
     os: OsInfo,
+    system_info: SystemInfo,
 }
 
 impl AdditionalInfo {
@@ -21,7 +21,7 @@ impl AdditionalInfo {
             iotedged_version: None,
             now: chrono::Utc::now(),
             os: OsInfo::new(),
-            arch: ARCH,
+            system_info: SystemInfo::new(),
         }
     }
 }
@@ -45,8 +45,8 @@ impl AdditionalInfo {
 pub(super) struct OsInfo {
     id: Option<String>,
     version_id: Option<String>,
+    arch: &'static str,
     bitness: usize,
-    system_info: SystemInfo,
 }
 
 impl OsInfo {
@@ -55,10 +55,10 @@ impl OsInfo {
         let mut result = OsInfo {
             id: Some("windows".to_owned()),
             version_id: None,
+            arch: ARCH,
             // Technically wrong if someone compiles and runs a x86 build on an x64 OS, but we don't provide
             // Windows x86 builds.
             bitness: std::mem::size_of::<usize>() * 8,
-            system_info: SystemInfo::new(),
         };
 
         result.version_id = os_version()
@@ -225,7 +225,7 @@ impl SystemInfo {
 struct DiskInfo {
     name: String,
     percent_free: String,
-    avaliable_space: String,
+    available_space: String,
     total_space: String,
     file_system: String,
     file_type: String,
@@ -236,16 +236,16 @@ impl DiskInfo {
     where
         T: DiskExt,
     {
-        let avaliable_space = disk.get_available_space();
+        let available_space = disk.get_available_space();
         let total_space = disk.get_total_space();
 
         DiskInfo {
             name: disk.get_name().to_str().unwrap().to_owned(),
             percent_free: format!(
                 "{:.1}%",
-                avaliable_space as f64 / total_space as f64 * 100.0
+                available_space as f64 / total_space as f64 * 100.0
             ),
-            avaliable_space: Byte::from_bytes(u128::from(avaliable_space))
+            available_space: Byte::from_bytes(u128::from(available_space))
                 .get_appropriate_unit(true)
                 .format(2),
             total_space: Byte::from_bytes(u128::from(total_space))
@@ -260,6 +260,6 @@ impl DiskInfo {
 fn pretty_kbyte(bytes: u64) -> String {
     match Byte::from_unit(bytes as f64, ByteUnit::KiB) {
         Ok(b) => b.get_appropriate_unit(true).format(2),
-        Err(_) => "Could not find bytes".to_owned(),
+        Err(err) => format!("could not parse bytes value: {:?}", err),
     }
 }
