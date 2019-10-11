@@ -1,8 +1,4 @@
-use std;
-use std::ffi::OsStr;
-use std::process::Command;
-
-use failure::{self, Context, Fail};
+use failure::Context;
 
 use crate::check::{checker::Checker, Check, CheckResult};
 
@@ -55,7 +51,7 @@ impl ContainerEngineInstalled {
             }
         };
 
-        let output = docker(
+        let output = super::docker(
             &docker_host_arg,
             &["version", "--format", "{{.Server.Version}}"],
         );
@@ -101,38 +97,4 @@ impl ContainerEngineInstalled {
 
         Ok(CheckResult::Ok)
     }
-}
-
-pub fn docker<I>(
-    docker_host_arg: &str,
-    args: I,
-) -> Result<Vec<u8>, (Option<String>, failure::Error)>
-where
-    I: IntoIterator,
-    <I as IntoIterator>::Item: AsRef<OsStr>,
-{
-    let mut process = Command::new("docker");
-    process.arg("-H");
-    process.arg(docker_host_arg);
-
-    process.args(args);
-
-    let output = process.output().map_err(|err| {
-        (
-            None,
-            err.context(format!("could not run {:?}", process)).into(),
-        )
-    })?;
-
-    if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&*output.stderr).into_owned();
-        let err = Context::new(format!(
-            "docker returned {}, stderr = {}",
-            output.status, stderr,
-        ))
-        .into();
-        return Err((Some(stderr), err));
-    }
-
-    Ok(output.stdout)
 }

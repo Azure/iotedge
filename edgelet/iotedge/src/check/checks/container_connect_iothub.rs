@@ -117,7 +117,7 @@ impl ContainerConnectIotHub {
         ]);
         self.diagnostics_image_name = Some(check.diagnostics_image_name.to_owned());
 
-        if let Err((_, err)) = super::container_engine_installed::docker(docker_host_arg, args) {
+        if let Err((_, err)) = super::docker(docker_host_arg, args) {
             return Err(err
                 .context(format!(
                     "Container on the {} network could not connect to {}:{}",

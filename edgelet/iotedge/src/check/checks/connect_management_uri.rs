@@ -99,7 +99,7 @@ impl ConnectManagementUri {
             Cow::Owned(OsString::from(connect_management_uri.to_string())),
         ]);
 
-        match super::container_engine_installed::docker(docker_host_arg, args) {
+        match super::docker(docker_host_arg, args) {
             Ok(_) => Ok(CheckResult::Ok),
             Err((Some(stderr), err)) => Err(err.context(stderr).into()),
             Err((None, err)) => Err(err.context("Could not spawn docker process").into()),

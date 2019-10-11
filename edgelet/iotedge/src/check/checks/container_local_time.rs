@@ -36,7 +36,7 @@ impl ContainerLocalTime {
             .context("Could not query local time of host")?;
         self.expected_duration = Some(expected_duration.to_owned());
 
-        let output = super::container_engine_installed::docker(
+        let output = super::docker(
             docker_host_arg,
             vec![
                 "run",

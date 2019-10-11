@@ -121,7 +121,7 @@ fn inspect_container(
     name: &str,
 ) -> Result<docker::models::InlineResponse200, failure::Error> {
     Ok(
-        super::container_engine_installed::docker(docker_host_arg, &["inspect", name])
+        super::docker(docker_host_arg, &["inspect", name])
             .map_err(|(_, err)| err)
             .and_then(|output| {
                 let (inspect_result,): (docker::models::InlineResponse200,) =
