@@ -153,7 +153,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     ISinkResult<IRoutingMessage>[] sinkResults = await Task.WhenAll(sendTasks);
 
                     foreach (var res in sinkResults)
+                    {
                         result.Merge(res);
+                    }
                 }
 
                 return result;

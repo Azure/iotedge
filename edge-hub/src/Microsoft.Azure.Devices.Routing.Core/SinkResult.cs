@@ -64,7 +64,9 @@ namespace Microsoft.Azure.Devices.Routing.Core
             this.InvalidDetailsList.AddRange(other.InvalidDetailsList);
 
             if (IsMoreSignificant(this.SendFailureDetails, other.SendFailureDetails))
+            {
                 this.SendFailureDetails = other.SendFailureDetails;
+            }
         }
 
         public void AddFailed(IEnumerable<T> failed)

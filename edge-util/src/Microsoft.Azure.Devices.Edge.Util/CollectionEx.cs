@@ -143,8 +143,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         public static IEnumerable<IEnumerable<T>> Batch<T>(this IEnumerable<T> list, int batchSize)
         {
-            if (batchSize == 0)
-                throw new ArgumentException("BatchSize cannot be zero", nameof(batchSize));
+            Preconditions.CheckArgument(batchSize > 0, "BatchSize should be > 0");
 
             var current = new List<T>();
             foreach (T item in list)
