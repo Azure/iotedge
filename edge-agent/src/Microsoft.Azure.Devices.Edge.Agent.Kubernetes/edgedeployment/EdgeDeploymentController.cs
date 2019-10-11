@@ -311,7 +311,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     {
                         Events.UpdateServiceAccount(update.To);
 
-                        this.serviceAccountMapper.Update(update.To, update.From);
+                        this.serviceAccountMapper.UpdateServiceAccount(update.To, update.From);
                         return this.client.ReplaceNamespacedServiceAccountAsync(update.To, update.To.Metadata.Name, this.deviceNamespace);
                     });
             await Task.WhenAll(updatingTasks);
