@@ -67,19 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
             this.operatorWatch = Option.Some(
                 response.Watch<EdgeDeploymentDefinition>(
-                    onEvent: async (type, item) =>
-                    {
-                        try
-                        {
-                            await this.HandleEdgeDeploymentChangedAsync(type, item);
-                        }
-                        catch (Exception ex)
-                        {
-                            Events.EdgeDeploymentWatchFailed(ex);
-                            await this.ReportDeploymentFailure(ex, item);
-                            throw;
-                        }
-                    },
+                    onEvent: async (type, item) => await this.EdgeDeploymentOnEventHandlerAsync(type, item),
                     onClosed: () =>
                     {
                         Events.EdgeDeploymentWatchClosed();
@@ -92,6 +80,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                         this.StartListEdgeDeployments();
                     },
                     onError: Events.EdgeDeploymentWatchFailed));
+        }
+
+        public async Task EdgeDeploymentOnEventHandlerAsync(WatchEventType type, EdgeDeploymentDefinition item)
+        {
+            try
+            {
+                await this.HandleEdgeDeploymentChangedAsync(type, item);
+            }
+            catch (Exception ex)
+            {
+                Events.EdgeDeploymentWatchFailed(ex);
+                await this.ReportDeploymentFailure(ex, item);
+                throw;
+            }
         }
 
         async Task HandleEdgeDeploymentChangedAsync(WatchEventType type, EdgeDeploymentDefinition edgeDeploymentDefinition)
