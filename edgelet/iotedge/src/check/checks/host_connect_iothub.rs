@@ -24,7 +24,6 @@ pub(crate) fn get_host_connect_iothub_tests() -> Vec<Box<dyn Checker>> {
 
 #[derive(serde_derive::Serialize)]
 pub struct HostConnectIotHub {
-    upstream_protocol_port: UpstreamProtocolPort,
     port_number: u16,
     iothub_hostname: Option<String>,
     #[serde(skip)]
