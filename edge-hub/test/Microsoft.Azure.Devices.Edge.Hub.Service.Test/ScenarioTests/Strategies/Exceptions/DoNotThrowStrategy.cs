@@ -11,19 +11,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
         {
         }
 
-        public static DoNotThrowStrategy Create()
-        {
-            return new DoNotThrowStrategy();
-        }
-
-        public bool Convert(IMessage message)
-        {
-            return false;
-        }
-
-        public bool Convert(IEnumerable<IMessage> message)
-        {
-            return false;
-        }
+        public static DoNotThrowStrategy Create() => new DoNotThrowStrategy();
+        public bool Convert(IMessage message) => false;
+        public bool Convert(IEnumerable<IMessage> message) => false;
     }
 }
