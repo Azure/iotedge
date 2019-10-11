@@ -9,10 +9,11 @@ use super::identity_certificate_expiry::CertificateValidity;
 use crate::check::{checker::Checker, Check, CheckResult};
 
 #[derive(Default, serde_derive::Serialize)]
-pub struct CertificatesQuickstart {
+pub(crate) struct CertificatesQuickstart {
     device_ca_cert_path: Option<PathBuf>,
     certificate_info: Option<CertificateValidity>,
 }
+
 impl Checker for CertificatesQuickstart {
     fn id(&self) -> &'static str {
         "certificates-quickstart"
@@ -20,15 +21,16 @@ impl Checker for CertificatesQuickstart {
     fn description(&self) -> &'static str {
         "production readiness: certificates"
     }
-    fn result(&mut self, check: &mut Check) -> CheckResult {
-        self.execute(check).unwrap_or_else(CheckResult::Failed)
+    fn execute(&mut self, check: &mut Check) -> CheckResult {
+        self.inner_execute(check).unwrap_or_else(CheckResult::Failed)
     }
     fn get_json(&self) -> serde_json::Value {
         serde_json::to_value(self).unwrap()
     }
 }
+
 impl CertificatesQuickstart {
-    fn execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         let settings = if let Some(settings) = &check.settings {
             settings
         } else {

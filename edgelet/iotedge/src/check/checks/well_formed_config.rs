@@ -8,9 +8,10 @@ use edgelet_docker::Settings;
 use crate::check::{checker::Checker, Check, CheckResult};
 
 #[derive(Default, serde_derive::Serialize)]
-pub struct WellFormedConfig {
+pub(crate) struct WellFormedConfig {
     // settings: Option<Settings>,
 }
+
 impl Checker for WellFormedConfig {
     fn id(&self) -> &'static str {
         "config-yaml-well-formed"
@@ -18,15 +19,16 @@ impl Checker for WellFormedConfig {
     fn description(&self) -> &'static str {
         "config.yaml is well-formed"
     }
-    fn result(&mut self, check: &mut Check) -> CheckResult {
-        self.execute(check).unwrap_or_else(CheckResult::Failed)
+    fn execute(&mut self, check: &mut Check) -> CheckResult {
+        self.inner_execute(check).unwrap_or_else(CheckResult::Failed)
     }
     fn get_json(&self) -> serde_json::Value {
         serde_json::to_value(self).unwrap()
     }
 }
+
 impl WellFormedConfig {
-    fn execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         let config_file = &check.config_file;
 
         // The config crate just returns a "file not found" error when it can't open the file for any reason,

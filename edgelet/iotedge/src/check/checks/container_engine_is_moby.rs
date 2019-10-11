@@ -3,10 +3,11 @@ use failure::{self, Context, Fail};
 use crate::check::{checker::Checker, Check, CheckResult};
 
 #[derive(Default, serde_derive::Serialize)]
-pub struct ContainerEngineIsMoby {
+pub(crate) struct ContainerEngineIsMoby {
     docker_server_version: Option<String>,
     moby_runtime_uri: Option<String>,
 }
+
 impl Checker for ContainerEngineIsMoby {
     fn id(&self) -> &'static str {
         "container-engine-is-moby"
@@ -14,15 +15,16 @@ impl Checker for ContainerEngineIsMoby {
     fn description(&self) -> &'static str {
         "production readiness: container engine"
     }
-    fn result(&mut self, check: &mut Check) -> CheckResult {
-        self.execute(check).unwrap_or_else(CheckResult::Failed)
+    fn execute(&mut self, check: &mut Check) -> CheckResult {
+        self.inner_execute(check).unwrap_or_else(CheckResult::Failed)
     }
     fn get_json(&self) -> serde_json::Value {
         serde_json::to_value(self).unwrap()
     }
 }
+
 impl ContainerEngineIsMoby {
-    fn execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         const MESSAGE: &str =
             "Device is not using a production-supported container engine (moby-engine).\n\
              Please see https://aka.ms/iotedge-prod-checklist-moby for details.";

@@ -23,7 +23,7 @@ pub(crate) fn get_host_connect_iothub_tests() -> Vec<Box<dyn Checker>> {
 }
 
 #[derive(serde_derive::Serialize)]
-pub struct HostConnectIotHub {
+pub(crate) struct HostConnectIotHub {
     port_number: u16,
     iothub_hostname: Option<String>,
     #[serde(skip)]
@@ -31,6 +31,7 @@ pub struct HostConnectIotHub {
     #[serde(skip)]
     description: &'static str,
 }
+
 impl Checker for HostConnectIotHub {
     fn id(&self) -> &'static str {
         self.id
@@ -38,15 +39,16 @@ impl Checker for HostConnectIotHub {
     fn description(&self) -> &'static str {
         self.description
     }
-    fn result(&mut self, check: &mut Check) -> CheckResult {
-        self.execute(check).unwrap_or_else(CheckResult::Failed)
+    fn execute(&mut self, check: &mut Check) -> CheckResult {
+       self.inner_execute(check).unwrap_or_else(CheckResult::Failed)
     }
     fn get_json(&self) -> serde_json::Value {
         serde_json::to_value(self).unwrap()
     }
 }
+
 impl HostConnectIotHub {
-    fn execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         let iothub_hostname = if let Some(iothub_hostname) = &check.iothub_hostname {
             iothub_hostname
         } else {
@@ -73,7 +75,6 @@ fn make_check(
         id,
         description,
         port_number: upstream_protocol_port.as_port(),
-        upstream_protocol_port,
         iothub_hostname: None,
     })
 }

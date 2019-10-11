@@ -3,7 +3,7 @@ use failure::Context;
 use crate::check::{checker::Checker, Check, CheckResult};
 
 #[derive(Default, serde_derive::Serialize)]
-pub struct ContainerEngineInstalled {
+pub(crate) struct ContainerEngineInstalled {
     docker_host_arg: Option<String>,
     docker_server_version: Option<String>,
 }
@@ -15,8 +15,8 @@ impl Checker for ContainerEngineInstalled {
     fn description(&self) -> &'static str {
         "container engine is installed and functional"
     }
-    fn result(&mut self, check: &mut Check) -> CheckResult {
-        self.execute(check).unwrap_or_else(CheckResult::Failed)
+    fn execute(&mut self, check: &mut Check) -> CheckResult {
+        self.inner_execute(check).unwrap_or_else(CheckResult::Failed)
     }
     fn get_json(&self) -> serde_json::Value {
         serde_json::to_value(self).unwrap()
@@ -24,7 +24,7 @@ impl Checker for ContainerEngineInstalled {
 }
 
 impl ContainerEngineInstalled {
-    fn execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         let settings = if let Some(settings) = &check.settings {
             settings
         } else {

@@ -8,10 +8,11 @@ use edgelet_core::{self, RuntimeSettings, UrlExt};
 use crate::check::{checker::Checker, Check, CheckResult};
 
 #[derive(Default, serde_derive::Serialize)]
-pub struct ConnectManagementUri {
+pub(crate) struct ConnectManagementUri {
     connect_management_uri: Option<String>,
     listen_management_uri: Option<String>,
 }
+
 impl Checker for ConnectManagementUri {
     fn id(&self) -> &'static str {
         "connect-management-uri"
@@ -19,15 +20,16 @@ impl Checker for ConnectManagementUri {
     fn description(&self) -> &'static str {
         "config.yaml has correct URIs for daemon mgmt endpoint"
     }
-    fn result(&mut self, check: &mut Check) -> CheckResult {
-        self.execute(check).unwrap_or_else(CheckResult::Failed)
+    fn execute(&mut self, check: &mut Check) -> CheckResult {
+        self.inner_execute(check).unwrap_or_else(CheckResult::Failed)
     }
     fn get_json(&self) -> serde_json::Value {
         serde_json::to_value(self).unwrap()
     }
 }
+
 impl ConnectManagementUri {
-    fn execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         let settings = if let Some(settings) = &check.settings {
             settings
         } else {

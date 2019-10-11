@@ -7,10 +7,11 @@ use edgelet_core::{self, MobyNetwork};
 use crate::check::{checker::Checker, Check, CheckResult};
 
 #[derive(Default, serde_derive::Serialize)]
-pub struct ContainerEngineIPv6 {
+pub(crate) struct ContainerEngineIPv6 {
     expected_use_ipv6: Option<bool>,
     actual_use_ipv6: Option<bool>,
 }
+
 impl Checker for ContainerEngineIPv6 {
     fn id(&self) -> &'static str {
         "container-engine-ipv6"
@@ -18,15 +19,16 @@ impl Checker for ContainerEngineIPv6 {
     fn description(&self) -> &'static str {
         "IPv6 network configuration"
     }
-    fn result(&mut self, check: &mut Check) -> CheckResult {
-        self.execute(check).unwrap_or_else(CheckResult::Failed)
+    fn execute(&mut self, check: &mut Check) -> CheckResult {
+        self.inner_execute(check).unwrap_or_else(CheckResult::Failed)
     }
     fn get_json(&self) -> serde_json::Value {
         serde_json::to_value(self).unwrap()
     }
 }
+
 impl ContainerEngineIPv6 {
-    fn execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         const MESSAGE: &str =
         "Container engine is not configured for IPv6 communication.\n\
          Please see https://aka.ms/iotedge-docker-ipv6 for a guide on how to enable IPv6 support.";

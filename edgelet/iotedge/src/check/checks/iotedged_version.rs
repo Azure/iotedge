@@ -6,10 +6,11 @@ use regex::Regex;
 use crate::check::{checker::Checker, Check, CheckResult};
 
 #[derive(Default, serde_derive::Serialize)]
-pub struct IotedgedVersion {
+pub(crate) struct IotedgedVersion {
     version: Option<String>,
     //TODO: find if 1.* or specified
 }
+
 impl Checker for IotedgedVersion {
     fn id(&self) -> &'static str {
         "iotedged-version"
@@ -17,15 +18,16 @@ impl Checker for IotedgedVersion {
     fn description(&self) -> &'static str {
         "latest security daemon"
     }
-    fn result(&mut self, check: &mut Check) -> CheckResult {
-        self.execute(check).unwrap_or_else(CheckResult::Failed)
+    fn execute(&mut self, check: &mut Check) -> CheckResult {
+        self.inner_execute(check).unwrap_or_else(CheckResult::Failed)
     }
     fn get_json(&self) -> serde_json::Value {
         serde_json::to_value(self).unwrap()
     }
 }
+
 impl IotedgedVersion {
-    fn execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         let latest_versions = match &mut check.latest_versions {
             Ok(latest_versions) => &*latest_versions,
             Err(err) => match err.take() {

@@ -339,7 +339,7 @@ impl Check {
                 let check_result = if self.dont_run.contains(check.id()) {
                     CheckResult::Ignored
                 } else {
-                    check.result(self)
+                    check.execute(self)
                 };
 
                 match check_result {

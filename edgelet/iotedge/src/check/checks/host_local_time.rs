@@ -3,9 +3,10 @@ use failure::{self, Context, Fail};
 use crate::check::{checker::Checker, Check, CheckResult};
 
 #[derive(Default, serde_derive::Serialize)]
-pub struct HostLocalTime {
+pub(crate) struct HostLocalTime {
     offset: Option<i64>,
 }
+
 impl Checker for HostLocalTime {
     fn id(&self) -> &'static str {
         "host-local-time"
@@ -13,15 +14,16 @@ impl Checker for HostLocalTime {
     fn description(&self) -> &'static str {
         "host time is close to real time"
     }
-    fn result(&mut self, check: &mut Check) -> CheckResult {
-        self.execute(check).unwrap_or_else(CheckResult::Failed)
+    fn execute(&mut self, check: &mut Check) -> CheckResult {
+        self.inner_execute(check).unwrap_or_else(CheckResult::Failed)
     }
     fn get_json(&self) -> serde_json::Value {
         serde_json::to_value(self).unwrap()
     }
 }
+
 impl HostLocalTime {
-    fn execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         fn is_server_unreachable_error(err: &mini_sntp::Error) -> bool {
             match err.kind() {
                 mini_sntp::ErrorKind::ResolveNtpPoolHostname(_) => true,

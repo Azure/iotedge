@@ -6,7 +6,7 @@ use regex::Regex;
 use crate::check::{checker::Checker, Check, CheckResult};
 
 #[derive(Default, serde_derive::Serialize)]
-pub struct EdgeAgentStorageMounted {}
+pub(crate) struct EdgeAgentStorageMounted {}
 impl Checker for EdgeAgentStorageMounted {
     fn id(&self) -> &'static str {
         "edge-agent-storage-mounted-from-host"
@@ -15,7 +15,7 @@ impl Checker for EdgeAgentStorageMounted {
         // Note: Keep in sync with Microsoft.Azure.Devices.Edge.Agent.Service.Program.GetStoragePath
         "production readiness: Edge Agent's storage directory is persisted on the host filesystem"
     }
-    fn result(&mut self, check: &mut Check) -> CheckResult {
+    fn execute(&mut self, check: &mut Check) -> CheckResult {
         storage_mounted_from_host(check, "edgeAgent", "edgeAgent")
             .unwrap_or_else(CheckResult::Failed)
     }
@@ -34,7 +34,7 @@ impl Checker for EdgeHubStorageMounted {
         // Note: Keep in sync with Microsoft.Azure.Devices.Edge.Hub.Service.DependencyManager.GetStoragePath
         "production readiness: Edge Hub's storage directory is persisted on the host filesystem"
     }
-    fn result(&mut self, check: &mut Check) -> CheckResult {
+    fn execute(&mut self, check: &mut Check) -> CheckResult {
         storage_mounted_from_host(check, "edgeHub", "edgeHub").unwrap_or_else(CheckResult::Failed)
     }
     fn get_json(&self) -> serde_json::Value {

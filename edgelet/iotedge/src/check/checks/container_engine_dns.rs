@@ -5,10 +5,11 @@ use failure::{self, Context, ResultExt};
 use crate::check::{checker::Checker, Check, CheckResult};
 
 #[derive(Default, serde_derive::Serialize)]
-pub struct ContainerEngineDns {
+pub(crate) struct ContainerEngineDns {
     container_engine_config_path: Option<String>,
     dns: Option<Vec<String>>,
 }
+
 impl Checker for ContainerEngineDns {
     fn id(&self) -> &'static str {
         "container-engine-dns"
@@ -16,15 +17,16 @@ impl Checker for ContainerEngineDns {
     fn description(&self) -> &'static str {
         "DNS server"
     }
-    fn result(&mut self, check: &mut Check) -> CheckResult {
-        self.execute(check).unwrap_or_else(CheckResult::Failed)
+    fn execute(&mut self, check: &mut Check) -> CheckResult {
+        self.inner_execute(check).unwrap_or_else(CheckResult::Failed)
     }
     fn get_json(&self) -> serde_json::Value {
         serde_json::to_value(self).unwrap()
     }
 }
+
 impl ContainerEngineDns {
-    fn execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         const MESSAGE: &str =
         "Container engine is not configured with DNS server setting, which may impact connectivity to IoT Hub.\n\
          Please see https://aka.ms/iotedge-prod-checklist-dns for best practices.\n\

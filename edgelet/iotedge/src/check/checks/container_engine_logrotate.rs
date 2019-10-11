@@ -5,9 +5,10 @@ use failure::{self, Context, ResultExt};
 use crate::check::{checker::Checker, Check, CheckResult};
 
 #[derive(Default, serde_derive::Serialize)]
-pub struct ContainerEngineLogrotate {
+pub(crate) struct ContainerEngineLogrotate {
     daemon_config: Option<DaemonConfig>,
 }
+
 impl Checker for ContainerEngineLogrotate {
     fn id(&self) -> &'static str {
         "container-engine-logrotate"
@@ -15,15 +16,16 @@ impl Checker for ContainerEngineLogrotate {
     fn description(&self) -> &'static str {
         "production readiness: logs policy"
     }
-    fn result(&mut self, check: &mut Check) -> CheckResult {
-        self.execute(check).unwrap_or_else(CheckResult::Failed)
+    fn execute(&mut self, check: &mut Check) -> CheckResult {
+        self.inner_execute(check).unwrap_or_else(CheckResult::Failed)
     }
     fn get_json(&self) -> serde_json::Value {
         serde_json::to_value(self).unwrap()
     }
 }
+
 impl ContainerEngineLogrotate {
-    fn execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+    fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         const MESSAGE: &str =
         "Container engine is not configured to rotate module logs which may cause it run out of disk space.\n\
          Please see https://aka.ms/iotedge-prod-checklist-logs for best practices.\n\
