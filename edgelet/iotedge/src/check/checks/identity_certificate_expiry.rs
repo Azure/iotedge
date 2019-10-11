@@ -10,7 +10,7 @@ use crate::check::{checker::Checker, Check, CheckResult};
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct IdentityCertificateExpiry {
-    provisioning: Option<String>,
+    provisioning_mode: Option<&'static str>,
     certificate_info: Option<CertificateValidity>,
 }
 
@@ -22,7 +22,8 @@ impl Checker for IdentityCertificateExpiry {
         "production readiness: identity certificates expiry"
     }
     fn execute(&mut self, check: &mut Check) -> CheckResult {
-        self.inner_execute(check).unwrap_or_else(CheckResult::Failed)
+        self.inner_execute(check)
+            .unwrap_or_else(CheckResult::Failed)
     }
     fn get_json(&self) -> serde_json::Value {
         serde_json::to_value(self).unwrap()
@@ -36,10 +37,10 @@ impl IdentityCertificateExpiry {
         } else {
             return Ok(CheckResult::Skipped);
         };
-        self.provisioning = Some(settings.provisioning().to_string());
 
         match settings.provisioning() {
             Provisioning::Dps(dps) => {
+                self.provisioning_mode = Some("Dps");
                 if let AttestationMethod::X509(x509_info) = dps.attestation() {
                     let path = x509_info.identity_cert()?;
 
@@ -50,6 +51,7 @@ impl IdentityCertificateExpiry {
                 }
             }
             Provisioning::Manual(manual) => {
+                self.provisioning_mode = Some("Manual");
                 if let ManualAuthMethod::X509(x509) = manual.authentication_method() {
                     let path = x509.identity_cert()?;
                     let result = CertificateValidity::parse(
@@ -60,7 +62,10 @@ impl IdentityCertificateExpiry {
                     return result.to_check_result();
                 }
             }
-            Provisioning::External(_) => (),
+            Provisioning::External(_) => {
+                self.provisioning_mode = Some("External");
+                ()
+            }
         }
 
         Ok(CheckResult::Ignored)
