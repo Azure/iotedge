@@ -9,6 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     {
         V1ServiceAccount CreateServiceAccount(IModuleIdentity identity, IDictionary<string, string> labels);
 
-        void Update(V1ServiceAccount to, V1ServiceAccount from);
+        void UpdateServiceAccount(V1ServiceAccount to, V1ServiceAccount from);
     }
 }
