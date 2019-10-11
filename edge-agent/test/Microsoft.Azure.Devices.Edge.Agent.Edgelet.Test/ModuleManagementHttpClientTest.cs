@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.DeviceManager;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Test;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -254,6 +255,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             byte[] buffer = new byte[1024];
             int bytesRead = await logsStream.ReadAsync(buffer, 0, buffer.Length);
             Assert.Equal(buffer.Length, bytesRead);
+        }
+
+        [Theory]
+        [InlineData("2018-06-28", "2018-06-28")]
+        [InlineData("2018-06-28", "2019-01-30")]
+        [InlineData("2019-01-30", "2018-06-28")]
+        [InlineData("2019-01-30", "2019-01-30")]
+        public async Task Test_ReprovisionDevice_ShouldSucceed(string serverApiVersion, string clientApiVersion)
+        {
+            // Arrange
+            IDeviceManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
+
+            // Act and Assert
+            await client.ReprovisionDeviceAsync();
         }
 
         [Fact]

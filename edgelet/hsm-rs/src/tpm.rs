@@ -171,7 +171,7 @@ impl SignWithTpm for Tpm {
 
 /// When buffer data is returned from TPM interface, it is placed in this struct.
 /// This is a buffer allocated by the C library.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct TpmBuffer {
     interface: HSM_CLIENT_TPM_INTERFACE,
     key: *const c_uchar,

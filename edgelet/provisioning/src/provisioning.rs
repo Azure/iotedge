@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::fmt::{self, Display};
 use std::fs::File;
 use std::io::{Read, Write};
 use std::marker::PhantomData;
@@ -27,6 +28,15 @@ use log::{debug, Level};
 use sha2::{Digest, Sha256};
 
 use crate::error::{Error, ErrorKind, ExternalProvisioningErrorReason};
+
+#[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
+pub enum ProvisioningStatus {
+    Assigned,
+    Assigning,
+    Disabled,
+    Failed,
+    Unassigned,
+}
 
 #[derive(Clone, Copy, Serialize, Deserialize, Debug, PartialEq)]
 pub enum ReprovisioningStatus {
@@ -116,16 +126,50 @@ impl From<&str> for ReprovisioningStatus {
             "deviceDataReset" => ReprovisioningStatus::DeviceDataReset,
             "initialAssignment" => ReprovisioningStatus::InitialAssignment,
             _ => {
-                debug!("DPS provisioning result substatus {}", s);
+                debug!("Provisioning result substatus {}", s);
                 ReprovisioningStatus::InitialAssignment
             }
         }
     }
 }
 
+impl Display for ReprovisioningStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 impl Default for ReprovisioningStatus {
     fn default() -> Self {
         ReprovisioningStatus::InitialAssignment
+    }
+}
+
+impl From<&str> for ProvisioningStatus {
+    fn from(s: &str) -> ProvisioningStatus {
+        match s {
+            "assigned" => ProvisioningStatus::Assigned,
+            "assigning" => ProvisioningStatus::Assigning,
+            "disabled" => ProvisioningStatus::Disabled,
+            "failed" => ProvisioningStatus::Failed,
+            "unassigned" => ProvisioningStatus::Unassigned,
+            _ => {
+                debug!("Provisioning result status {}", s);
+                ProvisioningStatus::Assigned
+            }
+        }
+    }
+}
+
+impl Default for ProvisioningStatus {
+    fn default() -> Self {
+        ProvisioningStatus::Assigned
+    }
+}
+
+impl Display for ProvisioningStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
     }
 }
 
@@ -184,9 +228,11 @@ pub trait Provision {
         self,
         key_activator: Self::Hsm,
     ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send>;
+
+    fn reprovision(&self) -> Box<dyn Future<Item = (), Error = Error> + Send>;
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ManualProvisioning {
     key: MemoryKey,
     device_id: String,
@@ -232,8 +278,13 @@ impl Provision for ManualProvisioning {
             .map_err(|err| Error::from(err.context(ErrorKind::Provision)));
         Box::new(result.into_future())
     }
+
+    fn reprovision(&self) -> Box<dyn Future<Item = (), Error = Error> + Send> {
+        Box::new(future::ok(()))
+    }
 }
 
+#[derive(Clone)]
 pub struct ExternalProvisioning<T, U> {
     client: T,
 
@@ -370,10 +421,22 @@ where
             .get_device_provisioning_information()
             .map_err(|err| Error::from(err.context(ErrorKind::ExternalProvisioning(ExternalProvisioningErrorReason::ProvisioningFailure))))
             .and_then(move |device_provisioning_info| {
+                let provisioning_status = device_provisioning_info.status().map_or_else(
+                    || ProvisioningStatus::Assigned,
+                    ProvisioningStatus::from,
+                );
+                let reconfigure = device_provisioning_info.substatus().map_or_else(
+                    || ReprovisioningStatus::InitialAssignment,
+                    ReprovisioningStatus::from,
+                );
                 info!(
-                    "External device registration information: Device \"{}\" in hub \"{}\"",
+                    "External device registration information: Device \"{}\" in hub \"{}\" with credential type \"{}\" and credential source \"{}\". Current status is \"{}\" with substatus \"{}\".",
                     device_provisioning_info.device_id(),
-                    device_provisioning_info.hub_name()
+                    device_provisioning_info.hub_name(),
+                    device_provisioning_info.credentials().auth_type(),
+                    device_provisioning_info.credentials().source(),
+                    provisioning_status,
+                    reconfigure,
                 );
 
                 let credentials_info = device_provisioning_info.credentials();
@@ -396,7 +459,7 @@ where
                 Ok(ProvisioningResult {
                     device_id: device_provisioning_info.device_id().to_string(),
                     hub_name: device_provisioning_info.hub_name().to_string(),
-                    reconfigure: ReprovisioningStatus::DeviceDataNotUpdated,
+                    reconfigure,
                     sha256_thumbprint: None,
                     credentials: Some(credentials)
                 })
@@ -404,8 +467,39 @@ where
 
         Box::new(result)
     }
+
+    fn reprovision(&self) -> Box<dyn Future<Item = (), Error = Error> + Send> {
+        let result = self
+            .client
+            .reprovision_device()
+            .map_err(|err| Error::from(err.context(ErrorKind::ExternalProvisioning(ExternalProvisioningErrorReason::ReprovisioningFailure))))
+            .and_then(move |device_provisioning_info| {
+                let provisioning_status = device_provisioning_info.status().map_or_else(
+                    || ProvisioningStatus::Assigned,
+                    ProvisioningStatus::from,
+                );
+                let reconfigure = device_provisioning_info.substatus().map_or_else(
+                    || ReprovisioningStatus::InitialAssignment,
+                    ReprovisioningStatus::from,
+                );
+                info!(
+                    "External device registration information after reprovisioning: Device \"{}\" in hub \"{}\" with credential type \"{}\" and credential source \"{}\". Current status is \"{}\" with substatus \"{}\".",
+                    device_provisioning_info.device_id(),
+                    device_provisioning_info.hub_name(),
+                    device_provisioning_info.credentials().auth_type(),
+                    device_provisioning_info.credentials().source(),
+                    provisioning_status,
+                    reconfigure,
+                );
+
+                Ok(())
+            });
+
+        Box::new(result)
+    }
 }
 
+#[derive(Clone)]
 pub struct DpsTpmProvisioning<C>
 where
     C: ClientImpl,
@@ -496,8 +590,14 @@ where
 
         Box::new(d)
     }
+
+    fn reprovision(&self) -> Box<dyn Future<Item = (), Error = Error> + Send> {
+        // TODO: Implement reprovisioning flow for DPS.
+        Box::new(future::ok(()))
+    }
 }
 
+#[derive(Clone)]
 pub struct DpsSymmetricKeyProvisioning<C>
 where
     C: ClientImpl,
@@ -578,8 +678,14 @@ where
         };
         Box::new(d)
     }
+
+    fn reprovision(&self) -> Box<dyn Future<Item = (), Error = Error> + Send> {
+        // TODO: Implement reprovisioning flow for DPS.
+        Box::new(future::ok(()))
+    }
 }
 
+#[derive(Clone)]
 pub struct DpsX509Provisioning<C>
 where
     C: ClientImpl,
@@ -661,6 +767,11 @@ where
             Err(err) => Either::B(future::err(Error::from(err.context(ErrorKind::Provision)))),
         };
         Box::new(d)
+    }
+
+    fn reprovision(&self) -> Box<dyn Future<Item = (), Error = Error> + Send> {
+        // TODO: Implement reprovisioning flow for DPS.
+        Box::new(future::ok(()))
     }
 }
 
@@ -788,6 +899,10 @@ where
                 }),
         )
     }
+
+    fn reprovision(&self) -> Box<dyn Future<Item = (), Error = Error> + Send> {
+        panic!("A reprovisioning operation is not expected for `BackupProvisioning`")
+    }
 }
 
 #[cfg(test)]
@@ -820,6 +935,10 @@ mod tests {
                 credentials: None,
             }))
         }
+
+        fn reprovision(&self) -> Box<dyn Future<Item = (), Error = Error> + Send> {
+            Box::new(future::ok(()))
+        }
     }
 
     struct TestReprovisioning {}
@@ -839,6 +958,10 @@ mod tests {
                 credentials: None,
             }))
         }
+
+        fn reprovision(&self) -> Box<dyn Future<Item = (), Error = Error> + Send> {
+            Box::new(future::ok(()))
+        }
     }
 
     struct TestProvisioningWithError {}
@@ -851,6 +974,10 @@ mod tests {
             _key_activator: Self::Hsm,
         ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send> {
             Box::new(future::err(Error::from(ErrorKind::Provision)))
+        }
+
+        fn reprovision(&self) -> Box<dyn Future<Item = (), Error = Error> + Send> {
+            Box::new(future::err(Error::from(ErrorKind::Reprovision)))
         }
     }
 
@@ -1165,17 +1292,27 @@ mod tests {
                 Some(_s) => Box::new(Err(TestError {}).into_future()),
             }
         }
+
+        fn reprovision_device(&self) -> Self::DeviceProvisioningInformationFuture {
+            match self.error.as_ref() {
+                None => Box::new(Ok(self.provisioning_info.clone()).into_future()),
+                Some(_s) => Box::new(Err(TestError {}).into_future()),
+            }
+        }
     }
 
     #[test]
     fn external_get_provisioning_info_symmetric_key_payload_success() {
         let mut credentials = Credentials::new("symmetric-key".to_string(), "payload".to_string());
         credentials.set_key("cGFzczEyMzQ=".to_string());
-        let provisioning_info = DeviceProvisioningInfo::new(
+        let mut provisioning_info = DeviceProvisioningInfo::new(
             "TestHub".to_string(),
             "TestDevice".to_string(),
             credentials,
         );
+
+        provisioning_info.set_status("assigned".to_string());
+        provisioning_info.set_substatus("initialAssignment".to_string());
 
         let provisioning = ExternalProvisioning::new(TestExternalProvisioningInterface {
             error: None,
@@ -1203,6 +1340,8 @@ mod tests {
                         panic!("No credentials found. This is unexpected")
                     }
 
+                    assert_eq!(ReprovisioningStatus::InitialAssignment, result.reconfigure);
+
                     Ok::<_, Error>(())
                 }
                 Err(err) => panic!("Unexpected {:?}", err),
@@ -1216,11 +1355,14 @@ mod tests {
     #[test]
     fn external_get_provisioning_info_symmetric_key_hsm_success() {
         let credentials = Credentials::new("symmetric-key".to_string(), "hsm".to_string());
-        let provisioning_info = DeviceProvisioningInfo::new(
+        let mut provisioning_info = DeviceProvisioningInfo::new(
             "TestHub".to_string(),
             "TestDevice".to_string(),
             credentials,
         );
+
+        provisioning_info.set_status("garbage".to_string()); // testing if unsupported value for status resolves to a default instead.
+        provisioning_info.set_substatus("garbage".to_string()); // testing if unsupported value for status resolves to a default instead.
 
         let provisioning = ExternalProvisioning::new(TestExternalProvisioningInterface {
             error: None,
@@ -1245,6 +1387,8 @@ mod tests {
                     } else {
                         panic!("No credentials found. This is unexpected")
                     }
+
+                    assert_eq!(ReprovisioningStatus::InitialAssignment, result.reconfigure);
 
                     Ok::<_, Error>(())
                 }
@@ -1355,8 +1499,11 @@ mod tests {
         credentials.set_identity_cert(identity_cert_val.to_string());
         credentials.set_identity_private_key(identity_private_key_val.to_string());
 
-        let provisioning_info =
+        let mut provisioning_info =
             DeviceProvisioningInfo::new(hub_name.to_string(), device_id.to_string(), credentials);
+
+        provisioning_info.set_status("assigned".to_string());
+        provisioning_info.set_substatus("deviceDataMigrated".to_string());
 
         let provisioning = ExternalProvisioning::new(TestExternalProvisioningInterface {
             error: None,
@@ -1382,6 +1529,8 @@ mod tests {
                     } else {
                         panic!("No credentials found. This is unexpected")
                     }
+
+                    assert_eq!(ReprovisioningStatus::DeviceDataMigrated, result.reconfigure);
 
                     Ok::<_, Error>(())
                 }
@@ -1548,6 +1697,66 @@ mod tests {
                 }
                 Err(err) => panic!("Unexpected {:?}", err),
             });
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+    }
+
+    #[test]
+    fn external_reprovision_device_success() {
+        let mut credentials = Credentials::new("symmetric-key".to_string(), "payload".to_string());
+        credentials.set_key("cGFzczEyMzQ=".to_string());
+        let mut provisioning_info = DeviceProvisioningInfo::new(
+            "TestHub".to_string(),
+            "TestDevice".to_string(),
+            credentials,
+        );
+
+        provisioning_info.set_status("assigned".to_string());
+        provisioning_info.set_substatus("initialAssignment".to_string());
+
+        let provisioning: ExternalProvisioning<_, MemoryKeyStore> =
+            ExternalProvisioning::new(TestExternalProvisioningInterface {
+                error: None,
+                provisioning_info,
+            });
+
+        let task = provisioning.reprovision();
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+    }
+
+    #[test]
+    fn external_reprovision_device_failure() {
+        let mut credentials = Credentials::new("symmetric-key".to_string(), "payload".to_string());
+        credentials.set_key("cGFzczEyMzQ=".to_string());
+        let mut provisioning_info = DeviceProvisioningInfo::new(
+            "TestHub".to_string(),
+            "TestDevice".to_string(),
+            credentials,
+        );
+
+        provisioning_info.set_status("assigned".to_string());
+        provisioning_info.set_substatus("initialAssignment".to_string());
+
+        let provisioning: ExternalProvisioning<_, MemoryKeyStore> =
+            ExternalProvisioning::new(TestExternalProvisioningInterface {
+                error: Some(TestError {}),
+                provisioning_info,
+            });
+
+        let task = provisioning.reprovision().then(|result| {
+            assert_eq!(
+                result.unwrap_err().kind(),
+                &ErrorKind::ExternalProvisioning(
+                    ExternalProvisioningErrorReason::ReprovisioningFailure
+                )
+            );
+            Ok::<_, Error>(())
+        });
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
             .block_on(task)

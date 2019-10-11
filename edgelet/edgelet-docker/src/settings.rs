@@ -283,7 +283,9 @@ mod tests {
     #[cfg(unix)]
     static BAD_SETTINGS_MANUAL_X509_AUTH5: &str = "test/linux/bad_settings.manual.x509.5.yaml";
     #[cfg(unix)]
-    static GOOD_SETTINGS_EXTERNAL: &str = "test/linux/sample_settings.external.yaml";
+    static GOOD_SETTINGS_EXTERNAL1: &str = "test/linux/sample_settings.external.1.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_EXTERNAL2: &str = "test/linux/sample_settings.external.2.yaml";
     #[cfg(unix)]
     static GOOD_SETTINGS_NETWORK: &str = "test/linux/sample_settings.network.yaml";
 
@@ -338,7 +340,9 @@ mod tests {
     #[cfg(windows)]
     static BAD_SETTINGS_MANUAL_X509_AUTH5: &str = "test/windows/bad_settings.manual.x509.5.yaml";
     #[cfg(windows)]
-    static GOOD_SETTINGS_EXTERNAL: &str = "test/windows/sample_settings.external.yaml";
+    static GOOD_SETTINGS_EXTERNAL1: &str = "test/windows/sample_settings.external.1.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_EXTERNAL2: &str = "test/windows/sample_settings.external.2.yaml";
     #[cfg(windows)]
     static GOOD_SETTINGS_NETWORK: &str = "test/windows/sample_settings.network.yaml";
 
@@ -930,13 +934,29 @@ mod tests {
 
     #[test]
     fn external_prov_get_settings() {
-        let settings = Settings::new(Path::new(GOOD_SETTINGS_EXTERNAL));
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_EXTERNAL1));
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
         match s.provisioning() {
             Provisioning::External(ref external) => {
                 assert_eq!(external.endpoint().as_str(), "http://localhost:9999/");
+                assert_eq!(external.dynamic_reprovisioning(), None);
+            }
+            _ => unreachable!(),
+        };
+    }
+
+    #[test]
+    fn external_prov_get_settings_with_dynamic_reprovisioning() {
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_EXTERNAL2));
+        println!("{:?}", settings);
+        assert!(settings.is_ok());
+        let s = settings.unwrap();
+        match s.provisioning() {
+            Provisioning::External(ref external) => {
+                assert_eq!(external.endpoint().as_str(), "http://localhost:9999/");
+                assert_eq!(external.dynamic_reprovisioning(), Some(&true));
             }
             _ => unreachable!(),
         };

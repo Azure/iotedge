@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using global::Docker.DotNet;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.DeviceManager;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient;
@@ -127,6 +128,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         return dockerEnvironmentProvider;
                     })
                 .As<Task<IEnvironmentProvider>>()
+                .SingleInstance();
+
+            // IDeviceManager
+            builder.Register(c => new NullDeviceManager())
+                .As<IDeviceManager>()
                 .SingleInstance();
         }
     }

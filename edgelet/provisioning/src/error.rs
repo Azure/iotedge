@@ -26,6 +26,9 @@ pub enum ErrorKind {
 
     #[fail(display = "Could not provision device")]
     Provision,
+
+    #[fail(display = "Could not reprovision device")]
+    Reprovision,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -37,6 +40,7 @@ pub enum ExternalProvisioningErrorReason {
     InvalidSymmetricKey,
     KeyActivation,
     ProvisioningFailure,
+    ReprovisioningFailure,
     SymmetricKeyNotSpecified,
 }
 
@@ -71,6 +75,10 @@ impl fmt::Display for ExternalProvisioningErrorReason {
                 f,
                 "Error occurred while retrieving device provisioning information."
             ),
+
+            ExternalProvisioningErrorReason::ReprovisioningFailure => {
+                write!(f, "Error occurred while reprovisioning the device.")
+            }
 
             ExternalProvisioningErrorReason::SymmetricKeyNotSpecified => {
                 write!(f, "Symmetric key not specified.")

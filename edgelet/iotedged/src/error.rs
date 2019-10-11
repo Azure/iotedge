@@ -37,6 +37,9 @@ pub enum ErrorKind {
     #[fail(display = "The management service encountered an error")]
     ManagementService,
 
+    #[fail(display = "The reprovisioning operation failed")]
+    ReprovisionFailure,
+
     #[fail(display = "The symmetric key string is malformed")]
     SymmetricKeyMalformed,
 

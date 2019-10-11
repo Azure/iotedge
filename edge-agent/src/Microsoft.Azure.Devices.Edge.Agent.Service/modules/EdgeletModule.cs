@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Autofac;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.DeviceManager;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker;
@@ -84,6 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(c => new ModuleManagementHttpClient(this.managementUri, this.apiVersion, Constants.EdgeletClientApiVersion))
                 .As<IModuleManager>()
                 .As<IIdentityManager>()
+                .As<IDeviceManager>()
                 .SingleInstance();
 
             // IModuleIdentityLifecycleManager

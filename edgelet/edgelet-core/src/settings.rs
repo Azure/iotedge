@@ -384,15 +384,27 @@ impl Dps {
 pub struct External {
     #[serde(with = "url_serde")]
     endpoint: Url,
+    #[serde(
+        rename = "dynamic_reprovisioning",
+        skip_serializing_if = "Option::is_none"
+    )]
+    dynamic_reprovisioning: Option<bool>,
 }
 
 impl External {
-    pub fn new(endpoint: Url) -> Self {
-        External { endpoint }
+    pub fn new(endpoint: Url, dynamic_reprovisioning: bool) -> Self {
+        External {
+            endpoint,
+            dynamic_reprovisioning: Some(dynamic_reprovisioning),
+        }
     }
 
     pub fn endpoint(&self) -> &Url {
         &self.endpoint
+    }
+
+    pub fn dynamic_reprovisioning(&self) -> Option<&bool> {
+        self.dynamic_reprovisioning.as_ref()
     }
 }
 

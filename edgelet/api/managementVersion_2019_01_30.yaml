@@ -436,7 +436,24 @@ paths:
         default:
           description: Error
           schema:
-            $ref: '#/definitions/ErrorResponse'            
+            $ref: '#/definitions/ErrorResponse'
+
+  '/device/reprovision':
+    post:
+      tags:
+        - DeviceActions
+      summary: Trigger a device reprovisioning flow.
+      operationId: ReprovisionDevice
+      parameters:
+        - $ref: '#/parameters/api-version'
+      responses:
+        '200':
+          description: Ok
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+            
 definitions:
   ModuleList:
     type: object
