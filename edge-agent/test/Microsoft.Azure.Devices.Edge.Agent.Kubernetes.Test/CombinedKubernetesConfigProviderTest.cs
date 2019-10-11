@@ -2,12 +2,11 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 {
     using System;
-    using System.Collections.Generic;
+    using System.Linq;
     using System.Runtime.InteropServices;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -91,8 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
 
             var module = new Mock<IModule<DockerConfig>>();
-            string createOptions = "{ \"k8s-experimental\": { nodeSelector: { disktype: \"ssd\" } } }";
-            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", createOptions));
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", ExperimentalCreateOptions));
             module.SetupGet(m => m.Name).Returns("mod1");
 
             CombinedKubernetesConfigProvider provider = new CombinedKubernetesConfigProvider(new[] { new AuthConfig() }, new Uri("unix:///var/run/iotedgedworkload.sock"), new Uri("unix:///var/run/iotedgedmgmt.sock"), false);
@@ -101,7 +99,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             CombinedKubernetesConfig config = provider.GetCombinedConfig(module.Object, runtimeInfo.Object);
 
             // Assert
+            Assert.False(config.CreateOptions.Volumes.HasValue);
             Assert.False(config.CreateOptions.NodeSelector.HasValue);
+            Assert.False(config.CreateOptions.Resources.HasValue);
         }
 
         [Fact]
@@ -112,8 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             runtimeInfo.SetupGet(ri => ri.Config).Returns(new DockerRuntimeConfig("1.24", string.Empty));
 
             var module = new Mock<IModule<DockerConfig>>();
-            string createOptions = "{ \"k8s-experimental\": { nodeSelector: { disktype: \"ssd\" } } }";
-            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", createOptions));
+            module.SetupGet(m => m.Config).Returns(new DockerConfig("nginx:latest", ExperimentalCreateOptions));
             module.SetupGet(m => m.Name).Returns("mod1");
 
             CombinedKubernetesConfigProvider provider = new CombinedKubernetesConfigProvider(new[] { new AuthConfig() }, new Uri("unix:///var/run/iotedgedworkload.sock"), new Uri("unix:///var/run/iotedgedmgmt.sock"), true);
@@ -122,9 +121,67 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             CombinedKubernetesConfig config = provider.GetCombinedConfig(module.Object, runtimeInfo.Object);
 
             // Assert
+            Assert.True(config.CreateOptions.Volumes.HasValue);
+            config.CreateOptions.Volumes.ForEach(volumes => Assert.Equal(1, volumes.Count));
+            config.CreateOptions.Volumes.ForEach(volumes => Assert.NotNull(volumes.First()));
+
             Assert.True(config.CreateOptions.NodeSelector.HasValue);
-            config.CreateOptions.NodeSelector.ForEach(selector => Assert.Equal(new Dictionary<string, string> { ["disktype"] = "ssd" }, selector, new DictionaryComparer<string, string>()));
+            config.CreateOptions.NodeSelector.ForEach(selector => Assert.Equal(2, selector.Count));
+
+            Assert.True(config.CreateOptions.Resources.HasValue);
+            config.CreateOptions.Resources.ForEach(resources => Assert.Equal(3, resources.Limits.Count));
+            config.CreateOptions.Resources.ForEach(resources => Assert.Equal(3, resources.Requests.Count));
         }
+
+        const string ExperimentalCreateOptions =
+            @"{
+  ""k8s-experimental"": {
+    ""volumes"": [
+      {
+        ""volume"": {
+          ""name"": ""ModuleA"",
+          ""configMap"": {
+            ""optional"": ""true"",
+            ""defaultMode"": 420,
+            ""items"": [
+              {
+                ""key"": ""config-file"",
+                ""path"": ""config.yaml"",
+                ""mode"": 420
+              }
+            ],
+            ""name"": ""module-config""
+          }
+        },
+        ""volumeMounts"": [
+          {
+            ""name"": ""module-config"",
+            ""mountPath"": ""/etc/module/config.yaml"",
+            ""mountPropagation"": ""None"",
+            ""readOnly"": ""true"",
+            ""subPath"": """"
+          }
+        ]
+      }
+    ],
+    ""resources"": {
+      ""limits"": {
+        ""memory"": ""128Mi"",
+        ""cpu"": ""500m"",
+        ""hardware-vendor.example/foo"": 2
+      },
+      ""requests"": {
+        ""memory"": ""64Mi"",
+        ""cpu"": ""250m"",
+        ""hardware-vendor.example/foo"": 2
+      }
+    },
+    ""nodeSelector"": {
+      ""disktype"": ""ssd"",
+      ""gpu"": ""true""
+    }
+  }
+}";
 
         [Fact]
         public void MakesKubernetesAwareAuthConfig()

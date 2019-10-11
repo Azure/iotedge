@@ -15,23 +15,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         {
             Dictionary<string, EnvVal> goodEnv = new Dictionary<string, EnvVal>();
             Dictionary<string, EnvVal> newEnv = new Dictionary<string, EnvVal> { ["a"] = new EnvVal("B") };
-            IList<string> dockerEnv = new List<string> { "c=d" };
-            KubernetesConfig goodConfig = new KubernetesConfig("image:tag", CreateOptions(), Option.None<AuthConfig>());
-            KubernetesConfig imageDifferent = new KubernetesConfig("image:newtag", CreateOptions(), Option.None<AuthConfig>());
+            IReadOnlyList<string> dockerEnv = new List<string> { "c=d" };
+            KubernetesConfig goodConfig = new KubernetesConfig("image:tag", CreatePodParameters.Create(), Option.None<AuthConfig>());
+            KubernetesConfig imageDifferent = new KubernetesConfig("image:newtag", CreatePodParameters.Create(), Option.None<AuthConfig>());
 
             var auth1 = new AuthConfig("secret1");
-            KubernetesConfig auth1Config = new KubernetesConfig("image:tag", CreateOptions(), Option.Some(auth1));
+            KubernetesConfig auth1Config = new KubernetesConfig("image:tag", CreatePodParameters.Create(), Option.Some(auth1));
 
             var auth2 = new AuthConfig("secret2");
-            KubernetesConfig auth2Config = new KubernetesConfig("image:tag", CreateOptions(), Option.Some(auth2));
+            KubernetesConfig auth2Config = new KubernetesConfig("image:tag", CreatePodParameters.Create(), Option.Some(auth2));
 
             var auth3 = new AuthConfig("secret3");
-            KubernetesConfig auth3Config = new KubernetesConfig("image:tag", CreateOptions(), Option.Some(auth3));
+            KubernetesConfig auth3Config = new KubernetesConfig("image:tag", CreatePodParameters.Create(), Option.Some(auth3));
 
             var auth4 = new AuthConfig("secret4");
-            KubernetesConfig auth4Config = new KubernetesConfig("image:tag", CreateOptions(), Option.Some(auth4));
+            KubernetesConfig auth4Config = new KubernetesConfig("image:tag", CreatePodParameters.Create(), Option.Some(auth4));
 
-            KubernetesConfig createContainerConfigDifferent = new KubernetesConfig("image:tag", CreateOptions(dockerEnv), Option.None<AuthConfig>());
+            KubernetesConfig createContainerConfigDifferent = new KubernetesConfig("image:tag", CreatePodParameters.Create(dockerEnv), Option.None<AuthConfig>());
 
             ConfigurationInfo goodInfo = new ConfigurationInfo(string.Empty);
 
@@ -76,8 +76,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Assert.False(m1.IsOnlyModuleStatusChanged(m2));
             Assert.False(m1.IsOnlyModuleStatusChanged(m9));
         }
-
-        static CreatePodParameters CreateOptions(IList<string> env = null)
-            => new CreatePodParameters(env, null, null, null, null, null);
     }
 }

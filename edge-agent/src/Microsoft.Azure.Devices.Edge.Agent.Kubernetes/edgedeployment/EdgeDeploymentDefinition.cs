@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         public V1ObjectMeta Metadata { get; }
 
         [JsonProperty(PropertyName = "spec")]
-        public IList<KubernetesModule> Spec { get; }
+        public IReadOnlyList<KubernetesModule> Spec { get; }
 
         [JsonProperty(PropertyName = "status")]
         [JsonConverter(typeof(OptionConverter<EdgeDeploymentStatus>))]
