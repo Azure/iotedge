@@ -46,8 +46,6 @@ paths:
       responses:
         '200':
           description: Ok
-          schema:
-            $ref: '#/definitions/DeviceProvisioningInfo'
         default:
           description: Error
           schema:

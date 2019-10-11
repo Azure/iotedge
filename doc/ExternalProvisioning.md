@@ -39,12 +39,6 @@ IoT Edge has the ability to detect a 'possible' re-provisioning of a device dyna
 about the possibility of a device being re-provisioned to a different IoT Hub.
 
 The notification is sent to the external endpoint by calling the `reprovision` API.
-As part of the response to the notification call from `iotedged`, the external endpoint should return the device's new provisioning information in the response. `iotedged` can then reconfigure itself
-with the device's new provisioning information.
-The response can also include appropriate values for the `status` and `substatus` properties. These properties are used by `iotedged` as triggers to clean up any cached state from earlier, if required,
-and proceed with regular execution henceforth. The values of these properties are in accordance with the same properties defined by the Azure IoT Device Provisioning Service (DPS) which can be found [here][1].
-The external endpoint should return appropriate values for these properties if it would like `iotedged` to perform any local state cleanup as part of device re-provisioning.
-
 On receiving such a notification, the external endpoint can check whether the device has indeed been de-provisioned from it's original IoT Hub and provisioned on another IoT Hub instead.
 The external endpoint can then take appropriate actions to reconfigure the device such as cleaning up any cached local state and restarting IoT Edge.
 
@@ -112,37 +106,7 @@ PATH: /device/reprovision
 
 REQUEST PAYLOAD: None
 
-RESPONSE PAYLOAD:
-
-```json
-{
-  "hubName": "IoT Hub Name",
-  "deviceId": "Device ID",
-  "credentials": {
-      "authType": "symmetric-key | x509",
-      "source": "payload | hsm",
-      "key": "The symmetric key used. Only populated for the `symmetric-key` authType",
-      "identityCert": "PEM encoded identity certificate (for the x509 and payload mode) in base64 representation | Path to identity certificate (for the x509 and hsm mode)",
-      "identityPrivateKey": "PEM encoded identity private key (for the x509 and payload mode) in base64 representation | Path to identity private key (for the x509 and hsm mode)"
-    }
-}
-```
-
-A sample response for the `symmetric-key` `authType` with the `payload` specified as the credential's `source` would look like the following:
-
-```json
-{
-  "hubName": "myHub1.azure-devices.net",
-  "deviceId": "myDevice1",
-  "credentials": {
-      "authType": "symmetric-key",
-      "source": "payload",
-      "key": "bXlLZXkxMjM0NQ=="
-    },
-  "status": "assigned",
-  "substatus": "initialAssignment"
-}
-```
+RESPONSE PAYLOAD: None
 
 For more information about the REST API's specification, please refer to the [endpoint's swagger specification](../edgelet/api/externalProvisioningVersion_2019_04_10.yaml)
 

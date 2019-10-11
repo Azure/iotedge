@@ -472,26 +472,13 @@ where
         let result = self
             .client
             .reprovision_device()
-            .map_err(|err| Error::from(err.context(ErrorKind::ExternalProvisioning(ExternalProvisioningErrorReason::ReprovisioningFailure))))
-            .and_then(move |device_provisioning_info| {
-                let provisioning_status = device_provisioning_info.status().map_or_else(
-                    || ProvisioningStatus::Assigned,
-                    ProvisioningStatus::from,
-                );
-                let reconfigure = device_provisioning_info.substatus().map_or_else(
-                    || ReprovisioningStatus::InitialAssignment,
-                    ReprovisioningStatus::from,
-                );
-                info!(
-                    "External device registration information after reprovisioning: Device \"{}\" in hub \"{}\" with credential type \"{}\" and credential source \"{}\". Current status is \"{}\" with substatus \"{}\".",
-                    device_provisioning_info.device_id(),
-                    device_provisioning_info.hub_name(),
-                    device_provisioning_info.credentials().auth_type(),
-                    device_provisioning_info.credentials().source(),
-                    provisioning_status,
-                    reconfigure,
-                );
-
+            .map_err(|err| {
+                Error::from(err.context(ErrorKind::ExternalProvisioning(
+                    ExternalProvisioningErrorReason::ReprovisioningFailure,
+                )))
+            })
+            .and_then(move |_| {
+                info!("Reprovision device notification sent to external endpoint.");
                 Ok(())
             });
 
@@ -1286,6 +1273,8 @@ mod tests {
         type DeviceProvisioningInformationFuture =
             Box<dyn Future<Item = DeviceProvisioningInfo, Error = Self::Error> + Send>;
 
+        type ReprovisionDeviceFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+
         fn get_device_provisioning_information(&self) -> Self::DeviceProvisioningInformationFuture {
             match self.error.as_ref() {
                 None => Box::new(Ok(self.provisioning_info.clone()).into_future()),
@@ -1293,9 +1282,9 @@ mod tests {
             }
         }
 
-        fn reprovision_device(&self) -> Self::DeviceProvisioningInformationFuture {
+        fn reprovision_device(&self) -> Self::ReprovisionDeviceFuture {
             match self.error.as_ref() {
-                None => Box::new(Ok(self.provisioning_info.clone()).into_future()),
+                None => Box::new(Ok(()).into_future()),
                 Some(_s) => Box::new(Err(TestError {}).into_future()),
             }
         }
@@ -1713,9 +1702,6 @@ mod tests {
             credentials,
         );
 
-        provisioning_info.set_status("assigned".to_string());
-        provisioning_info.set_substatus("initialAssignment".to_string());
-
         let provisioning: ExternalProvisioning<_, MemoryKeyStore> =
             ExternalProvisioning::new(TestExternalProvisioningInterface {
                 error: None,
@@ -1738,9 +1724,6 @@ mod tests {
             "TestDevice".to_string(),
             credentials,
         );
-
-        provisioning_info.set_status("assigned".to_string());
-        provisioning_info.set_substatus("initialAssignment".to_string());
 
         let provisioning: ExternalProvisioning<_, MemoryKeyStore> =
             ExternalProvisioning::new(TestExternalProvisioningInterface {

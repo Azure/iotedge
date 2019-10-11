@@ -44,10 +44,7 @@ pub trait ExternalProvisioningApi: Send + Sync {
     fn reprovision_device(
         &self,
         api_version: &str,
-    ) -> Box<
-        dyn Future<Item = crate::models::DeviceProvisioningInfo, Error = Error<serde_json::Value>>
-            + Send,
-    >;
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send>;
 }
 
 impl<C: hyper::client::connect::Connect> ExternalProvisioningApi
@@ -122,10 +119,7 @@ where
     fn reprovision_device(
         &self,
         api_version: &str,
-    ) -> Box<
-        dyn Future<Item = crate::models::DeviceProvisioningInfo, Error = Error<serde_json::Value>>
-            + Send,
-    > {
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send> {
         let configuration: &configuration::Configuration<C> = self.configuration.borrow();
 
         let method = hyper::Method::GET;
@@ -173,11 +167,7 @@ where
                         Err(Error::from((status, &*body)))
                     }
                 })
-                .and_then(|body| {
-                    let parsed: Result<crate::models::DeviceProvisioningInfo, _> =
-                        serde_json::from_slice(&body);
-                    parsed.map_err(Error::from)
-                }),
+                .and_then(|_| futures::future::ok(())),
         )
     }
 }
