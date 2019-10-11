@@ -22,6 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
         static readonly ResourceName ResourceName = new ResourceName("hostname", "deviceId");
         static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>();
         static readonly DockerConfig Config1 = new DockerConfig("image1");
+        static readonly DockerConfig Config2 = new DockerConfig("image2");
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
         static readonly IRuntimeInfo RuntimeInfo = Mock.Of<IRuntimeInfo>();
         static readonly IKubernetes DefaultClient = Mock.Of<IKubernetes>();
@@ -61,6 +62,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
 
             await Assert.ThrowsAsync<InvalidIdentityException>(
                 () => planner.PlanAsync(addRunning, ModuleSet.Empty, RuntimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty));
+        }
+
+        [Fact]
+        [Unit]
+        public async void KubernetesPlannerNoOverwriteAgentModules()
+        {
+            IModule m1 = new DockerModule(Constants.EdgeAgentModuleName, "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            IModule m2 = new DockerModule(Constants.EdgeAgentModuleName, "v1", ModuleStatus.Running, RestartPolicy.Always, Config2, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            ModuleSet desired = ModuleSet.Create(m1);
+            ModuleSet current = ModuleSet.Create(m2);
+
+            var planner = new KubernetesPlanner(Namespace, ResourceName, DefaultClient, DefaultCommandFactory, ConfigProvider);
+            var plan = await planner.PlanAsync(desired, current, RuntimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty);
+            Assert.Equal(Plan.Empty, plan);
         }
 
         [Fact]

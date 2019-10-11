@@ -11,7 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
-    using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -19,7 +18,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     using Newtonsoft.Json;
     using Xunit;
     using Constants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
-    using EmptyStruct = global::Docker.DotNet.Models.EmptyStruct;
 
     public class EdgeDeploymentCommandTest
     {
@@ -39,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Unit]
         public void ConstructorThrowsOnInvalidParams()
         {
-            KubernetesConfig config = new KubernetesConfig("image", CreateOptions(), Option.None<AuthConfig>());
+            KubernetesConfig config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.None<AuthConfig>());
             IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             KubernetesModule km1 = new KubernetesModule(m1, config);
             KubernetesModule[] modules = { km1 };
@@ -61,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 .Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(DockerAuth)));
             var configProvider = new Mock<ICombinedConfigProvider<CombinedKubernetesConfig>>();
             configProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
-                .Returns(() => new CombinedKubernetesConfig("test-image:1", CreateOptions(image: "test-image:1"), Option.Maybe(ImagePullSecret)));
+                .Returns(() => new CombinedKubernetesConfig("test-image:1", CreatePodParameters.Create(image: "test-image:1"), Option.Maybe(ImagePullSecret)));
             bool getSecretCalled = false;
             bool postSecretCalled = false;
             bool getCrdCalled = false;
@@ -125,7 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 .Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(DockerAuth)));
             var configProvider = new Mock<ICombinedConfigProvider<CombinedKubernetesConfig>>();
             configProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
-                .Returns(() => new CombinedKubernetesConfig("test-image:1", CreateOptions(image: "test-image:1"), Option.Maybe(ImagePullSecret)));
+                .Returns(() => new CombinedKubernetesConfig("test-image:1", CreatePodParameters.Create(image: "test-image:1"), Option.Maybe(ImagePullSecret)));
             EdgeDeploymentDefinition postedEdgeDeploymentDefinition = null;
             bool postCrdCalled = false;
 
@@ -182,7 +180,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 .Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(DockerAuth)));
             var configProvider = new Mock<ICombinedConfigProvider<CombinedKubernetesConfig>>();
             configProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
-                .Returns(() => new CombinedKubernetesConfig("test-image:1", CreateOptions(image: "test-image:1"), Option.Maybe(ImagePullSecret)));
+                .Returns(() => new CombinedKubernetesConfig("test-image:1", CreatePodParameters.Create(image: "test-image:1"), Option.Maybe(ImagePullSecret)));
 
             var existingSecret = new V1Secret("v1", secretData, type: Constants.K8sPullSecretType, kind: "Secret", metadata: secretMeta);
             var existingDeployment = new EdgeDeploymentDefinition(Constants.EdgeDeployment.ApiVersion, Constants.EdgeDeployment.Kind, new V1ObjectMeta(name: ResourceName), new List<KubernetesModule>());
@@ -250,7 +248,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 .Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(DockerAuth)));
             var configProvider = new Mock<ICombinedConfigProvider<CombinedKubernetesConfig>>();
             configProvider.Setup(cp => cp.GetCombinedConfig(It.IsAny<DockerModule>(), Runtime))
-                .Returns(() => new CombinedKubernetesConfig("test-image:1", CreateOptions(image: "test-image:1"), Option.Maybe(ImagePullSecret)));
+                .Returns(() => new CombinedKubernetesConfig("test-image:1", CreatePodParameters.Create(image: "test-image:1"), Option.Maybe(ImagePullSecret)));
             bool getSecretCalled = false;
             bool putSecretCalled = false;
             int postSecretCalled = 0;
@@ -330,18 +328,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 Assert.False(putCrdCalled, nameof(putCrdCalled));
             }
         }
-
-        static CreatePodParameters CreateOptions(
-            IList<string> env = null,
-            IDictionary<string, EmptyStruct> exposedPorts = null,
-            HostConfig hostConfig = null,
-            string image = null,
-            IDictionary<string, string> labels = null,
-            NetworkingConfig networkingConfig = null,
-            IDictionary<string, string> nodeSelector = null)
-            => new CreatePodParameters(env, exposedPorts, hostConfig, image, labels, networkingConfig)
-            {
-                NodeSelector = Option.Maybe(nodeSelector)
-            };
     }
 }
