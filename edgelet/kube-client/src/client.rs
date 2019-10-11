@@ -613,6 +613,34 @@ where
         .flatten()
     }
 
+    pub fn delete_service_account(
+        &mut self,
+        namespace: &str,
+        name: &str,
+    ) -> impl Future<Item = (), Error = Error> {
+        api_core::ServiceAccount::delete_namespaced_service_account(
+            name,
+            namespace,
+            DeleteOptional::default(),
+        )
+            .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::ServiceAccountDelete))))
+            .map(|req| {
+                self.request(req)
+                    .and_then(|response| match response {
+                        api_core::DeleteNamespacedServiceAccountResponse::OkStatus(_)
+                        | api_core::DeleteNamespacedServiceAccountResponse::OkValue(_) => Ok(()),
+                        _ => Err(Error::from(ErrorKind::Response(
+                            RequestType::ServiceAccountDelete,
+                        ))),
+                    })
+                    .map_err(|err| {
+                        Error::from(err.context(ErrorKind::Response(RequestType::ServiceAccountDelete)))
+                    })
+            })
+            .into_future()
+            .flatten()
+    }
+
     pub fn replace_role_binding(
         &mut self,
         namespace: &str,
@@ -625,7 +653,7 @@ where
             role_binding,
             api_rbac::ReplaceNamespacedRoleBindingOptional::default(),
         )
-        .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::RoleReplace))))
+        .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::RoleBindingReplace))))
         .map(|req| {
             self.request(req)
                 .and_then(|response| match response {
@@ -633,10 +661,38 @@ where
                     | api_rbac::ReplaceNamespacedRoleBindingResponse::Ok(role_binding) => {
                         Ok(role_binding)
                     }
-                    _ => Err(Error::from(ErrorKind::Response(RequestType::RoleReplace))),
+                    _ => Err(Error::from(ErrorKind::Response(RequestType::RoleBindingReplace))),
                 })
                 .map_err(|err| {
-                    Error::from(err.context(ErrorKind::Response(RequestType::RoleReplace)))
+                    Error::from(err.context(ErrorKind::Response(RequestType::RoleBindingReplace)))
+                })
+        })
+        .into_future()
+        .flatten()
+    }
+
+    pub fn delete_role_binding(
+        &mut self,
+        namespace: &str,
+        name: &str,
+    ) -> impl Future<Item = (), Error = Error> {
+        api_rbac::RoleBinding::delete_namespaced_role_binding(
+            name,
+            namespace,
+            DeleteOptional::default(),
+        )
+        .map_err(|err| Error::from(err.context(ErrorKind::Request(RequestType::RoleBindingDelete))))
+        .map(|req| {
+            self.request(req)
+                .and_then(|response| match response {
+                    api_rbac::DeleteNamespacedRoleBindingResponse::OkStatus(_)
+                    | api_rbac::DeleteNamespacedRoleBindingResponse::OkValue(_) => Ok(()),
+                    _ => Err(Error::from(ErrorKind::Response(
+                        RequestType::RoleBindingDelete,
+                    ))),
+                })
+                .map_err(|err| {
+                    Error::from(err.context(ErrorKind::Response(RequestType::RoleBindingDelete)))
                 })
         })
         .into_future()

@@ -147,7 +147,9 @@ pub enum RequestType {
     ServiceAccountCreate,
     ServiceAccountReplace,
     ServiceAccountGet,
-    RoleReplace,
+    ServiceAccountDelete,
+    RoleBindingReplace,
+    RoleBindingDelete,
 }
 
 impl Display for RequestType {
