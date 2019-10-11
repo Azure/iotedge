@@ -234,6 +234,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 return 1;
             }
 
+            //Initialize metrics
             var metricsConfig = new MetricsConfig(true, MetricsListenerConfig.Create(configuration));
             var metricsProvider = metricsConfig.Enabled
                              ? new MetricsProvider("edgeAgent", iothubHostname, deviceId)
