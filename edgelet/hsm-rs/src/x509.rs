@@ -40,20 +40,20 @@ impl X509 {
     pub fn new() -> Result<Self, Error> {
         let result = unsafe { hsm_client_x509_init() as isize };
         if result != 0 {
-            Err(result)?
+            return Err(result.into());
         }
         let if_ptr = unsafe { hsm_client_x509_interface() };
         if if_ptr.is_null() {
-            Err(ErrorKind::NullResponse)?
+            return Err(ErrorKind::NullResponse.into());
         }
         let interface = unsafe { *if_ptr };
         if let Some(handle) = interface.hsm_client_x509_create.map(|f| unsafe { f() }) {
             if handle.is_null() {
-                Err(ErrorKind::NullResponse)?
+                return Err(ErrorKind::NullResponse.into());
             }
             Ok(X509 { handle, interface })
         } else {
-            Err(ErrorKind::NullResponse)?
+            Err(ErrorKind::NullResponse.into())
         }
     }
 
@@ -76,7 +76,7 @@ impl GetDeviceIdentityCertificate for X509 {
             .ok_or(ErrorKind::NoneFn)?;
         let result = unsafe { key_fn(self.handle) };
         if result.is_null() {
-            Err(ErrorKind::NullResponse)?
+            Err(ErrorKind::NullResponse.into())
         } else {
             Ok(X509Data::new(self.interface, result))
         }
@@ -87,7 +87,7 @@ impl GetDeviceIdentityCertificate for X509 {
         let key_fn = self.interface.hsm_client_get_key.ok_or(ErrorKind::NoneFn)?;
         let result = unsafe { key_fn(self.handle) };
         if result.is_null() {
-            Err(ErrorKind::NullResponse)?
+            Err(ErrorKind::NullResponse.into())
         } else {
             Ok(X509Data::new(self.interface, result))
         }
@@ -136,7 +136,7 @@ impl GetDeviceIdentityCertificate for X509 {
                 ptr as *const _,
                 key_ln,
             )),
-            _ => Err(ErrorKind::PrivateKeySignFn)?,
+            _ => Err(ErrorKind::PrivateKeySignFn.into()),
         }
     }
 
@@ -148,12 +148,12 @@ impl GetDeviceIdentityCertificate for X509 {
             .ok_or(ErrorKind::NoneFn)?;
         let cert_info_handle = unsafe { if_fn(self.handle) };
         if cert_info_handle.is_null() {
-            Err(ErrorKind::HsmCertificateFailure)?
+            Err(ErrorKind::HsmCertificateFailure.into())
         } else {
             let handle = HsmCertificate::from(cert_info_handle);
             match handle {
                 Ok(h) => Ok(h),
-                Err(_) => Err(ErrorKind::HsmCertificateFailure)?,
+                Err(_) => Err(ErrorKind::HsmCertificateFailure.into()),
             }
         }
     }
