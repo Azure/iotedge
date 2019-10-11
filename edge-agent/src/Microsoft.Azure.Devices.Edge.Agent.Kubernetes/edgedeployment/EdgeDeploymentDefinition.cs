@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         [JsonConverter(typeof(OptionConverter<EdgeDeploymentStatus>))]
         public Option<EdgeDeploymentStatus> Status { get; }
 
-        public EdgeDeploymentDefinition(string apiVersion, string kind, V1ObjectMeta metadata, IList<KubernetesModule> spec, EdgeDeploymentStatus status = null)
+        public EdgeDeploymentDefinition(string apiVersion, string kind, V1ObjectMeta metadata, IReadOnlyList<KubernetesModule> spec, EdgeDeploymentStatus status = null)
         {
             this.ApiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
             this.Kind = Preconditions.CheckNonWhiteSpace(kind, nameof(kind));
