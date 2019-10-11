@@ -1578,7 +1578,7 @@ fn storage_mounted_from_host(
 
     if !mounted_directories
         .chain(volume_directories)
-        .any(|container_directory| container_directory == storage_directory)
+        .any(|container_directory| storage_directory.starts_with(container_directory))
     {
         return Ok(CheckResult::Warning(
             Context::new(format!(
