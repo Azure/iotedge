@@ -10,7 +10,7 @@ use crate::check::{checker::Checker, Check, CheckResult};
 
 #[derive(Default, serde_derive::Serialize)]
 pub struct IdentityCertificateExpiry {
-    // provisioning: Option<Provisioning>, /* Note: contains shared keys */
+    provisioning: Option<String>,
     certificate_info: Option<CertificateValidity>,
 }
 impl Checker for IdentityCertificateExpiry {
@@ -34,7 +34,7 @@ impl IdentityCertificateExpiry {
         } else {
             return Ok(CheckResult::Skipped);
         };
-        // self.provisioning = Some(settings.provisioning().to_owned());
+        self.provisioning = Some(settings.provisioning().to_string());
 
         match settings.provisioning() {
             Provisioning::Dps(dps) => {

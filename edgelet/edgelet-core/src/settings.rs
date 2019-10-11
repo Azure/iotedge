@@ -404,6 +404,11 @@ pub enum Provisioning {
     Dps(Box<Dps>),
     External(External),
 }
+impl Provisioning {
+    pub fn to_string(&self) -> String {
+        format!("{:?}", self)
+    }
+}
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Connect {
