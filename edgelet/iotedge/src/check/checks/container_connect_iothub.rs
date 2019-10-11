@@ -2,42 +2,42 @@ use crate::check::{
     checker::Checker, upstream_protocol_port::UpstreamProtocolPort, Check, CheckResult,
 };
 
-pub fn get_host_container_iothub_tests() -> Vec<Box<dyn Checker>> {
+pub(crate) fn get_host_container_iothub_tests() -> Vec<Box<dyn Checker>> {
     vec![
         #[cfg(unix)]
-        make_box(
+        make_check(
             "container-default-connect-iothub-amqp",
             "container on the default network can connect to IoT Hub AMQP port",
             UpstreamProtocolPort::Amqp,
             false,
         ),
         #[cfg(unix)]
-        make_box(
+        make_check(
             "container-default-connect-iothub-https",
             "container on the default network can connect to IoT Hub HTTPS / WebSockets port",
             UpstreamProtocolPort::Https,
             false,
         ),
         #[cfg(unix)]
-        make_box(
+        make_check(
             "container-default-connect-iothub-mqtt",
             "container on the default network can connect to IoT Hub MQTT port",
             UpstreamProtocolPort::Mqtt,
             false,
         ),
-        make_box(
+        make_check(
             "container-connect-iothub-amqp",
             "container on the IoT Edge module network can connect to IoT Hub AMQP port",
             UpstreamProtocolPort::Amqp,
             true,
         ),
-        make_box(
+        make_check(
             "container-connect-iothub-https",
             "container on the IoT Edge module network can connect to IoT Hub HTTPS / WebSockets port",
             UpstreamProtocolPort::Https,
             true,
         ),
-        make_box(
+        make_check(
             "container-connect-iothub-mqtt",
             "container on the IoT Edge module network can connect to IoT Hub MQTT port",
             UpstreamProtocolPort::Mqtt,
@@ -136,7 +136,7 @@ impl ContainerConnectIotHub {
     }
 }
 
-fn make_box(
+fn make_check(
     id: &'static str,
     description: &'static str,
     upstream_protocol_port: UpstreamProtocolPort,

@@ -5,7 +5,6 @@ use crate::check::{checker::Checker, Check, CheckResult};
 #[derive(Default, serde_derive::Serialize)]
 pub struct ContainerEngineIsMoby {
     docker_server_version: Option<String>,
-    #[cfg(windows)]
     moby_runtime_uri: Option<String>,
 }
 impl Checker for ContainerEngineIsMoby {

@@ -2,19 +2,19 @@ use crate::check::{
     checker::Checker, upstream_protocol_port::UpstreamProtocolPort, Check, CheckResult,
 };
 
-pub fn get_host_connect_iothub_tests() -> Vec<Box<dyn Checker>> {
+pub(crate) fn get_host_connect_iothub_tests() -> Vec<Box<dyn Checker>> {
     vec![
-        make_box(
+        make_check(
             "host-connect-iothub-amqp",
             "host can connect to and perform TLS handshake with IoT Hub AMQP port",
             UpstreamProtocolPort::Amqp,
         ),
-        make_box(
+        make_check(
             "host-connect-iothub-https",
             "host can connect to and perform TLS handshake with IoT Hub HTTPS / WebSockets port",
             UpstreamProtocolPort::Https,
         ),
-        make_box(
+        make_check(
             "host-connect-iothub-mqtt",
             "host can connect to and perform TLS handshake with IoT Hub MQTT port",
             UpstreamProtocolPort::Mqtt,
@@ -65,7 +65,7 @@ impl HostConnectIotHub {
     }
 }
 
-fn make_box(
+fn make_check(
     id: &'static str,
     description: &'static str,
     upstream_protocol_port: UpstreamProtocolPort,

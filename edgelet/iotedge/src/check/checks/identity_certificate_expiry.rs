@@ -66,10 +66,10 @@ impl IdentityCertificateExpiry {
 }
 
 #[derive(Debug, serde_derive::Serialize, Clone)]
-pub struct CertificateValidity {
+pub(crate) struct CertificateValidity {
     cert_name: String,
     cert_path: PathBuf,
-    pub not_after: chrono::DateTime<chrono::Utc>,
+    pub(crate) not_after: chrono::DateTime<chrono::Utc>,
     not_before: chrono::DateTime<chrono::Utc>,
 }
 
@@ -115,7 +115,7 @@ impl CertificateValidity {
         })
     }
 
-    pub(crate) fn to_check_result(&self) -> Result<CheckResult, failure::Error> {
+    fn to_check_result(&self) -> Result<CheckResult, failure::Error> {
         let cert_path_displayable = self.cert_path.display();
 
         let now = chrono::Utc::now();

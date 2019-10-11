@@ -228,6 +228,7 @@ impl Check {
                     Box::new(ContainerEngineInstalled::default()),
                     Box::new(WindowsHostVersion::default()),
                     Box::new(Hostname::default()),
+                    Box::new(ConnectManagementUri::default()),
                     Box::new(IotedgedVersion::default()),
                     Box::new(HostLocalTime::default()),
                     Box::new(ContainerLocalTime::default()),
