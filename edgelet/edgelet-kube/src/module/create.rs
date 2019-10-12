@@ -234,25 +234,27 @@ mod tests {
     use std::collections::HashMap;
 
     use hyper::service::service_fn;
-    use hyper::{Body, Method, Request, StatusCode};
+    use hyper::Method;
     use maplit::btreemap;
-    use serde_json::json;
     use tokio::runtime::Runtime;
 
     use docker::models::{AuthConfig, ContainerCreateBody, HostConfig, Mount};
     use edgelet_core::{ImagePullPolicy, ModuleSpec};
     use edgelet_docker::DockerConfig;
     use edgelet_test_utils::routes;
-    use edgelet_test_utils::web::{
-        make_req_dispatcher, HttpMethod, RequestHandler, RequestPath, ResponseFuture,
-    };
+    use edgelet_test_utils::web::{make_req_dispatcher, HttpMethod, RequestHandler, RequestPath};
 
     use crate::module::create::{
         create_or_update_deployment, create_or_update_role_binding,
         create_or_update_service_account,
     };
     use crate::module::create_module;
-    use crate::tests::{create_runtime, make_settings, not_found_handler, response};
+    use crate::tests::{
+        create_deployment_handler, create_runtime, create_service_account_handler,
+        deployment_list_handler, empty_deployment_list_handler, empty_service_account_list_handler,
+        make_settings, not_found_handler, replace_deployment_handler, replace_role_binding_handler,
+        replace_service_account_handler, service_account_list_handler,
+    };
 
     #[test]
     fn it_creates_new_deployment_if_does_not_exist() {
@@ -391,164 +393,6 @@ mod tests {
 
         let mut runtime = Runtime::new().unwrap();
         runtime.block_on(task).unwrap();
-    }
-
-    fn empty_deployment_list_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
-        move |_| {
-            response(StatusCode::OK, || {
-                json!({
-                    "kind": "DeploymentList",
-                    "apiVersion": "apps/v1",
-                    "items": []
-                })
-                .to_string()
-            })
-        }
-    }
-
-    fn deployment_list_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
-        move |_| {
-            response(StatusCode::OK, || {
-                json!({
-                    "kind": "DeploymentList",
-                    "apiVersion": "apps/v1",
-                    "items": [
-                        {
-                            "metadata": {
-                                "name": "edgeagent",
-                                "namespace": "my-namespace",
-                            }
-                        }
-                    ]
-                })
-                .to_string()
-            })
-        }
-    }
-
-    fn create_deployment_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
-        move |_| {
-            response(StatusCode::CREATED, || {
-                json!({
-                    "kind": "Deployment",
-                    "apiVersion": "apps/v1",
-                    "metadata": {
-                        "name": "edgeagent",
-                        "namespace": "my-namespace",
-                    },
-                })
-                .to_string()
-            })
-        }
-    }
-
-    fn replace_deployment_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
-        move |_| {
-            response(StatusCode::OK, || {
-                json!({
-                    "kind": "Deployment",
-                    "apiVersion": "apps/v1",
-                    "metadata": {
-                        "name": "edgeagent",
-                        "namespace": "my-namespace",
-                    },
-                })
-                .to_string()
-            })
-        }
-    }
-
-    fn empty_service_account_list_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
-        move |_| {
-            response(StatusCode::OK, || {
-                json!({
-                    "kind": "ServiceAccountList",
-                    "apiVersion": "v1",
-                    "items": []
-                })
-                .to_string()
-            })
-        }
-    }
-
-    fn service_account_list_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
-        move |_| {
-            response(StatusCode::OK, || {
-                json!({
-                    "kind": "ServiceAccountList",
-                    "apiVersion": "v1",
-                    "items": [
-                        {
-                            "metadata": {
-                                "name": "edgeagent",
-                                "namespace": "my-namespace",
-                            }
-                        }
-                    ]
-                })
-                .to_string()
-            })
-        }
-    }
-
-    fn create_service_account_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
-        move |_| {
-            response(StatusCode::CREATED, || {
-                json!({
-                    "kind": "ServiceAccount",
-                    "apiVersion": "v1",
-                    "metadata": {
-                        "name": "edgeagent",
-                        "namespace": "my-namespace",
-                    }
-                })
-                .to_string()
-            })
-        }
-    }
-
-    fn replace_service_account_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
-        move |_| {
-            response(StatusCode::OK, || {
-                json!({
-                    "kind": "ServiceAccount",
-                    "apiVersion": "v1",
-                    "metadata": {
-                        "name": "edgeagent",
-                        "namespace": "my-namespace",
-                    }
-                })
-                .to_string()
-            })
-        }
-    }
-
-    fn replace_role_binding_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
-        move |_| {
-            response(StatusCode::OK, || {
-                json!({
-                    "kind": "RoleBinding",
-                    "apiVersion": "rbac.authorization.k8s.io/v1",
-                    "metadata": {
-                        "name": "edgeagent",
-                        "namespace": "my-namespace",
-                    },
-                    "subjects": [
-                        {
-                            "kind": "ServiceAccount",
-                            "name": "edgeagent",
-                            "namespace": "my-namespace"
-                        }
-                    ],
-                    "roleRef": {
-                        "apiGroup": "rbac.authorization.k8s.io",
-                        "kind": "ClusterRole",
-                        "name": "cluster-admin"
-                    }
-                })
-                .to_string()
-            })
-        }
     }
 
     fn create_module_spec(name: &str) -> ModuleSpec<DockerConfig> {

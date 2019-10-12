@@ -148,4 +148,163 @@ mod tests {
 
         Box::new(future::ok(response))
     }
+
+    pub fn create_service_account_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
+        move |_| {
+            response(StatusCode::CREATED, || {
+                json!({
+                    "kind": "ServiceAccount",
+                    "apiVersion": "v1",
+                    "metadata": {
+                        "name": "edgeagent",
+                        "namespace": "my-namespace",
+                    }
+                })
+                .to_string()
+            })
+        }
+    }
+
+    pub fn empty_deployment_list_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
+        move |_| {
+            response(StatusCode::OK, || {
+                json!({
+                    "kind": "DeploymentList",
+                    "apiVersion": "apps/v1",
+                    "items": []
+                })
+                .to_string()
+            })
+        }
+    }
+
+    pub fn deployment_list_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
+        move |_| {
+            response(StatusCode::OK, || {
+                json!({
+                    "kind": "DeploymentList",
+                    "apiVersion": "apps/v1",
+                    "items": [
+                        {
+                            "metadata": {
+                                "name": "edgeagent",
+                                "namespace": "my-namespace",
+                            }
+                        }
+                    ]
+                })
+                .to_string()
+            })
+        }
+    }
+
+    pub fn create_deployment_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
+        move |_| {
+            response(StatusCode::CREATED, || {
+                json!({
+                    "kind": "Deployment",
+                    "apiVersion": "apps/v1",
+                    "metadata": {
+                        "name": "edgeagent",
+                        "namespace": "my-namespace",
+                    },
+                })
+                .to_string()
+            })
+        }
+    }
+
+    pub fn replace_deployment_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
+        move |_| {
+            response(StatusCode::OK, || {
+                json!({
+                    "kind": "Deployment",
+                    "apiVersion": "apps/v1",
+                    "metadata": {
+                        "name": "edgeagent",
+                        "namespace": "my-namespace",
+                    },
+                })
+                .to_string()
+            })
+        }
+    }
+
+    pub fn empty_service_account_list_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone
+    {
+        move |_| {
+            response(StatusCode::OK, || {
+                json!({
+                    "kind": "ServiceAccountList",
+                    "apiVersion": "v1",
+                    "items": []
+                })
+                .to_string()
+            })
+        }
+    }
+
+    pub fn service_account_list_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
+        move |_| {
+            response(StatusCode::OK, || {
+                json!({
+                    "kind": "ServiceAccountList",
+                    "apiVersion": "v1",
+                    "items": [
+                        {
+                            "metadata": {
+                                "name": "edgeagent",
+                                "namespace": "my-namespace",
+                            }
+                        }
+                    ]
+                })
+                .to_string()
+            })
+        }
+    }
+
+    pub fn replace_service_account_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
+        move |_| {
+            response(StatusCode::OK, || {
+                json!({
+                    "kind": "ServiceAccount",
+                    "apiVersion": "v1",
+                    "metadata": {
+                        "name": "edgeagent",
+                        "namespace": "my-namespace",
+                    }
+                })
+                .to_string()
+            })
+        }
+    }
+
+    pub fn replace_role_binding_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
+        move |_| {
+            response(StatusCode::OK, || {
+                json!({
+                    "kind": "RoleBinding",
+                    "apiVersion": "rbac.authorization.k8s.io/v1",
+                    "metadata": {
+                        "name": "edgeagent",
+                        "namespace": "my-namespace",
+                    },
+                    "subjects": [
+                        {
+                            "kind": "ServiceAccount",
+                            "name": "edgeagent",
+                            "namespace": "my-namespace"
+                        }
+                    ],
+                    "roleRef": {
+                        "apiGroup": "rbac.authorization.k8s.io",
+                        "kind": "ClusterRole",
+                        "name": "cluster-admin"
+                    }
+                })
+                .to_string()
+            })
+        }
+    }
 }
