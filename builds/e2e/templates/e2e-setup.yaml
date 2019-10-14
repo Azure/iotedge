@@ -105,7 +105,7 @@ steps:
     }
 
     echo "DotNet_Runtime = $DotNet_Runtime"
-
+    echo "which = $(which dotnet)"
     $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
     dotnet build -c Release -p:DotNet_Runtime=$DotNet_Runtime $testDir
     echo " "
