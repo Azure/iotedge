@@ -36,7 +36,7 @@ jobs:
       displayName: Git clean
 
     - task: DotNetCoreInstaller@1
-      displayName: Install .NET Core
+      displayName: Install .NET SDK 3.0.100
       inputs:
         packageType: sdk
         version: $(dotnet-sdk)
