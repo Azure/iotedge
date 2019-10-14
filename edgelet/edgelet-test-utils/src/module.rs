@@ -106,7 +106,7 @@ impl RuntimeSettings for TestSettings {
         unimplemented!()
     }
 
-    fn certificates(&self) -> Option<&Certificates> {
+    fn certificates(&self) -> &Certificates {
         unimplemented!()
     }
 
@@ -120,6 +120,7 @@ pub struct TestModule<E, C> {
     name: String,
     config: C,
     state: Result<ModuleRuntimeState, E>,
+    logs: TestBody<E>,
 }
 
 impl<E: Fail> TestModule<E, TestConfig> {
@@ -128,6 +129,7 @@ impl<E: Fail> TestModule<E, TestConfig> {
             name,
             config,
             state,
+            logs: TestBody::default(),
         }
     }
 }
@@ -138,6 +140,23 @@ impl<E: Fail, C> TestModule<E, C> {
             name,
             config,
             state,
+            logs: TestBody::default(),
+        }
+    }
+}
+
+impl<E: Fail> TestModule<E, TestConfig> {
+    pub fn new_with_logs(
+        name: String,
+        config: TestConfig,
+        state: Result<ModuleRuntimeState, E>,
+        logs: Vec<&'static [u8]>,
+    ) -> Self {
+        TestModule {
+            name,
+            config,
+            state,
+            logs: TestBody::new(logs),
         }
     }
 }
@@ -204,36 +223,48 @@ where
     }
 }
 
-pub struct EmptyBody<E> {
-    phantom: PhantomData<E>,
+#[derive(Debug)]
+pub struct TestBody<E> {
+    data: Vec<&'static [u8]>,
+    stream: futures::stream::IterOk<std::vec::IntoIter<&'static [u8]>, E>,
 }
 
-impl<E> EmptyBody<E> {
-    pub fn new() -> Self {
-        EmptyBody {
-            phantom: PhantomData,
+impl<E> TestBody<E> {
+    pub fn new(logs: Vec<&'static [u8]>) -> Self {
+        TestBody {
+            data: logs.clone(),
+            stream: stream::iter_ok(logs),
         }
     }
 }
 
-impl<E> Default for EmptyBody<E> {
+impl<E> Default for TestBody<E> {
     fn default() -> Self {
-        EmptyBody::new()
+        TestBody::new(vec![&[
+            0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, b'A',
+        ]])
     }
 }
 
-impl<E> Stream for EmptyBody<E> {
-    type Item = String;
+impl<E> Stream for TestBody<E> {
+    type Item = &'static [u8];
     type Error = E;
 
     fn poll(&mut self) -> Poll<Option<Self::Item>, Self::Error> {
-        Ok(Async::Ready(None))
+        self.stream.poll()
     }
 }
 
-impl<E> From<EmptyBody<E>> for Body {
-    fn from(_: EmptyBody<E>) -> Body {
-        Body::empty()
+impl<E> Clone for TestBody<E> {
+    fn clone(&self) -> Self {
+        Self::new(self.data.clone())
+    }
+}
+
+impl<E> From<TestBody<E>> for Body {
+    fn from(old: TestBody<E>) -> Body {
+        let temp: Vec<u8> = old.data.into_iter().flat_map(ToOwned::to_owned).collect();
+        Body::from(temp)
     }
 }
 
@@ -292,8 +323,8 @@ where
     type Config = S::Config;
     type Module = TestModule<E, S::Config>;
     type ModuleRegistry = TestRegistry<E, S::Config>;
-    type Chunk = String;
-    type Logs = EmptyBody<Self::Error>;
+    type Chunk = &'static [u8];
+    type Logs = TestBody<E>;
 
     type CreateFuture = FutureResult<(), Self::Error>;
     type GetFuture = FutureResult<(Self::Module, ModuleRuntimeState), Self::Error>;
@@ -379,7 +410,7 @@ where
 
     fn logs(&self, _id: &str, _options: &LogOptions) -> Self::LogsFuture {
         match self.module.as_ref().unwrap() {
-            Ok(ref _m) => future::ok(EmptyBody::new()),
+            Ok(ref m) => future::ok(m.logs.clone()),
             Err(ref e) => future::err(e.clone()),
         }
     }

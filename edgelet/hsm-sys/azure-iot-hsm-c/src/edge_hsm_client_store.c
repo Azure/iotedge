@@ -1556,12 +1556,12 @@ static int load_if_cert_and_key_exist_by_alias
     return result;
 }
 
-static int create_owner_ca_cert(void)
+static int create_owner_ca_cert(uint64_t validity)
 {
     int result;
     CERT_PROPS_HANDLE ca_props;
     ca_props = create_ca_certificate_properties(OWNER_CA_COMMON_NAME,
-                                                CA_VALIDITY,
+                                                validity,
                                                 OWNER_CA_ALIAS,
                                                 OWNER_CA_ALIAS,
                                                 CERTIFICATE_TYPE_CA);
@@ -1580,12 +1580,12 @@ static int create_owner_ca_cert(void)
     return result;
 }
 
-static int create_device_ca_cert(void)
+static int create_device_ca_cert(uint64_t validity)
 {
     int result;
     CERT_PROPS_HANDLE ca_props;
     ca_props = create_ca_certificate_properties(DEVICE_CA_COMMON_NAME,
-                                                CA_VALIDITY,
+                                                validity,
                                                 hsm_get_device_ca_alias(),
                                                 OWNER_CA_ALIAS,
                                                 CERTIFICATE_TYPE_CA);
@@ -1610,7 +1610,7 @@ static int create_device_ca_cert(void)
  * Validate each certificate since it might have expired or the issuer certificate has been
  * modified.
  */
-static int generate_edge_hsm_certificates_if_needed(void)
+static int generate_edge_hsm_certificates_if_needed(uint64_t auto_generated_ca_lifetime)
 {
     int result;
 
@@ -1627,11 +1627,11 @@ static int generate_edge_hsm_certificates_if_needed(void)
              (load_status == LOAD_ERR_NOT_FOUND))
     {
         LOG_INFO("Load status %d. Regenerating owner and device CA certs and keys", load_status);
-        if (create_owner_ca_cert() != 0)
+        if (create_owner_ca_cert(auto_generated_ca_lifetime) != 0)
         {
             result = __FAILURE__;
         }
-        else if (create_device_ca_cert() != 0)
+        else if (create_device_ca_cert(auto_generated_ca_lifetime) != 0)
         {
             result = __FAILURE__;
         }
@@ -1655,7 +1655,7 @@ static int generate_edge_hsm_certificates_if_needed(void)
                  (load_status == LOAD_ERR_NOT_FOUND))
         {
             LOG_DEBUG("Load status %d. Generating device CA cert and key", load_status);
-            if (create_device_ca_cert() != 0)
+            if (create_device_ca_cert(auto_generated_ca_lifetime) != 0)
             {
                 result = __FAILURE__;
             }
@@ -1828,7 +1828,7 @@ static int hsm_provision_edge_id_certificate(void)
     return result;
 }
 
-static int hsm_provision_edge_ca_certificates(void)
+static int hsm_provision_edge_ca_certificates(uint64_t auto_generated_ca_lifetime)
 {
     int result;
     unsigned int mask = 0, i = 0;
@@ -1912,7 +1912,7 @@ static int hsm_provision_edge_ca_certificates(void)
             result = __FAILURE__;
         }
         // none of the certificate files were provided so generate them if needed
-        else if (!env_set && (generate_edge_hsm_certificates_if_needed() != 0))
+        else if (!env_set && (generate_edge_hsm_certificates_if_needed(auto_generated_ca_lifetime) != 0))
         {
             LOG_ERROR("Failure generating required HSM certificates");
             result = __FAILURE__;
@@ -1968,7 +1968,7 @@ static int hsm_provision_edge_ca_certificates(void)
     return result;
 }
 
-static int hsm_provision(void)
+static int hsm_provision(uint64_t auto_generated_ca_lifetime)
 {
     int result;
 
@@ -1978,7 +1978,7 @@ static int hsm_provision(void)
                   "Set environment variable IOTEDGE_HOMEDIR to a valid path.");
         result = __FAILURE__;
     }
-    else if (hsm_provision_edge_ca_certificates() != 0)
+    else if (hsm_provision_edge_ca_certificates(auto_generated_ca_lifetime) != 0)
     {
         result = __FAILURE__;
     }
@@ -1998,7 +1998,7 @@ static int hsm_deprovision(void)
 //##############################################################################
 // Store interface implementation
 //##############################################################################
-static int edge_hsm_client_store_create(const char* store_name)
+static int edge_hsm_client_store_create(const char* store_name, uint64_t auto_generated_ca_lifetime)
 {
     int result;
 
@@ -2017,7 +2017,7 @@ static int edge_hsm_client_store_create(const char* store_name)
         }
         else
         {
-            if (hsm_provision() != 0)
+            if (hsm_provision(auto_generated_ca_lifetime) != 0)
             {
                 destroy_store(g_crypto_store);
                 g_crypto_store = NULL;

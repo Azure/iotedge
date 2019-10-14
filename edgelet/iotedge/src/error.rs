@@ -15,6 +15,12 @@ pub enum ErrorKind {
     #[fail(display = "Invalid value for --host parameter")]
     BadHostParameter,
 
+    #[fail(display = "Invalid value for --since parameter")]
+    BadSinceParameter,
+
+    #[fail(display = "Invalid value for --tail parameter")]
+    BadTailParameter,
+
     #[fail(display = "")]
     Diagnostics,
 
@@ -24,14 +30,17 @@ pub enum ErrorKind {
     )]
     FetchLatestVersions(FetchLatestVersionsReason),
 
+    #[fail(display = "Could not initialize tokio runtime")]
+    InitializeTokio,
+
     #[fail(display = "Missing --host parameter")]
     MissingHostParameter,
 
     #[fail(display = "A module runtime error occurred")]
     ModuleRuntime,
 
-    #[fail(display = "Could not initialize tokio runtime")]
-    InitializeTokio,
+    #[fail(display = "Could not generate support bundle")]
+    SupportBundle,
 
     #[fail(display = "Could not write to stdout")]
     WriteToStdout,

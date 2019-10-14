@@ -139,6 +139,10 @@ provisioning:
 #     trusted_ca_certs - URI containing all the trusted CA
 #                        certificates required for Edge module communication
 #                        Optionally can be specified as a file path.
+#     auto_generated_ca_lifetime_days - The lifetime of the auto-generated workload CA certificate.
+#                                       If device_ca_cert and device_ca_pk have not been set,
+#                                       then this also applies to the auto-generated device CA certificate.
+#                                       Defaults to 90 days.
 #
 # Note:
 # The values of all of these fields can be specified either as a
@@ -150,6 +154,7 @@ provisioning:
 #   device_ca_cert: "<ADD URI TO DEVICE CA CERTIFICATE HERE>"
 #   device_ca_pk: "<ADD URI TO DEVICE CA PRIVATE KEY HERE>"
 #   trusted_ca_certs: "<ADD URI TO TRUSTED CA CERTIFICATES HERE>"
+#   auto_generated_ca_lifetime_days: <value>
 
 ###############################################################################
 # Edge Agent module spec
