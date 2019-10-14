@@ -18,8 +18,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public static bool IsWindows() => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
 
-        protected EdgeCertificates GetEdgeQuickstartCertificates(string basePath) =>
-            new EdgeCertificates(
+        protected CaCertificates GetEdgeQuickstartCertificates(string basePath) =>
+            new CaCertificates(
                     FixedPaths.QuickStartCaCert.Cert(basePath),
                     FixedPaths.QuickStartCaCert.Key(basePath),
                     FixedPaths.QuickStartCaCert.TrustCert(basePath));

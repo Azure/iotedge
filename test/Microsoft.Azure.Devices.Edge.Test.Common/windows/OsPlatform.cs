@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
 
         public IEdgeDaemon CreateEdgeDaemon(Option<string> installerPath) => new EdgeDaemon(installerPath);
 
-        public async Task<Certificates> GenerateDeviceCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
+        public async Task<IdCertificates> GenerateIdentiyCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
         {
             var command = BuildCertCommand($"New-CACertsDevice '{deviceId}'", scriptPath);
             await this.RunScriptAsync(("powershell", command), token);
@@ -42,19 +42,19 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             await this.RunScriptAsync(("powershell", $"Import-Certificate -CertStoreLocation 'cert:\\LocalMachine\\Root' -FilePath " + Path.Combine(scriptPath, "certs", "azure-iot-test-only.root.ca.cert.pem") + " | Out-Host"), token);
             await this.RunScriptAsync(("powershell", $"Import-Certificate -CertStoreLocation 'cert:\\LocalMachine\\Root' -FilePath " + Path.Combine(scriptPath, "certs", "azure-iot-test-only.intermediate.cert.pem") + " | Out-Host"), token);
 
-            return new Certificates(deviceId, scriptPath);
+            return new IdCertificates(deviceId, scriptPath);
         }
 
-        public async Task<EdgeCertificates> GenerateEdgeCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
+        public async Task<CaCertificates> GenerateCaCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
         {
             string command = BuildCertCommand(
                 $"New-CACertsEdgeDevice '{deviceId}'",
                 scriptPath);
             await this.RunScriptAsync(("powershell", command), token);
-            return new EdgeCertificates(deviceId, scriptPath);
+            return new CaCertificates(deviceId, scriptPath);
         }
 
-        public EdgeCertificates GetEdgeQuickstartCertificates()
+        public CaCertificates GetEdgeQuickstartCertificates()
         {
             string certsBasePath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
             return this.GetEdgeQuickstartCertificates(certsBasePath);
         }
 
-        public void InstallEdgeCertificates(IEnumerable<X509Certificate2> certs, ITransportSettings transportSettings) =>
+        public void InstallCaCertificates(IEnumerable<X509Certificate2> certs, ITransportSettings transportSettings) =>
             transportSettings.SetupCertificateValidation(certs.First());
 
         public Task InstallRootCertificateAsync(string certPath, string keyPath, string password, string scriptPath, CancellationToken token)

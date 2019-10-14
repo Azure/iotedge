@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 Context.Current.Proxy);
         }
 
-        private string DeriveDeviceKey(byte[] groupKey, string registrationId)
+        string DeriveDeviceKey(byte[] groupKey, string registrationId)
         {
             using (var hmac = new HMACSHA256(groupKey))
             {
@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             }
         }
 
-        private string GetRegistrationId()
+        string GetRegistrationId()
         {
             return $"{Context.Current.DeviceId}-{TestContext.CurrentContext.Test.NormalizedName()}";
         }

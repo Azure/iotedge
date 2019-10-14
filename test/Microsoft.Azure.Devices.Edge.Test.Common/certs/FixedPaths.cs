@@ -6,15 +6,15 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
     {
         public sealed class DeviceIdentityCert
         {
-            static public string Cert(string deviceId) => $"certs/iot-device-{deviceId}-full-chain.cert.pem";
-            static public string Key(string deviceId) => $"private/iot-device-{deviceId}.key.pem";
+            public static string Cert(string deviceId) => $"certs/iot-device-{deviceId}-full-chain.cert.pem";
+            public static string Key(string deviceId) => $"private/iot-device-{deviceId}.key.pem";
         }
 
         public sealed class DeviceCaCert
         {
-            static public string Cert(string deviceId) => $"certs/iot-edge-device-{deviceId}-full-chain.cert.pem";
-            static public string Key(string deviceId) => $"private/iot-edge-device-{deviceId}.key.pem";
-            static public string TrustCert(string deviceId) => "certs/azure-iot-test-only.root.ca.cert.pem";
+            public static string Cert(string deviceId) => $"certs/iot-edge-device-{deviceId}-full-chain.cert.pem";
+            public static string Key(string deviceId) => $"private/iot-edge-device-{deviceId}.key.pem";
+            public static string TrustCert(string deviceId) => "certs/azure-iot-test-only.root.ca.cert.pem";
         }
 
         public sealed class RootCaCert
@@ -25,9 +25,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
 
         public sealed class QuickStartCaCert
         {
-            static public string Cert(string basePath) => Directory.GetFiles(Path.Combine(basePath, "certs"), "device_ca_alias*.pem")[0];
-            static public string Key(string basePath) => Directory.GetFiles(Path.Combine(basePath, "cert_keys"), "device_ca_alias*.pem")[0];
-            static public string TrustCert(string basePath) => Directory.GetFiles(Path.Combine(basePath, "certs"), "edge_owner_ca*.pem")[0];
+            public static string Cert(string basePath) => Directory.GetFiles(Path.Combine(basePath, "certs"), "device_ca_alias*.pem")[0];
+            public static string Key(string basePath) => Directory.GetFiles(Path.Combine(basePath, "cert_keys"), "device_ca_alias*.pem")[0];
+            public static string TrustCert(string basePath) => Directory.GetFiles(Path.Combine(basePath, "certs"), "edge_owner_ca*.pem")[0];
         }
     }
 }

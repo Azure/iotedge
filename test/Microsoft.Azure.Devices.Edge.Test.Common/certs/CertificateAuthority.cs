@@ -13,21 +13,21 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
     {
         readonly Option<string> scriptPath;
 
-        public EdgeCertificates EdgeCertificate { get; }
+        public CaCertificates EdgeCertificate { get; }
 
-        public Certificates Certificate { get; }
+        public IdCertificates IdCertificates { get; }
 
         public static async Task<CertificateAuthority> CreateAsync(string deviceId, RootCaKeys rootCa, string scriptPath, CancellationToken token)
         {
             (string rootCertificate, string rootPrivateKey, string rootPassword) = rootCa;
             await OsPlatform.Current.InstallRootCertificateAsync(rootCertificate, rootPrivateKey, rootPassword, scriptPath, token);
-            EdgeCertificates certs = await OsPlatform.Current.GenerateEdgeCertificatesAsync(deviceId, scriptPath, token);
+            CaCertificates certs = await OsPlatform.Current.GenerateCaCertificatesAsync(deviceId, scriptPath, token);
             return new CertificateAuthority(certs, scriptPath);
         }
 
         public static async Task<CertificateAuthority> CreateDpsX509CaAsync(string deviceId, RootCaKeys rootCa, string scriptPath, CancellationToken token)
         {
-            if (!File.Exists(Path.Combine(scriptPath, "certs", "azure-iot-test-only.root.ca.cert.pem")))
+            if (!File.Exists(Path.Combine(scriptPath, FixedPaths.RootCaCert.Cert)))
             {
                 // [9/26/2019] Setup all the environment for the certificates.
                 // More info: /iotedge/scripts/linux/runE2ETest.sh : run_test()
@@ -43,39 +43,39 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
                 Log.Verbose("----------------------------------------");
             }
 
-            Certificates x509Certificate = await OsPlatform.Current.GenerateDeviceCertificatesAsync(deviceId, scriptPath, token);
+            IdCertificates x509Certificate = await OsPlatform.Current.GenerateIdentiyCertificatesAsync(deviceId, scriptPath, token);
             return new CertificateAuthority(x509Certificate, scriptPath);
         }
 
         public static CertificateAuthority GetQuickstart()
         {
-            EdgeCertificates certs = OsPlatform.Current.GetEdgeQuickstartCertificates();
+            CaCertificates certs = OsPlatform.Current.GetEdgeQuickstartCertificates();
             return new CertificateAuthority(certs);
         }
 
-        CertificateAuthority(EdgeCertificates certs)
+        CertificateAuthority(CaCertificates certs)
         {
             this.EdgeCertificate = certs;
             this.scriptPath = Option.None<string>();
         }
 
-        CertificateAuthority(EdgeCertificates certs, string scriptPath)
+        CertificateAuthority(CaCertificates certs, string scriptPath)
         {
             this.EdgeCertificate = certs;
             this.scriptPath = Option.Maybe(scriptPath);
         }
 
-        CertificateAuthority(Certificates certs, string scriptPath)
+        CertificateAuthority(IdCertificates certs, string scriptPath)
         {
-            this.Certificate = certs;
+            this.IdCertificates = certs;
             this.scriptPath = Option.Maybe(scriptPath);
         }
 
-        public Task<Certificates> GenerateLeafCertificatesAsync(string leafDeviceId, CancellationToken token)
+        public Task<IdCertificates> GenerateLeafCertificatesAsync(string leafDeviceId, CancellationToken token)
         {
             const string Err = "Cannot generate certificates without script";
             string scriptPath = this.scriptPath.Expect(() => new InvalidOperationException(Err));
-            return OsPlatform.Current.GenerateDeviceCertificatesAsync(leafDeviceId, scriptPath, token);
+            return OsPlatform.Current.GenerateIdentiyCertificatesAsync(leafDeviceId, scriptPath, token);
         }
     }
 }
