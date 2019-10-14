@@ -7,8 +7,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
         {
             return new[]
             {
-                $"certs/iot-device-{deviceId}-full-chain.cert.pem",
-                $"private/iot-device-{deviceId}.key.pem"
+                FixedPaths.DeviceIdentityCert.Cert(deviceId),
+                FixedPaths.DeviceIdentityCert.Key(deviceId)
             };
         }
 

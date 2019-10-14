@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
         {
             static public string Cert(string deviceId) => $"certs/iot-edge-device-{deviceId}-full-chain.cert.pem";
             static public string Key(string deviceId) => $"private/iot-edge-device-{deviceId}.key.pem";
-            static public string TrustCert(string deviceId) => $"certs/azure-iot-test-only.root.ca.cert.pem";
+            static public string TrustCert(string deviceId) => "certs/azure-iot-test-only.root.ca.cert.pem";
         }
 
         public sealed class RootCaCert

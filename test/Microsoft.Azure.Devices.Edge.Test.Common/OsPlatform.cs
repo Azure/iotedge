@@ -34,8 +34,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             var files = new[]
             {
-                "certs/azure-iot-test-only.root.ca.cert.pem",
-                "private/azure-iot-test-only.root.ca.key.pem"
+                FixedPaths.RootCaCert.Cert,
+                FixedPaths.RootCaCert.Key
             };
 
             CheckFiles(files, basePath);
