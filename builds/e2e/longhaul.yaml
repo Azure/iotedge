@@ -89,8 +89,8 @@ jobs:
           snitch.storage.account: '$(snitch.storage.account)'
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
-          longHaul.desiredModulesToRestartCSV: '$(longhaul.desiredModulesToRestartCSV)'
-          longHaul.randomRestartIntervalInMins: '$(longhaul.randomRestartIntervalInMins)'
+          longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
+          longHaul.randomRestartIntervalInMins: '$(longHaul.randomRestartIntervalInMins)'
 
 ################################################################################
   - job: linux_arm32v7_moby
@@ -156,8 +156,8 @@ jobs:
           snitch.storage.account: '$(snitch.storage.account)'
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.arm32v7)'
-          longHaul.desiredModulesToRestartCSV: '$(longhaul.desiredModulesToRestartCSV)'
-          longHaul.randomRestartIntervalInMins: '$(longhaul.randomRestartIntervalInMins)'
+          longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
+          longHaul.randomRestartIntervalInMins: '$(longHaul.randomRestartIntervalInMins)'
 
 ################################################################################
   - job: linux_arm64v8_docker
@@ -223,8 +223,8 @@ jobs:
           snitch.storage.account: '$(snitch.storage.account)'
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.arm64v8)'
-          longHaul.desiredModulesToRestartCSV: '$(longhaul.desiredModulesToRestartCSV)'
-          longHaul.randomRestartIntervalInMins: '$(longhaul.randomRestartIntervalInMins)'
+          longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
+          longHaul.randomRestartIntervalInMins: '$(longHaul.randomRestartIntervalInMins)'
           
 ################################################################################
   - job: windows_amd64_moby
@@ -292,8 +292,8 @@ jobs:
           snitch.storage.account: '$(snitch.storage.account)'
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
-          longHaul.desiredModulesToRestartCSV: '$(longhaul.desiredModulesToRestartCSV)'
-          longHaul.randomRestartIntervalInMins: '$(longhaul.randomRestartIntervalInMins)'
+          longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
+          longHaul.randomRestartIntervalInMins: '$(longHaul.randomRestartIntervalInMins)'
 
 ################################################################################
   - job: windows_servercore_amd64_moby
@@ -361,8 +361,8 @@ jobs:
           snitch.storage.account: '$(snitch.storage.account)'
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
-          longHaul.desiredModulesToRestartCSV: '$(longhaul.desiredModulesToRestartCSV)'
-          longHaul.randomRestartIntervalInMins: '$(longhaul.randomRestartIntervalInMins)'
+          longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
+          longHaul.randomRestartIntervalInMins: '$(longHaul.randomRestartIntervalInMins)'
 
 ################################################################################
   - job: iotuap_amd64_moby
@@ -429,5 +429,5 @@ jobs:
           snitch.storage.account: '$(snitch.storage.account)'
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
-          longHaul.desiredModulesToRestartCSV: '$(longhaul.desiredModulesToRestartCSV)'
-          longHaul.randomRestartIntervalInMins: '$(longhaul.randomRestartIntervalInMins)'
+          longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
+          longHaul.randomRestartIntervalInMins: '$(longHaul.randomRestartIntervalInMins)'
