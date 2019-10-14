@@ -535,12 +535,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
                 { SystemProperties.DeviceId, id }
             };
 
-            var cancelProperties = new Dictionary<string, string>()
-            {
-                { "Delay", "true" },
-                { "Prop2", "Val2" }
-            };
-
             var message = new RoutingMessage(TelemetryMessageSource.Instance, messageBody, properties, systemProperties);
             return message;
         }
