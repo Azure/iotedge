@@ -47,7 +47,7 @@ impl Validator {
     /// The top-level grammar is copied below, through individual algorithms may
     /// impose additional constraints on the `encoded` component of the grammar.
     ///
-    /// ```
+    /// ```ignore
     /// digest                ::= algorithm ":" encoded
     /// algorithm             ::= algorithm-component (algorithm-separator algorithm-component)*
     /// algorithm-component   ::= [a-z0-9]+

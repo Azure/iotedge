@@ -9,7 +9,7 @@ use crate::validator::Validator;
 ///
 /// To validate data using it's Digest, use the [`validator`] to construct a new
 /// [`Validator`].
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Ord, PartialOrd, Hash, Clone)]
 pub struct Digest {
     string: String,
 }

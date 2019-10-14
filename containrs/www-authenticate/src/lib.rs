@@ -31,7 +31,7 @@ mod error;
 pub use error::{ChallengeError, WWWAuthenticateError};
 
 /// (Known) HTTP Authentication Schemes
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Debug, PartialEq, Eq, Ord, PartialOrd, Hash, Clone)]
 pub enum ChallengeScheme {
     Basic,
     Bearer,
@@ -77,6 +77,11 @@ impl Challenge {
         &self.scheme
     }
 
+    /// Return a refernce to the hashmap of associated parameters
+    pub fn parameters(&self) -> &HashMap<String, String> {
+        &self.parameters
+    }
+
     /// Consumes self, and returns a hashmap of associated parameters
     pub fn into_parameters(self) -> HashMap<String, String> {
         self.parameters
@@ -93,6 +98,11 @@ impl WWWAuthenticate {
     /// Create a new WWWAuthenticate header from a list of Challenges
     pub fn new(challenges: Vec<Challenge>) -> WWWAuthenticate {
         WWWAuthenticate(challenges)
+    }
+
+    /// Return an interator over the contained Challenges
+    pub fn iter(&self) -> impl Iterator<Item = &Challenge> {
+        self.0.iter()
     }
 }
 

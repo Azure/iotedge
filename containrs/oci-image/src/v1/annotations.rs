@@ -62,7 +62,7 @@ pub mod key {
     ///
     /// The reference must match the following grammar:
     ///
-    /// ```
+    /// ```ignore
     /// ref       ::= component ("/" component)*
     /// component ::= alphanum (separator alphanum)*
     /// alphanum  ::= [A-Za-z0-9]+

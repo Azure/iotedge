@@ -54,7 +54,7 @@ pub use error::{Error, Result};
 ///
 /// While reference strings _can_ specify both a tag and a digest, in such
 /// cases, the tag is ignored completely, as the digest is more specific.
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(Debug, PartialEq, Eq, Ord, PartialOrd, Hash, Clone)]
 pub enum ReferenceKind {
     Tag(String),
     Digest(Digest),
@@ -83,7 +83,7 @@ impl std::fmt::Display for ReferenceKind {
 /// A well-formed object reference identifier, with all the information required
 /// to pull an image (i.e: repo, registry, and reference (either a tag or
 /// digest).
-#[derive(PartialEq, Eq, Debug)]
+#[derive(Debug, PartialEq, Eq, Ord, PartialOrd, Hash, Clone)]
 pub struct Reference {
     repo: String,
     registry: String,
