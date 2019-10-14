@@ -1323,7 +1323,7 @@ Function SetupMountedStorage
     {
         New-Item -ItemType directory -Path $MountedStoragePath | Out-Null
     }
-    icacls $MountedStoragePath /grant Everyone:F
+    icacls $MountedStoragePath /grant Everyone:F | Out-Null
 }
 
 Function TestSetup
