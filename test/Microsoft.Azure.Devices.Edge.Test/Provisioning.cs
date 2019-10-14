@@ -90,28 +90,22 @@ namespace Microsoft.Azure.Devices.Edge.Test
             CertificateAuthority ca;
             CancellationToken token = this.TestToken;
 
-            using (var cts = new CancellationTokenSource(Context.Current.SetupTimeout))
-            {
-                DateTime startTime = DateTime.Now;
-                CancellationToken caToken = cts.Token;
+            ca = await CertificateAuthority.CreateDpsX509CaAsync(
+                registrationId,
+                rootCa,
+                caCertScriptPath,
+                token);
 
-                ca = await CertificateAuthority.CreateDpsX509CaAsync(
-                    registrationId,
-                    rootCa,
-                    caCertScriptPath,
-                    caToken);
-
-                await this.daemon.ConfigureAsync(
-                    config =>
-                    {
-                        config.SetDpsX509(idScope, registrationId, ca);
-                        config.Update();
-                        return Task.FromResult((
-                            "with DPS X509 attestation for '{Identity}'",
-                            new object[] { registrationId }));
-                    },
-                    caToken);
-            }
+            await this.daemon.ConfigureAsync(
+                config =>
+                {
+                    config.SetDpsX509(idScope, registrationId, ca);
+                    config.Update();
+                    return Task.FromResult((
+                        "with DPS X509 attestation for '{Identity}'",
+                        new object[] { registrationId }));
+                },
+                token);
 
             await this.daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
 
