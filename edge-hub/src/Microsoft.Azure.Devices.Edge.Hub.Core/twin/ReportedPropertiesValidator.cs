@@ -32,15 +32,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 
                 ValidateValueType(kvp.Name, kvp.Value);
 
-                string s = kvp.Value.ToString();
-                ValidatePropertyValueLength(kvp.Name, s);
-
-                if ((kvp.Value is JValue) && (kvp.Value.Type is JTokenType.Integer))
+                if (kvp.Value is JValue)
                 {
-                    ValidateIntegerValue(kvp.Name, (long)kvp.Value);
+                    if (kvp.Value.Type is JTokenType.Integer)
+                    {
+                        ValidateIntegerValue(kvp.Name, (long)kvp.Value);
+                    }
+                    else
+                    {
+                        string s = kvp.Value.ToString();
+                        ValidatePropertyValueLength(kvp.Name, s);
+                    }
                 }
 
-                if ((kvp.Value != null) && (kvp.Value is JObject))
+                if (kvp.Value != null && kvp.Value is JObject)
                 {
                     if (currentDepth > TwinPropertyMaxDepth)
                     {
