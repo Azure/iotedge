@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service
         public static List<V1ServicePort> GetHostPorts(this IDictionary<string, IList<PortBinding>> ports)
             => ports.SelectMany(port => ExtractHostPorts(port.Key, port.Value)).ToList();
 
-        static IEnumerable<V1ServicePort> ExtractHostPorts(string name, IList<PortBinding> bindings)
+        static IEnumerable<V1ServicePort> ExtractHostPorts(string name, IEnumerable<PortBinding> bindings)
             =>
                 PortAndProtocol.Parse(name)
                     .Map(

@@ -5,10 +5,12 @@
 #![allow(clippy::similar_names)]
 
 use std::borrow::Cow;
+use std::convert::TryInto;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process;
 
+use chrono::{DateTime, Duration, Local};
 use clap::{crate_description, crate_name, App, AppSettings, Arg, SubCommand};
 use failure::{Fail, ResultExt};
 use futures::Future;
@@ -223,17 +225,51 @@ fn run() -> Result<(), Error> {
                 )
                 .arg(
                     Arg::with_name("since")
-                        .help("Only return logs since this time, as a UNIX timestamp")
+                        .help("Only return logs since this time, as a duration (1 day, 90 minutes, 2 days 3 hours 2 minutes), rfc3339 timestamp, or UNIX timestamp")
                         .long("since")
                         .takes_value(true)
-                        .value_name("NUM")
-                        .default_value("0"),
+                        .value_name("DURATION or TIMESTAMP")
+                        .default_value("1 day"),
                 )
                 .arg(
                     Arg::with_name("follow")
                         .help("Follow output log")
                         .short("f")
                         .long("follow"),
+                ),
+        )
+        .subcommand(
+            SubCommand::with_name("support-bundle")
+                .about("Bundles troubleshooting information")
+                .arg(
+                    Arg::with_name("output")
+                        .help("Path of output file")
+                        .long("output")
+                        .short("o")
+                        .takes_value(true)
+                        .value_name("FILENAME")
+                        .default_value("support_bundle.zip"),
+                )
+                .arg(
+                    Arg::with_name("since")
+                        .help("Only return logs since this time, as a duration (1d, 90m, 2h30m), rfc3339 timestamp, or UNIX timestamp")
+                        .long("since")
+                        .takes_value(true)
+                        .value_name("DURATION or TIMESTAMP")
+                        .default_value("1 day"),
+                )
+                .arg(
+                    Arg::with_name("include-edge-runtime-only")
+                        .help("Only include logs from Microsoft-owned Edge modules")
+                        .long("include-edge-runtime-only")
+                        .short("e")
+                        .takes_value(false),
+                ).arg(
+                    Arg::with_name("iothub-hostname")
+                        .long("iothub-hostname")
+                        .value_name("IOTHUB_HOSTNAME")
+                        .help("Sets the hostname of the Azure IoT Hub that this device would connect to. If using manual provisioning, this does not need to be specified.")
+                        .takes_value(true),
                 ),
         )
         .subcommand(SubCommand::with_name("version").about("Show the version information"))
@@ -293,7 +329,7 @@ fn run() -> Result<(), Error> {
                 args.is_present("verbose"),
                 args.is_present("warnings-as-errors"),
             )
-            .and_then(|mut check| check.execute()),
+            .and_then(Command::execute),
         ),
         ("check-list", _) => Check::print_list(),
         ("list", _) => tokio_runtime.block_on(List::new(runtime()?, io::stdout()).execute()),
@@ -310,19 +346,124 @@ fn run() -> Result<(), Error> {
             let follow = args.is_present("follow");
             let tail = args
                 .value_of("tail")
-                .and_then(|a| a.parse::<LogTail>().ok())
-                .unwrap_or_default();
+                .map(str::parse)
+                .transpose()
+                .map_err(|err: edgelet_core::Error| {
+                    Error::from(err.context(ErrorKind::BadTailParameter))
+                })?
+                .expect("arg has a default value");
             let since = args
                 .value_of("since")
-                .and_then(|a| a.parse::<i32>().ok())
-                .unwrap_or_default();
+                .map(|s| parse_since(s))
+                .transpose()?
+                .expect("arg has a default value");
             let options = LogOptions::new()
                 .with_follow(follow)
                 .with_tail(tail)
                 .with_since(since);
             tokio_runtime.block_on(Logs::new(id, options, runtime()?).execute())
         }
+        ("support-bundle", Some(args)) => {
+            let location = args.value_of_os("output").expect("arg has a default value");
+            let since = args
+                .value_of("since")
+                .map(|s| parse_since(s))
+                .transpose()?
+                .expect("arg has a default value");
+            let options = LogOptions::new()
+                .with_follow(false)
+                .with_tail(LogTail::All)
+                .with_since(since);
+            let include_ms_only = args.is_present("include-edge-runtime-only");
+            let iothub_hostname = args.value_of("iothub-hostname").map(ToOwned::to_owned);
+            tokio_runtime.block_on(
+                SupportBundle::new(
+                    options,
+                    location.to_owned(),
+                    include_ms_only,
+                    iothub_hostname,
+                    runtime()?,
+                )
+                .execute(),
+            )
+        }
         ("version", _) => tokio_runtime.block_on(Version::new().execute()),
         (command, _) => tokio_runtime.block_on(Unknown::new(command.to_string()).execute()),
+    }
+}
+
+fn parse_since(since: &str) -> Result<i32, Error> {
+    if let Ok(datetime) = DateTime::parse_from_rfc3339(since) {
+        let temp: Result<i32, _> = datetime.timestamp().try_into();
+        Ok(temp.context(ErrorKind::BadSinceParameter)?)
+    } else if let Ok(epoch) = since.parse() {
+        Ok(epoch)
+    } else if let Ok(duration) = parse_duration::parse(since) {
+        let nano: Result<i64, _> = duration.as_nanos().try_into();
+        let nano = nano.context(ErrorKind::BadSinceParameter)?;
+
+        let temp: Result<i32, _> = (Local::now() - Duration::nanoseconds(nano))
+            .timestamp()
+            .try_into();
+        Ok(temp.context(ErrorKind::BadSinceParameter)?)
+    } else {
+        Err(Error::from(ErrorKind::BadSinceParameter))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_rfc3339() {
+        assert_eq!(
+            parse_since("2019-09-27T16:00:00+00:00").unwrap(),
+            1_569_600_000
+        );
+    }
+
+    #[test]
+    fn parse_english() {
+        assert_near(
+            parse_since("1 hour").unwrap(),
+            (Local::now() - Duration::hours(1))
+                .timestamp()
+                .try_into()
+                .unwrap(),
+            10,
+        );
+
+        assert_near(
+            parse_since("1 hour 20 minutes").unwrap(),
+            (Local::now() - Duration::hours(1) - Duration::minutes(20))
+                .timestamp()
+                .try_into()
+                .unwrap(),
+            10,
+        );
+
+        assert_near(
+            parse_since("1 day").unwrap(),
+            (Local::now() - Duration::days(1))
+                .timestamp()
+                .try_into()
+                .unwrap(),
+            10,
+        );
+    }
+
+    #[test]
+    fn parse_unix() {
+        assert_eq!(parse_since("1569600000").unwrap(), 1_569_600_000);
+    }
+
+    #[test]
+    fn parse_default() {
+        let _ = parse_since("asdfasdf").unwrap_err();
+    }
+
+    fn assert_near(a: i32, b: i32, tol: i32) {
+        assert!((a - b).abs() < tol)
     }
 }

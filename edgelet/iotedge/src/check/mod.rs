@@ -661,7 +661,7 @@ impl Check {
 impl crate::Command for Check {
     type Future = FutureResult<(), Error>;
 
-    fn execute(&mut self) -> Self::Future {
+    fn execute(mut self) -> Self::Future {
         self.execute_inner().into_future()
     }
 }
@@ -1324,7 +1324,7 @@ fn settings_certificates(check: &mut Check) -> Result<CheckResult, failure::Erro
     };
 
     check.device_ca_cert_path = Some({
-        if let Some(certificates) = settings.certificates() {
+        if let Some(certificates) = settings.certificates().device_cert() {
             certificates.device_ca_cert()?
         } else {
             let certs_dir = settings.homedir().join("hsm").join("certs");
@@ -1357,7 +1357,7 @@ fn settings_certificates(check: &mut Check) -> Result<CheckResult, failure::Erro
         }
     });
 
-    if settings.certificates().is_none() {
+    if settings.certificates().device_cert().is_none() {
         let CertificateValidity { not_after, .. } = CertificateValidity::parse(
             "Device CA certificate",
             check.device_ca_cert_path.as_ref().unwrap(),
@@ -1578,7 +1578,7 @@ fn storage_mounted_from_host(
 
     if !mounted_directories
         .chain(volume_directories)
-        .any(|container_directory| container_directory == storage_directory)
+        .any(|container_directory| storage_directory.starts_with(container_directory))
     {
         return Ok(CheckResult::Warning(
             Context::new(format!(

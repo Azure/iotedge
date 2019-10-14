@@ -8,7 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using System.Net.Http;
     using System.Threading.Tasks;
     using Autofac;
-    using global::Docker.DotNet.Models;
     using k8s;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
@@ -18,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deployment;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.ServiceAccount;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners;
@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     public class KubernetesModule : Module
     {
         readonly ResourceName resourceName;
-        readonly string edgeDeviceHostname;
+        readonly string edgeDeviceHostName;
         readonly string proxyImage;
         readonly string proxyConfigPath;
         readonly string proxyConfigVolumeName;
@@ -42,18 +42,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly string deviceNamespace;
         readonly Uri managementUri;
         readonly Uri workloadUri;
-        readonly IEnumerable<AuthConfig> dockerAuthConfig;
+        readonly IEnumerable<global::Docker.DotNet.Models.AuthConfig> dockerAuthConfig;
         readonly Option<UpstreamProtocol> upstreamProtocol;
         readonly Option<string> productInfo;
         readonly PortMapServiceType defaultMapServiceType;
         readonly bool enableServiceCallTracing;
+        readonly string persistentVolumeName;
+        readonly string storageClassName;
+        readonly uint persistentVolumeClaimSizeMb;
         readonly Option<IWebProxy> proxy;
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan idleTimeout;
+        readonly KubernetesExperimentalFeatures experimentalFeatures;
 
         public KubernetesModule(
             string iotHubHostname,
             string deviceId,
+            string networkId,
             string edgeDeviceHostName,
             string proxyImage,
             string proxyConfigPath,
@@ -66,17 +71,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             string deviceNamespace,
             Uri managementUri,
             Uri workloadUri,
-            IEnumerable<AuthConfig> dockerAuthConfig,
+            IEnumerable<global::Docker.DotNet.Models.AuthConfig> dockerAuthConfig,
             Option<UpstreamProtocol> upstreamProtocol,
             Option<string> productInfo,
             PortMapServiceType defaultMapServiceType,
             bool enableServiceCallTracing,
+            string persistentVolumeName,
+            string storageClassName,
+            uint persistentVolumeClaimSizeMb,
             Option<IWebProxy> proxy,
             bool closeOnIdleTimeout,
-            TimeSpan idleTimeout)
+            TimeSpan idleTimeout,
+            KubernetesExperimentalFeatures experimentalFeatures)
         {
             this.resourceName = new ResourceName(iotHubHostname, deviceId);
-            this.edgeDeviceHostname = Preconditions.CheckNonWhiteSpace(edgeDeviceHostName, nameof(edgeDeviceHostName));
+            this.edgeDeviceHostName = Preconditions.CheckNonWhiteSpace(edgeDeviceHostName, nameof(edgeDeviceHostName));
             this.proxyImage = Preconditions.CheckNonWhiteSpace(proxyImage, nameof(proxyImage));
             this.proxyConfigPath = Preconditions.CheckNonWhiteSpace(proxyConfigPath, nameof(proxyConfigPath));
             this.proxyConfigVolumeName = Preconditions.CheckNonWhiteSpace(proxyConfigVolumeName, nameof(proxyConfigVolumeName));
@@ -93,9 +102,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.productInfo = productInfo;
             this.defaultMapServiceType = defaultMapServiceType;
             this.enableServiceCallTracing = enableServiceCallTracing;
+            this.persistentVolumeName = persistentVolumeName;
+            this.storageClassName = storageClassName;
+            this.persistentVolumeClaimSizeMb = persistentVolumeClaimSizeMb;
             this.proxy = proxy;
             this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.idleTimeout = idleTimeout;
+            this.experimentalFeatures = experimentalFeatures;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -144,20 +157,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IModuleIdentityLifecycleManager
-            var identityBuilder = new ModuleIdentityProviderServiceBuilder(this.resourceName.Hostname, this.resourceName.DeviceId, this.edgeDeviceHostname);
+            var identityBuilder = new ModuleIdentityProviderServiceBuilder(this.resourceName.Hostname, this.resourceName.DeviceId, this.edgeDeviceHostName);
             builder.Register(c => new KubernetesModuleIdentityLifecycleManager(c.Resolve<IIdentityManager>(), identityBuilder, this.workloadUri))
                 .As<IModuleIdentityLifecycleManager>()
                 .SingleInstance();
 
-            // ICombinedConfigProvider<CombinedDockerConfig>
+            // CombinedKubernetesConfigProvider
             builder.Register(
-                    async c =>
+                    c =>
                     {
-                        IConfigSource configSource = await c.Resolve<Task<IConfigSource>>();
-                        ICombinedConfigProvider<CombinedDockerConfig> provider = new CombinedKubernetesConfigProvider(this.dockerAuthConfig, configSource);
-                        return provider;
+                        bool enableKubernetesExtensions = this.experimentalFeatures.Enabled && this.experimentalFeatures.EnableExtensions;
+                        return new CombinedKubernetesConfigProvider(this.dockerAuthConfig, this.workloadUri, this.managementUri, enableKubernetesExtensions);
                     })
-                .As<Task<ICombinedConfigProvider<CombinedDockerConfig>>>()
+                .As<ICombinedConfigProvider<CombinedKubernetesConfig>>()
                 .SingleInstance();
 
             // ICommandFactory
@@ -176,9 +188,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                     async c =>
                     {
-                        var combinedConfigProvider = await c.Resolve<Task<ICombinedConfigProvider<CombinedDockerConfig>>>();
+                        var configProvider = c.Resolve<ICombinedConfigProvider<CombinedKubernetesConfig>>();
                         ICommandFactory commandFactory = await c.Resolve<Task<ICommandFactory>>();
-                        IPlanner planner = new KubernetesPlanner(this.deviceNamespace, this.resourceName, c.Resolve<IKubernetes>(), commandFactory, combinedConfigProvider);
+                        IPlanner planner = new KubernetesPlanner(this.deviceNamespace, this.resourceName, c.Resolve<IKubernetes>(), commandFactory, configProvider);
                         return planner;
                     })
                 .As<Task<IPlanner>>()
@@ -193,23 +205,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             // KubernetesDeploymentProvider
             builder.Register(
                     c => new KubernetesDeploymentMapper(
-                        this.deviceNamespace,
-                        this.edgeDeviceHostname,
-                        this.proxyImage,
-                        this.proxyConfigPath,
-                        this.proxyConfigVolumeName,
-                        this.proxyConfigMapName,
-                        this.proxyTrustBundlePath,
-                        this.proxyTrustBundleVolumeName,
-                        this.proxyTrustBundleConfigMapName,
-                        this.apiVersion,
-                        this.workloadUri,
-                        this.managementUri))
+                            this.deviceNamespace,
+                            this.edgeDeviceHostName,
+                            this.proxyImage,
+                            this.proxyConfigPath,
+                            this.proxyConfigVolumeName,
+                            this.proxyConfigMapName,
+                            this.proxyTrustBundlePath,
+                            this.proxyTrustBundleVolumeName,
+                            this.proxyTrustBundleConfigMapName,
+                            this.persistentVolumeName,
+                            this.storageClassName,
+                            this.apiVersion,
+                            this.workloadUri,
+                            this.managementUri))
                 .As<IKubernetesDeploymentMapper>();
 
-            // KubernetesServiceProvider
+            // KubernetesServiceMapper
             builder.Register(c => new KubernetesServiceMapper(this.defaultMapServiceType))
                 .As<IKubernetesServiceMapper>();
+
+            // KubernetesPvcMapper
+            builder.Register(c => new KubernetesPvcMapper(this.persistentVolumeName, this.storageClassName, this.persistentVolumeClaimSizeMb))
+                .As<IKubernetesPvcMapper>();
 
             // KubernetesServiceAccountProvider
             builder.Register(c => new KubernetesServiceAccountMapper())
@@ -228,6 +246,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             c.Resolve<IModuleIdentityLifecycleManager>(),
                             c.Resolve<IKubernetesServiceMapper>(),
                             c.Resolve<IKubernetesDeploymentMapper>(),
+                            c.Resolve<IKubernetesPvcMapper>(),
                             c.Resolve<IKubernetesServiceAccountMapper>());
 
                         return watchOperator;
