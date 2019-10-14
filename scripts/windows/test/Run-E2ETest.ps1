@@ -209,7 +209,7 @@ Param (
     [ValidateNotNullOrEmpty()]
     [string] $EventHubConnectionString = $(Throw "Event hub connection string is required"),
 
-    [string] $EventHubConsumerGroupId = $null
+    [string] $EventHubConsumerGroupId = $null,
 
     [string] $EdgeE2ERootCACertRSAFile = $null,
 
