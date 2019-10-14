@@ -14,7 +14,7 @@ jobs:
       name: $(pool.name)
       demands:
         - pwsh
-        - dotnet -equals 3.0.100
+        - dotnet-sdk -equals 3.0.100
         - run-e2e-tests -equals true
         - agent-osbits -equals 64
         - Agent.OS -equals Linux
@@ -33,6 +33,12 @@ jobs:
         # `sudo dotnet vstest ...`)
         sudo git clean -ffdx . || true
       displayName: Git clean
+
+    - task: DotNetCoreInstaller@0
+      displayName: Install .NET Core
+      inputs:
+        packageType: sdk
+        version: $(dotnet-sdk)
 
     - template: templates/e2e-setup.yaml
     - template: templates/e2e-run.yaml
