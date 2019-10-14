@@ -29,11 +29,14 @@
             "type": "docker",
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-hub:<Build.BuildNumber>-windows-<Architecture>",
-              "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"443/tcp\": [{\"HostPort\": \"443\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
+              "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"443/tcp\": [{\"HostPort\": \"443\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]},\"Binds\":[\"C:\\\\data\\\\edgehub:C:\\\\contemp\"]}}"
             },
             "env": {
               "CollectMetrics": {
                 "value": "true"
+              },
+              "storageFolder": {
+                "value": "C:\\\\contemp"
               }
             },
             "status": "running",
