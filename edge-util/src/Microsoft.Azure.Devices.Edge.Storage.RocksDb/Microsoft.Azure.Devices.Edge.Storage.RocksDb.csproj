@@ -28,8 +28,8 @@
       rocksdb binaries) in this library. If specified, you must ensure that rocksdb is
       installed and reachable in your runtime environment.
       -->
-    <PackageReference Include="RocksDbNative" Version="5.17.2" Condition="'$(RocksDbAsPackage)' != 'false'" />
-    <PackageReference Include="RocksDbSharp" Version="5.17.2" />
+    <PackageReference Include="RocksDbNative" Version="6.2.2" Condition="'$(RocksDbAsPackage)' != 'false'" />
+    <PackageReference Include="RocksDbSharp" Version="6.2.2" />
   </ItemGroup>
 
   <ItemGroup>

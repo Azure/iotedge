@@ -17,7 +17,7 @@
   </ItemGroup>
   
   <ItemGroup Condition="'$(DotNet_Runtime)' != 'netcoreapp3.0'">
-    <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="1.0.26" />
+    <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="1.0.29" />
   </ItemGroup>
 
   <ItemGroup>
