@@ -1,6 +1,8 @@
-use std::cell::RefCell;
 use std::ops::{Bound, RangeBounds};
-use std::sync::Arc;
+use std::sync::{
+    atomic::{AtomicI8, Ordering},
+    Arc,
+};
 
 use bytes::Bytes;
 use failure::{Fail, ResultExt};
@@ -29,7 +31,7 @@ use crate::paginate::Paginate;
 pub struct Client {
     client: AuthClient,
     registry_base: Url,
-    supports_range_header: Arc<RefCell<Option<bool>>>, // None = Unknown
+    supports_range_header: Arc<AtomicI8>, // -1 is Unknown
 }
 
 impl Client {
@@ -54,7 +56,7 @@ impl Client {
         Ok(Client {
             client: AuthClient::new(ReqwestClient::new(), creds),
             registry_base,
-            supports_range_header: Arc::new(RefCell::new(None)),
+            supports_range_header: Arc::new(AtomicI8::new(-1)),
         })
     }
 
@@ -230,7 +232,7 @@ impl Client {
                 None
             }
             _ => {
-                if self.supports_range_header.borrow().is_none() {
+                if self.supports_range_header.load(Ordering::Relaxed) == -1 {
                     // "This endpoint MAY also support RFC7233 compliant range requests. Support can
                     // be detected by issuing a HEAD request. If the header Accept-Range: bytes is
                     // returned, range requests can be used to fetch partial content."
@@ -238,11 +240,13 @@ impl Client {
                     let res = self.client.head(url.clone(), &scope).await?.send().await?;
 
                     // FIXME: this could be a stricter check
-                    self.supports_range_header
-                        .replace(Some(res.headers().get(header::ACCEPT_RANGES).is_some()));
+                    self.supports_range_header.store(
+                        res.headers().get(header::ACCEPT_RANGES).is_some() as i8,
+                        Ordering::Relaxed,
+                    );
                 }
 
-                if !self.supports_range_header.borrow().unwrap() {
+                if self.supports_range_header.load(Ordering::Relaxed) == 0 {
                     return Err(ErrorKind::ApiRangeHeaderNotSupported.into());
                 }
 

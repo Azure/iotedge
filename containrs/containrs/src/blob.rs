@@ -3,7 +3,7 @@ use reqwest::Response;
 
 use oci_image::v1::Descriptor;
 
-pub enum BlobKind {
+enum BlobKind {
     Streaming(Response),
     Immediate(Option<Bytes>),
 }

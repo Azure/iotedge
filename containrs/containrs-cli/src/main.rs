@@ -1,7 +1,6 @@
 #![allow(clippy::cognitive_complexity)]
 
 use std::collections::HashMap;
-use std::io::{Read, Write};
 use std::path::Path;
 use std::time::Instant;
 
@@ -204,13 +203,14 @@ async fn true_main() -> Result<(), failure::Error> {
                                 }
                             };
 
-                        std::io::stdout().write_all(&catalog)?;
+                        tokio::io::stdout().write_all(&catalog).await?;
 
                         if next_paginate.is_none() {
                             break;
                         }
 
                         // quick and dirty "wait for enter" paging
+                        use std::io::Read;
                         let _ = std::io::stdin().bytes().next();
 
                         paginate = next_paginate;
@@ -234,13 +234,14 @@ async fn true_main() -> Result<(), failure::Error> {
                         let (tags, next_paginate) =
                             client.get_raw_tags(image.repo(), paginate).await?;
 
-                        std::io::stdout().write_all(&tags)?;
+                        tokio::io::stdout().write_all(&tags).await?;
 
                         if next_paginate.is_none() {
                             break;
                         }
 
                         // quick and dirty "wait for enter" paging
+                        use std::io::Read;
                         let _ = std::io::stdin().bytes().next();
 
                         paginate = next_paginate;

@@ -9,17 +9,11 @@ pub enum AuthError {
     #[fail(display = "Could not reach API endpoint")]
     EndpointNoResponse,
 
-    #[fail(display = "API Endpoint response is missing www-authenticate header")]
-    EndpointMissingWWWAuth,
-
-    #[fail(display = "API Endpoint response has malformed www-authenticate header")]
-    EndpointMalformedWWWAuth,
-
     #[fail(
-        display = "Server is using an unimplemented authentication scheme \"{:?}\"",
+        display = "Endpoint uses unupported authentication schemes \"{:?}\"",
         _0
     )]
-    UnimplementedChallengeScheme(ChallengeScheme),
+    UnsupportedAuth(Vec<ChallengeScheme>),
 
     #[fail(display = "Invalid Credentials")]
     InvalidCredentials,

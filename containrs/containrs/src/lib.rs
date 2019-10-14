@@ -7,7 +7,7 @@ mod error;
 mod paginate;
 
 pub use auth::Credentials;
-pub use blob::{Blob, BlobKind};
+pub use blob::Blob;
 pub use client::Client;
-pub use error::{Error, ErrorKind, Result};
+pub use error::{Error, Result};
 pub use paginate::Paginate;
