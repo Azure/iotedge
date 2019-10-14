@@ -35,7 +35,7 @@ jobs:
         sudo git clean -ffdx . || true
       displayName: Git clean
 
-    - task: DotNetCoreInstaller@0
+    - task: DotNetCoreInstaller@1
       displayName: Install .NET Core
       inputs:
         packageType: sdk
