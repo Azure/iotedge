@@ -52,10 +52,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config.ReplaceOrAdd("provisioning.attestation.symmetric_key", deviceKey);
         }
 
-        public void SetDpsX509(string idScope, string registrationId, CertificateAuthority ca)
+        public void SetDpsX509(string idScope, string registrationId, IdCertificates cert)
         {
-            Uri certUri = new Uri(ca.IdCertificates.CertificatePath, UriKind.Absolute);
-            Uri pKeyUri = new Uri(ca.IdCertificates.KeyPath, UriKind.Absolute);
+            Uri certUri = new Uri(cert.CertificatePath, UriKind.Absolute);
+            Uri pKeyUri = new Uri(cert.KeyPath, UriKind.Absolute);
 
             this.SetBasicDpsParam(idScope);
             this.config.ReplaceOrAdd("provisioning.attestation.method", "x509");

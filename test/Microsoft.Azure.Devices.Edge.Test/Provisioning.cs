@@ -99,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await this.daemon.ConfigureAsync(
                 config =>
                 {
-                    config.SetDpsX509(idScope, registrationId, ca);
+                    config.SetDpsX509(idScope, registrationId, ca.IdCertificates);
                     config.Update();
                     return Task.FromResult((
                         "with DPS X509 attestation for '{Identity}'",
