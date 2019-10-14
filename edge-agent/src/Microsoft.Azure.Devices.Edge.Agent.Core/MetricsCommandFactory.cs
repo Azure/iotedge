@@ -9,6 +9,8 @@ using Microsoft.Azure.Devices.Edge.Util;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using System.Linq;
+using System.Runtime.InteropServices.ComTypes;
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
@@ -23,43 +25,41 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public async Task<ICommand> CreateAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
         {
-            FactoryMetrics.AddMessage(module.Module, "create");
+            FactoryMetrics.AddMessage(module.Module, FactoryMetrics.Command.Start);
             return await underlying.CreateAsync(module, runtimeInfo);
         }
 
         public async Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo)
         {
-            FactoryMetrics.AddMessage(current, "update_from");
-            FactoryMetrics.AddMessage(next.Module, "update_to");
+            FactoryMetrics.AddMessage(current, FactoryMetrics.Command.Start);
+            FactoryMetrics.AddMessage(next.Module, FactoryMetrics.Command.Stop);
             return await underlying.UpdateAsync(current, next, runtimeInfo);
         }
 
         public async Task<ICommand> UpdateEdgeAgentAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
         {
-            FactoryMetrics.AddMessage(module.Module, "update");
             return await underlying.UpdateEdgeAgentAsync(module, runtimeInfo);
         }
 
         public async Task<ICommand> RemoveAsync(IModule module)
         {
-            FactoryMetrics.AddMessage(module, "remove");
+            FactoryMetrics.AddMessage(module, FactoryMetrics.Command.Stop);
             return await underlying.RemoveAsync(module);
         }
         public async Task<ICommand> StartAsync(IModule module)
         {
-            FactoryMetrics.AddMessage(module, "start");
+            FactoryMetrics.AddMessage(module, FactoryMetrics.Command.Start);
             return await underlying.StartAsync(module);
         }
 
         public async Task<ICommand> StopAsync(IModule module)
         {
-            FactoryMetrics.AddMessage(module, "stop");
+            FactoryMetrics.AddMessage(module, FactoryMetrics.Command.Stop);
             return await underlying.StopAsync(module);
         }
 
         public async Task<ICommand> RestartAsync(IModule module)
         {
-            FactoryMetrics.AddMessage(module, "restart");
             return await underlying.RestartAsync(module);
         }
 
@@ -73,13 +73,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
 static class FactoryMetrics
 {
-    static readonly IMetricsCounter MessagesMeter = Metrics.Instance.CreateCounter(
-        "Modules",
-        "Command sent to module",
-        new List<string> { "ModuleName", "ModuleVersion", "Command" });
-
-    public static void AddMessage(Microsoft.Azure.Devices.Edge.Agent.Core.IModule module, string action)
+    public enum Command
     {
-        MessagesMeter.Increment(1, new[] { module.Name, module.Version, action });
+        Start,
+        Stop
+    }
+
+    static readonly Dictionary<Command, IMetricsCounter> counters = Enum.GetValues(typeof(Command)).Cast<Command>().ToDictionary(c => c, command =>
+    {
+        string commandName = Enum.GetName(typeof(Command), command).ToLower();
+        return Metrics.Instance.CreateCounter(
+            $"module_{commandName}",
+            "Command sent to module",
+            new List<string> { "module_name", "module_version" });
+    });
+
+    public static void AddMessage(Microsoft.Azure.Devices.Edge.Agent.Core.IModule module, Command command)
+    {
+        counters[command].Increment(1, new[] { module.Name, module.Version });
     }
 }
