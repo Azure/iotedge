@@ -237,7 +237,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             //Initialize metrics
             var metricsConfig = new MetricsConfig(true, MetricsListenerConfig.Create(configuration));
             var metricsProvider = metricsConfig.Enabled
-                             ? new MetricsProvider("edgeAgent", iothubHostname, deviceId)
+                             ? new MetricsProvider("edgeagent", iothubHostname, deviceId)
                              : new NullMetricsProvider() as IMetricsProvider;
             var metricsListener = metricsConfig.Enabled
                             ? new MetricsListener(metricsConfig.ListenerConfig, metricsProvider)
@@ -413,10 +413,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             "this is a test endpoint",
             new List<string> { "test" }));
 
+        static readonly IMetricsGauge metricsGauge = Util.Metrics.Metrics.Instance.CreateGauge(
+            "testguage",
+            "this is a test endpoint",
+            new List<string> { "test" }
+        );
+
         public static void AddMessage()
         {
             Console.WriteLine("test metric");
             MessagesMeter.Value.Increment(1, new[] { "asdfgh" });
+            metricsGauge.Set(new Random().Next(), new[] { "rand" });
         }
     }
 }
