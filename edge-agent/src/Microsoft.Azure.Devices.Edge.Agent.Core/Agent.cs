@@ -450,7 +450,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     }
     static class UptimeMetrics
     {
-        private class Avaliability
+        public class Avaliability
         {
             public string name;
             public string version;
@@ -465,7 +465,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 this.version = version;
             }
 
-            private double avaliability { get { return uptime.TotalMilliseconds / totalTime.TotalMilliseconds; } }
+            public double avaliability { get { return uptime.TotalMilliseconds / totalTime.TotalMilliseconds; } }
 
             public void AddPoint(bool isUp)
             {
