@@ -10,7 +10,7 @@ use crate::check::{checker::Checker, Check, CheckResult};
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct EdgeAgentStorageMounted {
     storage_directory: Option<PathBuf>,
-    other_directories: Option<Vec<PathBuf>>,
+    container_directories: Option<Vec<PathBuf>>,
 }
 
 impl Checker for EdgeAgentStorageMounted {
@@ -26,7 +26,7 @@ impl Checker for EdgeAgentStorageMounted {
             "edgeAgent",
             "edgeAgent",
             &mut self.storage_directory,
-            &mut self.other_directories,
+            &mut self.container_directories,
         )
         .unwrap_or_else(CheckResult::Failed)
     }
@@ -38,7 +38,7 @@ impl Checker for EdgeAgentStorageMounted {
 #[derive(Default, serde_derive::Serialize)]
 pub struct EdgeHubStorageMounted {
     storage_directory: Option<PathBuf>,
-    other_directories: Option<Vec<PathBuf>>,
+    container_directories: Option<Vec<PathBuf>>,
 }
 
 impl Checker for EdgeHubStorageMounted {
@@ -54,7 +54,7 @@ impl Checker for EdgeHubStorageMounted {
             "edgeHub",
             "edgeHub",
             &mut self.storage_directory,
-            &mut self.other_directories,
+            &mut self.container_directories,
         )
         .unwrap_or_else(CheckResult::Failed)
     }
@@ -68,7 +68,7 @@ fn storage_mounted_from_host(
     container_name: &'static str,
     storage_directory_name: &'static str,
     storage_directory_out: &mut Option<PathBuf>,
-    other_directories_out: &mut Option<Vec<PathBuf>>,
+    container_directories_out: &mut Option<Vec<PathBuf>>,
 ) -> Result<CheckResult, failure::Error> {
     lazy_static::lazy_static! {
         static ref STORAGE_FOLDER_ENV_VAR_KEY_REGEX: Regex =
@@ -122,10 +122,10 @@ fn storage_mounted_from_host(
         .flatten()
         .map(PathBuf::from);
 
-    let other_directories: Vec<PathBuf> = mounted_directories.chain(volume_directories).collect();
-    *other_directories_out = Some(other_directories.clone());
+    let container_directories: Vec<PathBuf> = mounted_directories.chain(volume_directories).collect();
+    *container_directories_out = Some(container_directories.clone());
 
-    if !other_directories
+    if !container_directories
         .into_iter()
         .any(|container_directory| storage_directory.starts_with(container_directory))
     {

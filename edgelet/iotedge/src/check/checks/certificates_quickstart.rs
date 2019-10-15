@@ -79,7 +79,7 @@ impl CertificatesQuickstart {
                 "Device CA certificate".to_owned(),
                 check.device_ca_cert_path.clone().unwrap(),
             )?;
-            let not_after = certificate_info.not_after.clone();
+            let not_after = certificate_info.not_after;
             self.certificate_info = Some(certificate_info);
 
             let now = chrono::Utc::now();
