@@ -25,7 +25,7 @@ jobs:
       arch: ARM64
       artifactDir: iotedged-ubuntu18.04-aarch64
       DotNet_Runtime: netcoreapp3.0
-      dotnet-sdk: 3.0.100
+      dotnet-sdk: 3.0.100-preview5-011568
 
     steps:
     - bash: |
@@ -36,7 +36,7 @@ jobs:
       displayName: Git clean
 
     - task: DotNetCoreInstaller@1
-      displayName: Install .NET SDK 3.0.100
+      displayName: Install .NET SDK
       inputs:
         packageType: sdk
         version: $(dotnet-sdk)
