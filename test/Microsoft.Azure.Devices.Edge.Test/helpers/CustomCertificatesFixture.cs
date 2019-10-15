@@ -36,8 +36,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                                 rootCa,
                                 caCertScriptPath,
                                 token);
-                                
-                            CaCertificates caCert = await ca.GenerateCaCertificatesAsync(deviceId, token);
+
+                            CaCertificates caCert = await this.ca.GenerateCaCertificatesAsync(deviceId, token);
+                            this.ca.EdgeCertificate = caCert;
 
                             await this.daemon.ConfigureAsync(
                                 config =>

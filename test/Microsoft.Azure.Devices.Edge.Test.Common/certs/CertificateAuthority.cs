@@ -13,9 +13,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
     {
         readonly Option<string> scriptPath;
 
-        public CaCertificates EdgeCertificate { get; }
-
-        public IdCertificates IdCertificates { get; }
+        // TODO: EdgeCertificate needs to be moved into certificate types.
+        public CaCertificates EdgeCertificate { get; set; }
 
         public static async Task<CertificateAuthority> CreateAsync(string deviceId, RootCaKeys rootCa, string scriptPath, CancellationToken token)
         {
@@ -34,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
                 Log.Verbose("Skip Root Certificate: Root Certificate is installed");
                 Log.Verbose("----------------------------------------");
             }
+
             return new CertificateAuthority(scriptPath);
         }
 
@@ -51,7 +51,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
         CertificateAuthority(CaCertificates certs)
         {
             this.EdgeCertificate = certs;
-            this.scriptPath = Option.None<string>();
         }
 
         public Task<IdCertificates> GenerateIdentityCertificatesAsync(string deviceId, CancellationToken token)

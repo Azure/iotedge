@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string registrationId = this.GetRegistrationId();
 
             CancellationToken token = this.TestToken;
-            
+
             CertificateAuthority ca = await CertificateAuthority.CreateAsync(
                 registrationId,
                 rootCa,
