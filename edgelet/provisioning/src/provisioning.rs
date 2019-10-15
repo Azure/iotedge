@@ -212,14 +212,14 @@ pub trait Provision {
     type Hsm: Activate + KeyStore;
 
     fn provision(
-        self,
+        &self,
         key_activator: Self::Hsm,
     ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send>;
 
     fn reprovision(&self) -> Box<dyn Future<Item = (), Error = Error> + Send>;
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct ManualProvisioning {
     key: MemoryKey,
     device_id: String,
@@ -240,24 +240,18 @@ impl Provision for ManualProvisioning {
     type Hsm = MemoryKeyStore;
 
     fn provision(
-        self,
+        &self,
         mut key_activator: Self::Hsm,
     ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send> {
-        let ManualProvisioning {
-            key,
-            device_id,
-            hub,
-        } = self;
-
         info!(
             "Manually provisioning device \"{}\" in hub \"{}\"",
-            &device_id, &hub
+            self.device_id, self.hub
         );
         let result = key_activator
-            .activate_identity_key(KeyIdentity::Device, "primary".to_string(), key)
+            .activate_identity_key(KeyIdentity::Device, "primary".to_string(), self.key.clone())
             .map(|_| ProvisioningResult {
-                device_id,
-                hub_name: hub,
+                device_id: self.device_id.to_string(),
+                hub_name: self.hub.to_string(),
                 reconfigure: ReprovisioningStatus::DeviceDataNotUpdated,
                 sha256_thumbprint: None,
                 credentials: None,
@@ -271,7 +265,6 @@ impl Provision for ManualProvisioning {
     }
 }
 
-#[derive(Clone)]
 pub struct ExternalProvisioning<T, U> {
     client: T,
 
@@ -297,7 +290,7 @@ where
     type Hsm = U;
 
     fn provision(
-        self,
+        &self,
         key_activator: Self::Hsm,
     ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send> {
         fn provision_symmetric_key<H>(
@@ -523,7 +516,7 @@ where
     type Hsm = TpmKeyStore;
 
     fn provision(
-        self,
+        &self,
         key_activator: Self::Hsm,
     ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send> {
         let ek = Bytes::from(self.hsm_tpm_ek.as_ref());
@@ -570,7 +563,6 @@ where
     }
 }
 
-#[derive(Clone)]
 pub struct DpsSymmetricKeyProvisioning<C>
 where
     C: ClientImpl,
@@ -614,7 +606,7 @@ where
     type Hsm = MemoryKeyStore;
 
     fn provision(
-        self,
+        &self,
         key_activator: Self::Hsm,
     ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send> {
         let c = DpsClient::new(
@@ -658,7 +650,6 @@ where
     }
 }
 
-#[derive(Clone)]
 pub struct DpsX509Provisioning<C>
 where
     C: ClientImpl,
@@ -702,7 +693,7 @@ where
     type Hsm = MemoryKeyStore;
 
     fn provision(
-        self,
+        &self,
         key_activator: Self::Hsm,
     ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send> {
         let c = DpsClient::new(
@@ -748,19 +739,15 @@ where
     }
 }
 
-pub struct BackupProvisioning<P>
-where
-    P: 'static + Provision,
+pub struct BackupProvisioning<'a, P>
 {
-    underlying: P,
+    underlying: &'a P,
     path: PathBuf,
 }
 
-impl<P> BackupProvisioning<P>
-where
-    P: 'static + Provision,
+impl<'a, P: 'a> BackupProvisioning<'a, P>
 {
-    pub fn new(provisioner: P, path: PathBuf) -> Self {
+    pub fn new(provisioner: &'a P, path: PathBuf) -> Self {
         BackupProvisioning {
             underlying: provisioner,
             path,
@@ -826,14 +813,14 @@ where
     }
 }
 
-impl<P> Provision for BackupProvisioning<P>
+impl<'a, P: 'a> Provision for BackupProvisioning<'a, P>
 where
-    P: 'static + Provision,
+    P: Provision,
 {
     type Hsm = P::Hsm;
 
     fn provision(
-        self,
+        &self,
         key_activator: Self::Hsm,
     ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send> {
         let path = self.path.clone();

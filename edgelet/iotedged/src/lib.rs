@@ -409,7 +409,7 @@ where
                         let manual = ManualProvisioning::new(key, device_id, hub);
 
                         let (key_store, provisioning_result, root_key) =
-                            manual_provision_connection_string(manual.clone(), &mut tokio_runtime)?;
+                            manual_provision_connection_string(&manual, &mut tokio_runtime)?;
 
                         start_edgelet!(
                             key_store,
@@ -437,7 +437,7 @@ where
                             x509.iothub_hostname().to_string(),
                         );
                         let (key_store, provisioning_result, root_key) = manual_provision_x509(
-                            manual.clone(),
+                            &manual,
                             &mut tokio_runtime,
                             id_data.thumbprint.clone(),
                         )?;
@@ -543,17 +543,16 @@ where
                             &mut tokio_runtime,
                             hsm_lock.clone(),
                             tpm_instance,
-                            dps_tpm.clone(),
+                            &dps_tpm,
                         )?;
 
-                        let dps_tpm_cloned = dps_tpm.clone();
                         start_edgelet!(
                             key_store,
                             provisioning_result,
                             root_key,
                             force_module_reprovision,
                             None,
-                            dps_tpm_cloned,
+                            dps_tpm,
                         );
                     }
                     AttestationMethod::SymmetricKey(ref symmetric_key_info) => {
@@ -568,7 +567,7 @@ where
                                 dps_path,
                                 &mut tokio_runtime,
                                 memory_hsm,
-                                dps_symmetric_key.clone(),
+                                &dps_symmetric_key,
                             )?;
 
                         start_edgelet!(
@@ -596,7 +595,7 @@ where
 
                         let (key_store, provisioning_result, root_key) = dps_x509_provision(
                             memory_hsm,
-                            dps_x509.clone(),
+                            &dps_x509,
                             dps_path,
                             &mut tokio_runtime,
                             id_data.thumbprint.clone(),
@@ -649,7 +648,6 @@ where
 
         info!("Retrieving provisioning information from the external endpoint...");
         let provision_fut = external_provisioning
-            .clone()
             .provision(MemoryKeyStore::new())
             .map_err(|err| {
                 Error::from(err.context(ErrorKind::Initialize(
@@ -1591,7 +1589,7 @@ where
 }
 
 fn manual_provision_connection_string(
-    manual: ManualProvisioning,
+    manual: &ManualProvisioning,
     tokio_runtime: &mut tokio::runtime::Runtime,
 ) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey), Error> {
     let memory_hsm = MemoryKeyStore::new();
@@ -1619,7 +1617,7 @@ fn manual_provision_connection_string(
 }
 
 fn manual_provision_x509(
-    manual: ManualProvisioning,
+    manual: &ManualProvisioning,
     tokio_runtime: &mut tokio::runtime::Runtime,
     cert_thumbprint: String,
 ) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey), Error> {
@@ -1683,7 +1681,7 @@ where
 #[allow(clippy::too_many_arguments)]
 fn dps_x509_provision<HC>(
     memory_hsm: MemoryKeyStore,
-    dps: DpsX509Provisioning<HC>,
+    dps: &DpsX509Provisioning<HC>,
     backup_path: PathBuf,
     tokio_runtime: &mut tokio::runtime::Runtime,
     cert_thumbprint: String,
@@ -1831,7 +1829,7 @@ fn dps_symmetric_key_provision<HC>(
     backup_path: PathBuf,
     tokio_runtime: &mut tokio::runtime::Runtime,
     memory_hsm: MemoryKeyStore,
-    dps: DpsSymmetricKeyProvisioning<HC>,
+    dps: &DpsSymmetricKeyProvisioning<HC>,
 ) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey), Error>
 where
     HC: 'static + ClientImpl,
@@ -1910,7 +1908,7 @@ fn dps_tpm_provision<HC>(
     tokio_runtime: &mut tokio::runtime::Runtime,
     hsm_lock: Arc<HsmLock>,
     tpm: Tpm,
-    dps: DpsTpmProvisioning<HC>,
+    dps: &DpsTpmProvisioning<HC>,
 ) -> Result<(DerivedKeyStore<TpmKey>, ProvisioningResult, TpmKey), Error>
 where
     HC: 'static + ClientImpl,
