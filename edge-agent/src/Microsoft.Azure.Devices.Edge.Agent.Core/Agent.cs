@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     using System.Threading.Tasks;
     using App.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -131,7 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                     else
                     {
                         ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
-                        UptimeMetrics.ComputeAvaliability(desiredModuleSet, current);
+                        AvaliabilityMetrics.ComputeAvaliability(desiredModuleSet, current);
 
                         // TODO - Update this logic to create identities only when needed, in the Command factory, instead of creating all the identities
                         // up front here. That will allow handling the case when only the state of the system has changed (say one module crashes), and
@@ -447,103 +448,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 Log.LogDebug((int)EventIds.StartingReconcile, "Starting reconcile operation");
             }
         }
-    }
-    static class UptimeMetrics
-    {
-        public class Avaliability
-        {
-            public string name;
-            public string version;
-            private TimeSpan totalTime = TimeSpan.Zero;
-            private TimeSpan uptime = TimeSpan.Zero;
-            private DateTime? previousMeasure = DateTime.Now;
-
-            public Avaliability(string name, string version)
-            {
-                Console.WriteLine($"make {name}");
-                this.name = name;
-                this.version = version;
-            }
-
-            public double avaliability { get { return uptime.TotalMilliseconds / totalTime.TotalMilliseconds; } }
-
-            public void AddPoint(bool isUp)
-            {
-                Console.WriteLine($"{name}: {isUp} - {uptime} | {totalTime} = {avaliability}");
-                /* if no previous measure, cannot compute duration. There must be 2 consecutive points to do so */
-                if (previousMeasure == null)
-                {
-                    previousMeasure = DateTime.Now;
-                    return;
-                }
-
-                TimeSpan duration = DateTime.Now - previousMeasure.Value;
-                totalTime += duration;
-                if (isUp)
-                {
-                    uptime += duration;
-                }
-                previousMeasure = DateTime.Now;
-
-                // TODO: make set take double
-                LifetimeAvaliability.Set((long)(avaliability * 10000), new[] { name, version });
-            }
-
-            public void NoPoint()
-            {
-                Console.WriteLine($"{name}: no point = {avaliability}");
-                previousMeasure = null;
-            }
-        }
-
-        static List<Avaliability> avalabilities = new List<Avaliability>();
-
-        static readonly IMetricsGauge LifetimeAvaliability = Util.Metrics.Metrics.Instance.CreateGauge(
-            "lifetime_avaliability",
-            "total availability since deployment",
-            new List<string> { "module_name", "module_version" }
-        );
-
-
-        public static void ComputeAvaliability(ModuleSet desired, ModuleSet current)
-        {
-            /* Get all modules that are not running but should be */
-            var down = new HashSet<string>(current.Modules.Values
-                .Where(c =>
-                    (c as IRuntimeModule).RuntimeStatus != ModuleStatus.Running &&
-                    desired.Modules.TryGetValue(c.Name, out var d) &&
-                    d.DesiredStatus == ModuleStatus.Running)
-                .Select(c => c.Name));
-
-            /* Get all correctly running modules */
-            var up = new HashSet<string>(current.Modules.Values
-                .Where(c => (c as IRuntimeModule).RuntimeStatus == ModuleStatus.Running)
-                .Select(c => c.Name));
-
-            /* Add points for all modules found */
-            foreach (Avaliability avaliability in avalabilities)
-            {
-                if (down.Remove(avaliability.name))
-                {
-                    avaliability.AddPoint(false);
-                }
-                else if (up.Remove(avaliability.name))
-                {
-                    avaliability.AddPoint(true);
-                }
-                else
-                {
-                    /* stop calculating if in stopped state or not deployed */
-                    avaliability.NoPoint();
-                }
-            }
-
-            /* Add new modules to track */
-            foreach (string module in down.Union(up))
-            {
-                avalabilities.Add(new Avaliability(module, "tempNoVersion"));
-            }
-
-        }
-    }
+    }    
 }
