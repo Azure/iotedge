@@ -110,7 +110,7 @@ steps:
     $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
 
     echo "Trying to restore -----------------------------"
-    dotnet restore $testDir
+    dotnet restore $testDir -verbosity:diag
     echo "Trying to build -----------------------------"
     dotnet build -c Release -p:DotNet_Runtime=$DotNet_Runtime $testDir
 
