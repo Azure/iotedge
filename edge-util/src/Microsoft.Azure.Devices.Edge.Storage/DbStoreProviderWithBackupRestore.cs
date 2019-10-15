@@ -139,6 +139,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public async override Task CloseAsync()
         {
+            await this.BackupAsync();
+            await base.CloseAsync();
+        }
+
+        private async Task BackupAsync()
+        {
             this.events.StartingBackup();
             Guid backupId = Guid.NewGuid();
             string dbBackupDirectory = Path.Combine(this.backupPath, backupId.ToString());
