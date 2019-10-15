@@ -69,7 +69,7 @@ impl Report {
             id,
             files: vec![],
             notes: vec![],
-            message_analysis: None,
+            device_analysis: None,
             attachments: HashMap::new(),
         }
     }

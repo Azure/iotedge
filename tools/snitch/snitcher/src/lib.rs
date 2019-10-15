@@ -126,7 +126,7 @@ pub fn do_report(settings: Settings) -> impl Future<Item = (), Error = Error> + 
             info!("Got message analysis from analyzer");
 
             if let Some(analysis) = analysis {
-                report.lock().unwrap().set_message_analysis(analysis);
+                report.lock().unwrap().set_device_analysis(analysis);
             }
         })
     };
