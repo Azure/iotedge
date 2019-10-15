@@ -70,7 +70,6 @@ mod tests {
             },
             "homedir": "/var/lib/iotedge",
             "namespace": "default",
-            "use_pvc": true,
             "iot_hub_hostname": "iotHub",
             "device_id": "device1",
             "proxy_image": "proxy:latest",

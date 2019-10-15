@@ -59,7 +59,6 @@ fn spec_to_podspec(
     if EDGE_EDGE_AGENT_NAME == module_label_value {
         env_vars.push(env(EDGE_NETWORK_ID_KEY, ""));
         env_vars.push(env(NAMESPACE_KEY, settings.namespace()));
-        env_vars.push(env(EDGE_AGENT_MODE_KEY, EDGE_AGENT_MODE));
         env_vars.push(env(PROXY_IMAGE_KEY, settings.proxy_image()));
         env_vars.push(env(PROXY_CONFIG_VOLUME_KEY, PROXY_CONFIG_VOLUME_NAME));
         env_vars.push(env(
@@ -207,11 +206,6 @@ fn spec_to_podspec(
                     }
                 }
                 Some("volume") => {
-                    // Treat volume mounts one of two ways:
-                    // 1. if use_pvc is set, we assume the user has created a
-                    // Persistent Volume and Claim named "source" for us to use.
-                    // 2. is use_pvc is not set, we create a simple EmptyDir
-                    // volume for this pod to use.  This volume is not persistent.
                     if let (Some(source), Some(target)) = (mount.source(), mount.target()) {
                         let volume_name = sanitize_dns_value(source)?;
 
@@ -238,6 +232,7 @@ fn spec_to_podspec(
             }
         }
     };
+
     //pull secrets
     let image_pull_secrets = spec
         .config()
@@ -630,11 +625,10 @@ mod tests {
     }
 
     fn validate_container_env(env: &[api_core::EnvVar]) {
-        assert_eq!(env.len(), 12);
+        assert_eq!(env.len(), 11);
         assert!(env.contains(&super::env("a", "b")));
         assert!(env.contains(&super::env("C", "D")));
         assert!(env.contains(&super::env(NAMESPACE_KEY, "default")));
-        assert!(env.contains(&super::env(EDGE_AGENT_MODE_KEY, EDGE_AGENT_MODE)));
         assert!(env.contains(&super::env(PROXY_IMAGE_KEY, "proxy:latest")));
         assert!(env.contains(&super::env(
             PROXY_CONFIG_VOLUME_KEY,
