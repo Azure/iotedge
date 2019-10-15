@@ -108,7 +108,12 @@ steps:
     echo "which = $(which dotnet)"
     echo "$(dotnet --info)"
     $testDir = '$(Build.SourcesDirectory)/test/Microsoft.Azure.Devices.Edge.Test'
+
+    echo "Trying to restore -----------------------------"
+    dotnet restore $testDir
+    echo "Trying to build -----------------------------"
     dotnet build -c Release -p:DotNet_Runtime=$DotNet_Runtime $testDir
+
     echo " "
     gci $testDir
     echo " "
