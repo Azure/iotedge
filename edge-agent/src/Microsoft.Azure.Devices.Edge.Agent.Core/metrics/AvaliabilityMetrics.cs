@@ -75,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
 
                 // TODO: make set take double
-                LifetimeAvaliability.Set((long)(avaliability.avaliability * 10000), new[] { avaliability.name, avaliability.version });
+                LifetimeAvaliability.Set(avaliability.avaliability, new[] { avaliability.name, avaliability.version });
             }
 
             /* Add new modules to track */

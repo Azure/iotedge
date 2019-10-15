@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
         /// </summary>
         /// <returns></returns>
         [Fact]
-        public async Task TestAvaliability()
+        public async Task Avaliability()
         {
             await Task.WhenAll(
                 TestBasicUptime(),
@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                     avaliability.AddPoint(j % i == 0);
                     await Task.Delay(100);
                 }
-                ApproxEqual(1.0 / i, avaliability.avaliability, .025);
+                TestHelper.ApproxEqual(1.0 / i, avaliability.avaliability, .025);
             }));
         }
 
@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                     avaliability.AddPoint(j % i == 0);
                     await Task.Delay(50);
                 }
-                ApproxEqual(1.0 / i, avaliability.avaliability, .05);
+                TestHelper.ApproxEqual(1.0 / i, avaliability.avaliability, .05);
 
                 avaliability.NoPoint();
                 await Task.Delay(1000);
@@ -68,13 +68,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                     avaliability.AddPoint(j % i == 0);
                     await Task.Delay(50);
                 }
-                ApproxEqual(1.0 / i, avaliability.avaliability, .05);
+                TestHelper.ApproxEqual(1.0 / i, avaliability.avaliability, .05);
             }));
-        }
-
-        private static void ApproxEqual(double expected, double actual, double tolerance)
-        {
-            Assert.True(Math.Abs(expected - actual) <= tolerance, $"Expected {expected} to be within {tolerance} of {actual}");
         }
     }
 }
