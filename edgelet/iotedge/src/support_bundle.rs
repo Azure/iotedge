@@ -24,6 +24,7 @@ pub struct SupportBundle<M> {
     log_options: LogOptions,
     location: OsString,
     include_ms_only: bool,
+    verbose: bool,
     iothub_hostname: Option<String>,
 }
 
@@ -31,6 +32,7 @@ struct BundleState<M> {
     runtime: M,
     log_options: LogOptions,
     include_ms_only: bool,
+    verbose: bool,
     iothub_hostname: Option<String>,
     file_options: zip::write::FileOptions,
     zip_writer: zip::ZipWriter<File>,
@@ -48,7 +50,7 @@ where
             .and_then(SupportBundle::write_edgelet_log_to_file)
             .and_then(SupportBundle::write_check_to_file)
             .and_then(SupportBundle::write_all_inspects)
-            .map(|_| println!("Created support bundle"));
+            .map(|state| state.print_verbose("Created support bundle"));
 
         Box::new(result)
     }
@@ -62,6 +64,7 @@ where
         log_options: LogOptions,
         location: OsString,
         include_ms_only: bool,
+        verbose: bool,
         iothub_hostname: Option<String>,
         runtime: M,
     ) -> Self {
@@ -70,6 +73,7 @@ where
             log_options,
             location,
             include_ms_only,
+            verbose,
             iothub_hostname,
         }
     }
@@ -87,30 +91,33 @@ where
             runtime: self.runtime,
             log_options: self.log_options,
             include_ms_only: self.include_ms_only,
+            verbose: self.verbose,
             iothub_hostname: self.iothub_hostname,
             file_options,
             zip_writer,
         })
     }
 
-    fn write_all_logs(s1: BundleState<M>) -> impl Future<Item = BundleState<M>, Error = Error> {
+    fn write_all_logs(state: BundleState<M>) -> impl Future<Item = BundleState<M>, Error = Error> {
         /* Print status */
-        let since_time: DateTime<Utc> = DateTime::from_utc(
-            NaiveDateTime::from_timestamp(s1.log_options.since().into(), 0),
-            Utc,
-        );
-        let since_local: DateTime<Local> = DateTime::from(since_time);
-        let max_lines = if let LogTail::Num(tail) = s1.log_options.tail() {
-            format!("(maximum {} lines) ", tail)
-        } else {
-            "".to_owned()
-        };
-        println!(
-            "Writing all logs {}since {} (local time {})",
-            max_lines, since_time, since_local
-        );
+        if state.verbose {
+            let since_time: DateTime<Utc> = DateTime::from_utc(
+                NaiveDateTime::from_timestamp(state.log_options.since().into(), 0),
+                Utc,
+            );
+            let since_local: DateTime<Local> = DateTime::from(since_time);
+            let max_lines = if let LogTail::Num(tail) = state.log_options.tail() {
+                format!("(maximum {} lines) ", tail)
+            } else {
+                "".to_owned()
+            };
+            println!(
+                "Writing all logs {}since {} (local time {})",
+                max_lines, since_time, since_local
+            );
+        }
 
-        SupportBundle::get_modules(s1).and_then(|(names, s2)| {
+        SupportBundle::get_modules(state).and_then(|(names, s2)| {
             stream::iter_ok(names).fold(s2, SupportBundle::write_log_to_file)
         })
     }
@@ -142,11 +149,12 @@ where
         state: BundleState<M>,
         module_name: String,
     ) -> impl Future<Item = BundleState<M>, Error = Error> {
-        println!("Writing {} logs to file", module_name);
+        state.print_verbose(&format!("Writing {} logs to file", module_name));
         let BundleState {
             runtime,
             log_options,
             include_ms_only,
+            verbose,
             iothub_hostname,
             file_options,
             mut zip_writer,
@@ -159,21 +167,23 @@ where
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))
             .and_then(move |_| {
                 pull_logs(&runtime, &module_name, &log_options, zip_writer).map(move |zw| {
-                    println!("Wrote {} logs to file", module_name);
-                    BundleState {
+                    let state = BundleState {
                         runtime,
                         log_options,
                         include_ms_only,
+                        verbose,
                         iothub_hostname,
                         file_options,
                         zip_writer: zw,
-                    }
+                    };
+                    state.print_verbose(&format!("Wrote {} logs to file", module_name));
+                    state
                 })
             })
     }
 
     fn write_edgelet_log_to_file(mut state: BundleState<M>) -> Result<BundleState<M>, Error> {
-        println!("Getting system logs for iotedge");
+        state.print_verbose("Getting system logs for iotedged");
         let since_time: DateTime<Utc> = DateTime::from_utc(
             NaiveDateTime::from_timestamp(state.log_options.since().into(), 0),
             Utc,
@@ -220,12 +230,13 @@ where
             .write(&output)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
+        state.print_verbose("Got logs for iotedged");
         Ok(state)
     }
 
     fn write_check_to_file(mut state: BundleState<M>) -> Result<BundleState<M>, Error> {
         let iotedge = env::args().nth(0).unwrap();
-        println!("Calling iotedge check");
+        state.print_verbose("Calling iotedge check");
 
         let mut check = ShellCommand::new(iotedge);
         check.arg("check").args(&["-o", "json"]);
@@ -247,7 +258,7 @@ where
             .write(&check.stdout)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
-        println!("Wrote check output to file");
+        state.print_verbose("Wrote check output to file");
         Ok(state)
     }
 
@@ -255,7 +266,7 @@ where
         mut state: BundleState<M>,
         module_name: String,
     ) -> Result<BundleState<M>, Error> {
-        println!("Running docker inspect for {}", module_name);
+        state.print_verbose(&format!("Running docker inspect for {}", module_name));
         let mut inspect = ShellCommand::new("docker");
 
         /***
@@ -298,8 +309,17 @@ where
             .write(&output)
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
+        state.print_verbose(&format!("Got docker inspect for {}", module_name));
         drop(module_name);
         Ok(state)
+    }
+}
+
+impl<M> BundleState<M> {
+    fn print_verbose(&self, message: &str) {
+        if self.verbose {
+            println!("{}", message);
+        }
     }
 }
 
@@ -353,6 +373,7 @@ mod tests {
             LogOptions::default(),
             OsString::from(file_path.to_owned()),
             false,
+            true,
             Some("".to_owned()),
             runtime,
         );
@@ -373,6 +394,7 @@ mod tests {
             LogOptions::default(),
             OsString::from(file_path),
             false,
+            true,
             Some("".to_owned()),
             runtime,
         );
@@ -403,6 +425,7 @@ mod tests {
             LogOptions::default(),
             OsString::from(file_path.to_owned()),
             false,
+            true,
             Some("".to_owned()),
             runtime,
         );
