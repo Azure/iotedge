@@ -43,5 +43,5 @@ pub mod env {
 
     pub const NAMESPACE_KEY: &str = "K8sNamespace";
 
-    pub const EDGE_NETWORKID_KEY: &str = "NetworkId";
+    pub const EDGE_NETWORK_ID_KEY: &str = "NetworkId";
 }
