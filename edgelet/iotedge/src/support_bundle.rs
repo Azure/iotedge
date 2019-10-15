@@ -362,6 +362,7 @@ mod tests {
             LogOptions::default(),
             OsString::from(file_path.to_owned()),
             false,
+            false,
             None,
             runtime,
         );
