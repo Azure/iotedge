@@ -154,12 +154,6 @@ impl FromStr for ProvisioningStatus {
     }
 }
 
-//impl Display for ProvisioningStatus {
-//    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
-//        write!(f, "{:?}", self)
-//    }
-//}
-
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct ProvisioningResult {
     device_id: String,
@@ -558,7 +552,7 @@ where
     }
 
     fn reprovision(&self) -> Box<dyn Future<Item = (), Error = Error> + Send> {
-        // TODO: Implement reprovisioning flow for DPS.
+        // No reprovision action is needed for the DPS provisioning mode.
         Box::new(future::ok(()))
     }
 }
@@ -645,7 +639,7 @@ where
     }
 
     fn reprovision(&self) -> Box<dyn Future<Item = (), Error = Error> + Send> {
-        // TODO: Implement reprovisioning flow for DPS.
+        // No reprovision action is needed for the DPS provisioning mode.
         Box::new(future::ok(()))
     }
 }
@@ -734,19 +728,17 @@ where
     }
 
     fn reprovision(&self) -> Box<dyn Future<Item = (), Error = Error> + Send> {
-        // TODO: Implement reprovisioning flow for DPS.
+        // No reprovision action is needed for the DPS provisioning mode.
         Box::new(future::ok(()))
     }
 }
 
-pub struct BackupProvisioning<'a, P>
-{
+pub struct BackupProvisioning<'a, P> {
     underlying: &'a P,
     path: PathBuf,
 }
 
-impl<'a, P: 'a> BackupProvisioning<'a, P>
-{
+impl<'a, P: 'a> BackupProvisioning<'a, P> {
     pub fn new(provisioner: &'a P, path: PathBuf) -> Self {
         BackupProvisioning {
             underlying: provisioner,
@@ -884,7 +876,7 @@ mod tests {
         type Hsm = MemoryKeyStore;
 
         fn provision(
-            self,
+            &self,
             _key_activator: Self::Hsm,
         ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send> {
             Box::new(future::ok(ProvisioningResult {
@@ -907,7 +899,7 @@ mod tests {
         type Hsm = MemoryKeyStore;
 
         fn provision(
-            self,
+            &self,
             _key_activator: Self::Hsm,
         ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send> {
             Box::new(future::ok(ProvisioningResult {
@@ -930,7 +922,7 @@ mod tests {
         type Hsm = MemoryKeyStore;
 
         fn provision(
-            self,
+            &self,
             _key_activator: Self::Hsm,
         ) -> Box<dyn Future<Item = ProvisioningResult, Error = Error> + Send> {
             Box::new(future::err(Error::from(ErrorKind::Provision)))
@@ -1035,7 +1027,7 @@ mod tests {
         let tmp_dir = TempDir::new("backup").unwrap();
         let file_path = tmp_dir.path().join("dps_backup.json");
         let file_path_clone = file_path.clone();
-        let prov_wrapper = BackupProvisioning::new(test_provisioner, file_path);
+        let prov_wrapper = BackupProvisioning::new(&test_provisioner, file_path);
         let task = prov_wrapper
             .provision(MemoryKeyStore::new())
             .then(|result| {
@@ -1058,7 +1050,7 @@ mod tests {
         let tmp_dir = TempDir::new("backup").unwrap();
         let file_path = tmp_dir.path().join("dps_backup.json");
         let file_path_clone = file_path.clone();
-        let prov_wrapper = BackupProvisioning::new(test_provisioner, file_path);
+        let prov_wrapper = BackupProvisioning::new(&test_provisioner, file_path);
         let task = prov_wrapper.provision(MemoryKeyStore::new());
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -1066,7 +1058,7 @@ mod tests {
             .unwrap();
 
         let prov_wrapper_err =
-            BackupProvisioning::new(TestProvisioningWithError {}, file_path_clone);
+            BackupProvisioning::new(&TestProvisioningWithError {}, file_path_clone);
         let task1 = prov_wrapper_err
             .provision(MemoryKeyStore::new())
             .then(|result| {
@@ -1087,14 +1079,14 @@ mod tests {
         let tmp_dir = TempDir::new("backup").unwrap();
         let file_path = tmp_dir.path().join("dps_backup.json");
         let file_path_clone = file_path.clone();
-        let prov_wrapper = BackupProvisioning::new(test_provisioner, file_path);
+        let prov_wrapper = BackupProvisioning::new(&test_provisioner, file_path);
         let task = prov_wrapper.provision(MemoryKeyStore::new());
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
             .block_on(task)
             .unwrap();
 
-        let prov_wrapper_err = BackupProvisioning::new(TestProvisioning {}, file_path_clone);
+        let prov_wrapper_err = BackupProvisioning::new(&TestProvisioning {}, file_path_clone);
         let task1 = prov_wrapper_err
             .provision(MemoryKeyStore::new())
             .then(|result| {
@@ -1119,7 +1111,7 @@ mod tests {
         let tmp_dir = TempDir::new("backup").unwrap();
         let file_path = tmp_dir.path().join("dps_backup.json");
         let file_path_clone = file_path.clone();
-        let prov_wrapper = BackupProvisioning::new(test_provisioner, file_path);
+        let prov_wrapper = BackupProvisioning::new(&test_provisioner, file_path);
         let task = prov_wrapper.provision(MemoryKeyStore::new());
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -1127,7 +1119,7 @@ mod tests {
             .unwrap();
 
         let prov_wrapper_err =
-            BackupProvisioning::new(TestProvisioningWithError {}, file_path_clone);
+            BackupProvisioning::new(&TestProvisioningWithError {}, file_path_clone);
         let task1 = prov_wrapper_err
             .provision(MemoryKeyStore::new())
             .then(|result| {
@@ -1152,14 +1144,14 @@ mod tests {
         let tmp_dir = TempDir::new("backup").unwrap();
         let file_path = tmp_dir.path().join("dps_backup.json");
         let file_path_clone = file_path.clone();
-        let prov_wrapper = BackupProvisioning::new(test_provisioner, file_path);
+        let prov_wrapper = BackupProvisioning::new(&test_provisioner, file_path);
         let task = prov_wrapper.provision(MemoryKeyStore::new());
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
             .block_on(task)
             .unwrap();
 
-        let prov_wrapper_err = BackupProvisioning::new(TestReprovisioning {}, file_path_clone);
+        let prov_wrapper_err = BackupProvisioning::new(&TestReprovisioning {}, file_path_clone);
         let task1 = prov_wrapper_err
             .provision(MemoryKeyStore::new())
             .then(|result| {
@@ -1184,7 +1176,7 @@ mod tests {
         let tmp_dir = TempDir::new("backup").unwrap();
         let file_path = tmp_dir.path().join("dps_backup.json");
         let file_path_wrong = tmp_dir.path().join("dps_backup_wrong.json");
-        let prov_wrapper = BackupProvisioning::new(test_provisioner, file_path);
+        let prov_wrapper = BackupProvisioning::new(&test_provisioner, file_path);
         let task = prov_wrapper.provision(MemoryKeyStore::new());
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
@@ -1192,7 +1184,7 @@ mod tests {
             .unwrap();
 
         let prov_wrapper_err =
-            BackupProvisioning::new(TestProvisioningWithError {}, file_path_wrong);
+            BackupProvisioning::new(&TestProvisioningWithError {}, file_path_wrong);
         let task1 = prov_wrapper_err
             .provision(MemoryKeyStore::new())
             .then(|result| {
@@ -1323,7 +1315,7 @@ mod tests {
             credentials,
         );
 
-        provisioning_info.set_status("garbage".to_string()); // testing if unsupported value for status resolves to a default instead.
+        provisioning_info.set_status("assigned".to_string());
         provisioning_info.set_substatus("garbage".to_string()); // testing if unsupported value for status resolves to a default instead.
 
         let provisioning = ExternalProvisioning::new(TestExternalProvisioningInterface {
@@ -1356,6 +1348,36 @@ mod tests {
                 }
                 Err(err) => panic!("Unexpected {:?}", err),
             });
+        tokio::runtime::current_thread::Runtime::new()
+            .unwrap()
+            .block_on(task)
+            .unwrap();
+    }
+
+    #[test]
+    fn external_get_provisioning_info_invalid_provisioning_status_failure() {
+        let credentials = Credentials::new("symmetric-key".to_string(), "hsm".to_string());
+        let mut provisioning_info = DeviceProvisioningInfo::new(
+            "TestHub".to_string(),
+            "TestDevice".to_string(),
+            credentials,
+        );
+
+        provisioning_info.set_status("garbage".to_string()); // testing if unsupported value for status resolves to a default instead.
+        provisioning_info.set_substatus("initialAssignment".to_string()); // testing if unsupported value for status resolves to a default instead.
+
+        let provisioning = ExternalProvisioning::new(TestExternalProvisioningInterface {
+            error: None,
+            provisioning_info,
+        });
+        let memory_hsm = MemoryKeyStore::new();
+        let task = provisioning.provision(memory_hsm.clone()).then(|result| {
+            assert_eq!(
+                result.unwrap_err().kind(),
+                &ErrorKind::InvalidProvisioningStatus
+            );
+            Ok::<_, Error>(())
+        });
         tokio::runtime::current_thread::Runtime::new()
             .unwrap()
             .block_on(task)
@@ -1669,7 +1691,7 @@ mod tests {
     fn external_reprovision_device_success() {
         let mut credentials = Credentials::new("symmetric-key".to_string(), "payload".to_string());
         credentials.set_key("cGFzczEyMzQ=".to_string());
-        let mut provisioning_info = DeviceProvisioningInfo::new(
+        let provisioning_info = DeviceProvisioningInfo::new(
             "TestHub".to_string(),
             "TestDevice".to_string(),
             credentials,
@@ -1692,7 +1714,7 @@ mod tests {
     fn external_reprovision_device_failure() {
         let mut credentials = Credentials::new("symmetric-key".to_string(), "payload".to_string());
         credentials.set_key("cGFzczEyMzQ=".to_string());
-        let mut provisioning_info = DeviceProvisioningInfo::new(
+        let provisioning_info = DeviceProvisioningInfo::new(
             "TestHub".to_string(),
             "TestDevice".to_string(),
             credentials,
