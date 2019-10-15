@@ -71,10 +71,6 @@ where
         let uri_str = format!("/device/provisioninginformation?{}", query);
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
-        // TODO(farcaller): handle error
-        // if let Err(e) = uri {
-        //     return Box::new(futures::future::err(e));
-        // }
         let mut req = hyper::Request::builder();
         req.method(method).uri(uri.unwrap());
         if let Some(ref user_agent) = configuration.user_agent {
@@ -84,10 +80,6 @@ where
         let req = req
             .body(hyper::Body::empty())
             .expect("could not build hyper::Request");
-
-        //        if let Some(ref sas_token) = configuration.sas_token {
-        //            req.headers_mut().set(Authorization(sas_token.clone()));
-        //        }
 
         // send request
         Box::new(
@@ -130,10 +122,6 @@ where
         let uri_str = format!("/device/reprovision?{}", query);
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
-        // TODO(farcaller): handle error
-        // if let Err(e) = uri {
-        //     return Box::new(futures::future::err(e));
-        // }
         let mut req = hyper::Request::builder();
         req.method(method).uri(uri.unwrap());
         if let Some(ref user_agent) = configuration.user_agent {
@@ -143,10 +131,6 @@ where
         let req = req
             .body(hyper::Body::empty())
             .expect("could not build hyper::Request");
-
-        //        if let Some(ref sas_token) = configuration.sas_token {
-        //            req.headers_mut().set(Authorization(sas_token.clone()));
-        //        }
 
         // send request
         Box::new(

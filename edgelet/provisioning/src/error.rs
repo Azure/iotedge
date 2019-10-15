@@ -24,6 +24,9 @@ pub enum ErrorKind {
     #[fail(display = "Failure during external provisioning. {}", _0)]
     ExternalProvisioning(ExternalProvisioningErrorReason),
 
+    #[fail(display = "Invalid value specified for provisioning status")]
+    InvalidProvisioningStatus,
+
     #[fail(display = "Could not provision device")]
     Provision,
 

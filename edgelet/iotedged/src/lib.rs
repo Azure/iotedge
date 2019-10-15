@@ -6,6 +6,7 @@
     clippy::doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
     clippy::module_name_repetitions,
     clippy::shadow_unrelated,
+    clippy::type_complexity,
     clippy::use_self,
 )]
 
@@ -1507,7 +1508,6 @@ where
             Err(Some(e)) => Err(Some(e)),
         });
 
-    #[allow(clippy::type_complexity)]
     let edge_rt_with_mgmt_signal = edge_rt.select2(mgmt_stop_and_reprovision_signaled).then(
         |res: Result<
             Either<((), _), (Option<Error>, _)>,

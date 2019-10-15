@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::fmt::{self, Display};
 use std::fs::File;
 use std::io::{Read, Write};
 use std::marker::PhantomData;
 use std::path::PathBuf;
+use std::str::FromStr;
 
 use bytes::Bytes;
 use failure::{Fail, ResultExt};
@@ -133,45 +133,32 @@ impl From<&str> for ReprovisioningStatus {
     }
 }
 
-impl Display for ReprovisioningStatus {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
-
 impl Default for ReprovisioningStatus {
     fn default() -> Self {
         ReprovisioningStatus::InitialAssignment
     }
 }
 
-impl From<&str> for ProvisioningStatus {
-    fn from(s: &str) -> ProvisioningStatus {
+impl FromStr for ProvisioningStatus {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<ProvisioningStatus, Self::Err> {
         match s {
-            "assigned" => ProvisioningStatus::Assigned,
-            "assigning" => ProvisioningStatus::Assigning,
-            "disabled" => ProvisioningStatus::Disabled,
-            "failed" => ProvisioningStatus::Failed,
-            "unassigned" => ProvisioningStatus::Unassigned,
-            _ => {
-                debug!("Provisioning result status {}", s);
-                ProvisioningStatus::Assigned
-            }
+            "assigned" => Ok(ProvisioningStatus::Assigned),
+            "assigning" => Ok(ProvisioningStatus::Assigning),
+            "disabled" => Ok(ProvisioningStatus::Disabled),
+            "failed" => Ok(ProvisioningStatus::Failed),
+            "unassigned" => Ok(ProvisioningStatus::Unassigned),
+            _ => Err(Error::from(ErrorKind::InvalidProvisioningStatus)),
         }
     }
 }
 
-impl Default for ProvisioningStatus {
-    fn default() -> Self {
-        ProvisioningStatus::Assigned
-    }
-}
-
-impl Display for ProvisioningStatus {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
+//impl Display for ProvisioningStatus {
+//    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+//        write!(f, "{:?}", self)
+//    }
+//}
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct ProvisioningResult {
@@ -422,15 +409,15 @@ where
             .map_err(|err| Error::from(err.context(ErrorKind::ExternalProvisioning(ExternalProvisioningErrorReason::ProvisioningFailure))))
             .and_then(move |device_provisioning_info| {
                 let provisioning_status = device_provisioning_info.status().map_or_else(
-                    || ProvisioningStatus::Assigned,
-                    ProvisioningStatus::from,
-                );
+                    || Ok(ProvisioningStatus::Assigned),
+                    |p| ProvisioningStatus::from_str(p),
+                )?;
                 let reconfigure = device_provisioning_info.substatus().map_or_else(
                     || ReprovisioningStatus::InitialAssignment,
                     ReprovisioningStatus::from,
                 );
                 info!(
-                    "External device registration information: Device \"{}\" in hub \"{}\" with credential type \"{}\" and credential source \"{}\". Current status is \"{}\" with substatus \"{}\".",
+                    "External device registration information: Device \"{}\" in hub \"{}\" with credential type \"{}\" and credential source \"{}\". Current status is \"{:?}\" with substatus \"{:?}\".",
                     device_provisioning_info.device_id(),
                     device_provisioning_info.hub_name(),
                     device_provisioning_info.credentials().auth_type(),
@@ -486,7 +473,6 @@ where
     }
 }
 
-#[derive(Clone)]
 pub struct DpsTpmProvisioning<C>
 where
     C: ClientImpl,
