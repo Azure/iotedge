@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
                 new X509Certificate2(X509Certificate.CreateFromCertFile(this.TrustedCertificatesPath))
             };
 
-        private string[] GetEdgeCertFileLocation(string deviceId)
+        string[] GetEdgeCertFileLocation(string deviceId)
         {
             return new[]
             {

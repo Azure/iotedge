@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
                 Log.Verbose("----------------------------------------");
             }
 
-            IdCertificates x509Certificate = await OsPlatform.Current.GenerateIdentiyCertificatesAsync(deviceId, scriptPath, token);
+            IdCertificates x509Certificate = await OsPlatform.Current.GenerateIdentityCertificatesAsync(deviceId, scriptPath, token);
             return new CertificateAuthority(x509Certificate, scriptPath);
         }
 
@@ -75,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
         {
             const string Err = "Cannot generate certificates without script";
             string scriptPath = this.scriptPath.Expect(() => new InvalidOperationException(Err));
-            return OsPlatform.Current.GenerateIdentiyCertificatesAsync(leafDeviceId, scriptPath, token);
+            return OsPlatform.Current.GenerateIdentityCertificatesAsync(leafDeviceId, scriptPath, token);
         }
     }
 }

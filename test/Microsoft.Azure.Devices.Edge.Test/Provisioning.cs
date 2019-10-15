@@ -85,12 +85,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string idScope = Context.Current.DpsIdScope.Expect(() => new InvalidOperationException("Missing DPS ID scope"));
             string registrationId = this.GetRegistrationId();
 
-            Assert.IsTrue(File.Exists(Path.Combine(caCertScriptPath, "certGen.sh")), "CA Certification script does not exist. Path: " + $"{caCertScriptPath}" );
-
-            CertificateAuthority ca;
             CancellationToken token = this.TestToken;
-
-            ca = await CertificateAuthority.CreateDpsX509CaAsync(
+            CertificateAuthority ca = await CertificateAuthority.CreateDpsX509CaAsync(
                 registrationId,
                 rootCa,
                 caCertScriptPath,

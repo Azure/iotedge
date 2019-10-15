@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             (string name, string args) command,
             CancellationToken token)
         {
-            Log.Verbose("Executed: " + command.name + ' ' + command.args);
+            Log.Verbose("Executing: " + command.name + ' ' + command.args);
             string[] output = await Process.RunAsync(command.name, command.args, token);
             Log.Verbose(string.Join("\n", output));
         }

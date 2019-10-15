@@ -3,7 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
 {
     public class IdCertificates
     {
-        private string[] GetFileLocation(string deviceId)
+        string[] GetFileLocation(string deviceId)
         {
             return new[]
             {

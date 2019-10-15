@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
     public class DaemonConfiguration
     {
-        private const string GlobalEndPoint = "https://global.azure-devices-provisioning.net";
+        const string GlobalEndPoint = "https://global.azure-devices-provisioning.net";
         readonly string configYamlFile;
         readonly YamlDocument config;
 
