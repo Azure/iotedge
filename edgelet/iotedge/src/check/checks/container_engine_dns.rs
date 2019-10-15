@@ -36,9 +36,8 @@ impl ContainerEngineDns {
         self.container_engine_config_path = Some(
             check
                 .container_engine_config_path
-                .to_str()
-                .unwrap_or_else(|| "No path found")
-                .to_owned(),
+                .to_string_lossy()
+                .into_owned(),
         );
 
         let daemon_config_file = File::open(&check.container_engine_config_path)

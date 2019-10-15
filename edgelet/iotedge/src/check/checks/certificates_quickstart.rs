@@ -77,9 +77,9 @@ impl CertificatesQuickstart {
         if settings.certificates().device_cert().is_none() {
             let certificate_info = CertificateValidity::parse(
                 "Device CA certificate".to_owned(),
-                check.device_ca_cert_path.to_owned().unwrap(),
+                check.device_ca_cert_path.clone().unwrap(),
             )?;
-            let not_after = certificate_info.not_after.to_owned();
+            let not_after = certificate_info.not_after.clone();
             self.certificate_info = Some(certificate_info);
 
             let now = chrono::Utc::now();

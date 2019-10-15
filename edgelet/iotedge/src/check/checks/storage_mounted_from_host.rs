@@ -1,3 +1,5 @@
+//! Note: Keep in sync with Microsoft.Azure.Devices.Edge.Agent.Service.Program.GetStoragePath and Microsoft.Azure.Devices.Edge.Hub.Service.DependencyManager.GetStoragePath
+
 use std::path::{Path, PathBuf};
 
 use failure::{self, Context, ResultExt};
@@ -11,7 +13,6 @@ pub(crate) struct EdgeAgentStorageMounted {
     other_directories: Option<Vec<PathBuf>>,
 }
 
-/// Note: Keep in sync with Microsoft.Azure.Devices.Edge.Agent.Service.Program.GetStoragePath
 impl Checker for EdgeAgentStorageMounted {
     fn id(&self) -> &'static str {
         "edge-agent-storage-mounted-from-host"
@@ -40,7 +41,6 @@ pub struct EdgeHubStorageMounted {
     other_directories: Option<Vec<PathBuf>>,
 }
 
-/// Note: Keep in sync with Microsoft.Azure.Devices.Edge.Hub.Service.DependencyManager.GetStoragePath
 impl Checker for EdgeHubStorageMounted {
     fn id(&self) -> &'static str {
         "edge-hub-storage-mounted-from-host"
