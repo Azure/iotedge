@@ -11,17 +11,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
         public string version;
         private TimeSpan totalTime = TimeSpan.Zero;
         private TimeSpan uptime = TimeSpan.Zero;
-        private DateTime? previousMeasure;
+        private DateTime? previousMeasure = null;
         private readonly ISystemTime time;
 
         public Avaliability(string name, string version, ISystemTime time)
         {
-            Console.WriteLine($"make {name}");
             this.name = name;
             this.version = version;
 
             this.time = time;
             previousMeasure = time.UtcNow;
+        }
+
+        public Avaliability(AvaliabilityRaw raw, ISystemTime time)
+        {
+            this.name = raw.name;
+            this.version = raw.version;
+            this.uptime = raw.uptime;
+            this.totalTime = raw.totalTime;
+
+            this.time = time;
         }
 
         public double avaliability { get { return uptime.TotalMilliseconds / totalTime.TotalMilliseconds; } }
@@ -50,5 +59,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             Console.WriteLine($"{name}: no point = {avaliability}");
             previousMeasure = null;
         }
+
+        public AvaliabilityRaw ToRaw()
+        {
+            return new AvaliabilityRaw
+            {
+                name = name,
+                version = version,
+                uptime = uptime,
+                totalTime = totalTime
+            };
+        }
+    }
+
+    public struct AvaliabilityRaw
+    {
+        public string name;
+        public string version;
+        public TimeSpan totalTime;
+        public TimeSpan uptime;
     }
 }

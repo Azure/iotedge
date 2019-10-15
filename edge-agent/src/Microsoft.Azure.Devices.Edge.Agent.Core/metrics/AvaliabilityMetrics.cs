@@ -24,7 +24,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                 {
                     try
                     {
-                        return Newtonsoft.Json.JsonConvert.DeserializeObject<List<Avaliability>>(File.ReadAllText(file));
+                        return Newtonsoft.Json.JsonConvert.DeserializeObject<List<AvaliabilityRaw>>(File.ReadAllText(file))
+                            .Select(raw => new Avaliability(raw, time)).ToList();
                     }
                     catch (Exception ex)
                     {
@@ -90,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                 try
                 {
                     string file = storageFile.ToEnumerable().First();
-                    string data = Newtonsoft.Json.JsonConvert.SerializeObject(availabilities.Value);
+                    string data = Newtonsoft.Json.JsonConvert.SerializeObject(availabilities.Value.Select(av => av.ToRaw()));
                     File.WriteAllText(file, data);
                 }
                 catch (Exception ex)
