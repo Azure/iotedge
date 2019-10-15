@@ -108,11 +108,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 V1ServiceAccountList currentServiceAccounts = await this.client.ListNamespacedServiceAccountAsync(this.deviceNamespace, labelSelector: this.deploymentSelector);
                 await this.ManageServiceAccounts(currentServiceAccounts, desiredServiceAccounts);
 
-                return new EdgeDeploymentStatus(EdgeDeploymentStatusType.Success, "200(OK)");
+                return EdgeDeploymentStatus.Success("Successfully deployed");
             }
             catch (HttpOperationException e)
             {
-                return new EdgeDeploymentStatus(EdgeDeploymentStatusType.Failure, $"{e.Request.Method} [{e.Request.RequestUri}]({e.Message})");
+                return EdgeDeploymentStatus.Failure(e);
             }
         }
 

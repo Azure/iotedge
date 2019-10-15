@@ -82,17 +82,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     onError: Events.EdgeDeploymentWatchFailed));
         }
 
-        public async Task EdgeDeploymentOnEventHandlerAsync(WatchEventType type, EdgeDeploymentDefinition item)
+        internal async Task EdgeDeploymentOnEventHandlerAsync(WatchEventType type, EdgeDeploymentDefinition item)
         {
-            try
+            using (await this.watchLock.LockAsync())
             {
-                await this.HandleEdgeDeploymentChangedAsync(type, item);
-            }
-            catch (Exception ex)
-            {
-                Events.EdgeDeploymentWatchFailed(ex);
-                await this.ReportDeploymentFailure(ex, item);
-                throw;
+                try
+                {
+                    await this.HandleEdgeDeploymentChangedAsync(type, item);
+                }
+                catch (Exception ex)
+                {
+                    Events.EdgeDeploymentWatchFailed(ex);
+                    await this.ReportDeploymentFailure(ex, item);
+                    throw;
+                }
             }
         }
 
@@ -105,47 +108,38 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 return;
             }
 
-            using (await this.watchLock.LockAsync())
+            Events.DeploymentStatus(type, this.resourceName);
+            switch (type)
             {
-                Events.DeploymentStatus(type, this.resourceName);
-                switch (type)
-                {
-                    case WatchEventType.Added:
-                    case WatchEventType.Modified:
-                        var desiredModules = ModuleSet.Create(edgeDeploymentDefinition.Spec.ToArray());
-                        var status = await this.controller.DeployModulesAsync(desiredModules, this.currentModules);
-                        await this.ReportEdgeDeploymentStatus(edgeDeploymentDefinition, status);
-                        this.currentModules = desiredModules;
-                        this.currentStatus = status;
-                        break;
+                case WatchEventType.Added:
+                case WatchEventType.Modified:
+                    var desiredModules = ModuleSet.Create(edgeDeploymentDefinition.Spec.ToArray());
+                    var status = await this.controller.DeployModulesAsync(desiredModules, this.currentModules);
+                    await this.ReportEdgeDeploymentStatus(edgeDeploymentDefinition, status);
+                    this.currentModules = desiredModules;
+                    this.currentStatus = status;
+                    break;
 
-                    case WatchEventType.Deleted:
-                        await this.controller.PurgeModulesAsync();
-                        this.currentModules = ModuleSet.Empty;
-                        this.currentStatus = DefaultStatus;
-                        break;
+                case WatchEventType.Deleted:
+                    await this.controller.PurgeModulesAsync();
+                    this.currentModules = ModuleSet.Empty;
+                    this.currentStatus = DefaultStatus;
+                    break;
 
-                    case WatchEventType.Error:
-                        Events.DeploymentError();
-                        break;
+                case WatchEventType.Error:
+                    Events.DeploymentError();
+                    break;
 
-                    default:
-                        throw new ArgumentOutOfRangeException(nameof(type), type, null);
-                }
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(type), type, null);
             }
         }
 
         async Task ReportDeploymentFailure(Exception ex, EdgeDeploymentDefinition item)
         {
-            string message = (ex is HttpOperationException httpEx) ?
-                $"{httpEx.Request.Method} [{httpEx.Request.RequestUri}]({httpEx.Message})" :
-                ex.Message;
-            var status = new EdgeDeploymentStatus(EdgeDeploymentStatusType.Failure, message);
+            var status = EdgeDeploymentStatus.Failure(ex);
             await this.ReportEdgeDeploymentStatus(item, status);
-            using (await this.watchLock.LockAsync())
-            {
-                this.currentStatus = status;
-            }
+            this.currentStatus = status;
         }
 
         async Task ReportEdgeDeploymentStatus(EdgeDeploymentDefinition edgeDeploymentDefinition, EdgeDeploymentStatus status)

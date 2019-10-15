@@ -2,9 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 {
     using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Rest;
     using Newtonsoft.Json;
 
     public class EdgeDeploymentStatus : IEquatable<EdgeDeploymentStatus>
@@ -14,6 +12,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
         [JsonProperty(PropertyName = "message")]
         public string Message { get; }
+
+        public static EdgeDeploymentStatus Success(string message)
+        {
+            return new EdgeDeploymentStatus(EdgeDeploymentStatusType.Success, message);
+        }
+
+        public static EdgeDeploymentStatus Failure(Exception e)
+        {
+            string message = (e is HttpOperationException httpEx) ?
+                $"{httpEx.Request.Method} [{httpEx.Request.RequestUri}]({httpEx.Message})" :
+                e.Message;
+            return new EdgeDeploymentStatus(EdgeDeploymentStatusType.Failure, message);
+        }
 
         public EdgeDeploymentStatus(EdgeDeploymentStatusType state, string message)
         {

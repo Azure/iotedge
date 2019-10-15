@@ -1,9 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment
 {
+    using System;
     using System.Collections.Generic;
+    using System.Net.Http;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Rest;
     using Xunit;
 
     [Unit]
@@ -17,6 +20,32 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment
         static readonly EdgeDeploymentStatus Status6 = new EdgeDeploymentStatus(EdgeDeploymentStatusType.Success, null);
         static readonly EdgeDeploymentStatus Status7 = new EdgeDeploymentStatus(EdgeDeploymentStatusType.Failure, "message");
         static readonly EdgeDeploymentStatus Status8 = new EdgeDeploymentStatus(EdgeDeploymentStatusType.Failure, "message");
+
+        [Fact]
+        public void EdgeDeploymentStatusSuccessFactoryIsSuccessStatus()
+        {
+            var status = EdgeDeploymentStatus.Success("deployed");
+            Assert.Equal(EdgeDeploymentStatusType.Success, status.State);
+            Assert.Equal("deployed", status.Message);
+        }
+
+        [Fact]
+        public void EdgeDeploymentStatusExceptionFailureFactoryIsFailureStatus()
+        {
+            Exception e = new Exception("deployment failed");
+            var status = EdgeDeploymentStatus.Failure(e);
+            Assert.Equal(EdgeDeploymentStatusType.Failure, status.State);
+            Assert.Equal("deployment failed", status.Message);
+
+            var uri = new Uri("https://my-uri");
+            HttpOperationException httpEx = new HttpOperationException("HTTP Exception")
+            {
+                Request = new HttpRequestMessageWrapper(new HttpRequestMessage(HttpMethod.Post, uri), string.Empty)
+            };
+            var httpStatus = EdgeDeploymentStatus.Failure(httpEx);
+            Assert.Equal(EdgeDeploymentStatusType.Failure, httpStatus.State);
+            Assert.Equal($"POST [{uri}](HTTP Exception)", httpStatus.Message);
+        }
 
         public static IEnumerable<object[]> GetDifferentStatus() => new List<object[]>
         {
