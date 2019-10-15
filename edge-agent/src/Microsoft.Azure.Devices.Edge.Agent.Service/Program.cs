@@ -158,6 +158,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         string proxyTrustBundleConfigMapName = configuration.GetValue<string>(K8sConstants.ProxyTrustBundleConfigMapEnvKey);
                         PortMapServiceType mappedServiceDefault = GetDefaultServiceType(configuration);
                         bool enableServiceCallTracing = configuration.GetValue<bool>(K8sConstants.EnableK8sServiceCallTracingName);
+                        string persistentVolumeName = configuration.GetValue<string>(K8sConstants.PersistentVolumeNameKey);
+                        string storageClassName = configuration.GetValue<string>(K8sConstants.StorageClassNameKey);
+                        uint persistentVolumeClaimDefaultSizeMb = configuration.GetValue<uint>(K8sConstants.PersistentVolumeClaimDefaultSizeInMbKey);
                         string deviceNamespace = configuration.GetValue<string>(K8sConstants.K8sNamespaceKey);
                         var kubernetesExperimentalFeatures = KubernetesExperimentalFeatures.Create(configuration.GetSection("experimentalFeatures"), logger);
 
@@ -183,6 +186,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                             Option.Some(productInfo),
                             mappedServiceDefault,
                             enableServiceCallTracing,
+                            persistentVolumeName,
+                            storageClassName,
+                            persistentVolumeClaimDefaultSizeMb,
                             proxy,
                             closeOnIdleTimeout,
                             idleTimeout,
@@ -329,7 +335,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
         }
 
-        // Note: Keep in sync with iotedge-check's edge-agent-storage-mounted-from-host check (edgelet/iotedge/src/check/mod.rs)
+        // Note: Keep in sync with iotedge-check's edge-agent-storage-mounted-from-host check (edgelet/iotedge/src/check/checks/storage_mounted_from_host.rs)
         static string GetStoragePath(IConfiguration configuration)
         {
             string baseStoragePath = configuration.GetValue<string>("StorageFolder");

@@ -2,76 +2,88 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
     using System.Collections.Generic;
+    using System.Linq;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Json;
     using Newtonsoft.Json;
+    using EmptyStruct = global::Docker.DotNet.Models.EmptyStruct;
 
     public class CreatePodParameters
     {
         public CreatePodParameters(
-            IList<string> env,
-            IDictionary<string, global::Docker.DotNet.Models.EmptyStruct> exposedPorts,
+            IEnumerable<string> env,
+            IDictionary<string, EmptyStruct> exposedPorts,
             HostConfig hostConfig,
             string image,
-            IDictionary<string, string> labels,
-            NetworkingConfig networkingConfig)
-            : this(env, exposedPorts, hostConfig, image, labels, networkingConfig, null, null)
+            IDictionary<string, string> labels)
+            : this(env?.ToList(), exposedPorts, hostConfig, image, labels, null, null, null)
         {
         }
 
         [JsonConstructor]
         CreatePodParameters(
-            IList<string> env,
-            IDictionary<string, global::Docker.DotNet.Models.EmptyStruct> exposedPorts,
+            IReadOnlyList<string> env,
+            IDictionary<string, EmptyStruct> exposedPorts,
             HostConfig hostConfig,
             string image,
             IDictionary<string, string> labels,
-            NetworkingConfig networkingConfig,
             IDictionary<string, string> nodeSelector,
-            V1ResourceRequirements resources)
+            V1ResourceRequirements resources,
+            IReadOnlyList<KubernetesModuleVolumeSpec> volumes)
         {
             this.Env = Option.Maybe(env);
             this.ExposedPorts = Option.Maybe(exposedPorts);
             this.HostConfig = Option.Maybe(hostConfig);
             this.Image = Option.Maybe(image);
             this.Labels = Option.Maybe(labels);
-            this.NetworkingConfig = Option.Maybe(networkingConfig);
             this.NodeSelector = Option.Maybe(nodeSelector);
             this.Resources = Option.Maybe(resources);
+            this.Volumes = Option.Maybe(volumes);
         }
 
-        [JsonProperty("Env", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        [JsonConverter(typeof(OptionConverter<IList<string>>))]
-        public Option<IList<string>> Env { get; }
+        internal static CreatePodParameters Create(
+            IReadOnlyList<string> env = null,
+            IDictionary<string, EmptyStruct> exposedPorts = null,
+            HostConfig hostConfig = null,
+            string image = null,
+            IDictionary<string, string> labels = null,
+            IDictionary<string, string> nodeSelector = null,
+            V1ResourceRequirements resources = null,
+            IReadOnlyList<KubernetesModuleVolumeSpec> volumes = null)
+            => new CreatePodParameters(env, exposedPorts, hostConfig, image, labels, nodeSelector, resources, volumes);
 
-        [JsonProperty("ExposedPorts", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        [JsonConverter(typeof(OptionConverter<IDictionary<string, global::Docker.DotNet.Models.EmptyStruct>>))]
-        public Option<IDictionary<string, global::Docker.DotNet.Models.EmptyStruct>> ExposedPorts { get; }
+        [JsonProperty("env", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [JsonConverter(typeof(OptionConverter<IReadOnlyList<string>>))]
+        public Option<IReadOnlyList<string>> Env { get; }
 
-        [JsonProperty("HostConfig", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [JsonProperty("exposedPorts", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [JsonConverter(typeof(OptionConverter<IDictionary<string, EmptyStruct>>))]
+        public Option<IDictionary<string, EmptyStruct>> ExposedPorts { get; }
+
+        [JsonProperty("hostConfig", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [JsonConverter(typeof(OptionConverter<HostConfig>))]
         public Option<HostConfig> HostConfig { get; }
 
-        [JsonProperty("Image", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [JsonProperty("image", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [JsonConverter(typeof(OptionConverter<string>))]
         public Option<string> Image { get; }
 
-        [JsonProperty("Labels", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [JsonProperty("labels", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [JsonConverter(typeof(OptionConverter<IDictionary<string, string>>))]
         public Option<IDictionary<string, string>> Labels { get; }
 
-        [JsonProperty("NetworkingConfig", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        [JsonConverter(typeof(OptionConverter<NetworkingConfig>))]
-        public Option<NetworkingConfig> NetworkingConfig { get; }
-
-        [JsonProperty("NodeSelector", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [JsonProperty("nodeSelector", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [JsonConverter(typeof(OptionConverter<IDictionary<string, string>>))]
         public Option<IDictionary<string, string>> NodeSelector { get; set; }
 
-        [JsonProperty("Resources", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [JsonProperty("resources", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [JsonConverter(typeof(OptionConverter<V1ResourceRequirements>))]
         public Option<V1ResourceRequirements> Resources { get; set; }
+
+        [JsonProperty("volumes", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [JsonConverter(typeof(OptionConverter<IReadOnlyList<KubernetesModuleVolumeSpec>>))]
+        public Option<IReadOnlyList<KubernetesModuleVolumeSpec>> Volumes { get; set; }
     }
 }
