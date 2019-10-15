@@ -10,7 +10,7 @@ namespace MessagesAnalyzer
     [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
     class ModuleDmReport
     {
-        public ModuleDmReport(string moduleId, IDictionary<string, IList<DirectMethodStatus>> statusCodes)
+        public ModuleDmReport(string moduleId, IDictionary<string, Tuple<int, DateTime>> statusCodes)
         {
             this.ModuleId = moduleId;
             this.StatusCodes = new List<DmStatusReport>();
@@ -19,8 +19,8 @@ namespace MessagesAnalyzer
                 this.StatusCodes.Add(new DmStatusReport()
                 {
                     StatusCode = status.Key,
-                    Count = status.Value.Count,
-                    LastReceivedAt = status.Value.Last().EnqueuedDateTime
+                    Count = status.Value.Item1,
+                    LastReceivedAt = status.Value.Item2
                 });
             } 
         }

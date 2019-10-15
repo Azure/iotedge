@@ -18,10 +18,10 @@ namespace MessagesAnalyzer
 
         static IList<ModuleDmReport> GetDmReport()
         {
-            IDictionary<string, IDictionary<string, IList<DirectMethodStatus>>> dms = MessagesCache.Instance.GetDmSnapshot();
+            IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> dms = MessagesCache.Instance.GetDmSnapshot();
             IList<ModuleDmReport> report = new List<ModuleDmReport>();
 
-            foreach (KeyValuePair<string, IDictionary<string, IList<DirectMethodStatus>>> dm in dms)
+            foreach (KeyValuePair<string, IDictionary<string, Tuple<int, DateTime>>> dm in dms)
             {
                 Log.LogInformation($"Dm report for {dm.Key}");
                 report.Add(new ModuleDmReport(dm.Key, dm.Value));
