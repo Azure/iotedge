@@ -245,7 +245,11 @@ impl DiskInfo {
         );
 
         DiskInfo {
-            name: disk.get_name().to_str().unwrap().to_owned(),
+            name: disk
+                .get_name()
+                .to_str()
+                .unwrap_or("unrecognized_name")
+                .to_owned(),
             percent_free,
             available_space: Byte::from_bytes(u128::from(available_space))
                 .get_appropriate_unit(true)
@@ -253,7 +257,7 @@ impl DiskInfo {
             total_space: Byte::from_bytes(u128::from(total_space))
                 .get_appropriate_unit(true)
                 .format(2),
-            file_system: str::from_utf8(disk.get_file_system()).unwrap().to_owned(),
+            file_system: String::from_utf8_lossy(disk.get_file_system()).into_owned(),
             file_type: format!("{:?}", disk.get_type()),
         }
     }

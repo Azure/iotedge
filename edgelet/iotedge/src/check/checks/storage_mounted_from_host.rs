@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use failure::{self, Context, ResultExt};
 use regex::Regex;
@@ -6,18 +6,28 @@ use regex::Regex;
 use crate::check::{checker::Checker, Check, CheckResult};
 
 #[derive(Default, serde_derive::Serialize)]
-pub(crate) struct EdgeAgentStorageMounted {}
+pub(crate) struct EdgeAgentStorageMounted {
+    storage_directory: Option<PathBuf>,
+    other_directories: Option<Vec<PathBuf>>,
+}
+
+/// Note: Keep in sync with Microsoft.Azure.Devices.Edge.Agent.Service.Program.GetStoragePath
 impl Checker for EdgeAgentStorageMounted {
     fn id(&self) -> &'static str {
         "edge-agent-storage-mounted-from-host"
     }
     fn description(&self) -> &'static str {
-        // Note: Keep in sync with Microsoft.Azure.Devices.Edge.Agent.Service.Program.GetStoragePath
         "production readiness: Edge Agent's storage directory is persisted on the host filesystem"
     }
     fn execute(&mut self, check: &mut Check) -> CheckResult {
-        storage_mounted_from_host(check, "edgeAgent", "edgeAgent")
-            .unwrap_or_else(CheckResult::Failed)
+        storage_mounted_from_host(
+            check,
+            "edgeAgent",
+            "edgeAgent",
+            &mut self.storage_directory,
+            &mut self.other_directories,
+        )
+        .unwrap_or_else(CheckResult::Failed)
     }
     fn get_json(&self) -> serde_json::Value {
         serde_json::to_value(self).unwrap()
@@ -25,17 +35,28 @@ impl Checker for EdgeAgentStorageMounted {
 }
 
 #[derive(Default, serde_derive::Serialize)]
-pub struct EdgeHubStorageMounted {}
+pub struct EdgeHubStorageMounted {
+    storage_directory: Option<PathBuf>,
+    other_directories: Option<Vec<PathBuf>>,
+}
+
+/// Note: Keep in sync with Microsoft.Azure.Devices.Edge.Hub.Service.DependencyManager.GetStoragePath
 impl Checker for EdgeHubStorageMounted {
     fn id(&self) -> &'static str {
         "edge-hub-storage-mounted-from-host"
     }
     fn description(&self) -> &'static str {
-        // Note: Keep in sync with Microsoft.Azure.Devices.Edge.Hub.Service.DependencyManager.GetStoragePath
         "production readiness: Edge Hub's storage directory is persisted on the host filesystem"
     }
     fn execute(&mut self, check: &mut Check) -> CheckResult {
-        storage_mounted_from_host(check, "edgeHub", "edgeHub").unwrap_or_else(CheckResult::Failed)
+        storage_mounted_from_host(
+            check,
+            "edgeHub",
+            "edgeHub",
+            &mut self.storage_directory,
+            &mut self.other_directories,
+        )
+        .unwrap_or_else(CheckResult::Failed)
     }
     fn get_json(&self) -> serde_json::Value {
         serde_json::to_value(self).unwrap()
@@ -46,6 +67,8 @@ fn storage_mounted_from_host(
     check: &mut Check,
     container_name: &'static str,
     storage_directory_name: &'static str,
+    storage_directory_out: &mut Option<PathBuf>,
+    other_directories_out: &mut Option<Vec<PathBuf>>,
 ) -> Result<CheckResult, failure::Error> {
     lazy_static::lazy_static! {
         static ref STORAGE_FOLDER_ENV_VAR_KEY_REGEX: Regex =
@@ -83,12 +106,13 @@ fn storage_mounted_from_host(
         );
 
     let storage_directory = Path::new(&*temp_dir).join(storage_directory_name);
+    *storage_directory_out = Some(storage_directory.to_owned());
 
     let mounted_directories = inspect_result
         .mounts()
         .into_iter()
         .flatten()
-        .filter_map(|mount| mount.destination().map(Path::new));
+        .filter_map(|mount| mount.destination().map(PathBuf::from));
 
     let volume_directories = inspect_result
         .config()
@@ -96,10 +120,13 @@ fn storage_mounted_from_host(
         .map(std::collections::HashMap::keys)
         .into_iter()
         .flatten()
-        .map(Path::new);
+        .map(PathBuf::from);
 
-    if !mounted_directories
-        .chain(volume_directories)
+    let other_directories: Vec<PathBuf> = mounted_directories.chain(volume_directories).collect();
+    *other_directories_out = Some(other_directories.to_owned());
+
+    if !other_directories
+        .into_iter()
         .any(|container_directory| storage_directory.starts_with(container_directory))
     {
         return Ok(CheckResult::Warning(

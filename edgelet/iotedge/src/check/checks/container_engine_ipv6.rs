@@ -34,11 +34,6 @@ impl ContainerEngineIPv6 {
         "Container engine is not configured for IPv6 communication.\n\
          Please see https://aka.ms/iotedge-docker-ipv6 for a guide on how to enable IPv6 support.";
 
-        #[derive(serde_derive::Deserialize)]
-        struct DaemonConfig {
-            ipv6: Option<bool>,
-        }
-
         let is_edge_ipv6_configured = check.settings.as_ref().map_or(false, |settings| {
             let moby_network = settings.moby_runtime().network();
             if let MobyNetwork::Network(network) = moby_network {
@@ -78,10 +73,15 @@ impl ContainerEngineIPv6 {
         self.actual_use_ipv6 = daemon_config.ipv6;
 
         match (daemon_config.ipv6.unwrap_or_default(), is_edge_ipv6_configured) {
-        (true, _) if cfg!(windows) => Err(Context::new("IPv6 container network configuration is not supported for the Windows operating system.").into()),
-        (true, _) => Ok(CheckResult::Ok),
-        (false, true) => Err(Context::new(MESSAGE).into()),
-        (false, false) => Ok(CheckResult::Ignored),
+            (true, _) if cfg!(windows) => Err(Context::new("IPv6 container network configuration is not supported for the Windows operating system.").into()),
+            (true, _) => Ok(CheckResult::Ok),
+            (false, true) => Err(Context::new(MESSAGE).into()),
+            (false, false) => Ok(CheckResult::Ignored),
+        }
     }
-    }
+}
+
+#[derive(serde_derive::Deserialize)]
+struct DaemonConfig {
+    ipv6: Option<bool>,
 }

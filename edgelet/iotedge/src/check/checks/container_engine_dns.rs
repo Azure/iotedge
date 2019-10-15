@@ -33,11 +33,6 @@ impl ContainerEngineDns {
          Please see https://aka.ms/iotedge-prod-checklist-dns for best practices.\n\
          You can ignore this warning if you are setting DNS server per module in the Edge deployment.";
 
-        #[derive(serde_derive::Deserialize)]
-        struct DaemonConfig {
-            dns: Option<Vec<String>>,
-        }
-
         self.container_engine_config_path = Some(
             check
                 .container_engine_config_path
@@ -76,4 +71,9 @@ impl ContainerEngineDns {
 
         Ok(CheckResult::Ok)
     }
+}
+
+#[derive(serde_derive::Deserialize)]
+struct DaemonConfig {
+    dns: Option<Vec<String>>,
 }

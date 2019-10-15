@@ -7,7 +7,8 @@ use crate::check::{checker::Checker, Check, CheckResult};
 
 #[derive(Default, serde_derive::Serialize)]
 pub(crate) struct IotedgedVersion {
-    version: Option<String>,
+    actual_version: Option<String>,
+    expected_version: Option<String>,
     //TODO: find if 1.* or specified
 }
 
@@ -36,6 +37,7 @@ impl IotedgedVersion {
                 None => return Ok(CheckResult::Skipped),
             },
         };
+        self.expected_version = Some(latest_versions.iotedged.to_owned());
 
         let mut process = Command::new(&check.iotedged);
         process.arg("--version");
@@ -75,7 +77,7 @@ impl IotedgedVersion {
             .get(1)
             .expect("unreachable: regex defines one capturing group")
             .as_str();
-        self.version = Some(version.to_owned());
+        self.actual_version = Some(version.to_owned());
 
         check.additional_info.iotedged_version = Some(version.to_owned());
 

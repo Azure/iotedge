@@ -40,8 +40,8 @@ impl IdentityCertificateExpiry {
 
         match settings.provisioning() {
             Provisioning::Dps(dps) => {
-                self.provisioning_mode = Some("Dps");
                 if let AttestationMethod::X509(x509_info) = dps.attestation() {
+                    self.provisioning_mode = Some("dps-x509");
                     let path = x509_info.identity_cert()?;
 
                     let result =
@@ -49,10 +49,11 @@ impl IdentityCertificateExpiry {
                     self.certificate_info = Some(result.clone());
                     return result.to_check_result();
                 }
+                self.provisioning_mode = Some("dps-other");
             }
             Provisioning::Manual(manual) => {
-                self.provisioning_mode = Some("Manual");
                 if let ManualAuthMethod::X509(x509) = manual.authentication_method() {
+                    self.provisioning_mode = Some("manual-x509");
                     let path = x509.identity_cert()?;
                     let result = CertificateValidity::parse(
                         "Manual authentication identity certificate".to_owned(),
@@ -61,9 +62,10 @@ impl IdentityCertificateExpiry {
                     self.certificate_info = Some(result.clone());
                     return result.to_check_result();
                 }
+                self.provisioning_mode = Some("manual-other");
             }
             Provisioning::External(_) => {
-                self.provisioning_mode = Some("External");
+                self.provisioning_mode = Some("external");
             }
         }
 
