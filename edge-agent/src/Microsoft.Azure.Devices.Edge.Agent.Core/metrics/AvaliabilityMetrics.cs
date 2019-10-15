@@ -1,6 +1,8 @@
+using Microsoft.Azure.Devices.Edge.Util;
 using Microsoft.Azure.Devices.Edge.Util.Metrics;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -8,14 +10,36 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 {
     static class AvaliabilityMetrics
     {
-        static List<Avaliability> avalabilities = new List<Avaliability>();
+        public static Option<string> storagePath = Option.None<string>();
+        private static Option<string> storageFile { get { return storagePath.Map(p => Path.Combine(p, "avaliability_history")); } }
 
-        static readonly IMetricsGauge LifetimeAvaliability = Util.Metrics.Metrics.Instance.CreateGauge(
+        private static Lazy<List<Avaliability>> availabilities = new Lazy<List<Avaliability>>(() =>
+        {
+            if (storageFile.HasValue)
+            {
+                Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Loading historical avaliability");
+                string file = storageFile.ToEnumerable().First();
+                if (File.Exists(file))
+                {
+                    try
+                    {
+                        return Newtonsoft.Json.JsonConvert.DeserializeObject<List<Avaliability>>(File.ReadAllText(file));
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Could not load historical avaliability: {ex}");
+                    }
+                }
+            }
+
+            return new List<Avaliability>();
+        });
+
+        private static readonly IMetricsGauge LifetimeAvaliability = Util.Metrics.Metrics.Instance.CreateGauge(
             "lifetime_avaliability",
             "total availability since deployment",
             new List<string> { "module_name", "module_version" }
         );
-
 
         public static void ComputeAvaliability(ModuleSet desired, ModuleSet current)
         {
@@ -33,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                 .Select(c => c.Name));
 
             /* Add points for all modules found */
-            foreach (Avaliability avaliability in avalabilities)
+            foreach (Avaliability avaliability in availabilities.Value)
             {
                 if (down.Remove(avaliability.name))
                 {
@@ -57,9 +81,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             /* Add new modules to track */
             foreach (string module in down.Union(up))
             {
-                avalabilities.Add(new Avaliability(module, "tempNoVersion"));
+                availabilities.Value.Add(new Avaliability(module, "tempNoVersion"));
             }
 
+            if (storageFile.HasValue)
+            {
+                try
+                {
+                    string file = storageFile.ToEnumerable().First();
+                    string data = Newtonsoft.Json.JsonConvert.SerializeObject(availabilities.Value);
+                    File.WriteAllText(file, data);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Could not save historical avaliability: {ex}");
+                }
+            }
         }
     }
 }
