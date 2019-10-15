@@ -54,7 +54,7 @@ impl ContainerEngineLogrotate {
                 )
             })
             .context(MESSAGE)?;
-        self.daemon_config = Some(daemon_config.to_owned());
+        self.daemon_config = Some(daemon_config.clone());
 
         if daemon_config.log_driver.is_none() {
             return Ok(CheckResult::Warning(Context::new(MESSAGE).into()));

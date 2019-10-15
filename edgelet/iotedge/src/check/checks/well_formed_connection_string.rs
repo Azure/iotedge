@@ -46,7 +46,7 @@ impl WellFormedConnectionString {
                 }
                 ManualAuthMethod::X509(x509) => x509.iothub_hostname().to_owned(),
             };
-            check.iothub_hostname = Some(hub.to_owned());
+            check.iothub_hostname = Some(hub.clone());
             self.iothub_hostname = check.iothub_hostname.clone();
         } else if check.iothub_hostname.is_none() {
             return Err(Context::new("Device is not using manual provisioning, so Azure IoT Hub hostname needs to be specified with --iothub-hostname").into());

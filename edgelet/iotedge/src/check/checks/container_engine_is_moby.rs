@@ -32,7 +32,7 @@ impl ContainerEngineIsMoby {
 
         let docker_server_version =
             if let Some(docker_server_version) = &check.docker_server_version {
-                self.docker_server_version = Some(docker_server_version.to_owned());
+                self.docker_server_version = Some(docker_server_version.clone());
                 docker_server_version
             } else {
                 return Ok(CheckResult::Skipped);
@@ -47,7 +47,7 @@ impl ContainerEngineIsMoby {
             };
 
             let moby_runtime_uri = settings.moby_runtime().uri().to_string();
-            self.moby_runtime_uri = Some(moby_runtime_uri.to_owned());
+            self.moby_runtime_uri = Some(moby_runtime_uri.clone());
 
             if moby_runtime_uri != "npipe://./pipe/iotedge_moby_engine" {
                 return Ok(CheckResult::Warning(Context::new(MESSAGE).into()));

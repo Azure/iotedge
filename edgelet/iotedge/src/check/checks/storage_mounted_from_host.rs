@@ -106,7 +106,7 @@ fn storage_mounted_from_host(
         );
 
     let storage_directory = Path::new(&*temp_dir).join(storage_directory_name);
-    *storage_directory_out = Some(storage_directory.to_owned());
+    *storage_directory_out = Some(storage_directory.clone());
 
     let mounted_directories = inspect_result
         .mounts()
@@ -123,7 +123,7 @@ fn storage_mounted_from_host(
         .map(PathBuf::from);
 
     let other_directories: Vec<PathBuf> = mounted_directories.chain(volume_directories).collect();
-    *other_directories_out = Some(other_directories.to_owned());
+    *other_directories_out = Some(other_directories.clone());
 
     if !other_directories
         .into_iter()

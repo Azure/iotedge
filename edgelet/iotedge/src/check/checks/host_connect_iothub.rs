@@ -55,7 +55,7 @@ impl HostConnectIotHub {
         } else {
             return Ok(CheckResult::Skipped);
         };
-        self.iothub_hostname = Some(iothub_hostname.to_owned());
+        self.iothub_hostname = Some(iothub_hostname.clone());
 
         super::host_connect_dps_endpoint::resolve_and_tls_handshake(
             &(&**iothub_hostname, self.port_number),

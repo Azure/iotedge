@@ -72,7 +72,7 @@ impl CertificatesQuickstart {
                 })?
             }
         });
-        self.device_ca_cert_path = check.device_ca_cert_path.to_owned();
+        self.device_ca_cert_path = check.device_ca_cert_path.clone();
 
         if settings.certificates().device_cert().is_none() {
             let certificate_info = CertificateValidity::parse(

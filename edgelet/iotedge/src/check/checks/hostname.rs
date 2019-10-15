@@ -100,7 +100,7 @@ impl Hostname {
                 .context("Could not get hostname: gethostname returned non-ASCII string")?
                 .to_owned()
         };
-        self.machine_hostname = Some(machine_hostname.to_owned());
+        self.machine_hostname = Some(machine_hostname.clone());
 
         // Technically the value of config_hostname doesn't matter as long as it resolves to this device.
         // However determining that the value resolves to *this device* is not trivial.

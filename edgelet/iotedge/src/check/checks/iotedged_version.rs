@@ -9,7 +9,6 @@ use crate::check::{checker::Checker, Check, CheckResult};
 pub(crate) struct IotedgedVersion {
     actual_version: Option<String>,
     expected_version: Option<String>,
-    //TODO: find if 1.* or specified
 }
 
 impl Checker for IotedgedVersion {
