@@ -105,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             if (!bool.TryParse(this.configuration["UsePersistentStorage"], out bool usePersistentStorage))
             {
-                usePersistentStorage = true;
+                usePersistentStorage = false;
             }
 
             if (bool.TryParse(this.configuration["EnableStorageBackupAndRestore"], out bool enableStorageBackupAndRestore))

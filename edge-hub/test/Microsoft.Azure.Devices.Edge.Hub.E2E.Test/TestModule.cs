@@ -35,7 +35,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         public void Dispose(bool disposing)
         {
-            Console.WriteLine("Dispose edge hub fix");
             if (this.disposed)
             {
                 return;

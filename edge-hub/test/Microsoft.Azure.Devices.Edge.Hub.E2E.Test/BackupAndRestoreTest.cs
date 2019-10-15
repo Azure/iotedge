@@ -120,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
-            Func<int, TimeSpan> waitTimeComputer = (numberOfMessages) => TimeSpan.FromMinutes(Math.Ceiling(numberOfMessages / 1000d) + 1);
+            Func<int, TimeSpan> waitTimeComputer = (numberOfMessages) => TimeSpan.FromMinutes(Math.Ceiling(numberOfMessages / 2000d) + 1);
 
             try
             {
@@ -132,7 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 Assert.Equal(beforeBackupMessageCount, sentMessagesCount);
 
                 // Wait for a while and then close the test fixture which will in turn close the protocol heads and the in-memory DB store thus creating a backup.
-                await Task.Delay(waitTimeComputer(beforeBackupMessageCount));
+                await Task.Delay(TimeSpan.FromMinutes(2));
                 await protocolHeadFixture.CloseAsync();
 
                 postBackupModifier();
