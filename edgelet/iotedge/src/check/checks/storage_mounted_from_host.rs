@@ -122,7 +122,8 @@ fn storage_mounted_from_host(
         .flatten()
         .map(PathBuf::from);
 
-    let container_directories: Vec<PathBuf> = mounted_directories.chain(volume_directories).collect();
+    let container_directories: Vec<PathBuf> =
+        mounted_directories.chain(volume_directories).collect();
     *container_directories_out = Some(container_directories.clone());
 
     if !container_directories
