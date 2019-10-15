@@ -16,10 +16,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
     [Integration]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
-    public class EdgeToDeviceMethodTest : TestConsoleLogger, IClassFixture<ProtocolHeadFixture>
+    public class EdgeToDeviceMethodTest : EdgeHubTestWithLogger
     {
-        public EdgeToDeviceMethodTest(ITestOutputHelper testOutputHelper)
-            : base(testOutputHelper)
+        public EdgeToDeviceMethodTest(EdgeHubFixture edgeHubFixture, ITestOutputHelper testOutputHelper)
+            : base(new EdgeHubTest(edgeHubFixture), testOutputHelper)
         {
         }
 

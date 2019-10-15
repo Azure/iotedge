@@ -14,8 +14,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     [Stress]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
     [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
-    public class StressTest : IClassFixture<ProtocolHeadFixture>
+    public class StressTest : EdgeHubTest
     {
+        public StressTest(EdgeHubFixture edgeHubFixture)
+            : base(edgeHubFixture)
+        {
+        }
+
         [TestPriority(301)]
         [Theory]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]

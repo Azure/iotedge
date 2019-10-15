@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     /// using AMQP should suffice for now.
     /// </summary>
     [Integration]
-    [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.EdgeHubCollection.Test")]
+    [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
     public class BackupAndRestoreTest : IDisposable
     {
         readonly string backupFolder;
@@ -29,7 +29,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         public BackupAndRestoreTest(EdgeHubFixture edgeHubFixture)
         {
-            Console.WriteLine("Constructor");
             this.edgeHubFixture = edgeHubFixture;
             string tempFolder = Path.GetTempPath();
             this.backupFolder = Path.Combine(tempFolder, $"edgeTestBackup{Guid.NewGuid()}");
@@ -47,7 +46,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         public void Dispose()
         {
-            Console.WriteLine("Dispose");
             ConfigHelper.TestConfig["UsePersistentStorage"] = null;
             ConfigHelper.TestConfig["BackupFolder"] = null;
             ConfigHelper.TestConfig["EnableStorageBackupAndRestore"] = null;
@@ -122,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
-            Func<int, TimeSpan> waitTimeComputer = (numberOfMessages) => TimeSpan.FromMinutes(Math.Ceiling(expectedMessageCountAfterRestore / 1000d) + 1);
+            Func<int, TimeSpan> waitTimeComputer = (numberOfMessages) => TimeSpan.FromMinutes(Math.Ceiling(numberOfMessages / 1000d) + 1);
 
             try
             {
