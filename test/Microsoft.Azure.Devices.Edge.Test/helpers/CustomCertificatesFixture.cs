@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
                         try
                         {
-                            CertificateAuthority ca = await CertificateAuthority.CreateAsync(
+                            this.ca = await CertificateAuthority.CreateAsync(
                                 deviceId,
                                 rootCa,
                                 caCertScriptPath,
