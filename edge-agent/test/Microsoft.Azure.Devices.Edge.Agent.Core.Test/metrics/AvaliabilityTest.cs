@@ -1,5 +1,7 @@
 using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
+using Microsoft.Azure.Devices.Edge.Util;
 using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+using Moq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -13,63 +15,60 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
     [Unit]
     public class AvaliabilityTest
     {
-        /// <summary>
-        /// This calls all the other tests. Since these are timing based tests, they always take 5 sec,
-        /// so it is best to run them in parallel
-        /// </summary>
-        /// <returns></returns>
         [Fact]
-        public async Task Avaliability()
+        public void TestBasicUptime()
         {
-            await Task.WhenAll(
-                TestBasicUptime(),
-                TestSkippedMeasure()
-            );
-        }
+            var systemTime = new Mock<ISystemTime>();
+            DateTime fakeTime = DateTime.Now;
+            systemTime.Setup(x => x.UtcNow).Returns(() => fakeTime);
 
-        private async Task TestBasicUptime()
-        {
-            await Task.WhenAll(Enumerable.Range(1, 100).Select(async i =>
+            for (int i = 1; i < 100; i++)
             {
-                Avaliability avaliability = new Avaliability("Test", "test");
-                for (int j = 0; j < 50; j++)
+                Avaliability avaliability = new Avaliability("Test", "test", systemTime.Object);
+                for (int j = 0; j < 100; j++)
                 {
                     avaliability.AddPoint(j % i == 0);
-                    await Task.Delay(100);
+                    fakeTime = fakeTime.AddMinutes(10);
                 }
-                TestHelper.ApproxEqual(1.0 / i, avaliability.avaliability, .025);
-            }));
+
+                TestHelper.ApproxEqual(1.0 / i, avaliability.avaliability, .01);
+            }
         }
 
-        private async Task TestSkippedMeasure()
+        [Fact]
+        public void TestSkippedMeasure()
         {
-            await Task.WhenAll(Enumerable.Range(1, 100).Select(async i =>
+            var systemTime = new Mock<ISystemTime>();
+            DateTime fakeTime = DateTime.Now;
+            systemTime.Setup(x => x.UtcNow).Returns(() => fakeTime);
+
+            for (int i = 1; i < 100; i++)
             {
-                Avaliability avaliability = new Avaliability("Test", "test");
+                Avaliability avaliability = new Avaliability("Test", "test", systemTime.Object);
                 for (int j = 0; j < 20; j++)
                 {
                     avaliability.AddPoint(j % i == 0);
-                    await Task.Delay(50);
+                    fakeTime = fakeTime.AddMinutes(10);
                 }
                 avaliability.NoPoint();
-                await Task.Delay(1000);
+                fakeTime = fakeTime.AddMinutes(10);
 
                 for (int j = 0; j < 20; j++)
                 {
                     avaliability.AddPoint(j % i == 0);
-                    await Task.Delay(50);
+                    fakeTime = fakeTime.AddMinutes(10);
                 }
                 TestHelper.ApproxEqual(1.0 / i, avaliability.avaliability, .05);
 
                 avaliability.NoPoint();
-                await Task.Delay(1000);
+                fakeTime = fakeTime.AddMinutes(1000);
                 for (int j = 0; j < 20; j++)
                 {
                     avaliability.AddPoint(j % i == 0);
-                    await Task.Delay(50);
+                    fakeTime = fakeTime.AddMinutes(10);
                 }
                 TestHelper.ApproxEqual(1.0 / i, avaliability.avaliability, .05);
-            }));
+            };
         }
     }
 }

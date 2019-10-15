@@ -34,11 +34,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
 
         public void Dispose()
         {
-            Directory.Delete(tempDir, true);
+           Directory.Delete(tempDir, true);
         }
 
         [Fact]
-        public async void ReportsAccurateAvaliability()
+        public void ReportsAccurateAvaliability()
         {
             Dictionary<string, double> uptimes = new Dictionary<string, double>();
             Action<double, string[]> onSet = (val, list) =>
@@ -55,6 +55,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                 .Returns(guage.Object);
 
             Util.Metrics.Metrics.Init(metricsProvider.Object, new NullMetricsListener(), NullLogger.Instance);
+
+            var systemTime = new Mock<ISystemTime>();
+            DateTime fakeTime = DateTime.Now;
+            systemTime.Setup(x => x.UtcNow).Returns(() => fakeTime);
+
+            AvaliabilityMetrics.time = systemTime.Object;
             AvaliabilityMetrics.storagePath = Option.Some(tempDir);
 
             (TestRuntimeModule[] current, TestModule[] desired) = GetTestModules(3);
@@ -63,13 +69,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
 
             AvaliabilityMetrics.ComputeAvaliability(desiredModuleSet, currentModuleSet);
 
-            await Task.Delay(100);
+            fakeTime = fakeTime.AddMinutes(10);
             AvaliabilityMetrics.ComputeAvaliability(desiredModuleSet, currentModuleSet);
             TestHelper.ApproxEqual(1, uptimes[current[0].Name], .05);
             TestHelper.ApproxEqual(1, uptimes[current[1].Name], .05);
             TestHelper.ApproxEqual(1, uptimes[current[2].Name], .05);
 
-            await Task.Delay(100);
+            fakeTime = fakeTime.AddMinutes(10);
             current[1].RuntimeStatus = ModuleStatus.Failed;
             current[2].RuntimeStatus = ModuleStatus.Failed;
             AvaliabilityMetrics.ComputeAvaliability(desiredModuleSet, currentModuleSet);
@@ -77,12 +83,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             TestHelper.ApproxEqual(.5, uptimes[current[1].Name], .05);
             TestHelper.ApproxEqual(.5, uptimes[current[2].Name], .05);
 
-            await Task.Delay(100);
+            fakeTime = fakeTime.AddMinutes(20);
             current[1].RuntimeStatus = ModuleStatus.Running;
             AvaliabilityMetrics.ComputeAvaliability(desiredModuleSet, currentModuleSet);
             TestHelper.ApproxEqual(1, uptimes[current[0].Name], .05);
-            TestHelper.ApproxEqual(2f/3, uptimes[current[1].Name], .05);
-            TestHelper.ApproxEqual(1f/3, uptimes[current[2].Name], .05);
+            TestHelper.ApproxEqual(.75, uptimes[current[1].Name], .05);
+            TestHelper.ApproxEqual(.25, uptimes[current[2].Name], .05);
         }
 
         private static (TestRuntimeModule[], TestModule[]) GetTestModules(int num)

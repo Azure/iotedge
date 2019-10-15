@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 {
     static class AvaliabilityMetrics
     {
+        public static ISystemTime time = SystemTime.Instance;
         public static Option<string> storagePath = Option.None<string>();
         private static Option<string> storageFile { get { return storagePath.Map(p => Path.Combine(p, "avaliability_history")); } }
 
@@ -81,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             /* Add new modules to track */
             foreach (string module in down.Union(up))
             {
-                availabilities.Value.Add(new Avaliability(module, "tempNoVersion"));
+                availabilities.Value.Add(new Avaliability(module, "tempNoVersion", time));
             }
 
             if (storageFile.HasValue)
