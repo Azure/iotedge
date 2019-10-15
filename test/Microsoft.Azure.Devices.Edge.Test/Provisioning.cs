@@ -86,16 +86,19 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string registrationId = this.GetRegistrationId();
 
             CancellationToken token = this.TestToken;
-            CertificateAuthority ca = await CertificateAuthority.CreateDpsX509CaAsync(
+            
+            CertificateAuthority ca = await CertificateAuthority.CreateAsync(
                 registrationId,
                 rootCa,
                 caCertScriptPath,
                 token);
 
+            IdCertificates idCert = await ca.GenerateIdentityCertificatesAsync(registrationId, token);
+
             await this.daemon.ConfigureAsync(
                 config =>
                 {
-                    config.SetDpsX509(idScope, registrationId, ca.IdCertificates);
+                    config.SetDpsX509(idScope, registrationId, idCert);
                     config.Update();
                     return Task.FromResult((
                         "with DPS X509 attestation for '{Identity}'",

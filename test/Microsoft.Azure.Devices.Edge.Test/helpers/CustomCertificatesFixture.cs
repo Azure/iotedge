@@ -27,19 +27,22 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     {
                         DateTime startTime = DateTime.Now;
                         CancellationToken token = cts.Token;
+                        string deviceId = Context.Current.DeviceId;
 
                         try
                         {
-                            this.ca = await CertificateAuthority.CreateAsync(
-                                Context.Current.DeviceId,
+                            CertificateAuthority ca = await CertificateAuthority.CreateAsync(
+                                deviceId,
                                 rootCa,
                                 caCertScriptPath,
                                 token);
+                                
+                            CaCertificates caCert = await ca.GenerateCaCertificatesAsync(deviceId, token);
 
                             await this.daemon.ConfigureAsync(
                                 config =>
                                 {
-                                    config.SetCertificates(this.ca.EdgeCertificate);
+                                    config.SetCertificates(caCert);
                                     config.Update();
                                     return Task.FromResult(("with edge certificates", Array.Empty<object>()));
                                 },

@@ -19,14 +19,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
 
         public static async Task<CertificateAuthority> CreateAsync(string deviceId, RootCaKeys rootCa, string scriptPath, CancellationToken token)
         {
-            (string rootCertificate, string rootPrivateKey, string rootPassword) = rootCa;
-            await OsPlatform.Current.InstallRootCertificateAsync(rootCertificate, rootPrivateKey, rootPassword, scriptPath, token);
-            CaCertificates certs = await OsPlatform.Current.GenerateCaCertificatesAsync(deviceId, scriptPath, token);
-            return new CertificateAuthority(certs, scriptPath);
-        }
-
-        public static async Task<CertificateAuthority> CreateDpsX509CaAsync(string deviceId, RootCaKeys rootCa, string scriptPath, CancellationToken token)
-        {
             if (!File.Exists(Path.Combine(scriptPath, FixedPaths.RootCaCert.Cert)))
             {
                 // [9/26/2019] Setup all the environment for the certificates.
@@ -42,9 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
                 Log.Verbose("Skip Root Certificate: Root Certificate is installed");
                 Log.Verbose("----------------------------------------");
             }
-
-            IdCertificates x509Certificate = await OsPlatform.Current.GenerateIdentityCertificatesAsync(deviceId, scriptPath, token);
-            return new CertificateAuthority(x509Certificate, scriptPath);
+            return new CertificateAuthority(scriptPath);
         }
 
         public static CertificateAuthority GetQuickstart()
@@ -53,29 +43,29 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
             return new CertificateAuthority(certs);
         }
 
+        CertificateAuthority(string scriptPath)
+        {
+            this.scriptPath = Option.Maybe(scriptPath);
+        }
+
         CertificateAuthority(CaCertificates certs)
         {
             this.EdgeCertificate = certs;
             this.scriptPath = Option.None<string>();
         }
 
-        CertificateAuthority(CaCertificates certs, string scriptPath)
-        {
-            this.EdgeCertificate = certs;
-            this.scriptPath = Option.Maybe(scriptPath);
-        }
-
-        CertificateAuthority(IdCertificates certs, string scriptPath)
-        {
-            this.IdCertificates = certs;
-            this.scriptPath = Option.Maybe(scriptPath);
-        }
-
-        public Task<IdCertificates> GenerateLeafCertificatesAsync(string leafDeviceId, CancellationToken token)
+        public Task<IdCertificates> GenerateIdentityCertificatesAsync(string deviceId, CancellationToken token)
         {
             const string Err = "Cannot generate certificates without script";
             string scriptPath = this.scriptPath.Expect(() => new InvalidOperationException(Err));
-            return OsPlatform.Current.GenerateIdentityCertificatesAsync(leafDeviceId, scriptPath, token);
+            return OsPlatform.Current.GenerateIdentityCertificatesAsync(deviceId, scriptPath, token);
+        }
+
+        public Task<CaCertificates> GenerateCaCertificatesAsync(string deviceId, CancellationToken token)
+        {
+            const string Err = "Cannot generate certificates without script";
+            string scriptPath = this.scriptPath.Expect(() => new InvalidOperationException(Err));
+            return OsPlatform.Current.GenerateCaCertificatesAsync(deviceId, scriptPath, token);
         }
     }
 }
