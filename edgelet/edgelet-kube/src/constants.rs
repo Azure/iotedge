@@ -25,8 +25,6 @@ pub const PULL_SECRET_DATA_TYPE: &str = "kubernetes.io/dockerconfigjson";
 pub const EDGE_AGENT_MODE: &str = "kubernetes";
 
 pub mod env {
-    pub const USE_PERSISTENT_VOLUME_KEY: &str = "USE_PERSISTENT_VOLUMES";
-
     pub const EDGE_AGENT_MODE_KEY: &str = "Mode";
 
     pub const PROXY_IMAGE_KEY: &str = "ProxyImage";

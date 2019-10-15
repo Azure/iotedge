@@ -13,6 +13,7 @@ mod constants;
 mod convert;
 mod error;
 mod module;
+mod registry;
 mod runtime;
 mod settings;
 
