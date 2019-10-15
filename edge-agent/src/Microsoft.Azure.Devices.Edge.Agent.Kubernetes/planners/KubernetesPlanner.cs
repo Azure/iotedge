@@ -2,12 +2,14 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
 {
+    using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Linq;
     using System.Threading.Tasks;
     using k8s;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Commands;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -93,7 +95,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
             return plan;
         }
 
-        public Task<Plan> CreateShutdownPlanAsync(ModuleSet current) => Task.FromResult(Plan.Empty);
+        public async Task<Plan> CreateShutdownPlanAsync(ModuleSet current)
+        {
+            IEnumerable<Task<ICommand>> stopTasks = current.Modules.Values
+                .Where(c => !c.Name.Equals(Constants.EdgeAgentModuleName, StringComparison.OrdinalIgnoreCase))
+                .Select(m => this.commandFactory.StopAsync(m));
+            ICommand[] stopCommands = await Task.WhenAll(stopTasks);
+            ICommand parallelCommand = new ParallelGroupCommand(stopCommands);
+            Events.ShutdownPlanCreated(stopCommands);
+            return new Plan(new[] { parallelCommand });
+        }
 
         static class Events
         {
@@ -126,6 +137,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
             public static void LogIdentities(IImmutableDictionary<string, IModuleIdentity> moduleIdentities)
             {
                 Log.LogDebug((int)EventIds.Identities, $"List of module identities is - {string.Join(", ", moduleIdentities.Keys)}");
+            }
+
+            public static void ShutdownPlanCreated(IReadOnlyList<ICommand> stopCommands)
+            {
+                Log.LogDebug((int)EventIds.PlanCreated, $"KubernetesPlanner created shutdown Plan, with {stopCommands.Count} command(s).");
             }
         }
     }

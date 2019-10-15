@@ -127,7 +127,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
 
             var planner = new KubernetesPlanner(Namespace, ResourceName, DefaultClient, DefaultCommandFactory, ConfigProvider);
             var plan = await planner.CreateShutdownPlanAsync(current);
-            Assert.Equal(Plan.Empty, plan);
+            Assert.Single(plan.Commands);
+            // Assert.True(plan.Commands.First() is EdgeDeploymentCommand);
         }
 
         class NonDockerModule : IModule<string>
