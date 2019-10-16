@@ -297,14 +297,14 @@ pub fn get_module_logs(
 
 pub fn fetch_message_analysis(
     settings: &Settings,
-) -> impl Future<Item = Option<Vec<MessageAnalysis>>, Error = Error> + Send {
+) -> impl Future<Item = Option<DeviceAnalysis>, Error = Error> + Send {
     info!("Fetching analysis from analyzer module");
 
     client::Client::new(
         HyperClientService::new(HyperClient::new()),
         settings.analyzer_url().clone(),
     )
-    .request::<(), Vec<MessageAnalysis>>(
+    .request::<(), DeviceAnalysis>(
         Method::GET,
         settings.analyzer_url().path(),
         None,
