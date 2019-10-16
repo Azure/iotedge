@@ -1,3 +1,9 @@
+use std::env::consts::ARCH;
+use std::str;
+
+use byte_unit::{Byte, ByteUnit};
+use sysinfo::{DiskExt, SystemExt};
+
 /// Additional info for the JSON output of `iotedge check`
 #[derive(Clone, Debug, serde_derive::Serialize)]
 pub(super) struct AdditionalInfo {
@@ -5,6 +11,7 @@ pub(super) struct AdditionalInfo {
     pub(super) iotedged_version: Option<String>,
     now: chrono::DateTime<chrono::Utc>,
     os: OsInfo,
+    system_info: SystemInfo,
 }
 
 impl AdditionalInfo {
@@ -14,6 +21,7 @@ impl AdditionalInfo {
             iotedged_version: None,
             now: chrono::Utc::now(),
             os: OsInfo::new(),
+            system_info: SystemInfo::new(),
         }
     }
 }
@@ -37,6 +45,7 @@ impl AdditionalInfo {
 pub(super) struct OsInfo {
     id: Option<String>,
     version_id: Option<String>,
+    arch: &'static str,
     bitness: usize,
 }
 
@@ -46,6 +55,7 @@ impl OsInfo {
         let mut result = OsInfo {
             id: Some("windows".to_owned()),
             version_id: None,
+            arch: ARCH,
             // Technically wrong if someone compiles and runs a x86 build on an x64 OS, but we don't provide
             // Windows x86 builds.
             bitness: std::mem::size_of::<usize>() * 8,
@@ -73,6 +83,7 @@ impl OsInfo {
         let mut result = OsInfo {
             id: None,
             version_id: None,
+            arch: ARCH,
             // Technically wrong if someone runs an arm32 build on arm64,
             // but we have dedicated arm64 builds so hopefully they don't.
             bitness: std::mem::size_of::<usize>() * 8,
@@ -182,5 +193,76 @@ pub(super) fn os_version() -> Result<
             os_version_info.dwBuildNumber,
             csd_version,
         ))
+    }
+}
+#[derive(Clone, Debug, serde_derive::Serialize)]
+struct SystemInfo {
+    used_ram: String,
+    total_ram: String,
+    used_swap: String,
+    total_swap: String,
+
+    disks: Vec<DiskInfo>,
+}
+
+impl SystemInfo {
+    fn new() -> Self {
+        let mut system = sysinfo::System::new();
+        system.refresh_all();
+
+        SystemInfo {
+            total_ram: pretty_kbyte(system.get_total_memory()),
+            used_ram: pretty_kbyte(system.get_used_memory()),
+            total_swap: pretty_kbyte(system.get_total_swap()),
+            used_swap: pretty_kbyte(system.get_used_swap()),
+
+            disks: system.get_disks().iter().map(DiskInfo::new).collect(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde_derive::Serialize)]
+struct DiskInfo {
+    name: String,
+    percent_free: String,
+    available_space: String,
+    total_space: String,
+    file_system: String,
+    file_type: String,
+}
+
+impl DiskInfo {
+    fn new<T>(disk: &T) -> Self
+    where
+        T: DiskExt,
+    {
+        let available_space = disk.get_available_space();
+        let total_space = disk.get_total_space();
+        #[allow(clippy::cast_precision_loss)]
+        let percent_free = format!(
+            "{:.1}%",
+            available_space as f64 / total_space as f64 * 100.0
+        );
+
+        DiskInfo {
+            name: disk.get_name().to_string_lossy().into_owned(),
+            percent_free,
+            available_space: Byte::from_bytes(u128::from(available_space))
+                .get_appropriate_unit(true)
+                .format(2),
+            total_space: Byte::from_bytes(u128::from(total_space))
+                .get_appropriate_unit(true)
+                .format(2),
+            file_system: String::from_utf8_lossy(disk.get_file_system()).into_owned(),
+            file_type: format!("{:?}", disk.get_type()),
+        }
+    }
+}
+
+fn pretty_kbyte(bytes: u64) -> String {
+    #[allow(clippy::cast_precision_loss)]
+    match Byte::from_unit(bytes as f64, ByteUnit::KiB) {
+        Ok(b) => b.get_appropriate_unit(true).format(2),
+        Err(err) => format!("could not parse bytes value: {:?}", err),
     }
 }
