@@ -270,7 +270,6 @@ function Initialize-IoTEdge {
 
         # Password used to access the container registry and pull the IoT Edge Agent image.
         [SecureString] $Password,
-        [switch] $Force=$false
     )
 
     switch ($PSCmdlet.ParameterSetName) {
@@ -327,11 +326,16 @@ function Initialize-IoTEdge {
     Setup-Environment -ContainerOs $ContainerOs -SkipArchCheck -SkipBatteryCheck
 
     $configPath = Join-Path -Path $EdgeDataDirectory -ChildPath 'config.yaml'
-    if ((-not $Force) -and (Test-Path $configPath)) {
+    if (Test-Path $configPath) {
         Write-HostRed
         Write-HostRed "$configPath already exists."
-        Write-HostRed ('Delete it using "Uninstall-IoTEdge -Force" and then ' +
-            're-run "Deploy-IoTEdge" and "Initialize-IoTEdge"')
+        if (Test-IotCore) {
+            Write-HostRed ('You must reflash the device and then ' +
+                're-run "Deploy-IoTEdge" and "Initialize-IoTEdge"')
+        } else {
+            Write-HostRed ('Delete it using "Uninstall-IoTEdge -Force" and then ' +
+                're-run "Deploy-IoTEdge" and "Initialize-IoTEdge"')
+        }
         throw
     }
 
