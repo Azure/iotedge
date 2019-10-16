@@ -56,10 +56,6 @@ where
         let uri_str = format!("/device/reprovision?{}", query);
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
-        // TODO(farcaller): handle error
-        // if let Err(e) = uri {
-        //     return Box::new(futures::future::err(e));
-        // }
         let mut req = hyper::Request::builder();
         req.method(method).uri(uri.unwrap());
         if let Some(ref user_agent) = configuration.user_agent {
