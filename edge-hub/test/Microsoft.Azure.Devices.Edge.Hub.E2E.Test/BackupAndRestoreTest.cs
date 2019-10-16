@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
+    using Xunit.Abstractions;
 
     /// <summary>
     /// Note: All tests in this class are using just AMQP test settings for now.
@@ -26,8 +27,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     {
         readonly string backupFolder;
         EdgeHubFixture edgeHubFixture;
+        TestConsoleLogger logger;
 
-        public BackupAndRestoreTest(EdgeHubFixture edgeHubFixture)
+        public BackupAndRestoreTest(EdgeHubFixture edgeHubFixture, ITestOutputHelper testOutputHelper)
         {
             this.edgeHubFixture = edgeHubFixture;
             string tempFolder = Path.GetTempPath();
@@ -42,6 +44,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             ConfigHelper.TestConfig["UsePersistentStorage"] = "false";
             ConfigHelper.TestConfig["BackupFolder"] = this.backupFolder;
             ConfigHelper.TestConfig["EnableStorageBackupAndRestore"] = "true";
+
+            this.logger = new TestConsoleLogger(testOutputHelper);
         }
 
         public void Dispose()
@@ -54,27 +58,37 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             {
                 Directory.Delete(this.backupFolder, true);
             }
+
+            this.logger.Dispose();
         }
 
         [Theory]
         [MemberData(nameof(TestSettings.AmqpTransportTestSettings), MemberType = typeof(TestSettings))]
         async Task BackupAndRestoreMessageDeliveryTest(ITransportSettings[] transportSettings)
         {
+            Console.WriteLine("Running test BackupAndRestoreMessageDeliveryTest");
             await this.BackupAndRestoreMessageDeliveryTestBase(transportSettings, 10, 10, 20, () => { });
+            Console.WriteLine("Finished test BackupAndRestoreMessageDeliveryTest");
         }
 
         [Theory]
         [MemberData(nameof(TestSettings.AmqpTransportTestSettings), MemberType = typeof(TestSettings))]
         async Task BackupAndRestoreLargeBackupSizeTest(ITransportSettings[] transportSettings)
         {
+            Console.WriteLine("Running test BackupAndRestoreLargeBackupSizeTest");
+
             int.TryParse(ConfigHelper.TestConfig["BackupAndRestoreLargeBackupSize_MessagesCount_SingleSender"], out int messagesCount);
             await this.BackupAndRestoreMessageDeliveryTestBase(transportSettings, messagesCount, 10, messagesCount + 10, () => { });
+
+            Console.WriteLine("Finished test BackupAndRestoreLargeBackupSizeTest");
         }
 
         [Theory]
         [MemberData(nameof(TestSettings.AmqpTransportTestSettings), MemberType = typeof(TestSettings))]
         async Task BackupAndRestoreCorruptBackupMetadataTest(ITransportSettings[] transportSettings)
         {
+            Console.WriteLine("Running test BackupAndRestoreCorruptBackupMetadataTest");
+
             Action corruptBackupMetadata = () =>
             {
                 // Corrupt the backup metadata.
@@ -85,12 +99,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             };
 
             await this.BackupAndRestoreMessageDeliveryTestBase(transportSettings, 15, 10, 10, corruptBackupMetadata);
+
+            Console.WriteLine("Finished test BackupAndRestoreCorruptBackupMetadataTest");
         }
 
         [Theory]
         [MemberData(nameof(TestSettings.AmqpTransportTestSettings), MemberType = typeof(TestSettings))]
         async Task BackupAndRestoreCorruptBackupDataTest(ITransportSettings[] transportSettings)
         {
+            Console.WriteLine("Running test BackupAndRestoreCorruptBackupDataTest");
+
             Action corruptBackupMetadata = () =>
             {
                 // Corrupt the backup data.
@@ -104,6 +122,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             };
 
             await this.BackupAndRestoreMessageDeliveryTestBase(transportSettings, 15, 10, 10, corruptBackupMetadata);
+
+            Console.WriteLine("Finished test BackupAndRestoreCorruptBackupDataTest");
         }
 
         async Task BackupAndRestoreMessageDeliveryTestBase(
@@ -126,14 +146,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             {
                 sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", transportSettings);
 
+                Console.WriteLine($"Sending {beforeBackupMessageCount} messages.");
+
                 // Send 10 messages before a receiver is registered.
                 Task<int> task1 = sender.SendMessagesByCountAsync("output1", 0, beforeBackupMessageCount, waitTimeComputer(beforeBackupMessageCount));
                 int sentMessagesCount = await task1;
                 Assert.Equal(beforeBackupMessageCount, sentMessagesCount);
 
+                TimeSpan waitTime = TimeSpan.FromMinutes(2);
+                Console.WriteLine($"Waiting {waitTime.TotalSeconds} seconds before validating receipt of messages.");
+
                 // Wait for a while and then close the test fixture which will in turn close the protocol heads and the in-memory DB store thus creating a backup.
                 await Task.Delay(TimeSpan.FromMinutes(2));
                 await protocolHeadFixture.CloseAsync();
+
+                Console.WriteLine("Protocol heads closed.");
 
                 postBackupModifier();
 
@@ -143,13 +170,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", transportSettings);
                 await receiver.SetupReceiveMessageHandler();
 
+                Console.WriteLine($"Sending {afterBackupMessageCount} messages.");
+
                 // Send more messages after the receiver is registered.
                 Task<int> task2 = sender.SendMessagesByCountAsync("output1", beforeBackupMessageCount, afterBackupMessageCount, TimeSpan.FromMinutes(2));
                 sentMessagesCount = await task2;
                 Assert.Equal(afterBackupMessageCount, sentMessagesCount);
 
+                waitTime = waitTimeComputer(expectedMessageCountAfterRestore);
+                Console.WriteLine($"Waiting {waitTime.TotalSeconds} seconds before validating receipt of messages.");
+
                 // Validate that all the messages were received (both sent earlier and the new messages).
-                await Task.Delay(waitTimeComputer(expectedMessageCountAfterRestore));
+                await Task.Delay(waitTime);
                 ISet<int> receivedMessages = receiver.GetReceivedMessageIndices();
 
                 Assert.Equal(expectedMessageCountAfterRestore, receivedMessages.Count);
