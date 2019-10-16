@@ -45,6 +45,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             ConfigHelper.TestConfig["BackupFolder"] = this.backupFolder;
             ConfigHelper.TestConfig["EnableStorageBackupAndRestore"] = "true";
 
+            // Temporary for debugging spurious test failures.
+            ConfigHelper.TestConfig["RuntimeLogLevel"] = "debug";
+
             this.logger = new TestConsoleLogger(testOutputHelper);
         }
 
@@ -53,6 +56,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             ConfigHelper.TestConfig["UsePersistentStorage"] = null;
             ConfigHelper.TestConfig["BackupFolder"] = null;
             ConfigHelper.TestConfig["EnableStorageBackupAndRestore"] = null;
+
+            ConfigHelper.TestConfig["RuntimeLogLevel"] = "info";
 
             if (!string.IsNullOrWhiteSpace(this.backupFolder) && Directory.Exists(this.backupFolder))
             {
