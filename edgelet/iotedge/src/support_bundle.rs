@@ -325,8 +325,12 @@ impl<M> BundleState<M> {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+    use std::io;
+    use std::path::PathBuf;
     use std::str;
 
+    use regex::Regex;
     use tempfile::tempdir;
 
     use edgelet_core::{MakeModuleRuntime, ModuleRuntimeState};
@@ -340,6 +344,73 @@ mod tests {
     pub enum Error {
         #[fail(display = "General error")]
         General,
+    }
+
+    #[test]
+    fn folder_structure() {
+        let module_name = "test-module";
+        let runtime = make_runtime(module_name);
+        let tmp_dir = tempdir().unwrap();
+        let file_path = tmp_dir
+            .path()
+            .join("iotedge_bundle.zip")
+            .to_str()
+            .unwrap()
+            .to_owned();
+
+        let bundle = SupportBundle::new(
+            LogOptions::default(),
+            OsString::from(file_path.to_owned()),
+            false,
+            false,
+            None,
+            runtime,
+        );
+
+        bundle.execute().wait().unwrap();
+
+        let extract_path = tmp_dir.path().join("bundle").to_str().unwrap().to_owned();
+
+        extract_zip(&file_path, &extract_path);
+
+        // expext logs
+        let mod_log = fs::read_to_string(
+            PathBuf::from(&extract_path)
+                .join("logs")
+                .join(format!("{}_log.txt", module_name)),
+        )
+        .unwrap();
+        assert_eq!("Roses are redviolets are blue", mod_log);
+
+        let is_iotedged = Regex::new(r"iotedged.*\.txt").unwrap();
+        assert!(fs::read_dir(PathBuf::from(&extract_path).join("logs"))
+            .unwrap()
+            .map(|file| file
+                .unwrap()
+                .path()
+                .file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_owned())
+            .any(|f| is_iotedged.is_match(&f)));
+
+        //expect inspect
+        let module_in_inspect = Regex::new(&format!(r"{}.*\.json", module_name)).unwrap();
+        assert!(fs::read_dir(PathBuf::from(&extract_path).join("inspect"))
+            .unwrap()
+            .map(|file| file
+                .unwrap()
+                .path()
+                .file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_owned())
+            .any(|f| module_in_inspect.is_match(&f)));
+
+        // expect check
+        File::open(PathBuf::from(&extract_path).join("check.json")).unwrap();
     }
 
     #[test]
@@ -374,7 +445,7 @@ mod tests {
             OsString::from(file_path.to_owned()),
             false,
             true,
-            Some("".to_owned()),
+            None,
             runtime,
         );
 
@@ -395,7 +466,7 @@ mod tests {
             OsString::from(file_path),
             false,
             true,
-            Some("".to_owned()),
+            None,
             runtime,
         );
 
@@ -426,7 +497,7 @@ mod tests {
             OsString::from(file_path.to_owned()),
             false,
             true,
-            Some("".to_owned()),
+            None,
             runtime,
         );
 
@@ -457,5 +528,39 @@ mod tests {
         .wait()
         .unwrap()
         .with_module(Ok(module))
+    }
+
+    // From https://github.com/mvdnes/zip-rs/blob/master/examples/extract.rs
+    fn extract_zip(source: &str, destination: &str) {
+        let fname = std::path::Path::new(source);
+        let file = File::open(&fname).unwrap();
+        let mut archive = zip::ZipArchive::new(file).unwrap();
+
+        for i in 0..archive.len() {
+            let mut file = archive.by_index(i).unwrap();
+            let outpath = PathBuf::from(destination).join(file.sanitized_name());
+
+            if (&*file.name()).ends_with('/') {
+                fs::create_dir_all(&outpath).unwrap();
+            } else {
+                if let Some(p) = outpath.parent() {
+                    if !p.exists() {
+                        fs::create_dir_all(&p).unwrap();
+                    }
+                }
+                let mut outfile = fs::File::create(&outpath).unwrap();
+                io::copy(&mut file, &mut outfile).unwrap();
+            }
+
+            // Get and Set permissions
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+
+                if let Some(mode) = file.unix_mode() {
+                    fs::set_permissions(&outpath, fs::Permissions::from_mode(mode)).unwrap();
+                }
+            }
+        }
     }
 }
