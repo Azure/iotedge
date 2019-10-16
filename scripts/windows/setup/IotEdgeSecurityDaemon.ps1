@@ -269,7 +269,7 @@ function Initialize-IoTEdge {
         [String] $Username,
 
         # Password used to access the container registry and pull the IoT Edge Agent image.
-        [SecureString] $Password,
+        [SecureString] $Password
     )
 
     switch ($PSCmdlet.ParameterSetName) {
@@ -1316,6 +1316,7 @@ function Try-StopService([string] $Name) {
         }
     }
 }
+
 function Get-IoTEdge([ref] $RestartNeeded, [bool] $Update) {
     try {
         # If we create the archive ourselves, then delete it when we're done
@@ -1336,7 +1337,6 @@ function Get-IoTEdge([ref] $RestartNeeded, [bool] $Update) {
         Install-Package -Path $edgeArchivePath -RestartNeeded $RestartNeeded
         if (-not $Update) {
             Stop-Service $EdgeServiceName -ErrorAction SilentlyContinue
-            New-Sockets $EdgeDataDirectory
         }
     }
     finally {
