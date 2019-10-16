@@ -402,11 +402,8 @@ pub struct Provisioning {
     #[serde(flatten)]
     provisioning: ProvisioningType,
 
-    #[serde(
-        rename = "dynamic_reprovisioning",
-        skip_serializing_if = "Option::is_none"
-    )]
-    dynamic_reprovisioning: Option<bool>,
+    #[serde(default)]
+    dynamic_reprovisioning: bool,
 }
 
 impl Provisioning {
@@ -414,8 +411,8 @@ impl Provisioning {
         &self.provisioning
     }
 
-    pub fn dynamic_reprovisioning(&self) -> Option<&bool> {
-        self.dynamic_reprovisioning.as_ref()
+    pub fn dynamic_reprovisioning(&self) -> bool {
+        self.dynamic_reprovisioning
     }
 }
 

@@ -35,7 +35,6 @@ pub trait GetApi: Send + Sync {
     fn get_api(&self) -> &dyn ExternalProvisioningApi;
 }
 
-#[derive(Clone)]
 pub struct ExternalProvisioningClient {
     client: Arc<dyn GetApi>,
 }

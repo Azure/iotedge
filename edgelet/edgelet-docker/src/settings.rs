@@ -491,7 +491,7 @@ mod tests {
         assert!(settings.is_ok());
         let s = settings.unwrap();
 
-        assert_eq!(s.provisioning().dynamic_reprovisioning(), None);
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), false);
         let p = s.provisioning().provisioning_type();
         let connection_string = unwrap_manual_provisioning(p);
         assert_eq!(
@@ -506,7 +506,7 @@ mod tests {
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        assert_eq!(s.provisioning().dynamic_reprovisioning(), Some(&false));
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), false);
 
         let p = s.provisioning().provisioning_type();
         let connection_string = unwrap_manual_provisioning(p);
@@ -770,7 +770,7 @@ mod tests {
         let settings = Settings::new(Path::new(GOOD_SETTINGS_DPS_DEFAULT));
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        assert_eq!(s.provisioning().dynamic_reprovisioning(), Some(&false));
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), false);
         match s.provisioning().provisioning_type() {
             ProvisioningType::Dps(ref dps) => {
                 assert_eq!(dps.global_endpoint().scheme(), "scheme");
@@ -793,7 +793,7 @@ mod tests {
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        assert_eq!(s.provisioning().dynamic_reprovisioning(), Some(&false));
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), false);
         match s.provisioning().provisioning_type() {
             ProvisioningType::Dps(ref dps) => {
                 assert_eq!(dps.global_endpoint().scheme(), "scheme");
@@ -816,7 +816,7 @@ mod tests {
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        assert_eq!(s.provisioning().dynamic_reprovisioning(), Some(&true));
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), true);
         match s.provisioning().provisioning_type() {
             ProvisioningType::Dps(ref dps) => {
                 assert_eq!(dps.global_endpoint().scheme(), "scheme");
@@ -961,7 +961,7 @@ mod tests {
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        assert_eq!(s.provisioning().dynamic_reprovisioning(), None);
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), false);
         match s.provisioning().provisioning_type() {
             ProvisioningType::External(ref external) => {
                 assert_eq!(external.endpoint().as_str(), "http://localhost:9999/");
@@ -976,7 +976,7 @@ mod tests {
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        assert_eq!(s.provisioning().dynamic_reprovisioning(), Some(&true));
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), true);
 
         match s.provisioning().provisioning_type() {
             ProvisioningType::External(ref external) => {
@@ -993,7 +993,7 @@ mod tests {
         assert!(settings.is_ok());
         let s = settings.unwrap();
 
-        assert_eq!(s.provisioning().dynamic_reprovisioning(), Some(&true));
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), true);
         let p = s.provisioning().provisioning_type();
         let connection_string = unwrap_manual_provisioning(p);
         assert_eq!(

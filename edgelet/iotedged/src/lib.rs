@@ -1506,12 +1506,11 @@ where
             Err(Some(e)) => Err(Some(e)),
         });
 
-    let mgmt_stop_and_reprovision_signaled =
-        if let Some(&true) = settings.provisioning().dynamic_reprovisioning() {
-            futures::future::Either::B(mgmt_stop_and_reprovision_signaled)
-        } else {
-            futures::future::Either::A(future::empty().map(|_: ()| None))
-        };
+    let mgmt_stop_and_reprovision_signaled = if settings.provisioning().dynamic_reprovisioning() {
+        futures::future::Either::B(mgmt_stop_and_reprovision_signaled)
+    } else {
+        futures::future::Either::A(future::empty())
+    };
 
     let edge_rt_with_mgmt_signal = edge_rt.select2(mgmt_stop_and_reprovision_signaled).then(
         |res: Result<
