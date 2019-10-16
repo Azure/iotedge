@@ -34,7 +34,7 @@ use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Client as HyperClient, Method, Request};
 use hyper_tls::HttpsConnector;
 use log::{debug, error, info};
-use report::{MessageAnalysis, Report};
+use report::{DeviceAnalysis, Report};
 use serde_json::Value as JsonValue;
 use settings::Settings;
 use tokio::timer::{Delay, Interval};
