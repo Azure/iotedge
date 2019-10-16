@@ -9,10 +9,5 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         {
             this.edgeHubTest = edgeHubTest;
         }
-
-        public override void Dispose()
-        {
-            this.edgeHubTest.Dispose();
-        }
     }
 }

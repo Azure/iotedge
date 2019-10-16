@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         {
         }
 
-        [TestPriority(301)]
+        [TestPriority(Constants.TestPriority.StressTest.SingleSenderSingleReceiverTest)]
         [Theory]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
         public async Task SingleSenderSingleReceiverTest(ITransportSettings[] transportSettings)
@@ -71,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             await Task.Delay(TimeSpan.FromSeconds(20));
         }
 
-        [TestPriority(302)]
+        [TestPriority(Constants.TestPriority.StressTest.MultipleSendersSingleReceiverTest)]
         [Theory]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
         public async Task MultipleSendersSingleReceiverTest(ITransportSettings[] transportSettings)
@@ -130,7 +130,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             await Task.Delay(TimeSpan.FromSeconds(20));
         }
 
-        [TestPriority(303)]
+        [TestPriority(Constants.TestPriority.StressTest.MultipleSendersMultipleReceivers_Count_Test)]
         [Theory]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
         public async Task MultipleSendersMultipleReceivers_Count_Test(ITransportSettings[] transportSettings)
@@ -188,7 +188,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             await Task.Delay(TimeSpan.FromSeconds(20));
         }
 
-        [TestPriority(304)]
+        [TestPriority(Constants.TestPriority.StressTest.MultipleSendersMultipleReceivers_Duration_Test)]
         [Theory]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
         public async Task MultipleSendersMultipleReceivers_Duration_Test(ITransportSettings[] transportSettings)

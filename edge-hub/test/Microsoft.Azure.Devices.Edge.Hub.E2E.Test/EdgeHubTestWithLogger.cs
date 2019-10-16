@@ -2,9 +2,10 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using System;
     using Xunit.Abstractions;
 
-    public class EdgeHubTestWithLogger : EdgeHubTestDecorator
+    public class EdgeHubTestWithLogger : EdgeHubTestDecorator, IDisposable
     {
         TestConsoleLogger logger;
 
@@ -14,10 +15,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             this.logger = new TestConsoleLogger(testOutputHelper);
         }
 
-        public override void Dispose()
+        public void Dispose()
         {
             this.logger.Dispose();
-            base.Dispose();
         }
     }
 }

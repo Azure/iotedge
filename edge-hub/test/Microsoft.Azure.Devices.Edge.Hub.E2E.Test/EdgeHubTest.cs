@@ -8,10 +8,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     /// Base test class for use by E2E tests.
     /// </summary>
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
-    public class EdgeHubTest : IDisposable
+    public class EdgeHubTest
     {
+        static readonly object FixtureLock = new object();
+        static ProtocolHeadFixture ProtocolHeadFixtureInstance;
+
         protected EdgeHubFixture edgeHubFixture;
-        protected ProtocolHeadFixture initialFixture;
 
         public EdgeHubTest()
         {
@@ -20,12 +22,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         public EdgeHubTest(EdgeHubFixture edgeHubFixture)
         {
             this.edgeHubFixture = edgeHubFixture;
-            this.initialFixture = this.edgeHubFixture.GetFixture();
-        }
 
-        public virtual void Dispose()
-        {
-            this.initialFixture.CloseAsync().Wait();
+            if (ProtocolHeadFixtureInstance == null)
+            {
+                lock (FixtureLock)
+                {
+                    if (ProtocolHeadFixtureInstance == null)
+                    {
+                        ProtocolHeadFixtureInstance = this.edgeHubFixture.GetFixture();
+                    }
+                }
+            }
         }
     }
 }

@@ -91,12 +91,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 {
                     this.events.NoBackupsForRestore();
                 }
-
-                this.CleanupAllBackups(this.backupPath);
             }
-            catch (Exception exception) when (
-            exception is IOException
-            || exception is JsonException)
+            catch (Exception exception)
             {
                 this.events.RestoreFailure($"The restore operation failed with error ${exception}.");
 
@@ -107,8 +103,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 }
 
                 this.RemoveDbStore();
-
-                // Delete all backups as the last backup itself is corrupt.
+            }
+            finally
+            {
+                // Delete all other backups as we've either:
+                // 1. Restored successfully.
+                // 2. Failed during restore which would indicate a bad backup.
                 this.CleanupAllBackups(this.backupPath);
             }
         }
@@ -173,9 +173,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 // Clean any old backups.
                 this.CleanupUnknownBackups(this.backupPath, backupMetadataList);
             }
-            catch (Exception exception) when (
-            exception is IOException
-            || exception is JsonException)
+            catch (Exception exception)
             {
                 this.events.BackupFailure($"The backup operation failed with error ${exception}.");
 

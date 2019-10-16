@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.Util.Test;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
     using Xunit.Abstractions;
@@ -23,6 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     /// </summary>
     [Integration]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
+    [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
     public class BackupAndRestoreTest : IDisposable
     {
         readonly string backupFolder;
@@ -76,6 +78,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             Console.WriteLine("Finished test BackupAndRestoreMessageDeliveryTest");
         }
 
+        [TestPriority(Constants.TestPriority.StressTest.BackupAndRestoreLargeBackupSizeTest)]
+        [Stress]
         [Theory]
         [MemberData(nameof(TestSettings.AmqpTransportTestSettings), MemberType = typeof(TestSettings))]
         async Task BackupAndRestoreLargeBackupSizeTest(ITransportSettings[] transportSettings)

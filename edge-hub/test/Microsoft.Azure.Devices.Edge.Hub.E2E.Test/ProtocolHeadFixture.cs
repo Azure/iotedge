@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Logging;
-    using Constants = Microsoft.Azure.Devices.Edge.Hub.Service.Constants;
+    using EdgeHubConstants = Microsoft.Azure.Devices.Edge.Hub.Service.Constants;
 
     public class ProtocolHeadFixture : IDisposable
     {
@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             // TODO - After IoTHub supports MQTT, remove this and move to using MQTT for upstream connections
             await ConnectToIotHub(edgeDeviceConnectionString);
 
-            ConfigHelper.TestConfig[Constants.ConfigKey.IotHubConnectionString] = edgeDeviceConnectionString;
+            ConfigHelper.TestConfig[EdgeHubConstants.ConfigKey.IotHubConnectionString] = edgeDeviceConnectionString;
             Hosting hosting = Hosting.Initialize(ConfigHelper.TestConfig, certificate, new DependencyManager(ConfigHelper.TestConfig, certificate, trustBundle), true);
             this.hosting = hosting;
             IContainer container = hosting.Container;
