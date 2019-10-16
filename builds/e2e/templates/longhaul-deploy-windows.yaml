@@ -12,6 +12,7 @@ parameters:
   snitch.storage.account: ''
   snitch.storage.masterKey: ''
   loadGen.message.frequency: ''
+  analyzer.consumerGroupId: ''
 
 steps:
   - task: CopyFiles@2
