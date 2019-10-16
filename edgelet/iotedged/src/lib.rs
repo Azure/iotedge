@@ -181,9 +181,6 @@ const DPS_DEVICE_ID_CERT_ENV_KEY: &str = "IOTEDGE_DEVICE_IDENTITY_CERT";
 /// This is the DPS identity private key file path/uri env variable key
 const DPS_DEVICE_ID_KEY_ENV_KEY: &str = "IOTEDGE_DEVICE_IDENTITY_PK";
 
-/// These are the properties of the workload CA certificate
-const IOTEDGED_VALIDITY: u64 = 7_776_000;
-// 90 days
 const IOTEDGED_COMMONNAME: &str = "iotedged workload ca";
 const IOTEDGED_TLS_COMMONNAME: &str = "iotedged";
 // 5 mins
@@ -194,7 +191,7 @@ const IOTEDGE_ID_CERT_MAX_DURATION_SECS: i64 = 2 * 3600;
 const IOTEDGE_SERVER_CERT_MAX_DURATION_SECS: i64 = 90 * 24 * 3600;
 
 // HSM lib version that the iotedge runtime required
-const IOTEDGE_COMPAT_HSM_VERSION: &str = "1.0.2";
+const IOTEDGE_COMPAT_HSM_VERSION: &str = "1.0.3";
 
 #[derive(PartialEq)]
 enum StartApiReturnStatus {
@@ -267,8 +264,11 @@ where
         set_iot_edge_env_vars(&settings)
             .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
 
+        let auto_generated_ca_lifetime_seconds =
+            settings.certificates().auto_generated_ca_lifetime_seconds();
+
         info!("Initializing hsm...");
-        let crypto = Crypto::new(hsm_lock.clone())
+        let crypto = Crypto::new(hsm_lock.clone(), auto_generated_ca_lifetime_seconds)
             .context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
 
         let hsm_version = crypto
@@ -291,8 +291,11 @@ where
         ))?;
         info!("Finished initializing hsm.");
 
-        let (hyper_client, device_cert_identity_data) =
-            prepare_httpclient_and_identity_data(hsm_lock.clone(), &settings)?;
+        let (hyper_client, device_cert_identity_data) = prepare_httpclient_and_identity_data(
+            hsm_lock.clone(),
+            &settings,
+            auto_generated_ca_lifetime_seconds,
+        )?;
 
         let cache_subdir_path = Path::new(&settings.homedir()).join(EDGE_SETTINGS_SUBDIR);
         // make sure the cache directory exists
@@ -557,8 +560,9 @@ where
     env::set_var(HOMEDIR_KEY, &settings.homedir());
 
     info!("Configuring certificates...");
-    let certificates = &settings.certificates();
-    match certificates.as_ref() {
+    let certificates = settings.certificates();
+
+    match certificates.device_cert().as_ref() {
         None => {
             info!("Transparent gateway certificates not found, operating in quick start mode...")
         }
@@ -630,14 +634,15 @@ where
 fn prepare_httpclient_and_identity_data<S>(
     hsm_lock: Arc<HsmLock>,
     settings: &S,
+    auto_generated_ca_lifetime_seconds: u64,
 ) -> Result<(MaybeProxyClient, Option<IdentityCertificateData>), Error>
 where
     S: RuntimeSettings,
 {
     if get_provisioning_auth_method(settings) == ProvisioningAuthMethod::X509 {
         info!("Initializing hsm X509 interface...");
-        let x509 =
-            X509::new(hsm_lock).context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
+        let x509 = X509::new(hsm_lock, auto_generated_ca_lifetime_seconds)
+            .context(ErrorKind::Initialize(InitializeErrorReason::Hsm))?;
 
         let hsm_version = x509
             .get_version()
@@ -1160,7 +1165,7 @@ where
     let (work_tx, work_rx) = oneshot::channel();
 
     let edgelet_cert_props = CertificateProperties::new(
-        IOTEDGED_VALIDITY,
+        settings.certificates().auto_generated_ca_lifetime_seconds(),
         IOTEDGED_TLS_COMMONNAME.to_string(),
         CertificateType::Server,
         "iotedge-tls".to_string(),
@@ -1738,7 +1743,7 @@ mod tests {
     use tempdir::TempDir;
 
     use edgelet_core::ModuleRuntimeState;
-    use edgelet_core::{KeyBytes, PrivateKey};
+    use edgelet_core::{KeyBytes, PrivateKey, DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS};
     use edgelet_docker::{DockerConfig, DockerModuleRuntime, Settings};
     use edgelet_test_utils::cert::TestCert;
     use edgelet_test_utils::crypto::TestHsm;
@@ -1904,6 +1909,25 @@ mod tests {
             ErrorKind::Initialize(InitializeErrorReason::NotConfigured) => (),
             kind => panic!("Expected `NotConfigured` but got {:?}", kind),
         }
+    }
+
+    #[test]
+    fn settings_without_cert_life_uses_default() {
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS1))).unwrap();
+        assert_eq!(
+            u64::from(DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS) * 86_400,
+            settings.certificates().auto_generated_ca_lifetime_seconds()
+        );
+    }
+
+    #[test]
+    fn settings_with_cert_life_uses_value() {
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS2))).unwrap();
+        // Provided value is 1 day so check for that in seconds
+        assert_eq!(
+            86_400,
+            settings.certificates().auto_generated_ca_lifetime_seconds()
+        );
     }
 
     #[test]

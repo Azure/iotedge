@@ -48,6 +48,9 @@ pub use settings::{
 };
 pub use workload::WorkloadConfig;
 
+/// This is the default auto generated certificate life
+pub const DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS: u16 = 90;
+
 lazy_static! {
     static ref VERSION: &'static str =
         option_env!("VERSION").unwrap_or_else(|| include_str!("../../version.txt").trim());
