@@ -335,7 +335,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
         }
 
-        // Note: Keep in sync with iotedge-check's edge-agent-storage-mounted-from-host check (edgelet/iotedge/src/check/mod.rs)
+        // Note: Keep in sync with iotedge-check's edge-agent-storage-mounted-from-host check (edgelet/iotedge/src/check/checks/storage_mounted_from_host.rs)
         static string GetStoragePath(IConfiguration configuration)
         {
             string baseStoragePath = configuration.GetValue<string>("StorageFolder");
