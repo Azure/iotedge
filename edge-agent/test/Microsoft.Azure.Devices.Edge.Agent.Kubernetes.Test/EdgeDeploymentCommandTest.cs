@@ -341,7 +341,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         public async void CrdCommandExecuteEdgeAgentGetsCurrentImage()
         {
             IModule dockerModule = new DockerModule("edgeAgent", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            IRuntimeModule currentModule = new DockerRuntimeModule("edgeAgent", "v2", ModuleStatus.Running, RestartPolicy.Always, AgentConfig1, 0, "description", DateTime.Now, DateTime.Today, 1, DateTime.Today, ModuleStatus.Running, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            IRuntimeModule currentModule = new EdgeAgentDockerRuntimeModule(AgentConfig1, ModuleStatus.Running, 0, "description", DateTime.Today, DateTime.Today, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             ModuleSet currentModules = new ModuleSet(new Dictionary<string, IModule> { ["edgeAgent"] = currentModule });
             var dockerConfigProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
             dockerConfigProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
@@ -349,6 +349,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var configProvider = new Mock<ICombinedConfigProvider<CombinedKubernetesConfig>>();
             configProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
                 .Returns(() => new CombinedKubernetesConfig("test-image:1", CreatePodParameters.Create(image: "test-image:1"), Option.Maybe(ImagePullSecret)));
+            configProvider.Setup(cp => cp.GetCombinedConfig(currentModule, Runtime))
+                .Returns(() => new CombinedKubernetesConfig(AgentConfig1.Image, CreatePodParameters.Create(image: AgentConfig1.Image), Option.Maybe(ImagePullSecret)));
             var edgeDefinition = Option.None<EdgeDeploymentDefinition>();
 
             using (var server = new KubernetesApiServer(
