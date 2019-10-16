@@ -376,9 +376,7 @@ impl RuntimeSettings for TestKubeSettings {
         self.kube_settings.homedir()
     }
 
-    fn certificates(&self) -> Option<&Certificates> {
-        self.kube_settings.certificates()
-    }
+    fn certificates(&self) -> &Certificates { self.kube_settings.certificates() }
 
     fn watchdog(&self) -> &WatchdogSettings {
         self.kube_settings.watchdog()
