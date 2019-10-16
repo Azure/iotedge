@@ -125,7 +125,9 @@ impl AuthClient {
         // preventing any other tasks from calling .get() in the brief period of
         // time between insertion and lock acquisition.
         scope_cache.insert(expected_scope.clone(), HeaderMap::new());
-        let headers = scope_cache.get(expected_scope).unwrap();
+        let headers = scope_cache
+            .get(expected_scope)
+            .expect("this should not fail");
         let mut headers = headers.lock().await;
         std::mem::drop(scope_cache);
 

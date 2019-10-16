@@ -1,11 +1,8 @@
 use std::ops::{Bound, RangeBounds};
-use std::sync::{
-    atomic::{AtomicI8, Ordering},
-    Arc,
-};
 
 use bytes::Bytes;
 use failure::{Fail, ResultExt};
+use futures::lock::Mutex;
 use headers::HeaderMapExt as TypedHeaderMapExt;
 use headers::Range as RangeHeader;
 use log::*;
@@ -31,7 +28,7 @@ use crate::paginate::Paginate;
 pub struct Client {
     client: AuthClient,
     registry_base: Url,
-    supports_range_header: Arc<AtomicI8>, // -1 is Unknown
+    supports_range_header: Mutex<Option<bool>>,
 }
 
 impl Client {
@@ -56,7 +53,7 @@ impl Client {
         Ok(Client {
             client: AuthClient::new(ReqwestClient::new(), creds),
             registry_base,
-            supports_range_header: Arc::new(AtomicI8::new(-1)),
+            supports_range_header: Mutex::new(None),
         })
     }
 
@@ -232,7 +229,11 @@ impl Client {
                 None
             }
             _ => {
-                if self.supports_range_header.load(Ordering::Relaxed) == -1 {
+                // TODO: this would be slightly more efficient if it was a rwlock
+                // unfortunately, there doesn't seem to be a futures-aware rwlock yet...
+                let mut supports_range_header = self.supports_range_header.lock().await;
+
+                if supports_range_header.is_none() {
                     // "This endpoint MAY also support RFC7233 compliant range requests. Support can
                     // be detected by issuing a HEAD request. If the header Accept-Range: bytes is
                     // returned, range requests can be used to fetch partial content."
@@ -240,13 +241,12 @@ impl Client {
                     let res = self.client.head(url.clone(), &scope).await?.send().await?;
 
                     // FIXME: this could be a stricter check
-                    self.supports_range_header.store(
-                        res.headers().get(header::ACCEPT_RANGES).is_some() as i8,
-                        Ordering::Relaxed,
-                    );
+                    supports_range_header
+                        .replace(res.headers().get(header::ACCEPT_RANGES).is_some());
                 }
 
-                if self.supports_range_header.load(Ordering::Relaxed) == 0 {
+                // won't panic, as it's guaranteed to be set in the if statement above
+                if !supports_range_header.unwrap() {
                     return Err(ErrorKind::ApiRangeHeaderNotSupported.into());
                 }
 
