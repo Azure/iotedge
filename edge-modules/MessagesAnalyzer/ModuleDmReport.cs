@@ -13,10 +13,10 @@ namespace MessagesAnalyzer
         public ModuleDmReport(string moduleId, IDictionary<string, IList<DirectMethodStatus>> statusCodes)
         {
             this.ModuleId = moduleId;
-            this.Statuses = new List<DmStatusReport>();
+            this.StatusCodes = new List<DmStatusReport>();
             foreach (KeyValuePair<string, IList<DirectMethodStatus>> status in statusCodes)
             {
-                this.Statuses.Add(new DmStatusReport()
+                this.StatusCodes.Add(new DmStatusReport()
                 {
                     StatusCode = status.Key,
                     Count = status.Value.Count,
@@ -27,13 +27,14 @@ namespace MessagesAnalyzer
 
         public string ModuleId { get; }
 
-        public IList<DmStatusReport> Statuses { get; }
+        public IList<DmStatusReport> StatusCodes { get; }
 
         public override string ToString()
         {
             return JsonConvert.SerializeObject(this, Formatting.Indented);
         }
 
+        [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
         public class DmStatusReport
         {
             public string StatusCode { get; set; }
