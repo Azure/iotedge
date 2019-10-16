@@ -384,6 +384,24 @@ impl Dps {
 pub struct External {
     #[serde(with = "url_serde")]
     endpoint: Url,
+}
+
+impl External {
+    pub fn new(endpoint: Url) -> Self {
+        External { endpoint }
+    }
+
+    pub fn endpoint(&self) -> &Url {
+        &self.endpoint
+    }
+}
+
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+#[serde(rename_all = "lowercase")]
+pub struct Provisioning {
+    #[serde(flatten)]
+    provisioning: ProvisioningType,
+
     #[serde(
         rename = "dynamic_reprovisioning",
         skip_serializing_if = "Option::is_none"
@@ -391,16 +409,9 @@ pub struct External {
     dynamic_reprovisioning: Option<bool>,
 }
 
-impl External {
-    pub fn new(endpoint: Url, dynamic_reprovisioning: bool) -> Self {
-        External {
-            endpoint,
-            dynamic_reprovisioning: Some(dynamic_reprovisioning),
-        }
-    }
-
-    pub fn endpoint(&self) -> &Url {
-        &self.endpoint
+impl Provisioning {
+    pub fn provisioning_type(&self) -> &ProvisioningType {
+        &self.provisioning
     }
 
     pub fn dynamic_reprovisioning(&self) -> Option<&bool> {
@@ -411,7 +422,7 @@ impl External {
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 #[serde(tag = "source")]
 #[serde(rename_all = "lowercase")]
-pub enum Provisioning {
+pub enum ProvisioningType {
     Manual(Box<Manual>),
     Dps(Box<Dps>),
     External(External),

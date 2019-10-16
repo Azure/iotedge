@@ -230,7 +230,9 @@ mod tests {
     use serde_json::json;
     use tempdir::TempDir;
 
-    use edgelet_core::{AttestationMethod, IpamConfig, ManualAuthMethod, DEFAULT_NETWORKID};
+    use edgelet_core::{
+        AttestationMethod, IpamConfig, ManualAuthMethod, ProvisioningType, DEFAULT_NETWORKID,
+    };
 
     #[cfg(unix)]
     static GOOD_SETTINGS: &str = "test/linux/sample_settings.yaml";
@@ -346,9 +348,9 @@ mod tests {
     #[cfg(windows)]
     static GOOD_SETTINGS_NETWORK: &str = "test/windows/sample_settings.network.yaml";
 
-    fn unwrap_manual_provisioning(p: &Provisioning) -> String {
+    fn unwrap_manual_provisioning(p: &ProvisioningType) -> String {
         match p {
-            Provisioning::Manual(manual) => {
+            ProvisioningType::Manual(manual) => {
                 if let ManualAuthMethod::DeviceConnectionString(cs) = manual.authentication_method()
                 {
                     cs.device_connection_string().to_string()
@@ -474,7 +476,7 @@ mod tests {
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        let p = s.provisioning();
+        let p = s.provisioning().provisioning_type();
         let connection_string = unwrap_manual_provisioning(p);
         assert_eq!(
             connection_string,
@@ -488,7 +490,7 @@ mod tests {
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        let p = s.provisioning();
+        let p = s.provisioning().provisioning_type();
         let connection_string = unwrap_manual_provisioning(p);
         assert_eq!(
             connection_string,
@@ -502,8 +504,8 @@ mod tests {
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        match s.provisioning() {
-            Provisioning::Manual(manual) => match manual.authentication_method() {
+        match s.provisioning().provisioning_type() {
+            ProvisioningType::Manual(manual) => match manual.authentication_method() {
                 ManualAuthMethod::DeviceConnectionString(cs) => {
                     assert_eq!(cs.device_connection_string(), "");
                     cs.parse_device_connection_string().unwrap_err();
@@ -520,8 +522,8 @@ mod tests {
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        match s.provisioning() {
-            Provisioning::Manual(manual) => match manual.authentication_method() {
+        match s.provisioning().provisioning_type() {
+            ProvisioningType::Manual(manual) => match manual.authentication_method() {
                 ManualAuthMethod::DeviceConnectionString(cs) => {
                     assert_eq!(cs.device_connection_string(), "blah");
                     cs.parse_device_connection_string().unwrap_err();
@@ -538,8 +540,8 @@ mod tests {
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        match s.provisioning() {
-            Provisioning::Manual(manual) => match manual.authentication_method() {
+        match s.provisioning().provisioning_type() {
+            ProvisioningType::Manual(manual) => match manual.authentication_method() {
                 ManualAuthMethod::DeviceConnectionString(cs) => {
                     assert_eq!(cs.device_connection_string(), "");
                     cs.parse_device_connection_string().unwrap_err();
@@ -717,8 +719,8 @@ mod tests {
         );
         let settings = Settings::new(&settings_path).unwrap();
         println!("{:?}", settings);
-        match settings.provisioning() {
-            Provisioning::Manual(manual) => match manual.authentication_method() {
+        match settings.provisioning().provisioning_type() {
+            ProvisioningType::Manual(manual) => match manual.authentication_method() {
                 ManualAuthMethod::X509(x509) => {
                     assert_eq!(x509.iothub_hostname(), "something.something.com");
                     assert_eq!(x509.device_id(), "something");
@@ -750,8 +752,8 @@ mod tests {
         let settings = Settings::new(Path::new(GOOD_SETTINGS_DPS_DEFAULT));
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        match s.provisioning() {
-            Provisioning::Dps(ref dps) => {
+        match s.provisioning().provisioning_type() {
+            ProvisioningType::Dps(ref dps) => {
                 assert_eq!(dps.global_endpoint().scheme(), "scheme");
                 assert_eq!(dps.global_endpoint().host_str().unwrap(), "jibba-jabba.net");
                 assert_eq!(dps.scope_id(), "i got no time for the jibba-jabba");
@@ -772,8 +774,8 @@ mod tests {
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        match s.provisioning() {
-            Provisioning::Dps(ref dps) => {
+        match s.provisioning().provisioning_type() {
+            ProvisioningType::Dps(ref dps) => {
                 assert_eq!(dps.global_endpoint().scheme(), "scheme");
                 assert_eq!(dps.global_endpoint().host_str().unwrap(), "jibba-jabba.net");
                 assert_eq!(dps.scope_id(), "i got no time for the jibba-jabba");
@@ -794,8 +796,8 @@ mod tests {
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        match s.provisioning() {
-            Provisioning::Dps(ref dps) => {
+        match s.provisioning().provisioning_type() {
+            ProvisioningType::Dps(ref dps) => {
                 assert_eq!(dps.global_endpoint().scheme(), "scheme");
                 assert_eq!(dps.global_endpoint().host_str().unwrap(), "jibba-jabba.net");
                 assert_eq!(dps.scope_id(), "i got no time for the jibba-jabba");
@@ -857,8 +859,8 @@ mod tests {
         prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
         let settings = Settings::new(&settings_path).unwrap();
         println!("{:?}", settings);
-        match settings.provisioning() {
-            Provisioning::Dps(ref dps) => {
+        match settings.provisioning().provisioning_type() {
+            ProvisioningType::Dps(ref dps) => {
                 assert_eq!(dps.global_endpoint().scheme(), "scheme");
                 assert_eq!(dps.global_endpoint().host_str().unwrap(), "jibba-jabba.net");
                 assert_eq!(dps.scope_id(), "i got no time for the jibba-jabba");
@@ -899,8 +901,8 @@ mod tests {
         prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
         let settings = Settings::new(&settings_path).unwrap();
         println!("{:?}", settings);
-        match settings.provisioning() {
-            Provisioning::Dps(ref dps) => {
+        match settings.provisioning().provisioning_type() {
+            ProvisioningType::Dps(ref dps) => {
                 assert_eq!(dps.global_endpoint().scheme(), "scheme");
                 assert_eq!(dps.global_endpoint().host_str().unwrap(), "jibba-jabba.net");
                 assert_eq!(dps.scope_id(), "i got no time for the jibba-jabba");
@@ -938,10 +940,10 @@ mod tests {
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        match s.provisioning() {
-            Provisioning::External(ref external) => {
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), None);
+        match s.provisioning().provisioning_type() {
+            ProvisioningType::External(ref external) => {
                 assert_eq!(external.endpoint().as_str(), "http://localhost:9999/");
-                assert_eq!(external.dynamic_reprovisioning(), None);
             }
             _ => unreachable!(),
         };
@@ -953,10 +955,11 @@ mod tests {
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        match s.provisioning() {
-            Provisioning::External(ref external) => {
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), Some(&true));
+
+        match s.provisioning().provisioning_type() {
+            ProvisioningType::External(ref external) => {
                 assert_eq!(external.endpoint().as_str(), "http://localhost:9999/");
-                assert_eq!(external.dynamic_reprovisioning(), Some(&true));
             }
             _ => unreachable!(),
         };

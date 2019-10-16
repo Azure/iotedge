@@ -54,9 +54,9 @@ use edgelet_core::watchdog::Watchdog;
 use edgelet_core::{
     AttestationMethod, Authenticator, Certificate, CertificateIssuer, CertificateProperties,
     CertificateType, Dps, MakeModuleRuntime, ManualAuthMethod, Module, ModuleRuntime,
-    ModuleRuntimeErrorReason, ModuleSpec, Provisioning,
-    ProvisioningResult as CoreProvisioningResult, RuntimeSettings, SymmetricKeyAttestationInfo,
-    TpmAttestationInfo, WorkloadConfig, X509AttestationInfo,
+    ModuleRuntimeErrorReason, ModuleSpec, ProvisioningResult as CoreProvisioningResult,
+    ProvisioningType, RuntimeSettings, SymmetricKeyAttestationInfo, TpmAttestationInfo,
+    WorkloadConfig, X509AttestationInfo,
 };
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::{Crypto, HsmLock, X509};
@@ -398,8 +398,8 @@ where
             external_provisioning_info.as_ref(),
         )?;
 
-        match settings.provisioning() {
-            Provisioning::Manual(manual) => {
+        match settings.provisioning().provisioning_type() {
+            ProvisioningType::Manual(manual) => {
                 match manual.authentication_method() {
                     ManualAuthMethod::DeviceConnectionString(cs) => {
                         info!("Starting provisioning edge device via manual mode using a device connection string...");
@@ -453,7 +453,7 @@ where
                     }
                 };
             }
-            Provisioning::External(_external) => {
+            ProvisioningType::External(_external) => {
                 info!("Starting provisioning edge device via external provisioning mode...");
                 let provisioning_result = external_provisioning_info.ok_or_else(|| {
                     ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient(
@@ -530,7 +530,7 @@ where
                     }
                 };
             }
-            Provisioning::Dps(dps) => {
+            ProvisioningType::Dps(dps) => {
                 let dps_path = cache_subdir_path.join(EDGE_PROVISIONING_BACKUP_FILENAME);
 
                 match dps.attestation() {
@@ -631,7 +631,7 @@ fn get_external_provisioning_info<S>(
 where
     S: RuntimeSettings,
 {
-    if let Provisioning::External(external) = settings.provisioning() {
+    if let ProvisioningType::External(external) = settings.provisioning().provisioning_type() {
         // Set the external provisioning endpoint environment variable for use by the custom HSM library.
         env::set_var(
             EXTERNAL_PROVISIONING_ENDPOINT_KEY,
@@ -781,8 +781,8 @@ where
         }
     };
 
-    match settings.provisioning() {
-        Provisioning::Manual(manual) => {
+    match settings.provisioning().provisioning_type() {
+        ProvisioningType::Manual(manual) => {
             if let ManualAuthMethod::X509(x509) = manual.authentication_method() {
                 let path = x509.identity_cert().context(ErrorKind::Initialize(
                     InitializeErrorReason::IdentityCertificateSettings,
@@ -795,7 +795,7 @@ where
                 env::set_var(DEVICE_IDENTITY_KEY_PATH_ENV_KEY, path.as_os_str());
             }
         }
-        Provisioning::External(_external) => {
+        ProvisioningType::External(_external) => {
             let prov_result = provisioning_result.as_ref().ok_or_else(|| {
                 ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient(
                     ExternalProvisioningErrorReason::Provisioning,
@@ -827,7 +827,7 @@ where
                 }
             }
         }
-        Provisioning::Dps(dps) => match dps.attestation() {
+        ProvisioningType::Dps(dps) => match dps.attestation() {
             AttestationMethod::Tpm(ref tpm) => {
                 env::set_var(
                     DPS_REGISTRATION_ID_ENV_KEY,
@@ -1302,13 +1302,13 @@ fn get_provisioning_auth_method<S>(
 where
     S: RuntimeSettings,
 {
-    match settings.provisioning() {
-        Provisioning::Manual(manual) => {
+    match settings.provisioning().provisioning_type() {
+        ProvisioningType::Manual(manual) => {
             if let ManualAuthMethod::X509(_) = manual.authentication_method() {
                 return Ok(ProvisioningAuthMethod::X509);
             }
         }
-        Provisioning::External(_external) => {
+        ProvisioningType::External(_external) => {
             let prov_result = provisioning_result.as_ref().ok_or_else(|| {
                 ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient(
                     ExternalProvisioningErrorReason::Provisioning,
@@ -1321,7 +1321,7 @@ where
                 }
             }
         }
-        Provisioning::Dps(dps) => {
+        ProvisioningType::Dps(dps) => {
             if let AttestationMethod::X509(_) = dps.attestation() {
                 return Ok(ProvisioningAuthMethod::X509);
             }
@@ -1505,6 +1505,13 @@ where
             Ok(_) | Err(None) => Ok(None),
             Err(Some(e)) => Err(Some(e)),
         });
+
+    let mgmt_stop_and_reprovision_signaled =
+        if let Some(&true) = settings.provisioning().dynamic_reprovisioning() {
+            futures::future::Either::A(future::empty().map(|_: ()| None))
+        } else {
+            futures::future::Either::B(mgmt_stop_and_reprovision_signaled)
+        };
 
     let edge_rt_with_mgmt_signal = edge_rt.select2(mgmt_stop_and_reprovision_signaled).then(
         |res: Result<

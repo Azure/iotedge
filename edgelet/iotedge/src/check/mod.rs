@@ -20,7 +20,8 @@ use regex::Regex;
 use serde_json;
 
 use edgelet_core::{
-    self, AttestationMethod, ManualAuthMethod, MobyNetwork, Provisioning, RuntimeSettings, UrlExt,
+    self, AttestationMethod, ManualAuthMethod, MobyNetwork, ProvisioningType, RuntimeSettings,
+    UrlExt,
 };
 use edgelet_docker::Settings;
 use edgelet_http::client::ClientImpl;
@@ -725,7 +726,7 @@ fn settings_connection_string(check: &mut Check) -> Result<CheckResult, failure:
         return Ok(CheckResult::Skipped);
     };
 
-    if let Provisioning::Manual(manual) = settings.provisioning() {
+    if let ProvisioningType::Manual(manual) = settings.provisioning().provisioning_type() {
         let hub = match manual.authentication_method() {
             ManualAuthMethod::DeviceConnectionString(cs) => {
                 let (_, _, hub) = cs.parse_device_connection_string().context(
@@ -1292,15 +1293,15 @@ fn settings_identity_certificates_expiry(check: &mut Check) -> Result<CheckResul
         return Ok(CheckResult::Skipped);
     };
 
-    match settings.provisioning() {
-        Provisioning::Dps(dps) => {
+    match settings.provisioning().provisioning_type() {
+        ProvisioningType::Dps(dps) => {
             if let AttestationMethod::X509(x509_info) = dps.attestation() {
                 let path = x509_info.identity_cert()?;
                 return CertificateValidity::parse("DPS identity certificate", &path)?
                     .to_check_result();
             }
         }
-        Provisioning::Manual(manual) => {
+        ProvisioningType::Manual(manual) => {
             if let ManualAuthMethod::X509(x509) = manual.authentication_method() {
                 let path = x509.identity_cert()?;
                 return CertificateValidity::parse(
@@ -1310,7 +1311,7 @@ fn settings_identity_certificates_expiry(check: &mut Check) -> Result<CheckResul
                 .to_check_result();
             }
         }
-        Provisioning::External(_) => (),
+        ProvisioningType::External(_) => (),
     }
 
     Ok(CheckResult::Ignored)
@@ -1601,11 +1602,12 @@ fn connection_to_dps_endpoint(check: &mut Check) -> Result<CheckResult, failure:
         return Ok(CheckResult::Skipped);
     };
 
-    let dps_endpoint = if let Provisioning::Dps(dps) = settings.provisioning() {
-        dps.global_endpoint()
-    } else {
-        return Ok(CheckResult::Ignored);
-    };
+    let dps_endpoint =
+        if let ProvisioningType::Dps(dps) = settings.provisioning().provisioning_type() {
+            dps.global_endpoint()
+        } else {
+            return Ok(CheckResult::Ignored);
+        };
 
     let dps_hostname = dps_endpoint.host_str().ok_or_else(|| {
         Context::new("URL specified in provisioning.global_endpoint does not have a host")

@@ -97,7 +97,7 @@ fn set_up(context: web::Data<Arc<Context>>) -> Option<state::Device> {
             .edge_config
             .as_ref()
             .map(|config| {
-                if let Provisioning::Manual(val) = config.provisioning() {
+                if let ProvisioningType::Manual(val) = config.provisioning() {
                     let dev_conn_str = val.device_connection_string();
                     if dev_conn_str == edgelet_core::DEFAULT_CONNECTION_STRING {
                         Some(state::Device::new(
