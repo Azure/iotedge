@@ -174,7 +174,7 @@ fn run() -> Result<(), Error> {
                         .long("output")
                         .short("o")
                         .value_name("FORMAT")
-                        .help("Output format. Note that JSON output contains some additional host information like OS name and version.")
+                        .help("Output format. Note that JSON output contains some additional information like OS name, OS version, disk space, etc.")
                         .takes_value(true)
                         .possible_values(&["json", "text"])
                         .default_value("text"),
@@ -270,6 +270,12 @@ fn run() -> Result<(), Error> {
                         .value_name("IOTHUB_HOSTNAME")
                         .help("Sets the hostname of the Azure IoT Hub that this device would connect to. If using manual provisioning, this does not need to be specified.")
                         .takes_value(true),
+                ).arg(
+                    Arg::with_name("verbose")
+                        .help("Use verbose output")
+                        .long("verbose")
+                        .short("v")
+                        .takes_value(false),
                 ),
         )
         .subcommand(SubCommand::with_name("version").about("Show the version information"))
@@ -375,12 +381,14 @@ fn run() -> Result<(), Error> {
                 .with_tail(LogTail::All)
                 .with_since(since);
             let include_ms_only = args.is_present("include-edge-runtime-only");
+            let verbose = args.is_present("verbose");
             let iothub_hostname = args.value_of("iothub-hostname").map(ToOwned::to_owned);
             tokio_runtime.block_on(
                 SupportBundle::new(
                     options,
                     location.to_owned(),
                     include_ms_only,
+                    verbose,
                     iothub_hostname,
                     runtime()?,
                 )
