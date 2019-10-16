@@ -1913,9 +1913,7 @@ mod tests {
 
     #[test]
     fn settings_without_cert_life_uses_default() {
-        let _guard = LOCK.lock().unwrap();
-
-        let settings = Settings::new(Path::new(GOOD_SETTINGS1)).unwrap();
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS1))).unwrap();
         assert_eq!(
             u64::from(DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS) * 86_400,
             settings.certificates().auto_generated_ca_lifetime_seconds()
@@ -1924,9 +1922,7 @@ mod tests {
 
     #[test]
     fn settings_with_cert_life_uses_value() {
-        let _guard = LOCK.lock().unwrap();
-
-        let settings = Settings::new(Path::new(GOOD_SETTINGS2)).unwrap();
+        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS2))).unwrap();
         // Provided value is 1 day so check for that in seconds
         assert_eq!(
             86_400,
