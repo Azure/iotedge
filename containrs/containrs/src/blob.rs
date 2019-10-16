@@ -3,11 +3,13 @@ use reqwest::Response;
 
 use oci_image::v1::Descriptor;
 
+#[derive(Debug)]
 enum BlobKind {
     Streaming(Response),
     Immediate(Option<Bytes>),
 }
 
+#[derive(Debug)]
 pub struct Blob {
     descriptor: Descriptor,
     inner: BlobKind,

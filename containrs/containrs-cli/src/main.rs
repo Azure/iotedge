@@ -125,6 +125,17 @@ async fn true_main() -> Result<(), failure::Error> {
                         ),
                 )
                 .subcommand(
+                    SubCommand::with_name("multimanifest")
+                        .about("Retrieve one or more image manifests at once.")
+                        .arg(
+                            Arg::with_name("image")
+                                .help("Image reference")
+                                .required(true)
+                                .index(1)
+                                .multiple(true),
+                        ),
+                )
+                .subcommand(
                     SubCommand::with_name("blob")
                         .about("Retrieve a blob from a given repository")
                         .arg(
@@ -139,6 +150,23 @@ async fn true_main() -> Result<(), failure::Error> {
                                 .index(2),
                         ),
                 ),
+        )
+        // TODO?: hide the test section in the CLI behind a feature flag
+        .subcommand(
+            SubCommand::with_name("test")
+                .setting(AppSettings::SubcommandRequiredElseHelp)
+                .about("Misc commands for testing / benchmarking containrs internals.")
+                .subcommand(
+                    SubCommand::with_name("multimanifest")
+                        .about("Test scope-based caching performance by retrieving multiple image manifests in parallel.")
+                        .arg(
+                            Arg::with_name("image")
+                                .help("Image reference")
+                                .required(true)
+                                .index(1)
+                                .multiple(true),
+                        ),
+                )
         )
         .subcommand(
             SubCommand::with_name("download")
@@ -347,6 +375,37 @@ async fn true_main() -> Result<(), failure::Error> {
                 _ => unreachable!(),
             }
         }
+        ("test", Some(app_m)) => match app_m.subcommand() {
+            ("multimanifest", Some(sub_m)) => {
+                let images = sub_m
+                    .values_of("image")
+                    .expect("image should be a required argument")
+                    .map(|image| Reference::parse(image, default_registry, docker_compat))
+                    .collect::<Result<Vec<_>, _>>()?;
+
+                eprintln!("canonical: {:#?}", images);
+
+                let client = Client::new(
+                    transport_scheme,
+                    images.first().unwrap().registry(),
+                    credentials,
+                )?;
+
+                let download_timer = Instant::now();
+
+                let futures = images
+                    .iter()
+                    .map(|img| client.get_raw_manifest(img))
+                    .collect::<Vec<_>>();
+                let _ = future::try_join_all(futures).await?;
+
+                eprintln!(
+                    "Firing off multimanifest requests took {:?}",
+                    download_timer.elapsed()
+                );
+            }
+            _ => unreachable!(),
+        },
         ("download", Some(sub_m)) => {
             let outdir = sub_m
                 .value_of("outdir")
