@@ -36,11 +36,12 @@ impl HostConnectDpsEndpoint {
             return Ok(CheckResult::Skipped);
         };
 
-        let dps_endpoint = if let ProvisioningType::Dps(dps) = settings.provisioning().provisioning_type() {
-            dps.global_endpoint()
-        } else {
-            return Ok(CheckResult::Ignored);
-        };
+        let dps_endpoint =
+            if let ProvisioningType::Dps(dps) = settings.provisioning().provisioning_type() {
+                dps.global_endpoint()
+            } else {
+                return Ok(CheckResult::Ignored);
+            };
         self.dps_endpoint = Some(format!("{}", dps_endpoint));
 
         let dps_hostname = dps_endpoint.host_str().ok_or_else(|| {

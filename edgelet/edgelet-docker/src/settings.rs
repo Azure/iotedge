@@ -293,7 +293,8 @@ mod tests {
     #[cfg(unix)]
     static GOOD_SETTINGS_DYNAMIC_REPROVISIONING: &str = "test/linux/sample_settings.dyn.repro.yaml";
     #[cfg(unix)]
-    static BAD_SETTINGS_DYNAMIC_REPROVISIONING: &str = "test/linux/bad_sample_settings.dyn.repro.yaml";
+    static BAD_SETTINGS_DYNAMIC_REPROVISIONING: &str =
+        "test/linux/bad_sample_settings.dyn.repro.yaml";
 
     #[cfg(windows)]
     static GOOD_SETTINGS: &str = "test/windows/sample_settings.yaml";
@@ -352,9 +353,11 @@ mod tests {
     #[cfg(windows)]
     static GOOD_SETTINGS_NETWORK: &str = "test/windows/sample_settings.network.yaml";
     #[cfg(windows)]
-    static GOOD_SETTINGS_DYNAMIC_REPROVISIONING: &str = "test/windows/sample_settings.dyn.repro.yaml";
+    static GOOD_SETTINGS_DYNAMIC_REPROVISIONING: &str =
+        "test/windows/sample_settings.dyn.repro.yaml";
     #[cfg(windows)]
-    static BAD_SETTINGS_DYNAMIC_REPROVISIONING: &str = "test/windows/bad_sample_settings.dyn.repro.yaml";
+    static BAD_SETTINGS_DYNAMIC_REPROVISIONING: &str =
+        "test/windows/bad_sample_settings.dyn.repro.yaml";
 
     fn unwrap_manual_provisioning(p: &ProvisioningType) -> String {
         match p {
