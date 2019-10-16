@@ -11,7 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     public class CustomCertificatesFixture : ManualProvisioningFixture
     {
         protected CertificateAuthority ca;
-        CaCertificates caCert;
 
         [OneTimeSetUp]
         public async Task SetUpCertificatesAsync()
