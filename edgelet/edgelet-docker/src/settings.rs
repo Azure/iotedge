@@ -290,6 +290,10 @@ mod tests {
     static GOOD_SETTINGS_EXTERNAL2: &str = "test/linux/sample_settings.external.2.yaml";
     #[cfg(unix)]
     static GOOD_SETTINGS_NETWORK: &str = "test/linux/sample_settings.network.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_DYNAMIC_REPROVISIONING: &str = "test/linux/sample_settings.dyn.repro.yaml";
+    #[cfg(unix)]
+    static BAD_SETTINGS_DYNAMIC_REPROVISIONING: &str = "test/linux/bad_sample_settings.dyn.repro.yaml";
 
     #[cfg(windows)]
     static GOOD_SETTINGS: &str = "test/windows/sample_settings.yaml";
@@ -347,6 +351,10 @@ mod tests {
     static GOOD_SETTINGS_EXTERNAL2: &str = "test/windows/sample_settings.external.2.yaml";
     #[cfg(windows)]
     static GOOD_SETTINGS_NETWORK: &str = "test/windows/sample_settings.network.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_DYNAMIC_REPROVISIONING: &str = "test/windows/sample_settings.dyn.repro.yaml";
+    #[cfg(windows)]
+    static BAD_SETTINGS_DYNAMIC_REPROVISIONING: &str = "test/windows/bad_sample_settings.dyn.repro.yaml";
 
     fn unwrap_manual_provisioning(p: &ProvisioningType) -> String {
         match p {
@@ -468,6 +476,9 @@ mod tests {
 
         let settings = Settings::new(Path::new(BAD_SETTINGS_MANUAL_CS_AUTH3));
         assert!(settings.is_err());
+
+        let settings = Settings::new(Path::new(BAD_SETTINGS_DYNAMIC_REPROVISIONING));
+        assert!(settings.is_err());
     }
 
     #[test]
@@ -476,6 +487,8 @@ mod tests {
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
+
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), None);
         let p = s.provisioning().provisioning_type();
         let connection_string = unwrap_manual_provisioning(p);
         assert_eq!(
@@ -490,6 +503,8 @@ mod tests {
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), Some(&false));
+
         let p = s.provisioning().provisioning_type();
         let connection_string = unwrap_manual_provisioning(p);
         assert_eq!(
@@ -752,6 +767,7 @@ mod tests {
         let settings = Settings::new(Path::new(GOOD_SETTINGS_DPS_DEFAULT));
         assert!(settings.is_ok());
         let s = settings.unwrap();
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), Some(&false));
         match s.provisioning().provisioning_type() {
             ProvisioningType::Dps(ref dps) => {
                 assert_eq!(dps.global_endpoint().scheme(), "scheme");
@@ -774,6 +790,7 @@ mod tests {
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), Some(&false));
         match s.provisioning().provisioning_type() {
             ProvisioningType::Dps(ref dps) => {
                 assert_eq!(dps.global_endpoint().scheme(), "scheme");
@@ -796,6 +813,7 @@ mod tests {
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), Some(&true));
         match s.provisioning().provisioning_type() {
             ProvisioningType::Dps(ref dps) => {
                 assert_eq!(dps.global_endpoint().scheme(), "scheme");
@@ -963,6 +981,22 @@ mod tests {
             }
             _ => unreachable!(),
         };
+    }
+
+    #[test]
+    fn manual_provisioning_settings_with_dynamic_reprovisioning() {
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_DYNAMIC_REPROVISIONING));
+        println!("{:?}", settings);
+        assert!(settings.is_ok());
+        let s = settings.unwrap();
+
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), Some(&true));
+        let p = s.provisioning().provisioning_type();
+        let connection_string = unwrap_manual_provisioning(p);
+        assert_eq!(
+            connection_string,
+            "HostName=something.something.com;DeviceId=something;SharedAccessKey=QXp1cmUgSW9UIEVkZ2U="
+        );
     }
 
     #[test]

@@ -1,22 +1,25 @@
 # Configures the provisioning mode
 provisioning:
-  source: "dps"
-  global_endpoint: "scheme://jibba-jabba.net"
-  scope_id: "i got no time for the jibba-jabba"
-  attestation:
-    method: "tpm"
-    registration_id: "register me fool"
-  dynamic_reprovisioning: false
+  source: "manual"
+  device_connection_string: "HostName=something.something.com;DeviceId=something;SharedAccessKey=QXp1cmUgSW9UIEVkZ2U="
+  dynamic_reprovisioning: true
 
 agent:
   name: "edgeAgent"
   type: "docker"
-  env: {}
+  env:
+    abc: "value1"
+    acd: "value2"
   config:
-    image: "microsoft/azureiotedge-agent:1.0-preview"
-    create_options: {}
+    image: "microsoft/azureiotedge-agent:1.0"
     auth: {}
 hostname: "localhost"
+
+watchdog:
+  max_retries: 3
+
+certificates:
+  auto_generated_ca_lifetime_days: 1
 
 # Sets the connection uris for clients
 connect:
