@@ -100,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
             public Task CloseAsync(CancellationToken token) => Task.CompletedTask;
 
             internal static int GetBatchSize(int batchSize, long messageSize) =>
-                Math.Min((int)(Constants.MaxMessageSize / messageSize), batchSize);
+                Math.Min((int)(Constants.MaxMessageSize / Math.Max(1, messageSize)), batchSize);
 
             static bool IsRetryable(Exception ex) => ex != null && RetryableExceptions.Any(re => re.IsInstanceOfType(ex));
 
@@ -136,17 +136,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
 
             async Task<ISinkResult> ProcessByClients(ICollection<IRoutingMessage> routingMessages, CancellationToken token)
             {
+                var result = new MergingSinkResult<IRoutingMessage>();
+
                 var routingMessageGroups = (from r in routingMessages
                                             group r by this.GetIdentity(r)
                                             into g
                                             select new { Id = g.Key, RoutingMessages = g.ToList() })
                     .ToList();
-
-                var succeeded = new List<IRoutingMessage>();
-                var failed = new List<IRoutingMessage>();
-                var invalid = new List<InvalidDetails<IRoutingMessage>>();
-                Option<SendFailureDetails> sendFailureDetails =
-                    Option.None<SendFailureDetails>();
 
                 Events.ProcessingMessageGroups(routingMessages, routingMessageGroups.Count, this.cloudEndpoint.FanOutFactor);
 
@@ -155,84 +151,41 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                     IEnumerable<Task<ISinkResult<IRoutingMessage>>> sendTasks = groupBatch
                         .Select(item => this.ProcessClientMessages(item.Id, item.RoutingMessages, token));
                     ISinkResult<IRoutingMessage>[] sinkResults = await Task.WhenAll(sendTasks);
-                    foreach (ISinkResult<IRoutingMessage> res in sinkResults)
+
+                    foreach (var res in sinkResults)
                     {
-                        succeeded.AddRange(res.Succeeded);
-                        failed.AddRange(res.Failed);
-                        invalid.AddRange(res.InvalidDetailsList);
-                        // Different branches could have different results, but only the most significant will be reported
-                        if (IsMoreSignificant(sendFailureDetails, res.SendFailureDetails))
-                        {
-                            sendFailureDetails = res.SendFailureDetails;
-                        }
+                        result.Merge(res);
                     }
                 }
 
-                return new SinkResult<IRoutingMessage>(
-                    succeeded,
-                    failed,
-                    invalid,
-                    sendFailureDetails.GetOrElse(default(SendFailureDetails)));
+                return result;
             }
 
             // Process all messages for a particular client
             async Task<ISinkResult<IRoutingMessage>> ProcessClientMessages(string id, List<IRoutingMessage> routingMessages, CancellationToken token)
             {
-                var succeeded = new List<IRoutingMessage>();
-                var failed = new List<IRoutingMessage>();
-                var invalid = new List<InvalidDetails<IRoutingMessage>>();
-                Option<SendFailureDetails> sendFailureDetails =
-                    Option.None<SendFailureDetails>();
+                var result = new MergingSinkResult<IRoutingMessage>();
 
                 // Find the maximum message size, and divide messages into largest batches
                 // not exceeding max allowed IoTHub message size.
                 long maxMessageSize = routingMessages.Select(r => r.Size()).Max();
                 int batchSize = GetBatchSize(Math.Min(this.cloudEndpoint.maxBatchSize, routingMessages.Count), maxMessageSize);
-                foreach (IEnumerable<IRoutingMessage> batch in routingMessages.Batch(batchSize))
-                {
-                    ISinkResult res = await this.ProcessClientMessagesBatch(id, batch.ToList(), token);
-                    succeeded.AddRange(res.Succeeded);
-                    failed.AddRange(res.Failed);
-                    invalid.AddRange(res.InvalidDetailsList);
 
-                    if (IsMoreSignificant(sendFailureDetails, res.SendFailureDetails))
-                    {
-                        sendFailureDetails = res.SendFailureDetails;
-                    }
+                var iterator = routingMessages.Batch(batchSize).GetEnumerator();
+                while (iterator.MoveNext())
+                {
+                    result.Merge(await this.ProcessClientMessagesBatch(id, iterator.Current.ToList(), token));
+                    if (!result.IsSuccessful)
+                        break;
                 }
 
-                return new SinkResult<IRoutingMessage>(
-                    succeeded,
-                    failed,
-                    invalid,
-                    sendFailureDetails.GetOrElse(default(SendFailureDetails)));
-            }
+                // if failed earlier, fast-fail the rest
+                while (iterator.MoveNext())
+                {
+                    result.AddFailed(iterator.Current);
+                }
 
-            static bool IsMoreSignificant(Option<SendFailureDetails> baseDetails, Option<SendFailureDetails> currentDetails)
-            {
-                // whatever happend before, if no details now, that cannot be more significant
-                if (currentDetails == Option.None<SendFailureDetails>())
-                    return false;
-
-                // if something wrong happened now, but nothing before, then that is more significant
-                if (baseDetails == Option.None<SendFailureDetails>())
-                    return true;
-
-                // at this point something has happened before, as well as now. Pick the more significant
-                var baseUnwrapped = baseDetails.Expect(ThrowBadProgramLogic);
-                var currentUnwrapped = currentDetails.Expect(ThrowBadProgramLogic);
-
-                // in theory this case is represened by Option.None and handled earlier, but let's check it just for sure
-                if (currentUnwrapped.FailureKind == FailureKind.None)
-                    return false;
-
-                // Transient beats non-transient
-                if (baseUnwrapped.FailureKind != FailureKind.Transient && currentUnwrapped.FailureKind == FailureKind.Transient)
-                    return true;
-
-                return false;
-
-                InvalidOperationException ThrowBadProgramLogic() => new InvalidOperationException("Error in program logic, uwrapped Option<T> should have had value");
+                return result;
             }
 
             async Task<ISinkResult<IRoutingMessage>> ProcessClientMessagesBatch(string id, List<IRoutingMessage> routingMessages, CancellationToken token)
