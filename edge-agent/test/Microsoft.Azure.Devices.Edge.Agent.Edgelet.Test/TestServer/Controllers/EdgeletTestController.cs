@@ -72,15 +72,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer.Controllers
         /// <returns>No Content</returns>
         System.Threading.Tasks.Task RestartModuleAsync(string api_version, string name);
 
-        /// <summary>Get module logs.</summary>
-        /// <param name="api_version">The version of the API.</param>
-        /// <param name="name">The name of the module to obtain logs for. (urlencoded)</param>
-        /// <param name="follow">Return the logs as a stream.</param>
-        /// <param name="tail">Only return this number of lines from the end of the logs.</param>
-        /// <param name="since">Only return logs since this time, as a UNIX timestamp.</param>
-        /// <returns>Logs returned as a string in response body</returns>
-        System.Threading.Tasks.Task ModuleLogsAsync(string api_version, string name, bool follow, string tail, int? since);
-
         /// <summary>List identities.</summary>
         /// <param name="api_version">The version of the API.</param>
         /// <returns>Ok</returns>
@@ -212,19 +203,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer.Controllers
         public System.Threading.Tasks.Task RestartModule([Microsoft.AspNetCore.Mvc.FromQuery(Name = "api-version")] string api_version, string name)
         {
             return _implementation.RestartModuleAsync(api_version, name);
-        }
-
-        /// <summary>Get module logs.</summary>
-        /// <param name="api_version">The version of the API.</param>
-        /// <param name="name">The name of the module to obtain logs for. (urlencoded)</param>
-        /// <param name="follow">Return the logs as a stream.</param>
-        /// <param name="tail">Only return this number of lines from the end of the logs.</param>
-        /// <param name="since">Only return logs since this time, as a UNIX timestamp.</param>
-        /// <returns>Logs returned as a string in response body</returns>
-        [Microsoft.AspNetCore.Mvc.HttpGet, Microsoft.AspNetCore.Mvc.Route("modules/{name}/logs")]
-        public System.Threading.Tasks.Task ModuleLogs([Microsoft.AspNetCore.Mvc.FromQuery(Name = "api-version")] string api_version, string name, [Microsoft.AspNetCore.Mvc.FromQuery] bool? follow, [Microsoft.AspNetCore.Mvc.FromQuery] string tail, [Microsoft.AspNetCore.Mvc.FromQuery] int? since)
-        {
-            return _implementation.ModuleLogsAsync(api_version, name, follow ?? false, tail ?? "all", since);
         }
 
         /// <summary>List identities.</summary>
