@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     public static class Constants

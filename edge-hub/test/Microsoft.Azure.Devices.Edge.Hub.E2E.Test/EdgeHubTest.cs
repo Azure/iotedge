@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     public class EdgeHubTest
     {
         static readonly object FixtureLock = new object();
-        static ProtocolHeadFixture ProtocolHeadFixtureInstance;
+        static ProtocolHeadFixture protocolHeadFixtureInstance;
 
         protected EdgeHubFixture edgeHubFixture;
 
@@ -23,13 +23,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         {
             this.edgeHubFixture = edgeHubFixture;
 
-            if (ProtocolHeadFixtureInstance == null)
+            if (protocolHeadFixtureInstance == null)
             {
                 lock (FixtureLock)
                 {
-                    if (ProtocolHeadFixtureInstance == null)
+                    if (protocolHeadFixtureInstance == null)
                     {
-                        ProtocolHeadFixtureInstance = this.edgeHubFixture.GetFixture();
+                        protocolHeadFixtureInstance = this.edgeHubFixture.GetFixture();
                     }
                 }
             }

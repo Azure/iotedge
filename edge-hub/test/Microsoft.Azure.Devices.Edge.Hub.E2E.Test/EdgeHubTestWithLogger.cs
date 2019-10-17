@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using System;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit.Abstractions;
 
     public class EdgeHubTestWithLogger : EdgeHubTestDecorator, IDisposable
