@@ -13,7 +13,7 @@ namespace MessagesAnalyzer
         {
             this.ModuleId = moduleId;
             this.StatusCodes = new List<DmStatusReport>();
-            foreach (KeyValuePair<string, IList<DirectMethodStatus>> status in statusCodes)
+            foreach (KeyValuePair<string, Tuple<int, DateTime>> status in statusCodes)
             {
                 this.StatusCodes.Add(new DmStatusReport()
                 {
