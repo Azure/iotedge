@@ -2,11 +2,9 @@
 namespace MessagesAnalyzer
 {
     using System;
-    using System.Collections;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
-    using Microsoft.Azure.Devices.Common.Extensions;
 
     class MessagesCache
     {
@@ -30,7 +28,6 @@ namespace MessagesAnalyzer
             batchDirectMethods.AddOrUpdate(directMethodStatus.StatusCode, new Tuple<int, DateTime>(1, directMethodStatus.EnqueuedDateTime),
                 (key, value) => new Tuple<int, DateTime>(value.Item1+1,
                 directMethodStatus.EnqueuedDateTime > value.Item2 ? directMethodStatus.EnqueuedDateTime : value.Item2));
-            //this.AddDirectMethodStatus(batchDirectMethods, directMethodStatus);
         }
 
         public void AddMessage(string moduleId, string batchId, MessageDetails messageDetails)
@@ -88,14 +85,6 @@ namespace MessagesAnalyzer
             {
                 batchMessages.Add(messageDetails);
             }
-        }
-
-        void AddDirectMethodStatus(ConcurrentDictionary<string, IList<DirectMethodStatus>> moduleDm, DirectMethodStatus details)
-        {
-            //lock (moduleDm)
-            //{
-                moduleDm.GetOrAdd(details.StatusCode, key => new List<DirectMethodStatus>()).Add(details);
-            //}
         }
 
         IList<MessageDetails> GetMessageDetailsSnapshot(IList<MessageDetails> batchMessages)

@@ -6,9 +6,9 @@ namespace MessagesAnalyzer
     using Newtonsoft.Json.Serialization;
 
     [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
-    class DeviceReport
+    class DeviceAnalysis
     {
-        public DeviceReport(IList<ModuleMessagesReport> messagesReport, IList<ModuleDmReport> dmReport)
+        public DeviceAnalysis(IList<ModuleMessagesReport> messagesReport, IList<ModuleDmReport> dmReport)
         {
             this.MessagesReport = messagesReport;
             this.DmReport = dmReport;

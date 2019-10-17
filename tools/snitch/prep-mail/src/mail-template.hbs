@@ -2,7 +2,7 @@
 
 <h2>Edge Hub Message Analysis</h2>
 
-{{#each this.deviceReport.messagesReport}}
+{{#each this.deviceAnalysis.messagesReport}}
 <h3 style="text-decoration: underline">Module <strong>{{moduleId}}</strong></h3>
 <table>
     <tr>
@@ -36,6 +36,33 @@
             <td>{{missedMessagesCount}}</td>
             <td>{{startDateTime}}</td>
             <td>{{startDateTime}}</td>
+        </tr>
+        {{/each}}
+    </tbody>
+</table>
+{{/if}}
+<hr />
+{{/each}}
+
+<h2>Edge Hub Direct Methods Analysis</h2>
+
+{{#each this.deviceAnalysis.dmReport}}
+<h3 style="text-decoration: underline">Module <strong>{{moduleId}}</strong></h3>
+{{#if statusCodes}}
+<table>
+    <thead>
+        <tr>
+            <th>Response status code</th>
+            <th>Count</th>
+            <th>Last direct method response received at</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{#each statusCodes}}
+        <tr>
+            <td>{{statusCode}}</td>
+            <td>{{count}}</td>
+            <td>{{lastReceivedAt}}</td>
         </tr>
         {{/each}}
     </tbody>

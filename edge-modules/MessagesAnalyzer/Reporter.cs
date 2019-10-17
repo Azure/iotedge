@@ -11,9 +11,9 @@ namespace MessagesAnalyzer
     {
         static readonly ILogger Log = Logger.Factory.CreateLogger<Reporter>();
 
-        public static DeviceReport GetDeviceReport(double toleranceInMilliseconds)
+        public static DeviceAnalysis GetDeviceReport(double toleranceInMilliseconds)
         {
-            return new DeviceReport(GetReceivedMessagesReport(toleranceInMilliseconds), GetDmReport());
+            return new DeviceAnalysis(GetReceivedMessagesReport(toleranceInMilliseconds), GetDmReport());
         }
 
         static IList<ModuleDmReport> GetDmReport()
