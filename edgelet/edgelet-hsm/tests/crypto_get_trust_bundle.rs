@@ -21,7 +21,7 @@ fn crypto_get_trust_bundle() {
     let _setup_home_dir = TestHSMEnvSetup::new(&LOCK, None);
 
     let hsm_lock = HsmLock::new();
-    let crypto = Crypto::new(hsm_lock).unwrap();
+    let crypto = Crypto::new(hsm_lock, 1000).unwrap();
 
     // act
     let cert_info = crypto.get_trust_bundle().unwrap();

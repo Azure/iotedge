@@ -222,7 +222,7 @@ BEGIN_TEST_SUITE(edge_hsm_client_x509_int)
         //arrange
 
         // act
-        hsm_client_x509_init();
+        hsm_client_x509_init(TEST_VALIDITY);
 
         // assert
 
@@ -236,7 +236,7 @@ BEGIN_TEST_SUITE(edge_hsm_client_x509_int)
         hsm_test_util_setenv(ENV_DEVICE_ID_CERTIFICATE_PATH, TEST_DEVICE_ID_CERT_RSA_FILE);
         hsm_test_util_setenv(ENV_DEVICE_ID_PRIVATE_KEY_PATH, TEST_DEVICE_ID_PK_RSA_FILE);
         const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
-        hsm_client_x509_init();
+        hsm_client_x509_init(TEST_VALIDITY);
         HSM_CLIENT_CREATE hsm_handle = interface->hsm_client_x509_create();
         ASSERT_IS_NOT_NULL(hsm_handle, "Line:" TOSTRING(__LINE__));
 
@@ -259,7 +259,7 @@ BEGIN_TEST_SUITE(edge_hsm_client_x509_int)
         hsm_test_util_setenv(ENV_DEVICE_ID_CERTIFICATE_PATH, TEST_DEVICE_ID_CERT_RSA_FILE);
         hsm_test_util_setenv(ENV_DEVICE_ID_PRIVATE_KEY_PATH, TEST_DEVICE_ID_PK_RSA_FILE);
         const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
-        hsm_client_x509_init();
+        hsm_client_x509_init(TEST_VALIDITY);
         HSM_CLIENT_CREATE hsm_handle = interface->hsm_client_x509_create();
         ASSERT_IS_NOT_NULL(hsm_handle, "Line:" TOSTRING(__LINE__));
 
@@ -282,7 +282,7 @@ BEGIN_TEST_SUITE(edge_hsm_client_x509_int)
         hsm_test_util_setenv(ENV_DEVICE_ID_CERTIFICATE_PATH, TEST_DEVICE_ID_CERT_RSA_FILE);
         hsm_test_util_setenv(ENV_DEVICE_ID_PRIVATE_KEY_PATH, TEST_DEVICE_ID_PK_RSA_FILE);
         const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
-        hsm_client_x509_init();
+        hsm_client_x509_init(TEST_VALIDITY);
         HSM_CLIENT_CREATE hsm_handle = interface->hsm_client_x509_create();
         ASSERT_IS_NOT_NULL(hsm_handle, "Line:" TOSTRING(__LINE__));
 
@@ -303,7 +303,7 @@ BEGIN_TEST_SUITE(edge_hsm_client_x509_int)
     {
         //arrange
         const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
-        hsm_client_x509_init();
+        hsm_client_x509_init(TEST_VALIDITY);
         HSM_CLIENT_CREATE hsm_handle = interface->hsm_client_x509_create();
         ASSERT_IS_NOT_NULL(hsm_handle, "Line:" TOSTRING(__LINE__));
 
@@ -326,7 +326,7 @@ BEGIN_TEST_SUITE(edge_hsm_client_x509_int)
         hsm_test_util_setenv(ENV_DEVICE_ID_CERTIFICATE_PATH, TEST_DEVICE_ID_CERT_RSA_FILE);
         hsm_test_util_setenv(ENV_DEVICE_ID_PRIVATE_KEY_PATH, TEST_DEVICE_ID_PK_RSA_FILE);
         const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
-        hsm_client_x509_init();
+        hsm_client_x509_init(TEST_VALIDITY);
         HSM_CLIENT_CREATE hsm_handle = interface->hsm_client_x509_create();
 
         // act
@@ -356,7 +356,7 @@ BEGIN_TEST_SUITE(edge_hsm_client_x509_int)
         hsm_test_util_setenv(ENV_DEVICE_ID_CERTIFICATE_PATH, "blah.txt");
         hsm_test_util_setenv(ENV_DEVICE_ID_PRIVATE_KEY_PATH, TEST_DEVICE_ID_PK_RSA_FILE);
         const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
-        hsm_client_x509_init();
+        hsm_client_x509_init(TEST_VALIDITY);
         HSM_CLIENT_CREATE hsm_handle = interface->hsm_client_x509_create();
 
         // act
@@ -378,7 +378,7 @@ BEGIN_TEST_SUITE(edge_hsm_client_x509_int)
         //arrange
         hsm_test_util_setenv(ENV_DEVICE_ID_PRIVATE_KEY_PATH, TEST_DEVICE_ID_PK_RSA_FILE);
         const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
-        hsm_client_x509_init();
+        hsm_client_x509_init(TEST_VALIDITY);
         HSM_CLIENT_CREATE hsm_handle = interface->hsm_client_x509_create();
 
         // act
@@ -400,7 +400,7 @@ BEGIN_TEST_SUITE(edge_hsm_client_x509_int)
         hsm_test_util_setenv(ENV_DEVICE_ID_CERTIFICATE_PATH, TEST_DEVICE_ID_CERT_RSA_FILE);
         hsm_test_util_setenv(ENV_DEVICE_ID_PRIVATE_KEY_PATH, "blah.txt");
         const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
-        hsm_client_x509_init();
+        hsm_client_x509_init(TEST_VALIDITY);
         HSM_CLIENT_CREATE hsm_handle = interface->hsm_client_x509_create();
 
         // act
@@ -422,7 +422,7 @@ BEGIN_TEST_SUITE(edge_hsm_client_x509_int)
         //arrange
         hsm_test_util_setenv(ENV_DEVICE_ID_CERTIFICATE_PATH, TEST_DEVICE_ID_CERT_RSA_FILE);
         const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
-        hsm_client_x509_init();
+        hsm_client_x509_init(TEST_VALIDITY);
         HSM_CLIENT_CREATE hsm_handle = interface->hsm_client_x509_create();
 
         // act

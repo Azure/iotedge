@@ -18,6 +18,10 @@
       "_justification": "This is a fake password used to fill in a structure for unit tests. It is not a credential."
     },
     {
+      "placeholder": "secret-password",
+      "_justification": "This is a fake password used to fill in a structure for unit tests. It is not a credential."
+    },
+    {
       "hash": "uG0/Q6Fbxsdsr+4y8KxokL47oYyQAdBBEYCWKNNIMGQ=",
       "_justification": "This is a username and not a credential (edge-hub/test/Microsoft.Azure.Devices.Edge.Hub.Mqtt.Test/IdentityTest.cs)"
     },

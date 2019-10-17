@@ -19,9 +19,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         public V1ObjectMeta Metadata { get; }
 
         [JsonProperty(PropertyName = "spec")]
-        public IList<KubernetesModule> Spec { get; }
+        public IReadOnlyList<KubernetesModule> Spec { get; }
 
-        public EdgeDeploymentDefinition(string apiVersion, string kind, V1ObjectMeta metadata, IList<KubernetesModule> spec)
+        public EdgeDeploymentDefinition(string apiVersion, string kind, V1ObjectMeta metadata, IReadOnlyList<KubernetesModule> spec)
         {
             this.ApiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
             this.Kind = Preconditions.CheckNonWhiteSpace(kind, nameof(kind));
