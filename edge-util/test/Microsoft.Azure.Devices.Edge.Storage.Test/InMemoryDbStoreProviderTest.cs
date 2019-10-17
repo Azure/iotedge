@@ -2,9 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Storage.Test
 {
     using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -18,7 +15,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         public async Task SpaceCheckViolationsTest()
         {
             long maxStorageBytes = 90;
-            IStorageSpaceChecker checker = new MemorySpaceChecker(TimeSpan.FromSeconds(3), maxStorageBytes, () => Task.FromResult(0L));
+            IStorageSpaceChecker checker = new MemorySpaceChecker(() => Task.FromResult(0L));
+            checker.SetMaxSize(maxStorageBytes, Option.Some(3L));
             InMemoryDbStoreProvider storeProvider = new InMemoryDbStoreProvider(Option.Some(checker));
 
             string store1Name = "store1";

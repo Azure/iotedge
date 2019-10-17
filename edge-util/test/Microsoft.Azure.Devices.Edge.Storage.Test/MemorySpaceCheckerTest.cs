@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
 {
     using System;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
     using static Microsoft.Azure.Devices.Edge.Storage.MemorySpaceChecker;
@@ -14,7 +15,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         public async Task MemorySpaceCheckTest()
         {
             long maxStorageSize = 6 * 1024 * 1024;
-            MemorySpaceChecker memorySpaceChecker = new MemorySpaceChecker(TimeSpan.FromSeconds(3), maxStorageSize, () => Task.FromResult(5 * 1024 * 1024L));
+            MemorySpaceChecker memorySpaceChecker = new MemorySpaceChecker(() => Task.FromResult(5 * 1024 * 1024L));
+            memorySpaceChecker.SetMaxSize(maxStorageSize, Option.Some(3L));
 
             Assert.False(memorySpaceChecker.IsFull);
             Assert.Equal(MemoryUsageStatus.Unknown, memorySpaceChecker.UsageStatus);
@@ -29,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             Assert.True(memorySpaceChecker.IsFull);
 
             long newStorageSize = 8 * 1024 * 1024;
-            memorySpaceChecker.Configure(newStorageSize);
+            memorySpaceChecker.SetMaxSize(newStorageSize, Option.Some(3L));
 
             await Task.Delay(TimeSpan.FromSeconds(4));
             Assert.False(memorySpaceChecker.IsFull);

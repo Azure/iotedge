@@ -3,10 +3,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 {
     using System;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     public class NullStorageSpaceChecker : IStorageSpaceChecker
     {
-        public void Configure(long maxStorageBytes)
+        public void SetMaxSize(long maxSize, Option<long> checkFrequency)
         {
         }
 
