@@ -85,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 : new MetricsListenerConfig();
             MetricsConfig metricsConfig = new MetricsConfig(experimentalFeatures.Enabled, listenerConfig);
 
-            this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward, experimentalFeatures, metricsConfig);
+            this.RegisterCommonModule(builder, optimizeForPerformance, storeAndForward, metricsConfig);
             this.RegisterRoutingModule(builder, storeAndForward, experimentalFeatures);
             this.RegisterMqttModule(builder, storeAndForward, optimizeForPerformance);
             this.RegisterAmqpModule(builder);
@@ -180,7 +180,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             ContainerBuilder builder,
             bool optimizeForPerformance,
             (bool isEnabled, bool usePersistentStorage, StoreAndForwardConfiguration config, string storagePath) storeAndForward,
-            ExperimentalFeatures experimentalFeatures,
             MetricsConfig metricsConfig)
         {
             bool cacheTokens = this.configuration.GetValue("CacheTokens", false);
@@ -214,6 +213,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     this.connectionString,
                     optimizeForPerformance,
                     storeAndForward.usePersistentStorage,
+                    storeAndForward.config,
                     storeAndForward.storagePath,
                     workloadUri,
                     workloadApiVersion,
@@ -222,7 +222,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     this.trustBundle,
                     proxy,
                     metricsConfig,
-                    experimentalFeatures,
                     rocksDbCompactionPeriod));
         }
 
@@ -240,13 +239,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             int timeToLiveSecs = defaultTtl;
             string storagePath = this.GetStoragePath();
             bool storeAndForwardEnabled = this.configuration.GetValue<bool>("storeAndForwardEnabled");
+            StoreLimits storeLimits = new StoreLimits(long.MaxValue, Option.Some(120));
             if (storeAndForwardEnabled)
             {
                 IConfiguration storeAndForwardConfigurationSection = this.configuration.GetSection("storeAndForward");
                 timeToLiveSecs = storeAndForwardConfigurationSection.GetValue("timeToLiveSecs", defaultTtl);
+                int checkFrequency = storeAndForwardConfigurationSection.GetValue<int>("checkFrequency");
+                storeLimits = new StoreLimits(long.MaxValue, Option.Maybe<int>(checkFrequency));
             }
 
-            var storeAndForwardConfiguration = new StoreAndForwardConfiguration(timeToLiveSecs);
+            var storeAndForwardConfiguration = new StoreAndForwardConfiguration(timeToLiveSecs, Option.Maybe(storeLimits));
             return (storeAndForwardEnabled, usePersistentStorage, storeAndForwardConfiguration, storagePath);
         }
 

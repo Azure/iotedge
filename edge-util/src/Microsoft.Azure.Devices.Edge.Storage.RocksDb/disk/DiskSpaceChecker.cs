@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
     using System;
     using System.IO;
     using System.Linq;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Storage.Disk;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
@@ -79,7 +80,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             }
 
             Events.FoundDrive(storageFolder, match);
-            return Option.Maybe(match);
+            return Option.Some(match);
+        }
+
+        public void SetStorageUsageComputer(Func<Task<long>> storageUsageComputer)
+        {
+            throw new NotImplementedException();
         }
 
         static class Events

@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy;
     using Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Authenticators;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Storage.Disk;
@@ -44,8 +45,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly IList<X509Certificate2> trustBundle;
         readonly string proxy;
         readonly MetricsConfig metricsConfig;
-        readonly ExperimentalFeatures experimentalFeatures;
         readonly TimeSpan rocksDbCompactionPeriod;
+        readonly StoreAndForwardConfiguration storeAndForwardConfiguration;
 
         public CommonModule(
             string productInfo,
@@ -58,6 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             Option<string> edgeHubConnectionString,
             bool optimizeForPerformance,
             bool usePersistentStorage,
+            StoreAndForwardConfiguration storeAndForwardConfiguration,
             string storagePath,
             Option<string> workloadUri,
             Option<string> workloadApiVersion,
@@ -66,7 +68,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             IList<X509Certificate2> trustBundle,
             string proxy,
             MetricsConfig metricsConfig,
-            ExperimentalFeatures experimentalFeatures,
             TimeSpan rocksDbCompactionPeriod)
         {
             this.productInfo = productInfo;
@@ -87,8 +88,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.trustBundle = Preconditions.CheckNotNull(trustBundle, nameof(trustBundle));
             this.proxy = Preconditions.CheckNotNull(proxy, nameof(proxy));
             this.metricsConfig = Preconditions.CheckNotNull(metricsConfig, nameof(metricsConfig));
-            this.experimentalFeatures = experimentalFeatures;
             this.rocksDbCompactionPeriod = rocksDbCompactionPeriod;
+            this.storeAndForwardConfiguration = storeAndForwardConfiguration;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -144,15 +145,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<IRocksDbOptionsProvider>()
                 .SingleInstance();
 
-            // IDiskSpaceChecker
+            // IStorageSpaceChecker
             builder.Register(
                 c =>
                 {
-                    StorageSpaceCheckConfiguration storageSpaceCheckConfiguration = this.experimentalFeatures.StorageSpaceCheckConfiguration;
-                    IStorageSpaceChecker dickSpaceChecker = storageSpaceCheckConfiguration.Enabled && this.usePersistentStorage
-                        ? DiskSpaceChecker.Create(this.storagePath, storageSpaceCheckConfiguration.MaxStorageBytes, storageSpaceCheckConfiguration.CheckFrequency)
-                        : new NullStorageSpaceChecker() as IStorageSpaceChecker;
-                    return dickSpaceChecker;
+                    return this.usePersistentStorage
+                    ? DiskSpaceChecker.Create(this.storagePath, long.MaxValue, TimeSpan.FromSeconds(extractCheckFrequency(this.storeAndForwardConfiguration)))
+                    : new NullStorageSpaceChecker() as IStorageSpaceChecker; // soon to be in-memory space checker
                 })
                 .As<IStorageSpaceChecker>()
                 .SingleInstance();
@@ -409,6 +408,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             }
 
             return tokenAuthenticator;
+        }
+        private int extractCheckFrequency(StoreAndForwardConfiguration storeAndForwardConfiguration)
+        {
+            long defaultMaxStorageSize = long.MaxValue;
+            int defaultCheckFrequency = 120;
+            StoreLimits storeLimits = storeAndForwardConfiguration.StoreLimits.GetOrElse(() => new StoreLimits(defaultMaxStorageSize, Option.Some(defaultCheckFrequency)));
+            return storeLimits.CheckFrequency.GetOrElse(() => defaultCheckFrequency);
         }
     }
 }

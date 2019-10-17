@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
         protected override DiskSpaceStatus GetDiskStatus()
         {
             long bytes = GetDirectorySize(this.storageFolder);
-            double usagePercentage = (double)bytes * 100 / this.maxSizeBytes;
+            double usagePercentage = (this.maxSizeBytes <= 1) ? 100 : (double)bytes * 100 / this.maxSizeBytes;
             DiskSpaceStatus diskStatus = GetDiskStatus(usagePercentage);
             if (diskStatus != DiskSpaceStatus.Available)
             {
