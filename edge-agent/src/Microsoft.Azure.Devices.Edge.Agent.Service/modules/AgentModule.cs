@@ -140,7 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<IRocksDbOptionsProvider>()
                 .SingleInstance();
 
-            if (!this.usePersistentStorage && this.useBackupAndRestore)
+            if (this.useBackupAndRestore)
             {
                 // Backup and restore serialization
                 builder.Register(c => new ProtoBufBackupRestore())
