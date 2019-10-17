@@ -42,8 +42,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly IList<X509Certificate2> trustBundle;
         readonly string proxy;
         readonly MetricsConfig metricsConfig;
-        readonly Option<long> maxStorageSpaceBytes;
-        readonly int storageSpaceCheckFrequency;
 
         public CommonModule(
             string productInfo,
@@ -63,9 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             bool persistTokens,
             IList<X509Certificate2> trustBundle,
             string proxy,
-            MetricsConfig metricsConfig,
-            Option<long> maxStorageSpaceBytes,
-            int storageSpaceCheckFrequency)
+            MetricsConfig metricsConfig)
         {
             this.productInfo = productInfo;
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
@@ -85,8 +81,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.trustBundle = Preconditions.CheckNotNull(trustBundle, nameof(trustBundle));
             this.proxy = Preconditions.CheckNotNull(proxy, nameof(proxy));
             this.metricsConfig = Preconditions.CheckNotNull(metricsConfig, nameof(metricsConfig));
-            this.maxStorageSpaceBytes = maxStorageSpaceBytes;
-            this.storageSpaceCheckFrequency = storageSpaceCheckFrequency;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -146,8 +140,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                 c =>
                 {
-                    IStorageSpaceChecker spaceChecker = this.maxStorageSpaceBytes.HasValue && !this.usePersistentStorage
-                       ? new MemorySpaceChecker(TimeSpan.FromSeconds(this.storageSpaceCheckFrequency), this.maxStorageSpaceBytes.GetOrElse(long.MaxValue), () => Task.FromResult(0L)) as IStorageSpaceChecker
+                    IStorageSpaceChecker spaceChecker = !this.usePersistentStorage
+                       ? new MemorySpaceChecker(() => Task.FromResult(0L)) as IStorageSpaceChecker
                        : new NullStorageSpaceChecker() as IStorageSpaceChecker;
                     return spaceChecker;
                 })

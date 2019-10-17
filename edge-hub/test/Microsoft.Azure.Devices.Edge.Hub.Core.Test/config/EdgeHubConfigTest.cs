@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
 {
-    using System.Collections;
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Config;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -52,9 +51,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             var storeAndForwardConfig1 = new StoreAndForwardConfiguration(-1);
             var storeAndForwardConfig2 = new StoreAndForwardConfiguration(7200);
             var storeAndForwardConfig3 = new StoreAndForwardConfiguration(3600);
-            var storeAndForwardConfig4 = new StoreAndForwardConfiguration(3600, Option.Some(10L));
-            var storeAndForwardConfig5 = new StoreAndForwardConfiguration(3600, Option.Some(20L));
-            var storeAndForwardConfig6 = new StoreAndForwardConfiguration(3600, Option.None<long>());
+
+            StoreLimits s1 = new StoreLimits(100L);
+            StoreLimits s2 = new StoreLimits(200L);
+            StoreLimits s3 = new StoreLimits(200L, Option.Some(100L));
+            StoreLimits s4 = new StoreLimits(200L, Option.Some(200L));
+            StoreLimits s5 = new StoreLimits(200L, Option.None<long>());
+            var storeAndForwardConfig4 = new StoreAndForwardConfiguration(3600, Option.Some(s1));
+            var storeAndForwardConfig5 = new StoreAndForwardConfiguration(3600, Option.Some(s2));
+            var storeAndForwardConfig6 = new StoreAndForwardConfiguration(3600, Option.None<StoreLimits>());
+            var storeAndForwardConfig7 = new StoreAndForwardConfiguration(3600, Option.Some(s3));
+            var storeAndForwardConfig8 = new StoreAndForwardConfiguration(3600, Option.Some(s4));
+            var storeAndForwardConfig9 = new StoreAndForwardConfiguration(3600, Option.Some(s5));
 
             string version = "1.0";
 
@@ -71,6 +79,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             var edgeHubConfig11 = new EdgeHubConfig(version, routes3, storeAndForwardConfig4);
             var edgeHubConfig12 = new EdgeHubConfig(version, routes3, storeAndForwardConfig5);
             var edgeHubConfig13 = new EdgeHubConfig(version, routes3, storeAndForwardConfig6);
+            var edgeHubConfig14 = new EdgeHubConfig(version, routes3, storeAndForwardConfig7);
+            var edgeHubConfig15 = new EdgeHubConfig(version, routes3, storeAndForwardConfig8);
+            var edgeHubConfig16 = new EdgeHubConfig(version, routes3, storeAndForwardConfig9);
 
             yield return new object[] { edgeHubConfig1, edgeHubConfig2, false };
             yield return new object[] { edgeHubConfig2, edgeHubConfig3, false };
@@ -85,6 +96,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
             yield return new object[] { edgeHubConfig11, edgeHubConfig12, false };
             yield return new object[] { edgeHubConfig10, edgeHubConfig13, true };
             yield return new object[] { edgeHubConfig12, edgeHubConfig13, false };
+            yield return new object[] { edgeHubConfig12, edgeHubConfig14, false };
+            yield return new object[] { edgeHubConfig14, edgeHubConfig15, false };
+            yield return new object[] { edgeHubConfig12, edgeHubConfig16, true };
         }
     }
 }

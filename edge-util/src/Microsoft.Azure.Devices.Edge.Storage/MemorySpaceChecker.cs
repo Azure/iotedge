@@ -8,6 +8,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
     public class MemorySpaceChecker : IStorageSpaceChecker
     {
+        static readonly long DefaultCheckFrequency = 120;
+
         internal enum MemoryUsageStatus
         {
             Unknown = 0,
@@ -16,17 +18,48 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             Full
         }
 
-        readonly PeriodicTask storageSpaceChecker;
-        long maxStorageSpaceBytes;
+        readonly object updateLock = new object();
+
+        PeriodicTask storageSpaceChecker;
+        long maxSize;
+        long checkFrequency;
         Func<Task<long>> getTotalMemoryUsage;
         MemoryUsageStatus memoryUsageStatus;
 
-        public MemorySpaceChecker(TimeSpan checkFrequency, long maxStorageSpaceBytes, Func<Task<long>> getTotalMemoryUsage)
+        public MemorySpaceChecker(Func<Task<long>> getTotalMemoryUsage)
         {
-            Preconditions.CheckNotNull(getTotalMemoryUsage, nameof(getTotalMemoryUsage));
-            this.maxStorageSpaceBytes = maxStorageSpaceBytes;
-            this.getTotalMemoryUsage = getTotalMemoryUsage;
+            this.getTotalMemoryUsage = Preconditions.CheckNotNull(getTotalMemoryUsage, nameof(getTotalMemoryUsage));
+            this.maxSize = long.MaxValue;
+            this.memoryUsageStatus = MemoryUsageStatus.Unknown;
+            this.checkFrequency = long.MaxValue;
+        }
+
+        public MemorySpaceChecker(TimeSpan checkFrequency, long maxSize, Func<Task<long>> getTotalMemoryUsage)
+            : this(getTotalMemoryUsage)
+        {
+            this.maxSize = maxSize;
             this.storageSpaceChecker = new PeriodicTask(this.PeriodicTaskCallback, checkFrequency, checkFrequency, Events.Log, "Memory usage check");
+        }
+
+        public void SetMaxSize(long maxSize, Option<long> newCheckFrequency)
+        {
+            this.maxSize = maxSize;
+            long updatedCheckFrequency = newCheckFrequency.GetOrElse(long.MinValue);
+
+            TimeSpan frequency = default;
+            if (this.checkFrequency != updatedCheckFrequency)
+            {
+                lock (this.updateLock)
+                {
+                    this.checkFrequency = updatedCheckFrequency;
+                    frequency = TimeSpan.FromSeconds(this.checkFrequency < 0 ? DefaultCheckFrequency : this.checkFrequency);
+
+                    this.storageSpaceChecker?.Dispose();
+                    this.storageSpaceChecker = new PeriodicTask(this.PeriodicTaskCallback, frequency, frequency, Events.Log, "Memory usage check");
+                }
+            }
+
+            Events.SetMaxMemorySpaceUsage(maxSize, this.checkFrequency < 0 ? DefaultCheckFrequency : this.checkFrequency);
         }
 
         public Func<Task<long>> GetTotalMemoryUsage
@@ -51,12 +84,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public void SetStorageUsageComputer(Func<Task<long>> storageUsageComputer) => this.GetTotalMemoryUsage = storageUsageComputer;
 
-        public void SetMaxStorageSize(long maxStorageBytes)
-        {
-            Events.SetMaxMemorySpaceUsage(maxStorageBytes);
-            this.maxStorageSpaceBytes = maxStorageBytes;
-        }
-
         async Task PeriodicTaskCallback()
         {
             try
@@ -72,13 +99,13 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         async Task<MemoryUsageStatus> GetMemoryUsageStatus()
         {
             long memoryUsageBytes = await this.GetTotalMemoryUsage();
-            double usagePercentage = (double)memoryUsageBytes * 100 / this.maxStorageSpaceBytes;
-            Events.MemoryUsageStats(memoryUsageBytes, usagePercentage, this.maxStorageSpaceBytes);
+            double usagePercentage = (double)memoryUsageBytes * 100 / this.maxSize;
+            Events.MemoryUsageStats(memoryUsageBytes, usagePercentage, this.maxSize);
 
             MemoryUsageStatus memoryUsageStatus = GetMemoryUsageStatus(usagePercentage);
             if (memoryUsageStatus != MemoryUsageStatus.Available)
             {
-                Events.HighMemoryUsageDetected(usagePercentage, this.maxStorageSpaceBytes);
+                Events.HighMemoryUsageDetected(usagePercentage, this.maxSize);
             }
 
             return memoryUsageStatus;
@@ -133,9 +160,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 Log.LogDebug((int)EventIds.MemoryUsageStats, $"Memory usage - Consuming {consumedMemoryBytes} bytes using {usagePercentage}% of {maxSizeBytes} bytes");
             }
 
-            public static void SetMaxMemorySpaceUsage(long maxSizeBytes)
+            public static void SetMaxMemorySpaceUsage(long maxSizeBytes, long checkFrequency)
             {
-                Log.LogInformation((int)EventIds.SetMaxMemorySpaceUsage, $"Setting maximum memory space usage to {maxSizeBytes} bytes.");
+                Log.LogInformation((int)EventIds.SetMaxMemorySpaceUsage, $"Setting maximum memory space usage to {maxSizeBytes} bytes with a check frequency of {checkFrequency} seconds.");
             }
         }
     }

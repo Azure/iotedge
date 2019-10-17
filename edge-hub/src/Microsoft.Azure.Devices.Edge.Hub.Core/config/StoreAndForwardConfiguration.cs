@@ -10,23 +10,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     {
         [JsonConstructor]
         public StoreAndForwardConfiguration(int timeToLiveSecs)
-            : this(timeToLiveSecs, Option.None<long>())
+            : this(timeToLiveSecs, Option.None<StoreLimits>())
         {
         }
 
-        public StoreAndForwardConfiguration(int timeToLiveSecs, Option<long> maxStorageSpaceBytes)
+        public StoreAndForwardConfiguration(int timeToLiveSecs, Option<StoreLimits> storeLimits)
         {
             this.TimeToLiveSecs = timeToLiveSecs;
             this.TimeToLive = timeToLiveSecs < 0 ? TimeSpan.MaxValue : TimeSpan.FromSeconds(timeToLiveSecs);
-            this.MaxStorageSpaceBytes = maxStorageSpaceBytes;
+            this.StoreLimits = storeLimits;
         }
 
         [JsonProperty(PropertyName = "timeToLiveSecs")]
         public int TimeToLiveSecs { get; }
 
-        [JsonProperty(PropertyName = "maxStorageSpaceBytes")]
-        [JsonConverter(typeof(OptionConverter<long>), true)]
-        public Option<long> MaxStorageSpaceBytes { get; }
+        [JsonProperty(PropertyName = "storeLimits")]
+        [JsonConverter(typeof(OptionConverter<StoreLimits>), true)]
+        public Option<StoreLimits> StoreLimits { get;  }
 
         [JsonIgnore]
         public TimeSpan TimeToLive { get; }
@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             }
 
             return this.TimeToLiveSecs == other.TimeToLiveSecs &&
-                this.MaxStorageSpaceBytes.Equals(other.MaxStorageSpaceBytes);
+                this.StoreLimits.Equals(other.StoreLimits);
         }
 
         public override bool Equals(object obj)
@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             unchecked
             {
                 int hashCode = (this.TimeToLiveSecs * 397) ^ this.TimeToLive.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.MaxStorageSpaceBytes.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.StoreLimits.GetHashCode();
                 return hashCode;
             }
         }

@@ -19,15 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         public InMemoryDbStoreProvider(Option<IStorageSpaceChecker> memoryStorageSpaceChecker)
         {
             this.memoryStorageSpaceChecker = memoryStorageSpaceChecker;
-            if (this.memoryStorageSpaceChecker.HasValue)
-            {
-                this.memoryStorageSpaceChecker = this.memoryStorageSpaceChecker.Map(
-                    m =>
-                    {
-                        m.SetStorageUsageComputer(this.GetTotalMemoryUsage);
-                        return m;
-                    });
-            }
+            this.memoryStorageSpaceChecker.ForEach(m => m.SetStorageUsageComputer(this.GetTotalMemoryUsage));
         }
 
         static InMemoryDbStore BuildInMemoryDbStore(Option<IStorageSpaceChecker> memoryStorageSpaceChecker)

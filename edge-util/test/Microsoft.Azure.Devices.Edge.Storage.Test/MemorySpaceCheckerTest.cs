@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             Assert.True(memorySpaceChecker.IsFull);
 
             long newStorageSize = 8 * 1024 * 1024;
-            memorySpaceChecker.SetMaxStorageSize(newStorageSize);
+            memorySpaceChecker.Configure(newStorageSize);
 
             await Task.Delay(TimeSpan.FromSeconds(4));
             Assert.False(memorySpaceChecker.IsFull);

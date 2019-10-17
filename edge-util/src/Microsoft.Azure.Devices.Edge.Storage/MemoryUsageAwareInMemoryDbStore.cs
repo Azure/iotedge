@@ -10,17 +10,17 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     /// </summary>
     class MemoryUsageAwareInMemoryDbStore : InMemoryDbStore
     {
-        readonly IStorageSpaceChecker diskSpaceChecker;
+        readonly IStorageSpaceChecker storageSpaceChecker;
 
         public MemoryUsageAwareInMemoryDbStore(IStorageSpaceChecker diskSpaceChecker)
             : base()
         {
-            this.diskSpaceChecker = Preconditions.CheckNotNull(diskSpaceChecker, nameof(diskSpaceChecker));
+            this.storageSpaceChecker = Preconditions.CheckNotNull(diskSpaceChecker, nameof(diskSpaceChecker));
         }
 
         public override Task Put(byte[] key, byte[] value)
         {
-            if (this.diskSpaceChecker.IsFull)
+            if (this.storageSpaceChecker.IsFull)
             {
                 return Task.FromException(new StorageFullException("Memory store is full"));
             }
@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public override Task Put(byte[] key, byte[] value, CancellationToken cancellationToken)
         {
-            if (this.diskSpaceChecker.IsFull)
+            if (this.storageSpaceChecker.IsFull)
             {
                 return Task.FromException(new StorageFullException("Memory store is full"));
             }
