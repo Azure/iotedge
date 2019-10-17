@@ -2,21 +2,24 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service;
+
     public static class Constants
     {
-        public const string K8sApi = "microsoft.azure.devices.edge";
+        public static class EdgeDeployment
+        {
+            public const string ApiVersion = Api + "/" + Version;
 
-        public const string K8sApiVersion = "v1beta1";
+            public const string Api = "microsoft.azure.devices.edge";
 
-        public const string K8sCrdKind = "EdgeDeployment";
+            public const string Version = "v1";
 
-        public const string K8sCrdGroup = "microsoft.azure.devices.edge";
+            public const string Kind = "EdgeDeployment";
 
-        public const string K8sCrdPlural = "edgedeployments";
+            public const string Group = "microsoft.azure.devices.edge";
 
-        public const string K8sNamespace = "microsoft-azure-devices-edge";
-
-        public const string K8sNamespaceBaseName = "K8sNamespaceBaseName";
+            public const string Plural = "edgedeployments";
+        }
 
         public const string K8sEdgeModuleLabel = "net.azure-devices.edge.module";
 
@@ -34,12 +37,32 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public const string K8sPullSecretData = ".dockerconfigjson";
 
-        public const string ProxyImage = "darobs/envoy:0.1";
+        public const string PortMappingServiceType = "PortMappingServiceType";
 
-        public const string AgentConfigMap = "edgeagentconfigmap";
+        public const string EnableK8sServiceCallTracingName = "EnableK8sServiceCallTracing";
 
-        public const string ModuleConfigMap = "moduleconfigmap";
+        public const string K8sNamespaceKey = "K8sNamespace";
 
         public const PortMapServiceType DefaultPortMapServiceType = PortMapServiceType.ClusterIP;
+
+        public const string ProxyImageEnvKey = "ProxyImage";
+
+        public const string ProxyConfigPathEnvKey = "ProxyConfigPath";
+
+        public const string ProxyConfigVolumeEnvKey = "ProxyConfigVolume";
+
+        public const string ProxyConfigMapNameEnvKey = "ProxyConfigMapName";
+
+        public const string ProxyTrustBundlePathEnvKey = "ProxyTrustBundlePath";
+
+        public const string ProxyTrustBundleVolumeEnvKey = "ProxyTrustBundleVolume";
+
+        public const string ProxyTrustBundleConfigMapEnvKey = "ProxyTrustBundleConfigMapName";
+
+        public const string PersistentVolumeNameKey = "PersistentVolumeName";
+
+        public const string StorageClassNameKey = "StorageClassName";
+
+        public const string PersistentVolumeClaimDefaultSizeInMbKey = "PersistentVolumeClaimDefaultSizeInMb";
     }
 }

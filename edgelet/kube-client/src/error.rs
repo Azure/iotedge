@@ -136,7 +136,9 @@ pub enum RequestType {
     DeploymentList,
     DeploymentCreate,
     DeploymentReplace,
+    DeploymentDelete,
     PodList,
+    NodeList,
     SecretList,
     SecretCreate,
     SecretReplace,
@@ -145,7 +147,9 @@ pub enum RequestType {
     ServiceAccountCreate,
     ServiceAccountReplace,
     ServiceAccountGet,
-    RoleReplace,
+    ServiceAccountDelete,
+    RoleBindingReplace,
+    RoleBindingDelete,
 }
 
 impl Display for RequestType {

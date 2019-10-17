@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -236,11 +237,52 @@ where
     }
 
     fn system_info(&self) -> Self::SystemInfoFuture {
-        // TODO: Implement this.
-        Box::new(future::ok(SystemInfo::new(
-            "linux".to_string(),
-            "x86_64".to_string(),
-        )))
+        #[derive(Debug, serde_derive::Serialize)]
+        pub struct Architecture {
+            name: String,
+            nodes_count: u32,
+        };
+
+        let fut = self
+            .client
+            .lock()
+            .expect("Unexpected lock error")
+            .borrow_mut()
+            .list_nodes()
+            .map_err(|err| {
+                Error::from(err.context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo)))
+            })
+            .map(|nodes| {
+                // Accumulate the architectures and their node counts into a map
+                let architectures = nodes
+                    .items
+                    .into_iter()
+                    .filter_map(|node| {
+                        node.status
+                            .and_then(|status| status.node_info.map(|info| info.architecture))
+                    })
+                    .fold(HashMap::new(), |mut architectures, current_arch| {
+                        let count = architectures.entry(current_arch).or_insert(0);
+                        *count += 1;
+                        architectures
+                    });
+
+                // Convert a map to a list of architectures
+                let architectures = architectures
+                    .into_iter()
+                    .map(|(name, count)| Architecture {
+                        name,
+                        nodes_count: count,
+                    })
+                    .collect::<Vec<Architecture>>();
+
+                SystemInfo::new(
+                    "Kubernetes".to_string(),
+                    serde_json::to_string(&architectures).unwrap(),
+                )
+            });
+
+        Box::new(fut)
     }
 
     fn list(&self) -> Self::ListFuture {
@@ -356,5 +398,96 @@ impl Extend<u8> for Chunk {
 impl AsRef<[u8]> for Chunk {
     fn as_ref(&self) -> &[u8] {
         self.0.as_ref()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use hyper::service::service_fn;
+    use hyper::{Body, Method, Request, StatusCode};
+    use maplit::btreemap;
+    use serde_json::json;
+    use tokio::runtime::Runtime;
+
+    use edgelet_core::ModuleRuntime;
+    use edgelet_test_utils::routes;
+    use edgelet_test_utils::web::{
+        make_req_dispatcher, HttpMethod, RequestHandler, RequestPath, ResponseFuture,
+    };
+
+    use crate::tests::{create_runtime, make_settings, not_found_handler, response};
+
+    #[test]
+    fn runtime_get_system_info() {
+        let settings = make_settings(None);
+
+        let dispatch_table = routes!(
+            GET "/api/v1/nodes" => list_node_handler(),
+        );
+
+        let handler = make_req_dispatcher(dispatch_table, Box::new(not_found_handler));
+        let service = service_fn(handler);
+        let runtime = create_runtime(settings, service);
+
+        let task = runtime.system_info();
+
+        let mut runtime = Runtime::new().unwrap();
+        let info = runtime.block_on(task).unwrap();
+
+        assert_eq!(
+            info.architecture(),
+            "[{\"name\":\"amd64\",\"nodes_count\":2}]"
+        );
+    }
+
+    fn list_node_handler() -> impl Fn(Request<Body>) -> ResponseFuture + Clone {
+        move |_| {
+            response(StatusCode::OK, || {
+                json!({
+                    "kind" : "NodeList",
+                    "items" : [
+                        {
+                            "kind" : "Node",
+                            "status" :
+                            {
+                                "nodeInfo":
+                                {
+                                  "machineID": "5aedea612a1a481a9f967578995b2930",
+                                  "systemUUID": "0331B348-6DBE-4344-BF93-6A3407C31879",
+                                  "bootID": "e8c73b01-12e6-45d1-a008-aeb3b5ae4225",
+                                  "kernelVersion": "4.15.0-1052-azure",
+                                  "osImage": "Ubuntu 16.04.6 LTS",
+                                  "containerRuntimeVersion": "docker://3.0.6",
+                                  "kubeletVersion": "v1.13.10",
+                                  "kubeProxyVersion": "v1.13.10",
+                                  "operatingSystem": "linux",
+                                  "architecture": "amd64"
+                                },
+                            }
+                        },
+                        {
+                            "kind" : "Node",
+                            "status" :
+                            {
+                                "nodeInfo":
+                                {
+                                  "machineID": "5aedea612a1a481a9f967578995b2930",
+                                  "systemUUID": "0331B348-6DBE-4344-BF93-6A3407C31879",
+                                  "bootID": "e8c73b01-12e6-45d1-a008-aeb3b5ae4225",
+                                  "kernelVersion": "4.15.0-1052-azure",
+                                  "osImage": "Ubuntu 16.04.6 LTS",
+                                  "containerRuntimeVersion": "docker://3.0.6",
+                                  "kubeletVersion": "v1.13.10",
+                                  "kubeProxyVersion": "v1.13.10",
+                                  "operatingSystem": "linux",
+                                  "architecture": "amd64"
+                                },
+                            }
+                        }
+                    ]
+                })
+                .to_string()
+            })
+        }
     }
 }

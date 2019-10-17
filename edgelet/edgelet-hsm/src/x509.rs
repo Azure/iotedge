@@ -33,8 +33,8 @@ unsafe impl Send for X509 {}
 unsafe impl Sync for X509 {}
 
 impl X509 {
-    pub fn new(hsm_lock: Arc<HsmLock>) -> Result<Self, Error> {
-        let hsm = HsmX509::new()?;
+    pub fn new(hsm_lock: Arc<HsmLock>, auto_generated_ca_validity: u64) -> Result<Self, Error> {
+        let hsm = HsmX509::new(auto_generated_ca_validity)?;
         X509::from_hsm(hsm, hsm_lock)
     }
 

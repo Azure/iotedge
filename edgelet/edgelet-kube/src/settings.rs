@@ -28,7 +28,6 @@ pub struct Settings {
     proxy_trust_bundle_path: String,
     proxy_trust_bundle_config_map_name: String,
     image_pull_policy: String,
-    service_account_name: String,
     device_hub_selector: String,
 }
 
@@ -102,10 +101,6 @@ impl Settings {
         &self.image_pull_policy
     }
 
-    pub fn service_account_name(&self) -> &str {
-        &self.service_account_name
-    }
-
     pub fn device_hub_selector(&self) -> &str {
         &self.device_hub_selector
     }
@@ -142,7 +137,7 @@ impl RuntimeSettings for Settings {
         self.base.homedir()
     }
 
-    fn certificates(&self) -> Option<&Certificates> {
+    fn certificates(&self) -> &Certificates {
         self.base.certificates()
     }
 

@@ -11,6 +11,36 @@ metadata:
 ...
 ---
 apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: iotedge:{{ .Release.Name }}:auth-delegator
+  namespace: {{ include "edge-kubernetes.namespace" . | quote }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - kind: ServiceAccount
+    name: iotedged
+    namespace: {{ include "edge-kubernetes.namespace" . | quote }}
+...
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: iotedge:{{ .Release.Name }}:node-observer
+  namespace: {{ include "edge-kubernetes.namespace" . | quote }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: iotedge:{{ .Release.Name }}:node-observer
+subjects:
+  - kind: ServiceAccount
+    name: iotedged
+    namespace: {{ include "edge-kubernetes.namespace" . | quote }}
+...
+---
+apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: iotedged
@@ -26,11 +56,24 @@ subjects:
 ...
 ---
 apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: iotedge:{{ .Release.Name }}:node-observer
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["list", "watch", "get"]
+...
+---
+apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: iotedged
   namespace: {{ include "edge-kubernetes.namespace" . | quote }}
 rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["list"]
   - apiGroups: [""]
     resources: ["pods", "pods/log"]
     verbs: ["list", "watch"]
@@ -46,15 +89,12 @@ rules:
   - apiGroups: [""]
     resources: ["persistentvolumeclaims"]
     verbs: ["list", "create"]
-  - apiGroups: ["apiextensions.k8s.io"]
-    resources: ["customresourcedefinitions"]
-    verbs: ["list", "get", "create", "update"]
   - apiGroups: ["rbac.authorization.k8s.io"]
     resources: ["rolebindings"]
     verbs: ["list", "create", "delete", "update"]
-  - apiGroups: ["authentication.k8s.io"]
-    resources: ["tokenreviews"]
-    verbs: ["create"]
+  - apiGroups: ["microsoft.azure.devices.edge"]
+    resources: ["edgedeployments"]
+    verbs: ["list", "get", "create", "update", "delete", "watch"]
 ...
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -78,6 +118,6 @@ rules:
   - apiGroups: [""]
     resources: ["persistentvolumeclaims"]
     verbs: ["list", "create"]
-  - apiGroups: ["apiextensions.k8s.io"]
-    resources: ["customresourcedefinitions"]
-    verbs: ["list", "get", "create", "update"]
+  - apiGroups: ["microsoft.azure.devices.edge"]
+    resources: ["edgedeployments"]
+    verbs: ["list", "get", "create", "update", "delete", "watch"]

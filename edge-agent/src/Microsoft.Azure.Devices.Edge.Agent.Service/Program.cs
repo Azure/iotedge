@@ -8,14 +8,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
-    using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service;
     using Microsoft.Azure.Devices.Edge.Agent.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
+    using Constants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
+    using K8sConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
+    using KubernetesModule = Microsoft.Azure.Devices.Edge.Agent.Service.Modules.KubernetesModule;
 
     public class Program
     {
@@ -72,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             string edgeDeviceHostName;
             string dockerLoggingDriver;
             Dictionary<string, string> dockerLoggingOptions;
-            IEnumerable<AuthConfig> dockerAuthConfig;
+            IEnumerable<global::Docker.DotNet.Models.AuthConfig> dockerAuthConfig;
             int configRefreshFrequencySecs;
 
             try
@@ -88,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 edgeDeviceHostName = configuration.GetValue<string>(Constants.EdgeDeviceHostNameKey);
                 dockerLoggingDriver = configuration.GetValue<string>("DockerLoggingDriver");
                 dockerLoggingOptions = configuration.GetSection("DockerLoggingOptions").Get<Dictionary<string, string>>() ?? new Dictionary<string, string>();
-                dockerAuthConfig = configuration.GetSection("DockerRegistryAuth").Get<List<AuthConfig>>() ?? new List<AuthConfig>();
+                dockerAuthConfig = configuration.GetSection("DockerRegistryAuth").Get<List<global::Docker.DotNet.Models.AuthConfig>>() ?? new List<global::Docker.DotNet.Models.AuthConfig>();
                 configRefreshFrequencySecs = configuration.GetValue("ConfigRefreshFrequencySecs", 3600);
             }
             catch (Exception ex)
@@ -135,6 +140,62 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, new Uri(managementUri), new Uri(workloadUri), apiVersion, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout));
                         break;
 
+                    case Constants.KubernetesMode:
+                        managementUri = configuration.GetValue<string>(Constants.EdgeletManagementUriVariableName);
+                        workloadUri = configuration.GetValue<string>(Constants.EdgeletWorkloadUriVariableName);
+                        moduleId = configuration.GetValue(Constants.ModuleIdVariableName, Constants.EdgeAgentModuleIdentityName);
+                        moduleGenerationId = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
+                        apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
+                        iothubHostname = configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
+                        deviceId = configuration.GetValue<string>(Constants.DeviceIdVariableName);
+                        string networkId = configuration.GetValue<string>(Constants.NetworkIdKey);
+                        string proxyImage = configuration.GetValue<string>(K8sConstants.ProxyImageEnvKey);
+                        string proxyConfigPath = configuration.GetValue<string>(K8sConstants.ProxyConfigPathEnvKey);
+                        string proxyConfigVolumeName = configuration.GetValue<string>(K8sConstants.ProxyConfigVolumeEnvKey);
+                        string proxyConfigMapName = configuration.GetValue<string>(K8sConstants.ProxyConfigMapNameEnvKey);
+                        string proxyTrustBundlePath = configuration.GetValue<string>(K8sConstants.ProxyTrustBundlePathEnvKey);
+                        string proxyTrustBundleVolumeName = configuration.GetValue<string>(K8sConstants.ProxyTrustBundleVolumeEnvKey);
+                        string proxyTrustBundleConfigMapName = configuration.GetValue<string>(K8sConstants.ProxyTrustBundleConfigMapEnvKey);
+                        PortMapServiceType mappedServiceDefault = GetDefaultServiceType(configuration);
+                        bool enableServiceCallTracing = configuration.GetValue<bool>(K8sConstants.EnableK8sServiceCallTracingName);
+                        string persistentVolumeName = configuration.GetValue<string>(K8sConstants.PersistentVolumeNameKey);
+                        string storageClassName = configuration.GetValue<string>(K8sConstants.StorageClassNameKey);
+                        uint persistentVolumeClaimDefaultSizeMb = configuration.GetValue<uint>(K8sConstants.PersistentVolumeClaimDefaultSizeInMbKey);
+                        string deviceNamespace = configuration.GetValue<string>(K8sConstants.K8sNamespaceKey);
+                        var kubernetesExperimentalFeatures = KubernetesExperimentalFeatures.Create(configuration.GetSection("experimentalFeatures"), logger);
+
+                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId)));
+                        builder.RegisterModule(new KubernetesModule(
+                            iothubHostname,
+                            deviceId,
+                            networkId,
+                            edgeDeviceHostName,
+                            proxyImage,
+                            proxyConfigPath,
+                            proxyConfigVolumeName,
+                            proxyConfigMapName,
+                            proxyTrustBundlePath,
+                            proxyTrustBundleVolumeName,
+                            proxyTrustBundleConfigMapName,
+                            apiVersion,
+                            deviceNamespace,
+                            new Uri(managementUri),
+                            new Uri(workloadUri),
+                            dockerAuthConfig,
+                            upstreamProtocol,
+                            Option.Some(productInfo),
+                            mappedServiceDefault,
+                            enableServiceCallTracing,
+                            persistentVolumeName,
+                            storageClassName,
+                            persistentVolumeClaimDefaultSizeMb,
+                            proxy,
+                            closeOnIdleTimeout,
+                            idleTimeout,
+                            kubernetesExperimentalFeatures));
+
+                        break;
+
                     default:
                         throw new InvalidOperationException($"Mode '{mode}' not supported.");
                 }
@@ -172,6 +233,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             {
                 logger.LogCritical(AgentEventIds.Agent, ex, "Fatal error building application.");
                 return 1;
+            }
+
+            // TODO move this code to Agent
+            if (mode.ToLowerInvariant().Equals(Constants.KubernetesMode))
+            {
+                // Start environment operator
+                IKubernetesEnvironmentOperator environmentOperator = container.Resolve<IKubernetesEnvironmentOperator>();
+                environmentOperator.Start();
+
+                // Start the edge deployment operator
+                IEdgeDeploymentOperator edgeDeploymentOperator = container.Resolve<IEdgeDeploymentOperator>();
+                edgeDeploymentOperator.Start();
             }
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)
@@ -262,7 +335,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
         }
 
-        // Note: Keep in sync with iotedge-check's edge-agent-storage-mounted-from-host check (edgelet/iotedge/src/check/mod.rs)
+        // Note: Keep in sync with iotedge-check's edge-agent-storage-mounted-from-host check (edgelet/iotedge/src/check/checks/storage_mounted_from_host.rs)
         static string GetStoragePath(IConfiguration configuration)
         {
             string baseStoragePath = configuration.GetValue<string>("StorageFolder");
@@ -293,6 +366,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             logger.LogInformation($"Local config path: {localConfigPath}");
             return localConfigPath;
         }
+
+        static PortMapServiceType GetDefaultServiceType(IConfiguration configuration) =>
+            Enum.TryParse(configuration.GetValue(K8sConstants.PortMappingServiceType, string.Empty), true, out PortMapServiceType defaultServiceType)
+                ? defaultServiceType
+                : Kubernetes.Constants.DefaultPortMapServiceType;
 
         static void LogLogo(ILogger logger)
         {
