@@ -76,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             {
                 [Core.SystemProperties.EdgeMessageId] = Guid.NewGuid().ToString(),
                 [Core.SystemProperties.MessageId] = "test-msg-" + msgCounter.ToString(),
-                [Core.SystemProperties.ConnectionDeviceId] = "test-device"
+                [Core.SystemProperties.ConnectionDeviceId] = TestContext.DeviceId
             };
 
             return result;

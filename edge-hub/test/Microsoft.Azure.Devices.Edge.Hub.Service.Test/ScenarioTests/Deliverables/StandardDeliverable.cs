@@ -52,6 +52,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             return this;
         }
 
+        public void DontExpectDelivery(Hub.Core.IMessage message) => DontExpectDelivery(new[] { message });
+
         // call this when we know that messages won't be sent (e.g. dropped)
         public void DontExpectDelivery(IReadOnlyCollection<Hub.Core.IMessage> messages)
         {
@@ -63,6 +65,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
                 }
             }
         }
+
+        public void ConfirmDelivery(Hub.Core.IMessage message) => ConfirmDelivery(new[] { message });
 
         public void ConfirmDelivery(IReadOnlyCollection<Hub.Core.IMessage> messages)
         {

@@ -13,14 +13,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
         public virtual Task<bool> CloseAsync() => Task.FromResult(true);
         public virtual Task<IMessage> GetTwinAsync() => Task.FromResult(new EdgeMessage(new byte[0], new Dictionary<string, string>(), new Dictionary<string, string>()) as IMessage);
         public virtual Task<bool> OpenAsync() => Task.FromResult(true);
-        public virtual Task RemoveCallMethodAsync() => Task.FromResult(true);
-        public virtual Task RemoveDesiredPropertyUpdatesAsync() => Task.FromResult(true);
-        public virtual Task SendFeedbackMessageAsync(string messageId, FeedbackStatus feedbackStatus) => Task.FromResult(true);
-        public virtual Task SendMessageAsync(IMessage message) => Task.FromResult(true);
-        public virtual Task SendMessageBatchAsync(IEnumerable<IMessage> inputMessages) => Task.FromResult(true);
-        public virtual Task SetupCallMethodAsync() => Task.FromResult(true);
-        public virtual Task SetupDesiredPropertyUpdatesAsync() => Task.FromResult(true);
-        public virtual Task StartListening() => Task.FromResult(true);
-        public virtual Task UpdateReportedPropertiesAsync(IMessage reportedPropertiesMessage) => Task.FromResult(true);
+        public virtual Task RemoveCallMethodAsync() => Task.CompletedTask;
+        public virtual Task RemoveDesiredPropertyUpdatesAsync() => Task.CompletedTask;
+        public virtual Task SendFeedbackMessageAsync(string messageId, FeedbackStatus feedbackStatus) => Task.CompletedTask;
+        public virtual Task SendMessageAsync(IMessage message) => Task.CompletedTask;
+        public virtual Task SendMessageBatchAsync(IEnumerable<IMessage> inputMessages) => Task.CompletedTask;
+        public virtual Task SetupCallMethodAsync() => Task.CompletedTask;
+        public virtual Task SetupDesiredPropertyUpdatesAsync() => Task.CompletedTask;
+        public virtual Task StartListening() => Task.CompletedTask;
+        public virtual Task UpdateReportedPropertiesAsync(IMessage reportedPropertiesMessage) => Task.CompletedTask;
     }
 }

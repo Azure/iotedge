@@ -9,10 +9,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
 
-    using Xunit;
-
     [Scenario]
-    public class HighMessageRateDeliveryTests
+    public class HighMessageRateDeliveryRouterToCloudTests
     {
         private const int BigPack = 10000;
         private const int SmallPack = 100;

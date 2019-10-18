@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
+    using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core.MessageSources;
 
@@ -76,10 +77,33 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             return this;
         }
 
-        public RouteBuilder WithProxy<T>()
+        public RouteBuilder WithCloudProxy<T>()
             where T : ICloudProxy, new()
         {
             this.cloudProxyGetterFunc = _ => Task.FromResult(Option.Some(new T() as ICloudProxy));
+            return this;
+        }
+
+        public RouteBuilder WithModuleProxy<T>()
+            where T : IDeviceProxy, new()
+        {
+            var endpoint = EndpointBuilder
+                              .Create()
+                              .WithModuleProxy<T>()
+                              .Build();
+
+            this.explicitEndpoints.Add(endpoint);
+            return this;
+        }
+
+        public RouteBuilder WithModuleProxy(IDeviceProxy deviceProxy)            
+        {
+            var endpoint = EndpointBuilder
+                              .Create()
+                              .WithModuleProxy(deviceProxy)
+                              .Build();
+
+            this.explicitEndpoints.Add(endpoint);
             return this;
         }
 
