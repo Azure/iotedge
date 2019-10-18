@@ -13,15 +13,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
     {
         readonly Option<string> scriptPath;
 
-        // TODO: EdgeCertificate needs to be moved into certificate types.
-        public CaCertificates EdgeCertificate { get; set; }
+        // TODO: EdgeCertificates needs to be moved into certificate types.
+        public CaCertificates EdgeCertificates { get; set; }
 
         public static async Task<CertificateAuthority> CreateAsync(string deviceId, RootCaKeys rootCa, string scriptPath, CancellationToken token)
         {
             if (!File.Exists(Path.Combine(scriptPath, FixedPaths.RootCaCert.Cert)))
             {
-                // [9/26/2019] Setup all the environment for the certificates.
-                // More info: /iotedge/scripts/linux/runE2ETest.sh : run_test()
+                // Setup all the environment for the certificates.
                 Log.Verbose("----------------------------------------");
                 Log.Verbose("Install Root Certificate");
                 (string rootCertificate, string rootPrivateKey, string rootPassword) = rootCa;
@@ -50,7 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
 
         CertificateAuthority(CaCertificates certs)
         {
-            this.EdgeCertificate = certs;
+            this.scriptPath = Option.None<string>();
+            this.EdgeCertificates = certs;
         }
 
         public Task<IdCertificates> GenerateIdentityCertificatesAsync(string deviceId, CancellationToken token)

@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 async () =>
                 {
                     ITransportSettings transport = protocol.ToTransportSettings();
-                    OsPlatform.Current.InstallCaCertificates(ca.EdgeCertificate.TrustedCertificates, transport);
+                    OsPlatform.Current.InstallCaCertificates(ca.EdgeCertificates.TrustedCertificates, transport);
 
                     string edgeHostname = Dns.GetHostName().ToLower();
 
