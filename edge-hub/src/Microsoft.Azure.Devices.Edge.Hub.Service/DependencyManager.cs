@@ -239,12 +239,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             int timeToLiveSecs = defaultTtl;
             string storagePath = this.GetStoragePath();
             bool storeAndForwardEnabled = this.configuration.GetValue<bool>("storeAndForwardEnabled");
+
             StoreLimits storeLimits = new StoreLimits(long.MaxValue, Option.Some(120));
             if (storeAndForwardEnabled)
             {
                 IConfiguration storeAndForwardConfigurationSection = this.configuration.GetSection("storeAndForward");
                 timeToLiveSecs = storeAndForwardConfigurationSection.GetValue("timeToLiveSecs", defaultTtl);
-                int checkFrequency = storeAndForwardConfigurationSection.GetValue<int>("checkFrequency");
+                IConfiguration storeLimitsConfiguration = storeAndForwardConfigurationSection.GetSection("storeLimits");
+                int checkFrequency = storeLimitsConfiguration.GetValue<int>("checkFrequency");
                 storeLimits = new StoreLimits(long.MaxValue, Option.Maybe<int>(checkFrequency));
             }
 

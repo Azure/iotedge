@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     {
         [JsonConstructor]
         public StoreLimits(long maxSize)
-            : this(maxSize, Option.None<int>())
+            : this(maxSize, Option.Some(int.MaxValue))
         {
         }
 
@@ -24,8 +24,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         public long MaxSize { get; }
 
         [JsonIgnore]
-        [JsonProperty(PropertyName = "checkFrequency")]
-        [JsonConverter(typeof(OptionConverter<long>), true)]
         public Option<int> CheckFrequency { get; }
 
         public bool Equals(StoreLimits other)

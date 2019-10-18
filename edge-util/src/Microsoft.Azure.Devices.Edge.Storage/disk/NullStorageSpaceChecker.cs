@@ -7,7 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Disk
 {
     public class NullStorageSpaceChecker : IStorageSpaceChecker
     {
-        public void SetMaxStorageSize(long maxStorageBytes)
+        public void SetMaxStorageSize(long maxStorageBytes, Option<int> checkFrequency)
         {
         }
 
