@@ -203,7 +203,7 @@ Param (
     [ValidateNotNullOrEmpty()]
     [string] $ContainerRegistryPassword = $(Throw "Container registry password is required"),
 
-    [string] $DesiredModulesToRestartCSV = "",
+    [string] $DesiredModulesToRestartCSV = $null,
 
     [ValidateNotNullOrEmpty()]
     [string] $DpsScopeId = $null,
@@ -229,7 +229,7 @@ Param (
     [ValidateScript({($_ -as [System.Uri]).AbsoluteUri -ne $null})]
     [string] $ProxyUri = $null,
 
-    [string] $RandomRestartIntervalInMins = 10,
+    [string] $RandomRestartIntervalInMins = $null,
 
     [ValidateNotNullOrEmpty()]
     [string] $SnitchAlertUrl = $null,
@@ -1501,7 +1501,9 @@ If ([string]::IsNullOrWhiteSpace($EdgeE2ERootCAKeyRSAFile))
 
 If ($TestName -eq "LongHaul")
 {
+    If ([string]::IsNullOrEmpty($DesiredModulesToRestartCSV)) {$DesiredModulesToRestartCSV = "moduleRestarter"}
     If ([string]::IsNullOrEmpty($LoadGenMessageFrequency)) {$LoadGenMessageFrequency = "00:00:01"}
+    If ([string]::IsNullOrEmpty($RandomRestartIntervalInMins)) {$RandomRestartIntervalInMins = "10"}
     If ([string]::IsNullOrEmpty($SnitchReportingIntervalInSecs)) {$SnitchReportingIntervalInSecs = "86400"}
     If ([string]::IsNullOrEmpty($SnitchTestDurationInSecs)) {$SnitchTestDurationInSecs = "604800"}
 }
