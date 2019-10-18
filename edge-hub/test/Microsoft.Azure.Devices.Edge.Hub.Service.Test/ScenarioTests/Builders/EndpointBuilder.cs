@@ -117,7 +117,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             return this;
         }
 
-
         public EndpointBuilder WithConnectionManager(Func<ConnectionManagerBuilder, ConnectionManagerBuilder> connectionManager)
         {
             connectionManager(this.connectionManagerBuilder);

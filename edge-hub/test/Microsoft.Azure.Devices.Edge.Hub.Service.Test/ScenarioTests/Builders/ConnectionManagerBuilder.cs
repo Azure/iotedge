@@ -1,8 +1,8 @@
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 {
     using System;
     using System.Collections.Generic;
-    using System.Threading;
 
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
@@ -102,7 +102,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 
             public ConnectedDeviceBuilder WithSubscription(params DeviceSubscription[] subscriptions)
             {
-                useDefaultSubscription = false;
+                this.useDefaultSubscription = false;
                 this.subscriptions.AddRange(subscriptions);
                 return this;
             }
@@ -111,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             {
                 this.deviceProvider =
                     id =>
-                    {                        
+                    {
                         deviceProxy.AsPrivateAccessible().Identity = id;
                         return deviceProxy;
                     };
@@ -140,7 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
                 return this;
             }
 
-            public ConnectedDeviceBuilder WithCloudProxy<T>(Func<T,T> cloudProxy)
+            public ConnectedDeviceBuilder WithCloudProxy<T>(Func<T, T> cloudProxy)
                 where T : ICloudProxy, new()
             {
                 this.cloudProxy = cloudProxy(new T());
@@ -148,11 +148,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             }
 
             public void Build(ConnectionManager connectionManager, string iotHubName)
-            {  
+            {
                 var identity = this.GetIdentity(iotHubName);
                 var device = this.deviceProvider(identity);
-                
-                var connectedDevice = connectionManager.AsPrivateAccessible().CreateOrUpdateConnectedDevice(identity) as Object;
+
+                var connectedDevice = connectionManager.AsPrivateAccessible().CreateOrUpdateConnectedDevice(identity) as object;
                 connectedDevice.AsPrivateAccessible().CloudConnection = Option.Some(new SimpleCloudConnection(this.cloudProxy) as ICloudConnection);
                 connectedDevice.AsPrivateAccessible().AddDeviceConnection(this.deviceProvider(identity));
 
@@ -168,7 +168,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
                 {
                     this.subscriptions.ForEach(subscription => connectionManager.AddSubscription(identity.Id, subscription));
                 }
-                
+
                 return;
             }
 

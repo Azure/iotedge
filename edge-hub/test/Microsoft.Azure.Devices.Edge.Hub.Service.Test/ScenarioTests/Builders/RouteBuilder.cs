@@ -96,7 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             return this;
         }
 
-        public RouteBuilder WithModuleProxy(IDeviceProxy deviceProxy)            
+        public RouteBuilder WithModuleProxy(IDeviceProxy deviceProxy)
         {
             var endpoint = EndpointBuilder
                               .Create()

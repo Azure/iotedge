@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
-{    
+{
     using System;
     using System.Collections.Generic;
     using System.IO;
@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
         private const int BigPack = 10000;
         private const int MidPack = 1000;
         private const int SmallPack = 10;
-        
+
         [RunnableInDebugOnly]
         public async Task SendWithNoError()
         {
@@ -97,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
         public async Task SendWithMixedErrors()
         {
             var retriableExceptions = new HashSet<Type>
-            {                
+            {
                 typeof(TimeoutException),
                 typeof(IOException),
                 typeof(Core.EdgeHubIOException)

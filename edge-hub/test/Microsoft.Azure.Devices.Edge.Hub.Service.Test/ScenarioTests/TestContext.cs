@@ -1,3 +1,4 @@
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 {
     using System;
@@ -20,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
         private static int moduleCounter;
 
         [ThreadStatic]
-        private static string iotHubName ;
+        private static string iotHubName;
 
         public static void StartNewContext()
         {
