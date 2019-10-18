@@ -121,8 +121,13 @@ const AUTHSCHEME_KEY: &str = "IOTEDGE_AUTHSCHEME";
 /// This is the key for the edge runtime mode.
 const EDGE_RUNTIME_MODE_KEY: &str = "Mode";
 
-/// This is the edge runtime mode - it should always be iotedged, when iotedged starts edge runtime.
+/// This is the edge runtime mode - it should be iotedged, when iotedged starts edge runtime in single node mode.
+#[cfg(feature = "runtime-docker")]
 const EDGE_RUNTIME_MODE: &str = "iotedged";
+
+/// This is the edge runtime mode - it should be kubernetes, when iotedged starts edge runtime in kubernetes mode.
+#[cfg(feature = "runtime-kubernetes")]
+const EDGE_RUNTIME_MODE: &str = "kubernetes";
 
 /// The HSM lib expects this variable to be set with home directory of the daemon.
 const HOMEDIR_KEY: &str = "IOTEDGE_HOMEDIR";
