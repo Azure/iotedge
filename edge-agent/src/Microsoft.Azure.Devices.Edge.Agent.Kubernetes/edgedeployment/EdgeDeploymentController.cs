@@ -158,7 +158,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         static Diff<V1Service> FindServiceDiff(IEnumerable<V1Service> desired, IEnumerable<V1Service> existing)
         {
             var desiredSet = new Set<V1Service>(desired.ToDictionary(service => service.Metadata.Name));
-            // Remove Agent-owned assets from existing list
             var existingSet = new Set<V1Service>(existing.ToDictionary(service => service.Metadata.Name));
 
             return desiredSet.Diff(existingSet, ServiceByCreationStringEqualityComparer);
@@ -209,7 +208,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
         static Diff<V1Deployment> FindDeploymentDiff(IEnumerable<V1Deployment> desired, IEnumerable<V1Deployment> existing)
         {
-            // Remove Edge Agent from existing set, as it was removed from the desired set.
             var desiredSet = new Set<V1Deployment>(desired.ToDictionary(deployment => deployment.Metadata.Name));
             var existingSet = new Set<V1Deployment>(existing.ToDictionary(deployment => deployment.Metadata.Name));
 
@@ -236,7 +234,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
             try
             {
-                // Remove all PVCs that are not in the desired list, and are labled (created by Agent)
+                // Remove all PVCs that are not in the desired list, and are labeled (created by Agent)
                 var removingTasks = diff.Removed
                     .Select(
                         name =>
@@ -271,7 +269,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 IEnumerable<V1PersistentVolumeClaim> desired,
                 IEnumerable<V1PersistentVolumeClaim> existing)
         {
-            // Remove Agent-owned assets from existing list
             var existingDict = existing.ToDictionary(pvc => pvc.Metadata.Name);
             var desiredSet = new Set<V1PersistentVolumeClaim>(desired.ToDictionary(pvc => pvc.Metadata.Name));
             var existingSet = new Set<V1PersistentVolumeClaim>(existingDict);
@@ -350,7 +347,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         static Diff<V1ServiceAccount> FindServiceAccountDiff(IEnumerable<V1ServiceAccount> desired, IEnumerable<V1ServiceAccount> existing)
         {
             var desiredSet = new Set<V1ServiceAccount>(desired.ToDictionary(serviceAccount => serviceAccount.Metadata.Name));
-            // Remove Agent-owned assets from existing list
             var existingSet = new Set<V1ServiceAccount>(existing.ToDictionary(serviceAccount => serviceAccount.Metadata.Name));
 
             return desiredSet.Diff(existingSet);
