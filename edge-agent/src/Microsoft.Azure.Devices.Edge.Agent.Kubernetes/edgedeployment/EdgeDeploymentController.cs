@@ -15,14 +15,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Microsoft.Rest;
-    using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
     using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
     using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
     // TODO add unit tests
     public class EdgeDeploymentController : IEdgeDeploymentController
     {
-        static string edgeAgentDeploymentName = KubeUtils.SanitizeLabelValue(CoreConstants.EdgeAgentModuleName);
+        static readonly string EdgeAgentDeploymentName = KubeUtils.SanitizeLabelValue(CoreConstants.EdgeAgentModuleName);
 
         readonly IKubernetes client;
 
@@ -160,24 +159,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         {
             var desiredSet = new Set<V1Service>(desired.ToDictionary(service => service.Metadata.Name));
             // Remove Agent-owned assets from existing list
-            var existingSet = new Set<V1Service>(existing.Where(service => !IsOwnedByAgent(service.Metadata?.Labels)).ToDictionary(service => service.Metadata.Name));
+            var existingSet = new Set<V1Service>(existing.ToDictionary(service => service.Metadata.Name));
 
             return desiredSet.Diff(existingSet, ServiceByCreationStringEqualityComparer);
-        }
-
-        static bool IsOwnedByAgent(IDictionary<string, string> labels)
-        {
-            if (labels == null)
-            {
-                return false;
-            }
-
-            if (!labels.ContainsKey(KubernetesConstants.K8sEdgeModuleLabel))
-            {
-                return false;
-            }
-
-            return labels[KubernetesConstants.K8sEdgeModuleLabel] == edgeAgentDeploymentName;
         }
 
         static IEqualityComparer<V1Service> ServiceByCreationStringEqualityComparer { get; } = new KubernetesServiceByCreationStringEqualityComparer();
@@ -207,8 +191,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                         return this.client.DeleteNamespacedDeploymentAsync(
                             name,
                             this.deviceNamespace,
-                            propagationPolicy: KubernetesConstants.DefaultPropagationPolicy,
-                            body: new V1DeleteOptions(propagationPolicy: KubernetesConstants.DefaultPropagationPolicy));
+                            propagationPolicy: KubernetesConstants.DefaultDeletePropagationPolicy,
+                            body: new V1DeleteOptions(propagationPolicy: KubernetesConstants.DefaultDeletePropagationPolicy));
                     });
             await Task.WhenAll(removingTasks);
 
@@ -227,9 +211,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         {
             // Remove Edge Agent from existing set, as it was removed from the desired set.
             var desiredSet = new Set<V1Deployment>(desired.ToDictionary(deployment => deployment.Metadata.Name));
-            var existingSet = new Set<V1Deployment>(existing
-                .Where(deployment => !string.Equals(deployment.Metadata.Name, edgeAgentDeploymentName))
-                .ToDictionary(deployment => deployment.Metadata.Name));
+            var existingSet = new Set<V1Deployment>(existing.ToDictionary(deployment => deployment.Metadata.Name));
 
             return desiredSet.Diff(existingSet, DeploymentByCreationStringEqualityComparer);
         }
@@ -290,7 +272,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 IEnumerable<V1PersistentVolumeClaim> existing)
         {
             // Remove Agent-owned assets from existing list
-            var existingDict = existing.Where(pvc => !IsOwnedByAgent(pvc.Metadata?.Labels)).ToDictionary(pvc => pvc.Metadata.Name);
+            var existingDict = existing.ToDictionary(pvc => pvc.Metadata.Name);
             var desiredSet = new Set<V1PersistentVolumeClaim>(desired.ToDictionary(pvc => pvc.Metadata.Name));
             var existingSet = new Set<V1PersistentVolumeClaim>(existingDict);
             var fullDiff = desiredSet.Diff(existingSet, KubernetesPvcByValueEqualityComparer);
@@ -369,7 +351,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         {
             var desiredSet = new Set<V1ServiceAccount>(desired.ToDictionary(serviceAccount => serviceAccount.Metadata.Name));
             // Remove Agent-owned assets from existing list
-            var existingSet = new Set<V1ServiceAccount>(existing.Where(serviceAccount => !IsOwnedByAgent(serviceAccount.Metadata?.Labels)).ToDictionary(serviceAccount => serviceAccount.Metadata.Name));
+            var existingSet = new Set<V1ServiceAccount>(existing.ToDictionary(serviceAccount => serviceAccount.Metadata.Name));
 
             return desiredSet.Diff(existingSet);
         }
@@ -389,8 +371,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     deployment => this.client.DeleteNamespacedDeploymentAsync(
                         deployment.Metadata.Name,
                         this.deviceNamespace,
-                        new V1DeleteOptions(propagationPolicy: KubernetesConstants.DefaultPropagationPolicy),
-                        propagationPolicy: KubernetesConstants.DefaultPropagationPolicy));
+                        new V1DeleteOptions(propagationPolicy: KubernetesConstants.DefaultDeletePropagationPolicy),
+                        propagationPolicy: KubernetesConstants.DefaultDeletePropagationPolicy));
             await Task.WhenAll(deploymentTasks);
 
             V1PersistentVolumeClaimList pvcs = await this.client.ListNamespacedPersistentVolumeClaimAsync(this.deviceNamespace, labelSelector: this.deploymentSelector);

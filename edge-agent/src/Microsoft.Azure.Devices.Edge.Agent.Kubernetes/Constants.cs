@@ -23,9 +23,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public const string CreationString = "net.azure-devices.edge.creationstring";
 
-        public const PortMapServiceType DefaultPortMapServiceType = PortMapServiceType.ClusterIP;
+        public const string DefaultDeletePropagationPolicy = "Background";
 
-        public const string DefaultPropagationPolicy = "Background";
+        public const PortMapServiceType DefaultPortMapServiceType = PortMapServiceType.ClusterIP;
 
         public const string K8sEdgeModuleLabel = "net.azure-devices.edge.module";
 
