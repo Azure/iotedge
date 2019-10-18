@@ -19,7 +19,7 @@ using Xunit;
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
 {
     [Unit]
-    public class AvaliabilityMetricsTest : TempDir
+    public class AvaliabilityMetricsTest : TempDirectory
     {
         static readonly TestConfig Config = new TestConfig("image1");
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");

@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
 {
-    public class TempDir : IDisposable
+    public class TempDirectory : IDisposable
     {
         private List<string> dirs = new List<string>();
 
