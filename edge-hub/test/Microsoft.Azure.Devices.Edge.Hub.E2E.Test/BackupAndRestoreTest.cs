@@ -50,7 +50,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             Directory.CreateDirectory(this.backupFolder);
 
-            ConfigHelper.TestConfig["UsePersistentStorage"] = "false";
             ConfigHelper.TestConfig["BackupFolder"] = this.backupFolder;
             ConfigHelper.TestConfig["EnableStorageBackupAndRestore"] = "true";
             this.logger = new TestConsoleLogger(testOutputHelper);
@@ -58,7 +57,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         public void Dispose()
         {
-            ConfigHelper.TestConfig["UsePersistentStorage"] = null;
             ConfigHelper.TestConfig["BackupFolder"] = null;
             ConfigHelper.TestConfig["EnableStorageBackupAndRestore"] = null;
 
