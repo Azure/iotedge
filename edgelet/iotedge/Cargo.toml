@@ -9,7 +9,6 @@ edition = "2018"
 
 [dependencies]
 atty = "0.2"
-byte-unit = "3.0.3"
 bytes = "0.4"
 chrono = { version = "0.4.7", features = ["serde"] }
 chrono-humanize = "0.0.11"
@@ -25,7 +24,6 @@ regex = "0.2"
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
-sysinfo = "0.9.5"
 tabwriter = "1.0"
 termcolor = "0.3"
 tokio = "0.1"
@@ -41,7 +39,9 @@ management = { path = "../management" }
 mini-sntp = { path = "../mini-sntp" }
 
 [target.'cfg(unix)'.dependencies]
+byte-unit = "3.0.3"
 libc = "0.2"
+sysinfo = "0.9.5"
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3", features = ["ntdef", "ntstatus", "winnt", "winsock2"] }
