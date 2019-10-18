@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         public async void CrdCommandExecuteWithAuthCreateNewObjects()
         {
             IModule dockerModule = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            ModuleSet currentModules = new ModuleSet(new Dictionary<string, IModule> { ["module1"] = dockerModule });
+            ModuleSet currentModules = ModuleSet.Create(dockerModule);
             var dockerConfigProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
             dockerConfigProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
                 .Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(DockerAuth)));
@@ -122,7 +122,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         {
             IDictionary<string, EnvVal> moduleEnvVars = new Dictionary<string, EnvVal> { { "ACamelCaseEnvVar", new EnvVal("ACamelCaseEnvVarValue") } };
             IModule dockerModule = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, moduleEnvVars);
-            ModuleSet currentModules = new ModuleSet(new Dictionary<string, IModule> { ["module1"] = dockerModule });
+            ModuleSet currentModules = ModuleSet.Create(dockerModule);
             var dockerConfigProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
             dockerConfigProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
                 .Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(DockerAuth)));
@@ -180,7 +180,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var secretData = new Dictionary<string, byte[]> { [Constants.K8sPullSecretData] = Encoding.UTF8.GetBytes("Invalid Secret Data") };
             var secretMeta = new V1ObjectMeta(name: secretName, namespaceProperty: Namespace);
             IModule dockerModule = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            ModuleSet currentModules = new ModuleSet(new Dictionary<string, IModule> { ["module1"] = dockerModule });
+            ModuleSet currentModules = ModuleSet.Create(dockerModule);
             var dockerConfigProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
             dockerConfigProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
                 .Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(DockerAuth)));
@@ -249,7 +249,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             string secretName = "username-docker.io";
             IModule dockerModule1 = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             IModule dockerModule2 = new DockerModule("module2", "v1", ModuleStatus.Running, RestartPolicy.Always, Config2, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            ModuleSet currentModules = new ModuleSet(new Dictionary<string, IModule> { ["module1"] = dockerModule1 });
+            ModuleSet currentModules = ModuleSet.Create(dockerModule1);
             var dockerConfigProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
             dockerConfigProvider.Setup(cp => cp.GetCombinedConfig(It.IsAny<DockerModule>(), Runtime))
                 .Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(DockerAuth)));
@@ -342,7 +342,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         {
             IModule dockerModule = new DockerModule("edgeAgent", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             IRuntimeModule currentModule = new EdgeAgentDockerRuntimeModule(AgentConfig1, ModuleStatus.Running, 0, "description", DateTime.Today, DateTime.Today, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            ModuleSet currentModules = new ModuleSet(new Dictionary<string, IModule> { ["edgeAgent"] = currentModule });
+            ModuleSet currentModules = ModuleSet.Create(currentModule);
             var dockerConfigProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
             dockerConfigProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
                 .Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(DockerAuth)));
