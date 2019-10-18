@@ -35,6 +35,14 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             }
         }
 
+        public void DisposeChecker()
+        {
+            lock (this.updateLock)
+            {
+                this.storageSpaceChecker?.Dispose();
+            }
+        }
+
         protected ILogger Logger { get; }
 
         protected abstract DiskSpaceStatus GetDiskStatus();

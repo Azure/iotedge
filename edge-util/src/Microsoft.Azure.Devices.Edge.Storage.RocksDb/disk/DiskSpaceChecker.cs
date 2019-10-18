@@ -22,14 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             this.inner = Preconditions.CheckNotNull(inner, nameof(inner));
         }
 
-        public bool IsFull
-        {
-            get
-            {
-                DiskSpaceCheckerBase diskSpaceCheckerBase = this.inner.Expect(() => new InvalidOperationException("DiskSpaceChecker has not been initialized yet"));
-                return diskSpaceCheckerBase.DiskStatus == DiskSpaceStatus.Full;
-            }
-        }
+        public bool IsFull => this.inner.Match<bool>(b => b.DiskStatus == DiskSpaceStatus.Full, () => false);
 
         public static DiskSpaceChecker Create(string storageFolder)
         {
@@ -44,9 +37,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             lock (this.updateLock)
             {
                 Events.SetMaxSizeDiskSpaceUsage(maxStorageBytes, this.storageFolder);
-
-                // option.Some on the fixedSizeDiskSpaceChecker
                 int frequencyValue = checkFrequency.GetOrElse(checkFrequencyDefault);
+                this.inner.ForEach(b => b.DisposeChecker());
                 this.inner = Option.Some(new FixedSizeDiskSpaceChecker(this.storageFolder, maxStorageBytes, TimeSpan.FromSeconds(frequencyValue), Events.Log) as DiskSpaceCheckerBase);
             }
         }
