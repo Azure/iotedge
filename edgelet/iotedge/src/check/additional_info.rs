@@ -213,14 +213,14 @@ impl SystemInfo {
         {
             let mut system = sysinfo::System::new();
             system.refresh_all();
-            return SystemInfo {
+            SystemInfo {
                 total_ram: pretty_kbyte(system.get_total_memory()),
                 used_ram: pretty_kbyte(system.get_used_memory()),
                 total_swap: pretty_kbyte(system.get_total_swap()),
                 used_swap: pretty_kbyte(system.get_used_swap()),
 
                 disks: system.get_disks().iter().map(DiskInfo::new).collect(),
-            };
+            }
         }
 
         #[cfg(not(unix))]
