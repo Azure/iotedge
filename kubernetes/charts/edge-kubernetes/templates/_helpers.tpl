@@ -75,7 +75,6 @@ listen:
   workload_uri: "https://0.0.0.0:{{ .Values.iotedged.ports.workload }}"
 homedir: {{ .Values.iotedged.data.targetPath | quote }}
 namespace: {{ .Release.Namespace | quote }}
-use_pvc: False
 proxy_image:  "{{.Values.iotedgedProxy.image.repository}}:{{.Values.iotedgedProxy.image.tag}}"
 proxy_config_path: "/etc/iotedge-proxy"
 proxy_config_map_name: "iotedged-proxy-config"
