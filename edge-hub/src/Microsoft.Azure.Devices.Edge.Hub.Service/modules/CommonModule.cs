@@ -150,7 +150,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 c =>
                 {
                     return this.usePersistentStorage
-                    ? DiskSpaceChecker.Create(this.storagePath, long.MaxValue, this.ExtractCheckFrequency(this.storeAndForwardConfiguration))
+                    ? DiskSpaceChecker.Create(this.storagePath)
                     : new NullStorageSpaceChecker() as IStorageSpaceChecker; // soon to be in-memory space checker
                 })
                 .As<IStorageSpaceChecker>()
@@ -408,14 +408,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             }
 
             return tokenAuthenticator;
-        }
-
-        private Option<int> ExtractCheckFrequency(StoreAndForwardConfiguration storeAndForwardConfiguration)
-        {
-            long defaultMaxStorageSize = long.MaxValue;
-            int defaultCheckFrequency = 120;
-            StoreLimits storeLimits = storeAndForwardConfiguration.StoreLimits.GetOrElse(() => new StoreLimits(defaultMaxStorageSize, Option.Some(defaultCheckFrequency)));
-            return Option.Some(storeLimits.CheckFrequency.GetOrElse(() => defaultCheckFrequency));
         }
     }
 }

@@ -11,10 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Disk
         {
         }
 
-        public void SetMaxStorageSizeAndCheckFrequency(long maxStorageBytes, Option<int> checkFrequency)
-        {
-        }
-
         public void SetStorageUsageComputer(Func<Task<long>> storageUsageComputer)
         {
         }

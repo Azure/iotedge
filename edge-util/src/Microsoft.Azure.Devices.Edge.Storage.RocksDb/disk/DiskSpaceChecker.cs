@@ -13,14 +13,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
     {
         static readonly int checkFrequencyDefault = 120;
         readonly string storageFolder;
-        readonly int checkFrequency;
         readonly object updateLock = new object();
         Option<DiskSpaceCheckerBase> inner;
 
-        DiskSpaceChecker(string storageFolder, int checkFrequency, Option<DiskSpaceCheckerBase> inner)
+        DiskSpaceChecker(string storageFolder, Option<DiskSpaceCheckerBase> inner)
         {
             this.storageFolder = Preconditions.CheckNonWhiteSpace(storageFolder, nameof(storageFolder));
-            this.checkFrequency = checkFrequency;
             this.inner = Preconditions.CheckNotNull(inner, nameof(inner));
         }
 
@@ -33,11 +31,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             }
         }
 
-        public static DiskSpaceChecker Create(string storageFolder, long maxStorageBytes, Option<int> checkFrequency)
+        public static DiskSpaceChecker Create(string storageFolder)
         {
-            int checkFrequencyValue = checkFrequency.GetOrElse(checkFrequencyDefault);
             // Start up diskSpaceChecker unfilled - so that it will be enabled when SetMaxStorageSize is called
-            var diskSpaceChecker = new DiskSpaceChecker(storageFolder, checkFrequencyValue, Option.None<DiskSpaceCheckerBase>());
+            var diskSpaceChecker = new DiskSpaceChecker(storageFolder, Option.None<DiskSpaceCheckerBase>());
             Events.Created(storageFolder);
             return diskSpaceChecker;
         }
@@ -49,10 +46,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
                 Events.SetMaxSizeDiskSpaceUsage(maxStorageBytes, this.storageFolder);
 
                 // option.Some on the fixedSizeDiskSpaceChecker
-                int frequencyValue = checkFrequency.GetOrElse(this.checkFrequency);
+                int frequencyValue = checkFrequency.GetOrElse(checkFrequencyDefault);
                 this.inner = Option.Some(new FixedSizeDiskSpaceChecker(this.storageFolder, maxStorageBytes, TimeSpan.FromSeconds(frequencyValue), Events.Log) as DiskSpaceCheckerBase);
-                // add stop method that disposes of existing timer
-                // start new timer (new method)
             }
         }
 
