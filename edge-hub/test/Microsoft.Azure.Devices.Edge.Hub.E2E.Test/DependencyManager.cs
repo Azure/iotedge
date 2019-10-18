@@ -108,7 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 usePersistentStorage = false;
             }
 
-            if (bool.TryParse(this.configuration["EnableStorageBackupAndRestore"], out bool enableStorageBackupAndRestore))
+            if (bool.TryParse(this.configuration["EnableNonPersistentStorageBackup"], out bool enableNonPersistentStorageBackup))
             {
                 backupFolder = Option.Some(this.configuration["BackupFolder"]);
             }
@@ -133,7 +133,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     this.trustBundle,
                     string.Empty,
                     metricsConfig,
-                    enableStorageBackupAndRestore,
+                    enableNonPersistentStorageBackup,
                     backupFolder));
 
             builder.RegisterModule(

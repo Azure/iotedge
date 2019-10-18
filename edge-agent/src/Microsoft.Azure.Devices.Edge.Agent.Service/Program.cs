@@ -76,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             int coolOffTimeUnitInSeconds;
             bool usePersistentStorage;
             string storagePath;
-            bool enableStorageBackupAndRestore;
+            bool enableNonPersistentStorageBackup;
             Option<string> storageBackupPath = Option.None<string>();
             string edgeDeviceHostName;
             string dockerLoggingDriver;
@@ -96,9 +96,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
                 // Note: Keep in sync with iotedge-check's edge-agent-storage-mounted-from-host check (edgelet/iotedge/src/check/mod.rs)
                 storagePath = GetOrCreateDirectoryPath(configuration.GetValue<string>("StorageFolder"), EdgeAgentStorageFolder);
-                enableStorageBackupAndRestore = configuration.GetValue("EnableStorageBackupAndRestore", false);
+                enableNonPersistentStorageBackup = configuration.GetValue("EnableNonPersistentStorageBackup", false);
 
-                if (enableStorageBackupAndRestore)
+                if (enableNonPersistentStorageBackup)
                 {
                     storageBackupPath = Option.Some(GetOrCreateDirectoryPath(configuration.GetValue<string>("BackupFolder"), EdgeAgentStorageBackupFolder));
                 }
@@ -137,7 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         IotHubConnectionStringBuilder connectionStringParser = IotHubConnectionStringBuilder.Create(deviceConnectionString);
                         deviceId = connectionStringParser.DeviceId;
                         iothubHostname = connectionStringParser.HostName;
-                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, enableStorageBackupAndRestore, storageBackupPath));
+                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, enableNonPersistentStorageBackup, storageBackupPath));
                         builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout));
                         break;
 
@@ -149,7 +149,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         string moduleId = configuration.GetValue(Constants.ModuleIdVariableName, Constants.EdgeAgentModuleIdentityName);
                         string moduleGenerationId = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
                         string apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
-                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), enableStorageBackupAndRestore, storageBackupPath));
+                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), enableNonPersistentStorageBackup, storageBackupPath));
                         builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, new Uri(managementUri), new Uri(workloadUri), apiVersion, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout));
                         break;
 
@@ -174,7 +174,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         string deviceNamespace = configuration.GetValue<string>(K8sConstants.K8sNamespaceKey);
                         var kubernetesExperimentalFeatures = KubernetesExperimentalFeatures.Create(configuration.GetSection("experimentalFeatures"), logger);
 
-                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), enableStorageBackupAndRestore, storageBackupPath));
+                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), enableNonPersistentStorageBackup, storageBackupPath));
                         builder.RegisterModule(new KubernetesModule(
                             iothubHostname,
                             deviceId,
