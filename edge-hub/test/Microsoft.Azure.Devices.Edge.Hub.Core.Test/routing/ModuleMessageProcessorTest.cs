@@ -3,7 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 {
     using System;
     using System.Collections.Generic;
-    using System.Collections.ObjectModel;
+    using System.Linq;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -41,52 +41,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         [Unit]
         public async Task ProcessAsyncTest()
         {
-            Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
+            var throwingDeviceProxy = ThrowingDeviceProxyBuilder
+                             .Create()
+                             .WithSuccess()
+                             .Build();
 
-            const string Mod1Id = "device1/module1";
-            const string ModEndpointId = "in1";
+            var messageProcessor = this.CreateMessageProcessor(throwingDeviceProxy);
 
-            var deviceProxyMock = new Mock<IDeviceProxy>();
-            deviceProxyMock.Setup(c => c.SendMessageAsync(It.IsAny<IMessage>(), It.Is<string>((ep) => ep.Equals(ModEndpointId, StringComparison.OrdinalIgnoreCase))))
-                .Returns(Task.CompletedTask);
+            var message1 = GetMessage();
+            var message2 = GetMessage();
 
-            deviceProxyMock.SetupGet(p => p.IsActive).Returns(true);
-
-            IReadOnlyDictionary<DeviceSubscription, bool> deviceSubscriptions = new ReadOnlyDictionary<DeviceSubscription, bool>(
-                new Dictionary<DeviceSubscription, bool>
-                {
-                    [DeviceSubscription.ModuleMessages] = true
-                });
-            var connectionManager = new Mock<IConnectionManager>();
-            connectionManager.Setup(c => c.GetDeviceConnection(It.IsAny<string>())).Returns(Option.Some(deviceProxyMock.Object));
-            connectionManager.Setup(c => c.GetSubscriptions(It.IsAny<string>())).Returns(Option.Some(deviceSubscriptions));
-
-            byte[] messageBody = Encoding.UTF8.GetBytes("Message body");
-            var properties = new Dictionary<string, string>()
-            {
-                { "Prop1", "Val1" },
-                { "Prop2", "Val2" },
-            };
-
-            var systemProperties = new Dictionary<string, string>
-            {
-                { SystemProperties.DeviceId, Mod1Id }
-            };
-
-            var message1 = new RoutingMessage(TelemetryMessageSource.Instance, messageBody, properties, systemProperties);
-            var message2 = new RoutingMessage(TelemetryMessageSource.Instance, messageBody, properties, systemProperties);
-
-            var moduleEndpoint = new ModuleEndpoint($"{Mod1Id}/{ModEndpointId}", Mod1Id, ModEndpointId, connectionManager.Object, routingMessageConverter);
-            IProcessor moduleMessageProcessor = moduleEndpoint.CreateProcessor();
-
-            ISinkResult<IRoutingMessage> result = await moduleMessageProcessor.ProcessAsync(message1, CancellationToken.None);
+            ISinkResult<IRoutingMessage> result = await messageProcessor.ProcessAsync(message1, CancellationToken.None);
             Assert.NotNull(result);
             Assert.NotEmpty(result.Succeeded);
             Assert.Empty(result.Failed);
             Assert.Empty(result.InvalidDetailsList);
             Assert.False(result.SendFailureDetails.HasValue);
 
-            ISinkResult<IRoutingMessage> resultBatch = await moduleMessageProcessor.ProcessAsync(new[] { message1, message2 }, CancellationToken.None);
+            ISinkResult<IRoutingMessage> resultBatch = await messageProcessor.ProcessAsync(new[] { message1, message2 }, CancellationToken.None);
             Assert.NotNull(resultBatch);
             Assert.NotEmpty(resultBatch.Succeeded);
             Assert.Empty(resultBatch.Failed);
@@ -98,46 +70,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         [Unit]
         public async Task ProcessAsync_NoConnection_ShoulFailTest()
         {
-            Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
+            var throwingDeviceProxy = ThrowingDeviceProxyBuilder
+                             .Create()
+                             .WithActiveStatus(false)
+                             .Build();
 
-            const string Mod1Id = "device1/module1";
-            const string ModEndpointId = "in1";
+            var messageProcessor = this.CreateMessageProcessor(throwingDeviceProxy);
 
-            IReadOnlyDictionary<DeviceSubscription, bool> deviceSubscriptions = new ReadOnlyDictionary<DeviceSubscription, bool>(
-                new Dictionary<DeviceSubscription, bool>
-                {
-                    [DeviceSubscription.ModuleMessages] = true
-                });
-            var connectionManager = new Mock<IConnectionManager>();
-            connectionManager.Setup(c => c.GetDeviceConnection(It.IsAny<string>())).Returns(Option.None<IDeviceProxy>());
-            connectionManager.Setup(c => c.GetSubscriptions(It.IsAny<string>())).Returns(Option.Some(deviceSubscriptions));
+            var message1 = GetMessage();
+            var message2 = GetMessage();
 
-            byte[] messageBody = Encoding.UTF8.GetBytes("Message body");
-            var properties = new Dictionary<string, string>()
-            {
-                { "Prop1", "Val1" },
-                { "Prop2", "Val2" },
-            };
-
-            var systemProperties = new Dictionary<string, string>
-            {
-                { SystemProperties.DeviceId, Mod1Id }
-            };
-
-            var message1 = new RoutingMessage(TelemetryMessageSource.Instance, messageBody, properties, systemProperties);
-            var message2 = new RoutingMessage(TelemetryMessageSource.Instance, messageBody, properties, systemProperties);
-
-            var moduleEndpoint = new ModuleEndpoint($"{Mod1Id}/{ModEndpointId}", Mod1Id, ModEndpointId, connectionManager.Object, routingMessageConverter);
-            IProcessor moduleMessageProcessor = moduleEndpoint.CreateProcessor();
-
-            ISinkResult<IRoutingMessage> result = await moduleMessageProcessor.ProcessAsync(message1, CancellationToken.None);
+            ISinkResult<IRoutingMessage> result = await messageProcessor.ProcessAsync(message1, CancellationToken.None);
             Assert.NotNull(result);
             Assert.Empty(result.Succeeded);
             Assert.Equal(1, result.Failed.Count);
             Assert.Empty(result.InvalidDetailsList);
             Assert.True(result.SendFailureDetails.HasValue);
 
-            ISinkResult<IRoutingMessage> resultBatch = await moduleMessageProcessor.ProcessAsync(new[] { message1, message2 }, CancellationToken.None);
+            ISinkResult<IRoutingMessage> resultBatch = await messageProcessor.ProcessAsync(new[] { message1, message2 }, CancellationToken.None);
             Assert.NotNull(resultBatch);
             Assert.Empty(resultBatch.Succeeded);
             Assert.Equal(2, resultBatch.Failed.Count);
@@ -149,52 +99,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         [Unit]
         public async Task ProcessAsync_SendThrowsRetryable_Test()
         {
-            Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
+            var throwingDeviceProxy = ThrowingDeviceProxyBuilder
+                                        .Create()
+                                        .WithThrow<TimeoutException>()
+                                        .Build();
 
-            const string Mod1Id = "device1/module1";
-            const string ModEndpointId = "in1";
+            var messageProcessor = this.CreateMessageProcessor(throwingDeviceProxy);
 
-            var deviceProxyMock = new Mock<IDeviceProxy>();
-            deviceProxyMock.Setup(c => c.SendMessageAsync(It.IsAny<IMessage>(), It.Is<string>((ep) => ep.Equals(ModEndpointId, StringComparison.OrdinalIgnoreCase))))
-                .Throws<TimeoutException>();
+            var message1 = GetMessage();
+            var message2 = GetMessage();
 
-            deviceProxyMock.SetupGet(p => p.IsActive).Returns(true);
-
-            IReadOnlyDictionary<DeviceSubscription, bool> deviceSubscriptions = new ReadOnlyDictionary<DeviceSubscription, bool>(
-                new Dictionary<DeviceSubscription, bool>
-                {
-                    [DeviceSubscription.ModuleMessages] = true
-                });
-            var connectionManager = new Mock<IConnectionManager>();
-            connectionManager.Setup(c => c.GetDeviceConnection(It.IsAny<string>())).Returns(Option.Some(deviceProxyMock.Object));
-            connectionManager.Setup(c => c.GetSubscriptions(It.IsAny<string>())).Returns(Option.Some(deviceSubscriptions));
-
-            byte[] messageBody = Encoding.UTF8.GetBytes("Message body");
-            var properties = new Dictionary<string, string>()
-            {
-                { "Prop1", "Val1" },
-                { "Prop2", "Val2" },
-            };
-
-            var systemProperties = new Dictionary<string, string>
-            {
-                { SystemProperties.DeviceId, Mod1Id }
-            };
-
-            var message1 = new RoutingMessage(TelemetryMessageSource.Instance, messageBody, properties, systemProperties);
-            var message2 = new RoutingMessage(TelemetryMessageSource.Instance, messageBody, properties, systemProperties);
-
-            var moduleEndpoint = new ModuleEndpoint($"{Mod1Id}/{ModEndpointId}", Mod1Id, ModEndpointId, connectionManager.Object, routingMessageConverter);
-            IProcessor moduleMessageProcessor = moduleEndpoint.CreateProcessor();
-
-            ISinkResult<IRoutingMessage> result = await moduleMessageProcessor.ProcessAsync(message1, CancellationToken.None);
+            ISinkResult<IRoutingMessage> result = await messageProcessor.ProcessAsync(message1, CancellationToken.None);
             Assert.NotNull(result);
             Assert.Empty(result.Succeeded);
             Assert.Equal(1, result.Failed.Count);
             Assert.Empty(result.InvalidDetailsList);
             Assert.True(result.SendFailureDetails.HasValue);
 
-            ISinkResult<IRoutingMessage> resultBatch = await moduleMessageProcessor.ProcessAsync(new[] { message1, message2 }, CancellationToken.None);
+            ISinkResult<IRoutingMessage> resultBatch = await messageProcessor.ProcessAsync(new[] { message1, message2 }, CancellationToken.None);
             Assert.NotNull(resultBatch);
             Assert.Empty(resultBatch.Succeeded);
             Assert.Equal(2, resultBatch.Failed.Count);
@@ -206,57 +128,169 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
         [Unit]
         public async Task ProcessAsync_SendThrowsNonRetryable_Test()
         {
-            Core.IMessageConverter<IRoutingMessage> routingMessageConverter = new RoutingMessageConverter();
+            var throwingDeviceProxy = ThrowingDeviceProxyBuilder
+                                        .Create()
+                                        .WithThrow<Exception>()
+                                        .Build();
 
-            const string Mod1Id = "device1/module1";
-            const string ModEndpointId = "in1";
+            var messageProcessor = this.CreateMessageProcessor(throwingDeviceProxy);
 
-            var deviceProxyMock = new Mock<IDeviceProxy>();
-            deviceProxyMock.Setup(c => c.SendMessageAsync(It.IsAny<IMessage>(), It.Is<string>((ep) => ep.Equals(ModEndpointId, StringComparison.OrdinalIgnoreCase))))
-                .Throws<Exception>();
+            var message1 = GetMessage();
+            var message2 = GetMessage();
 
-            deviceProxyMock.SetupGet(p => p.IsActive).Returns(true);
-
-            IReadOnlyDictionary<DeviceSubscription, bool> deviceSubscriptions = new ReadOnlyDictionary<DeviceSubscription, bool>(
-                new Dictionary<DeviceSubscription, bool>
-                {
-                    [DeviceSubscription.ModuleMessages] = true
-                });
-            var connectionManager = new Mock<IConnectionManager>();
-            connectionManager.Setup(c => c.GetDeviceConnection(It.IsAny<string>())).Returns(Option.Some(deviceProxyMock.Object));
-            connectionManager.Setup(c => c.GetSubscriptions(It.IsAny<string>())).Returns(Option.Some(deviceSubscriptions));
-
-            byte[] messageBody = Encoding.UTF8.GetBytes("Message body");
-            var properties = new Dictionary<string, string>()
-            {
-                { "Prop1", "Val1" },
-                { "Prop2", "Val2" },
-            };
-
-            var systemProperties = new Dictionary<string, string>
-            {
-                { SystemProperties.DeviceId, Mod1Id }
-            };
-
-            var message1 = new RoutingMessage(TelemetryMessageSource.Instance, messageBody, properties, systemProperties);
-            var message2 = new RoutingMessage(TelemetryMessageSource.Instance, messageBody, properties, systemProperties);
-
-            var moduleEndpoint = new ModuleEndpoint($"{Mod1Id}/{ModEndpointId}", Mod1Id, ModEndpointId, connectionManager.Object, routingMessageConverter);
-            IProcessor moduleMessageProcessor = moduleEndpoint.CreateProcessor();
-
-            ISinkResult<IRoutingMessage> result = await moduleMessageProcessor.ProcessAsync(message1, CancellationToken.None);
+            ISinkResult<IRoutingMessage> result = await messageProcessor.ProcessAsync(message1, CancellationToken.None);
             Assert.NotNull(result);
             Assert.Empty(result.Succeeded);
             Assert.Empty(result.Failed);
             Assert.Equal(1, result.InvalidDetailsList.Count);
             Assert.False(result.SendFailureDetails.HasValue);
 
-            ISinkResult<IRoutingMessage> resultBatch = await moduleMessageProcessor.ProcessAsync(new[] { message1, message2 }, CancellationToken.None);
+            ISinkResult<IRoutingMessage> resultBatch = await messageProcessor.ProcessAsync(new[] { message1, message2 }, CancellationToken.None);
             Assert.NotNull(resultBatch);
             Assert.Empty(resultBatch.Succeeded);
             Assert.Empty(resultBatch.Failed);
             Assert.Equal(2, resultBatch.InvalidDetailsList.Count);
             Assert.False(resultBatch.SendFailureDetails.HasValue);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task ProcessAsync_FastFailMessages_AfterOneFailedWithRetriable()
+        {
+            var throwingDeviceProxy = ThrowingDeviceProxyBuilder
+                                        .Create()
+                                        .WithSuccess()
+                                        .WithThrow<EdgeHubIOException>()
+                                        .WithSuccess()
+                                        .Build();
+
+            var messageProcessor = this.CreateMessageProcessor(throwingDeviceProxy);
+            var messages = GetMessages(5);
+
+            var result = await messageProcessor.ProcessAsync(messages, CancellationToken.None);
+
+            Assert.False(result.IsSuccessful);
+            Assert.Equal(1, result.Succeeded.Count);
+            Assert.Equal(4, result.Failed.Count);
+            Assert.Equal(FailureKind.Transient, result.SendFailureDetails.Expect(() => new Exception()).FailureKind);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task ProcessAsync_DontFastFailMessages_AfterOneFailedWithNonRetriable()
+        {
+            var throwingDeviceProxy = ThrowingDeviceProxyBuilder
+                                        .Create()
+                                        .WithSuccess()
+                                        .WithThrow<Exception>()
+                                        .WithSuccess()
+                                        .Build();
+
+            var messageProcessor = this.CreateMessageProcessor(throwingDeviceProxy);
+            var messages = GetMessages(5);
+
+            var result = await messageProcessor.ProcessAsync(messages, CancellationToken.None);
+
+            Assert.True(result.IsSuccessful); // non-retriable is not reported as failure
+            Assert.Equal(4, result.Succeeded.Count);
+            Assert.Equal(1, result.InvalidDetailsList.Count);
+            Assert.Equal(0, result.Failed.Count);
+            // SendFailureDetails is not reported for Non-Retriable - this is not consistent with cloud proxy, skip the assert for now
+        }
+
+        private IProcessor CreateMessageProcessor(IDeviceProxy deviceProxy)
+        {
+            IReadOnlyDictionary<DeviceSubscription, bool> deviceSubscriptions =
+                new Dictionary<DeviceSubscription, bool>()
+                {
+                    [DeviceSubscription.ModuleMessages] = true
+                };
+
+            var connectionManager = new Mock<IConnectionManager>();
+            connectionManager.Setup(call => call.GetDeviceConnection(It.IsAny<string>())).Returns(Option.Some(deviceProxy));
+            connectionManager.Setup(c => c.GetSubscriptions(It.IsAny<string>())).Returns(Option.Some(deviceSubscriptions));
+
+            var moduleEndpoint = new ModuleEndpoint("device1/module1", "module1", "in1", connectionManager.Object, new RoutingMessageConverter());
+            return moduleEndpoint.CreateProcessor();
+        }
+
+        static IList<IRoutingMessage> GetMessages(int count)
+        {
+            var messages = new List<IRoutingMessage>();
+            for (int i = 0; i < count; i++)
+            {
+                messages.Add(GetMessage());
+            }
+
+            return messages;
+        }
+
+        static IRoutingMessage GetMessage()
+        {
+            byte[] messageBody = Encoding.UTF8.GetBytes("Message body");
+            var properties = new Dictionary<string, string>()
+            {
+                { "Prop1", "Val1" },
+                { "Prop2", "Val2" }
+            };
+
+            var systemProperties = new Dictionary<string, string>
+            {
+                { SystemProperties.DeviceId, "device1/module1" }
+            };
+
+            var message = new RoutingMessage(TelemetryMessageSource.Instance, messageBody, properties, systemProperties);
+            return message;
+        }
+    }
+
+    internal class ThrowingDeviceProxyBuilder
+    {
+        private List<Func<Task>> responses = new List<Func<Task>>();
+        private bool isActive = true;
+
+        internal static ThrowingDeviceProxyBuilder Create() => new ThrowingDeviceProxyBuilder();
+
+        internal ThrowingDeviceProxyBuilder WithThrow<T>()
+            where T : Exception
+        {
+            this.responses.Add(() => Task.FromException(Activator.CreateInstance(typeof(T), "test error") as Exception));
+            return this;
+        }
+
+        internal ThrowingDeviceProxyBuilder WithSuccess(int count = 1)
+        {
+            this.responses.AddRange(Enumerable.Repeat<Func<Task>>(() => Task.CompletedTask, count));
+            return this;
+        }
+
+        internal ThrowingDeviceProxyBuilder WithActiveStatus(bool isActive)
+        {
+            this.isActive = isActive;
+            return this;
+        }
+
+        internal IDeviceProxy Build()
+        {
+            var nextResponse = this.responses.GetEnumerator();
+            var mock = new Mock<IDeviceProxy>();
+
+            mock.SetupGet(call => call.IsActive).Returns(this.isActive);
+            mock.Setup(
+                call => call.SendMessageAsync(It.IsAny<IMessage>(), It.IsAny<string>()))
+                            .Returns(() =>
+                            {
+                                if (nextResponse.MoveNext())
+                                {
+                                    return nextResponse.Current();
+                                }
+                                else
+                                {
+                                    return this.responses.Last()();
+                                }
+                            });
+
+            return mock.Object;
         }
     }
 }
