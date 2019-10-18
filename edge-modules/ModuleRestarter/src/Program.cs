@@ -20,6 +20,8 @@ namespace ModuleRestarter
 
         static async Task<int> MainAsync()
         {
+            Log.LogInformation($"Starting module restarter with the following settings:\r\n{Settings.Current}");
+
             if (string.IsNullOrEmpty(DesiredModulesToRestartCSV))
             {
                 Log.LogInformation("No modules specified to restart. Stopping.");
