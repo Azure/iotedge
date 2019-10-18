@@ -22,8 +22,8 @@ namespace ModuleRestarter
                 return new Settings(
                     configuration.GetValue<string>("IoTHubConnectionString"),
                     configuration.GetValue<string>("DeviceId"),
-                    configuration.GetValue("DesiredModulesToRestartCSV", string.Empty),
-                    configuration.GetValue<int>("RandomRestartIntervalInMins", 20));
+                    configuration.GetValue<string>("DesiredModulesToRestartCSV", string.Empty),
+                    configuration.GetValue<int>("RandomRestartIntervalInMins", 10));
             });
 
         Settings(
