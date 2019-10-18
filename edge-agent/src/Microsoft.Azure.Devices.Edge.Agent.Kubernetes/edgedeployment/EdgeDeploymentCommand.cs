@@ -49,21 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             this.runtimeInfo = Preconditions.CheckNotNull(runtimeInfo, nameof(runtimeInfo));
             this.configProvider = Preconditions.CheckNotNull(configProvider, nameof(configProvider));
             this.id = new Lazy<string>(() => this.modules.Aggregate(string.Empty, (prev, module) => module.Name + prev));
-            this.serializerSettings = new JsonSerializerSettings
-            {
-                ContractResolver = new OverrideJsonIgnoreOfBaseClassContractResolver(
-                    new Dictionary<Type, string[]>
-                    {
-                        [typeof(KubernetesModule)] = new[] { nameof(KubernetesModule.Name) }
-                    })
-                {
-                    // Environment variable (env) property JSON casing should be left alone
-                    NamingStrategy = new CamelCaseNamingStrategy
-                    {
-                        ProcessDictionaryKeys = false
-                    }
-                }
-            };
+            this.serializerSettings = EdgeDeploymentSerialization.SerializerSettings;
         }
 
         public async Task ExecuteAsync(CancellationToken token)

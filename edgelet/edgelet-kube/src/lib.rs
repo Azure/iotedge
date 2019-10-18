@@ -13,6 +13,7 @@ mod constants;
 mod convert;
 mod error;
 mod module;
+mod registry;
 mod runtime;
 mod settings;
 
@@ -69,7 +70,6 @@ mod tests {
             },
             "homedir": "/var/lib/iotedge",
             "namespace": "default",
-            "use_pvc": true,
             "iot_hub_hostname": "iotHub",
             "device_id": "device1",
             "proxy_image": "proxy:latest",
