@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System;
     using System.Collections.Generic;
     using System.Diagnostics.Tracing;
-    using System.IO;
     using System.Security.Cryptography.X509Certificates;
     using Autofac;
     using DotNetty.Common.Internal.Logging;
@@ -103,16 +102,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var storeAndForwardConfiguration = new StoreAndForwardConfiguration(-1);
             var metricsConfig = new MetricsConfig(true, new MetricsListenerConfig());
             var backupFolder = Option.None<string>();
-            string storageFolder = string.Empty;
 
-            if (bool.TryParse(this.configuration["UsePersistentStorage"], out bool usePersistentStorage) && usePersistentStorage)
+            if (!bool.TryParse(this.configuration["UsePersistentStorage"], out bool usePersistentStorage))
             {
-                storageFolder = GetOrCreateDirectoryPath(this.configuration["StorageFolder"], EdgeHubConstants.EdgeHubStorageFolder);
+                usePersistentStorage = false;
             }
 
-            if (bool.TryParse(this.configuration["EnableStorageBackupAndRestore"], out bool enableStorageBackupAndRestore) && enableStorageBackupAndRestore)
+            if (bool.TryParse(this.configuration["EnableStorageBackupAndRestore"], out bool enableStorageBackupAndRestore))
             {
-                backupFolder = Option.Some(GetOrCreateDirectoryPath(this.configuration["BackupFolder"], EdgeHubConstants.EdgeHubStorageBackupFolder));
+                backupFolder = Option.Some(this.configuration["BackupFolder"]);
             }
 
             builder.RegisterModule(
@@ -127,7 +125,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     Option.Some(edgeHubConnectionString),
                     false,
                     usePersistentStorage,
-                    storageFolder,
+                    string.Empty,
                     Option.None<string>(),
                     Option.None<string>(),
                     TimeSpan.FromHours(1),
@@ -168,22 +166,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             builder.RegisterModule(new HttpModule());
             builder.RegisterModule(new MqttModule(mqttSettingsConfiguration.Object, topics, this.serverCertificate, false, false, false));
             builder.RegisterModule(new AmqpModule("amqps", 5671, this.serverCertificate, iotHubConnectionStringBuilder.HostName, true));
-        }
-
-        static string GetOrCreateDirectoryPath(string baseDirectoryPath, string directoryName)
-        {
-            if (string.IsNullOrWhiteSpace(baseDirectoryPath) || !Directory.Exists(baseDirectoryPath))
-            {
-                baseDirectoryPath = Path.GetTempPath();
-            }
-
-            string directoryPath = Path.Combine(baseDirectoryPath, directoryName);
-            if (!Directory.Exists(directoryPath))
-            {
-                Directory.CreateDirectory(directoryPath);
-            }
-
-            return directoryPath;
         }
     }
 }
