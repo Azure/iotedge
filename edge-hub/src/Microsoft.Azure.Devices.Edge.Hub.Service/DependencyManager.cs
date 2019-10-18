@@ -236,7 +236,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             int timeToLiveSecs = defaultTtl;
             string storagePath = this.GetStoragePath();
             bool storeAndForwardEnabled = this.configuration.GetValue<bool>("storeAndForwardEnabled");
-            ulong storageMaxTotalWalSize = this.configuration.GetValue<ulong>(Constants.ConfigKey.StorageMaxTotalWalSize);
+            Option<ulong> storageMaxTotalWalSize = this.GetStorageMaxTotalWalSizeIfExists();
+
             if (storeAndForwardEnabled)
             {
                 IConfiguration storeAndForwardConfigurationSection = this.configuration.GetSection("storeAndForward");
@@ -244,7 +245,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
 
             var storeAndForwardConfiguration = new StoreAndForwardConfiguration(timeToLiveSecs);
-            return (storeAndForwardEnabled, usePersistentStorage, storeAndForwardConfiguration, storagePath, storageMaxTotalWalSize <= 0 ? Option.None<ulong>()  : Option.Some(storageMaxTotalWalSize));
+            return (storeAndForwardEnabled, usePersistentStorage, storeAndForwardConfiguration, storagePath, storageMaxTotalWalSize);
+        }
+
+        Option<ulong> GetStorageMaxTotalWalSizeIfExists()
+        {
+            ulong storageMaxTotalWalSize = 0;
+            try
+            {
+                storageMaxTotalWalSize = this.configuration.GetValue<ulong>(Constants.ConfigKey.StorageMaxTotalWalSize);
+            }
+            catch
+            {
+                // ignored
+            }
+
+            return storageMaxTotalWalSize <= 0 ? Option.None<ulong>() : Option.Some(storageMaxTotalWalSize);
         }
 
         // Note: Keep in sync with iotedge-check's edge-hub-storage-mounted-from-host check (edgelet/iotedge/src/check/mod.rs)

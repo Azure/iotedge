@@ -109,8 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 int idleTimeoutSecs = configuration.GetValue(Constants.IdleTimeoutSecs, 300);
                 TimeSpan idleTimeout = TimeSpan.FromSeconds(idleTimeoutSecs);
                 ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(configuration.GetSection("experimentalFeatures"), logger);
-                ulong totalWalMaxSize = configuration.GetValue<ulong>(Constants.StorageMaxTotalWalSize);
-                Option<ulong> storageTotalMaxWalSize = totalWalMaxSize <= 0 ? Option.None<ulong>() : Option.Some(totalWalMaxSize);
+                Option<ulong> storageTotalMaxWalSize = GetStorageMaxTotalWalSizeIfExists(configuration);
                 string iothubHostname;
                 string deviceId;
                 switch (mode.ToLowerInvariant())
@@ -294,6 +293,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             logger.LogInformation($"Local config path: {localConfigPath}");
             return localConfigPath;
+        }
+
+        static Option<ulong> GetStorageMaxTotalWalSizeIfExists(IConfiguration configuration)
+        {
+            ulong storageMaxTotalWalSize = 0;
+            try
+            {
+                storageMaxTotalWalSize = configuration.GetValue<ulong>(Constants.StorageMaxTotalWalSize);
+            }
+            catch
+            {
+                // ignored
+            }
+
+            return storageMaxTotalWalSize <= 0 ? Option.None<ulong>() : Option.Some(storageMaxTotalWalSize);
         }
 
         static void LogLogo(ILogger logger)
