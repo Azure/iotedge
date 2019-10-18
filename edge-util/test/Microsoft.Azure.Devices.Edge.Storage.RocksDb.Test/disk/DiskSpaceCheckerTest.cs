@@ -5,8 +5,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
     using System.IO;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk;
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
     [Unit]
