@@ -1,8 +1,9 @@
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 {
     using System;
-    using System.Threading;
     using System.Threading.Tasks;
+
     using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Identity;
@@ -13,10 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
         private string iotHubName = TestContext.IotHubName;
         private string deviceId = TestContext.DeviceId;
 
-        public AllGoodDeviceProxy()
-        {
-            this.Identity = new DeviceIdentity(iotHubName, deviceId);
-        }
+        public AllGoodDeviceProxy() => this.Identity = new DeviceIdentity(this.iotHubName, this.deviceId);
 
         public virtual bool IsActive => true;
         public virtual IIdentity Identity { get; set; }
