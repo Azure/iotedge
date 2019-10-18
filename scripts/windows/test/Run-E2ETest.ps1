@@ -203,7 +203,7 @@ Param (
     [ValidateNotNullOrEmpty()]
     [string] $ContainerRegistryPassword = $(Throw "Container registry password is required"),
 
-    [string] $DesiredModulesToRestartCSV = ""
+    [string] $DesiredModulesToRestartCSV = "",
 
     [ValidateNotNullOrEmpty()]
     [string] $DpsScopeId = $null,
@@ -229,7 +229,7 @@ Param (
     [ValidateScript({($_ -as [System.Uri]).AbsoluteUri -ne $null})]
     [string] $ProxyUri = $null,
 
-    [string] $RandomRestartIntervalInMins = 10
+    [string] $RandomRestartIntervalInMins = 10,
 
     [ValidateNotNullOrEmpty()]
     [string] $SnitchAlertUrl = $null,
