@@ -43,19 +43,17 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
 
         // Once write-ahead logs exceed this size, we will start forcing the flush of
         // column families whose memtables are backed by the oldest live WAL file
-        readonly ulong maxTotalWalSize = 512 * 1024 * 1024;
+        const ulong DefaultMaxTotalWalSize = 512 * 1024 * 1024;
 
         readonly ISystemEnvironment env;
         readonly bool optimizeForPerformance;
+        readonly ulong maxTotalWalSize;
 
-        public RocksDbOptionsProvider(ISystemEnvironment env, bool optimizeForPerformance)
+        public RocksDbOptionsProvider(ISystemEnvironment env, bool optimizeForPerformance, Option<ulong> maxTotalWalsize)
         {
             this.env = Preconditions.CheckNotNull(env);
             this.optimizeForPerformance = optimizeForPerformance;
-            if (ulong.TryParse(Environment.GetEnvironmentVariable("RocksDB_MaxTotalWalSize"), out ulong envMaxTotalWalSize))
-            {
-                this.maxTotalWalSize = envMaxTotalWalSize;
-            }
+            this.maxTotalWalSize = maxTotalWalsize.GetOrElse(DefaultMaxTotalWalSize);
         }
 
         public DbOptions GetDbOptions()
