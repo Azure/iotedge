@@ -2,6 +2,7 @@
 
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::convert::TryFrom;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -23,9 +24,10 @@ use edgelet_docker::DockerConfig;
 use kube_client::{get_config, Client as KubeClient, HttpClient, TokenSource, ValueToken};
 use provisioning::ProvisioningResult;
 
-use crate::convert::{auth_to_image_pull_secret, pod_to_module};
+use crate::convert::{pod_to_module, NamedSecret};
 use crate::error::{Error, ErrorKind};
 use crate::module::{authenticate, create_module, init_trust_bundle, KubeModule};
+use crate::registry::ImagePullSecret;
 use crate::settings::Settings;
 
 pub struct KubeModuleRuntime<T, S> {
@@ -84,11 +86,15 @@ where
     type Config = DockerConfig;
 
     fn pull(&self, config: &Self::Config) -> Self::PullFuture {
+        let image_pull_secret = config
+            .auth()
+            .and_then(|auth| ImagePullSecret::from_auth(auth));
+
         // Find and generate image pull secrets.
-        if let Some(auth) = config.auth() {
+        if let Some(image_pull_secret) = image_pull_secret {
             // Have authorization for this module spec, create this if it doesn't exist.
-            let fut = auth_to_image_pull_secret(self.settings().namespace(), auth)
-                .map(|(secret_name, pull_secret)| {
+            let fut = NamedSecret::try_from((self.settings().namespace(), image_pull_secret))
+                .map(|pull_secret| {
                     let client_copy = self.client.clone();
                     let namespace_copy = self.settings().namespace().to_owned();
 
@@ -96,15 +102,17 @@ where
                         .lock()
                         .expect("Unexpected lock error")
                         .borrow_mut()
-                        .list_secrets(self.settings().namespace(), Some(secret_name.as_str()))
+                        .list_secrets(self.settings().namespace(), Some(pull_secret.name()))
                         .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                         .and_then(move |secrets| {
                             if let Some(current_secret) = secrets.items.into_iter().find(|secret| {
                                 secret.metadata.as_ref().map_or(false, |meta| {
-                                    meta.name.as_ref().map_or(false, |n| *n == secret_name)
+                                    meta.name
+                                        .as_ref()
+                                        .map_or(false, |n| n == pull_secret.name())
                                 })
                             }) {
-                                if current_secret == pull_secret {
+                                if current_secret == *pull_secret.secret() {
                                     Either::A(Either::A(future::ok(())))
                                 } else {
                                     let f = client_copy
@@ -113,8 +121,8 @@ where
                                         .borrow_mut()
                                         .replace_secret(
                                             namespace_copy.as_str(),
-                                            secret_name.as_str(),
-                                            &pull_secret,
+                                            pull_secret.name(),
+                                            pull_secret.secret(),
                                         )
                                         .map_err(|err| {
                                             Error::from(err.context(ErrorKind::KubeClient))
@@ -128,7 +136,7 @@ where
                                     .lock()
                                     .expect("Unexpected lock error")
                                     .borrow_mut()
-                                    .create_secret(namespace_copy.as_str(), &pull_secret)
+                                    .create_secret(namespace_copy.as_str(), pull_secret.secret())
                                     .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
                                     .map(|_| ());
 

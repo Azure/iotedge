@@ -66,20 +66,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
 
         [Fact]
         [Unit]
-        public async void KubernetesPlannerNoOverwriteAgentModules()
-        {
-            IModule m1 = new DockerModule(Constants.EdgeAgentModuleName, "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            IModule m2 = new DockerModule(Constants.EdgeAgentModuleName, "v1", ModuleStatus.Running, RestartPolicy.Always, Config2, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            ModuleSet desired = ModuleSet.Create(m1);
-            ModuleSet current = ModuleSet.Create(m2);
-
-            var planner = new KubernetesPlanner(Namespace, ResourceName, DefaultClient, DefaultCommandFactory, ConfigProvider);
-            var plan = await planner.PlanAsync(desired, current, RuntimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty);
-            Assert.Equal(Plan.Empty, plan);
-        }
-
-        [Fact]
-        [Unit]
         public async void KubernetesPlannerPlanFailsWithNonDockerModules()
         {
             IModule m1 = new NonDockerModule("module1", "v1", "unknown", ModuleStatus.Running, RestartPolicy.Always, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars, string.Empty);
