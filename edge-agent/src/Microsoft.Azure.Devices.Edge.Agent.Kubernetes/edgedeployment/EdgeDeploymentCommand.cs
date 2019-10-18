@@ -23,6 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     {
         readonly IKubernetes client;
         readonly IReadOnlyCollection<IModule> modules;
+        readonly ModuleSet currentmodules;
         readonly IRuntimeInfo runtimeInfo;
         readonly Lazy<string> id;
         readonly ICombinedConfigProvider<CombinedKubernetesConfig> configProvider;
@@ -38,14 +39,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             string deviceNamespace,
             ResourceName resourceName,
             IKubernetes client,
-            IEnumerable<IModule> modules,
+            IEnumerable<IModule> desiredmodules,
+            ModuleSet currentmodules,
             IRuntimeInfo runtimeInfo,
             ICombinedConfigProvider<CombinedKubernetesConfig> configProvider)
         {
             this.deviceNamespace = KubeUtils.SanitizeK8sValue(Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace)));
             this.resourceName = Preconditions.CheckNotNull(resourceName, nameof(resourceName));
             this.client = Preconditions.CheckNotNull(client, nameof(client));
-            this.modules = Preconditions.CheckNotNull(modules, nameof(modules)).ToList();
+            this.modules = Preconditions.CheckNotNull(desiredmodules, nameof(desiredmodules)).ToList();
+            this.currentmodules = Preconditions.CheckNotNull(currentmodules, nameof(currentmodules));
             this.runtimeInfo = Preconditions.CheckNotNull(runtimeInfo, nameof(runtimeInfo));
             this.configProvider = Preconditions.CheckNotNull(configProvider, nameof(configProvider));
             this.id = new Lazy<string>(() => this.modules.Aggregate(string.Empty, (prev, module) => module.Name + prev));
@@ -127,8 +130,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     module =>
                     {
                         var combinedConfig = this.configProvider.GetCombinedConfig(module, this.runtimeInfo);
+                        // TODO: this is a workaround in preview to keep Agent from updating
+                        var image = combinedConfig.Image;
+                        if (module.Name == Core.Constants.EdgeAgentModuleName &&
+                            this.currentmodules.Modules.TryGetValue(Core.Constants.EdgeAgentModuleName, out IModule edgeAgentCurrentModule))
+                        {
+                            var currentAgent = this.configProvider.GetCombinedConfig(edgeAgentCurrentModule, this.runtimeInfo);
+                            image = currentAgent.Image;
+                        }
+
                         var authConfig = combinedConfig.ImagePullSecret.Map(secret => new AuthConfig(secret.Name));
-                        return new KubernetesModule(module, new KubernetesConfig(combinedConfig.Image, combinedConfig.CreateOptions, authConfig));
+                        return new KubernetesModule(module, new KubernetesConfig(image, combinedConfig.CreateOptions, authConfig));
                     })
                 .ToList();
 
