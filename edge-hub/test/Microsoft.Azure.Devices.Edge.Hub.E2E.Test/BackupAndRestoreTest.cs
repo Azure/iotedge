@@ -27,13 +27,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
     public class BackupAndRestoreTest : IDisposable
     {
-        public static IEnumerable<object[]> BackupAndRestoreTestSettings =>
-            new List<object[]>
-            {
-                new object[] { TestSettings.AmqpTransportSettings, true },
-                new object[] { TestSettings.AmqpTransportSettings, false },
-            };
-
         readonly string backupFolder;
         EdgeHubFixture edgeHubFixture;
         TestConsoleLogger logger;
@@ -71,31 +64,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         }
 
         [Theory]
-        [MemberData(nameof(BackupAndRestoreTestSettings))]
-        async Task BackupAndRestoreMessageDeliveryTest(ITransportSettings[] transportSettings, bool usePersistentStorage)
+        [MemberData(nameof(TestSettings.AmqpTransportTestSettings), MemberType = typeof(TestSettings))]
+        async Task BackupAndRestoreMessageDeliveryTest(ITransportSettings[] transportSettings)
         {
             Console.WriteLine("Running test BackupAndRestoreMessageDeliveryTest");
-            await this.BackupAndRestoreMessageDeliveryTestBase(transportSettings, usePersistentStorage, 10, 10, 20, () => { });
+            await this.BackupAndRestoreMessageDeliveryTestBase(transportSettings, 10, 10, 20, () => { });
             Console.WriteLine("Finished test BackupAndRestoreMessageDeliveryTest");
         }
 
         [TestPriority(Constants.TestPriority.StressTest.BackupAndRestoreLargeBackupSizeTest)]
         [Stress]
         [Theory]
-        [MemberData(nameof(BackupAndRestoreTestSettings))]
-        async Task BackupAndRestoreLargeBackupSizeTest(ITransportSettings[] transportSettings, bool usePersistentStorage)
+        [MemberData(nameof(TestSettings.AmqpTransportTestSettings), MemberType = typeof(TestSettings))]
+        async Task BackupAndRestoreLargeBackupSizeTest(ITransportSettings[] transportSettings)
         {
             Console.WriteLine("Running test BackupAndRestoreLargeBackupSizeTest");
 
             int.TryParse(ConfigHelper.TestConfig["BackupAndRestoreLargeBackupSize_MessagesCount_SingleSender"], out int messagesCount);
-            await this.BackupAndRestoreMessageDeliveryTestBase(transportSettings, usePersistentStorage, messagesCount, 10, messagesCount + 10, () => { });
+            await this.BackupAndRestoreMessageDeliveryTestBase(transportSettings, messagesCount, 10, messagesCount + 10, () => { });
 
             Console.WriteLine("Finished test BackupAndRestoreLargeBackupSizeTest");
         }
 
         [Theory]
-        [MemberData(nameof(BackupAndRestoreTestSettings))]
-        async Task BackupAndRestoreCorruptBackupMetadataTest(ITransportSettings[] transportSettings, bool usePersistentStorage)
+        [MemberData(nameof(TestSettings.AmqpTransportTestSettings), MemberType = typeof(TestSettings))]
+        async Task BackupAndRestoreCorruptBackupMetadataTest(ITransportSettings[] transportSettings)
         {
             Console.WriteLine("Running test BackupAndRestoreCorruptBackupMetadataTest");
 
@@ -108,14 +101,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
             };
 
-            await this.BackupAndRestoreMessageDeliveryTestBase(transportSettings, usePersistentStorage, 15, 10, 10, corruptBackupMetadata);
+            await this.BackupAndRestoreMessageDeliveryTestBase(transportSettings, 15, 10, 10, corruptBackupMetadata);
 
             Console.WriteLine("Finished test BackupAndRestoreCorruptBackupMetadataTest");
         }
 
         [Theory]
-        [MemberData(nameof(BackupAndRestoreTestSettings))]
-        async Task BackupAndRestoreCorruptBackupDataTest(ITransportSettings[] transportSettings, bool usePersistentStorage)
+        [MemberData(nameof(TestSettings.AmqpTransportTestSettings), MemberType = typeof(TestSettings))]
+        async Task BackupAndRestoreCorruptBackupDataTest(ITransportSettings[] transportSettings)
         {
             Console.WriteLine("Running test BackupAndRestoreCorruptBackupDataTest");
 
@@ -131,20 +124,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
             };
 
-            await this.BackupAndRestoreMessageDeliveryTestBase(transportSettings, usePersistentStorage, 15, 10, 10, corruptBackupMetadata);
+            await this.BackupAndRestoreMessageDeliveryTestBase(transportSettings, 15, 10, 10, corruptBackupMetadata);
 
             Console.WriteLine("Finished test BackupAndRestoreCorruptBackupDataTest");
         }
 
         async Task BackupAndRestoreMessageDeliveryTestBase(
             ITransportSettings[] transportSettings,
-            bool usePersistentStorage,
             int beforeBackupMessageCount,
             int afterBackupMessageCount,
             int expectedMessageCountAfterRestore,
             Action postBackupModifier)
         {
-            ConfigHelper.TestConfig["UsePersistentStorage"] = usePersistentStorage.ToString();
             ProtocolHeadFixture protocolHeadFixture = this.edgeHubFixture.GetFixture();
             TestModule sender = null;
             TestModule receiver = null;
@@ -219,8 +210,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 }
 
                 await protocolHeadFixture.CloseAsync();
-
-                ConfigHelper.TestConfig["UsePersistentStorage"] = "null";
             }
 
             // wait for the connection to be closed on the Edge side
