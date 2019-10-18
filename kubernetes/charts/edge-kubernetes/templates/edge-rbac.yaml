@@ -95,6 +95,9 @@ rules:
   - apiGroups: ["microsoft.azure.devices.edge"]
     resources: ["edgedeployments"]
     verbs: ["list", "get", "create", "update", "delete", "watch"]
+  - apiGroups: ["microsoft.azure.devices.edge"]
+    resources: ["edgedeployments/status"]
+    verbs: ["list", "get", "create", "update", "delete"]
 ...
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -121,3 +124,6 @@ rules:
   - apiGroups: ["microsoft.azure.devices.edge"]
     resources: ["edgedeployments"]
     verbs: ["list", "get", "create", "update", "delete", "watch"]
+  - apiGroups: ["microsoft.azure.devices.edge"]
+    resources: ["edgedeployments/status"]
+    verbs: ["list", "get", "create", "update", "delete"]
