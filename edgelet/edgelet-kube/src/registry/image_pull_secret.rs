@@ -195,15 +195,6 @@ mod tests {
     }
 
     #[test]
-    fn it_returns_none_secret_name_when_registry_missing() {
-        let image_pull_secret = ImagePullSecret::default().with_username("USER");
-
-        let name = image_pull_secret.name();
-
-        assert_eq!(name, None);
-    }
-
-    #[test]
     fn it_generates_secret_data() {
         let image_pull_secret = ImagePullSecret::default()
             .with_registry("REGISTRY")
