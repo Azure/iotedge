@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using System.Linq;
 using System.Runtime.InteropServices.ComTypes;
+using System.Diagnostics;
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
@@ -49,13 +50,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public async Task<ICommand> StartAsync(IModule module)
         {
             FactoryMetrics.AddMessage(module, FactoryMetrics.Command.Start);
-            return await underlying.StartAsync(module);
+            using (FactoryMetrics.MeasureTime(FactoryMetrics.Command.Start))
+            {
+                return await underlying.StartAsync(module);
+            }
         }
 
         public async Task<ICommand> StopAsync(IModule module)
         {
             FactoryMetrics.AddMessage(module, FactoryMetrics.Command.Stop);
-            return await underlying.StopAsync(module);
+            using (FactoryMetrics.MeasureTime(FactoryMetrics.Command.Stop))
+            {
+                return await underlying.StopAsync(module);
+            }
         }
 
         public async Task<ICommand> RestartAsync(IModule module)
@@ -79,7 +86,7 @@ static class FactoryMetrics
         Stop
     }
 
-    static readonly Dictionary<Command, IMetricsCounter> counters = Enum.GetValues(typeof(Command)).Cast<Command>().ToDictionary(c => c, command =>
+    static readonly Dictionary<Command, IMetricsCounter> commandCounters = Enum.GetValues(typeof(Command)).Cast<Command>().ToDictionary(c => c, command =>
     {
         string commandName = Enum.GetName(typeof(Command), command).ToLower();
         return Metrics.Instance.CreateCounter(
@@ -88,8 +95,39 @@ static class FactoryMetrics
             new List<string> { "module_name", "module_version" });
     });
 
+    static readonly Dictionary<Command, IMetricsDuration> commandTiming = Enum.GetValues(typeof(Command)).Cast<Command>().ToDictionary(c => c, command =>
+    {
+        string commandName = Enum.GetName(typeof(Command), command).ToLower();
+        return Metrics.Instance.CreateDuration(
+            $"{commandName}_command_latency",
+            "Command sent to module",
+            new List<string> {  });
+    });
+
     public static void AddMessage(Microsoft.Azure.Devices.Edge.Agent.Core.IModule module, Command command)
     {
-        counters[command].Increment(1, new[] { module.Name, module.Version });
+        commandCounters[command].Increment(1, new[] { module.Name, module.Version });
+    }
+
+    public static DurationSetter MeasureTime(Command command)
+    {
+        return new DurationSetter(commandTiming[command]);
+    }
+
+    internal class DurationSetter : IDisposable
+    {
+        private Stopwatch timer = Stopwatch.StartNew();
+        private IMetricsDuration metricsDuration;
+
+        internal DurationSetter(IMetricsDuration metricsDuration)
+        {
+            this.metricsDuration = metricsDuration;
+        }
+
+        public void Dispose()
+        {
+            timer.Stop();
+            metricsDuration.Set(timer.Elapsed.TotalSeconds, new string[] { });
+        }
     }
 }
