@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
             messageStore.Setup(m => m.SetTimeToLive(It.IsAny<TimeSpan>()));
 
             var storageSpaceChecker = new Mock<IStorageSpaceChecker>();
-            storageSpaceChecker.Setup(m => m.SetMaxSize(It.IsAny<long>(), It.IsAny<Option<long>>()));
+            storageSpaceChecker.Setup(m => m.SetMaxSizeBytes(It.IsAny<long>()));
 
             TimeSpan updateFrequency = TimeSpan.FromSeconds(10);
 
@@ -93,17 +93,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
 
             var routes9 = Routes
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
-            var storeAndForwardConfiguration9 = new StoreAndForwardConfiguration(3600, Option.Some(new StoreLimits(20L, Option.None<long>())));
+            var storeAndForwardConfiguration9 = new StoreAndForwardConfiguration(3600, Option.Some(new StoreLimits(20L, Option.None<int>())));
             var edgeHubConfig9 = new EdgeHubConfig("1.0", routes9, storeAndForwardConfiguration9);
 
             var routes10 = Routes
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
-            var storeAndForwardConfiguration10 = new StoreAndForwardConfiguration(3600, Option.Some(new StoreLimits(20L, Option.Some(30L))));
+            var storeAndForwardConfiguration10 = new StoreAndForwardConfiguration(3600, Option.Some(new StoreLimits(20L, Option.Some(30))));
             var edgeHubConfig10 = new EdgeHubConfig("1.0", routes10, storeAndForwardConfiguration10);
 
             var routes11 = Routes
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
-            var storeAndForwardConfiguration11 = new StoreAndForwardConfiguration(3600, Option.Some(new StoreLimits(20L, Option.Some(40L))));
+            var storeAndForwardConfiguration11 = new StoreAndForwardConfiguration(3600, Option.Some(new StoreLimits(20L, Option.Some(40))));
             var edgeHubConfig11 = new EdgeHubConfig("1.0", routes11, storeAndForwardConfiguration11);
 
             var configProvider = new Mock<IConfigSource>();
@@ -131,80 +131,80 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
             configProvider.Verify(c => c.GetConfig(), Times.Once);
             endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Once);
-            storageSpaceChecker.Verify(m => m.SetMaxSize(It.IsAny<long>(), It.IsAny<Option<long>>()), Times.Never);
+            storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.IsAny<long>()), Times.Never);
 
             // After 5 seconds, the periodic task should not have run.
             await Task.Delay(TimeSpan.FromSeconds(5));
             configProvider.Verify(c => c.GetConfig(), Times.Once);
             endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Once);
-            storageSpaceChecker.Verify(m => m.SetMaxSize(It.IsAny<long>(), It.IsAny<Option<long>>()), Times.Never);
+            storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.IsAny<long>()), Times.Never);
 
             await Task.Delay(TimeSpan.FromSeconds(20));
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(3));
             endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Once);
-            storageSpaceChecker.Verify(m => m.SetMaxSize(It.IsAny<long>(), It.IsAny<Option<long>>()), Times.Never);
+            storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.IsAny<long>()), Times.Never);
 
             await Task.Delay(TimeSpan.FromSeconds(10));
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(4));
             endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Exactly(2));
-            storageSpaceChecker.Verify(m => m.SetMaxSize(It.IsAny<long>(), It.IsAny<Option<long>>()), Times.Never);
+            storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.IsAny<long>()), Times.Never);
 
             await Task.Delay(TimeSpan.FromSeconds(10));
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(5));
             endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Exactly(3));
-            storageSpaceChecker.Verify(m => m.SetMaxSize(It.IsAny<long>(), It.IsAny<Option<long>>()), Times.Never);
+            storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.IsAny<long>()), Times.Never);
 
             await Task.Delay(TimeSpan.FromSeconds(10));
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(6));
             endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Exactly(4));
-            storageSpaceChecker.Verify(m => m.SetMaxSize(It.IsAny<long>(), It.IsAny<Option<long>>()), Times.Never);
+            storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.IsAny<long>()), Times.Never);
 
             await Task.Delay(TimeSpan.FromSeconds(10));
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(7));
             endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Exactly(5));
-            storageSpaceChecker.Verify(m => m.SetMaxSize(It.IsAny<long>(), It.IsAny<Option<long>>()), Times.Once);
+            storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.IsAny<long>()), Times.Once);
 
             await Task.Delay(TimeSpan.FromSeconds(10));
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(8));
             endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Exactly(6));
-            storageSpaceChecker.Verify(m => m.SetMaxSize(It.IsAny<long>(), It.IsAny<Option<long>>()), Times.Exactly(2));
+            storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.IsAny<long>()), Times.Exactly(2));
 
             await Task.Delay(TimeSpan.FromSeconds(10));
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(9));
             endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Exactly(6));
-            storageSpaceChecker.Verify(m => m.SetMaxSize(It.IsAny<long>(), It.IsAny<Option<long>>()), Times.Exactly(2));
+            storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.IsAny<long>()), Times.Exactly(2));
 
             await Task.Delay(TimeSpan.FromSeconds(10));
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(10));
             endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Exactly(6));
-            storageSpaceChecker.Verify(m => m.SetMaxSize(It.IsAny<long>(), It.IsAny<Option<long>>()), Times.Exactly(2));
+            storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.IsAny<long>()), Times.Exactly(2));
 
             await Task.Delay(TimeSpan.FromSeconds(10));
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(11));
             endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Exactly(7));
-            storageSpaceChecker.Verify(m => m.SetMaxSize(It.IsAny<long>(), It.IsAny<Option<long>>()), Times.Exactly(3));
+            storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.IsAny<long>()), Times.Exactly(3));
 
             await Task.Delay(TimeSpan.FromSeconds(10));
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(12));
             endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Exactly(8));
-            storageSpaceChecker.Verify(m => m.SetMaxSize(It.IsAny<long>(), It.IsAny<Option<long>>()), Times.Exactly(4));
+            storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.IsAny<long>()), Times.Exactly(4));
 
             await Task.Delay(TimeSpan.FromSeconds(10));
             configProvider.Verify(c => c.GetConfig(), Times.Exactly(13));
             endpointExecutorFactory.Verify(e => e.CreateAsync(It.IsAny<Endpoint>()), Times.Once);
             messageStore.Verify(m => m.SetTimeToLive(It.IsAny<TimeSpan>()), Times.Exactly(8));
-            storageSpaceChecker.Verify(m => m.SetMaxSize(It.IsAny<long>(), It.IsAny<Option<long>>()), Times.Exactly(4));
+            storageSpaceChecker.Verify(m => m.SetMaxSizeBytes(It.IsAny<long>()), Times.Exactly(4));
         }
     }
 }

@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
     public class MemorySpaceChecker : IStorageSpaceChecker
     {
-        static readonly long DefaultCheckFrequency = 120;
+        static readonly int DefaultCheckFrequencySecs = 5;
 
         internal enum MemoryUsageStatus
         {
@@ -20,9 +20,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         readonly object updateLock = new object();
 
-        PeriodicTask storageSpaceChecker;
+        Option<PeriodicTask> storageSpaceChecker;
         long maxSize;
-        long checkFrequency;
+        int checkFrequency;
         Func<Task<long>> getTotalMemoryUsage;
         MemoryUsageStatus memoryUsageStatus;
 
@@ -31,35 +31,57 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             this.getTotalMemoryUsage = Preconditions.CheckNotNull(getTotalMemoryUsage, nameof(getTotalMemoryUsage));
             this.maxSize = long.MaxValue;
             this.memoryUsageStatus = MemoryUsageStatus.Unknown;
-            this.checkFrequency = long.MaxValue;
+            this.checkFrequency = int.MinValue;
+            this.storageSpaceChecker = Option.None<PeriodicTask>();
         }
 
-        public MemorySpaceChecker(TimeSpan checkFrequency, long maxSize, Func<Task<long>> getTotalMemoryUsage)
-            : this(getTotalMemoryUsage)
+        public void SetMaxSizeBytes(long maxSizeBytes)
         {
-            this.maxSize = maxSize;
-            this.storageSpaceChecker = new PeriodicTask(this.PeriodicTaskCallback, checkFrequency, checkFrequency, Events.Log, "Memory usage check");
+            this.maxSize = maxSizeBytes;
+            this.EnableChecker();
+            Events.SetMaxMemorySpaceUsage(maxSize);
         }
 
-        public void SetMaxSize(long maxSize, Option<long> newCheckFrequency)
+        public void SetCheckFrequency(Option<int> checkFrequencySecs)
         {
-            this.maxSize = maxSize;
-            long updatedCheckFrequency = newCheckFrequency.GetOrElse(long.MinValue);
-
-            TimeSpan frequency = default;
-            if (this.checkFrequency != updatedCheckFrequency)
+            checkFrequencySecs.ForEach(updatedCheckFrequency =>
             {
-                lock (this.updateLock)
+                if (updatedCheckFrequency > 0 && this.checkFrequency != updatedCheckFrequency)
                 {
-                    this.checkFrequency = updatedCheckFrequency;
-                    frequency = TimeSpan.FromSeconds(this.checkFrequency < 0 ? DefaultCheckFrequency : this.checkFrequency);
+                    lock (this.updateLock)
+                    {
+                        this.checkFrequency = updatedCheckFrequency;
+                        this.storageSpaceChecker.ForEach(x => x.Dispose());
+                        this.storageSpaceChecker = Option.Some(GetCheckTask(updatedCheckFrequency));
+                    }
 
-                    this.storageSpaceChecker?.Dispose();
-                    this.storageSpaceChecker = new PeriodicTask(this.PeriodicTaskCallback, frequency, frequency, Events.Log, "Memory usage check");
+                    Events.SetCheckFrequency(this.checkFrequency);
+                }
+            });
+        }
+
+        public void DisableChecker()
+        {
+            lock (this.updateLock)
+            {
+                if (this.storageSpaceChecker.HasValue)
+                {
+                    this.storageSpaceChecker.ForEach(x => x.Dispose());
+                    this.storageSpaceChecker = Option.None<PeriodicTask>();
                 }
             }
+        }
 
-            Events.SetMaxMemorySpaceUsage(maxSize, this.checkFrequency < 0 ? DefaultCheckFrequency : this.checkFrequency);
+        void EnableChecker()
+        {
+            lock (this.updateLock)
+            {
+                if (!this.storageSpaceChecker.HasValue)
+                {
+                    this.checkFrequency = DefaultCheckFrequencySecs;
+                    this.storageSpaceChecker = Option.Some(GetCheckTask(DefaultCheckFrequencySecs));
+                }
+            }
         }
 
         public Func<Task<long>> GetTotalMemoryUsage
@@ -111,6 +133,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return memoryUsageStatus;
         }
 
+        PeriodicTask GetCheckTask(int checkFrequencySecs)
+        {
+            TimeSpan frequency = TimeSpan.FromSeconds(checkFrequencySecs);
+            return new PeriodicTask(this.PeriodicTaskCallback, frequency, frequency, Events.Log, "Memory usage check");
+        }
+
         static MemoryUsageStatus GetMemoryUsageStatus(double usagePercentage)
         {
             if (usagePercentage < 90)
@@ -137,7 +165,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 ErrorGetMemoryUsageStatus,
                 HighMemoryUsageDetected,
                 MemoryUsageStats,
-                SetMaxMemorySpaceUsage
+                SetMaxMemorySpaceUsage,
+                SetCheckFrequency
             }
 
             public static void Created()
@@ -160,9 +189,14 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 Log.LogDebug((int)EventIds.MemoryUsageStats, $"Memory usage - Consuming {consumedMemoryBytes} bytes using {usagePercentage}% of {maxSizeBytes} bytes");
             }
 
-            public static void SetMaxMemorySpaceUsage(long maxSizeBytes, long checkFrequency)
+            public static void SetMaxMemorySpaceUsage(long maxSizeBytes)
             {
-                Log.LogInformation((int)EventIds.SetMaxMemorySpaceUsage, $"Setting maximum memory space usage to {maxSizeBytes} bytes with a check frequency of {checkFrequency} seconds.");
+                Log.LogInformation((int)EventIds.SetMaxMemorySpaceUsage, $"Setting maximum memory space usage to {maxSizeBytes} bytes.");
+            }
+
+            public static void SetCheckFrequency(int checkFrequency)
+            {
+                Log.LogInformation((int)EventIds.SetCheckFrequency, $"Setting check frequency to {checkFrequency} seconds.");
             }
         }
     }

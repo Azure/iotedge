@@ -10,22 +10,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     {
         [JsonConstructor]
         public StoreLimits(long maxSize)
-            : this(maxSize, Option.None<long>())
+            : this(maxSize, Option.None<int>())
         {
         }
 
-        public StoreLimits(long maxSize, Option<long> checkFrequency)
+        public StoreLimits(long maxSizeBytes, Option<int> checkFrequency)
         {
-            this.MaxSize = maxSize;
-            this.CheckFrequency = checkFrequency;
+            this.MaxSizeBytes = maxSizeBytes;
+            this.CheckFrequencySecs = checkFrequency;
         }
 
-        [JsonProperty(PropertyName = "maxSize")]
-        public long MaxSize { get; }
+        [JsonProperty(PropertyName = "maxSizeBytes")]
+        public long MaxSizeBytes { get; }
 
-        [JsonProperty(PropertyName = "checkFrequency")]
+        [JsonProperty(PropertyName = "checkFrequencySecs")]
         [JsonConverter(typeof(OptionConverter<long>), true)]
-        public Option<long> CheckFrequency { get; }
+        public Option<int> CheckFrequencySecs { get; }
 
         public bool Equals(StoreLimits other)
         {
@@ -39,8 +39,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                 return true;
             }
 
-            return this.MaxSize == other.MaxSize &&
-                this.CheckFrequency.Equals(other.CheckFrequency);
+            return this.MaxSizeBytes == other.MaxSizeBytes &&
+                this.CheckFrequencySecs.Equals(other.CheckFrequencySecs);
         }
 
         public override bool Equals(object obj)
@@ -50,8 +50,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         {
             unchecked
             {
-                int hashCode = this.MaxSize.GetHashCode();
-                hashCode = (hashCode * 397) ^ this.CheckFrequency.GetHashCode();
+                int hashCode = this.MaxSizeBytes.GetHashCode();
+                hashCode = (hashCode * 397) ^ this.CheckFrequencySecs.GetHashCode();
                 return hashCode;
             }
         }

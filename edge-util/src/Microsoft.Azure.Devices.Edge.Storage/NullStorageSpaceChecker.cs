@@ -7,11 +7,19 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
     public class NullStorageSpaceChecker : IStorageSpaceChecker
     {
-        public void SetMaxSize(long maxSize, Option<long> checkFrequency)
+        public void SetStorageUsageComputer(Func<Task<long>> storageUsageComputer)
         {
         }
 
-        public void SetStorageUsageComputer(Func<Task<long>> storageUsageComputer)
+        public void SetMaxSizeBytes(long maxSizeBytes)
+        {
+        }
+
+        public void SetCheckFrequency(Option<int> checkFrequencySecs)
+        {
+        }
+
+        public void DisableChecker()
         {
         }
 

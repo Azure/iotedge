@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         {
             long maxStorageBytes = 90;
             IStorageSpaceChecker checker = new MemorySpaceChecker(() => Task.FromResult(0L));
-            checker.SetMaxSize(maxStorageBytes, Option.Some(3L));
+            checker.SetMaxSizeBytes(maxStorageBytes);
             InMemoryDbStoreProvider storeProvider = new InMemoryDbStoreProvider(Option.Some(checker));
 
             string store1Name = "store1";
