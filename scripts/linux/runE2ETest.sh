@@ -170,7 +170,7 @@ function prepare_test_from_artifacts() {
                 local escapedSnitchAlertUrl
                 local escapedBuildId
                 sed -i -e "s@<Analyzer.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
-                sed -i -e "s@<Analyzer.ConsumerGroupId>@${EVENT_HUB_CONSUMER_GROUP:-\$Default}@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.ConsumerGroupId>@$EVENT_HUB_CONSUMER_GROUP_ID@g" "$deployment_working_file"
                 sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
                 escapedSnitchAlertUrl="${SNITCH_ALERT_URL//&/\\&}"
                 escapedBuildId="${ARTIFACT_IMAGE_BUILD_NUMBER//./}"
@@ -350,7 +350,7 @@ function process_args() {
             DPS_MASTER_SYMMETRIC_KEY="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 29 ]; then
-            EVENT_HUB_CONSUMER_GROUP="$arg"
+            EVENT_HUB_CONSUMER_GROUP_ID="$arg"
             saveNextArg=0
         else
             case "$arg" in
@@ -383,7 +383,7 @@ function process_args() {
                 '-installRootCAKeyPassword' ) saveNextArg=26;;
                 '-dpsScopeId' ) saveNextArg=27;;
                 '-dpsMasterSymmetricKey' ) saveNextArg=28;;
-                '-eventHubConsumerGroup' ) saveNextArg=29;;
+                '-eventHubConsumerGroupId' ) saveNextArg=29;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -972,6 +972,7 @@ process_args "$@"
 
 CONTAINER_REGISTRY="${CONTAINER_REGISTRY:-edgebuilds.azurecr.io}"
 E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
+EVENT_HUB_CONSUMER_GROUP_ID=${EVENT_HUB_CONSUMER_GROUP_ID:-\$Default}
 SNITCH_BUILD_NUMBER="${SNITCH_BUILD_NUMBER:-1.2}"
 LOADGEN1_TRANSPORT_TYPE="${LOADGEN1_TRANSPORT_TYPE:-amqp}"
 LOADGEN2_TRANSPORT_TYPE="${LOADGEN2_TRANSPORT_TYPE:-amqp}"

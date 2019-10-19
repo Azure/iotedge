@@ -65,6 +65,23 @@ enum ContainerOs {
     Windows
 }
 
+function New-Sockets([string] $EdgeDataDirectory) {
+    foreach ($name in 'mgmt', 'workload') {
+        # We can't bind socket files directly in Windows, so create a folder
+        # and bind to that. The folder needs to give Modify rights to a
+        # well-known group that will exist in any container so that
+        # non-privileged modules can access it.
+        $path = "$EdgeDataDirectory\$name"
+        New-Item $Path -ItemType Directory -Force | Out-Null
+        $sid = New-Object System.Security.Principal.SecurityIdentifier 'S-1-5-11' # NT AUTHORITY\Authenticated Users
+        $rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule(`
+            $sid, 'Modify', 'ObjectInherit', 'InheritOnly', 'Allow')
+        $acl = Get-Acl -Path $path
+        $acl.AddAccessRule($rule)
+        Set-Acl -Path $path -AclObject $acl
+    }
+}
+
 <#
 .SYNOPSIS
 
@@ -306,16 +323,24 @@ function Initialize-IoTEdge {
         throw
     }
 
-    Setup-Environment -ContainerOs $ContainerOs -SkipArchCheck -SkipBatteryCheck
+    Setup-Environment -ContainerOs $ContainerOs -SkipBatteryCheck
 
     $configPath = Join-Path -Path $EdgeDataDirectory -ChildPath 'config.yaml'
     if (Test-Path $configPath) {
         Write-HostRed
         Write-HostRed "$configPath already exists."
-        Write-HostRed ('Delete it using "Uninstall-IoTEdge -Force" and then ' +
-            're-run "Deploy-IoTEdge" and "Initialize-IoTEdge"')
+        if (Test-IotCore) {
+            Write-HostRed ('You must reflash the device and then ' +
+                're-run "Deploy-IoTEdge" and "Initialize-IoTEdge"')
+        } else {
+            Write-HostRed ('Delete it using "Uninstall-IoTEdge -Force" and then ' +
+                're-run "Deploy-IoTEdge" and "Initialize-IoTEdge"')
+        }
         throw
     }
+
+    New-Sockets $EdgeDataDirectory
+    Set-SystemPath
 
     # config.yaml
     Write-Host 'Generating config.yaml...'
@@ -408,7 +433,6 @@ function Update-IoTEdge {
         -InvokeWebRequestParameters $InvokeWebRequestParameters `
         -RestartIfNeeded:$RestartIfNeeded `
         -Update `
-        -SkipArchCheck `
         -SkipBatteryCheck
 }
 
@@ -466,9 +490,6 @@ function Deploy-IoTEdge {
         # Restart if needed without prompting.
         [Switch] $RestartIfNeeded,
 
-        # Skip processor architecture check.
-        [Switch] $SkipArchCheck,
-
         # Skip battery check.
         [Switch] $SkipBatteryCheck
     )
@@ -479,7 +500,6 @@ function Deploy-IoTEdge {
         -OfflineInstallationPath $OfflineInstallationPath `
         -InvokeWebRequestParameters $InvokeWebRequestParameters `
         -RestartIfNeeded:$RestartIfNeeded `
-        -SkipArchCheck:$SkipArchCheck `
         -SkipBatteryCheck:$SkipBatteryCheck
 
     Set-SystemPath
@@ -692,9 +712,6 @@ function Install-IoTEdge {
         # Restart if needed without prompting.
         [Switch] $RestartIfNeeded,
 
-        # Skip processor architecture check.
-        [Switch] $SkipArchCheck,
-
         # Skip battery check.
         [Switch] $SkipBatteryCheck
     )
@@ -714,7 +731,6 @@ function Install-IoTEdge {
         -OfflineInstallationPath $OfflineInstallationPath `
         -InvokeWebRequestParameters $InvokeWebRequestParameters `
         -RestartIfNeeded:$RestartIfNeeded `
-        -SkipArchCheck:$SkipArchCheck `
         -SkipBatteryCheck:$SkipBatteryCheck
 
     if (-not $script:installPackagesCompleted) {
@@ -882,7 +898,6 @@ function Install-Packages(
         [HashTable] $InvokeWebRequestParameters,
         [Switch] $RestartIfNeeded,
         [Switch] $Update,
-        [Switch] $SkipArchCheck,
         [Switch] $SkipBatteryCheck
     )
 {
@@ -945,7 +960,7 @@ function Install-Packages(
         }
     }
 
-    Setup-Environment -ContainerOs $ContainerOs -SkipArchCheck:$SkipArchCheck -SkipBatteryCheck:$SkipBatteryCheck
+    Setup-Environment -ContainerOs $ContainerOs -SkipBatteryCheck:$SkipBatteryCheck
 
     $restartNeeded = $false
 
@@ -993,7 +1008,7 @@ function Install-Packages(
 
 function Setup-Environment {
     [CmdletBinding()]
-    param ([string] $ContainerOs, [switch] $SkipArchCheck, [switch] $SkipBatteryCheck)
+    param ([string] $ContainerOs, [switch] $SkipBatteryCheck)
 
     $currentWindowsBuild = Get-WindowsBuild
     $preRequisitesMet = switch ($ContainerOs) {
@@ -1030,12 +1045,6 @@ function Setup-Environment {
                 $true
             }
         }
-    }
-
-    if ((-not $SkipArchCheck) -and ($env:PROCESSOR_ARCHITECTURE -eq 'ARM')) {
-        Write-HostRed ('IoT Edge is currently not supported on Windows ARM32. ' +
-            'See https://aka.ms/iotedge-platsup for more details.')
-        $preRequisitesMet = $false
     }
 
     if (Test-IoTCore) {
@@ -1301,9 +1310,18 @@ function Get-IoTEdge([ref] $RestartNeeded, [bool] $Update) {
             Invoke-Native 'ApplyUpdate -clear'
         }
 
+        $edgeCabUrl = switch ($env:PROCESSOR_ARCHITECTURE) {
+            'AMD64' {
+                'https://aka.ms/iotedged-windows-latest-cab'
+            }
+            'ARM' {
+                'https://aka.ms/iotedged-windows-arm32v7-latest-cab'
+            }
+        }
+
         $edgeArchivePath = Download-File `
             -Description 'IoT Edge' `
-            -Url 'https://aka.ms/iotedged-windows-latest-cab' `
+            -Url $edgeCabUrl `
             -DownloadFilename 'microsoft-azure-iotedge.cab' `
             -LocalCacheGlob 'microsoft-azure-iotedge.cab' `
             -Delete ([ref] $deleteEdgeArchive)
@@ -1312,21 +1330,6 @@ function Get-IoTEdge([ref] $RestartNeeded, [bool] $Update) {
         Install-Package -Path $edgeArchivePath -RestartNeeded $RestartNeeded
         if (-not $Update) {
             Stop-Service $EdgeServiceName -ErrorAction SilentlyContinue
-
-            foreach ($name in 'mgmt', 'workload') {
-                # We can't bind socket files directly in Windows, so create a folder
-                # and bind to that. The folder needs to give Modify rights to a
-                # well-known group that will exist in any container so that
-                # non-privileged modules can access it.
-                $path = "$EdgeDataDirectory\$name"
-                New-Item $Path -ItemType Directory -Force | Out-Null
-                $sid = New-Object System.Security.Principal.SecurityIdentifier 'S-1-5-11' # NT AUTHORITY\Authenticated Users
-                $rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule(`
-                    $sid, 'Modify', 'ObjectInherit', 'InheritOnly', 'Allow')
-                $acl = Get-Acl -Path $path
-                $acl.AddAccessRule($rule)
-                Set-Acl -Path $path -AclObject $acl
-            }
         }
     }
     finally {
