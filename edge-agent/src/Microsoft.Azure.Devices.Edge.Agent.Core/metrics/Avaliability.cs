@@ -37,7 +37,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
         public void AddPoint(bool isUp)
         {
-            Console.WriteLine($"{name}: {isUp} - {uptime} | {totalTime} = {avaliability}");
             /* if no previous measure, cannot compute duration. There must be 2 consecutive points to do so */
             if (previousMeasure == null)
             {
@@ -56,7 +55,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
         public void NoPoint()
         {
-            Console.WriteLine($"{name}: no point = {avaliability}");
             previousMeasure = null;
         }
 

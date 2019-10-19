@@ -4,20 +4,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
-    using System.Dynamic;
     using System.Linq;
     using System.Runtime.ExceptionServices;
-    using System.Runtime.InteropServices.ComTypes;
     using System.Threading;
     using System.Threading.Tasks;
-    using App.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
-    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Extensions.Logging;
 
     public class Agent
@@ -121,8 +117,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                     {
                         ExceptionDispatchInfo.Capture(exception).Throw();
                     }
-
-                    Console.WriteLine($"Current module set: {string.Join(", ", current.Modules.Keys)}");
 
                     DeploymentConfig deploymentConfig = deploymentConfigInfo.DeploymentConfig;
                     if (deploymentConfig.Equals(DeploymentConfig.Empty))
@@ -448,5 +442,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 Log.LogDebug((int)EventIds.StartingReconcile, "Starting reconcile operation");
             }
         }
-    }    
+    }
 }

@@ -95,7 +95,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
             {
                 File.WriteAllText(InstanceFile, "1");
                 return "1";
-
             }
 
             try

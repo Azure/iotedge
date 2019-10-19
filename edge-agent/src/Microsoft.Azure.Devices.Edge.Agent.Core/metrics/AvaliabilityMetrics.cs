@@ -75,8 +75,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                     avaliability.NoPoint();
                 }
 
-
-                // TODO: make set take double
                 LifetimeAvaliability.Set(avaliability.avaliability, new[] { avaliability.name, avaliability.version });
             }
 

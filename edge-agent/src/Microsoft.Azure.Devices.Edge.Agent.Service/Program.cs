@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes;
@@ -37,7 +38,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
         public static int Main()
         {
-            Console.WriteLine($"{DateTime.UtcNow.ToLogString()} My Code!");
             Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Edge Agent Main()");
             try
             {
@@ -244,9 +244,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                             : new NullMetricsListener() as IMetricsListener;
             Metrics.Init(metricsProvider, metricsListener, logger);
 
-            var interval = TimeSpan.FromSeconds(7);
-            var timer = new Timer(_ => MetricsTest.AddMessage(), null, interval, interval);
-
             // TODO move this code to Agent
             if (mode.ToLowerInvariant().Equals(Constants.KubernetesMode))
             {
@@ -312,7 +309,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 completed.Set();
             }
 
-            Console.WriteLine(timer.ToString());
             handler.ForEach(h => GC.KeepAlive(h));
             return returnCode;
         }
@@ -403,27 +399,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
  ██║╚██████╔╝   ██║       ███████╗██████╔╝╚██████╔╝███████╗
  ╚═╝ ╚═════╝    ╚═╝       ╚══════╝╚═════╝  ╚═════╝ ╚══════╝
 ");
-        }
-    }
-
-    static class MetricsTest
-    {
-        static readonly Lazy<IMetricsCounter> MessagesMeter = new Lazy<IMetricsCounter>(Util.Metrics.Metrics.Instance.CreateCounter(
-            "test",
-            "this is a test endpoint",
-            new List<string> { "test" }));
-
-        static readonly IMetricsGauge metricsGauge = Util.Metrics.Metrics.Instance.CreateGauge(
-            "testguage",
-            "this is a test endpoint",
-            new List<string> { "test" }
-        );
-
-        public static void AddMessage()
-        {
-            Console.WriteLine("test metric");
-            MessagesMeter.Value.Increment(1, new[] { "asdfgh" });
-            metricsGauge.Set(new Random().Next(), new[] { "rand" });
         }
     }
 }
