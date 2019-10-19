@@ -17,6 +17,8 @@ namespace LoadGen
         static readonly ILogger Logger = ModuleUtil.CreateLogger("LoadGen");
 
         static long messageIdCounter = 0;
+        static long reportedPropertyUpdateId = 0;
+        static readonly string reportedPropertyUpdateIdLabel = "reportedPropertyUpdateId";
 
         static async Task Main()
         {
@@ -39,13 +41,13 @@ namespace LoadGen
                     timers.Add(
                         Settings.Current.MessageFrequency,
                         Settings.Current.JitterFactor,
-                        () => GenerateMessageAsync(moduleClient, batchId));
+                        () => GenerateMessageAsync(moduleClient, batchId.ToString()));
 
                     // setup the twin update timer
                     timers.Add(
                         Settings.Current.TwinUpdateFrequency,
                         Settings.Current.JitterFactor,
-                        () => GenerateTwinUpdateAsync(moduleClient, batchId));
+                        () => TwinUpdateAsync(moduleClient, batchId.ToString()));
 
                     timers.Start();
                     (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
@@ -68,7 +70,7 @@ namespace LoadGen
             }
         }
 
-        static async Task GenerateMessageAsync(ModuleClient client, Guid batchId)
+        static async Task GenerateMessageAsync(ModuleClient client, string batchId)
         {
             var random = new Random();
             var bufferPool = new BufferPool();
@@ -97,19 +99,40 @@ namespace LoadGen
             }
         }
 
-        static async Task GenerateTwinUpdateAsync(ModuleClient client, Guid batchId)
+        static async Task TwinUpdateAsync(ModuleClient client, string batchId)
         {
-            var twin = new TwinCollection();
-            long sequenceNumber = messageIdCounter;
-            twin["messagesSent"] = sequenceNumber;
+            reportedPropertyUpdateId += 1;
 
+            var twin = new TwinCollection();
+            twin[reportedPropertyUpdateIdLabel] = reportedPropertyUpdateId;
             try
             {
                 await client.UpdateReportedPropertiesAsync(twin);
             }
             catch (Exception e)
             {
-                Logger.LogError($"[GenerateTwinUpdateAsync] Sequence number {sequenceNumber}, BatchId: {batchId.ToString()};{Environment.NewLine}{e}");
+                Logger.LogError($"[TwinUpdateAsync] Failed call to update reported property {reportedPropertyUpdateIdLabel}: {reportedPropertyUpdateId}, BatchId: {batchId};{Environment.NewLine}{e}");
+                // TODO: report failure
+                return;
+            }
+
+            Twin twinProperties;
+            try {
+                twinProperties = await client.GetTwinAsync();
+            } 
+            catch (Exception e)
+            {
+                Logger.LogError($"[TwinUpdateAsync] Failed get twin {reportedPropertyUpdateIdLabel}: {reportedPropertyUpdateId}, BatchId: {batchId};{Environment.NewLine}{e}");
+               // TODO: report failure
+                return;
+            }
+
+            long receivedReportedPropertyId = twinProperties.Tags[reportedPropertyUpdateIdLabel];
+            if (twinProperties.Tags[reportedPropertyUpdateIdLabel] != reportedPropertyUpdateId)
+            {
+                Logger.LogError($"[TwinUpdateAsync] Reported property update not reflected in twin{Environment.NewLine}Expected: {reportedPropertyUpdateId}, Received: {receivedReportedPropertyId}, BatchId: {batchId};");
+               // TODO: report failure
+                return;
             }
         }
     }
