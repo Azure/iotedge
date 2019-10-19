@@ -13,10 +13,10 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
     {
         const string CounterNameFormat = "{0}_{1}_total";
         const string NameFormat = "{0}_{1}";
+        const string InstanceFile = "metrics_instance";
         readonly string namePrefix;
         readonly List<string> defaultLabelNames;
         static readonly Lazy<string> instanceNumber = new Lazy<string>(GetInstanceNumber);
-        const string InstanceFile = "metrics_instance";
 
         public MetricsProvider(string namePrefix, string iotHubName, string deviceId)
         {
@@ -109,7 +109,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
                 Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Failed to read metrics instance file:\n{ex}");
                 return "0";
             }
-
         }
     }
 }

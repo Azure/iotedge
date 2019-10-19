@@ -1,31 +1,41 @@
-using Microsoft.Azure.Devices.Edge.Util;
-using Microsoft.Azure.Devices.Edge.Util.Metrics;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 {
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
+    using System.Text;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
+
     static class AvaliabilityMetrics
     {
-        public static ISystemTime time = SystemTime.Instance;
-        public static Option<string> storagePath = Option.None<string>();
-        private static Option<string> storageFile { get { return storagePath.Map(p => Path.Combine(p, "avaliability_history")); } }
+        private static readonly IMetricsGauge LifetimeAvaliability = Util.Metrics.Metrics.Instance.CreateGauge(
+            "lifetime_avaliability",
+            "total availability since deployment",
+            new List<string> { "module_name", "module_version" });
+
+        public static ISystemTime Time = SystemTime.Instance;
+        public static Option<string> StoragePath = Option.None<string>();
+        private static Option<string> StorageFile
+        {
+            get { return StoragePath.Map(p => Path.Combine(p, "avaliability_history")); }
+        }
 
         private static Lazy<List<Avaliability>> availabilities = new Lazy<List<Avaliability>>(() =>
         {
-            if (storageFile.HasValue)
+            if (StorageFile.HasValue)
             {
                 Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Loading historical avaliability");
-                string file = storageFile.ToEnumerable().First();
+                string file = StorageFile.ToEnumerable().First();
                 if (File.Exists(file))
                 {
                     try
                     {
                         return Newtonsoft.Json.JsonConvert.DeserializeObject<List<AvaliabilityRaw>>(File.ReadAllText(file))
-                            .Select(raw => new Avaliability(raw, time)).ToList();
+                            .Select(raw => new Avaliability(raw, Time)).ToList();
                     }
                     catch (Exception ex)
                     {
@@ -36,12 +46,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
             return new List<Avaliability>();
         });
-
-        private static readonly IMetricsGauge LifetimeAvaliability = Util.Metrics.Metrics.Instance.CreateGauge(
-            "lifetime_avaliability",
-            "total availability since deployment",
-            new List<string> { "module_name", "module_version" }
-        );
 
         public static void ComputeAvaliability(ModuleSet desired, ModuleSet current)
         {
@@ -61,11 +65,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             /* Add points for all modules found */
             foreach (Avaliability avaliability in availabilities.Value)
             {
-                if (down.Remove(avaliability.name))
+                if (down.Remove(avaliability.Name))
                 {
                     avaliability.AddPoint(false);
                 }
-                else if (up.Remove(avaliability.name))
+                else if (up.Remove(avaliability.Name))
                 {
                     avaliability.AddPoint(true);
                 }
@@ -75,20 +79,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                     avaliability.NoPoint();
                 }
 
-                LifetimeAvaliability.Set(avaliability.avaliability, new[] { avaliability.name, avaliability.version });
+                LifetimeAvaliability.Set(avaliability.Avaliability1, new[] { avaliability.Name, avaliability.Version });
             }
 
             /* Add new modules to track */
             foreach (string module in down.Union(up))
             {
-                availabilities.Value.Add(new Avaliability(module, "tempNoVersion", time));
+                availabilities.Value.Add(new Avaliability(module, "tempNoVersion", Time));
             }
 
-            if (storageFile.HasValue)
+            if (StorageFile.HasValue)
             {
                 try
                 {
-                    string file = storageFile.ToEnumerable().First();
+                    string file = StorageFile.ToEnumerable().First();
                     string data = Newtonsoft.Json.JsonConvert.SerializeObject(availabilities.Value.Select(av => av.ToRaw()));
                     File.WriteAllText(file, data);
                 }

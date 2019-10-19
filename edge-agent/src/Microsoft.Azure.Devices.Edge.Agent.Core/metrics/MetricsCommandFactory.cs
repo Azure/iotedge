@@ -1,17 +1,17 @@
 // Copyright (c) Microsoft. All rights reserved.
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Runtime.InteropServices.ComTypes;
+using System.Threading;
+using System.Threading.Tasks;
 using Akka.Streams.Implementation;
 using App.Metrics.Counter;
 using App.Metrics.Formatters.Prometheus;
-using Microsoft.Azure.Devices.Edge.Util.Metrics;
-using System;
-using System.Collections.Generic;
 using Microsoft.Azure.Devices.Edge.Util;
-using System.Threading;
-using System.Threading.Tasks;
+using Microsoft.Azure.Devices.Edge.Util.Metrics;
 using Microsoft.Extensions.Logging;
-using System.Linq;
-using System.Runtime.InteropServices.ComTypes;
-using System.Diagnostics;
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
@@ -27,32 +27,33 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public async Task<ICommand> CreateAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
         {
             FactoryMetrics.AddMessage(module.Module, FactoryMetrics.Command.Start);
-            return await underlying.CreateAsync(module, runtimeInfo);
+            return await this.underlying.CreateAsync(module, runtimeInfo);
         }
 
         public async Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo)
         {
             FactoryMetrics.AddMessage(current, FactoryMetrics.Command.Start);
             FactoryMetrics.AddMessage(next.Module, FactoryMetrics.Command.Stop);
-            return await underlying.UpdateAsync(current, next, runtimeInfo);
+            return await this.underlying.UpdateAsync(current, next, runtimeInfo);
         }
 
         public async Task<ICommand> UpdateEdgeAgentAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
         {
-            return await underlying.UpdateEdgeAgentAsync(module, runtimeInfo);
+            return await this.underlying.UpdateEdgeAgentAsync(module, runtimeInfo);
         }
 
         public async Task<ICommand> RemoveAsync(IModule module)
         {
             FactoryMetrics.AddMessage(module, FactoryMetrics.Command.Stop);
-            return await underlying.RemoveAsync(module);
+            return await this.underlying.RemoveAsync(module);
         }
+
         public async Task<ICommand> StartAsync(IModule module)
         {
             FactoryMetrics.AddMessage(module, FactoryMetrics.Command.Start);
             using (FactoryMetrics.MeasureTime(FactoryMetrics.Command.Start))
             {
-                return await underlying.StartAsync(module);
+                return await this.underlying.StartAsync(module);
             }
         }
 
@@ -61,21 +62,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             FactoryMetrics.AddMessage(module, FactoryMetrics.Command.Stop);
             using (FactoryMetrics.MeasureTime(FactoryMetrics.Command.Stop))
             {
-                return await underlying.StopAsync(module);
+                return await this.underlying.StopAsync(module);
             }
         }
 
         public async Task<ICommand> RestartAsync(IModule module)
         {
-            return await underlying.RestartAsync(module);
+            return await this.underlying.RestartAsync(module);
         }
 
         public async Task<ICommand> WrapAsync(ICommand command)
         {
-            return await underlying.WrapAsync(command);
+            return await this.underlying.WrapAsync(command);
         }
     }
-
 }
 
 static class FactoryMetrics
@@ -101,7 +101,7 @@ static class FactoryMetrics
         return Metrics.Instance.CreateDuration(
             $"{commandName}_command_latency",
             "Command sent to module",
-            new List<string> {  });
+            new List<string> { });
     });
 
     public static void AddMessage(Microsoft.Azure.Devices.Edge.Agent.Core.IModule module, Command command)
@@ -126,8 +126,8 @@ static class FactoryMetrics
 
         public void Dispose()
         {
-            timer.Stop();
-            metricsDuration.Set(timer.Elapsed.TotalSeconds, new string[] { });
+            this.timer.Stop();
+            this.metricsDuration.Set(this.timer.Elapsed.TotalSeconds, new string[] { });
         }
     }
 }

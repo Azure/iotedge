@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Constants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
     using K8sConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
     using KubernetesModule = Microsoft.Azure.Devices.Edge.Agent.Service.Modules.KubernetesModule;
-    using MetricsListener = Util.Metrics.Prometheus.Net.MetricsListener;
+    using MetricsListener = Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net.MetricsListener;
 
     public class Program
     {
@@ -234,7 +234,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 return 1;
             }
 
-            //Initialize metrics
+            // Initialize metrics
             var metricsConfig = new MetricsConfig(true, MetricsListenerConfig.Create(configuration));
             var metricsProvider = metricsConfig.Enabled
                              ? new MetricsProvider("edgeagent", iothubHostname, deviceId)

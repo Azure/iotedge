@@ -1,17 +1,19 @@
-using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
-using Microsoft.Azure.Devices.Edge.Util;
-using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-using Moq;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Xunit;
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
 {
+    using System;
+    using System.Collections;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Text;
+    using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Moq;
+    using Xunit;
+
     [Unit]
     public class AvaliabilityTest
     {
@@ -31,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                     fakeTime = fakeTime.AddMinutes(10);
                 }
 
-                TestUtilities.ApproxEqual(1.0 / i, avaliability.avaliability, .01);
+                TestUtilities.ApproxEqual(1.0 / i, avaliability.Avaliability1, .01);
             }
         }
 
@@ -50,6 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                     avaliability.AddPoint(j % i == 0);
                     fakeTime = fakeTime.AddMinutes(10);
                 }
+
                 avaliability.NoPoint();
                 fakeTime = fakeTime.AddMinutes(10);
 
@@ -58,7 +61,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                     avaliability.AddPoint(j % i == 0);
                     fakeTime = fakeTime.AddMinutes(10);
                 }
-                TestUtilities.ApproxEqual(1.0 / i, avaliability.avaliability, .05);
+
+                TestUtilities.ApproxEqual(1.0 / i, avaliability.Avaliability1, .05);
 
                 avaliability.NoPoint();
                 fakeTime = fakeTime.AddMinutes(1000);
@@ -67,8 +71,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                     avaliability.AddPoint(j % i == 0);
                     fakeTime = fakeTime.AddMinutes(10);
                 }
-                TestUtilities.ApproxEqual(1.0 / i, avaliability.avaliability, .05);
-            };
+
+                TestUtilities.ApproxEqual(1.0 / i, avaliability.Avaliability1, .05);
+            }
         }
     }
 }

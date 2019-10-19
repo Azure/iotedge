@@ -1,10 +1,12 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
 {
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Text;
+
     public class TempDirectory : IDisposable
     {
         private List<string> dirs = new List<string>();
@@ -13,14 +15,14 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
         {
             string newDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(newDir);
-            dirs.Add(newDir);
+            this.dirs.Add(newDir);
 
             return newDir;
         }
 
         public void Dispose()
         {
-            foreach (var dir in dirs)
+            foreach (var dir in this.dirs)
             {
                 Directory.Delete(dir, true);
             }

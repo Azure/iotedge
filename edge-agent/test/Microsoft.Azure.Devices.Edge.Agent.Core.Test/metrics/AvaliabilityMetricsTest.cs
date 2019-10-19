@@ -1,23 +1,25 @@
-using Akka.Event;
-using App.Metrics;
-using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
-using Microsoft.Azure.Devices.Edge.Util;
-using Microsoft.Azure.Devices.Edge.Util.Metrics;
-using Microsoft.Azure.Devices.Edge.Util.Metrics.NullMetrics;
-using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-using Microsoft.Extensions.Logging.Abstractions;
-using Moq;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using Xunit;
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
 {
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
+    using System.Reflection;
+    using System.Text;
+    using System.Threading.Tasks;
+    using Akka.Event;
+    using App.Metrics;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics.NullMetrics;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Extensions.Logging.Abstractions;
+    using Moq;
+    using Xunit;
+
     [Unit]
     public class AvaliabilityMetricsTest : TempDirectory
     {
@@ -38,9 +40,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             guage.Setup(x => x.Set(It.IsAny<double>(), It.IsAny<string[]>())).Callback(onSet);
 
             var metricsProvider = new Mock<IMetricsProvider>();
-            metricsProvider.Setup(x => x.CreateGauge("lifetime_avaliability",
-                    "total availability since deployment",
-                    new List<string> { "module_name", "module_version" }))
+            metricsProvider.Setup(x => x.CreateGauge(
+                "lifetime_avaliability",
+                "total availability since deployment",
+                new List<string> { "module_name", "module_version" }))
                 .Returns(guage.Object);
 
             Util.Metrics.Metrics.Init(metricsProvider.Object, new NullMetricsListener(), NullLogger.Instance);
@@ -49,8 +52,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             DateTime fakeTime = DateTime.Now;
             systemTime.Setup(x => x.UtcNow).Returns(() => fakeTime);
 
-            AvaliabilityMetrics.time = systemTime.Object;
-            AvaliabilityMetrics.storagePath = Option.Some(GetTempDir());
+            AvaliabilityMetrics.Time = systemTime.Object;
+            AvaliabilityMetrics.StoragePath = Option.Some(this.GetTempDir());
 
             (TestRuntimeModule[] current, TestModule[] desired) = GetTestModules(3);
             ModuleSet currentModuleSet = ModuleSet.Create(current as IModule[]);
@@ -98,7 +101,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             guage.Setup(x => x.Set(It.IsAny<double>(), It.IsAny<string[]>())).Callback(onSet);
 
             var metricsProvider = new Mock<IMetricsProvider>();
-            metricsProvider.Setup(x => x.CreateGauge("lifetime_avaliability",
+            metricsProvider.Setup(x => x.CreateGauge(
+                    "lifetime_avaliability",
                     "total availability since deployment",
                     new List<string> { "module_name", "module_version" }))
                 .Returns(guage.Object);
@@ -109,10 +113,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             DateTime fakeTime = DateTime.Now;
             systemTime.Setup(x => x.UtcNow).Returns(() => fakeTime);
 
-            string directory = GetTempDir();
+            string directory = this.GetTempDir();
 
-            AvaliabilityMetrics.time = systemTime.Object;
-            AvaliabilityMetrics.storagePath = Option.Some(directory);
+            AvaliabilityMetrics.Time = systemTime.Object;
+            AvaliabilityMetrics.StoragePath = Option.Some(directory);
 
             (TestRuntimeModule[] current, TestModule[] desired) = GetTestModules(3);
             ModuleSet currentModuleSet = ModuleSet.Create(current as IModule[]);
@@ -124,8 +128,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                 /* reset metrics */
                 ConstructorInfo constructor = typeof(AvaliabilityMetrics).GetConstructor(BindingFlags.Static | BindingFlags.NonPublic, null, new Type[0], null);
                 constructor.Invoke(null, null);
-                AvaliabilityMetrics.time = systemTime.Object;
-                AvaliabilityMetrics.storagePath = Option.Some(directory);
+                AvaliabilityMetrics.Time = systemTime.Object;
+                AvaliabilityMetrics.StoragePath = Option.Some(directory);
 
                 /* simulate long time shutdown */
                 fakeTime = fakeTime.AddMinutes(1000);
@@ -205,7 +209,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                         ImagePullPolicy.OnCreate,
                         null,
                         EnvVars),
-                    new TestModule(
+                new TestModule(
                         name,
                         "version1",
                         "test",

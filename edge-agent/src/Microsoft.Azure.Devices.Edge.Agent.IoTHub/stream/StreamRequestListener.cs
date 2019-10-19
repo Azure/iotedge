@@ -60,23 +60,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream
 
         ////async Task ProcessStreamRequest(IModuleClient moduleClient)
         ////{
-            ////Option<(string requestName, IClientWebSocket clientWebSocket)> result = await this.WaitForStreamRequest(moduleClient);
-            ////// If we don't get a valid stream, release the lock.
-            ////if (!result.HasValue)
-            ////{
-            ////    this.streamLock.Release();
-            ////}
-            ////else
-            ////{
-            ////    // We got a WebSocket stream. Pass it to a handler on a background thread. This thread is
-            ////    // responsible for releasing the lock after it completes.
-            ////    result.ForEach(
-            ////        r =>
-            ////        {
-            ////            Events.NewStreamRequest(r.requestName, this.streamLock.CurrentCount, this.maxConcurrentStreams);
-            ////            this.HandleRequest(r.requestName, r.clientWebSocket);
-            ////        });
-            ////}
+        ////Option<(string requestName, IClientWebSocket clientWebSocket)> result = await this.WaitForStreamRequest(moduleClient);
+        ////// If we don't get a valid stream, release the lock.
+        ////if (!result.HasValue)
+        ////{
+        ////    this.streamLock.Release();
+        ////}
+        ////else
+        ////{
+        ////    // We got a WebSocket stream. Pass it to a handler on a background thread. This thread is
+        ////    // responsible for releasing the lock after it completes.
+        ////    result.ForEach(
+        ////        r =>
+        ////        {
+        ////            Events.NewStreamRequest(r.requestName, this.streamLock.CurrentCount, this.maxConcurrentStreams);
+        ////            this.HandleRequest(r.requestName, r.clientWebSocket);
+        ////        });
+        ////}
         ////}
 
         ////async Task<Option<(string requestName, IClientWebSocket clientWebSocket)>> WaitForStreamRequest(IModuleClient moduleClient)

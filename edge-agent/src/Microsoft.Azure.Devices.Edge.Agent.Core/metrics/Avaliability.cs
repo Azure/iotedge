@@ -1,80 +1,87 @@
-using Microsoft.Azure.Devices.Edge.Util;
-using System;
-using System.Collections.Generic;
-using System.Text;
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Text;
+    using Microsoft.Azure.Devices.Edge.Util;
+
     public class Avaliability
     {
-        public string name;
-        public string version;
+        private readonly ISystemTime time;
+
+        public string Name;
+        public string Version;
         private TimeSpan totalTime = TimeSpan.Zero;
         private TimeSpan uptime = TimeSpan.Zero;
         private DateTime? previousMeasure = null;
-        private readonly ISystemTime time;
 
         public Avaliability(string name, string version, ISystemTime time)
         {
-            this.name = name;
-            this.version = version;
+            this.Name = name;
+            this.Version = version;
 
             this.time = time;
-            previousMeasure = time.UtcNow;
+            this.previousMeasure = time.UtcNow;
         }
 
         public Avaliability(AvaliabilityRaw raw, ISystemTime time)
         {
-            this.name = raw.name;
-            this.version = raw.version;
-            this.uptime = raw.uptime;
-            this.totalTime = raw.totalTime;
+            this.Name = raw.Name;
+            this.Version = raw.Version;
+            this.uptime = raw.Uptime;
+            this.totalTime = raw.TotalTime;
 
             this.time = time;
         }
 
-        public double avaliability { get { return uptime.TotalMilliseconds / totalTime.TotalMilliseconds; } }
+        public double Avaliability1
+        {
+            get { return this.uptime.TotalMilliseconds / this.totalTime.TotalMilliseconds; }
+        }
 
         public void AddPoint(bool isUp)
         {
             /* if no previous measure, cannot compute duration. There must be 2 consecutive points to do so */
-            if (previousMeasure == null)
+            if (this.previousMeasure == null)
             {
-                previousMeasure = time.UtcNow;
+                this.previousMeasure = this.time.UtcNow;
                 return;
             }
 
-            TimeSpan duration = time.UtcNow - previousMeasure.Value;
-            totalTime += duration;
+            TimeSpan duration = this.time.UtcNow - this.previousMeasure.Value;
+            this.totalTime += duration;
             if (isUp)
             {
-                uptime += duration;
+                this.uptime += duration;
             }
-            previousMeasure = time.UtcNow;
+
+            this.previousMeasure = this.time.UtcNow;
         }
 
         public void NoPoint()
         {
-            previousMeasure = null;
+            this.previousMeasure = null;
         }
 
         public AvaliabilityRaw ToRaw()
         {
             return new AvaliabilityRaw
             {
-                name = name,
-                version = version,
-                uptime = uptime,
-                totalTime = totalTime
+                Name = this.Name,
+                Version = this.Version,
+                Uptime = this.uptime,
+                TotalTime = this.totalTime
             };
         }
     }
 
     public struct AvaliabilityRaw
     {
-        public string name;
-        public string version;
-        public TimeSpan totalTime;
-        public TimeSpan uptime;
+        public string Name;
+        public string Version;
+        public TimeSpan TotalTime;
+        public TimeSpan Uptime;
     }
 }
