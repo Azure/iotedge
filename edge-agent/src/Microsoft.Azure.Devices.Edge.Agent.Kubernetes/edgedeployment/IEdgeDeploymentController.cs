@@ -7,7 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
     public interface IEdgeDeploymentController
     {
-        Task<ModuleSet> DeployModulesAsync(IReadOnlyList<KubernetesModule> modules, ModuleSet currentModules);
+        Task<EdgeDeploymentStatus> DeployModulesAsync(ModuleSet modules, ModuleSet currentModules);
 
         Task PurgeModulesAsync();
     }
