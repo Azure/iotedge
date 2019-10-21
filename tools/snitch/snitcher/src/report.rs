@@ -23,7 +23,8 @@ pub struct Interval {
 #[serde(rename_all = "camelCase")]
 pub struct DeviceAnalysis {
     messages_report: Vec<MessageAnalysis>,
-    dm_report: Vec<DirectMethodsAnalysis>
+    dm_report: Vec<ResponseAnalysis>,
+    twins_report: Vec<ResponseAnalysis>
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -39,14 +40,14 @@ pub struct MessageAnalysis {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct DirectMethodsAnalysis {
+pub struct ResponseAnalysis {
     module_id: String,
-    status_codes: Vec<DmStatusCode>
+    status_codes: Vec<ResponseStatusCode>
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct DmStatusCode {
+pub struct ResponseStatusCode {
     status_code: String,
     count: u64,
     last_received_at: DateTime<Utc>
