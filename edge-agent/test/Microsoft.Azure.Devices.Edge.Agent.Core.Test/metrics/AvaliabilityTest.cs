@@ -75,5 +75,92 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                 TestUtilities.ApproxEqual(1.0 / i, avaliability.AvaliabilityRatio, .05);
             }
         }
+
+        [Fact]
+        public void TestWeeklyUptime()
+        {
+            var systemTime = new Mock<ISystemTime>();
+            DateTime fakeTime = DateTime.Now.Date;
+            systemTime.Setup(x => x.UtcNow).Returns(() => fakeTime);
+
+            /* up for 10 days */
+            WeeklyAvaliability avaliability = new WeeklyAvaliability("Test", "test", systemTime.Object);
+            for (int i = 0; i < 10; i++)
+            {
+                for (int j = 0; j < 24 * 6; j++)
+                {
+                    avaliability.AddPoint(true);
+                    fakeTime = fakeTime.AddMinutes(10);
+                }
+
+                TestUtilities.ApproxEqual(1, avaliability.AvaliabilityRatio, .01);
+            }
+
+            /* down for 10 days */
+            for (int i = 1; i < 10; i++)
+            {
+                for (int j = 0; j < 24 * 6; j++)
+                {
+                    avaliability.AddPoint(false);
+                    fakeTime = fakeTime.AddMinutes(10);
+                }
+
+                double expected = Math.Max(7.0 - i, 0.0) / 7.0;
+                TestUtilities.ApproxEqual(expected, avaliability.AvaliabilityRatio, .01);
+            }
+
+            /* up for 10 days */
+            for (int i = 1; i < 10; i++)
+            {
+                for (int j = 0; j < 24 * 6; j++)
+                {
+                    avaliability.AddPoint(true);
+                    fakeTime = fakeTime.AddMinutes(10);
+                }
+
+                double expected = Math.Min(i, 7.0) / 7.0;
+                TestUtilities.ApproxEqual(expected, avaliability.AvaliabilityRatio, .01);
+            }
+
+            /* down for half a day */
+            for (int i = 0; i < 12 * 6; i++)
+            {
+                avaliability.AddPoint(false);
+                fakeTime = fakeTime.AddMinutes(10);
+            }
+
+            TestUtilities.ApproxEqual(6.5 / 7.0, avaliability.AvaliabilityRatio, .01);
+            for (int i = 0; i < 12 * 6; i++)
+            {
+                avaliability.AddPoint(true);
+                fakeTime = fakeTime.AddMinutes(10);
+            }
+
+            TestUtilities.ApproxEqual(6.5 / 7.0, avaliability.AvaliabilityRatio, .01);
+
+            /* up for another 6 days */
+            for (int i = 0; i < 6; i++)
+            {
+                for (int j = 0; j < 24 * 6; j++)
+                {
+                    avaliability.AddPoint(true);
+                    fakeTime = fakeTime.AddMinutes(10);
+                }
+
+                TestUtilities.ApproxEqual(6.5 / 7.0, avaliability.AvaliabilityRatio, .01);
+            }
+
+            /* avalability goes back to max */
+            for (int i = 0; i < 10; i++)
+            {
+                for (int j = 0; j < 24 * 6; j++)
+                {
+                    avaliability.AddPoint(true);
+                    fakeTime = fakeTime.AddMinutes(10);
+                }
+
+                TestUtilities.ApproxEqual(1, avaliability.AvaliabilityRatio, .01);
+            }
+        }
     }
 }

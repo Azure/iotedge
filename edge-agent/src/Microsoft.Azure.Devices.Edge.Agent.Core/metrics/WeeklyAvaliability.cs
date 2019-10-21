@@ -88,6 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             if (this.time.UtcNow.DayOfWeek != this.currentDay)
             {
                 /* note this doesn't need to be efficient since it only happens once a day */
+                this.currentDay = this.time.UtcNow.DayOfWeek;
                 Avaliability newDay = new Avaliability(this.Name, this.Version, this.time);
                 List<Avaliability> newAvaliabilities = new List<Avaliability> { newDay };
                 newAvaliabilities.AddRange(this.dailyAvaliabilities.Take(6));
