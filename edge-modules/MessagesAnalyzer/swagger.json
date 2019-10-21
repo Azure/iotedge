@@ -6,13 +6,13 @@ info:
 schemes:
 - "https"
 paths:
-  /api/directmethodstatus:
+  /api/respponsestatus:
     post:
       tags:
-      - "dm"
-      summary: "Add a new direct method responsense"
+      - "responseStatus"
+      summary: "Add a new response status"
       description: ""
-      operationId: "addDirectMethodResponse"
+      operationId: "addResponseStatus"
       consumes:
       - "application/json"
       produces:
@@ -20,10 +20,10 @@ paths:
       parameters:
       - in: "body"
         name: "body"
-        description: "Direct method response details"
+        description: "Response status details"
         required: true
         schema:
-          $ref: "#/definitions/DirectMethodStatus"
+          $ref: "#/definitions/ResponseStatus"
       responses:
         200:
           description: "Ok"
@@ -53,7 +53,11 @@ definitions:
       dmReport:
           type: "array"
           items:
-            $ref: "#/definitions/DmsReport"
+            $ref: "#/definitions/ResponseOrientedReport"
+      twinsReport:
+          type: "array"
+          items:
+            $ref: "#/definitions/ResponseOrientedReport"
   MessagesReport:
     type: "object"
     properties:
@@ -83,7 +87,7 @@ definitions:
       EndDateTime:
         type: "string"
         format: date-time
-  DmsReport:
+  ResponseOrientedReport:
     type: "object"
     properties:
       moduleId:
@@ -91,8 +95,8 @@ definitions:
       statuses:
         type: "array"
         items:
-          $ref: "#/definitions/DmsStatusReport"
-  DmsStatusReport:
+          $ref: "#/definitions/ResponseStatusReport"
+  ResponseStatusReport:
     type: "object"
     properties:
       statusCode:
@@ -102,7 +106,7 @@ definitions:
       lastReceivedAt:
         type: "string"
         format: date-time
-  DirectMethodStatus:
+  ResponseStatus:
     type: "object"
     required:
     - "moduleId"

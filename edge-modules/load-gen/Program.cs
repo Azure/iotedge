@@ -102,6 +102,7 @@ namespace LoadGen
             }
         }
 
+        // TODO: are these status messages OK?
         static async Task TwinUpdateAsync(ModuleClient client, AnalyzerClient analyzerClient, string batchId)
         {
             reportedPropertyUpdateId += 1;
