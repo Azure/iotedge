@@ -370,8 +370,7 @@ where
                         &mut tokio_runtime,
                     )?;
 
-                    if should_reprovision
-                    {
+                    if should_reprovision {
                         let reprovision = $provision.reprovision().map_err(|err| {
                             return Error::from(err.context(ErrorKind::ReprovisionFailure))
                         });

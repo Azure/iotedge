@@ -255,6 +255,7 @@ impl Provision for ManualProvisioning {
     }
 
     fn reprovision(&self) -> Box<dyn Future<Item = (), Error = Error> + Send> {
+        // No reprovision action is needed for the manual provisioning mode.
         Box::new(future::ok(()))
     }
 }
