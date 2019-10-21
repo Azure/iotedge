@@ -193,8 +193,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 
         static Option<ContainerInspectResponse> EdgeAgentNotFoundAlternative(Exception ex)
         {
-            Events.EdgeAgentContainerNotFound(ex);
-            return Option.None<ContainerInspectResponse>();
+                Events.EdgeAgentContainerNotFound(ex);
+                return Option.None<ContainerInspectResponse>();
         }
 
         static class Events
