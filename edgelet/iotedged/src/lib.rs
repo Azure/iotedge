@@ -125,7 +125,7 @@ const AUTHSCHEME_KEY: &str = "IOTEDGE_AUTHSCHEME";
 const EDGE_RUNTIME_MODE_KEY: &str = "Mode";
 
 /// This is the edge runtime mode - it should be iotedged, when iotedged starts edge runtime in single node mode.
-#[cfg(feature = "runtime-docker")]
+#[cfg(any(feature = "runtime-shell", feature = "runtime-docker"))]
 const EDGE_RUNTIME_MODE: &str = "iotedged";
 
 /// This is the edge runtime mode - it should be kubernetes, when iotedged starts edge runtime in kubernetes mode.
@@ -2030,6 +2030,11 @@ where
             "http://localhost:{}",
             settings.connect().management_uri().port().unwrap_or(80u16)
         ),
+    );
+    #[cfg(feature = "runtime-shell")]
+    let (workload_uri, management_uri) = (
+        settings.connect().workload_uri().to_string(),
+        settings.connect().management_uri().to_string(),
     );
 
     env.insert(WORKLOAD_URI_KEY.to_string(), workload_uri);

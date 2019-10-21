@@ -11,6 +11,8 @@ type ModuleRuntime = edgelet_kube::KubeModuleRuntime<
     kube_client::ValueToken,
     kube_client::HttpClient<hyper_tls::HttpsConnector<hyper::client::HttpConnector>, hyper::Body>,
 >;
+#[cfg(feature = "runtime-shell")]
+type ModuleRuntime = edgelet_shell::ShellModuleRuntime;
 
 pub fn run() -> Result<(), Error> {
     let settings = app::init()?;

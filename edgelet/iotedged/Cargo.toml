@@ -36,6 +36,7 @@ edgelet-http-mgmt = { path = "../edgelet-http-mgmt" }
 edgelet-http-workload = { path = "../edgelet-http-workload" }
 edgelet-iothub = { path = "../edgelet-iothub" }
 edgelet-kube = { path = "../edgelet-kube", optional = true }
+edgelet-shell = { path = "../edgelet-shell", optional = true }
 edgelet-utils = { path = "../edgelet-utils" }
 iothubservice = { path = "../iothubservice" }
 kube-client = { path = "../kube-client", optional = true }
@@ -56,6 +57,7 @@ tempdir = "0.3.7"
 edgelet-test-utils = { path = "../edgelet-test-utils" }
 
 [features]
-default = ["runtime-docker"]
+default = ["runtime-shell"] # VERY TEMP FOR TESTING - SHOULD BE SWITCHED BACK TO runtime-docker
 runtime-docker = []
 runtime-kubernetes = ["edgelet-kube", "kube-client", "hyper-tls"]
+runtime-shell = ["edgelet-shell"]
