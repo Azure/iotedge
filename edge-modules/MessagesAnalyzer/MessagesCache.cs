@@ -51,13 +51,13 @@ namespace MessagesAnalyzer
 
         public IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> GetDmSnapshot()
         {
-            return this.GetTwinOrDirectMethodSnapshot(this.dm);
+            return this.GetSnapshotHelper(this.dm);
         }
         public IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> GetTwinsSnapshot()
         {
-            return this.GetTwinOrDirectMethodSnapshot(this.twins);
+            return this.GetSnapshotHelper(this.twins);
         }
-        public IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> GetTwinOrDirectMethodSnapshot(ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> cache)
+        public IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> GetSnapshotHelper(ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> cache)
         {
             return cache.ToArray().ToDictionary(p => p.Key, p => (IDictionary<string, Tuple<int, DateTime>>)p.Value.ToArray().ToDictionary(t => t.Key, t => t.Value));
         }
