@@ -41,10 +41,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
 
             var metricsProvider = new Mock<IMetricsProvider>();
             metricsProvider.Setup(x => x.CreateGauge(
-                "lifetime_avaliability",
-                "total availability since deployment",
-                new List<string> { "module_name", "module_version" }))
+                    "lifetime_avaliability",
+                    "total availability since deployment",
+                    new List<string> { "module_name", "module_version" }))
                 .Returns(guage.Object);
+
+            metricsProvider.Setup(x => x.CreateGauge(
+                    "weekly_avaliability",
+                    "total availability for the last 7 days",
+                    new List<string> { "module_name", "module_version" }))
+                .Returns(new Mock<IMetricsGauge>().Object);
 
             Util.Metrics.Metrics.Init(metricsProvider.Object, new NullMetricsListener(), NullLogger.Instance);
 
@@ -53,7 +59,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             systemTime.Setup(x => x.UtcNow).Returns(() => fakeTime);
 
             AvaliabilityMetrics.Time = systemTime.Object;
-            AvaliabilityMetrics.StoragePath = Option.Some(this.GetTempDir());
 
             (TestRuntimeModule[] current, TestModule[] desired) = GetTestModules(3);
             ModuleSet currentModuleSet = ModuleSet.Create(current as IModule[]);
@@ -107,6 +112,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                     new List<string> { "module_name", "module_version" }))
                 .Returns(guage.Object);
 
+            metricsProvider.Setup(x => x.CreateGauge(
+                    "weekly_avaliability",
+                    "total availability for the last 7 days",
+                    new List<string> { "module_name", "module_version" }))
+                .Returns(new Mock<IMetricsGauge>().Object);
+
             Util.Metrics.Metrics.Init(metricsProvider.Object, new NullMetricsListener(), NullLogger.Instance);
 
             var systemTime = new Mock<ISystemTime>();
@@ -115,18 +126,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
 
             string directory = this.GetTempDir();
 
-            AvaliabilityMetrics.Time = systemTime.Object;
-            AvaliabilityMetrics.StoragePath = Option.Some(directory);
-
             (TestRuntimeModule[] current, TestModule[] desired) = GetTestModules(3);
             ModuleSet currentModuleSet = ModuleSet.Create(current as IModule[]);
             ModuleSet desiredModuleSet = ModuleSet.Create(desired);
 
             /* make fake restart func */
+            ConstructorInfo constructor = typeof(AvaliabilityMetrics).GetConstructor(BindingFlags.Static | BindingFlags.NonPublic, null, new Type[0], null);
+            constructor.Invoke(null, null);
+            MethodInfo saveData = typeof(AvaliabilityMetrics).GetMethod("SaveData", BindingFlags.NonPublic | BindingFlags.Static);
+            object[] parameters = { null, null };
             Action fakeRestart = () =>
             {
+                /* save data */
+                saveData.Invoke(null, parameters);
+
                 /* reset metrics */
-                ConstructorInfo constructor = typeof(AvaliabilityMetrics).GetConstructor(BindingFlags.Static | BindingFlags.NonPublic, null, new Type[0], null);
                 constructor.Invoke(null, null);
                 AvaliabilityMetrics.Time = systemTime.Object;
                 AvaliabilityMetrics.StoragePath = Option.Some(directory);
@@ -136,10 +150,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                 AvaliabilityMetrics.ComputeAvaliability(desiredModuleSet, currentModuleSet);
             };
 
-            /* Test */
-            fakeRestart();
-            Assert.Empty(uptimes);
+            AvaliabilityMetrics.Time = systemTime.Object;
+            AvaliabilityMetrics.StoragePath = Option.Some(directory);
 
+            /* Test */
+            Assert.Empty(uptimes);
+            AvaliabilityMetrics.ComputeAvaliability(desiredModuleSet, currentModuleSet);
             fakeTime = fakeTime.AddMinutes(10);
             AvaliabilityMetrics.ComputeAvaliability(desiredModuleSet, currentModuleSet);
             Assert.Equal(3, uptimes.Count);
