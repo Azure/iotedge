@@ -3,7 +3,7 @@ namespace MessagesAnalyzer
 {
     using System;
 
-    public class DirectMethodStatus
+    public class ResponseStatus
     {
         public string ModuleId { get; set; }
 

@@ -20,6 +20,8 @@ namespace LoadGen
         static long reportedPropertyUpdateId = 0;
         static readonly string reportedPropertyUpdateIdLabel = "reportedPropertyUpdateId";
 
+        static readonly string moduleId = "loadGen"; // TODO: find way to get at runtime or make a field in Settings (there are multiple loadgens running)
+
         static async Task Main()
         {
             Logger.LogInformation($"Starting load gen with the following settings:\r\n{Settings.Current}");
@@ -31,6 +33,8 @@ namespace LoadGen
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                     ModuleUtil.DefaultTransientRetryStrategy,
                     Logger);
+
+                AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = Settings.Current.AnalyzerUrl };
 
                 using (var timers = new Timers())
                 {
@@ -47,7 +51,7 @@ namespace LoadGen
                     timers.Add(
                         Settings.Current.TwinUpdateFrequency,
                         Settings.Current.JitterFactor,
-                        () => TwinUpdateAsync(moduleClient, batchId.ToString()));
+                        () => TwinUpdateAsync(moduleClient, analyzerClient, batchId.ToString()));
 
                     timers.Start();
                     (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
@@ -98,9 +102,10 @@ namespace LoadGen
             }
         }
 
-        static async Task TwinUpdateAsync(ModuleClient client, string batchId)
+        static async Task TwinUpdateAsync(ModuleClient client, AnalyzerClient analyzerClient, string batchId)
         {
             reportedPropertyUpdateId += 1;
+            string status;
 
             var twin = new TwinCollection();
             twin[reportedPropertyUpdateIdLabel] = reportedPropertyUpdateId;
@@ -110,8 +115,9 @@ namespace LoadGen
             }
             catch (Exception e)
             {
-                Logger.LogError($"[TwinUpdateAsync] Failed call to update reported properties {reportedPropertyUpdateIdLabel}: {reportedPropertyUpdateId}, BatchId: {batchId};{Environment.NewLine}{e}");
-                // TODO: report failure
+                status = $"[TwinUpdateAsync] Failed call to update reported properties {reportedPropertyUpdateIdLabel}: {reportedPropertyUpdateId}, BatchId: {batchId};{Environment.NewLine}{e}";
+                Logger.LogError(status);
+                CallAnalyzerToReportStatus(moduleId, status, string.Empty, analyzerClient);
                 return;
             }
 
@@ -121,17 +127,34 @@ namespace LoadGen
             } 
             catch (Exception e)
             {
-                Logger.LogError($"[TwinUpdateAsync] Failed call to get twin {reportedPropertyUpdateIdLabel}: {reportedPropertyUpdateId}, BatchId: {batchId};{Environment.NewLine}{e}");
-               // TODO: report failure
+                status = $"[TwinUpdateAsync] Failed call to get twin {reportedPropertyUpdateIdLabel}: {reportedPropertyUpdateId}, BatchId: {batchId};{Environment.NewLine}{e}";
+                Logger.LogError(status);
+                CallAnalyzerToReportStatus(moduleId, status, string.Empty, analyzerClient);
                 return;
             }
 
             long receivedReportedPropertyId = twinProperties.Tags[reportedPropertyUpdateIdLabel];
             if (twinProperties.Tags[reportedPropertyUpdateIdLabel] != reportedPropertyUpdateId)
             {
-                Logger.LogError($"[TwinUpdateAsync] Reported property update not reflected in twin{Environment.NewLine}Expected: {reportedPropertyUpdateId}, Received: {receivedReportedPropertyId}, BatchId: {batchId};");
-               // TODO: report failure
+                status = $"[TwinUpdateAsync] Reported property update not reflected in twin{Environment.NewLine}Expected: {reportedPropertyUpdateId}, Received: {receivedReportedPropertyId}, BatchId: {batchId};";
+                Logger.LogError(status);
+                CallAnalyzerToReportStatus(moduleId, status, twinProperties.ToJson(), analyzerClient);
                 return;
+            }
+
+            CallAnalyzerToReportStatus(moduleId, "Success", twinProperties.ToJson(), analyzerClient);
+        }
+
+        // TODO: put this func in the analyzer client so we don't have to wrap try here and in direct method cloud sender
+        static void CallAnalyzerToReportStatus(string moduleId, string status, string responseJson, AnalyzerClient analyzerClient)
+        {
+            try
+            {
+                analyzerClient.AddTwinResponseAsync(new ResponseStatus { ModuleId = moduleId, StatusCode = status, ResultAsJson = responseJson, EnqueuedDateTime = DateTime.UtcNow });
+            }
+            catch (Exception e)
+            {
+                Logger.LogError(e.ToString());
             }
         }
     }

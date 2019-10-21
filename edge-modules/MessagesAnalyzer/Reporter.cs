@@ -13,19 +13,30 @@ namespace MessagesAnalyzer
 
         public static DeviceAnalysis GetDeviceReport(double toleranceInMilliseconds)
         {
-            return new DeviceAnalysis(GetReceivedMessagesReport(toleranceInMilliseconds), GetDmReport());
+            return new DeviceAnalysis(GetReceivedMessagesReport(toleranceInMilliseconds), GetDmReport(), GetTwinsReport());
         }
 
-        static IList<ModuleDmReport> GetDmReport()
+        static IList<ResponseOrientedReport> GetDmReport()
         {
             IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> dms = MessagesCache.Instance.GetDmSnapshot();
-            IList<ModuleDmReport> report = new List<ModuleDmReport>();
+            return GetReportHelper(dms);
+        }
 
-            foreach (KeyValuePair<string, IDictionary<string, Tuple<int, DateTime>>> dm in dms)
+        static IList<ResponseOrientedReport> GetTwinsReport()
+        {
+            IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> twins = MessagesCache.Instance.GetTwinsSnapshot();
+            return GetReportHelper(twins);
+        }
+
+        static IList<ResponseOrientedReport> GetReportHelper(IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> cache)
+        {
+            IList<ResponseOrientedReport> report = new List<ResponseOrientedReport>();
+
+            foreach (KeyValuePair<string, IDictionary<string, Tuple<int, DateTime>>> obj in cache)
             {
-                Log.LogInformation($"Dm report for {dm.Key}");
-                report.Add(new ModuleDmReport(dm.Key, dm.Value));
-
+                // TODO: specify report type in logs through enum of response oriented report types
+                Log.LogInformation($"Report for {obj.Key}");
+                report.Add(new ResponseOrientedReport(obj.Key, obj.Value));
             }
 
             return report;

@@ -7,15 +7,15 @@ namespace MessagesAnalyzer
     using Newtonsoft.Json.Serialization;
 
     [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
-    class ModuleDmReport
+    class ResponseOrientedReport
     {
-        public ModuleDmReport(string moduleId, IDictionary<string, Tuple<int, DateTime>> statusCodes)
+        public ResponseOrientedReport(string moduleId, IDictionary<string, Tuple<int, DateTime>> statusCodes)
         {
             this.ModuleId = moduleId;
-            this.StatusCodes = new List<DmStatusReport>();
+            this.StatusCodes = new List<ResponseStatusReport>();
             foreach (KeyValuePair<string, Tuple<int, DateTime>> status in statusCodes)
             {
-                this.StatusCodes.Add(new DmStatusReport()
+                this.StatusCodes.Add(new ResponseStatusReport()
                 {
                     StatusCode = status.Key,
                     Count = status.Value.Item1,
@@ -26,7 +26,7 @@ namespace MessagesAnalyzer
 
         public string ModuleId { get; }
 
-        public IList<DmStatusReport> StatusCodes { get; }
+        public IList<ResponseStatusReport> StatusCodes { get; }
 
         public override string ToString()
         {
@@ -34,7 +34,7 @@ namespace MessagesAnalyzer
         }
 
         [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
-        public class DmStatusReport
+        public class ResponseStatusReport
         {
             public string StatusCode { get; set; }
 

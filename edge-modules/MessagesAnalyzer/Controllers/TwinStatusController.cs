@@ -6,13 +6,13 @@ namespace MessagesAnalyzer.Controllers
 
     [Route("api/[controller]")]
     [ApiController]
-    public class DirectMethodStatusController : Controller
+    public class TwinStatusController : Controller
     {
         // POST api/directmethodstatus
         [HttpPost]
-        public ActionResult<bool> Post(ResponseStatus methodCallStatus)
+        public ActionResult<bool> Post(ResponseStatus twinStatus)
         {
-            MessagesCache.Instance.AddDirectMethodStatus(methodCallStatus);
+            MessagesCache.Instance.AddTwinStatus(twinStatus);
             return true;
         }
     }

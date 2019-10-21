@@ -8,13 +8,15 @@ namespace MessagesAnalyzer
     [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
     class DeviceAnalysis
     {
-        public DeviceAnalysis(IList<ModuleMessagesReport> messagesReport, IList<ModuleDmReport> dmReport)
+        public DeviceAnalysis(IList<ModuleMessagesReport> messagesReport, IList<ResponseOrientedReport> dmReport, IList<ResponseOrientedReport> twinsReport)
         {
             this.MessagesReport = messagesReport;
             this.DmReport = dmReport;
+            this.TwinsReport = twinsReport;
         }
 
-        public IList<ModuleDmReport> DmReport { get; }
+        public IList<ResponseOrientedReport> DmReport { get; }
+        public IList<ResponseOrientedReport> TwinsReport { get; }
 
         public IList<ModuleMessagesReport> MessagesReport { get; }
 

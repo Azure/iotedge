@@ -13,6 +13,7 @@ namespace MessagesAnalyzer
         // maps batchId with messages
         readonly ConcurrentDictionary<string, IList<MessageDetails>> messages = new ConcurrentDictionary<string, IList<MessageDetails>>();
         readonly ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> dm = new ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>>();
+        readonly ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> twins = new ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>>();
         readonly IComparer<MessageDetails> comparer = new EventDataComparer();
 
         MessagesCache()
@@ -21,13 +22,23 @@ namespace MessagesAnalyzer
 
         public static MessagesCache Instance { get; } = new MessagesCache();
 
-        public void AddDirectMethodStatus(DirectMethodStatus directMethodStatus)
+        public void AddDirectMethodStatus(ResponseStatus directMethodStatus)
         {
-            ConcurrentDictionary<string, Tuple<int, DateTime>> batchDirectMethods = this.dm.GetOrAdd(directMethodStatus.ModuleId, key => new ConcurrentDictionary<string, Tuple<int, DateTime>>());
+            AddStatus(directMethodStatus, this.dm);
+        }
+
+        public void AddTwinStatus(ResponseStatus twinStatus)
+        {
+            AddStatus(twinStatus, this.twins);
+        }
+
+        public void AddStatus(ResponseStatus responseStatus, ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> cache)
+        {
+            ConcurrentDictionary<string, Tuple<int, DateTime>> batch = cache.GetOrAdd(responseStatus.ModuleId, key => new ConcurrentDictionary<string, Tuple<int, DateTime>>());
             //TODO: thread safe
-            batchDirectMethods.AddOrUpdate(directMethodStatus.StatusCode, new Tuple<int, DateTime>(1, directMethodStatus.EnqueuedDateTime),
+            batch.AddOrUpdate(responseStatus.StatusCode, new Tuple<int, DateTime>(1, responseStatus.EnqueuedDateTime),
                 (key, value) => new Tuple<int, DateTime>(value.Item1+1,
-                directMethodStatus.EnqueuedDateTime > value.Item2 ? directMethodStatus.EnqueuedDateTime : value.Item2));
+                responseStatus.EnqueuedDateTime > value.Item2 ? responseStatus.EnqueuedDateTime : value.Item2));
         }
 
         public void AddMessage(string moduleId, string batchId, MessageDetails messageDetails)
@@ -40,7 +51,15 @@ namespace MessagesAnalyzer
 
         public IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> GetDmSnapshot()
         {
-            return this.dm.ToArray().ToDictionary(p => p.Key, p => (IDictionary<string, Tuple<int, DateTime>>)p.Value.ToArray().ToDictionary(t => t.Key, t => t.Value));
+            return this.GetTwinOrDirectMethodSnapshot(this.dm);
+        }
+        public IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> GetTwinsSnapshot()
+        {
+            return this.GetTwinOrDirectMethodSnapshot(this.twins);
+        }
+        public IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> GetTwinOrDirectMethodSnapshot(ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> cache)
+        {
+            return cache.ToArray().ToDictionary(p => p.Key, p => (IDictionary<string, Tuple<int, DateTime>>)p.Value.ToArray().ToDictionary(t => t.Key, t => t.Value));
         }
 
         public IDictionary<string, IList<SortedSet<MessageDetails>>> GetMessagesSnapshot()
