@@ -6,7 +6,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Disk
     using Microsoft.Azure.Devices.Edge.Util;
     public interface IStorageSpaceChecker
     {
-        void SetMaxStorageSize(long maxStorageBytes, Option<int> checkFrequency);
+        void SetMaxSizeBytes(long maxStorageBytes);
+
+        void SetCheckFrequency(Option<int> checkFrequencySecs);
+
+        void DisableChecker();
 
         void SetStorageUsageComputer(Func<Task<long>> storageUsageComputer);
 

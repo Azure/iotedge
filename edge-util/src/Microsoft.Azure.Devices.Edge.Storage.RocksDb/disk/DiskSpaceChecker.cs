@@ -11,10 +11,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
 
     public class DiskSpaceChecker : IStorageSpaceChecker
     {
-        static readonly int checkFrequencyDefault = 120;
+        static readonly int checkFrequencyDefault = 3;
         readonly string storageFolder;
         readonly object updateLock = new object();
         Option<DiskSpaceCheckerBase> inner;
+        long maxSize;
+        Option<int> checkFrequency;
 
         DiskSpaceChecker(string storageFolder, Option<DiskSpaceCheckerBase> inner)
         {
@@ -26,20 +28,58 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
 
         public static DiskSpaceChecker Create(string storageFolder)
         {
-            // Start up diskSpaceChecker unfilled - so that it will be enabled when SetMaxStorageSize is called
+            // Start up diskSpaceChecker unfilled - so that it will be enabled when SetMaxSizeBytes is called
             var diskSpaceChecker = new DiskSpaceChecker(storageFolder, Option.None<DiskSpaceCheckerBase>());
             Events.Created(storageFolder);
             return diskSpaceChecker;
         }
 
-        public void SetMaxStorageSize(long maxStorageBytes, Option<int> checkFrequency)
+        public void SetMaxSizeBytes(long maxSizeBytes)
+        {
+            this.maxSize = maxSizeBytes;
+            this.EnableChecker();
+            Events.SetMaxSizeDiskSpaceUsage(this.maxSize, this.storageFolder);
+        }
+
+        public void SetCheckFrequency(Option<int> checkFrequencySecs)
+        {
+            checkFrequencySecs.ForEach(updatedCheckFrequency =>
+            {
+                if (updatedCheckFrequency > 0 && !this.checkFrequency.Equals(Option.Some(updatedCheckFrequency)))
+                {
+                    lock (this.updateLock)
+                    {
+                        this.checkFrequency = Option.Some(updatedCheckFrequency);
+                        this.inner.ForEach(b => b.DisposeChecker());
+                        this.inner = Option.Some(new FixedSizeDiskSpaceChecker(this.storageFolder, this.maxSize, TimeSpan.FromSeconds(updatedCheckFrequency), Events.Log) as DiskSpaceCheckerBase);
+                    }
+                }
+            });
+        }
+
+        void EnableChecker()
         {
             lock (this.updateLock)
             {
-                Events.SetMaxSizeDiskSpaceUsage(maxStorageBytes, this.storageFolder);
-                int frequencyValue = checkFrequency.GetOrElse(checkFrequencyDefault);
-                this.inner.ForEach(b => b.DisposeChecker());
-                this.inner = Option.Some(new FixedSizeDiskSpaceChecker(this.storageFolder, maxStorageBytes, TimeSpan.FromSeconds(frequencyValue), Events.Log) as DiskSpaceCheckerBase);
+                this.inner = Option.Some(
+                    new FixedSizeDiskSpaceChecker(
+                        this.storageFolder,
+                        this.maxSize,
+                        TimeSpan.FromSeconds(this.checkFrequency.GetOrElse(checkFrequencyDefault)),
+                        Events.Log)
+                    as DiskSpaceCheckerBase);
+            }
+        }
+
+        public void DisableChecker()
+        {
+            lock (this.updateLock)
+            {
+                if (this.inner.HasValue)
+                {
+                    this.inner.ForEach(b => b.DisposeChecker());
+                    this.inner = Option.None<DiskSpaceCheckerBase>();
+                }
             }
         }
 
