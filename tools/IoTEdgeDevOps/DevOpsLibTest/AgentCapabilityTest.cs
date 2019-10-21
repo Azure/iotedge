@@ -64,5 +64,14 @@ namespace DevOpsLibTest
 
             Assert.AreEqual(c1, c2);
         }
+
+        [Test]
+        public void TestClone()
+        {
+            var c1 = new AgentCapability("cap", "value");
+            var c2 = c1.Clone();
+
+            Assert.AreEqual(c1, c2);
+        }
     }
 }

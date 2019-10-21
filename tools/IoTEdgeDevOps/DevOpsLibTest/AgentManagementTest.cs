@@ -12,7 +12,6 @@ namespace DevOpsLibTest
     [TestFixture]
     public class AgentManagementTest
     {
-        const string Organization = "msazure";
         const string PersonalAccessToken = "pattoken123";
 
         AgentManagement agentManagement;
@@ -22,7 +21,7 @@ namespace DevOpsLibTest
         public void Setup()
         {
             this.httpTest = new HttpTest();
-            this.agentManagement = new AgentManagement(Organization, PersonalAccessToken);
+            this.agentManagement = new AgentManagement(new DevOpsAccessSetting(PersonalAccessToken));
         }
 
         [TearDown]
@@ -86,17 +85,17 @@ namespace DevOpsLibTest
             int poolId = 123; // Azure-IoT-Edge-Core pool id
             IList<VstsAgent> agents = await this.agentManagement.GetAgentsAsync(poolId).ConfigureAwait(false);
 
-            this.httpTest.ShouldHaveCalled($"https://dev.azure.com/{Organization}/_apis/distributedtask/pools/{poolId}/agents?api-version=5.1")
+            this.httpTest.ShouldHaveCalled($"https://dev.azure.com/{DevOpsAccessSetting.AzureOrganization}/_apis/distributedtask/pools/{poolId}/agents?api-version=5.1")
                 .WithVerb(HttpMethod.Get)
                 .WithBasicAuth(string.Empty, PersonalAccessToken)
                 .Times(1);
 
-            this.httpTest.ShouldHaveCalled($"https://dev.azure.com/{Organization}/_apis/distributedtask/pools/{poolId}/agents/1345?api-version=5.1&includeCapabilities=true")
+            this.httpTest.ShouldHaveCalled($"https://dev.azure.com/{DevOpsAccessSetting.AzureOrganization}/_apis/distributedtask/pools/{poolId}/agents/1345?api-version=5.1&includeCapabilities=true")
                 .WithVerb(HttpMethod.Get)
                 .WithBasicAuth(string.Empty, PersonalAccessToken)
                 .Times(1);
 
-            this.httpTest.ShouldHaveCalled($"https://dev.azure.com/{Organization}/_apis/distributedtask/pools/{poolId}/agents/78493?api-version=5.1&includeCapabilities=true")
+            this.httpTest.ShouldHaveCalled($"https://dev.azure.com/{DevOpsAccessSetting.AzureOrganization}/_apis/distributedtask/pools/{poolId}/agents/78493?api-version=5.1&includeCapabilities=true")
                 .WithVerb(HttpMethod.Get)
                 .WithBasicAuth(string.Empty, PersonalAccessToken)
                 .Times(1);

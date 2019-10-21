@@ -1,9 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace IoTEdgeDashboard.Controllers
 {
-    using System.Collections.Generic;
     using System.Diagnostics;
-    using System.Linq;
     using System.Threading.Tasks;
     using DevOpsLib;
     using DevOpsLib.VstsModels;
@@ -20,36 +18,16 @@ namespace IoTEdgeDashboard.Controllers
             this._appConfig = appConfigAccessor.Value;
         }
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index([FromQuery(Name = "branch")] string branch = "master")
         {
-            var agentManagement = new AgentManagement("msazure", this._appConfig.PersonalAccessToken);
-            IList<VstsAgent> agents = await agentManagement.GetAgentsAsync(AgentManagement.IoTEdgeAgentPoolId).ConfigureAwait(false);
+            var buildManagement = new BuildManagement(new DevOpsAccessSetting(this._appConfig.PersonalAccessToken));
+            VstsBuild ciBuild = await buildManagement.GetLatestBuildAsync(BuildDefinitionIds.CI, branch).ConfigureAwait(false);
 
-            var agentMatrix = new AgentMatrix();
-            agentMatrix.Update(agents.Select(IoTEdgeVstsAgent.Create).ToHashSet());
-
-            var viewModel = new DashboardViewModel { AgentTable = agentMatrix };
-            List<IoTEdgeVstsAgent> unmatchedAgents = agentMatrix.GetUnmatchedAgents().ToList();
-
-            // Image build
-            viewModel.ImageBuild = new ImageBuildViewModel
-            {
-                Group = new AgentDemandSet("Build Images", new HashSet<AgentCapability> { new AgentCapability("build-Image", "true") }),
-                Agents = new List<IoTEdgeVstsAgent>()
-            };
-
-            for (int i = unmatchedAgents.Count - 1; i >= 0; i--)
-            {
-                if (unmatchedAgents[i].Match(viewModel.ImageBuild.Group.Capabilities))
+            return this.View(
+                new DashboardViewModel
                 {
-                    viewModel.ImageBuild.Agents.Add(unmatchedAgents[i]);
-                    unmatchedAgents.RemoveAt(i);
-                }
-            }
-
-            viewModel.UnmatchedAgents = unmatchedAgents;
-
-            return this.View(viewModel);
+                    CIBuild = ciBuild
+                });
         }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

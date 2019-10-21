@@ -1,15 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace IoTEdgeDashboard.Models
 {
-    using System.Collections.Generic;
-    using DevOpsLib;
+    using DevOpsLib.VstsModels;
 
     public class DashboardViewModel
     {
-        public AgentMatrix AgentTable { get; set; }
-
-        public ImageBuildViewModel ImageBuild { get; set; }
-
-        public List<IoTEdgeVstsAgent> UnmatchedAgents { get; set; }
+        public VstsBuild CIBuild { get; set; }
     }
 }
