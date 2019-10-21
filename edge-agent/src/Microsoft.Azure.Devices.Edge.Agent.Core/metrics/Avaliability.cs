@@ -13,8 +13,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
         public string Name;
         public string Version;
-        private TimeSpan totalTime = TimeSpan.Zero;
-        private TimeSpan uptime = TimeSpan.Zero;
+        public TimeSpan TotalTime = TimeSpan.Zero;
+        public TimeSpan Uptime = TimeSpan.Zero;
+
         private DateTime? previousMeasure = null;
 
         public Avaliability(string name, string version, ISystemTime time)
@@ -30,15 +31,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
         {
             this.Name = raw.Name;
             this.Version = raw.Version;
-            this.uptime = raw.Uptime;
-            this.totalTime = raw.TotalTime;
+            this.Uptime = raw.Uptime;
+            this.TotalTime = raw.TotalTime;
 
             this.time = time;
         }
 
-        public double Avaliability1
+        public double AvaliabilityRatio
         {
-            get { return this.uptime.TotalMilliseconds / this.totalTime.TotalMilliseconds; }
+            get { return this.Uptime.TotalMilliseconds / this.TotalTime.TotalMilliseconds; }
         }
 
         public void AddPoint(bool isUp)
@@ -51,10 +52,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             }
 
             TimeSpan duration = this.time.UtcNow - this.previousMeasure.Value;
-            this.totalTime += duration;
+            this.TotalTime += duration;
             if (isUp)
             {
-                this.uptime += duration;
+                this.Uptime += duration;
             }
 
             this.previousMeasure = this.time.UtcNow;
@@ -71,8 +72,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             {
                 Name = this.Name,
                 Version = this.Version,
-                Uptime = this.uptime,
-                TotalTime = this.totalTime
+                Uptime = this.Uptime,
+                TotalTime = this.TotalTime
             };
         }
     }

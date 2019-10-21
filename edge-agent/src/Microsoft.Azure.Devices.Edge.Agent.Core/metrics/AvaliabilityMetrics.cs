@@ -79,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                     avaliability.NoPoint();
                 }
 
-                LifetimeAvaliability.Set(avaliability.Avaliability1, new[] { avaliability.Name, avaliability.Version });
+                LifetimeAvaliability.Set(avaliability.AvaliabilityRatio, new[] { avaliability.Name, avaliability.Version });
             }
 
             /* Add new modules to track */
