@@ -74,7 +74,6 @@ namespace LoadGen
         {
             var random = new Random();
             var bufferPool = new BufferPool();
-            long sequenceNumber = -1;
 
             try
             {
@@ -86,8 +85,8 @@ namespace LoadGen
                     // build message
                     var messageBody = new { data = data.Data };
                     var message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)));
-                    sequenceNumber = Interlocked.Increment(ref messageIdCounter);
-                    message.Properties.Add("sequenceNumber", sequenceNumber.ToString());
+                    messageIdCounter += 1;
+                    message.Properties.Add("sequenceNumber", messageIdCounter.ToString());
                     message.Properties.Add("batchId", batchId.ToString());
 
                     await client.SendEventAsync(Settings.Current.OutputName, message);
@@ -95,7 +94,7 @@ namespace LoadGen
             }
             catch (Exception e)
             {
-                Logger.LogError($"[GenerateMessageAsync] Sequence number {sequenceNumber}, BatchId: {batchId.ToString()};{Environment.NewLine}{e}");
+                Logger.LogError($"[GenerateMessageAsync] Sequence number {messageIdCounter}, BatchId: {batchId.ToString()};{Environment.NewLine}{e}");
             }
         }
 
@@ -111,7 +110,7 @@ namespace LoadGen
             }
             catch (Exception e)
             {
-                Logger.LogError($"[TwinUpdateAsync] Failed call to update reported property {reportedPropertyUpdateIdLabel}: {reportedPropertyUpdateId}, BatchId: {batchId};{Environment.NewLine}{e}");
+                Logger.LogError($"[TwinUpdateAsync] Failed call to update reported properties {reportedPropertyUpdateIdLabel}: {reportedPropertyUpdateId}, BatchId: {batchId};{Environment.NewLine}{e}");
                 // TODO: report failure
                 return;
             }
@@ -122,7 +121,7 @@ namespace LoadGen
             } 
             catch (Exception e)
             {
-                Logger.LogError($"[TwinUpdateAsync] Failed get twin {reportedPropertyUpdateIdLabel}: {reportedPropertyUpdateId}, BatchId: {batchId};{Environment.NewLine}{e}");
+                Logger.LogError($"[TwinUpdateAsync] Failed call to get twin {reportedPropertyUpdateIdLabel}: {reportedPropertyUpdateId}, BatchId: {batchId};{Environment.NewLine}{e}");
                // TODO: report failure
                 return;
             }
