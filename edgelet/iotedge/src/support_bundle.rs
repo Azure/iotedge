@@ -379,7 +379,6 @@ where
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         state.print_verbose(&format!("Got docker inspect for {}", module_name));
-        drop(module_name);
         Ok(state)
     }
 
@@ -462,7 +461,6 @@ where
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         state.print_verbose(&format!("Got docker network inspect for {}", network_name));
-        drop(network_name);
         Ok(state)
     }
 }
