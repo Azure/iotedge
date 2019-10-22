@@ -155,7 +155,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                         $"{result.Status}\n{result.GetPayloadAsJson()}");
                     return result.Status == 200;
                 },
-                e => true,
+                e =>
+                    {
+                        Log.Verbose($"Exception: {e}");
+                        return true;
+                    },
                 TimeSpan.FromSeconds(5),
                 token);
         }

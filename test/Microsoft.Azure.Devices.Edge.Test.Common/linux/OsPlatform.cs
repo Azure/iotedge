@@ -26,22 +26,24 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Linux
 
         public IEdgeDaemon CreateEdgeDaemon(Option<string> _) => new EdgeDaemon();
 
-        public Task<EdgeCertificates> GenerateEdgeCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
+        public async Task<IdCertificates> GenerateIdentityCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
+        {
+            var command = BuildCertCommand($"create_device_certificate '{deviceId}'", scriptPath);
+            await this.RunScriptAsync(("bash", command), token);
+            return new IdCertificates(deviceId, scriptPath);
+        }
+
+        public async Task<CaCertificates> GenerateCaCertificatesAsync(string deviceId, string scriptPath, CancellationToken token)
         {
             var command = BuildCertCommand($"create_edge_device_certificate '{deviceId}'", scriptPath);
-            return this.GenerateEdgeCertificatesAsync(deviceId, scriptPath, ("bash", command), token);
+            await this.RunScriptAsync(("bash", command), token);
+            return new CaCertificates(deviceId, scriptPath);
         }
 
-        public Task<LeafCertificates> GenerateLeafCertificatesAsync(string leafDeviceId, string scriptPath, CancellationToken token)
-        {
-            var command = BuildCertCommand($"create_device_certificate '{leafDeviceId}'", scriptPath);
-            return this.GenerateLeafCertificatesAsync(leafDeviceId, scriptPath, ("bash", command), token);
-        }
-
-        public EdgeCertificates GetEdgeQuickstartCertificates() =>
+        public CaCertificates GetEdgeQuickstartCertificates() =>
             this.GetEdgeQuickstartCertificates("/var/lib/iotedge/hsm");
 
-        public void InstallEdgeCertificates(IEnumerable<X509Certificate2> certs, ITransportSettings _) =>
+        public void InstallCaCertificates(IEnumerable<X509Certificate2> certs, ITransportSettings _) =>
             this.InstallTrustedCertificates(certs, StoreName.Root);
 
         public Task InstallRootCertificateAsync(string certPath, string keyPath, string password, string scriptPath, CancellationToken token)
