@@ -40,15 +40,15 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         {
             // Invalid DbStoreProvider.
             IDataBackupRestore dataBackupRestore = Mock.Of<IDataBackupRestore>();
-            await Assert.ThrowsAsync<ArgumentNullException>(() => DbStoreProviderWithBackupRestore.CreateAsync(null, this.backupFolder, dataBackupRestore, SerializationFormat.ProtoBuf));
+            await Assert.ThrowsAsync<ArgumentNullException>(() => DbStoreProviderWithBackupRestore.CreateAsync(null, this.backupFolder, dataBackupRestore));
 
             // Invalid backup path.
             IDbStoreProvider dbStoreProvider = Mock.Of<IDbStoreProvider>();
-            await Assert.ThrowsAsync<ArgumentException>(() => DbStoreProviderWithBackupRestore.CreateAsync(dbStoreProvider, null, dataBackupRestore, SerializationFormat.ProtoBuf));
-            await Assert.ThrowsAsync<ArgumentException>(() => DbStoreProviderWithBackupRestore.CreateAsync(dbStoreProvider, " ", dataBackupRestore, SerializationFormat.ProtoBuf));
+            await Assert.ThrowsAsync<ArgumentException>(() => DbStoreProviderWithBackupRestore.CreateAsync(dbStoreProvider, null, dataBackupRestore));
+            await Assert.ThrowsAsync<ArgumentException>(() => DbStoreProviderWithBackupRestore.CreateAsync(dbStoreProvider, " ", dataBackupRestore));
 
             // Invalid dataBackupRestore.
-            await Assert.ThrowsAsync<ArgumentNullException>(() => DbStoreProviderWithBackupRestore.CreateAsync(dbStoreProvider, this.backupFolder, null, SerializationFormat.ProtoBuf));
+            await Assert.ThrowsAsync<ArgumentNullException>(() => DbStoreProviderWithBackupRestore.CreateAsync(dbStoreProvider, this.backupFolder, null));
         }
 
         [Fact]
@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             var dbStoreProvider = new Mock<IDbStoreProvider>();
 
             IDbStoreProvider dbStoreProviderWithBackupRestore =
-                await DbStoreProviderWithBackupRestore.CreateAsync(dbStoreProvider.Object, this.backupFolder, dataBackupRestore.Object, SerializationFormat.ProtoBuf);
+                await DbStoreProviderWithBackupRestore.CreateAsync(dbStoreProvider.Object, this.backupFolder, dataBackupRestore.Object);
 
             dbStoreProvider.Setup(x => x.GetDbStore()).Returns(Mock.Of<IDbStore>());
             dbStoreProvider.Setup(x => x.GetDbStore(It.IsAny<string>())).Returns(Mock.Of<IDbStore>());
@@ -99,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
 
             // Test restore.
             dbStoreProviderWithBackupRestore =
-                await DbStoreProviderWithBackupRestore.CreateAsync(dbStoreProvider.Object, this.backupFolder, dataBackupRestore.Object, SerializationFormat.ProtoBuf);
+                await DbStoreProviderWithBackupRestore.CreateAsync(dbStoreProvider.Object, this.backupFolder, dataBackupRestore.Object);
 
             dataBackupRestore.Verify(m => m.RestoreAsync<IList<Item>>(It.IsAny<string>(), It.IsAny<string>()), Times.Exactly(3));
 
@@ -115,7 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
 
             dataBackupRestore.Setup(x => x.BackupAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IList<Item>>())).Throws(new IOException());
             IDbStoreProvider dbStoreProviderWithBackupRestore =
-                await DbStoreProviderWithBackupRestore.CreateAsync(dbStoreProvider.Object, this.backupFolder, dataBackupRestore.Object, SerializationFormat.ProtoBuf);
+                await DbStoreProviderWithBackupRestore.CreateAsync(dbStoreProvider.Object, this.backupFolder, dataBackupRestore.Object);
 
             dbStoreProvider.Setup(x => x.GetDbStore()).Returns(Mock.Of<IDbStore>());
 
@@ -153,7 +153,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             var dbStoreProvider = new Mock<IDbStoreProvider>();
 
             IDbStoreProvider dbStoreProviderWithBackupRestore =
-                await DbStoreProviderWithBackupRestore.CreateAsync(dbStoreProvider.Object, this.backupFolder, dataBackupRestore.Object, SerializationFormat.ProtoBuf);
+                await DbStoreProviderWithBackupRestore.CreateAsync(dbStoreProvider.Object, this.backupFolder, dataBackupRestore.Object);
 
             dbStoreProvider.Setup(x => x.GetDbStore()).Returns(Mock.Of<IDbStore>());
             dbStoreProvider.Setup(x => x.GetDbStore(It.IsAny<string>())).Returns(Mock.Of<IDbStore>());
@@ -185,7 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
 
             // Test restore failure.
             dbStoreProviderWithBackupRestore =
-                await DbStoreProviderWithBackupRestore.CreateAsync(dbStoreProvider.Object, this.backupFolder, dataBackupRestore.Object, SerializationFormat.ProtoBuf);
+                await DbStoreProviderWithBackupRestore.CreateAsync(dbStoreProvider.Object, this.backupFolder, dataBackupRestore.Object);
 
             // Attempts to remove the DB stores should have been made as part of fallback from the restore failure.
             dbStoreProvider.Verify(x => x.RemoveDbStore(), Times.Once);
@@ -202,7 +202,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             var dbStoreProvider = new Mock<IDbStoreProvider>();
 
             IDbStoreProvider dbStoreProviderWithBackupRestore =
-                await DbStoreProviderWithBackupRestore.CreateAsync(dbStoreProvider.Object, this.backupFolder, dataBackupRestore.Object, SerializationFormat.ProtoBuf);
+                await DbStoreProviderWithBackupRestore.CreateAsync(dbStoreProvider.Object, this.backupFolder, dataBackupRestore.Object);
 
             dbStoreProvider.Setup(x => x.GetDbStore()).Returns(Mock.Of<IDbStore>());
             dbStoreProvider.Setup(x => x.GetDbStore(It.IsAny<string>())).Returns(Mock.Of<IDbStore>());
@@ -237,7 +237,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
 
             // Test restore failure.
             dbStoreProviderWithBackupRestore =
-                await DbStoreProviderWithBackupRestore.CreateAsync(dbStoreProvider.Object, this.backupFolder, dataBackupRestore.Object, SerializationFormat.ProtoBuf);
+                await DbStoreProviderWithBackupRestore.CreateAsync(dbStoreProvider.Object, this.backupFolder, dataBackupRestore.Object);
 
             // No attempts to restore a DB should have been made as the metadata itself was bad.
             dataBackupRestore.Verify(m => m.RestoreAsync<IList<Item>>(It.IsAny<string>(), It.IsAny<string>()), Times.Never);

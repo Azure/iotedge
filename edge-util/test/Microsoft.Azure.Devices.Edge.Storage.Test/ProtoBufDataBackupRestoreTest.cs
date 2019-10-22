@@ -11,11 +11,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
     using Xunit;
 
     [Unit]
-    public class ProtoBufBackupRestoreTest
+    public class ProtoBufDataBackupRestoreTest
     {
         readonly string backupFolder;
 
-        public ProtoBufBackupRestoreTest()
+        public ProtoBufDataBackupRestoreTest()
         {
             string tempFolder = Path.GetTempPath();
             this.backupFolder = Path.Combine(tempFolder, $"protoBufTestBackup{Guid.NewGuid()}");
@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             Directory.CreateDirectory(this.backupFolder);
         }
 
-        ~ProtoBufBackupRestoreTest()
+        ~ProtoBufDataBackupRestoreTest()
         {
             if (!string.IsNullOrWhiteSpace(this.backupFolder) && Directory.Exists(this.backupFolder))
             {

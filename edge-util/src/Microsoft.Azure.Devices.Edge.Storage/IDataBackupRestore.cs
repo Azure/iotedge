@@ -8,5 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         Task BackupAsync<T>(string name, string backupPath, T data);
 
         Task<T> RestoreAsync<T>(string name, string backupPath);
+
+        SerializationFormat DataBackupFormat { get; }
     }
 }

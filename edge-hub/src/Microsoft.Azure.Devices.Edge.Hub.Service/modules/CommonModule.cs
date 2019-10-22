@@ -379,10 +379,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             if (this.useBackupAndRestore)
             {
                 var backupRestore = container.Resolve<IDataBackupRestore>();
-                SerializationFormat format = BackupRestoreUtil.GetFormat(backupRestore);
-
                 string backupPathValue = this.storageBackupPath.Expect(() => new InvalidOperationException("Storage backup path missing"));
-                dbStoreProvider = await dbStoreProvider.WithBackupRestore(backupPathValue, backupRestore, format);
+                dbStoreProvider = await dbStoreProvider.WithBackupRestore(backupPathValue, backupRestore);
             }
 
             return dbStoreProvider;

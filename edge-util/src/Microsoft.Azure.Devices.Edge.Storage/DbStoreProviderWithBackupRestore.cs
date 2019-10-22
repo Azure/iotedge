@@ -23,19 +23,16 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         readonly string backupPath;
         readonly ConcurrentDictionary<string, byte> dbStores;
         readonly IDataBackupRestore dataBackupRestore;
-        readonly SerializationFormat backupFormat;
         readonly Events events;
 
         DbStoreProviderWithBackupRestore(
             IDbStoreProvider dbStoreProvider,
             string backupPath,
-            IDataBackupRestore dataBackupRestore,
-            SerializationFormat backupFormat)
+            IDataBackupRestore dataBackupRestore)
             : base(dbStoreProvider)
         {
             this.backupPath = Preconditions.CheckNonWhiteSpace(backupPath, nameof(backupPath));
             this.dataBackupRestore = Preconditions.CheckNotNull(dataBackupRestore, nameof(dataBackupRestore));
-            this.backupFormat = backupFormat;
             this.dbStores = new ConcurrentDictionary<string, byte>();
             this.events = new Events(this.Log);
         }
@@ -43,10 +40,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         public static async Task<IDbStoreProvider> CreateAsync(
             IDbStoreProvider dbStoreProvider,
             string backupPath,
-            IDataBackupRestore dataBackupRestore,
-            SerializationFormat backupFormat)
+            IDataBackupRestore dataBackupRestore)
         {
-            DbStoreProviderWithBackupRestore provider = new DbStoreProviderWithBackupRestore(dbStoreProvider, backupPath, dataBackupRestore, backupFormat);
+            DbStoreProviderWithBackupRestore provider = new DbStoreProviderWithBackupRestore(dbStoreProvider, backupPath, dataBackupRestore);
             await provider.RestoreAsync();
             return provider;
         }
@@ -151,7 +147,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             Guid backupId = Guid.NewGuid();
             string dbBackupDirectory = Path.Combine(this.backupPath, backupId.ToString());
 
-            BackupMetadata newBackupMetadata = new BackupMetadata(backupId, this.backupFormat, DateTime.UtcNow, this.dbStores.Keys.ToList());
+            BackupMetadata newBackupMetadata = new BackupMetadata(backupId, this.dataBackupRestore.DataBackupFormat, DateTime.UtcNow, this.dbStores.Keys.ToList());
             BackupMetadataList backupMetadataList = new BackupMetadataList(new List<BackupMetadata> { newBackupMetadata });
             try
             {

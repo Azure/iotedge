@@ -13,6 +13,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     /// </summary>
     public class ProtoBufDataBackupRestore : IDataBackupRestore
     {
+        public SerializationFormat DataBackupFormat => SerializationFormat.ProtoBuf;
+
         public ProtoBufDataBackupRestore()
         {
         }
