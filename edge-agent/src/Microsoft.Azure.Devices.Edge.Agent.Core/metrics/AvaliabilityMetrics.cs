@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
     using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
+    using Microsoft.Extensions.Logging;
 
     static class AvailabilityMetrics
     {
@@ -21,6 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             "total availability for the last 7 days",
             new List<string> { "module_name", "module_version" });
 
+        public static readonly ILogger Log = Logger.Factory.CreateLogger<Availability>();
         public static ISystemTime Time = SystemTime.Instance;
         public static Option<string> StoragePath = Option.None<string>();
 
@@ -82,10 +84,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
         {
             if (StoragePath.HasValue)
             {
-                Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Loading historical availability");
+                Log.LogInformation("Loading historical availability");
 
                 List<Availability> lifetimeAvailabilities = new List<Availability>();
-                string file = Path.Combine(StoragePath.ToEnumerable().First(), "AvailabilityHistory", "lifetime.json");
+                string file = Path.Combine(StoragePath.OrDefault(), "AvailabilityHistory", "lifetime.json");
                 if (File.Exists(file))
                 {
                     try
@@ -95,12 +97,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Could not load lifetime availability: {ex}");
+                        Log.LogError($"Could not load lifetime availability: {ex}");
                     }
                 }
 
                 List<WeeklyAvailability> weeklyAvailabilities = new List<WeeklyAvailability>();
-                file = Path.Combine(StoragePath.ToEnumerable().First(), "AvailabilityHistory", "weekly.json");
+                file = Path.Combine(StoragePath.OrDefault(), "AvailabilityHistory", "weekly.json");
                 if (File.Exists(file))
                 {
                     try
@@ -110,7 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Could not load weekly availability: {ex}");
+                        Log.LogError($"Could not load weekly availability: {ex}");
                     }
                 }
 
@@ -129,21 +131,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
         {
             if (StoragePath.HasValue)
             {
+                Log.LogInformation("Saving avaliability data");
                 try
                 {
-                    Directory.CreateDirectory(Path.Combine(StoragePath.ToEnumerable().First(), "AvailabilityHistory"));
+                    Directory.CreateDirectory(Path.Combine(StoragePath.OrDefault(), "AvailabilityHistory"));
 
                     File.WriteAllText(
-                        Path.Combine(StoragePath.ToEnumerable().First(), "AvailabilityHistory", "lifetime.json"),
+                        Path.Combine(StoragePath.OrDefault(), "AvailabilityHistory", "lifetime.json"),
                         Newtonsoft.Json.JsonConvert.SerializeObject(availabilities.Value.Select(a => a.lifetime.ToRaw())));
 
                     File.WriteAllText(
-                        Path.Combine(StoragePath.ToEnumerable().First(), "AvailabilityHistory", "weekly.json"),
+                        Path.Combine(StoragePath.OrDefault(), "AvailabilityHistory", "weekly.json"),
                         Newtonsoft.Json.JsonConvert.SerializeObject(availabilities.Value.Select(a => a.weekly.ToRaw())));
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Could not save historical availability: {ex}");
+                    Log.LogError($"Could not save historical availability: {ex}");
                 }
             }
         }

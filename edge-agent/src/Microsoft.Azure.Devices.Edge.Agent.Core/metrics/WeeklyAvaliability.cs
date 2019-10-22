@@ -22,9 +22,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
         public WeeklyAvailability(string name, string version, ISystemTime time)
         {
-            this.Name = name;
-            this.Version = version;
-            this.time = time;
+            this.Name = Preconditions.CheckNotNull(name, nameof(name));
+            this.Version = Preconditions.CheckNotNull(version, nameof(version));
+            this.time = Preconditions.CheckNotNull(time, nameof(time));
 
             this.currentDay = time.UtcNow.DayOfWeek;
             this.dailyAvaliabilities = Enumerable.Range(0, 7).Select(_ => new Availability(name, version, time)).ToArray();
@@ -32,9 +32,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
         public WeeklyAvailability(WeeklyAvailabilityRaw raw, ISystemTime time)
         {
-            this.Name = raw.Name;
-            this.Version = raw.Version;
-            this.time = time;
+            this.Name = Preconditions.CheckNotNull(raw.Name);
+            this.Version = Preconditions.CheckNotNull(raw.Version);
+            this.time = Preconditions.CheckNotNull(time, nameof(time));
 
             this.currentDay = time.UtcNow.DayOfWeek;
             this.dailyAvaliabilities = raw.DailyAvaliabilities.Select(aRaw => new Availability(aRaw, time)).ToArray();

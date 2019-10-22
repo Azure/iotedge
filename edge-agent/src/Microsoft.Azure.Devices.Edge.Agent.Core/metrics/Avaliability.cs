@@ -20,20 +20,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
         public Availability(string name, string version, ISystemTime time)
         {
-            this.Name = name;
-            this.Version = version;
-            this.time = time;
+            this.Name = Preconditions.CheckNotNull(name, nameof(name));
+            this.Version = Preconditions.CheckNotNull(version, nameof(version));
+            this.time = Preconditions.CheckNotNull(time, nameof(time));
             this.previousMeasure = time.UtcNow;
         }
 
         public Availability(AvailabilityRaw raw, ISystemTime time)
         {
-            this.Name = raw.Name;
-            this.Version = raw.Version;
-            this.Uptime = raw.Uptime;
-            this.TotalTime = raw.TotalTime;
+            this.Name = Preconditions.CheckNotNull(raw.Name);
+            this.Version = Preconditions.CheckNotNull(raw.Version);
+            this.Uptime = Preconditions.CheckNotNull(raw.Uptime);
+            this.TotalTime = Preconditions.CheckNotNull(raw.TotalTime);
 
-            this.time = time;
+            this.time = Preconditions.CheckNotNull(time, nameof(time));
         }
 
         public double AvailabilityRatio
@@ -51,21 +51,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
         public void AddPoint(bool isUp)
         {
+            DateTime currentTime = this.time.UtcNow;
             /* if no previous measure, cannot compute duration. There must be 2 consecutive points to do so */
             if (this.previousMeasure == null)
             {
-                this.previousMeasure = this.time.UtcNow;
+                this.previousMeasure = currentTime;
                 return;
             }
 
-            TimeSpan duration = this.time.UtcNow - this.previousMeasure.Value;
+            TimeSpan duration = currentTime - this.previousMeasure.Value;
             this.TotalTime += duration;
             if (isUp)
             {
                 this.Uptime += duration;
             }
 
-            this.previousMeasure = this.time.UtcNow;
+            this.previousMeasure = currentTime;
         }
 
         public void NoPoint()
