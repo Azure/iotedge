@@ -57,9 +57,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Diff
 
         public class Builder
         {
-            IList<T> added;
-            IList<Update<T>> updated;
-            IList<string> removed;
+            IReadOnlyList<T> added;
+            IReadOnlyList<Update<T>> updated;
+            IReadOnlyList<string> removed;
 
             public Builder WithAdded(params T[] added)
             {

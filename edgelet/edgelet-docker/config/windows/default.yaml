@@ -24,3 +24,6 @@ homedir: "C:\\ProgramData\\iotedge"
 moby_runtime:
   uri: "npipe://./pipe/iotedge_moby_engine"
   network: "nat"
+
+certificates:
+  auto_generated_ca_lifetime_days: 90

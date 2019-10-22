@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.ServiceAc
             return new V1ServiceAccount(metadata: metadata);
         }
 
-        public void Update(V1ServiceAccount to, V1ServiceAccount from)
+        public void UpdateServiceAccount(V1ServiceAccount to, V1ServiceAccount from)
         {
             to.Metadata.ResourceVersion = from.Metadata.ResourceVersion;
         }

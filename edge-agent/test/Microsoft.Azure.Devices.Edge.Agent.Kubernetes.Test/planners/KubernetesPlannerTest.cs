@@ -22,6 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Planners
         static readonly ResourceName ResourceName = new ResourceName("hostname", "deviceId");
         static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>();
         static readonly DockerConfig Config1 = new DockerConfig("image1");
+        static readonly DockerConfig Config2 = new DockerConfig("image2");
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
         static readonly IRuntimeInfo RuntimeInfo = Mock.Of<IRuntimeInfo>();
         static readonly IKubernetes DefaultClient = Mock.Of<IKubernetes>();
