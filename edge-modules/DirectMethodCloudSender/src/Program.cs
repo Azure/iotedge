@@ -127,7 +127,7 @@ namespace DirectMethodCloudSender
         {
             try
             {
-                analyzerClient.AddDirectMethodResponseAsync(new ResponseStatus { ModuleId = moduleId, StatusCode = result.Status.ToString(), ResultAsJson = result.GetPayloadAsJson(), EnqueuedDateTime = DateTime.UtcNow });
+                analyzerClient.AddResponseStatusAsync(new ResponseStatus { ModuleId = moduleId, StatusCode = result.Status.ToString(), ResultAsJson = result.GetPayloadAsJson(), EnqueuedDateTime = DateTime.UtcNow });
             }
             catch (Exception e)
             {

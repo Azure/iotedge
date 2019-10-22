@@ -11,6 +11,7 @@ namespace MessagesAnalyzer
 
         public string ResultAsJson { get; set; }
 
+        // TODO: consider removing
         public long SequenceNumber { get; set; }
 
         public DateTime EnqueuedDateTime { get; set; }
