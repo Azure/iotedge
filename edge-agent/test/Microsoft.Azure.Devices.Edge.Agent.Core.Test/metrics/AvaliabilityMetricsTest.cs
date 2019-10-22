@@ -36,15 +36,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             {
                 uptimes[list[0]] = val;
             };
-            var guage = new Mock<IMetricsGauge>();
-            guage.Setup(x => x.Set(It.IsAny<double>(), It.IsAny<string[]>())).Callback(onSet);
+            var gauge = new Mock<IMetricsGauge>();
+            gauge.Setup(x => x.Set(It.IsAny<double>(), It.IsAny<string[]>())).Callback(onSet);
 
             var metricsProvider = new Mock<IMetricsProvider>();
             metricsProvider.Setup(x => x.CreateGauge(
                     "lifetime_avaliability",
                     "total availability since deployment",
                     new List<string> { "module_name", "module_version" }))
-                .Returns(guage.Object);
+                .Returns(gauge.Object);
 
             metricsProvider.Setup(x => x.CreateGauge(
                     "weekly_avaliability",
@@ -102,15 +102,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             {
                 uptimes[list[0]] = val;
             };
-            var guage = new Mock<IMetricsGauge>();
-            guage.Setup(x => x.Set(It.IsAny<double>(), It.IsAny<string[]>())).Callback(onSet);
+            var gauge = new Mock<IMetricsGauge>();
+            gauge.Setup(x => x.Set(It.IsAny<double>(), It.IsAny<string[]>())).Callback(onSet);
 
             var metricsProvider = new Mock<IMetricsProvider>();
             metricsProvider.Setup(x => x.CreateGauge(
                     "lifetime_avaliability",
                     "total availability since deployment",
                     new List<string> { "module_name", "module_version" }))
-                .Returns(guage.Object);
+                .Returns(gauge.Object);
 
             metricsProvider.Setup(x => x.CreateGauge(
                     "weekly_avaliability",

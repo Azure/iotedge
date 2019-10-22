@@ -131,8 +131,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             {
                 try
                 {
-                    Directory.CreateDirectory(Path.Combine(StoragePath.ToEnumerable().First(), "AvaliabilityHistory"))
-                        ;
+                    Directory.CreateDirectory(Path.Combine(StoragePath.ToEnumerable().First(), "AvaliabilityHistory"));
+
                     File.WriteAllText(
                         Path.Combine(StoragePath.ToEnumerable().First(), "AvaliabilityHistory", "lifetime.json"),
                         Newtonsoft.Json.JsonConvert.SerializeObject(availabilities.Value.Select(a => a.lifetime.ToRaw())));
