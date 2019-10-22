@@ -32,6 +32,10 @@ impl ShellModuleTop for ShellModule {
     type ModuleTopFuture = Box<dyn Future<Item = ModuleTop, Error = Self::Error> + Send>;
 
     fn top(&self) -> Self::ModuleTopFuture {
+        // edgelet:
+        // - shell out { ? }
+        // shellrt-containerd
+        // - (containerd) (tasks.proto) ListPids
         unimplemented!()
     }
 }
@@ -55,6 +59,11 @@ impl Module for ShellModule {
     }
 
     fn runtime_state(&self) -> Self::RuntimeStateFuture {
+        // edgelet:
+        // - shell out { ? }
+        // shellrt-containerd
+        // - (containerd) (tasks.proto) ListPids
+        // - extract relevant data from ListPidsResponse
         unimplemented!()
     }
 }
