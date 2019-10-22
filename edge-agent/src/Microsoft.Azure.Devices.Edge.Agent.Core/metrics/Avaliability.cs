@@ -22,7 +22,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
         {
             this.Name = name;
             this.Version = version;
-
             this.time = time;
             this.previousMeasure = time.UtcNow;
         }
@@ -39,7 +38,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
         public double AvaliabilityRatio
         {
-            get { return this.Uptime.TotalMilliseconds / this.TotalTime.TotalMilliseconds; }
+            get
+            {
+                if (this.TotalTime == TimeSpan.Zero)
+                {
+                    return 0;
+                }
+
+                return this.Uptime.TotalMilliseconds / this.TotalTime.TotalMilliseconds;
+            }
         }
 
         public void AddPoint(bool isUp)

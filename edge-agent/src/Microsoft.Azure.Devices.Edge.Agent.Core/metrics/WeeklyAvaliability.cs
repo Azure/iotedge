@@ -67,6 +67,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                     totalTime += day.TotalTime;
                 }
 
+                if (totalTime == TimeSpan.Zero)
+                {
+                    return 0;
+                }
+
                 return uptime.TotalMilliseconds / totalTime.TotalMilliseconds;
             }
         }
