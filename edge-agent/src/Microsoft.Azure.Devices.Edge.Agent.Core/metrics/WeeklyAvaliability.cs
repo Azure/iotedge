@@ -41,8 +41,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
             if (time.UtcNow.DayOfWeek != raw.SavedDate.DayOfWeek)
             {
-                int difference = (int)(time.UtcNow.Date - raw.SavedDate).Days;
-                if (difference < 7)
+                int difference = (time.UtcNow.Date - raw.SavedDate).Days;
+                if (difference < 7 && difference > 0)
                 {
                     this.dailyAvaliabilities = this.dailyAvaliabilities.Take(7 - difference).Concat(Enumerable.Range(0, difference).Select(_ => new Availability(raw.Name, raw.Version, time))).ToArray();
                 }
@@ -51,8 +51,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                     this.dailyAvaliabilities = Enumerable.Range(0, 7).Select(_ => new Availability(raw.Name, raw.Version, time)).ToArray();
                 }
             }
-
-            Debug.Assert(this.dailyAvaliabilities.Length == 7);
         }
 
         public double AvailabilityRatio
@@ -99,7 +97,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                 newAvaliabilities.AddRange(this.dailyAvaliabilities.Take(6));
 
                 this.dailyAvaliabilities = newAvaliabilities.ToArray();
-                Debug.Assert(this.dailyAvaliabilities.Length == 7);
             }
         }
 

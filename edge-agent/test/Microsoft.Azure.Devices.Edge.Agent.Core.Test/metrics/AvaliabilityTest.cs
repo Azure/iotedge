@@ -162,5 +162,62 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                 TestUtilities.ApproxEqual(1, availability.AvailabilityRatio, .01);
             }
         }
+
+        [Fact]
+        public void TestAvailibilityToFromRaw()
+        {
+            var testAvailibilities = Enumerable.Range(0, 10).Select(i =>
+            {
+                var availibility = new Availability($"Test_{i}", "1", SystemTime.Instance);
+                availibility.TotalTime = TimeSpan.FromHours(10);
+                availibility.Uptime = TimeSpan.FromHours(i);
+
+                return availibility;
+            }).ToList();
+
+            var rawAvailabilities = testAvailibilities.Select(a => a.ToRaw());
+            var reconstructedAvailibilities = rawAvailabilities.Select(ra => new Availability(ra, SystemTime.Instance)).ToList();
+
+            for (int i = 0; i < 10; i++)
+            {
+                Assert.Equal(i / 10.0, testAvailibilities[i].AvailabilityRatio);
+                Assert.Equal(i / 10.0, reconstructedAvailibilities[i].AvailabilityRatio);
+
+                Assert.Equal(testAvailibilities[i].Name, reconstructedAvailibilities[i].Name);
+                Assert.Equal(testAvailibilities[i].Version, reconstructedAvailibilities[i].Version);
+            }
+        }
+
+        [Fact]
+        public void TestWeeklyAvailibilityToFromRaw()
+        {
+            var systemTime = new Mock<ISystemTime>();
+            DateTime fakeTime = DateTime.Now.Date;
+            systemTime.Setup(x => x.UtcNow).Returns(() => fakeTime);
+
+            var testAvailibilities = Enumerable.Range(1, 10).Select(i => new WeeklyAvailability($"Test_{i}", "1", systemTime.Object)).ToList();
+
+            for (int i = 0; i < 24 * 7; i++)
+            {
+                for (int j = 0; j < testAvailibilities.Count; j++)
+                {
+                    testAvailibilities[j].AddPoint(i % (j + 1) == 0);
+                    fakeTime = fakeTime.AddMinutes(10);
+                }
+            }
+
+            var rawAvailabilities = testAvailibilities.Select(a => a.ToRaw());
+            var reconstructedAvailibilities = rawAvailabilities.Select(ra => new WeeklyAvailability(ra, systemTime.Object)).ToList();
+
+            for (int i = 0; i < 10; i++)
+            {
+                double expected = 1.0 / (i + 1);
+                TestUtilities.ApproxEqual(expected, testAvailibilities[i].AvailabilityRatio, .05);
+                TestUtilities.ApproxEqual(expected, reconstructedAvailibilities[i].AvailabilityRatio, .05);
+
+                Assert.Equal(testAvailibilities[i].Name, reconstructedAvailibilities[i].Name);
+                Assert.Equal(testAvailibilities[i].Version, reconstructedAvailibilities[i].Version);
+            }
+        }
     }
 }
