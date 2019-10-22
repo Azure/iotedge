@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
+namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_10_22
 {
     using System;
     using System.Collections.Generic;
@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30.GeneratedCode;
+    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_10_22.GeneratedCode;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
         }
 
         internal ModuleManagementHttpClient(Uri managementUri, Option<TimeSpan> operationTimeout)
-            : base(managementUri, ApiVersion.Version20190130, new ErrorDetectionStrategy(), operationTimeout)
+            : base(managementUri, ApiVersion.Version20191022, new ErrorDetectionStrategy(), operationTimeout)
         {
         }
 
@@ -186,9 +186,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
             }
         }
 
-        public override Task ReprovisionDeviceAsync()
+        public override async Task ReprovisionDeviceAsync()
         {
-            return Task.CompletedTask;
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
+            {
+                var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
+                await this.Execute(() => edgeletHttpClient.ReprovisionDeviceAsync(this.Version.Name), "reprovision the device");
+            }
         }
 
         protected override void HandleException(Exception exception, string operation)

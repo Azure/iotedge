@@ -3,7 +3,7 @@ schemes:
   - http
 info:
   title: IoT Edge Management API
-  version: '2019-01-30'
+  version: '2019-10-22'
 tags:
   - name: Module
     x-displayName: Modules
@@ -437,6 +437,23 @@ paths:
           description: Error
           schema:
             $ref: '#/definitions/ErrorResponse'
+
+  '/device/reprovision':
+    post:
+      tags:
+        - DeviceActions
+      summary: Trigger a device reprovisioning flow.
+      operationId: ReprovisionDevice
+      parameters:
+        - $ref: '#/parameters/api-version'
+      responses:
+        '200':
+          description: Ok
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+            
 definitions:
   ModuleList:
     type: object
