@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                     properties = properties.Append(p).ToArray();
                 });
 
-            string installCommand = $"Deploy-IoTEdge -ContainerOs Windows";
+            string installCommand = $"Install-IoTEdge -ContainerOs Windows -Manual -DeviceConnectionString 'tbd'";
             packagesPath.ForEach(p => installCommand += $" -OfflineInstallationPath '{p}'");
             proxy.ForEach(
                 p => installCommand += $" -InvokeWebRequestParameters @{{ '-Proxy' = '{p}' }}");
@@ -53,11 +53,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Windows
                     string[] output =
                         await Process.RunAsync("powershell", string.Join(";", commands), token);
                     Log.Verbose(string.Join("\n", output));
-
-                    const string suffix = @"\iotedge\config.yaml";
-                    File.Copy(
-                        Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + suffix,
-                        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData) + suffix);
                 },
                 message,
                 properties);
