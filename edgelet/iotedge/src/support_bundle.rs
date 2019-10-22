@@ -48,6 +48,7 @@ where
         let result = future::result(self.make_state())
             .and_then(SupportBundle::write_all_logs)
             .and_then(SupportBundle::write_edgelet_log_to_file)
+            .and_then(SupportBundle::write_docker_log_to_file)
             .and_then(SupportBundle::write_check_to_file)
             .and_then(SupportBundle::write_all_inspects)
             .and_then(SupportBundle::write_all_network_inspects)
@@ -244,6 +245,61 @@ where
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         state.print_verbose("Got logs for iotedged");
+        Ok(state)
+    }
+
+    fn write_docker_log_to_file(mut state: BundleState<M>) -> Result<BundleState<M>, Error> {
+        state.print_verbose("Getting system logs for docker");
+        let since_time: DateTime<Utc> = DateTime::from_utc(
+            NaiveDateTime::from_timestamp(state.log_options.since().into(), 0),
+            Utc,
+        );
+        let since = since_time.format("%F %T").to_string();
+
+        #[cfg(unix)]
+        let inspect = ShellCommand::new("journalctl")
+            .arg("-a")
+            .args(&["-u", "docker"])
+            .args(&["-S", &since])
+            .arg("--no-pager")
+            .output();
+
+        /***
+         * Note: assuming moby engine on windows
+         */
+        #[cfg(windows)]
+         let inspect = ShellCommand::new("powershell.exe")
+            .arg("-NoProfile")
+            .arg("-Command")
+            .arg(&format!(r"Get-WinEvent -ea SilentlyContinue -FilterHashtable @{{ProviderName='moby';LogName='application';StartTime='{}'}} |
+                            Select TimeCreated, Message |
+                            Sort-Object @{{Expression='TimeCreated';Descending=$false}} |
+                            Format-Table -AutoSize -Wrap", since))
+            .output();
+
+        let (file_name, output) = if let Ok(result) = inspect {
+            if result.status.success() {
+                ("docker.txt", result.stdout)
+            } else {
+                ("docker_err.txt", result.stderr)
+            }
+        } else {
+            let err_message = inspect.err().unwrap().description().to_owned();
+            println!("Could not find system logs for docker. Including error in bundle.\nError message: {}", err_message);
+            ("docker_err.txt", err_message.as_bytes().to_vec())
+        };
+
+        state
+            .zip_writer
+            .start_file_from_path(&Path::new("logs").join(file_name), state.file_options)
+            .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+
+        state
+            .zip_writer
+            .write(&output)
+            .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+
+        state.print_verbose("Got logs for docker");
         Ok(state)
     }
 
