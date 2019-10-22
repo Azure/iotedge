@@ -264,17 +264,17 @@ where
             .arg("--no-pager")
             .output();
 
-        /***
-         * Note: assuming moby engine on windows
-         */
+        /* from https://docs.microsoft.com/en-us/virtualization/windowscontainers/troubleshooting#finding-logs */
         #[cfg(windows)]
-         let inspect = ShellCommand::new("powershell.exe")
+        let inspect = ShellCommand::new("powershell.exe")
             .arg("-NoProfile")
             .arg("-Command")
-            .arg(&format!(r"Get-WinEvent -ea SilentlyContinue -FilterHashtable @{{ProviderName='moby';LogName='application';StartTime='{}'}} |
-                            Select TimeCreated, Message |
-                            Sort-Object @{{Expression='TimeCreated';Descending=$false}} |
-                            Format-Table -AutoSize -Wrap", since))
+            .arg(&format!(
+                r#"Get-EventLog -LogName Application -Source Docker -After "{}" |
+                    Sort-Object Time |
+                    Format-Table -AutoSize -Wrap"#,
+                since
+            ))
             .output();
 
         let (file_name, output) = if let Ok(result) = inspect {
