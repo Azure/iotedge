@@ -47,7 +47,37 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             return provider;
         }
 
-        private async Task RestoreAsync()
+        public override IDbStore GetDbStore(string partitionName)
+        {
+            this.dbStores.GetOrAdd(partitionName, DbStoresDummyValue);
+            return base.GetDbStore(partitionName);
+        }
+
+        public override IDbStore GetDbStore()
+        {
+            this.dbStores.GetOrAdd(DefaultStoreBackupName, DbStoresDummyValue);
+            return base.GetDbStore();
+        }
+
+        public override void RemoveDbStore(string partitionName)
+        {
+            this.dbStores.TryRemove(partitionName, out _);
+            base.RemoveDbStore(partitionName);
+        }
+
+        public override void RemoveDbStore()
+        {
+            this.dbStores.TryRemove(DefaultStoreBackupName, out _);
+            base.RemoveDbStore();
+        }
+
+        public async override Task CloseAsync()
+        {
+            await this.BackupAsync();
+            await base.CloseAsync();
+        }
+
+        async Task RestoreAsync()
         {
             string backupMetadataFilePath = Path.Combine(this.backupPath, BackupMetadataFileName);
 
@@ -111,37 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             }
         }
 
-        public override IDbStore GetDbStore(string partitionName)
-        {
-            this.dbStores.GetOrAdd(partitionName, DbStoresDummyValue);
-            return base.GetDbStore(partitionName);
-        }
-
-        public override IDbStore GetDbStore()
-        {
-            this.dbStores.GetOrAdd(DefaultStoreBackupName, DbStoresDummyValue);
-            return base.GetDbStore();
-        }
-
-        public override void RemoveDbStore(string partitionName)
-        {
-            this.dbStores.TryRemove(partitionName, out _);
-            base.RemoveDbStore(partitionName);
-        }
-
-        public override void RemoveDbStore()
-        {
-            this.dbStores.TryRemove(DefaultStoreBackupName, out _);
-            base.RemoveDbStore();
-        }
-
-        public async override Task CloseAsync()
-        {
-            await this.BackupAsync();
-            await base.CloseAsync();
-        }
-
-        private async Task BackupAsync()
+        async Task BackupAsync()
         {
             this.events.StartingBackup();
             Guid backupId = Guid.NewGuid();
