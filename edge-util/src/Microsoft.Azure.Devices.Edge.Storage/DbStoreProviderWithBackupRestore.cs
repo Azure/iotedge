@@ -189,12 +189,26 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             DirectoryInfo backupDirInfo = new DirectoryInfo(backupPath);
             foreach (FileInfo file in backupDirInfo.GetFiles())
             {
-                file.Delete();
+                try
+                {
+                    file.Delete();
+                }
+                catch (Exception ex)
+                {
+                    this.events.DeletionError(file.FullName, ex);
+                }
             }
 
             foreach (DirectoryInfo dir in backupDirInfo.GetDirectories())
             {
-                dir.Delete(true);
+                try
+                {
+                    dir.Delete(true);
+                }
+                catch (Exception ex)
+                {
+                    this.events.DeletionError(dir.FullName, ex);
+                }
             }
 
             this.events.AllBackupsDeleted();
@@ -208,7 +222,14 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             {
                 if (!knownBackupDirNames.Contains(dir.Name))
                 {
-                    dir.Delete(true);
+                    try
+                    {
+                        dir.Delete(true);
+                    }
+                    catch (Exception ex)
+                    {
+                        this.events.DeletionError(dir.FullName, ex);
+                    }
                 }
             }
 
@@ -223,7 +244,14 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             {
                 if (knownBackupDirNames.Contains(dir.Name))
                 {
-                    dir.Delete(true);
+                    try
+                    {
+                        dir.Delete(true);
+                    }
+                    catch (Exception ex)
+                    {
+                        this.events.DeletionError(dir.FullName, ex);
+                    }
                 }
             }
 
@@ -283,15 +311,16 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             {
                 StartingBackup = IdStart,
                 AllBackupsDeleted,
-                UnknownBackupsDeleted,
                 BackupArtifactsCleanedUp,
                 BackupComplete,
                 BackupInformation,
                 BackupFailure,
+                DeletionError,
                 RestoringFromBackup,
                 NoBackupsForRestore,
                 RestoreComplete,
-                RestoreFailure
+                RestoreFailure,
+                UnknownBackupsDeleted,
             }
 
             internal void StartingBackup()
@@ -312,6 +341,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             internal void BackupFailure(string details = null)
             {
                 this.Log.LogError((int)EventIds.BackupFailure, $"Error occurred while attempting to create a database backup. Details: {details}.");
+            }
+
+            internal void DeletionError(string artifact, Exception ex)
+            {
+                this.Log.LogError((int)EventIds.DeletionError, $"An error occurred while deleting '{artifact}': {ex}");
             }
 
             internal void AllBackupsDeleted()
