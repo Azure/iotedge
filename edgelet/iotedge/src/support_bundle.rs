@@ -219,7 +219,7 @@ where
             .arg(&format!(r"Get-WinEvent -ea SilentlyContinue -FilterHashtable @{{ProviderName='iotedged';LogName='application';StartTime='{}'}} |
                             Select TimeCreated, Message |
                             Sort-Object @{{Expression='TimeCreated';Descending=$false}} |
-                            Format-Table -AutoSize -Wrap", since))
+                            Format-List", since))
             .output();
 
         let (file_name, output) = if let Ok(result) = inspect {
@@ -272,7 +272,7 @@ where
             .arg(&format!(
                 r#"Get-EventLog -LogName Application -Source Docker -After "{}" |
                     Sort-Object Time |
-                    Format-Table -AutoSize -Wrap"#,
+                    Format-List"#,
                 since
             ))
             .output();
