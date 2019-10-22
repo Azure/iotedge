@@ -400,12 +400,15 @@ where
             if result.status.success() {
                 String::from_utf8_lossy(&result.stdout).to_string()
             } else {
-                println!("Could not find network names: {:?}", result.stderr);
-                "".to_owned()
+                println!(
+                    "Could not find network names: {}",
+                    String::from_utf8_lossy(&result.stderr)
+                );
+                "azure-iot-edge".to_owned()
             }
         } else {
             println!("Could not find network names: {}", inspect.err().unwrap());
-            "".to_owned()
+            "azure-iot-edge".to_owned()
         };
 
         Ok((result.lines().map(String::from).collect(), state))
@@ -427,7 +430,7 @@ where
         #[cfg(windows)]
         inspect.args(&["-H", "npipe:////./pipe/iotedge_moby_engine"]);
 
-        inspect.args(&["network", "inspect", &network_name]);
+        inspect.args(&["network", "inspect", &network_name, "-v"]);
         let inspect = inspect.output();
 
         let (file_name, output) = if let Ok(result) = inspect {
@@ -531,7 +534,7 @@ mod tests {
         .unwrap();
         assert_eq!("Roses are redviolets are blue", mod_log);
 
-        let is_iotedged = Regex::new(r"iotedged.*\.txt").unwrap();
+        let iotedged_log = Regex::new(r"iotedged.*\.txt").unwrap();
         assert!(fs::read_dir(PathBuf::from(&extract_path).join("logs"))
             .unwrap()
             .map(|file| file
@@ -542,7 +545,20 @@ mod tests {
                 .to_str()
                 .unwrap()
                 .to_owned())
-            .any(|f| is_iotedged.is_match(&f)));
+            .any(|f| iotedged_log.is_match(&f)));
+
+        let docker_log = Regex::new(r"docker.*\.txt").unwrap();
+        assert!(fs::read_dir(PathBuf::from(&extract_path).join("logs"))
+            .unwrap()
+            .map(|file| file
+                .unwrap()
+                .path()
+                .file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_owned())
+            .any(|f| docker_log.is_match(&f)));
 
         //expect inspect
         let module_in_inspect = Regex::new(&format!(r"{}.*\.json", module_name)).unwrap();
@@ -560,6 +576,20 @@ mod tests {
 
         // expect check
         File::open(PathBuf::from(&extract_path).join("check.json")).unwrap();
+
+        // expect network inspect
+        let network_in_inspect = Regex::new(r".*\.json").unwrap();
+        assert!(fs::read_dir(PathBuf::from(&extract_path).join("network"))
+            .unwrap()
+            .map(|file| file
+                .unwrap()
+                .path()
+                .file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_owned())
+            .any(|f| network_in_inspect.is_match(&f)));
     }
 
     #[test]
