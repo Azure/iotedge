@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             return diskStatus;
         }
 
-        public override void SetMaxSizeBytes(long maxSizeBytes) => this.maxSizeBytes = maxSizeBytes;
+        public void SetMaxSizeBytes(long maxSizeBytes) => this.maxSizeBytes = maxSizeBytes;
 
         static DiskSpaceStatus GetDiskStatus(double usagePercentage)
         {

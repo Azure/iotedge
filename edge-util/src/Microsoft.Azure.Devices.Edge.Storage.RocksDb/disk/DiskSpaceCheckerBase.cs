@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public abstract class DiskSpaceCheckerBase
+    public abstract class DiskSpaceCheckerBase : IDisposable
     {
         readonly PeriodicTask storageSpaceChecker;
         readonly object updateLock = new object();
@@ -35,9 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             }
         }
 
-        public abstract void SetMaxSizeBytes(long maxSizeBytes);
-
-        public void DisposeChecker()
+        public void Dispose()
         {
             lock (this.updateLock)
             {

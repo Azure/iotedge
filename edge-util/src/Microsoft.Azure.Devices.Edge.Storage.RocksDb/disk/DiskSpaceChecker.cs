@@ -37,8 +37,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
         public void SetMaxSizeBytes(long maxSizeBytes)
         {
             this.maxSize = maxSizeBytes;
-            this.inner.ForEach(b => b.SetMaxSizeBytes(maxSizeBytes));
-            this.EnableChecker();
+            this.inner.ForEach(b => b.Dispose());
+            this.inner = Option.Some(new FixedSizeDiskSpaceChecker(this.storageFolder, this.maxSize, TimeSpan.FromSeconds(this.checkFrequency.GetOrElse(checkFrequencyDefault)), Events.Log) as DiskSpaceCheckerBase);
             Events.SetMaxSizeDiskSpaceUsage(this.maxSize, this.storageFolder);
         }
 
@@ -52,29 +52,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
                     lock (this.updateLock)
                     {
                         this.checkFrequency = updatedCheckFrequencyOption;
-                        this.inner.ForEach(b => b.DisposeChecker());
+                        this.inner.ForEach(b => b.Dispose());
                         this.inner = Option.Some(new FixedSizeDiskSpaceChecker(this.storageFolder, this.maxSize, TimeSpan.FromSeconds(updatedCheckFrequency), Events.Log) as DiskSpaceCheckerBase);
+                        Events.SetCheckFrequency(updatedCheckFrequency, this.storageFolder);
                     }
                 }
             });
-        }
-
-        void EnableChecker()
-        {
-            lock (this.updateLock)
-            {
-                if (!this.inner.HasValue)
-                {
-                    this.inner = Option.Some(
-                        new FixedSizeDiskSpaceChecker(
-                            this.storageFolder,
-                            this.maxSize,
-                            TimeSpan.FromSeconds(this.checkFrequency.GetOrElse(checkFrequencyDefault)),
-                            Events.Log)
-                        as DiskSpaceCheckerBase);
-                    Events.Started(this.storageFolder);
-                }
-            }
         }
 
         public void DisableChecker()
@@ -83,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             {
                 if (this.inner.HasValue)
                 {
-                    this.inner.ForEach(b => b.DisposeChecker());
+                    this.inner.ForEach(b => b.Dispose());
                     this.inner = Option.None<DiskSpaceCheckerBase>();
                 }
             }
@@ -138,26 +121,25 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
         static class Events
         {
             public static readonly ILogger Log = Logger.Factory.CreateLogger<DiskSpaceChecker>();
-            const int IdStart = 50000;
 
             enum EventIds
             {
-                Started = IdStart,
                 SetMaxSizeDiskSpaceUsage,
+                SetCheckFrequency,
                 SetMaxPercentageUsage,
                 FoundDrive,
                 NoMatchingDriveFound,
                 ErrorGettingMatchingDrive
             }
 
-            public static void Started(string storageFolder)
-            {
-                Log.LogInformation((int)EventIds.Started, $"Started disk space usage checker for folder {storageFolder}");
-            }
-
             public static void SetMaxSizeDiskSpaceUsage(long maxSizeBytes, string storageFolder)
             {
-                Log.LogInformation((int)EventIds.SetMaxSizeDiskSpaceUsage, $"Setting maximum disk space usage to {maxSizeBytes} bytes for folder {storageFolder}");
+                Log.LogInformation((int)EventIds.SetMaxSizeDiskSpaceUsage, $"Setting maximum disk space usage to {maxSizeBytes} bytes for folder {storageFolder} and started disk space usage checker");
+            }
+
+            public static void SetCheckFrequency(int checkFrequency, string storageFolder)
+            {
+                Log.LogInformation((int)EventIds.SetCheckFrequency, $"Setting check frequency to {checkFrequency} seconds for folder {storageFolder} and started disk space usage checker");
             }
 
             public static void SetMaxPercentageUsage(int thresholdPercentage, string drive)
