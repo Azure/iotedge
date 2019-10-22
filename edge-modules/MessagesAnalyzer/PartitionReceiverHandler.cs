@@ -27,7 +27,7 @@ namespace MessagesAnalyzer
 
         public int MaxBatchSize { get; set; }
 
-        public Task ProcessEventsAsync(IEnumerable<EventData> events)
+        public async Task ProcessEventsAsync(IEnumerable<EventData> events)
         {
             if (events != null)
             {
@@ -47,7 +47,7 @@ namespace MessagesAnalyzer
                             if (long.TryParse(sequence.ToString(), out long sequenceNumber))
                             {
                                 DateTime enqueuedtime = GetEnqueuedTime(devId.ToString(), modId.ToString(), eventData);
-                                MessagesCache.Instance.AddMessage(modId.ToString(), batchId.ToString(), new MessageDetails(sequenceNumber, enqueuedtime));
+                                await MessagesCacheWithStorage.Instance.AddMessage(new MessageDetails(modId.ToString(), batchId.ToString(), sequenceNumber, enqueuedtime));
                             }
                             else
                             {
@@ -61,8 +61,6 @@ namespace MessagesAnalyzer
                     }
                 }
             }
-
-            return Task.CompletedTask;
         }
 
         static DateTime GetEnqueuedTime(string deviceId, string moduleId, EventData eventData)

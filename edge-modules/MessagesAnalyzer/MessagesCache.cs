@@ -41,11 +41,11 @@ namespace MessagesAnalyzer
                 responseStatus.EnqueuedDateTime > value.Item2 ? responseStatus.EnqueuedDateTime : value.Item2));
         }
 
-        public void AddMessage(string moduleId, string batchId, MessageDetails messageDetails)
+        public void AddMessage(MessageDetails messageDetails)
         {
-            this.batches.TryAdd(batchId, moduleId);
+            this.batches.TryAdd(messageDetails.BatchId, messageDetails.ModuleId);
 
-            IList<MessageDetails> batchMessages = this.messages.GetOrAdd(batchId, key => new List<MessageDetails>());
+            IList<MessageDetails> batchMessages = this.messages.GetOrAdd(messageDetails.BatchId, key => new List<MessageDetails>());
             this.AddMessageDetails(batchMessages, messageDetails);
         }
 

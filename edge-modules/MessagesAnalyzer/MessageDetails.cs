@@ -2,17 +2,25 @@
 namespace MessagesAnalyzer
 {
     using System;
+    using Newtonsoft.Json;
 
     public class MessageDetails
     {
-        public MessageDetails(long seqNumber, DateTime enqueuedDateTime)
+        [JsonConstructor]
+        public MessageDetails(string moduleId, string batchId, long sequenceNumber, DateTime enqueuedDateTime)
         {
-            this.SequenceNumber = seqNumber;
+            this.SequenceNumber = sequenceNumber;
             this.EnqueuedDateTime = enqueuedDateTime;
+            this.ModuleId = moduleId;
+            this.BatchId = batchId;
         }
 
-        public long SequenceNumber { get; set; }
+        public long SequenceNumber { get;}
 
-        public DateTime EnqueuedDateTime { get; set; }
+        public DateTime EnqueuedDateTime { get; }
+
+        public string ModuleId { get; }
+
+        public string BatchId { get; }
     }
 }

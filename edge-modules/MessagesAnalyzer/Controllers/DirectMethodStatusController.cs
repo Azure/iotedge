@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace MessagesAnalyzer.Controllers
 {
-    using System;
+    using System.Threading.Tasks;
     using Microsoft.AspNetCore.Mvc;
 
     [Route("api/[controller]")]
@@ -10,9 +10,9 @@ namespace MessagesAnalyzer.Controllers
     {
         // POST api/directmethodstatus
         [HttpPost]
-        public ActionResult<bool> Post(ResponseStatus methodCallStatus)
+        public async Task<ActionResult<bool>> Post(ResponseStatus methodCallStatus)
         {
-            MessagesCache.Instance.AddDirectMethodStatus(methodCallStatus);
+            await MessagesCacheWithStorage.Instance.AddDirectMethod(methodCallStatus);
             return true;
         }
     }
