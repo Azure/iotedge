@@ -52,6 +52,9 @@
               },
               "transportType": {
                 "value": "amqp"
+              },
+              "ServiceClientConnectionString": {
+                "value": "<ServiceClientConnectionString>"
               }
             },
             "settings": {
@@ -70,6 +73,9 @@
               },
               "transportType": {
                 "value": "mqtt"
+              },
+              "ServiceClientConnectionString": {
+                "value": "<ServiceClientConnectionString>"
               }
             },
             "settings": {

@@ -58,6 +58,9 @@
               },
               "transportType": {
                 "value": "<LoadGen1.TransportType>"
+              },
+              "ServiceClientConnectionString": {
+                "value": "<ServiceClientConnectionString>"
               }
             },
             "settings": {
@@ -76,6 +79,9 @@
               },
               "transportType": {
                 "value": "<LoadGen2.TransportType>"
+              },
+              "ServiceClientConnectionString": {
+                "value": "<ServiceClientConnectionString>"
               }
             },
             "settings": {
@@ -94,6 +100,9 @@
               },
               "transportType": {
                 "value": "<LoadGen3.TransportType>"
+              },
+              "ServiceClientConnectionString": {
+                "value": "<ServiceClientConnectionString>"
               }
             },
             "settings": {
@@ -112,6 +121,9 @@
               },
               "transportType": {
                 "value": "<LoadGen4.TransportType>"
+              },
+              "ServiceClientConnectionString": {
+                "value": "<ServiceClientConnectionString>"
               }
             },
             "settings": {

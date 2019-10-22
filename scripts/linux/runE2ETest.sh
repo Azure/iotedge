@@ -154,8 +154,6 @@ function prepare_test_from_artifacts() {
                 if [[ "${TEST_NAME,,}" == 'longhaul' ]]; then
                     echo "Copy deployment file from $long_haul_deployment_artifact_file"
                     cp "$long_haul_deployment_artifact_file" "$deployment_working_file"
-
-                    sed -i -e "s@<ServiceClientConnectionString>@$IOTHUB_CONNECTION_STRING@g" "$deployment_working_file"
                 else
                     echo "Copy deployment file from $stress_deployment_artifact_file"
                     cp "$stress_deployment_artifact_file" "$deployment_working_file"
@@ -174,6 +172,7 @@ function prepare_test_from_artifacts() {
                 sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
                 escapedSnitchAlertUrl="${SNITCH_ALERT_URL//&/\\&}"
                 escapedBuildId="${ARTIFACT_IMAGE_BUILD_NUMBER//./}"
+                sed -i -e "s@<ServiceClientConnectionString>@$IOTHUB_CONNECTION_STRING@g" "$deployment_working_file"
                 sed -i -e "s@<Snitch.AlertUrl>@$escapedSnitchAlertUrl@g" "$deployment_working_file"
                 sed -i -e "s@<Snitch.BuildNumber>@$SNITCH_BUILD_NUMBER@g" "$deployment_working_file"
                 sed -i -e "s@<Snitch.BuildId>@$RELEASE_LABEL-$image_architecture_label-linux-$escapedBuildId@g" "$deployment_working_file"

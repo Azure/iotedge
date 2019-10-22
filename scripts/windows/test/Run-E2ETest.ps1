@@ -421,7 +421,6 @@ Function PrepareTestFromArtifacts
                 {
                     Write-Host "Copy deployment file from $LongHaulDeploymentArtifactFilePath"
                     Copy-Item $LongHaulDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
-                    (Get-Content $DeploymentWorkingFilePath).replace('<ServiceClientConnectionString>',$IoTHubConnectionString) | Set-Content $DeploymentWorkingFilePath
                 }
                 Else
                 {
@@ -439,6 +438,7 @@ Function PrepareTestFromArtifacts
                 (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.ConsumerGroupId>',$EventHubConsumerGroupId) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen.MessageFrequency>',$LoadGenMessageFrequency) | Set-Content $DeploymentWorkingFilePath
                 $escapedBuildId= $ArtifactImageBuildNumber -replace "\.",""
+                (Get-Content $DeploymentWorkingFilePath).replace('<ServiceClientConnectionString>',$IoTHubConnectionString) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.AlertUrl>',$SnitchAlertUrl) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildNumber>',$SnitchBuildNumber) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildId>',"$ReleaseLabel-$(GetImageArchitectureLabel)-windows-$escapedBuildId") | Set-Content $DeploymentWorkingFilePath
