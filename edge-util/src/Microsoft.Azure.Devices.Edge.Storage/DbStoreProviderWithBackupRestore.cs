@@ -17,6 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     /// </summary>
     public class DbStoreProviderWithBackupRestore : DbStoreProviderDecorator
     {
+        // This dummy value is used as the 'value' for all items/entries in the 'dbStores' dictionary.
+        // The intention is to leverage ConcurrentDictionary as a concurrent hash-set.
         const byte DbStoresDummyValue = 0;
         const string BackupMetadataFileName = "meta.json";
         const string DefaultStoreBackupName = "$Default";
