@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
                 TimeSpan.FromSeconds(60),
                 TimeSpan.FromSeconds(4));
 
-        public static readonly AnalyzerClient AnalyzerClient  = new AnalyzerClient();
+        public static readonly AnalyzerClient AnalyzerClient = new AnalyzerClient();
 
         public static async Task<ModuleClient> CreateModuleClientAsync(
             TransportType transportType,

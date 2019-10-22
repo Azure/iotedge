@@ -79,17 +79,17 @@ namespace MessagesAnalyzer
         // TODO: reorder
         public async Task ProcessAllMessages(Action<MessageDetails> callback)
         {
-            await ProcessAllHelper(this.messagesStore, callback);
+            await this.ProcessAllHelper(this.messagesStore, callback);
         }
 
         public async Task ProcessAllDirectMethods(Action<ResponseStatus> callback)
         {
-            await ProcessAllHelper(this.dmStore, callback);
+            await this.ProcessAllHelper(this.dmStore, callback);
         }
 
         public async Task ProcessAllTwins(Action<ResponseStatus> callback)
         {
-            await ProcessAllHelper(this.twinStore, callback);
+            await this.ProcessAllHelper(this.twinStore, callback);
         }
 
         public async Task ProcessAllHelper<T>(ISequentialStore<T> store, Action<T> callback)

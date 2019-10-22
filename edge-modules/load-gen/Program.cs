@@ -17,13 +17,12 @@ namespace LoadGen
     class Program
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("LoadGen");
-
-        static long messageIdCounter = 0;
-        static long twinUpdateId = 0;
         static readonly Guid batchId = Guid.NewGuid();
         static readonly string twinUpdateIdLabel = "propertyUpdateId";
         static readonly RegistryManager registryManager = RegistryManager.CreateFromConnectionString(Settings.Current.ServiceClientConnectionString);
         static readonly AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = Settings.Current.AnalyzerUrl };
+        static long messageIdCounter = 0;
+        static long twinUpdateId = 0;
 
         static async Task Main()
         {
@@ -109,7 +108,8 @@ namespace LoadGen
         {
             while (true)
             {
-                try{
+                try
+                {
                     return await moduleClient.GetTwinAsync();
                 }
                 catch (Exception e)
@@ -127,6 +127,7 @@ namespace LoadGen
             Logger.LogError(status + errorContext + $"{e}");
             CallAnalyzerToReportStatus(moduleId, status, string.Empty);
         }
+
         static void HandleWrongPropertyFailure(string moduleId, string status, string errorContext, Twin twin)
         {
             Logger.LogError(status + errorContext);
@@ -140,7 +141,7 @@ namespace LoadGen
 
             try
             {
-                string patch = String.Format("{{ properties: {{ desired: {{ {0}: {1}}} }} }}", twinUpdateIdLabel, twinUpdateId);
+                string patch = string.Format("{{ properties: {{ desired: {{ {0}: {1}}} }} }}", twinUpdateIdLabel, twinUpdateId);
                 await registryManager.UpdateTwinAsync(initialTwin.DeviceId, patch, initialTwin.ETag);
             }
             catch (Exception e)
@@ -164,9 +165,10 @@ namespace LoadGen
             }
 
             Twin receivedTwin;
-            try {
+            try
+            {
                 receivedTwin = await moduleClient.GetTwinAsync();
-            } 
+            }
             catch (Exception e)
             {
                 string status = "[TwinUpdateAsync] Failed call to get twin";
@@ -177,12 +179,14 @@ namespace LoadGen
             long receivedReportedPropertyId = receivedTwin.Properties.Reported[twinUpdateIdLabel];
             long receivedDesiredPropertyId = receivedTwin.Properties.Desired[twinUpdateIdLabel];
             string propertyErrorContext = $" {Environment.NewLine}Expected: {twinUpdateId}, Received: {receivedReportedPropertyId}, BatchId: {batchId};";
+
             if (receivedTwin.Tags[twinUpdateIdLabel] != twinUpdateId)
             {
                 string status = $"[TwinUpdateAsync] Reported property update not reflected in twin";
                 HandleWrongPropertyFailure(initialTwin.ModuleId, status, propertyErrorContext, receivedTwin);
                 return;
             }
+
             if (receivedTwin.Tags[twinUpdateIdLabel] != twinUpdateId)
             {
                 string status = $"[TwinUpdateAsync] Desired property update not reflected in twin";

@@ -24,21 +24,24 @@ namespace MessagesAnalyzer
 
         public void AddDirectMethodStatus(ResponseStatus directMethodStatus)
         {
-            AddStatus(directMethodStatus, this.dm);
+            this.AddStatus(directMethodStatus, this.dm);
         }
 
         public void AddTwinStatus(ResponseStatus twinStatus)
         {
-            AddStatus(twinStatus, this.twins);
+            this.AddStatus(twinStatus, this.twins);
         }
 
         public void AddStatus(ResponseStatus responseStatus, ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> cache)
         {
             ConcurrentDictionary<string, Tuple<int, DateTime>> batch = cache.GetOrAdd(responseStatus.ModuleId, key => new ConcurrentDictionary<string, Tuple<int, DateTime>>());
-            //TODO: thread safe
-            batch.AddOrUpdate(responseStatus.StatusCode, new Tuple<int, DateTime>(1, responseStatus.EnqueuedDateTime),
-                (key, value) => new Tuple<int, DateTime>(value.Item1+1,
-                responseStatus.EnqueuedDateTime > value.Item2 ? responseStatus.EnqueuedDateTime : value.Item2));
+            // TODO: thread safe
+            batch.AddOrUpdate(
+                responseStatus.StatusCode,
+                new Tuple<int, DateTime>(1, responseStatus.EnqueuedDateTime),
+                (key, value) => new Tuple<int, DateTime>(
+                    value.Item1 + 1,
+                    responseStatus.EnqueuedDateTime > value.Item2 ? responseStatus.EnqueuedDateTime : value.Item2));
         }
 
         public void AddMessage(MessageDetails messageDetails)
@@ -53,10 +56,12 @@ namespace MessagesAnalyzer
         {
             return this.GetSnapshotHelper(this.dm);
         }
+
         public IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> GetTwinsSnapshot()
         {
             return this.GetSnapshotHelper(this.twins);
         }
+
         public IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> GetSnapshotHelper(ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> cache)
         {
             return cache.ToArray().ToDictionary(p => p.Key, p => (IDictionary<string, Tuple<int, DateTime>>)p.Value.ToArray().ToDictionary(t => t.Key, t => t.Value));
@@ -90,6 +95,7 @@ namespace MessagesAnalyzer
                             Console.WriteLine($"Duplicate {messageDetails.EnqueuedDateTime} {messageDetails.SequenceNumber}");
                         }
                     }
+
                     batchSortedMessages.Add(batch);
                     snapshotResult.Add(moduleId, batchSortedMessages);
                 }

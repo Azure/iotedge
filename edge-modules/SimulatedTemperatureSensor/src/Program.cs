@@ -74,20 +74,6 @@ namespace SimulatedTemperatureSensor
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), null);
 
             Twin currentTwinProperties = await moduleClient.GetTwinAsync();
-            //currentTwinProperties.Properties.Desired.Version
-            //if (currentTwinProperties.Properties.Desired.Contains(SendIntervalConfigKey))
-            //{
-            //    messageDelay = TimeSpan.FromSeconds((int)currentTwinProperties.Properties.Desired[SendIntervalConfigKey]);
-            //}
-
-            //if (currentTwinProperties.Properties.Desired.Contains(SendDataConfigKey))
-            //{
-            //    sendData = (bool)currentTwinProperties.Properties.Desired[SendDataConfigKey];
-            //    if (!sendData)
-            //    {
-            //        Console.WriteLine("Sending data disabled. Change twin configuration to start sending again.");
-            //    }
-            //}
 
             ModuleClient userContext = moduleClient;
             await moduleClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertiesUpdated, userContext);

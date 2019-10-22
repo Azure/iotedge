@@ -15,7 +15,7 @@ namespace MessagesAnalyzer
             this.BatchId = batchId;
         }
 
-        public long SequenceNumber { get;}
+        public long SequenceNumber { get; }
 
         public DateTime EnqueuedDateTime { get; }
 

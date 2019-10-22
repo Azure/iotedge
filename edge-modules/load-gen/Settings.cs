@@ -29,7 +29,7 @@ namespace LoadGen
                     configuration.GetValue<TransportType>("transportType", TransportType.Amqp_Tcp_Only),
                     configuration.GetValue<string>("outputName", "output1"),
                     configuration.GetValue<string>("analyzerUrl", "http://analyzer:15000"),
-                    configuration.GetValue<string>("serviceClientConnectionString", ""));
+                    configuration.GetValue<string>("serviceClientConnectionString", string.Empty));
             });
 
         Settings(

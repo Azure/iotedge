@@ -21,7 +21,7 @@ namespace MessagesAnalyzer
                     Count = status.Value.Item1,
                     LastReceivedAt = status.Value.Item2
                 });
-            } 
+            }
         }
 
         public string ModuleId { get; }

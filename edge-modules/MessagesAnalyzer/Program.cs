@@ -37,7 +37,6 @@ namespace MessagesAnalyzer
         static async Task<DateTime> LoadFromStorage()
         {
             DateTime lastReceivedAt = DateTime.MinValue;
-            ;
             await MessagesCacheWithStorage.Instance.Init(Settings.Current.StoragePath, Settings.Current.OptimizeForPerformance);
             var messagesSnapShot = MessagesCache.Instance.GetMessagesSnapshot();
             foreach (KeyValuePair<string, IList<SortedSet<MessageDetails>>> moduleMesssages in messagesSnapShot)
@@ -58,7 +57,7 @@ namespace MessagesAnalyzer
             WebHost.CreateDefaultBuilder(args)
                 .UseUrls($"http://*:{Settings.Current.WebhostPort}")
                 .UseStartup<Startup>();
-        
+
         static async Task ReceiveMessages(DateTime lastReceivedMesssage)
         {
             var builder = new EventHubsConnectionStringBuilder(Settings.Current.EventHubConnectionString);
