@@ -35,6 +35,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             }
         }
 
+        public abstract void SetMaxSizeBytes(long maxSizeBytes);
+
         public void DisposeChecker()
         {
             lock (this.updateLock)

@@ -12,32 +12,107 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
     [Unit]
     public class DiskSpaceCheckerTest
     {
+        readonly int delay = 6;
+        readonly int checkFrequency = 3;
+        [Fact]
+        public async Task UpdateMaxSizeToZeroTest()
+        {
+            // Arrange
+            string testStorageFolder = this.CreateTempStorageFolder();
+
+            try
+            {
+                DriveInfo driveInfo = DiskSpaceChecker.GetMatchingDrive(testStorageFolder)
+                    .Expect(() => new ArgumentException("Should find drive for temp folder"));
+                long maxStorageSize = 0;
+                DiskSpaceChecker diskSpaceChecker = DiskSpaceChecker.Create(testStorageFolder);
+                diskSpaceChecker.SetMaxSizeBytes(maxStorageSize);
+                diskSpaceChecker.SetCheckFrequency(Option.Some(this.checkFrequency));
+
+                // Assert
+                await Task.Delay(TimeSpan.FromSeconds(this.delay));
+                Assert.True(diskSpaceChecker.IsFull);
+            }
+            finally
+            {
+                Directory.Delete(testStorageFolder, true);
+            }
+        }
+
+        [Fact]
+        public async Task UpdateCheckFrequencyToZeroTest()
+        {
+            // Arrange
+            string testStorageFolder = this.CreateTempStorageFolder();
+
+            try
+            {
+                DriveInfo driveInfo = DiskSpaceChecker.GetMatchingDrive(testStorageFolder)
+                    .Expect(() => new ArgumentException("Should find drive for temp folder"));
+                long maxStorageSize = 1000;
+                DiskSpaceChecker diskSpaceChecker = DiskSpaceChecker.Create(testStorageFolder);
+
+                // Act
+                diskSpaceChecker.SetMaxSizeBytes(maxStorageSize);
+                diskSpaceChecker.SetCheckFrequency(Option.Some(this.checkFrequency));
+
+                // Assert
+                await Task.Delay(TimeSpan.FromSeconds(this.delay));
+                Assert.False(diskSpaceChecker.IsFull);
+            }
+            finally
+            {
+                Directory.Delete(testStorageFolder, true);
+            }
+        }
+
+        [Fact]
+        public async Task EmptyDisposeTest()
+        {
+            // Arrange
+            string testStorageFolder = this.CreateTempStorageFolder();
+            try
+            {
+                DriveInfo driveInfo = DiskSpaceChecker.GetMatchingDrive(testStorageFolder)
+                    .Expect(() => new ArgumentException("Should find drive for temp folder"));
+                DiskSpaceChecker diskSpaceChecker = DiskSpaceChecker.Create(testStorageFolder);
+
+                // Act
+                diskSpaceChecker.DisableChecker();
+
+                // Assert
+                Assert.False(diskSpaceChecker.IsFull);
+
+                // Act
+                diskSpaceChecker.SetMaxSizeBytes(0);
+
+                // Assert
+                await Task.Delay(TimeSpan.FromSeconds(this.delay));
+                Assert.True(diskSpaceChecker.IsFull);
+            }
+            finally
+            {
+                Directory.Delete(testStorageFolder, true);
+            }
+        }
+
         [Fact]
         public async Task SmokeTest()
         {
             // Arrange
-            string tempFolder = Path.GetTempPath();
-            string testStorageFolder = Path.Combine(tempFolder, $"edgeTestDb{Guid.NewGuid()}");
-            if (Directory.Exists(testStorageFolder))
-            {
-                Directory.Delete(testStorageFolder);
-            }
-
-            Directory.CreateDirectory(testStorageFolder);
+            string testStorageFolder = this.CreateTempStorageFolder();
 
             try
             {
-                int delay = 6;
-                int checkFrequency = 3;
                 DriveInfo driveInfo = DiskSpaceChecker.GetMatchingDrive(testStorageFolder)
                     .Expect(() => new ArgumentException("Should find drive for temp folder"));
                 long maxStorageSize = 6 * 1024 * 1024;
                 DiskSpaceChecker diskSpaceChecker = DiskSpaceChecker.Create(testStorageFolder);
                 diskSpaceChecker.SetMaxSizeBytes(maxStorageSize);
-                diskSpaceChecker.SetCheckFrequency(Option.Some(checkFrequency));
+                diskSpaceChecker.SetCheckFrequency(Option.Some(this.checkFrequency));
 
                 // Assert
-                await Task.Delay(TimeSpan.FromSeconds(delay));
+                await Task.Delay(TimeSpan.FromSeconds(this.delay));
                 Assert.False(diskSpaceChecker.IsFull);
 
                 // Act
@@ -46,41 +121,67 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
                 await File.AppendAllTextAsync(filePath, dummyFileContents);
 
                 // Assert
-                await Task.Delay(TimeSpan.FromSeconds(delay));
+                await Task.Delay(TimeSpan.FromSeconds(this.delay));
                 Assert.False(diskSpaceChecker.IsFull);
 
                 // Act
                 diskSpaceChecker.SetMaxSizeBytes(4 * 1024 * 1024);
 
                 // Assert
-                await Task.Delay(TimeSpan.FromSeconds(delay));
+                await Task.Delay(TimeSpan.FromSeconds(this.delay));
                 Assert.True(diskSpaceChecker.IsFull);
 
                 // Act
                 diskSpaceChecker.SetMaxSizeBytes(8 * 1024 * 1024);
 
                 // Assert
-                await Task.Delay(TimeSpan.FromSeconds(delay));
+                await Task.Delay(TimeSpan.FromSeconds(this.delay));
                 Assert.False(diskSpaceChecker.IsFull);
 
                 // Act
                 await File.AppendAllTextAsync(filePath, dummyFileContents);
 
                 // Assert
-                await Task.Delay(TimeSpan.FromSeconds(delay));
+                await Task.Delay(TimeSpan.FromSeconds(this.delay));
                 Assert.True(diskSpaceChecker.IsFull);
 
                 // Act
                 File.Delete(filePath);
 
                 // Assert
-                await Task.Delay(TimeSpan.FromSeconds(delay));
+                await Task.Delay(TimeSpan.FromSeconds(this.delay));
+                Assert.False(diskSpaceChecker.IsFull);
+
+                await File.AppendAllTextAsync(filePath, dummyFileContents);
+                diskSpaceChecker.SetMaxSizeBytes(4 * 1024 * 1024);
+
+                await Task.Delay(TimeSpan.FromSeconds(this.delay));
+                Assert.True(diskSpaceChecker.IsFull);
+
+                // Act
+                diskSpaceChecker.DisableChecker();
+
+                // Assert
+                await Task.Delay(TimeSpan.FromSeconds(this.delay));
                 Assert.False(diskSpaceChecker.IsFull);
             }
             finally
             {
                 Directory.Delete(testStorageFolder, true);
             }
+        }
+
+        private string CreateTempStorageFolder()
+        {
+            string tempFolder = Path.GetTempPath();
+            string testStorageFolder = Path.Combine(tempFolder, $"edgeTestDb{Guid.NewGuid()}");
+            if (Directory.Exists(testStorageFolder))
+            {
+                Directory.Delete(testStorageFolder);
+            }
+
+            Directory.CreateDirectory(testStorageFolder);
+            return testStorageFolder;
         }
     }
 }

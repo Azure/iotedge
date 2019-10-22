@@ -53,6 +53,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         public Task<int> SendMessagesByCountAsync(string output, int startIndex, int count, TimeSpan timeout) =>
             this.SendMessagesByCountAsync(output, startIndex, count, timeout, TimeSpan.Zero);
 
+        public Task SendMessageBySize(string output, int size) =>
+            this.SendMessageAsync(output, this.GetMessageBySize(size));
+
         public async Task<int> SendMessagesByCountAsync(string output, int startIndex, int count, TimeSpan timeout, TimeSpan sleepTime)
         {
             int sentMessagesCount = await this.SendMessagesAsync(output, startIndex, count, timeout, sleepTime);
@@ -123,6 +126,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var message = new Message(payloadBytes);
             message.Properties.Add("testId", id);
             message.Properties.Add("Model", "Temperature");
+            return message;
+        }
+
+        Message GetMessageBySize(int size)
+        {
+            byte[] payloadBytes = new byte[size];
+            var message = new Message(payloadBytes);
+            message.Properties.Add("testId", "testIdVal");
             return message;
         }
 

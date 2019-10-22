@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
 
     public class DiskSpaceChecker : IStorageSpaceChecker
     {
-        static readonly int checkFrequencyDefault = 3;
+        static readonly int checkFrequencyDefault = 120;
         readonly string storageFolder;
         readonly object updateLock = new object();
         Option<DiskSpaceCheckerBase> inner;
@@ -24,19 +24,20 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             this.inner = Preconditions.CheckNotNull(inner, nameof(inner));
         }
 
+        // Returns false if checker is disabled (i.e. Option.HasValue is false)
         public bool IsFull => this.inner.Match<bool>(b => b.DiskStatus == DiskSpaceStatus.Full, () => false);
 
         public static DiskSpaceChecker Create(string storageFolder)
         {
             // Start up diskSpaceChecker unfilled - so that it will be enabled when SetMaxSizeBytes is called
             var diskSpaceChecker = new DiskSpaceChecker(storageFolder, Option.None<DiskSpaceCheckerBase>());
-            Events.Created(storageFolder);
             return diskSpaceChecker;
         }
 
         public void SetMaxSizeBytes(long maxSizeBytes)
         {
             this.maxSize = maxSizeBytes;
+            this.inner.ForEach(b => b.SetMaxSizeBytes(maxSizeBytes));
             this.EnableChecker();
             Events.SetMaxSizeDiskSpaceUsage(this.maxSize, this.storageFolder);
         }
@@ -45,11 +46,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
         {
             checkFrequencySecs.ForEach(updatedCheckFrequency =>
             {
-                if (updatedCheckFrequency > 0 && !this.checkFrequency.Equals(Option.Some(updatedCheckFrequency)))
+                Option<int> updatedCheckFrequencyOption = Option.Some(updatedCheckFrequency);
+                if (updatedCheckFrequency > 0 && !this.checkFrequency.Equals(updatedCheckFrequencyOption))
                 {
                     lock (this.updateLock)
                     {
-                        this.checkFrequency = Option.Some(updatedCheckFrequency);
+                        this.checkFrequency = updatedCheckFrequencyOption;
                         this.inner.ForEach(b => b.DisposeChecker());
                         this.inner = Option.Some(new FixedSizeDiskSpaceChecker(this.storageFolder, this.maxSize, TimeSpan.FromSeconds(updatedCheckFrequency), Events.Log) as DiskSpaceCheckerBase);
                     }
@@ -61,13 +63,17 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
         {
             lock (this.updateLock)
             {
-                this.inner = Option.Some(
-                    new FixedSizeDiskSpaceChecker(
-                        this.storageFolder,
-                        this.maxSize,
-                        TimeSpan.FromSeconds(this.checkFrequency.GetOrElse(checkFrequencyDefault)),
-                        Events.Log)
-                    as DiskSpaceCheckerBase);
+                if (!this.inner.HasValue)
+                {
+                    this.inner = Option.Some(
+                        new FixedSizeDiskSpaceChecker(
+                            this.storageFolder,
+                            this.maxSize,
+                            TimeSpan.FromSeconds(this.checkFrequency.GetOrElse(checkFrequencyDefault)),
+                            Events.Log)
+                        as DiskSpaceCheckerBase);
+                    Events.Started(this.storageFolder);
+                }
             }
         }
 
@@ -136,7 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
 
             enum EventIds
             {
-                Created = IdStart,
+                Started = IdStart,
                 SetMaxSizeDiskSpaceUsage,
                 SetMaxPercentageUsage,
                 FoundDrive,
@@ -144,9 +150,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
                 ErrorGettingMatchingDrive
             }
 
-            public static void Created(string storageFolder)
+            public static void Started(string storageFolder)
             {
-                Log.LogInformation((int)EventIds.Created, $"Created disk space usage checker for folder {storageFolder}");
+                Log.LogInformation((int)EventIds.Started, $"Started disk space usage checker for folder {storageFolder}");
             }
 
             public static void SetMaxSizeDiskSpaceUsage(long maxSizeBytes, string storageFolder)

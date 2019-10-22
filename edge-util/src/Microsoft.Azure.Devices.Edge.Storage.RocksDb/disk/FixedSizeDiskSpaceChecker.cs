@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
     class FixedSizeDiskSpaceChecker : DiskSpaceCheckerBase
     {
         readonly string storageFolder;
-        readonly long maxSizeBytes;
+        long maxSizeBytes;
 
         public FixedSizeDiskSpaceChecker(string storageFolder, long maxSizeBytes, TimeSpan checkFrequency, ILogger logger)
             : base(checkFrequency, logger)
@@ -30,6 +30,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
 
             return diskStatus;
         }
+
+        public override void SetMaxSizeBytes(long maxSizeBytes) => this.maxSizeBytes = maxSizeBytes;
 
         static DiskSpaceStatus GetDiskStatus(double usagePercentage)
         {
