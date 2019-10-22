@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Storage
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
@@ -16,10 +17,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     /// </summary>
     public class DbStoreProviderWithBackupRestore : DbStoreProviderDecorator
     {
+        const byte DbStoresDummyValue = 0;
         const string BackupMetadataFileName = "meta.json";
         const string DefaultStoreBackupName = "$Default";
         readonly string backupPath;
-        readonly ISet<string> dbStores;
+        readonly ConcurrentDictionary<string, byte> dbStores;
         readonly IDbStoreBackupRestore dbStoreBackupRestore;
         readonly SerializationFormat backupFormat;
         readonly Events events;
@@ -34,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             this.backupPath = Preconditions.CheckNonWhiteSpace(backupPath, nameof(backupPath));
             this.dbStoreBackupRestore = Preconditions.CheckNotNull(dbStoreBackupRestore, nameof(dbStoreBackupRestore));
             this.backupFormat = backupFormat;
-            this.dbStores = new HashSet<string>();
+            this.dbStores = new ConcurrentDictionary<string, byte>();
             this.events = new Events(this.Log);
         }
 
@@ -97,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 this.events.RestoreFailure($"The restore operation failed with error ${exception}.");
 
                 // Clean up any restored state in the dictionary if the backup fails midway.
-                foreach (string store in this.dbStores.ToList())
+                foreach (string store in this.dbStores.Keys.ToList())
                 {
                     this.RemoveDbStore(store);
                 }
@@ -115,25 +117,25 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public override IDbStore GetDbStore(string partitionName)
         {
-            this.dbStores.Add(partitionName);
+            this.dbStores.GetOrAdd(partitionName, DbStoresDummyValue);
             return base.GetDbStore(partitionName);
         }
 
         public override IDbStore GetDbStore()
         {
-            this.dbStores.Add(DefaultStoreBackupName);
+            this.dbStores.GetOrAdd(DefaultStoreBackupName, DbStoresDummyValue);
             return base.GetDbStore();
         }
 
         public override void RemoveDbStore(string partitionName)
         {
-            this.dbStores.Remove(partitionName);
+            this.dbStores.TryRemove(partitionName, out _);
             base.RemoveDbStore(partitionName);
         }
 
         public override void RemoveDbStore()
         {
-            this.dbStores.Remove(DefaultStoreBackupName);
+            this.dbStores.TryRemove(DefaultStoreBackupName, out _);
             base.RemoveDbStore();
         }
 
@@ -149,14 +151,14 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             Guid backupId = Guid.NewGuid();
             string dbBackupDirectory = Path.Combine(this.backupPath, backupId.ToString());
 
-            BackupMetadata newBackupMetadata = new BackupMetadata(backupId, this.backupFormat, DateTime.UtcNow, this.dbStores.ToList());
+            BackupMetadata newBackupMetadata = new BackupMetadata(backupId, this.backupFormat, DateTime.UtcNow, this.dbStores.Keys.ToList());
             BackupMetadataList backupMetadataList = new BackupMetadataList(new List<BackupMetadata> { newBackupMetadata });
             try
             {
                 Directory.CreateDirectory(dbBackupDirectory);
 
                 // Backup other stores.
-                foreach (string store in this.dbStores)
+                foreach (string store in this.dbStores.Keys)
                 {
                     IDbStore dbStore = this.dbStoreProvider.GetDbStore(store);
                     await this.dbStoreBackupRestore.BackupAsync(store, dbStore, dbBackupDirectory);
