@@ -50,6 +50,7 @@ where
             .and_then(SupportBundle::write_edgelet_log_to_file)
             .and_then(SupportBundle::write_check_to_file)
             .and_then(SupportBundle::write_all_inspects)
+            .and_then(SupportBundle::write_all_network_inspects)
             .map(|state| state.print_verbose("Created support bundle"));
 
         Box::new(result)
@@ -125,6 +126,18 @@ where
     fn write_all_inspects(s1: BundleState<M>) -> impl Future<Item = BundleState<M>, Error = Error> {
         SupportBundle::get_modules(s1).and_then(|(names, s2)| {
             stream::iter_ok(names).fold(s2, SupportBundle::write_inspect_to_file)
+        })
+    }
+
+    fn write_all_network_inspects(s1: BundleState<M>) -> Result<BundleState<M>, Error> {
+        SupportBundle::get_docker_networks(s1).and_then(|(names, s2)| {
+            names.into_iter().fold(Ok(s2), |s3, name| {
+                if let Ok(s3) = s3 {
+                    SupportBundle::write_docker_network_to_file(s3, name)
+                } else {
+                    s3
+                }
+            })
         })
     }
 
@@ -311,6 +324,86 @@ where
 
         state.print_verbose(&format!("Got docker inspect for {}", module_name));
         drop(module_name);
+        Ok(state)
+    }
+
+    fn get_docker_networks(state: BundleState<M>) -> Result<(Vec<String>, BundleState<M>), Error> {
+        let mut inspect = ShellCommand::new("docker");
+
+        /***
+         * Note: just like inspect, this assumes using windows containers on a windows machine.
+         */
+        #[cfg(windows)]
+        inspect.args(&["-H", "npipe:////./pipe/iotedge_moby_engine"]);
+
+        inspect.args(&["network", "ls"]);
+        inspect.args(&["--format", "{{.Name}}"]);
+        let inspect = inspect.output();
+
+        let result = if let Ok(result) = inspect {
+            if result.status.success() {
+                String::from_utf8_lossy(&result.stdout).to_string()
+            } else {
+                println!("Could not find network names: {:?}", result.stderr);
+                "".to_owned()
+            }
+        } else {
+            println!("Could not find network names: {}", inspect.err().unwrap());
+            "".to_owned()
+        };
+
+        Ok((result.lines().map(String::from).collect(), state))
+    }
+
+    fn write_docker_network_to_file(
+        mut state: BundleState<M>,
+        network_name: String,
+    ) -> Result<BundleState<M>, Error> {
+        state.print_verbose(&format!(
+            "Running docker network inspect for {}",
+            network_name
+        ));
+        let mut inspect = ShellCommand::new("docker");
+
+        /***
+         * Note: just like inspect, this assumes using windows containers on a windows machine.
+         */
+        #[cfg(windows)]
+        inspect.args(&["-H", "npipe:////./pipe/iotedge_moby_engine"]);
+
+        inspect.args(&["network", "inspect", &network_name]);
+        let inspect = inspect.output();
+
+        let (file_name, output) = if let Ok(result) = inspect {
+            if result.status.success() {
+                (format!("network/{}.json", network_name), result.stdout)
+            } else {
+                (format!("network/{}_err.json", network_name), result.stderr)
+            }
+        } else {
+            let err_message = inspect.err().unwrap().description().to_owned();
+            println!(
+                "Could not reach docker. Including error in bundle.\nError message: {}",
+                err_message
+            );
+            (
+                format!("network/{}_err_docker.txt", network_name),
+                err_message.as_bytes().to_vec(),
+            )
+        };
+
+        state
+            .zip_writer
+            .start_file_from_path(&Path::new(&file_name), state.file_options)
+            .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+
+        state
+            .zip_writer
+            .write(&output)
+            .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+
+        state.print_verbose(&format!("Got docker network inspect for {}", network_name));
+        drop(network_name);
         Ok(state)
     }
 }
