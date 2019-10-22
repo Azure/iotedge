@@ -126,7 +126,7 @@ where
 
     fn write_all_inspects(s1: BundleState<M>) -> impl Future<Item = BundleState<M>, Error = Error> {
         SupportBundle::get_modules(s1).and_then(|(names, s2)| {
-            stream::iter_ok(names).fold(s2, SupportBundle::write_inspect_to_file)
+            stream::iter_ok(names).fold(s2, |s3, name| SupportBundle::write_inspect_to_file(s3, &name))
         })
     }
 
@@ -134,7 +134,7 @@ where
         SupportBundle::get_docker_networks(s1).and_then(|(names, s2)| {
             names.into_iter().fold(Ok(s2), |s3, name| {
                 if let Ok(s3) = s3 {
-                    SupportBundle::write_docker_network_to_file(s3, name)
+                    SupportBundle::write_docker_network_to_file(s3, &name)
                 } else {
                     s3
                 }
@@ -333,7 +333,7 @@ where
 
     fn write_inspect_to_file(
         mut state: BundleState<M>,
-        module_name: String,
+        module_name: &str,
     ) -> Result<BundleState<M>, Error> {
         state.print_verbose(&format!("Running docker inspect for {}", module_name));
         let mut inspect = ShellCommand::new("docker");
@@ -415,7 +415,7 @@ where
 
     fn write_docker_network_to_file(
         mut state: BundleState<M>,
-        network_name: String,
+        network_name: &str,
     ) -> Result<BundleState<M>, Error> {
         state.print_verbose(&format!(
             "Running docker network inspect for {}",
