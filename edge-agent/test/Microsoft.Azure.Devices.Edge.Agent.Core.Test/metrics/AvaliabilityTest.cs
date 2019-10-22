@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
     using Xunit;
 
     [Unit]
-    public class AvaliabilityTest
+    public class AvailabilityTest
     {
         [Fact]
         public void TestBasicUptime()
@@ -26,14 +26,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
 
             for (int i = 1; i < 100; i++)
             {
-                Avaliability avaliability = new Avaliability("Test", "test", systemTime.Object);
+                Availability availability = new Availability("Test", "test", systemTime.Object);
                 for (int j = 0; j < 100; j++)
                 {
-                    avaliability.AddPoint(j % i == 0);
+                    availability.AddPoint(j % i == 0);
                     fakeTime = fakeTime.AddMinutes(10);
                 }
 
-                TestUtilities.ApproxEqual(1.0 / i, avaliability.AvaliabilityRatio, .01);
+                TestUtilities.ApproxEqual(1.0 / i, availability.AvailabilityRatio, .01);
             }
         }
 
@@ -46,33 +46,33 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
 
             for (int i = 1; i < 100; i++)
             {
-                Avaliability avaliability = new Avaliability("Test", "test", systemTime.Object);
+                Availability availability = new Availability("Test", "test", systemTime.Object);
                 for (int j = 0; j < 20; j++)
                 {
-                    avaliability.AddPoint(j % i == 0);
+                    availability.AddPoint(j % i == 0);
                     fakeTime = fakeTime.AddMinutes(10);
                 }
 
-                avaliability.NoPoint();
+                availability.NoPoint();
                 fakeTime = fakeTime.AddMinutes(10);
 
                 for (int j = 0; j < 20; j++)
                 {
-                    avaliability.AddPoint(j % i == 0);
+                    availability.AddPoint(j % i == 0);
                     fakeTime = fakeTime.AddMinutes(10);
                 }
 
-                TestUtilities.ApproxEqual(1.0 / i, avaliability.AvaliabilityRatio, .05);
+                TestUtilities.ApproxEqual(1.0 / i, availability.AvailabilityRatio, .05);
 
-                avaliability.NoPoint();
+                availability.NoPoint();
                 fakeTime = fakeTime.AddMinutes(1000);
                 for (int j = 0; j < 20; j++)
                 {
-                    avaliability.AddPoint(j % i == 0);
+                    availability.AddPoint(j % i == 0);
                     fakeTime = fakeTime.AddMinutes(10);
                 }
 
-                TestUtilities.ApproxEqual(1.0 / i, avaliability.AvaliabilityRatio, .05);
+                TestUtilities.ApproxEqual(1.0 / i, availability.AvailabilityRatio, .05);
             }
         }
 
@@ -84,16 +84,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             systemTime.Setup(x => x.UtcNow).Returns(() => fakeTime);
 
             /* up for 10 days */
-            WeeklyAvaliability avaliability = new WeeklyAvaliability("Test", "test", systemTime.Object);
+            WeeklyAvailability availability = new WeeklyAvailability("Test", "test", systemTime.Object);
             for (int i = 0; i < 10; i++)
             {
                 for (int j = 0; j < 24 * 6; j++)
                 {
-                    avaliability.AddPoint(true);
+                    availability.AddPoint(true);
                     fakeTime = fakeTime.AddMinutes(10);
                 }
 
-                TestUtilities.ApproxEqual(1, avaliability.AvaliabilityRatio, .01);
+                TestUtilities.ApproxEqual(1, availability.AvailabilityRatio, .01);
             }
 
             /* down for 10 days */
@@ -101,12 +101,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             {
                 for (int j = 0; j < 24 * 6; j++)
                 {
-                    avaliability.AddPoint(false);
+                    availability.AddPoint(false);
                     fakeTime = fakeTime.AddMinutes(10);
                 }
 
                 double expected = Math.Max(7.0 - i, 0.0) / 7.0;
-                TestUtilities.ApproxEqual(expected, avaliability.AvaliabilityRatio, .01);
+                TestUtilities.ApproxEqual(expected, availability.AvailabilityRatio, .01);
             }
 
             /* up for 10 days */
@@ -114,40 +114,40 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             {
                 for (int j = 0; j < 24 * 6; j++)
                 {
-                    avaliability.AddPoint(true);
+                    availability.AddPoint(true);
                     fakeTime = fakeTime.AddMinutes(10);
                 }
 
                 double expected = Math.Min(i, 7.0) / 7.0;
-                TestUtilities.ApproxEqual(expected, avaliability.AvaliabilityRatio, .01);
+                TestUtilities.ApproxEqual(expected, availability.AvailabilityRatio, .01);
             }
 
             /* down for half a day */
             for (int i = 0; i < 12 * 6; i++)
             {
-                avaliability.AddPoint(false);
+                availability.AddPoint(false);
                 fakeTime = fakeTime.AddMinutes(10);
             }
 
-            TestUtilities.ApproxEqual(6.5 / 7.0, avaliability.AvaliabilityRatio, .01);
+            TestUtilities.ApproxEqual(6.5 / 7.0, availability.AvailabilityRatio, .01);
             for (int i = 0; i < 12 * 6; i++)
             {
-                avaliability.AddPoint(true);
+                availability.AddPoint(true);
                 fakeTime = fakeTime.AddMinutes(10);
             }
 
-            TestUtilities.ApproxEqual(6.5 / 7.0, avaliability.AvaliabilityRatio, .01);
+            TestUtilities.ApproxEqual(6.5 / 7.0, availability.AvailabilityRatio, .01);
 
             /* up for another 6 days */
             for (int i = 0; i < 6; i++)
             {
                 for (int j = 0; j < 24 * 6; j++)
                 {
-                    avaliability.AddPoint(true);
+                    availability.AddPoint(true);
                     fakeTime = fakeTime.AddMinutes(10);
                 }
 
-                TestUtilities.ApproxEqual(6.5 / 7.0, avaliability.AvaliabilityRatio, .01);
+                TestUtilities.ApproxEqual(6.5 / 7.0, availability.AvailabilityRatio, .01);
             }
 
             /* avalability goes back to max */
@@ -155,11 +155,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             {
                 for (int j = 0; j < 24 * 6; j++)
                 {
-                    avaliability.AddPoint(true);
+                    availability.AddPoint(true);
                     fakeTime = fakeTime.AddMinutes(10);
                 }
 
-                TestUtilities.ApproxEqual(1, avaliability.AvaliabilityRatio, .01);
+                TestUtilities.ApproxEqual(1, availability.AvailabilityRatio, .01);
             }
         }
     }

@@ -126,7 +126,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                     else
                     {
                         ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
-                        AvaliabilityMetrics.ComputeAvaliability(desiredModuleSet, current);
+                        AvailabilityMetrics.ComputeAvailability(desiredModuleSet, current);
 
                         // TODO - Update this logic to create identities only when needed, in the Command factory, instead of creating all the identities
                         // up front here. That will allow handling the case when only the state of the system has changed (say one module crashes), and

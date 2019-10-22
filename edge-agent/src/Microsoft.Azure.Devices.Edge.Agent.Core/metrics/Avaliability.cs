@@ -7,7 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
     using System.Text;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class Avaliability
+    public class Availability
     {
         private readonly ISystemTime time;
 
@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
         private DateTime? previousMeasure = null;
 
-        public Avaliability(string name, string version, ISystemTime time)
+        public Availability(string name, string version, ISystemTime time)
         {
             this.Name = name;
             this.Version = version;
@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             this.previousMeasure = time.UtcNow;
         }
 
-        public Avaliability(AvaliabilityRaw raw, ISystemTime time)
+        public Availability(AvailabilityRaw raw, ISystemTime time)
         {
             this.Name = raw.Name;
             this.Version = raw.Version;
@@ -36,7 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             this.time = time;
         }
 
-        public double AvaliabilityRatio
+        public double AvailabilityRatio
         {
             get
             {
@@ -73,9 +73,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             this.previousMeasure = null;
         }
 
-        public AvaliabilityRaw ToRaw()
+        public AvailabilityRaw ToRaw()
         {
-            return new AvaliabilityRaw
+            return new AvailabilityRaw
             {
                 Name = this.Name,
                 Version = this.Version,
@@ -85,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
         }
     }
 
-    public struct AvaliabilityRaw
+    public struct AvailabilityRaw
     {
         public string Name;
         public string Version;

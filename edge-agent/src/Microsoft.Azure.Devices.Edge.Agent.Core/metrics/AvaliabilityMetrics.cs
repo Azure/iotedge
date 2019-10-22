@@ -9,29 +9,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
 
-    static class AvaliabilityMetrics
+    static class AvailabilityMetrics
     {
-        private static readonly IMetricsGauge LifetimeAvaliability = Util.Metrics.Metrics.Instance.CreateGauge(
-            "lifetime_avaliability",
+        private static readonly IMetricsGauge LifetimeAvailability = Util.Metrics.Metrics.Instance.CreateGauge(
+            "lifetime_availability",
             "total availability since deployment",
             new List<string> { "module_name", "module_version" });
 
-        private static readonly IMetricsGauge WeeklyAvaliability = Util.Metrics.Metrics.Instance.CreateGauge(
-            "weekly_avaliability",
+        private static readonly IMetricsGauge WeeklyAvailability = Util.Metrics.Metrics.Instance.CreateGauge(
+            "weekly_availability",
             "total availability for the last 7 days",
             new List<string> { "module_name", "module_version" });
 
         public static ISystemTime Time = SystemTime.Instance;
         public static Option<string> StoragePath = Option.None<string>();
 
-        private static Lazy<List<(Avaliability lifetime, WeeklyAvaliability weekly)>> availabilities = new Lazy<List<(Avaliability lifetime, WeeklyAvaliability weekly)>>(LoadData);
+        private static Lazy<List<(Availability lifetime, WeeklyAvailability weekly)>> availabilities = new Lazy<List<(Availability lifetime, WeeklyAvailability weekly)>>(LoadData);
 
-        static AvaliabilityMetrics()
+        static AvailabilityMetrics()
         {
             AppDomain.CurrentDomain.ProcessExit += SaveData;
         }
 
-        public static void ComputeAvaliability(ModuleSet desired, ModuleSet current)
+        public static void ComputeAvailability(ModuleSet desired, ModuleSet current)
         {
             /* Get all modules that are not running but should be */
             var down = new HashSet<string>(current.Modules.Values
@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                 .Select(c => c.Name));
 
             /* Add points for all modules found */
-            foreach ((Avaliability lifetime, WeeklyAvaliability weekly) in availabilities.Value)
+            foreach ((Availability lifetime, WeeklyAvailability weekly) in availabilities.Value)
             {
                 string name = lifetime.Name;
                 if (down.Remove(name))
@@ -67,62 +67,62 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                     weekly.NoPoint();
                 }
 
-                LifetimeAvaliability.Set(lifetime.AvaliabilityRatio, new[] { lifetime.Name, lifetime.Version });
-                WeeklyAvaliability.Set(weekly.AvaliabilityRatio, new[] { weekly.Name, weekly.Version });
+                LifetimeAvailability.Set(lifetime.AvailabilityRatio, new[] { lifetime.Name, lifetime.Version });
+                WeeklyAvailability.Set(weekly.AvailabilityRatio, new[] { weekly.Name, weekly.Version });
             }
 
             /* Add new modules to track */
             foreach (string module in down.Union(up))
             {
-                availabilities.Value.Add((new Avaliability(module, "tempNoVersion", Time), new WeeklyAvaliability(module, "tempNoVersion", Time)));
+                availabilities.Value.Add((new Availability(module, "tempNoVersion", Time), new WeeklyAvailability(module, "tempNoVersion", Time)));
             }
         }
 
-        private static List<(Avaliability lifetime, WeeklyAvaliability weekly)> LoadData()
+        private static List<(Availability lifetime, WeeklyAvailability weekly)> LoadData()
         {
             if (StoragePath.HasValue)
             {
-                Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Loading historical avaliability");
+                Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Loading historical availability");
 
-                List<Avaliability> lifetimeAvailabilities = new List<Avaliability>();
-                string file = Path.Combine(StoragePath.ToEnumerable().First(), "AvaliabilityHistory", "lifetime.json");
+                List<Availability> lifetimeAvailabilities = new List<Availability>();
+                string file = Path.Combine(StoragePath.ToEnumerable().First(), "AvailabilityHistory", "lifetime.json");
                 if (File.Exists(file))
                 {
                     try
                     {
-                        lifetimeAvailabilities = Newtonsoft.Json.JsonConvert.DeserializeObject<List<AvaliabilityRaw>>(File.ReadAllText(file))
-                            .Select(raw => new Avaliability(raw, Time)).ToList();
+                        lifetimeAvailabilities = Newtonsoft.Json.JsonConvert.DeserializeObject<List<AvailabilityRaw>>(File.ReadAllText(file))
+                            .Select(raw => new Availability(raw, Time)).ToList();
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Could not load lifetime avaliability: {ex}");
+                        Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Could not load lifetime availability: {ex}");
                     }
                 }
 
-                List<WeeklyAvaliability> weeklyAvailabilities = new List<WeeklyAvaliability>();
-                file = Path.Combine(StoragePath.ToEnumerable().First(), "AvaliabilityHistory", "weekly.json");
+                List<WeeklyAvailability> weeklyAvailabilities = new List<WeeklyAvailability>();
+                file = Path.Combine(StoragePath.ToEnumerable().First(), "AvailabilityHistory", "weekly.json");
                 if (File.Exists(file))
                 {
                     try
                     {
-                        weeklyAvailabilities = Newtonsoft.Json.JsonConvert.DeserializeObject<List<WeeklyAvaliabilityRaw>>(File.ReadAllText(file))
-                            .Select(raw => new WeeklyAvaliability(raw, Time)).ToList();
+                        weeklyAvailabilities = Newtonsoft.Json.JsonConvert.DeserializeObject<List<WeeklyAvailabilityRaw>>(File.ReadAllText(file))
+                            .Select(raw => new WeeklyAvailability(raw, Time)).ToList();
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Could not load weekly avaliability: {ex}");
+                        Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Could not load weekly availability: {ex}");
                     }
                 }
 
-                return lifetimeAvailabilities.Select(lifetimeAvaliability =>
+                return lifetimeAvailabilities.Select(lifetimeAvailability =>
                 {
                     /* don't care about efficienct since only happens once */
-                    WeeklyAvaliability weeklyAvailability = weeklyAvailabilities.Find(a => a.Name == lifetimeAvaliability.Name) ?? new WeeklyAvaliability(lifetimeAvaliability.Name, lifetimeAvaliability.Version, Time);
-                    return (lifetimeAvaliability, weeklyAvailability);
+                    WeeklyAvailability weeklyAvailability = weeklyAvailabilities.Find(a => a.Name == lifetimeAvailability.Name) ?? new WeeklyAvailability(lifetimeAvailability.Name, lifetimeAvailability.Version, Time);
+                    return (lifetimeAvailability, weeklyAvailability);
                 }).ToList();
             }
 
-            return new List<(Avaliability lifetime, WeeklyAvaliability weekly)>();
+            return new List<(Availability lifetime, WeeklyAvailability weekly)>();
         }
 
         private static void SaveData(object sender, EventArgs e)
@@ -131,19 +131,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             {
                 try
                 {
-                    Directory.CreateDirectory(Path.Combine(StoragePath.ToEnumerable().First(), "AvaliabilityHistory"));
+                    Directory.CreateDirectory(Path.Combine(StoragePath.ToEnumerable().First(), "AvailabilityHistory"));
 
                     File.WriteAllText(
-                        Path.Combine(StoragePath.ToEnumerable().First(), "AvaliabilityHistory", "lifetime.json"),
+                        Path.Combine(StoragePath.ToEnumerable().First(), "AvailabilityHistory", "lifetime.json"),
                         Newtonsoft.Json.JsonConvert.SerializeObject(availabilities.Value.Select(a => a.lifetime.ToRaw())));
 
                     File.WriteAllText(
-                        Path.Combine(StoragePath.ToEnumerable().First(), "AvaliabilityHistory", "weekly.json"),
+                        Path.Combine(StoragePath.ToEnumerable().First(), "AvailabilityHistory", "weekly.json"),
                         Newtonsoft.Json.JsonConvert.SerializeObject(availabilities.Value.Select(a => a.weekly.ToRaw())));
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Could not save historical avaliability: {ex}");
+                    Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Could not save historical availability: {ex}");
                 }
             }
         }
