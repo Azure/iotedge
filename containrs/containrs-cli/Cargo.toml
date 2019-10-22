@@ -6,9 +6,6 @@ edition = "2018"
 
 [dependencies]
 containrs = { path = "../containrs" }
-docker-reference = { path = "../docker-reference" }
-oci-digest = { path = "../oci-digest" }
-oci-image = { path = "../oci-image" }
 
 clap = "~2.33.0"
 failure = "0.1"

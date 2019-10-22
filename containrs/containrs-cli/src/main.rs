@@ -12,11 +12,10 @@ use lazy_static::lazy_static;
 use tokio::fs::{self, File};
 use tokio::prelude::*;
 
-use docker_reference::{Reference, ReferenceKind};
-use oci_digest::Digest;
-use oci_image::v1 as ociv1;
-
+use containrs::oci_image::v1 as ociv1;
+use containrs::Digest;
 use containrs::{Blob, Client, Credentials, Paginate};
+use containrs::{Reference, ReferenceKind};
 
 mod parse_range;
 use crate::parse_range::ParsableRange;
