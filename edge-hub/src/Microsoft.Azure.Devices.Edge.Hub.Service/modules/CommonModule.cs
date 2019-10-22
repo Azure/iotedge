@@ -145,13 +145,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             if (!this.usePersistentStorage && this.useBackupAndRestore)
             {
                 // Backup and restore serialization
-                builder.Register(c => new ProtoBufBackupRestore())
-                    .As<IBackupRestore>()
-                    .SingleInstance();
-
-                // Backup and restore of IDbStore.
-                builder.Register(c => new DbStoreBackupRestore(c.Resolve<IBackupRestore>()))
-                    .As<IDbStoreBackupRestore>()
+                builder.Register(c => new ProtoBufDataBackupRestore())
+                    .As<IDataBackupRestore>()
                     .SingleInstance();
             }
 
@@ -383,12 +378,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             IDbStoreProvider dbStoreProvider = DbStoreProviderFactory.GetInMemoryDbStore();
             if (this.useBackupAndRestore)
             {
-                var backupRestore = container.Resolve<IBackupRestore>();
+                var backupRestore = container.Resolve<IDataBackupRestore>();
                 SerializationFormat format = BackupRestoreUtil.GetFormat(backupRestore);
 
-                var dbStoreBackupRestore = container.Resolve<IDbStoreBackupRestore>();
                 string backupPathValue = this.storageBackupPath.Expect(() => new InvalidOperationException("Storage backup path missing"));
-                dbStoreProvider = await dbStoreProvider.WithBackupRestore(backupPathValue, dbStoreBackupRestore, format);
+                dbStoreProvider = await dbStoreProvider.WithBackupRestore(backupPathValue, backupRestore, format);
             }
 
             return dbStoreProvider;

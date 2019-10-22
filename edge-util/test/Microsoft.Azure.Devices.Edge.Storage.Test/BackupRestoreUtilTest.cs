@@ -9,14 +9,14 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
     [Unit]
     public class BackupRestoreUtilTest
     {
-        class TestBackupRestore : IBackupRestore
+        class TestBackupRestore : IDataBackupRestore
         {
-            Task IBackupRestore.BackupAsync<T>(string name, string backupPath, T data)
+            Task IDataBackupRestore.BackupAsync<T>(string name, string backupPath, T data)
             {
                 throw new NotImplementedException();
             }
 
-            Task<T> IBackupRestore.RestoreAsync<T>(string name, string backupPath)
+            Task<T> IDataBackupRestore.RestoreAsync<T>(string name, string backupPath)
             {
                 throw new NotImplementedException();
             }
@@ -25,10 +25,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         [Fact]
         public void GetFormatTest()
         {
-            IBackupRestore backupRestore = new TestBackupRestore();
+            IDataBackupRestore backupRestore = new TestBackupRestore();
             Assert.Throws<NotSupportedException>(() => BackupRestoreUtil.GetFormat(backupRestore));
 
-            backupRestore = new ProtoBufBackupRestore();
+            backupRestore = new ProtoBufDataBackupRestore();
             Assert.Equal(SerializationFormat.ProtoBuf, BackupRestoreUtil.GetFormat(backupRestore));
         }
     }

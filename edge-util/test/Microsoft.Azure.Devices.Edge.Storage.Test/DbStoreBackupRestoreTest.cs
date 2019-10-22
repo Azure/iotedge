@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         [Fact]
         public async Task BackupInvalidInputTestAsync()
         {
-            var backupRestore = new Mock<IBackupRestore>();
+            var backupRestore = new Mock<IDataBackupRestore>();
             DbStoreBackupRestore dbStorebackupRestore = new DbStoreBackupRestore(backupRestore.Object);
 
             var dbStore = Mock.Of<IDbStore>(c => c.IterateBatch(It.IsAny<int>(), It.IsAny<Func<byte[], byte[], Task>>()) == Task.CompletedTask);
@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         [Fact]
         public async Task RestoreInvalidInputTestAsync()
         {
-            var backupRestore = new Mock<IBackupRestore>();
+            var backupRestore = new Mock<IDataBackupRestore>();
             DbStoreBackupRestore dbStorebackupRestore = new DbStoreBackupRestore(backupRestore.Object);
 
             var dbStore = Mock.Of<IDbStore>(c => c.Put(It.IsAny<byte[]>(), It.IsAny<byte[]>()) == Task.CompletedTask);
@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         [Fact]
         public async Task BackupSuccessTestAsync()
         {
-            var backupRestore = new Mock<IBackupRestore>();
+            var backupRestore = new Mock<IDataBackupRestore>();
             DbStoreBackupRestore dbStorebackupRestore = new DbStoreBackupRestore(backupRestore.Object);
 
             IDbStore dbStore = new InMemoryDbStore();
@@ -93,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         [Fact]
         public async Task RestoreSuccessTestAsync()
         {
-            var backupRestore = new Mock<IBackupRestore>();
+            var backupRestore = new Mock<IDataBackupRestore>();
             DbStoreBackupRestore dbStorebackupRestore = new DbStoreBackupRestore(backupRestore.Object);
 
             IDbStore dbStore = new InMemoryDbStore();

@@ -3,7 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 {
     using System.Threading.Tasks;
 
-    public interface IBackupRestore
+    public interface IDataBackupRestore
     {
         Task BackupAsync<T>(string name, string backupPath, T data);
 

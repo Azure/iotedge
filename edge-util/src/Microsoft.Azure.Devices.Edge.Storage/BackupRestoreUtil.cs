@@ -8,9 +8,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     /// </summary>
     public static class BackupRestoreUtil
     {
-        public static SerializationFormat GetFormat(IBackupRestore backupRestore)
+        public static SerializationFormat GetFormat(IDataBackupRestore backupRestore)
         {
-            if (typeof(ProtoBufBackupRestore).IsInstanceOfType(backupRestore))
+            if (typeof(ProtoBufDataBackupRestore).IsInstanceOfType(backupRestore))
             {
                 return SerializationFormat.ProtoBuf;
             }

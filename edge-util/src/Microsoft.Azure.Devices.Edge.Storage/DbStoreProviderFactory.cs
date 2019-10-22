@@ -16,10 +16,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         public static async Task<IDbStoreProvider> WithBackupRestore(
             this IDbStoreProvider dbStoreProvider,
             string backupPath,
-            IDbStoreBackupRestore dbStoreBackupRestore,
+            IDataBackupRestore dataBackupRestore,
             SerializationFormat backupFormat)
         {
-            return await DbStoreProviderWithBackupRestore.CreateAsync(dbStoreProvider, backupPath, dbStoreBackupRestore, backupFormat);
+            return await DbStoreProviderWithBackupRestore.CreateAsync(dbStoreProvider, backupPath, dataBackupRestore, backupFormat);
         }
     }
 }

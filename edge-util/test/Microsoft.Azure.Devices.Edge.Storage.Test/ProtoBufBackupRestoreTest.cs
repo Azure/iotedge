@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         [Fact]
         public async Task BackupInvalidInputTestAsync()
         {
-            ProtoBufBackupRestore backupRestore = new ProtoBufBackupRestore();
+            ProtoBufDataBackupRestore backupRestore = new ProtoBufDataBackupRestore();
             await Assert.ThrowsAsync<ArgumentException>(() => backupRestore.BackupAsync(null, "abc", "test"));
             await Assert.ThrowsAsync<ArgumentException>(() => backupRestore.BackupAsync(" ", "abc", "test"));
 
@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         [Fact]
         public async Task RestoreInvalidInputTestAsync()
         {
-            ProtoBufBackupRestore backupRestore = new ProtoBufBackupRestore();
+            ProtoBufDataBackupRestore backupRestore = new ProtoBufDataBackupRestore();
             await Assert.ThrowsAsync<ArgumentException>(() => backupRestore.RestoreAsync<string>(null, "abc"));
             await Assert.ThrowsAsync<ArgumentException>(() => backupRestore.RestoreAsync<string>(" ", "abc"));
 
@@ -64,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         [Fact]
         public async Task RestoreInvalidBackupDataTestAsync()
         {
-            ProtoBufBackupRestore backupRestore = new ProtoBufBackupRestore();
+            ProtoBufDataBackupRestore backupRestore = new ProtoBufDataBackupRestore();
 
             Item item1 = new Item("key1".ToBytes(), "val1".ToBytes());
             Item item2 = new Item("key2".ToBytes(), "val2".ToBytes());
@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         [Fact]
         public async Task BackupRestoreSuccessTest()
         {
-            ProtoBufBackupRestore backupRestore = new ProtoBufBackupRestore();
+            ProtoBufDataBackupRestore backupRestore = new ProtoBufDataBackupRestore();
 
             Item item1 = new Item("key1".ToBytes(), "val1".ToBytes());
             Item item2 = new Item("key2".ToBytes(), "val2".ToBytes());

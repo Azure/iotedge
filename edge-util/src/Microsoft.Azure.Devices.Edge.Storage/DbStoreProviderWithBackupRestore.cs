@@ -22,19 +22,19 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         const string DefaultStoreBackupName = "$Default";
         readonly string backupPath;
         readonly ConcurrentDictionary<string, byte> dbStores;
-        readonly IDbStoreBackupRestore dbStoreBackupRestore;
+        readonly IDataBackupRestore dataBackupRestore;
         readonly SerializationFormat backupFormat;
         readonly Events events;
 
         DbStoreProviderWithBackupRestore(
             IDbStoreProvider dbStoreProvider,
             string backupPath,
-            IDbStoreBackupRestore dbStoreBackupRestore,
+            IDataBackupRestore dataBackupRestore,
             SerializationFormat backupFormat)
             : base(dbStoreProvider)
         {
             this.backupPath = Preconditions.CheckNonWhiteSpace(backupPath, nameof(backupPath));
-            this.dbStoreBackupRestore = Preconditions.CheckNotNull(dbStoreBackupRestore, nameof(dbStoreBackupRestore));
+            this.dataBackupRestore = Preconditions.CheckNotNull(dataBackupRestore, nameof(dataBackupRestore));
             this.backupFormat = backupFormat;
             this.dbStores = new ConcurrentDictionary<string, byte>();
             this.events = new Events(this.Log);
@@ -43,10 +43,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         public static async Task<IDbStoreProvider> CreateAsync(
             IDbStoreProvider dbStoreProvider,
             string backupPath,
-            IDbStoreBackupRestore dbStoreBackupRestore,
+            IDataBackupRestore dataBackupRestore,
             SerializationFormat backupFormat)
         {
-            DbStoreProviderWithBackupRestore provider = new DbStoreProviderWithBackupRestore(dbStoreProvider, backupPath, dbStoreBackupRestore, backupFormat);
+            DbStoreProviderWithBackupRestore provider = new DbStoreProviderWithBackupRestore(dbStoreProvider, backupPath, dataBackupRestore, backupFormat);
             await provider.RestoreAsync();
             return provider;
         }
@@ -84,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                             dbStore = this.GetDbStore();
                         }
 
-                        await this.dbStoreBackupRestore.RestoreAsync(store, dbStore, latestBackupDirPath);
+                        await this.DbStoreRestoreAsync(store, dbStore, latestBackupDirPath);
                     }
 
                     this.events.RestoreComplete();
@@ -161,7 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
                 foreach (string store in this.dbStores.Keys)
                 {
                     IDbStore dbStore = this.dbStoreProvider.GetDbStore(store);
-                    await this.dbStoreBackupRestore.BackupAsync(store, dbStore, dbBackupDirectory);
+                    await this.DbStoreBackupAsync(store, dbStore, dbBackupDirectory);
                 }
 
                 using (StreamWriter file = File.CreateText(Path.Combine(this.backupPath, BackupMetadataFileName)))
@@ -184,7 +184,48 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             }
         }
 
-        private void CleanupAllBackups(string backupPath)
+        async Task DbStoreRestoreAsync(string store, IDbStore dbStore, string latestBackupDirPath)
+        {
+            try
+            {
+                IList<Item> items = await this.dataBackupRestore.RestoreAsync<IList<Item>>(store, latestBackupDirPath);
+
+                if (items != null)
+                {
+                    foreach (Item item in items)
+                    {
+                        await dbStore.Put(item.Key, item.Value);
+                    }
+                }
+            }
+            catch (IOException exception)
+            {
+                throw new IOException($"The restore operation for {latestBackupDirPath} failed with error.", exception);
+            }
+        }
+
+        async Task DbStoreBackupAsync(string store, IDbStore dbStore, string latestBackupDirPath)
+        {
+            try
+            {
+                IList<Item> items = new List<Item>();
+                await dbStore.IterateBatch(
+                    int.MaxValue,
+                    (key, value) =>
+                    {
+                        items.Add(new Item(key, value));
+                        return Task.CompletedTask;
+                    });
+
+                await this.dataBackupRestore.BackupAsync(store, latestBackupDirPath, items);
+            }
+            catch (IOException exception)
+            {
+                throw new IOException($"The backup operation for {store} failed with error.", exception);
+            }
+        }
+
+        void CleanupAllBackups(string backupPath)
         {
             DirectoryInfo backupDirInfo = new DirectoryInfo(backupPath);
             foreach (FileInfo file in backupDirInfo.GetFiles())
@@ -214,7 +255,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             this.events.AllBackupsDeleted();
         }
 
-        private void CleanupUnknownBackups(string backupPath, BackupMetadataList metadataList)
+        void CleanupUnknownBackups(string backupPath, BackupMetadataList metadataList)
         {
             DirectoryInfo backupDirInfo = new DirectoryInfo(backupPath);
             HashSet<string> knownBackupDirNames = new HashSet<string>(metadataList.Backups.Select(x => x.Id.ToString()), StringComparer.OrdinalIgnoreCase);
@@ -236,7 +277,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             this.events.UnknownBackupsDeleted();
         }
 
-        private void CleanupKnownBackups(string backupPath, BackupMetadataList metadataList)
+        void CleanupKnownBackups(string backupPath, BackupMetadataList metadataList)
         {
             DirectoryInfo backupDirInfo = new DirectoryInfo(backupPath);
             HashSet<string> knownBackupDirNames = new HashSet<string>(metadataList.Backups.Select(x => x.Id.ToString()), StringComparer.OrdinalIgnoreCase);

@@ -11,9 +11,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     /// <summary>
     /// Provides backup and restore functionality for storage data using the ProtoBuf serialization format.
     /// </summary>
-    public class ProtoBufBackupRestore : IBackupRestore
+    public class ProtoBufDataBackupRestore : IDataBackupRestore
     {
-        public ProtoBufBackupRestore()
+        public ProtoBufDataBackupRestore()
         {
         }
 

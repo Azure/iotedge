@@ -8,9 +8,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
     public class DbStoreBackupRestore : IDbStoreBackupRestore
     {
-        readonly IBackupRestore backupRestore;
+        readonly IDataBackupRestore backupRestore;
 
-        public DbStoreBackupRestore(IBackupRestore backupRestore)
+        public DbStoreBackupRestore(IDataBackupRestore backupRestore)
         {
             this.backupRestore = backupRestore;
         }
