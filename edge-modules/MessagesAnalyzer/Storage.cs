@@ -16,10 +16,11 @@ namespace MessagesAnalyzer
     {
         const string MessageStorePartitionKey = "MessagesCache";
         const string DirectMethodsStorePartitionKey = "DmCache";
+        const string TwinsStorePartitionKey = "TwinCache";
         static readonly ILogger Log = Logger.Factory.CreateLogger<Storage>();
         ISequentialStore<MessageDetails> messagesStore;
         ISequentialStore<ResponseStatus> dmStore;
-        // TODO: add store for twins
+        ISequentialStore<ResponseStatus> twinStore;
 
         public async Task Init(string storagePath, ISystemEnvironment systemEnvironment, bool optimizeForPerformance)
         {
@@ -42,6 +43,7 @@ namespace MessagesAnalyzer
 
             this.messagesStore = await storeProvider.GetSequentialStore<MessageDetails>(MessageStorePartitionKey);
             this.dmStore = await storeProvider.GetSequentialStore<ResponseStatus>(DirectMethodsStorePartitionKey);
+            this.twinStore = await storeProvider.GetSequentialStore<ResponseStatus>(DirectMethodsStorePartitionKey);
         }
 
         string GetStoragePath(string baseStoragePath)
@@ -68,39 +70,43 @@ namespace MessagesAnalyzer
             return true;
         }
 
-        public async Task ProcessAllDirectMethods(Action<ResponseStatus> callback)
+        public async Task<bool> AddTwin(ResponseStatus dmStatus)
         {
-            int batchSize = 10;
-            long lastKey = 0;
-            var batch = await this.dmStore.GetBatch(lastKey, batchSize);
-
-            while (batch.Any())
-            {
-                foreach ((long, ResponseStatus) item in batch)
-                {
-                    lastKey = item.Item1;
-                    callback(item.Item2);
-                }
-
-                batch = await this.dmStore.GetBatch(lastKey + 1, batchSize);
-            }
+            await this.twinStore.Append(dmStatus);
+            return true;
         }
 
+        // TODO: reorder
         public async Task ProcessAllMessages(Action<MessageDetails> callback)
+        {
+            await ProcessAllHelper(this.messagesStore, callback);
+        }
+
+        public async Task ProcessAllDirectMethods(Action<ResponseStatus> callback)
+        {
+            await ProcessAllHelper(this.dmStore, callback);
+        }
+
+        public async Task ProcessAllTwins(Action<ResponseStatus> callback)
+        {
+            await ProcessAllHelper(this.twinStore, callback);
+        }
+
+        public async Task ProcessAllHelper<T>(ISequentialStore<T> store, Action<T> callback)
         {
             int batchSize = 10;
             long lastKey = 0;
-            var batch = await this.messagesStore.GetBatch(lastKey, batchSize);
+            var batch = await store.GetBatch(lastKey, batchSize);
 
             while (batch.Any())
             {
-                foreach ((long, MessageDetails) item in batch)
+                foreach ((long, T) item in batch)
                 {
                     lastKey = item.Item1;
                     callback(item.Item2);
                 }
 
-                batch = await this.messagesStore.GetBatch(lastKey + 1, batchSize);
+                batch = await store.GetBatch(lastKey + 1, batchSize);
             }
         }
     }

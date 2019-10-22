@@ -31,12 +31,21 @@ namespace MessagesAnalyzer
             }
         }
 
-        public async Task AddDirectMethod(ResponseStatus dm)
+        public async Task AddDirectMethod(ResponseStatus dmStatus)
         {
-            bool added = await this.storage.AddDirectMethod(dm);
+            bool added = await this.storage.AddDirectMethod(dmStatus);
             if (added)
             {
-                MessagesCache.Instance.AddDirectMethodStatus(dm);
+                MessagesCache.Instance.AddDirectMethodStatus(dmStatus);
+            }
+        }
+
+        public async Task AddTwin(ResponseStatus twinStatus)
+        {
+            bool added = await this.storage.AddTwin(twinStatus);
+            if (added)
+            {
+                MessagesCache.Instance.AddTwinStatus(twinStatus);
             }
         }
     }

@@ -133,7 +133,6 @@ namespace LoadGen
         }
 
         // TODO: are these status messages OK?
-        // TODO: add in desired property updates
         static async Task TwinUpdateAsync(ModuleClient moduleClient, Twin initialTwin)
         {
             twinUpdateId += 1;
