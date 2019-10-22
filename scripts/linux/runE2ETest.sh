@@ -357,6 +357,7 @@ function process_args() {
             saveNextArg=0
         elif [ $saveNextArg -eq 31 ]; then
             RANDOM_RESTART_INTERVAL_IN_MINS="$arg"
+            saveNextArg=0;
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
