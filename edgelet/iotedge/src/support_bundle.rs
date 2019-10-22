@@ -126,7 +126,9 @@ where
 
     fn write_all_inspects(s1: BundleState<M>) -> impl Future<Item = BundleState<M>, Error = Error> {
         SupportBundle::get_modules(s1).and_then(|(names, s2)| {
-            stream::iter_ok(names).fold(s2, |s3, name| SupportBundle::write_inspect_to_file(s3, &name))
+            stream::iter_ok(names).fold(s2, |s3, name| {
+                SupportBundle::write_inspect_to_file(s3, &name)
+            })
         })
     }
 
