@@ -133,7 +133,6 @@ namespace LoadGen
             CallAnalyzerToReportStatus(moduleId, status, twin.ToJson());
         }
 
-        // TODO: are these status messages OK?
         static async Task TwinUpdateAsync(ModuleClient moduleClient, Twin initialTwin)
         {
             twinUpdateId += 1;
@@ -194,7 +193,6 @@ namespace LoadGen
             CallAnalyzerToReportStatus(initialTwin.ModuleId, "[TwinUpdateAsync] Success", receivedTwin.ToJson());
         }
 
-        // TODO: put this func in the analyzer client so we don't have to wrap try here and in direct method cloud sender
         static void CallAnalyzerToReportStatus(string moduleId, string status, string responseJson)
         {
             try

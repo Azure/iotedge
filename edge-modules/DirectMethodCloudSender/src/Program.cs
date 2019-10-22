@@ -122,7 +122,6 @@ namespace DirectMethodCloudSender
             Logger.LogInformation("CallDirectMethodFromCloud finished.");
         }
 
-        // TODO: put this func in the analyzer client so we don't have to wrap try here and in direct method cloud sender
         static void CallAnalyzerToReportStatus(string moduleId, CloudToDeviceMethodResult result, AnalyzerClient analyzerClient)
         {
             try

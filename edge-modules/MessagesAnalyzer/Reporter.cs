@@ -19,23 +19,23 @@ namespace MessagesAnalyzer
         static IList<ResponseOrientedReport> GetDmReport()
         {
             IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> dms = MessagesCache.Instance.GetDmSnapshot();
-            return GetReportHelper(dms);
+            return GetReportHelper(dms, "direct method");
         }
 
         static IList<ResponseOrientedReport> GetTwinsReport()
         {
             IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> twins = MessagesCache.Instance.GetTwinsSnapshot();
-            return GetReportHelper(twins);
+            return GetReportHelper(twins, "update/get twin");
         }
 
-        static IList<ResponseOrientedReport> GetReportHelper(IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> cache)
+        static IList<ResponseOrientedReport> GetReportHelper(IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> cache, string reportIdentifier)
         {
             IList<ResponseOrientedReport> report = new List<ResponseOrientedReport>();
 
             foreach (KeyValuePair<string, IDictionary<string, Tuple<int, DateTime>>> obj in cache)
             {
                 // TODO: specify report type in logs through enum of response oriented report types
-                Log.LogInformation($"Report for {obj.Key}");
+                Log.LogInformation($"Report for {reportIdentifier} {obj.Key}");
                 report.Add(new ResponseOrientedReport(obj.Key, obj.Value));
             }
 
