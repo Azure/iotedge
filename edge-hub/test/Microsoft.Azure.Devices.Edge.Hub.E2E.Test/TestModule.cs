@@ -21,23 +21,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             this.receivedForInput = new Dictionary<string, ISet<int>>();
         }
 
-        public static async Task<TestModule> CreateAndConnect(string connectionString, ITransportSettings[] settings)
+        public static async Task<TestModule> CreateAndConnect(string connectionString, ITransportSettings[] settings, int retryCount = int.MaxValue)
         {
             ModuleClient moduleClient = ModuleClient.CreateFromConnectionString(connectionString, settings);
+            IRetryPolicy defaultRetryStrategy = new ExponentialBackoff(
+                retryCount: retryCount,
+                minBackoff: TimeSpan.FromMilliseconds(100),
+                maxBackoff: TimeSpan.FromSeconds(10),
+                deltaBackoff: TimeSpan.FromMilliseconds(100));
+
+            moduleClient.SetRetryPolicy(defaultRetryStrategy);
             await moduleClient.OpenAsync();
             return new TestModule(moduleClient);
         }
 
-        public static async Task<TestModule> CreateAndConnect(RegistryManager rm, string hostName, string deviceId, string moduleId, ITransportSettings[] transportSettings)
+        public static async Task<TestModule> CreateAndConnect(RegistryManager rm, string hostName, string deviceId, string moduleId, ITransportSettings[] transportSettings, int retryCount = int.MaxValue)
         {
             string connStr = await RegistryManagerHelper.GetOrCreateModule(rm, hostName, deviceId, moduleId);
-            return await CreateAndConnect(connStr, transportSettings);
+            return await CreateAndConnect(connStr, transportSettings, retryCount);
         }
 
         public Task SetupReceiveMessageHandler()
         {
             this.receivedForInput["_"] = new HashSet<int>();
             return this.moduleClient.SetMessageHandlerAsync(this.MessageHandler, this.receivedForInput["_"]);
+        }
+
+        public Task SetupReceiveMessageHandlerWithNoCompletion()
+        {
+            this.receivedForInput["_"] = new HashSet<int>();
+            return this.moduleClient.SetMessageHandlerAsync(this.MessageHandlerWithNoCompletion, this.receivedForInput["_"]);
         }
 
         public Task SetupReceiveMessageHandler(string input)
@@ -49,6 +62,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         public ISet<int> GetReceivedMessageIndices() => this.receivedForInput["_"];
 
         public ISet<int> GetReceivedMessageIndices(string input) => this.receivedForInput[input];
+
+        //public Task<int> SendMessagesByCountAndSizeAsync(string output, int startIndex, int count, int size, TimeSpan timeout, TimeSpan sleepTime) =>
+            public Task<int> SendMessagesByCountAndSizeAsync(string output, int startIndex, int count, int size, TimeSpan timeout) =>
+            this.SendMessagesAsync(output, startIndex, count, timeout, TimeSpan.Zero, size);
 
         public Task<int> SendMessagesByCountAsync(string output, int startIndex, int count, TimeSpan timeout) =>
             this.SendMessagesByCountAsync(output, startIndex, count, timeout, TimeSpan.Zero);
@@ -85,6 +102,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             }
         }
 
+        public Task Connect() => this.moduleClient.OpenAsync();
+
         public Task Disconnect() => this.moduleClient.CloseAsync();
 
         Task<MessageResponse> MessageHandler(Message message, object userContext)
@@ -95,14 +114,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             return Task.FromResult(MessageResponse.Completed);
         }
 
-        async Task<int> SendMessagesAsync(string output, int startIndex, int count, TimeSpan duration, TimeSpan sleepTime)
+        Task<MessageResponse> MessageHandlerWithNoCompletion(Message message, object userContext)
+        {
+            int messageIndex = int.Parse(message.Properties["testId"]);
+            var received = userContext as ISet<int>;
+            received?.Add(messageIndex);
+            return Task.FromResult(MessageResponse.None);
+        }
+
+        async Task<int> SendMessagesAsync(string output, int startIndex, int count, TimeSpan duration, TimeSpan sleepTime, int? size = null)
         {
             var s = new Stopwatch();
             s.Start();
             int i = startIndex;
             for (; i < startIndex + count && s.Elapsed < duration; i++)
             {
-                await this.moduleClient.SendEventAsync(output, this.GetMessage(i.ToString()));
+                await this.moduleClient.SendEventAsync(output, size.HasValue ? this.GetMessageWithSize(i.ToString(), size.Value) : this.GetMessage(i.ToString()));
                 await Task.Delay(sleepTime);
             }
 
@@ -123,6 +150,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var message = new Message(payloadBytes);
             message.Properties.Add("testId", id);
             message.Properties.Add("Model", "Temperature");
+            return message;
+        }
+
+        Message GetMessageWithSize(string id, int size)
+        {
+            var random = new Random();
+            byte[] data = new byte[size];
+            random.NextBytes(data);
+            var messageBody = new { data = data };
+            byte[] payloadBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody));
+            var message = new Message(payloadBytes);
+            message.Properties.Add("testId", id);
+            message.Properties.Add("Model", "Binary");
             return message;
         }
 

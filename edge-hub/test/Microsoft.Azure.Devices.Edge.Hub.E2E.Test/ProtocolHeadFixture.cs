@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System;
     using System.Collections.Generic;
     using System.Security.Cryptography.X509Certificates;
+    using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Client;
@@ -36,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             IContainer container;
             IProtocolHead protocolHead;
 
-            InternalProtocolHeadFixture()
+            public InternalProtocolHeadFixture()
             {
                 bool.TryParse(ConfigHelper.TestConfig["Tests_StartEdgeHubService"], out bool shouldStartEdge);
                 if (shouldStartEdge)
@@ -97,6 +98,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 var httpProtocolHead = new HttpProtocolHead(hosting.WebHost);
                 this.protocolHead = new EdgeHubProtocolHead(new List<IProtocolHead> { mqttProtocolHead, amqpProtocolHead, httpProtocolHead }, logger);
                 await this.protocolHead.StartAsync();
+            }
+
+            public async Task CloseAsync()
+            {
+                await this.protocolHead?.CloseAsync(CancellationToken.None);
             }
         }
     }
