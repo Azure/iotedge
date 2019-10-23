@@ -38,6 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             /* Get all modules that are not running but should be */
             var down = new HashSet<string>(current.Modules.Values
                 .Where(c =>
+                    (c is IRuntimeModule) &&
                     (c as IRuntimeModule).RuntimeStatus != ModuleStatus.Running &&
                     desired.Modules.TryGetValue(c.Name, out var d) &&
                     d.DesiredStatus == ModuleStatus.Running)
@@ -45,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
             /* Get all correctly running modules */
             var up = new HashSet<string>(current.Modules.Values
-                .Where(c => (c as IRuntimeModule).RuntimeStatus == ModuleStatus.Running)
+                .Where(c => (c is IRuntimeModule) && (c as IRuntimeModule).RuntimeStatus == ModuleStatus.Running)
                 .Select(c => c.Name));
 
             /* Add points for all modules found */
