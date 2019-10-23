@@ -64,7 +64,6 @@ jobs:
           kind version
           sudo -E bash -c './scripts/linux/runTests.sh "--filter $(test.filter)&Category=Kubernetes" $(Build.Configuration)'
         displayName: Kubernetes Integration Tests
-        variables:
       - script: sudo -E bash -c './scripts/linux/runTests.sh "--filter $(test.filter)&Category!=Kubernetes" $(Build.Configuration)'
         displayName: Integrations Tests
         env:
