@@ -62,6 +62,8 @@ jobs:
         displayName: Build
       - script: |
           kind version
+          docker version
+          kind create cluster
           sudo -E bash -c './scripts/linux/runTests.sh "--filter $(test.filter)&Category=Kubernetes" $(Build.Configuration)'
         displayName: Kubernetes Integration Tests
       - script: sudo -E bash -c './scripts/linux/runTests.sh "--filter $(test.filter)&Category!=Kubernetes" $(Build.Configuration)'
