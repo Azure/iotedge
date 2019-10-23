@@ -432,6 +432,8 @@ Function PrepareTestFromArtifacts
                     Write-Host "Copy deployment file from $LongHaulDeploymentArtifactFilePath"
                     Copy-Item $LongHaulDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
                     (Get-Content $DeploymentWorkingFilePath).replace('<ServiceClientConnectionString>',$IoTHubConnectionString) | Set-Content $DeploymentWorkingFilePath
+                    (Get-Content $DeploymentWorkingFilePath).replace('<RandomRestartIntervalInMins>',$RandomRestartIntervalInMins) | Set-Content $DeploymentWorkingFilePath
+                    (Get-Content $DeploymentWorkingFilePath).replace('<DesiredModulesToRestartCSV>',$DesiredModulesToRestartCSV) | Set-Content $DeploymentWorkingFilePath
                 }
                 Else
                 {
@@ -447,6 +449,7 @@ Function PrepareTestFromArtifacts
 
                 (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.EventHubConnectionString>',$EventHubConnectionString) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.ConsumerGroupId>',$EventHubConsumerGroupId) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<DeviceID>',$deviceId) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen.MessageFrequency>',$LoadGenMessageFrequency) | Set-Content $DeploymentWorkingFilePath
                 $escapedBuildId= $ArtifactImageBuildNumber -replace "\.",""
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.AlertUrl>',$SnitchAlertUrl) | Set-Content $DeploymentWorkingFilePath
@@ -942,10 +945,6 @@ Function RunLongHaulTest
 
     $testStartAt = Get-Date
     $deviceId = "${ReleaseLabel}-Windows-${Architecture}-longHaul"
-    (Get-Content $DeploymentWorkingFilePath).replace('<DeviceID>',$deviceId) | Set-Content $DeploymentWorkingFilePath
-    (Get-Content $DeploymentWorkingFilePath).replace('<IoTHubConnectionString>',$IoTHubConnectionString) | Set-Content $DeploymentWorkingFilePath
-    (Get-Content $DeploymentWorkingFilePath).replace('<RandomRestartIntervalInMins>',$RandomRestartIntervalInMins) | Set-Content $DeploymentWorkingFilePath
-    (Get-Content $DeploymentWorkingFilePath).replace('<DesiredModulesToRestartCSV>',$DesiredModulesToRestartCSV) | Set-Content $DeploymentWorkingFilePath
     PrintHighlightedMessage "Run Long Haul test with -d ""$deviceId"" started at $testStartAt"
 
     $testCommand = "&$IotEdgeQuickstartExeTestPath ``
@@ -977,7 +976,6 @@ Function RunStressTest
 
     $testStartAt = Get-Date
     $deviceId = "${ReleaseLabel}-Windows-${Architecture}-stress"
-    (Get-Content $DeploymentWorkingFilePath).replace('<DeviceID>',$deviceId) | Set-Content $DeploymentWorkingFilePath
     PrintHighlightedMessage "Run Stress test with -d ""$deviceId"" started at $testStartAt"
 
     $testCommand = "&$IotEdgeQuickstartExeTestPath ``

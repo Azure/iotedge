@@ -289,8 +289,8 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "IoTHubConnectionString": {
-                "value": "<IoTHubConnectionString>"
+              "ServiceClientConnectionString": {
+                "value": "<ServiceClientConnectionString>"
               },
               "DeviceId": {
                 "value": "<DeviceID>"

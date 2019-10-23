@@ -11,7 +11,7 @@ namespace ModuleRestarter
     class Program
     {
         static readonly ILogger Log = Logger.Factory.CreateLogger<Program>();
-        static readonly string IoTHubConnectionString = Settings.Current.IoTHubConnectionString;
+        static readonly string ServiceClientConnectionString = Settings.Current.ServiceClientConnectionString;
         static readonly string DeviceId = Settings.Current.DeviceId;
         static readonly string DesiredModulesToRestartCSV = Settings.Current.DesiredModulesToRestartCSV;
         static readonly int RandomRestartIntervalInMins = Settings.Current.RandomRestartIntervalInMins;
@@ -46,7 +46,7 @@ namespace ModuleRestarter
             Log.LogInformation("Random restart interval: {0}", RandomRestartIntervalInMins);
 
             string[] moduleNames = DesiredModulesToRestartCSV.Split(",");
-            ServiceClient iotHubServiceClient = ServiceClient.CreateFromConnectionString(IoTHubConnectionString);
+            ServiceClient iotHubServiceClient = ServiceClient.CreateFromConnectionString(ServiceClientConnectionString);
             CloudToDeviceMethod c2dMethod = new CloudToDeviceMethod("RestartModule");
             Random random = new Random();
 

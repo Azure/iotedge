@@ -20,19 +20,19 @@ namespace ModuleRestarter
                     .Build();
 
                 return new Settings(
-                    configuration.GetValue<string>("IoTHubConnectionString"),
+                    configuration.GetValue<string>("ServiceClientConnectionString"),
                     configuration.GetValue<string>("DeviceId"),
                     configuration.GetValue<string>("DesiredModulesToRestartCSV", string.Empty),
                     configuration.GetValue<int>("RandomRestartIntervalInMins", 10));
             });
 
         Settings(
-            string ioTHubConnectionString,
+            string serviceClientConnectionString,
             string deviceId,
             string desiredModulesToRestartCSV,
             int randomRestartIntervalInMins)
         {
-            this.IoTHubConnectionString = ioTHubConnectionString;
+            this.ServiceClientConnectionString = serviceClientConnectionString;
             this.DeviceId = deviceId;
             this.DesiredModulesToRestartCSV = desiredModulesToRestartCSV;
             this.RandomRestartIntervalInMins = randomRestartIntervalInMins;
@@ -40,7 +40,7 @@ namespace ModuleRestarter
 
         public static Settings Current => DefaultSettings.Value;
 
-        public string IoTHubConnectionString { get; }
+        public string ServiceClientConnectionString { get; }
 
         public string DeviceId { get; }
 
