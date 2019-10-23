@@ -4,9 +4,9 @@ IoT Edge Build and Test Infrastructure
 Build
 -----
 
-We use VSTS to build and release.
+We use Azure DevOps to build and release.
 
-More information about VSTS is available [here](https://docs.microsoft.com/en-us/vsts/build-release/overview).
+More information about Azure DevOps is available [here](https://docs.microsoft.com/en-us/azure/devops/pipelines/overview).
 
 Our builds fall into these categories:
 

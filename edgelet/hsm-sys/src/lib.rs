@@ -47,7 +47,7 @@ fn bindgen_test_supported_hsm_version() {
             .to_string_lossy()
             .into_owned()
     };
-    assert_eq!(String::from("1.0.2"), result);
+    assert_eq!(String::from("1.0.3"), result);
 }
 
 pub type HSM_CLIENT_HANDLE = *mut c_void;
@@ -298,7 +298,7 @@ extern "C" {
     pub fn hsm_client_crypto_interface() -> *const HSM_CLIENT_CRYPTO_INTERFACE;
 }
 extern "C" {
-    pub fn hsm_client_x509_init() -> c_int;
+    pub fn hsm_client_x509_init(auto_generated_cert_lifetime: u64) -> c_int;
 }
 extern "C" {
     pub fn hsm_client_x509_deinit();
@@ -310,7 +310,7 @@ extern "C" {
     pub fn hsm_client_tpm_deinit();
 }
 extern "C" {
-    pub fn hsm_client_crypto_init() -> c_int;
+    pub fn hsm_client_crypto_init(auto_generated_cert_lifetime: u64) -> c_int;
 }
 extern "C" {
     pub fn hsm_client_crypto_deinit();

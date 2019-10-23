@@ -33,6 +33,7 @@ static void test_hook_gballoc_free(void* ptr)
 #include "umock_c/umock_c.h"
 #include "umock_c/umock_c_negative_tests.h"
 #include "umock_c/umocktypes_charptr.h"
+#include "umock_c/umocktypes_stdint.h"
 
 //#############################################################################
 // Declare and enable MOCK definitions
@@ -48,7 +49,7 @@ static void test_hook_gballoc_free(void* ptr)
 #include "hsm_utils.h"
 
 // interface mocks
-MOCKABLE_FUNCTION(, int, hsm_client_crypto_init);
+MOCKABLE_FUNCTION(, int, hsm_client_crypto_init, uint64_t, auto_generated_ca_lifetime);
 MOCKABLE_FUNCTION(, void, hsm_client_crypto_deinit);
 MOCKABLE_FUNCTION(, const HSM_CLIENT_CRYPTO_INTERFACE*, hsm_client_crypto_interface);
 MOCKABLE_FUNCTION(, const char*, hsm_get_device_ca_alias);
@@ -130,6 +131,8 @@ static const char *TEST_ENV_DATA = "test_env";
 #define TEST_ENV_DATA_SIZE (strlen(TEST_ENV_DATA) + 1)
 
 #define MAX_FAILED_FUNCTION_LIST_SIZE 16
+#define TEST_CERT_VALIDITY 7776000
+#define TEST_VALIDITY 10000
 
 //#############################################################################
 // Mocked functions test hooks
@@ -148,8 +151,9 @@ static const HSM_CLIENT_CRYPTO_INTERFACE* test_hook_hsm_client_crypto_interface(
     return &mocked_hsm_client_crypto_interface;
 }
 
-static int test_hook_hsm_client_crypto_init()
+static int test_hook_hsm_client_crypto_init(uint64_t auto_generated_ca_lifetime)
 {
+    (void)auto_generated_ca_lifetime;
     return 0;
 }
 
@@ -441,6 +445,8 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
 
         REGISTER_GLOBAL_MOCK_HOOK(hsm_get_env, test_hook_hsm_get_env);
         REGISTER_GLOBAL_MOCK_FAIL_RETURN(hsm_get_env, 1);
+
+        (void)umocktypes_stdint_register_types();
     }
 
     TEST_SUITE_CLEANUP(TestClassCleanup)
@@ -474,10 +480,10 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
     {
         //arrange
         int status;
-        EXPECTED_CALL(hsm_client_crypto_init());
+        EXPECTED_CALL(hsm_client_crypto_init(TEST_CERT_VALIDITY));
 
         // act
-        status = hsm_client_x509_init();
+        status = hsm_client_x509_init(TEST_VALIDITY);
 
         // assert
         ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
@@ -495,12 +501,12 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
     {
         //arrange
         int status;
-        status = hsm_client_x509_init();
+        status = hsm_client_x509_init(TEST_VALIDITY);
         ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         umock_c_reset_all_calls();
 
         // act
-        status = hsm_client_x509_init();
+        status = hsm_client_x509_init(TEST_VALIDITY);
 
         // assert
         ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
@@ -521,7 +527,7 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
         int test_result = umock_c_negative_tests_init();
         ASSERT_ARE_EQUAL(int, 0, test_result);
 
-        EXPECTED_CALL(hsm_client_crypto_init());
+        EXPECTED_CALL(hsm_client_crypto_init(TEST_CERT_VALIDITY));
         umock_c_negative_tests_snapshot();
 
         for (size_t i = 0; i < umock_c_negative_tests_call_count(); i++)
@@ -531,7 +537,7 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
             umock_c_negative_tests_fail_call(i);
 
             // act
-            status = hsm_client_x509_init();
+            status = hsm_client_x509_init(TEST_VALIDITY);
 
             // assert
             ASSERT_ARE_NOT_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
@@ -574,7 +580,7 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
     {
         //arrange
         int status;
-        status = hsm_client_x509_init();
+        status = hsm_client_x509_init(TEST_VALIDITY);
         ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
         umock_c_reset_all_calls();
@@ -623,7 +629,7 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
         ASSERT_ARE_EQUAL(int, 0, test_result);
 
         int status;
-        status = hsm_client_x509_init();
+        status = hsm_client_x509_init(TEST_VALIDITY);
         ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
         umock_c_reset_all_calls();
@@ -657,7 +663,7 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
     {
         //arrange
         int status;
-        status = hsm_client_x509_init();
+        status = hsm_client_x509_init(TEST_VALIDITY);
         ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
         umock_c_reset_all_calls();
@@ -680,7 +686,7 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
     {
         //arrange
         int status;
-        status = hsm_client_x509_init();
+        status = hsm_client_x509_init(TEST_VALIDITY);
         ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
         CERT_INFO_HANDLE handle = interface->hsm_client_x509_create();
@@ -727,7 +733,7 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
     {
         //arrange
         int status;
-        status = hsm_client_x509_init();
+        status = hsm_client_x509_init(TEST_VALIDITY);
         ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
         umock_c_reset_all_calls();
@@ -774,7 +780,7 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
     {
         //arrange
         int status;
-        status = hsm_client_x509_init();
+        status = hsm_client_x509_init(TEST_VALIDITY);
         ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
         HSM_CLIENT_CREATE handle = interface->hsm_client_x509_create();
@@ -806,7 +812,7 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
         ASSERT_ARE_EQUAL(int, 0, test_result);
 
         int status;
-        status = hsm_client_x509_init();
+        status = hsm_client_x509_init(TEST_VALIDITY);
         ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
         HSM_CLIENT_CREATE handle = interface->hsm_client_x509_create();
@@ -845,7 +851,7 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
     {
         //arrange
         int status;
-        status = hsm_client_x509_init();
+        status = hsm_client_x509_init(TEST_VALIDITY);
         ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
         HSM_CLIENT_CREATE handle = interface->hsm_client_x509_create();
@@ -871,7 +877,7 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
     {
         //arrange
         int status;
-        status = hsm_client_x509_init();
+        status = hsm_client_x509_init(TEST_VALIDITY);
         ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
         HSM_CLIENT_CREATE handle = interface->hsm_client_x509_create();
@@ -897,7 +903,7 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
     {
         //arrange
         int status;
-        status = hsm_client_x509_init();
+        status = hsm_client_x509_init(TEST_VALIDITY);
         ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
         HSM_CLIENT_CREATE handle = interface->hsm_client_x509_create();
@@ -951,7 +957,7 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
     {
         //arrange
         int status;
-        status = hsm_client_x509_init();
+        status = hsm_client_x509_init(TEST_VALIDITY);
         ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
         HSM_CLIENT_CREATE handle = interface->hsm_client_x509_create();
@@ -991,7 +997,7 @@ BEGIN_TEST_SUITE(edge_hsm_x509_unittests)
         ASSERT_ARE_EQUAL(int, 0, test_result);
 
         int status;
-        status = hsm_client_x509_init();
+        status = hsm_client_x509_init(TEST_VALIDITY);
         ASSERT_ARE_EQUAL(int, 0, status, "Line:" TOSTRING(__LINE__));
         const HSM_CLIENT_X509_INTERFACE* interface = hsm_client_x509_interface();
         HSM_CLIENT_CREATE handle = interface->hsm_client_x509_create();

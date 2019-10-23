@@ -19,7 +19,6 @@ pub struct Settings {
     #[serde(flatten)]
     base: BaseSettings<DockerConfig>,
     namespace: String,
-    use_pvc: bool,
     iot_hub_hostname: Option<String>,
     device_id: Option<String>,
     proxy_image: String,
@@ -63,10 +62,6 @@ impl Settings {
 
     pub fn namespace(&self) -> &str {
         &self.namespace
-    }
-
-    pub fn use_pvc(&self) -> bool {
-        self.use_pvc
     }
 
     pub fn iot_hub_hostname(&self) -> Option<&str> {
@@ -137,7 +132,7 @@ impl RuntimeSettings for Settings {
         self.base.homedir()
     }
 
-    fn certificates(&self) -> Option<&Certificates> {
+    fn certificates(&self) -> &Certificates {
         self.base.certificates()
     }
 
