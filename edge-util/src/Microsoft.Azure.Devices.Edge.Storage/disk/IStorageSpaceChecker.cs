@@ -8,9 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Disk
     {
         void SetMaxSizeBytes(Option<long> maxStorageBytes);
 
-        void DisableChecker();
-
-        void SetStorageUsageComputer(Func<Task<long>> storageUsageComputer);
+        void SetStorageUsageComputer(Func<long> storageUsageComputer);
 
         bool IsFull { get; }
     }

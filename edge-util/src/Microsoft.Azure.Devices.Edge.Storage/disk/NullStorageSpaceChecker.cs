@@ -11,11 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Disk
         {
         }
 
-        public void DisableChecker()
-        {
-        }
-
-        public void SetStorageUsageComputer(Func<Task<long>> storageUsageComputer)
+        public void SetStorageUsageComputer(Func<long> storageUsageComputer)
         {
         }
 

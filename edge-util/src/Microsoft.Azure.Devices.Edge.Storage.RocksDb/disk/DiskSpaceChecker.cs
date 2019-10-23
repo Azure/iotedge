@@ -36,18 +36,13 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
 
         public void SetMaxSizeBytes(Option<long> maxSizeBytes)
         {
-            if (maxSizeBytes.HasValue)
-            {
-                maxSizeBytes.ForEach(size =>
-                {
-                    this.inner.ForEach(b => b.Dispose());
-                    this.inner = Option.Some(new FixedSizeDiskSpaceChecker(this.storageFolder, size, TimeSpan.FromSeconds(this.checkFrequency), Events.Log) as DiskSpaceCheckerBase);
-                    Events.SetMaxSizeDiskSpaceUsage(size, this.storageFolder);
-                });
-            }
-            else
+            lock (this.updateLock)
             {
                 this.DisableChecker();
+                this.inner = maxSizeBytes.Match(
+                    size => Option.Some(new FixedSizeDiskSpaceChecker(this.storageFolder, size, TimeSpan.FromSeconds(this.checkFrequency), Events.Log) as DiskSpaceCheckerBase),
+                    () => Option.None<DiskSpaceCheckerBase>());
+                maxSizeBytes.ForEach(size => Events.SetMaxSizeDiskSpaceUsage(size, this.storageFolder));
             }
         }
 
@@ -59,6 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
                 {
                     this.inner.ForEach(b => b.Dispose());
                     this.inner = Option.None<DiskSpaceCheckerBase>();
+                    Events.DisableChecker(this.storageFolder);
                 }
             }
         }
@@ -104,7 +100,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             return Option.Some(match);
         }
 
-        public void SetStorageUsageComputer(Func<Task<long>> storageUsageComputer)
+        public void SetStorageUsageComputer(Func<long> storageUsageComputer)
         {
             throw new NotImplementedException();
         }
@@ -116,7 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
             enum EventIds
             {
                 SetMaxSizeDiskSpaceUsage,
-                SetCheckFrequency,
+                DisableChecker,
                 SetMaxPercentageUsage,
                 FoundDrive,
                 NoMatchingDriveFound,
@@ -125,12 +121,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
 
             public static void SetMaxSizeDiskSpaceUsage(long maxSizeBytes, string storageFolder)
             {
-                Log.LogInformation((int)EventIds.SetMaxSizeDiskSpaceUsage, $"Setting maximum disk space usage to {maxSizeBytes} bytes for folder {storageFolder} and started disk space usage checker");
+                Log.LogInformation((int)EventIds.SetMaxSizeDiskSpaceUsage, $"Setting maximum disk space usage to {maxSizeBytes} bytes for folder {storageFolder} and starting disk space usage checker");
             }
 
-            public static void SetCheckFrequency(int checkFrequency, string storageFolder)
+            public static void DisableChecker(string storageFolder)
             {
-                Log.LogInformation((int)EventIds.SetCheckFrequency, $"Setting check frequency to {checkFrequency} seconds for folder {storageFolder} and started disk space usage checker");
+                Log.LogInformation((int)EventIds.DisableChecker, $"Disabling disk space checker for folder {storageFolder}");
             }
 
             public static void SetMaxPercentageUsage(int thresholdPercentage, string drive)
