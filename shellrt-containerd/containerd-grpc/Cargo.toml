@@ -12,7 +12,15 @@ prost = "0.5"
 prost-derive = "0.5"
 prost-types = "0.5.0"
 tokio = "0.2.0-alpha.6"
-tonic = { version = "0.1.0-alpha.3", default-features = false, features = ["codegen"] }
+
+[dependencies.tonic]
+version = "0.1.0-alpha.4"
+# default-features = false
+# features = ["codegen"]
 
 [build-dependencies]
-tonic-build = "0.1.0-alpha.3"
+
+[build-dependencies.tonic-build]
+version = "0.1.0-alpha.4"
+# default-features = false
+# features = ["rustfmt"]
