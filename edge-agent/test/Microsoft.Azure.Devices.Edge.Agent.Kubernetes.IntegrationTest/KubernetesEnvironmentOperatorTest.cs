@@ -1,8 +1,7 @@
-using System;
-using Xunit;
-
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
@@ -11,8 +10,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Client;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Xunit;
 
     [Integration]
+    [Kubernetes]
     public class KubernetesEnvironmentOperatorTest : IClassFixture<KubernetesClusterFixture>, IAsyncLifetime
     {
         readonly KubernetesClient client;

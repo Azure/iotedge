@@ -6,7 +6,6 @@ trigger:
       - release/*
 pr: none
 variables:
-  test.filter: Category=Integration&Category!=Stress
   build.configuration: Release
   dotnet.version: 2.1.302
 jobs:
@@ -17,6 +16,7 @@ jobs:
       vmImage: ubuntu-16.04
     variables:
       testEnvironment: linux
+      test.filter: Category=Integration&Category!=Stress
     steps:
       - task: AzureKeyVault@1
         displayName: Get secrets
@@ -49,6 +49,16 @@ jobs:
         displayName: Install protocol head certificate # Needed for integration tests
         env:
           CERT_VALUE: $(IotHubMqttHeadCert)
+      - script: |
+          # download kind binary and make it executable
+          curl -Lo ./kind https://github.com/kubernetes-sigs/kind/releases/download/v0.5.1/kind-$(uname)-amd64
+          chmod +x ./kind
+          # move it to $AGENT_TOOLSDIRECTORY\kind
+          mkdir $AGENT_TOOLSDIRECTORY/kind 
+          mv ./kind $AGENT_TOOLSDIRECTORY/kind/kind
+          # make kind to be available for integration tests 
+          echo "##vso[task.setvariable variable=PATH;]$AGENT_TOOLSDIRECTORY/kind:$PATH"
+        displayName: Install k8s cluster manager(kind) # Needed for integration tests for k8s
       - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
         displayName: Build
       - script: sudo -E bash -c './scripts/linux/runTests.sh "--filter $(test.filter)" $(Build.Configuration)'
@@ -74,6 +84,7 @@ jobs:
       vmImage: windows-2019
     variables:
       testEnvironment: windows
+      test.filter: Category=Integration&Category!=Stress&Category!=Kubernetes
     steps:
       - task: AzureKeyVault@1
         displayName: Get secrets

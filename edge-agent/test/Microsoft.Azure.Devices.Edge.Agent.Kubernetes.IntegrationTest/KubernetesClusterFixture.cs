@@ -4,7 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
     using System;
     using System.Threading.Tasks;
     using k8s;
-    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.cluster;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Cluster;
     using Xunit;
 
     public class KubernetesClusterFixture : IAsyncLifetime

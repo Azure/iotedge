@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.cluster
+namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Cluster
 {
     using System;
     using System.Threading.Tasks;
@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.cluster
 
         public async Task Create()
         {
-            await Cli.Wrap("/usr/local/bin/kind")
+            await Cli.Wrap("kind")
                 .SetArguments($@"create cluster --name ""{this.name}""")
                 .SetStandardOutputCallback(Console.WriteLine)
                 .SetStandardErrorCallback(Console.WriteLine)
@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.cluster
 
         public async Task Delete()
         {
-            await Cli.Wrap("/usr/local/bin/kind")
+            await Cli.Wrap("kind")
                 .SetArguments($"delete cluster --name {this.name}")
                 .ExecuteAsync();
         }
@@ -35,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.cluster
         {
             string path = string.Empty;
 
-            await Cli.Wrap("/usr/local/bin/kind")
+            await Cli.Wrap("kind")
                 .SetArguments($@"get kubeconfig-path --name ""{this.name}""")
                 .SetStandardOutputCallback(output => path = output)
                 .ExecuteAsync();
