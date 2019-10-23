@@ -142,7 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             // Act
             var moduleConnection = new ModuleConnection(moduleClientProvider.Object, requestManager.Object, connectionStatusChangesHandler, desiredPropertyUpdateCallback, enableSubscriptions);
-            await Task.Delay(TimeSpan.FromSeconds(10));
+            await Task.Delay(TimeSpan.FromSeconds(5));
 
             IModuleClient resultModuleClient = await moduleConnection.GetOrCreateModuleClient();
             Option<IModuleClient> optionResultModuleClient = moduleConnection.GetModuleClient();
