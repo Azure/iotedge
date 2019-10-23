@@ -36,7 +36,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
         public async Task InitializeAsync()
         {
             await this.client.AddNamespaceAsync();
-
             this.environmentOperator.Start();
         }
 
@@ -67,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
         }
 
         [Fact]
-        public async Task DoNotCollectModuleRuntimeInfoForUnknownModules()
+        public async Task DoesNotCollectModuleRuntimeInfoForUnknownModules()
         {
             var tokenSource = new CancellationTokenSource(DefaultTimeout);
 
