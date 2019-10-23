@@ -37,14 +37,10 @@ namespace ModuleRestarter
         }
 
         /// <summary>
-        /// Restarts random modules periodically (with default restart occurrence once every 5 minutes)
+        /// Restarts random modules periodically (with default restart occurrence once every 10 minutes)
         /// </summary>
         static async Task RestartModules(CancellationTokenSource cts, int randomRestartIntervalInMins)
         {
-            Log.LogInformation("Device ID: {0}", DeviceId);
-            Log.LogInformation("Module CSV received: {0}", DesiredModulesToRestartCSV);
-            Log.LogInformation("Random restart interval: {0}", RandomRestartIntervalInMins);
-
             string[] moduleNames = DesiredModulesToRestartCSV.Split(",");
             ServiceClient iotHubServiceClient = ServiceClient.CreateFromConnectionString(ServiceClientConnectionString);
             CloudToDeviceMethod c2dMethod = new CloudToDeviceMethod("RestartModule");
