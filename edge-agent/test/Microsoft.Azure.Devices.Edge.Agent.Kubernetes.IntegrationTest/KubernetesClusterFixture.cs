@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
         public KubernetesClusterFixture()
         {
             this.clientProvider = new KindClusterManager($"ea-{Guid.NewGuid()}");
-            // this.clientProvider = new KindKubernetesClientProvider("ea-edgy");
+            // this.clientProvider = new KubernetesClientProvider();
         }
 
         public async Task InitializeAsync()

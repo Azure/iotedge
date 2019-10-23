@@ -16,7 +16,7 @@ jobs:
       vmImage: ubuntu-16.04
     variables:
       testEnvironment: linux
-      test.filter: Category=Integration&Category!=Stress
+      
     steps:
       - task: AzureKeyVault@1
         displayName: Get secrets
@@ -58,11 +58,19 @@ jobs:
           mv ./kind $AGENT_TOOLSDIRECTORY/kind/kind
           # make kind to be available for integration tests 
           echo "##vso[task.setvariable variable=PATH;]$AGENT_TOOLSDIRECTORY/kind:$PATH"
-        displayName: Install k8s cluster manager(kind) # Needed for integration tests for k8s
+        displayName: Install Kubernetes cluster manager (kind)
       - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
         displayName: Build
+      - script: |
+          kind version
+          sudo -E bash -c './scripts/linux/runTests.sh "--filter $(test.filter)" $(Build.Configuration)'
+        displayName: Kubernetes Integration Tests
+        variables:
+          test.filter: Category=Integration&Category!=Stress&Category=Kubernetes
       - script: sudo -E bash -c './scripts/linux/runTests.sh "--filter $(test.filter)" $(Build.Configuration)'
-        displayName: Test
+        displayName: Integrations Tests
+        variables:
+          test.filter: Category=Integration&Category!=Stress&Category!=Kubernetes
         env:
           DummySecret1: $(DummySecret1)
           EdgeCapableDevice2: $(EdgeCapableDevice2)
