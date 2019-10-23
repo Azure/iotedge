@@ -48,8 +48,10 @@ where
         let result = future::result(self.make_state())
             .and_then(SupportBundle::write_all_logs)
             .and_then(SupportBundle::write_edgelet_log_to_file)
+            .and_then(SupportBundle::write_docker_log_to_file)
             .and_then(SupportBundle::write_check_to_file)
             .and_then(SupportBundle::write_all_inspects)
+            .and_then(SupportBundle::write_all_network_inspects)
             .map(|state| state.print_verbose("Created support bundle"));
 
         Box::new(result)
@@ -124,7 +126,21 @@ where
 
     fn write_all_inspects(s1: BundleState<M>) -> impl Future<Item = BundleState<M>, Error = Error> {
         SupportBundle::get_modules(s1).and_then(|(names, s2)| {
-            stream::iter_ok(names).fold(s2, SupportBundle::write_inspect_to_file)
+            stream::iter_ok(names).fold(s2, |s3, name| {
+                SupportBundle::write_inspect_to_file(s3, &name)
+            })
+        })
+    }
+
+    fn write_all_network_inspects(s1: BundleState<M>) -> Result<BundleState<M>, Error> {
+        SupportBundle::get_docker_networks(s1).and_then(|(names, s2)| {
+            names.into_iter().fold(Ok(s2), |s3, name| {
+                if let Ok(s3) = s3 {
+                    SupportBundle::write_docker_network_to_file(s3, &name)
+                } else {
+                    s3
+                }
+            })
         })
     }
 
@@ -205,7 +221,7 @@ where
             .arg(&format!(r"Get-WinEvent -ea SilentlyContinue -FilterHashtable @{{ProviderName='iotedged';LogName='application';StartTime='{}'}} |
                             Select TimeCreated, Message |
                             Sort-Object @{{Expression='TimeCreated';Descending=$false}} |
-                            Format-Table -AutoSize -Wrap", since))
+                            Format-List", since))
             .output();
 
         let (file_name, output) = if let Ok(result) = inspect {
@@ -231,6 +247,61 @@ where
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         state.print_verbose("Got logs for iotedged");
+        Ok(state)
+    }
+
+    fn write_docker_log_to_file(mut state: BundleState<M>) -> Result<BundleState<M>, Error> {
+        state.print_verbose("Getting system logs for docker");
+        let since_time: DateTime<Utc> = DateTime::from_utc(
+            NaiveDateTime::from_timestamp(state.log_options.since().into(), 0),
+            Utc,
+        );
+        let since = since_time.format("%F %T").to_string();
+
+        #[cfg(unix)]
+        let inspect = ShellCommand::new("journalctl")
+            .arg("-a")
+            .args(&["-u", "docker"])
+            .args(&["-S", &since])
+            .arg("--no-pager")
+            .output();
+
+        /* from https://docs.microsoft.com/en-us/virtualization/windowscontainers/troubleshooting#finding-logs */
+        #[cfg(windows)]
+        let inspect = ShellCommand::new("powershell.exe")
+            .arg("-NoProfile")
+            .arg("-Command")
+            .arg(&format!(
+                r#"Get-EventLog -LogName Application -Source Docker -After "{}" |
+                    Sort-Object Time |
+                    Format-List"#,
+                since
+            ))
+            .output();
+
+        let (file_name, output) = if let Ok(result) = inspect {
+            if result.status.success() {
+                ("docker.txt", result.stdout)
+            } else {
+                ("docker_err.txt", result.stderr)
+            }
+        } else {
+            let err_message = inspect.err().unwrap().description().to_owned();
+            println!("Could not find system logs for docker. Including error in bundle.\nError message: {}", err_message);
+            ("docker_err.txt", err_message.as_bytes().to_vec())
+        };
+
+        state
+            .zip_writer
+            .start_file_from_path(&Path::new("logs").join(file_name), state.file_options)
+            .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+
+        state
+            .zip_writer
+            .write(&output)
+            .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+
+        state.print_verbose("Got logs for docker");
         Ok(state)
     }
 
@@ -264,7 +335,7 @@ where
 
     fn write_inspect_to_file(
         mut state: BundleState<M>,
-        module_name: String,
+        module_name: &str,
     ) -> Result<BundleState<M>, Error> {
         state.print_verbose(&format!("Running docker inspect for {}", module_name));
         let mut inspect = ShellCommand::new("docker");
@@ -310,7 +381,88 @@ where
             .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
 
         state.print_verbose(&format!("Got docker inspect for {}", module_name));
-        drop(module_name);
+        Ok(state)
+    }
+
+    fn get_docker_networks(state: BundleState<M>) -> Result<(Vec<String>, BundleState<M>), Error> {
+        let mut inspect = ShellCommand::new("docker");
+
+        /***
+         * Note: just like inspect, this assumes using windows containers on a windows machine.
+         */
+        #[cfg(windows)]
+        inspect.args(&["-H", "npipe:////./pipe/iotedge_moby_engine"]);
+
+        inspect.args(&["network", "ls"]);
+        inspect.args(&["--format", "{{.Name}}"]);
+        let inspect = inspect.output();
+
+        let result = if let Ok(result) = inspect {
+            if result.status.success() {
+                String::from_utf8_lossy(&result.stdout).to_string()
+            } else {
+                println!(
+                    "Could not find network names: {}",
+                    String::from_utf8_lossy(&result.stderr)
+                );
+                "azure-iot-edge".to_owned()
+            }
+        } else {
+            println!("Could not find network names: {}", inspect.err().unwrap());
+            "azure-iot-edge".to_owned()
+        };
+
+        Ok((result.lines().map(String::from).collect(), state))
+    }
+
+    fn write_docker_network_to_file(
+        mut state: BundleState<M>,
+        network_name: &str,
+    ) -> Result<BundleState<M>, Error> {
+        state.print_verbose(&format!(
+            "Running docker network inspect for {}",
+            network_name
+        ));
+        let mut inspect = ShellCommand::new("docker");
+
+        /***
+         * Note: just like inspect, this assumes using windows containers on a windows machine.
+         */
+        #[cfg(windows)]
+        inspect.args(&["-H", "npipe:////./pipe/iotedge_moby_engine"]);
+
+        inspect.args(&["network", "inspect", &network_name, "-v"]);
+        let inspect = inspect.output();
+
+        let (file_name, output) = if let Ok(result) = inspect {
+            if result.status.success() {
+                (format!("network/{}.json", network_name), result.stdout)
+            } else {
+                (format!("network/{}_err.json", network_name), result.stderr)
+            }
+        } else {
+            let err_message = inspect.err().unwrap().description().to_owned();
+            println!(
+                "Could not reach docker. Including error in bundle.\nError message: {}",
+                err_message
+            );
+            (
+                format!("network/{}_err_docker.txt", network_name),
+                err_message.as_bytes().to_vec(),
+            )
+        };
+
+        state
+            .zip_writer
+            .start_file_from_path(&Path::new(&file_name), state.file_options)
+            .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+
+        state
+            .zip_writer
+            .write(&output)
+            .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?;
+
+        state.print_verbose(&format!("Got docker network inspect for {}", network_name));
         Ok(state)
     }
 }
@@ -382,7 +534,7 @@ mod tests {
         .unwrap();
         assert_eq!("Roses are redviolets are blue", mod_log);
 
-        let is_iotedged = Regex::new(r"iotedged.*\.txt").unwrap();
+        let iotedged_log = Regex::new(r"iotedged.*\.txt").unwrap();
         assert!(fs::read_dir(PathBuf::from(&extract_path).join("logs"))
             .unwrap()
             .map(|file| file
@@ -393,7 +545,20 @@ mod tests {
                 .to_str()
                 .unwrap()
                 .to_owned())
-            .any(|f| is_iotedged.is_match(&f)));
+            .any(|f| iotedged_log.is_match(&f)));
+
+        let docker_log = Regex::new(r"docker.*\.txt").unwrap();
+        assert!(fs::read_dir(PathBuf::from(&extract_path).join("logs"))
+            .unwrap()
+            .map(|file| file
+                .unwrap()
+                .path()
+                .file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_owned())
+            .any(|f| docker_log.is_match(&f)));
 
         //expect inspect
         let module_in_inspect = Regex::new(&format!(r"{}.*\.json", module_name)).unwrap();
@@ -411,6 +576,20 @@ mod tests {
 
         // expect check
         File::open(PathBuf::from(&extract_path).join("check.json")).unwrap();
+
+        // expect network inspect
+        let network_in_inspect = Regex::new(r".*\.json").unwrap();
+        assert!(fs::read_dir(PathBuf::from(&extract_path).join("network"))
+            .unwrap()
+            .map(|file| file
+                .unwrap()
+                .path()
+                .file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_owned())
+            .any(|f| network_in_inspect.is_match(&f)));
     }
 
     #[test]

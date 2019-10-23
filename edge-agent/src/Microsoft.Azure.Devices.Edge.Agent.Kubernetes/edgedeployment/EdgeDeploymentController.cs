@@ -15,13 +15,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Microsoft.Rest;
-    using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
     using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
     using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
     // TODO add unit tests
     public class EdgeDeploymentController : IEdgeDeploymentController
     {
+        static readonly string EdgeAgentDeploymentName = KubeUtils.SanitizeLabelValue(CoreConstants.EdgeAgentModuleName);
+
         readonly IKubernetes client;
 
         readonly ResourceName resourceName;
@@ -186,11 +187,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     name =>
                     {
                         Events.DeleteDeployment(name);
-                        return this.client.DeleteNamespacedDeployment1Async(
+                        return this.client.DeleteNamespacedDeploymentAsync(
                             name,
                             this.deviceNamespace,
-                            propagationPolicy: "Foreground",
-                            body: new V1DeleteOptions(propagationPolicy: "Foreground"));
+                            propagationPolicy: KubernetesConstants.DefaultDeletePropagationPolicy,
+                            body: new V1DeleteOptions(propagationPolicy: KubernetesConstants.DefaultDeletePropagationPolicy));
                     });
             await Task.WhenAll(removingTasks);
 
@@ -233,7 +234,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
             try
             {
-                // Remove all PVCs that are not in the desired list, and are labled (created by Agent)
+                // Remove all PVCs that are not in the desired list, and are labeled (created by Agent)
                 var removingTasks = diff.Removed
                     .Select(
                         name =>
@@ -363,11 +364,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             V1DeploymentList deployments = await this.client.ListNamespacedDeploymentAsync(this.deviceNamespace, labelSelector: this.deploymentSelector);
             var deploymentTasks = deployments.Items
                 .Select(
-                    deployment => this.client.DeleteNamespacedDeployment1Async(
+                    deployment => this.client.DeleteNamespacedDeploymentAsync(
                         deployment.Metadata.Name,
                         this.deviceNamespace,
-                        new V1DeleteOptions(propagationPolicy: "Foreground"),
-                        propagationPolicy: "Foreground"));
+                        new V1DeleteOptions(propagationPolicy: KubernetesConstants.DefaultDeletePropagationPolicy),
+                        propagationPolicy: KubernetesConstants.DefaultDeletePropagationPolicy));
             await Task.WhenAll(deploymentTasks);
 
             V1PersistentVolumeClaimList pvcs = await this.client.ListNamespacedPersistentVolumeClaimAsync(this.deviceNamespace, labelSelector: this.deploymentSelector);
