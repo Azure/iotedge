@@ -6,12 +6,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
     using System.Security.Cryptography.X509Certificates;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class EdgeCertificates
+    public class CaCertificates : IdCertificates
     {
-        public string CertificatePath { get; }
-
-        public string KeyPath { get; }
-
         public string TrustedCertificatesPath { get; }
 
         public IEnumerable<X509Certificate2> TrustedCertificates =>
@@ -20,7 +16,28 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Certs
                 new X509Certificate2(X509Certificate.CreateFromCertFile(this.TrustedCertificatesPath))
             };
 
-        public EdgeCertificates(string certificatePath, string keyPath, string trustedCertsPath)
+        string[] GetEdgeCertFileLocation(string deviceId)
+        {
+            return new[]
+            {
+                FixedPaths.DeviceCaCert.Cert(deviceId),
+                FixedPaths.DeviceCaCert.Key(deviceId),
+                FixedPaths.DeviceCaCert.TrustCert(deviceId)
+            };
+        }
+
+        public CaCertificates(string deviceId, string scriptPath)
+            : base()
+        {
+            var location = this.GetEdgeCertFileLocation(deviceId);
+            var files = OsPlatform.NormalizeFiles(location, scriptPath);
+            this.CertificatePath = files[0];
+            this.KeyPath = files[1];
+            this.TrustedCertificatesPath = files[2];
+        }
+
+        public CaCertificates(string certificatePath, string keyPath, string trustedCertsPath)
+            : base()
         {
             Preconditions.CheckArgument(File.Exists(certificatePath));
             Preconditions.CheckArgument(File.Exists(keyPath));
