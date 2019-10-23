@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     {
         [JsonConstructor]
         public StoreLimits(long maxSize)
-            : this(maxSize, Option.Some(int.MaxValue))
+            : this(maxSize, Option.None<int>())
         {
         }
 

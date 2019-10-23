@@ -25,9 +25,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
                 DriveInfo driveInfo = DiskSpaceChecker.GetMatchingDrive(testStorageFolder)
                     .Expect(() => new ArgumentException("Should find drive for temp folder"));
                 long maxStorageSize = 0;
-                DiskSpaceChecker diskSpaceChecker = DiskSpaceChecker.Create(testStorageFolder);
-                diskSpaceChecker.SetMaxSizeBytes(maxStorageSize);
-                diskSpaceChecker.SetCheckFrequency(Option.Some(this.checkFrequency));
+                DiskSpaceChecker diskSpaceChecker = DiskSpaceChecker.Create(testStorageFolder, Option.Some(this.checkFrequency));
+                diskSpaceChecker.SetMaxSizeBytes(Option.Some(maxStorageSize));
 
                 // Assert
                 await Task.Delay(TimeSpan.FromSeconds(this.delay));
@@ -50,11 +49,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
                 DriveInfo driveInfo = DiskSpaceChecker.GetMatchingDrive(testStorageFolder)
                     .Expect(() => new ArgumentException("Should find drive for temp folder"));
                 long maxStorageSize = 1000;
-                DiskSpaceChecker diskSpaceChecker = DiskSpaceChecker.Create(testStorageFolder);
+                DiskSpaceChecker diskSpaceChecker = DiskSpaceChecker.Create(testStorageFolder, Option.Some(this.checkFrequency));
 
                 // Act
-                diskSpaceChecker.SetMaxSizeBytes(maxStorageSize);
-                diskSpaceChecker.SetCheckFrequency(Option.Some(this.checkFrequency));
+                diskSpaceChecker.SetMaxSizeBytes(Option.Some(maxStorageSize));
 
                 // Assert
                 await Task.Delay(TimeSpan.FromSeconds(this.delay));
@@ -75,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
             {
                 DriveInfo driveInfo = DiskSpaceChecker.GetMatchingDrive(testStorageFolder)
                     .Expect(() => new ArgumentException("Should find drive for temp folder"));
-                DiskSpaceChecker diskSpaceChecker = DiskSpaceChecker.Create(testStorageFolder);
+                DiskSpaceChecker diskSpaceChecker = DiskSpaceChecker.Create(testStorageFolder, Option.Some(this.checkFrequency));
 
                 // Act
                 diskSpaceChecker.DisableChecker();
@@ -84,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
                 Assert.False(diskSpaceChecker.IsFull);
 
                 // Act
-                diskSpaceChecker.SetMaxSizeBytes(0);
+                diskSpaceChecker.SetMaxSizeBytes(Option.Some(0L));
 
                 // Assert
                 await Task.Delay(TimeSpan.FromSeconds(this.delay));
@@ -107,9 +105,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
                 DriveInfo driveInfo = DiskSpaceChecker.GetMatchingDrive(testStorageFolder)
                     .Expect(() => new ArgumentException("Should find drive for temp folder"));
                 long maxStorageSize = 6 * 1024 * 1024;
-                DiskSpaceChecker diskSpaceChecker = DiskSpaceChecker.Create(testStorageFolder);
-                diskSpaceChecker.SetMaxSizeBytes(maxStorageSize);
-                diskSpaceChecker.SetCheckFrequency(Option.Some(this.checkFrequency));
+                DiskSpaceChecker diskSpaceChecker = DiskSpaceChecker.Create(testStorageFolder, Option.Some(this.checkFrequency));
+                diskSpaceChecker.SetMaxSizeBytes(Option.Some(maxStorageSize));
 
                 // Assert
                 await Task.Delay(TimeSpan.FromSeconds(this.delay));
@@ -125,14 +122,14 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
                 Assert.False(diskSpaceChecker.IsFull);
 
                 // Act
-                diskSpaceChecker.SetMaxSizeBytes(4 * 1024 * 1024);
+                diskSpaceChecker.SetMaxSizeBytes(Option.Some((long)(4 * 1024 * 1024)));
 
                 // Assert
                 await Task.Delay(TimeSpan.FromSeconds(this.delay));
                 Assert.True(diskSpaceChecker.IsFull);
 
                 // Act
-                diskSpaceChecker.SetMaxSizeBytes(8 * 1024 * 1024);
+                diskSpaceChecker.SetMaxSizeBytes(Option.Some((long)(8 * 1024 * 1024)));
 
                 // Assert
                 await Task.Delay(TimeSpan.FromSeconds(this.delay));
@@ -153,7 +150,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test.Disk
                 Assert.False(diskSpaceChecker.IsFull);
 
                 await File.AppendAllTextAsync(filePath, dummyFileContents);
-                diskSpaceChecker.SetMaxSizeBytes(4 * 1024 * 1024);
+                diskSpaceChecker.SetMaxSizeBytes(Option.Some((long)(4 * 1024 * 1024)));
 
                 await Task.Delay(TimeSpan.FromSeconds(this.delay));
                 Assert.True(diskSpaceChecker.IsFull);

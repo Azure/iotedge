@@ -150,7 +150,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 c =>
                 {
                     return this.usePersistentStorage
-                    ? DiskSpaceChecker.Create(this.storagePath)
+                    ? DiskSpaceChecker.Create(this.storagePath, this.storeAndForwardConfiguration.StoreLimits.FlatMap(b => b.CheckFrequency))
                     : new NullStorageSpaceChecker() as IStorageSpaceChecker; // soon to be in-memory space checker
                 })
                 .As<IStorageSpaceChecker>()
