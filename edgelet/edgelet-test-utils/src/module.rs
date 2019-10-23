@@ -106,7 +106,7 @@ impl RuntimeSettings for TestSettings {
         unimplemented!()
     }
 
-    fn certificates(&self) -> Option<&Certificates> {
+    fn certificates(&self) -> &Certificates {
         unimplemented!()
     }
 
