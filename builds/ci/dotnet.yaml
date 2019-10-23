@@ -15,8 +15,7 @@ jobs:
     pool:
       vmImage: ubuntu-16.04
     variables:
-      testEnvironment: linux
-      
+      test.filter: Category=Integration&Category!=Stress
     steps:
       - task: AzureKeyVault@1
         displayName: Get secrets
@@ -63,14 +62,11 @@ jobs:
         displayName: Build
       - script: |
           kind version
-          sudo -E bash -c './scripts/linux/runTests.sh "--filter $(test.filter)" $(Build.Configuration)'
+          sudo -E bash -c './scripts/linux/runTests.sh "--filter $(test.filter)&Category=Kubernetes" $(Build.Configuration)'
         displayName: Kubernetes Integration Tests
         variables:
-          test.filter: Category=Integration&Category!=Stress&Category=Kubernetes
-      - script: sudo -E bash -c './scripts/linux/runTests.sh "--filter $(test.filter)" $(Build.Configuration)'
+      - script: sudo -E bash -c './scripts/linux/runTests.sh "--filter $(test.filter)&Category!=Kubernetes" $(Build.Configuration)'
         displayName: Integrations Tests
-        variables:
-          test.filter: Category=Integration&Category!=Stress&Category!=Kubernetes
         env:
           DummySecret1: $(DummySecret1)
           EdgeCapableDevice2: $(EdgeCapableDevice2)
@@ -91,7 +87,6 @@ jobs:
     pool:
       vmImage: windows-2019
     variables:
-      testEnvironment: windows
       test.filter: Category=Integration&Category!=Stress&Category!=Kubernetes
     steps:
       - task: AzureKeyVault@1
