@@ -7,7 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Client
 
     public static class NamespaceKubernetesClientExtensions
     {
-        public static async Task AddNamespace(this KubernetesClient client)
+        public static async Task AddNamespaceAsync(this KubernetesClient client)
         {
             var @namespace = new V1Namespace
             {

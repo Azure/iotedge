@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Client
 
     public static class DeploymentKubernetesClientExtensions
     {
-        public static async Task AddModuleDeployment(this KubernetesClient client, string name, IDictionary<string, string> labels, IDictionary<string, string> annotations)
+        public static async Task AddModuleDeploymentAsync(this KubernetesClient client, string name, IDictionary<string, string> labels, IDictionary<string, string> annotations)
         {
             var deployment = new V1Deployment
             {
@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Client
             await client.Kubernetes.CreateNamespacedDeploymentAsync(deployment, client.DeviceNamespace);
         }
 
-        public static async Task ReplaceModuleImage(this KubernetesClient client, string name, string image)
+        public static async Task ReplaceModuleImageAsync(this KubernetesClient client, string name, string image)
         {
             V1Deployment deployment = await client.Kubernetes.ReadNamespacedDeploymentAsync(name, client.DeviceNamespace);
             deployment.Spec.Template.Spec.Containers[0].Image = image;
@@ -61,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Client
             await client.Kubernetes.ReplaceNamespacedDeploymentAsync(deployment, name, client.DeviceNamespace);
         }
 
-        public static async Task DeleteModuleDeployment(this KubernetesClient client, string name)
+        public static async Task DeleteModuleDeploymentAsync(this KubernetesClient client, string name)
         {
             await client.Kubernetes.DeleteNamespacedDeploymentAsync(name, client.DeviceNamespace);
         }

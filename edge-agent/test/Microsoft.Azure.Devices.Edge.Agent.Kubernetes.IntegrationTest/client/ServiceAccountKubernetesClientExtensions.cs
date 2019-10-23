@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Client
 
     public static class ServiceAccountKubernetesClientExtensions
     {
-        public static async Task AddModuleServiceAccount(this KubernetesClient client, string name, IDictionary<string, string> labels, IDictionary<string, string> annotations)
+        public static async Task AddModuleServiceAccountAsync(this KubernetesClient client, string name, IDictionary<string, string> labels, IDictionary<string, string> annotations)
         {
             var serviceAccount = new V1ServiceAccount
             {

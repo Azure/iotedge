@@ -17,8 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Cluster
 
         public async Task Create()
         {
-            await Cli.Wrap("kind")
-                .SetArguments($@"create cluster --name ""{this.name}""")
+            await BashCommand($@"kind create cluster --name ""{this.name}""")
                 .SetStandardOutputCallback(Console.WriteLine)
                 .SetStandardErrorCallback(Console.WriteLine)
                 .ExecuteAsync();
@@ -26,8 +25,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Cluster
 
         public async Task Delete()
         {
-            await Cli.Wrap("kind")
-                .SetArguments($"delete cluster --name {this.name}")
+            await BashCommand($@"kind delete cluster --name ""{this.name}""")
+                .SetStandardOutputCallback(Console.WriteLine)
+                .SetStandardErrorCallback(Console.WriteLine)
                 .ExecuteAsync();
         }
 
@@ -35,12 +35,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Cluster
         {
             string path = string.Empty;
 
-            await Cli.Wrap("kind")
-                .SetArguments($@"get kubeconfig-path --name ""{this.name}""")
+            await BashCommand($@"kind get kubeconfig-path --name ""{this.name}""")
                 .SetStandardOutputCallback(output => path = output)
+                .SetStandardErrorCallback(Console.WriteLine)
                 .ExecuteAsync();
 
             return new Kubernetes(KubernetesClientConfiguration.BuildConfigFromConfigFile(path));
         }
+
+        static ICli BashCommand(string command) => Cli.Wrap("/bin/bash").SetArguments($@"-c ""{command}""");
     }
 }
