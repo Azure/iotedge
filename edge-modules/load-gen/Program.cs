@@ -18,10 +18,12 @@ namespace LoadGen
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("LoadGen");
         static readonly Guid batchId = Guid.NewGuid();
-        static readonly string twinUpdateIdLabel = "propertyUpdateId";
         static readonly RegistryManager registryManager = RegistryManager.CreateFromConnectionString(Settings.Current.ServiceClientConnectionString);
         static readonly AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = Settings.Current.AnalyzerUrl };
-        static long messageIdCounter = 0;
+        static readonly string deviceId = Environment.GetEnvironmentVariable("IOTEDGE_DEVICEID");
+        static readonly string moduleId = Environment.GetEnvironmentVariable("IOTEDGE_MODULEID");
+        static readonly string twinUpdateIdLabel = "propertyUpdateId";
+        static long messageId = 0;
         static long twinUpdateId = 0;
 
         static async Task Main()
@@ -72,7 +74,7 @@ namespace LoadGen
             }
             catch (Exception ex)
             {
-                Logger.LogError($"Error occurred during load gen.\r\n{ex}");
+                Logger.LogError($"Error occurred during load gen setup.\r\n{ex}");
             }
         }
 
@@ -91,8 +93,8 @@ namespace LoadGen
                     // build message
                     var messageBody = new { data = data.Data };
                     var message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)));
-                    messageIdCounter += 1;
-                    message.Properties.Add("sequenceNumber", messageIdCounter.ToString());
+                    messageId += 1;
+                    message.Properties.Add("sequenceNumber", messageId.ToString());
                     message.Properties.Add("batchId", batchId.ToString());
 
                     await client.SendEventAsync(Settings.Current.OutputName, message);
@@ -100,7 +102,7 @@ namespace LoadGen
             }
             catch (Exception e)
             {
-                Logger.LogError($"[GenerateMessageAsync] Sequence number {messageIdCounter}, BatchId: {batchId.ToString()};{Environment.NewLine}{e}");
+                Logger.LogError($"[GenerateMessageAsync] Sequence number {messageId}, BatchId: {batchId.ToString()};{Environment.NewLine}{e}");
             }
         }
 
@@ -110,7 +112,7 @@ namespace LoadGen
             {
                 try
                 {
-                    return await moduleClient.GetTwinAsync();
+                    return await registryManager.GetTwinAsync(deviceId);
                 }
                 catch (Exception e)
                 {
@@ -136,18 +138,21 @@ namespace LoadGen
 
         static async Task TwinUpdateAsync(ModuleClient moduleClient, Twin initialTwin)
         {
+            Logger.LogError(initialTwin.ToJson());
+            Logger.LogError(initialTwin.DeviceId);
+
             twinUpdateId += 1;
             string operationErrorContext = $" {twinUpdateIdLabel}: {twinUpdateId}, BatchId: {batchId};{Environment.NewLine}";
 
             try
             {
                 string patch = string.Format("{{ properties: {{ desired: {{ {0}: {1}}} }} }}", twinUpdateIdLabel, twinUpdateId);
-                await registryManager.UpdateTwinAsync(initialTwin.DeviceId, patch, initialTwin.ETag);
+                await registryManager.UpdateTwinAsync(deviceId, moduleId, patch, initialTwin.ETag);
             }
             catch (Exception e)
             {
                 string status = $"[TwinUpdateAsync] Failed call to update desired properties";
-                HandleTwinMethodFailure(initialTwin.ModuleId, status, operationErrorContext, e);
+                HandleTwinMethodFailure(moduleId, status, operationErrorContext, e);
                 return;
             }
 
@@ -160,7 +165,7 @@ namespace LoadGen
             catch (Exception e)
             {
                 string status = $"[TwinUpdateAsync] Failed call to update reported properties";
-                HandleTwinMethodFailure(initialTwin.ModuleId, status, operationErrorContext, e);
+                HandleTwinMethodFailure(moduleId, status, operationErrorContext, e);
                 return;
             }
 
@@ -172,7 +177,7 @@ namespace LoadGen
             catch (Exception e)
             {
                 string status = "[TwinUpdateAsync] Failed call to get twin";
-                HandleTwinMethodFailure(initialTwin.ModuleId, status, operationErrorContext, e);
+                HandleTwinMethodFailure(moduleId, status, operationErrorContext, e);
                 return;
             }
 
@@ -183,18 +188,18 @@ namespace LoadGen
             if (receivedTwin.Tags[twinUpdateIdLabel] != twinUpdateId)
             {
                 string status = $"[TwinUpdateAsync] Reported property update not reflected in twin";
-                HandleWrongPropertyFailure(initialTwin.ModuleId, status, propertyErrorContext, receivedTwin);
+                HandleWrongPropertyFailure(moduleId, status, propertyErrorContext, receivedTwin);
                 return;
             }
 
             if (receivedTwin.Tags[twinUpdateIdLabel] != twinUpdateId)
             {
                 string status = $"[TwinUpdateAsync] Desired property update not reflected in twin";
-                HandleWrongPropertyFailure(initialTwin.ModuleId, status, propertyErrorContext, receivedTwin);
+                HandleWrongPropertyFailure(moduleId, status, propertyErrorContext, receivedTwin);
                 return;
             }
 
-            CallAnalyzerToReportStatus(initialTwin.ModuleId, "[TwinUpdateAsync] Success", receivedTwin.ToJson());
+            CallAnalyzerToReportStatus(moduleId, "[TwinUpdateAsync] Success", receivedTwin.ToJson());
         }
 
         static void CallAnalyzerToReportStatus(string moduleId, string status, string responseJson)
