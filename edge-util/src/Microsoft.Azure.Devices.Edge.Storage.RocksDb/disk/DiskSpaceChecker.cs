@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
 
     public class DiskSpaceChecker : IStorageSpaceChecker
     {
-        static readonly int checkFrequencyDefault = 120;
+        const int CheckFrequencyDefault = 120;
         readonly string storageFolder;
         readonly object updateLock = new object();
         readonly int checkFrequency;
@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
         public static DiskSpaceChecker Create(string storageFolder, Option<int> checkFrequency)
         {
             // Start up diskSpaceChecker unfilled - so that it will be enabled when SetMaxSizeBytes is called
-            var diskSpaceChecker = new DiskSpaceChecker(storageFolder, Option.None<DiskSpaceCheckerBase>(), checkFrequency.GetOrElse(checkFrequencyDefault));
+            var diskSpaceChecker = new DiskSpaceChecker(storageFolder, Option.None<DiskSpaceCheckerBase>(), checkFrequency.GetOrElse(CheckFrequencyDefault));
             return diskSpaceChecker;
         }
 
