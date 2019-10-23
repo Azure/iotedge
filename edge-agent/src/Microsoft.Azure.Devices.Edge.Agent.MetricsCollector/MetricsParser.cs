@@ -1,11 +1,13 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
 {
-    using Newtonsoft.Json;
     using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
     using System.Text.RegularExpressions;
+    using Newtonsoft.Json;
 
     public class MetricsParser
     {
@@ -77,6 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
                     }
                 }
             }
+
             return metricsDataList;
         }
     }
@@ -102,11 +105,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
         {
             // TODO: replace with
             // return HashCode.Combine(Namespace.GetHashCode(), Name.GetHashCode(), Tags.GetHashCode());
-
             int hash = 17;
-            hash = hash * 31 + Namespace.GetHashCode();
-            hash = hash * 31 + Name.GetHashCode();
-            hash = hash * 31 + Tags.GetHashCode();
+            hash = hash * 31 + this.Namespace.GetHashCode();
+            hash = hash * 31 + this.Name.GetHashCode();
+            hash = hash * 31 + this.Tags.GetHashCode();
 
             return hash;
         }

@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
 {
     using System;
@@ -58,6 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
                 Console.WriteLine($"Got metrics from endpoint {endpoint}:\n{metricsData}");
                 metrics.Add(endpoint.Key, metricsData);
             }
+
             return metrics;
         }
 

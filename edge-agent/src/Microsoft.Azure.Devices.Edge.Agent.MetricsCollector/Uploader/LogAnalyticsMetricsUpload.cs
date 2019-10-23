@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft. All rights reserved.
+
 namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
 {
     using System;
@@ -21,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
             try
             {
                 byte[] message = Encoding.UTF8.GetBytes(Newtonsoft.Json.JsonConvert.SerializeObject(metrics));
-                await logAnalytics.Post(message);
+                await this.logAnalytics.Post(message);
             }
             catch (Exception e)
             {

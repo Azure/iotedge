@@ -1,14 +1,16 @@
-using Microsoft.Azure.Devices.Edge.Util;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
 {
+    using System;
+    using System.Collections;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Text;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
+
     public class Worker
     {
         private readonly IScraper scraper;
@@ -31,21 +33,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
 
         public async Task Start(TimeSpan scrapingInterval, TimeSpan uploadInterval, CancellationToken cancellationToken)
         {
-            Task scraper = Task.Run(async () =>
+            Task scraper = Task.Run(
+                async () =>
             {
                 while (!cancellationToken.IsCancellationRequested)
                 {
                     await Task.Delay(scrapingInterval, cancellationToken);
-                    await Scrape(cancellationToken);
+                    await this.Scrape(cancellationToken);
                 }
             }, cancellationToken);
 
-            Task uploader = Task.Run(async () =>
+            Task uploader = Task.Run(
+                async () =>
             {
                 while (!cancellationToken.IsCancellationRequested)
                 {
                     await Task.Delay(uploadInterval, cancellationToken);
-                    await Upload(cancellationToken);
+                    await this.Upload(cancellationToken);
                 }
             }, cancellationToken);
 
@@ -54,51 +58,52 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
 
         private async Task Scrape(CancellationToken cancellationToken)
         {
-            using (await scrapeUploadLock.GetLock(cancellationToken))
+            using (await this.scrapeUploadLock.GetLock(cancellationToken))
             {
                 Console.WriteLine($"\n\n\nScraping Metrics");
                 List<Metric> metricsToPersist = new List<Metric>();
 
-                foreach (var moduleResult in await scraper.ScrapeAsync(cancellationToken))
+                foreach (var moduleResult in await this.scraper.ScrapeAsync(cancellationToken))
                 {
-                    var scrapedMetrics = metricsParser.ParseMetrics(systemTime.UtcNow, moduleResult.Value);
+                    var scrapedMetrics = this.metricsParser.ParseMetrics(this.systemTime.UtcNow, moduleResult.Value);
 
                     foreach (Metric scrapedMetric in scrapedMetrics)
                     {
-                        if (metrics.TryGetValue(scrapedMetric.GetValuelessHash(), out Metric oldMetric))
+                        if (this.metrics.TryGetValue(scrapedMetric.GetValuelessHash(), out Metric oldMetric))
                         {
                             if (oldMetric.Value.Equals(scrapedMetric.Value))
                             {
                                 continue;
                             }
+
                             metricsToPersist.Add(oldMetric);
                         }
-                        metrics[scrapedMetric.GetValuelessHash()] = scrapedMetric;
-                    }
 
+                        this.metrics[scrapedMetric.GetValuelessHash()] = scrapedMetric;
+                    }
                 }
 
                 if (metricsToPersist.Count != 0)
                 {
                     Console.WriteLine($"Storing metrics");
-                    storage.AddScrapeResult(Newtonsoft.Json.JsonConvert.SerializeObject(metricsToPersist));
+                    this.storage.AddScrapeResult(Newtonsoft.Json.JsonConvert.SerializeObject(metricsToPersist));
                 }
             }
         }
 
         private async Task Upload(CancellationToken cancellationToken)
         {
-            using (await scrapeUploadLock.GetLock(cancellationToken))
+            using (await this.scrapeUploadLock.GetLock(cancellationToken))
             {
                 Console.WriteLine($"\n\n\nUploading Metrics");
-                await uploader.UploadAsync(GetMetricsToUpload(lastUploadTime), cancellationToken);
-                lastUploadTime = systemTime.UtcNow;
+                await this.uploader.UploadAsync(this.GetMetricsToUpload(this.lastUploadTime), cancellationToken);
+                this.lastUploadTime = this.systemTime.UtcNow;
             }
         }
 
         private IEnumerable<Metric> GetMetricsToUpload(DateTime lastUploadTime)
         {
-            foreach (KeyValuePair<DateTime, Func<string>> data in storage.GetData(lastUploadTime))
+            foreach (KeyValuePair<DateTime, Func<string>> data in this.storage.GetData(lastUploadTime))
             {
                 var temp = data.Value();
                 var fileMetrics = Newtonsoft.Json.JsonConvert.DeserializeObject<Metric[]>(temp) ?? Enumerable.Empty<Metric>();
@@ -108,13 +113,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
                 }
             }
 
-            foreach (Metric metric in metrics.Values)
+            foreach (Metric metric in this.metrics.Values)
             {
                 yield return metric;
             }
 
-            storage.RemoveOldEntries(lastUploadTime);
-            metrics.Clear();
+            this.storage.RemoveOldEntries(lastUploadTime);
+            this.metrics.Clear();
         }
     }
 
@@ -130,7 +135,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
 
             public void Dispose()
             {
-                semaphore.Release();
+                this.semaphore.Release();
             }
         }
 
@@ -138,8 +143,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
 
         public async Task<OwnedLock> GetLock(CancellationToken cancellationToken)
         {
-            await semaphore.WaitAsync(cancellationToken);
-            return new OwnedLock(semaphore);
+            await this.semaphore.WaitAsync(cancellationToken);
+            return new OwnedLock(this.semaphore);
         }
     }
 }
