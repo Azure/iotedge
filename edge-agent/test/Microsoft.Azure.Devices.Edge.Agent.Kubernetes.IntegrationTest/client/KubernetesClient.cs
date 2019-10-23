@@ -21,19 +21,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Client
             this.Kubernetes = client;
         }
 
-        public async Task<Option<V1PodList>> WaitUntilAnyPods(string fieldSelector, CancellationToken token) =>
-            await WaitUntil(
+        public async Task<Option<V1PodList>> WaitUntilAnyPodsAsync(string fieldSelector, CancellationToken token) =>
+            await WaitUntilAsync(
                 () => this.Kubernetes.ListNamespacedPodAsync(this.DeviceNamespace, fieldSelector: fieldSelector, cancellationToken: token),
                 pods => pods.Items.Any(),
                 token);
 
-        public async Task<Option<V1PodList>> WaitUntilPodsExactNumber(int count, CancellationToken token) =>
-            await WaitUntil(
+        public async Task<Option<V1PodList>> WaitUntilPodsExactNumberAsync(int count, CancellationToken token) =>
+            await WaitUntilAsync(
                 () => this.Kubernetes.ListNamespacedPodAsync(this.DeviceNamespace, cancellationToken: token),
                 pods => pods.Items.Count == count,
                 token);
 
-        public static async Task<Option<T>> WaitUntil<T>(Func<Task<T>> action, Func<T, bool> predicate, CancellationToken token)
+        public static async Task<Option<T>> WaitUntilAsync<T>(Func<Task<T>> action, Func<T, bool> predicate, CancellationToken token)
         {
             while (!token.IsCancellationRequested)
             {

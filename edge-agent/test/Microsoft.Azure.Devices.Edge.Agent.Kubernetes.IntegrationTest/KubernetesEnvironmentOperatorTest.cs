@@ -29,14 +29,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             string deviceNamespace = $"device-{Guid.NewGuid()}";
             this.client = new KubernetesClient(deviceNamespace, fixture.Client);
 
-            this.runtimeInfoProvider = new KubernetesRuntimeInfoProvider(deviceNamespace, fixture.Client, new FakeModuleManager());
+            this.runtimeInfoProvider = new KubernetesRuntimeInfoProvider(deviceNamespace, fixture.Client, new DummyModuleManager());
             this.environmentOperator = new KubernetesEnvironmentOperator(deviceNamespace, this.runtimeInfoProvider, fixture.Client);
         }
 
         public async Task InitializeAsync()
         {
-            await this.client.AddNamespace();
-
+            await this.client.AddNamespaceAsync();
             this.environmentOperator.Start();
         }
 
@@ -52,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             var tokenSource = new CancellationTokenSource(DefaultTimeout);
 
             await this.AddEdgeModule("Module-A");
-            await this.client.WaitUntilAnyPods("status.phase=Running", tokenSource.Token);
+            await this.client.WaitUntilAnyPodsAsync("status.phase=Running", tokenSource.Token);
 
             ModuleRuntimeInfo moduleInfo = await this.GetModule("Module-A");
 
@@ -62,19 +61,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             moduleInfo.Description.Should().StartWith("Started at");
             moduleInfo.Type.Should().Be("docker");
             moduleInfo.ExitCode.Should().Be(0);
-            moduleInfo.StartTime.ShouldOption().NotBeNone();
-            moduleInfo.ExitTime.ShouldOption().BeNone();
+            moduleInfo.StartTime.Should().NotBeNone();
+            moduleInfo.ExitTime.Should().BeNone();
         }
 
         [Fact]
-        public async Task DoNotCollectModuleRuntimeInfoForUnknownModules()
+        public async Task DoesNotCollectModuleRuntimeInfoForUnknownModules()
         {
             var tokenSource = new CancellationTokenSource(DefaultTimeout);
 
             var labels = new Dictionary<string, string> { ["a"] = "b" };
-            await this.client.AddModuleServiceAccount("foreign-pod", labels, null);
-            await this.client.AddModuleDeployment("foreign-pod", labels, null);
-            await this.client.WaitUntilAnyPods("status.phase=Running", tokenSource.Token);
+            await this.client.AddModuleServiceAccountAsync("foreign-pod", labels, null);
+            await this.client.AddModuleDeploymentAsync("foreign-pod", labels, null);
+            await this.client.WaitUntilAnyPodsAsync("status.phase=Running", tokenSource.Token);
 
             ModuleRuntimeInfo moduleInfo = await this.GetModule("foreign-pod");
 
@@ -87,13 +86,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             var tokenSource = new CancellationTokenSource(DefaultTimeout * 3);
 
             await this.AddEdgeModule("Module-A");
-            await this.client.WaitUntilAnyPods("status.phase=Running", tokenSource.Token);
+            await this.client.WaitUntilAnyPodsAsync("status.phase=Running", tokenSource.Token);
 
             IEnumerable<ModuleRuntimeInfo> modules = await this.runtimeInfoProvider.GetModules(CancellationToken.None);
             modules.Should().HaveCount(1);
 
-            await this.client.DeleteModuleDeployment("module-a");
-            await this.client.WaitUntilPodsExactNumber(0, tokenSource.Token);
+            await this.client.DeleteModuleDeploymentAsync("module-a");
+            await this.client.WaitUntilPodsExactNumberAsync(0, tokenSource.Token);
 
             modules = await this.runtimeInfoProvider.GetModules(CancellationToken.None);
             modules.Should().BeEmpty();
@@ -105,20 +104,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             var tokenSource = new CancellationTokenSource(DefaultTimeout * 3);
 
             await this.AddEdgeModule("Module-A");
-            await this.client.WaitUntilAnyPods("status.phase=Running", tokenSource.Token);
+            await this.client.WaitUntilAnyPodsAsync("status.phase=Running", tokenSource.Token);
             ModuleRuntimeInfo initialModuleInfo = await this.GetModule("Module-A");
 
-            await this.client.ReplaceModuleImage("module-a", "alpine:latest");
-            await this.client.WaitUntilPodsExactNumber(2, tokenSource.Token);
-            await this.client.WaitUntilPodsExactNumber(1, tokenSource.Token);
+            await this.client.ReplaceModuleImageAsync("module-a", "alpine:latest");
+            await this.client.WaitUntilPodsExactNumberAsync(2, tokenSource.Token);
+            await this.client.WaitUntilPodsExactNumberAsync(1, tokenSource.Token);
             ModuleRuntimeInfo updatedModuleInfo = await this.GetModule("Module-A");
 
             initialModuleInfo.Should().NotBeNull();
-            initialModuleInfo.StartTime.ShouldOption().NotBeNone();
+            initialModuleInfo.StartTime.Should().NotBeNone();
             initialModuleInfo.ModuleStatus.Should().Be(ModuleStatus.Running);
 
             updatedModuleInfo.Should().NotBeNull();
-            updatedModuleInfo.StartTime.ShouldOption().NotBeNone();
+            updatedModuleInfo.StartTime.Should().NotBeNone();
             initialModuleInfo.ModuleStatus.Should().Be(ModuleStatus.Running);
             updatedModuleInfo.StartTime.OrDefault().Should().BeAfter(initialModuleInfo.StartTime.OrDefault());
         }
@@ -144,8 +143,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
                 ["net.azure-devices.edge.original-moduleid"] = moduleName
             };
 
-            await this.client.AddModuleServiceAccount(name, labels, annotations);
-            await this.client.AddModuleDeployment(name, labels, annotations);
+            await this.client.AddModuleServiceAccountAsync(name, labels, annotations);
+            await this.client.AddModuleDeploymentAsync(name, labels, annotations);
         }
     }
 }

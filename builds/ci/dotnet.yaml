@@ -15,7 +15,6 @@ jobs:
     pool:
       vmImage: ubuntu-16.04
     variables:
-      testEnvironment: linux
       test.filter: Category=Integration&Category!=Stress
     steps:
       - task: AzureKeyVault@1
@@ -49,6 +48,18 @@ jobs:
         displayName: Install protocol head certificate # Needed for integration tests
         env:
           CERT_VALUE: $(IotHubMqttHeadCert)
+      - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
+        displayName: Build
+      - script: sudo -E bash -c './scripts/linux/runTests.sh "--filter $(test.filter)&Category!=Kubernetes" $(Build.Configuration)'
+        displayName: Integrations Tests
+        env:
+          DummySecret1: $(DummySecret1)
+          EdgeCapableDevice2: $(EdgeCapableDevice2)
+          EventHubConnStr2: $(EventHubConnStr2)
+          IotDevice2ConnStr2: $(IotDevice2ConnStr2)
+          IotDevice3ConnStr2: $(IotDevice3ConnStr2)
+          IotHubConnStr2: $(IotHubConnStr2)
+          IotHubMqttHeadCert: $(IotHubMqttHeadCert)
       - script: |
           # download kind binary and make it executable
           curl -Lo ./kind https://github.com/kubernetes-sigs/kind/releases/download/v0.5.1/kind-$(uname)-amd64
@@ -58,19 +69,16 @@ jobs:
           mv ./kind $AGENT_TOOLSDIRECTORY/kind/kind
           # make kind to be available for integration tests 
           echo "##vso[task.setvariable variable=PATH;]$AGENT_TOOLSDIRECTORY/kind:$PATH"
-        displayName: Install k8s cluster manager(kind) # Needed for integration tests for k8s
-      - script: scripts/linux/buildBranch.sh -c $(Build.Configuration) --no-rocksdb-bin
-        displayName: Build
-      - script: sudo -E bash -c './scripts/linux/runTests.sh "--filter $(test.filter)" $(Build.Configuration)'
-        displayName: Test
-        env:
-          DummySecret1: $(DummySecret1)
-          EdgeCapableDevice2: $(EdgeCapableDevice2)
-          EventHubConnStr2: $(EventHubConnStr2)
-          IotDevice2ConnStr2: $(IotDevice2ConnStr2)
-          IotDevice3ConnStr2: $(IotDevice3ConnStr2)
-          IotHubConnStr2: $(IotHubConnStr2)
-          IotHubMqttHeadCert: $(IotHubMqttHeadCert)
+        displayName: Install Kubernetes cluster manager (kind)
+      - script: |
+          kind create cluster --name "edgy"
+          KUBECONFIG=$(kind get kubeconfig-path --name "edgy")
+          echo "##vso[task.setvariable variable=KUBECONFIG;]$KUBECONFIG"
+          echo "##vso[task.setvariable variable=USE_EXISTING_KUBERNETES_CLUSTER;]true"
+        displayName: Create Kubernetes cluster (edgy)
+      - script: |
+          sudo -E bash -c './scripts/linux/runTests.sh "--filter $(test.filter)&Category=Kubernetes" $(Build.Configuration)'
+        displayName: Kubernetes Integration Tests
       - task: PublishTestResults@1
         displayName: Publish test results
         inputs:
@@ -83,7 +91,6 @@ jobs:
     pool:
       vmImage: windows-2019
     variables:
-      testEnvironment: windows
       test.filter: Category=Integration&Category!=Stress&Category!=Kubernetes
     steps:
       - task: AzureKeyVault@1

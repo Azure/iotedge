@@ -10,13 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
     public static class OptionAssertionExtensions
     {
         [Pure]
-        public static OptionAssertions<T> Should<T>(this Option<T> actualValue) => ShouldOption(actualValue);
-
-        [Pure]
-        public static OptionAssertions<T> ShouldOption<T>(this Option<T> actualValue)
-        {
-            return new OptionAssertions<T>(actualValue);
-        }
+        public static OptionAssertions<T> Should<T>(this Option<T> actualValue) => new OptionAssertions<T>(actualValue);
     }
 
     public class OptionAssertions<T> : ReferenceTypeAssertions<Option<T>, OptionAssertions<T>>

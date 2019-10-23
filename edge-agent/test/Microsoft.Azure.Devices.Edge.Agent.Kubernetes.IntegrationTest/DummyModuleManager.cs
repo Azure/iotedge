@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class FakeModuleManager : IModuleManager
+    public class DummyModuleManager : IModuleManager
     {
         public Task CreateModuleAsync(ModuleSpec moduleSpec) => throw new NotImplementedException();
 
