@@ -1,16 +1,16 @@
-using Microsoft.Azure.Devices.Edge.Util;
-using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-using Moq;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using Xunit;
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
 {
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Moq;
+    using Xunit;
+
     public class FileStorageTests : TempDirectory
     {
         private DateTime fakeTime;
@@ -18,26 +18,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
         public FileStorageTests()
         {
             var systemTime = new Mock<ISystemTime>();
-            fakeTime = new DateTime(100000000);
-            systemTime.Setup(x => x.UtcNow).Returns(() => fakeTime);
+            this.fakeTime = new DateTime(100000000);
+            systemTime.Setup(x => x.UtcNow).Returns(() => this.fakeTime);
             this.systemTime = systemTime.Object;
         }
 
         [Fact]
         public void Storage()
         {
-            string directory = GetTempDir();
-            FileStorage storage = new FileStorage(directory, systemTime);
+            string directory = this.GetTempDir();
+            FileStorage storage = new FileStorage(directory, this.systemTime);
 
             storage.AddScrapeResult(string.Join(", ", Enumerable.Range(0, 10)));
 
             Assert.NotEmpty(Directory.GetFiles(directory));
-        }        
+        }
 
         [Fact]
         public void GetDataSingleEntry()
         {
-            FileStorage storage = new FileStorage(GetTempDir(), systemTime);
+            FileStorage storage = new FileStorage(this.GetTempDir(), this.systemTime);
 
             string testData = string.Join(", ", Enumerable.Range(0, 10));
             storage.AddScrapeResult(testData);
@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
         [Fact]
         public void GetDataByTime()
         {
-            FileStorage storage = new FileStorage(GetTempDir(), systemTime);
+            FileStorage storage = new FileStorage(this.GetTempDir(), this.systemTime);
 
             storage.AddScrapeResult("data1");
 
@@ -58,8 +58,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
             Assert.Single(actual);
             Assert.Equal("data1", actual.Single().Value());
 
-            DateTime break1 = fakeTime.AddMinutes(5);
-            fakeTime = fakeTime.AddMinutes(10);
+            DateTime break1 = this.fakeTime.AddMinutes(5);
+            this.fakeTime = this.fakeTime.AddMinutes(10);
             storage.AddScrapeResult("data2");
 
             actual = storage.GetData();
@@ -68,8 +68,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
             Assert.Single(actual);
             Assert.Equal("data2", actual.Single().Value());
 
-            DateTime break2 = fakeTime.AddMinutes(5);
-            fakeTime = fakeTime.AddMinutes(10);
+            DateTime break2 = this.fakeTime.AddMinutes(5);
+            this.fakeTime = this.fakeTime.AddMinutes(10);
             storage.AddScrapeResult("data3");
 
             actual = storage.GetData();
@@ -82,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
         [Fact]
         public void RemoveOld()
         {
-            FileStorage storage = new FileStorage(GetTempDir(), systemTime);
+            FileStorage storage = new FileStorage(this.GetTempDir(), this.systemTime);
 
             storage.AddScrapeResult("data1");
 
@@ -90,8 +90,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
             Assert.Single(actual);
             Assert.Equal("data1", actual.Single().Value());
 
-            DateTime break1 = fakeTime.AddMinutes(5);
-            fakeTime = fakeTime.AddMinutes(10);
+            DateTime break1 = this.fakeTime.AddMinutes(5);
+            this.fakeTime = this.fakeTime.AddMinutes(10);
             storage.AddScrapeResult("data2");
 
             actual = storage.GetData();
@@ -100,14 +100,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
             actual = storage.GetData();
             Assert.Single(actual);
 
-            DateTime break2 = fakeTime.AddMinutes(5);
-            fakeTime = fakeTime.AddMinutes(10);
+            DateTime break2 = this.fakeTime.AddMinutes(5);
+            this.fakeTime = this.fakeTime.AddMinutes(10);
             storage.AddScrapeResult("data3");
-            fakeTime = fakeTime.AddMinutes(10);
+            this.fakeTime = this.fakeTime.AddMinutes(10);
             storage.AddScrapeResult("data4");
-            fakeTime = fakeTime.AddMinutes(10);
+            this.fakeTime = this.fakeTime.AddMinutes(10);
             storage.AddScrapeResult("data5");
-            fakeTime = fakeTime.AddMinutes(10);
+            this.fakeTime = this.fakeTime.AddMinutes(10);
 
             actual = storage.GetData();
             Assert.Equal(4, actual.Count);

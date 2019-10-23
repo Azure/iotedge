@@ -1,20 +1,18 @@
-using Microsoft.Azure.Devices.Edge.Util;
-using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-using Moq;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Dynamic;
-using System.Linq;
-using System.Reflection;
-using System.Runtime.InteropServices.ComTypes;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using Xunit;
+// Copyright (c) Microsoft. All rights reserved.
 
 namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Reflection;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Moq;
+    using Xunit;
+
     public class WorkerTests : TempDirectory
     {
         [Fact]
@@ -25,10 +23,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
 
             /* Setup mocks */
             var scraper = new Mock<IScraper>();
-            scraper.Setup(s => s.ScrapeAsync(CancellationToken.None)).ReturnsAsync(() => new Dictionary<string, string> { { "edgeAgent", PrometheousMetrics(modules) } });
+            scraper.Setup(s => s.ScrapeAsync(CancellationToken.None)).ReturnsAsync(() => new Dictionary<string, string> { { "edgeAgent", this.PrometheousMetrics(modules) } });
 
             var storage = new Mock<IFileStorage>();
-            string storedValue = "";
+            string storedValue = string.Empty;
             storage.Setup(s => s.AddScrapeResult(It.IsAny<string>())).Callback((Action<string>)(data => storedValue = data));
 
             var uploader = new Mock<IMetricsUpload>();
@@ -78,13 +76,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
             var scraper = new Mock<IScraper>();
 
             var storage = new Mock<IFileStorage>();
-            storage.Setup(s => s.GetData(It.IsAny<DateTime>())).Returns(new Dictionary<DateTime, Func<string>> {
-                { DateTime.UtcNow, () => "" }
+            storage.Setup(s => s.GetData(It.IsAny<DateTime>())).Returns(new Dictionary<DateTime, Func<string>>
+            {
+                { DateTime.UtcNow, () => string.Empty }
             });
 
             var uploader = new Mock<IMetricsUpload>();
             IEnumerable<Metric> uploadedData = Enumerable.Empty<Metric>();
-            uploader.Setup(u => u.UploadAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Callback((Action<IEnumerable<Metric>, CancellationToken>)((data, __) => uploadedData = data));
+            uploader.Setup(u => u.UploadAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Callback((Action<IEnumerable<Metric>, CancellationToken>)((data, __) => uploadedData = data)).Returns(Task.CompletedTask);
 
             Worker worker = new Worker(scraper.Object, storage.Object, uploader.Object);
             MethodInfo methodInfo = typeof(Worker).GetMethod("Upload", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -96,7 +95,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
 
             /* test */
             await Upload();
-            var _ = uploadedData.ToList();
+            uploadedData.ToList();
             Assert.Single(storage.Invocations.Where(s => s.Method.Name == "GetData"));
             Assert.Equal(1, uploader.Invocations.Count);
         }
@@ -111,12 +110,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
             var scraper = new Mock<IScraper>();
 
             var storage = new Mock<IFileStorage>();
-            storage.Setup(s => s.GetData(It.IsAny<DateTime>())).Returns(new Dictionary<DateTime, Func<string>> {
+            storage.Setup(s => s.GetData(It.IsAny<DateTime>())).Returns(new Dictionary<DateTime, Func<string>>
+            {
                 { DateTime.UtcNow, () => Newtonsoft.Json.JsonConvert.SerializeObject(metrics) }
             });
             var uploader = new Mock<IMetricsUpload>();
             IEnumerable<Metric> uploadedData = Enumerable.Empty<Metric>();
-            uploader.Setup(u => u.UploadAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Callback((Action<IEnumerable<Metric>, CancellationToken>)((d, _) => uploadedData = d));
+            uploader.Setup(u => u.UploadAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Callback((Action<IEnumerable<Metric>, CancellationToken>)((d, _) => uploadedData = d)).Returns(Task.CompletedTask);
 
             Worker worker = new Worker(scraper.Object, storage.Object, uploader.Object);
             MethodInfo methodInfo = typeof(Worker).GetMethod("Upload", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -143,6 +143,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
                 metricsCalls++;
                 return Newtonsoft.Json.JsonConvert.SerializeObject(Enumerable.Range(1, 10).Select(i => new Metric(DateTime.Now, "1", "2", "3", $"{i}")));
             }
+
             Dictionary<DateTime, Func<string>> data = Enumerable.Range(1, 10).ToDictionary(i => new DateTime(i * 100000000), _ => (Func<string>)Metrics);
 
             /* Setup mocks */
@@ -153,7 +154,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
 
             var uploader = new Mock<IMetricsUpload>();
             IEnumerable<Metric> uploadedData = Enumerable.Empty<Metric>();
-            uploader.Setup(u => u.UploadAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Callback((Action<IEnumerable<Metric>, CancellationToken>)((d, _) => uploadedData = d));
+            uploader.Setup(u => u.UploadAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Callback((Action<IEnumerable<Metric>, CancellationToken>)((d, _) => uploadedData = d)).Returns(Task.CompletedTask);
 
             Worker worker = new Worker(scraper.Object, storage.Object, uploader.Object);
             MethodInfo methodInfo = typeof(Worker).GetMethod("Upload", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -170,6 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
             {
                 Assert.Equal(numMetrics++ / 10 + 1, metricsCalls);
             }
+
             Assert.Single(storage.Invocations.Where(s => s.Method.Name == "GetData"));
             Assert.Equal(1, uploader.Invocations.Count);
         }
@@ -185,14 +187,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
             CancellationToken ct = CancellationToken.None;
 
             var scraper = new Mock<IScraper>();
-            string scrapeResults = PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 1.0)));
+            string scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 1.0)));
             scraper.Setup(s => s.ScrapeAsync(ct)).ReturnsAsync(() => new Dictionary<string, string> { { "edgeAgent", scrapeResults } });
 
-            var storage = new FileStorage(GetTempDir(), systemTime.Object);
+            var storage = new FileStorage(this.GetTempDir(), systemTime.Object);
 
             var uploader = new Mock<IMetricsUpload>();
             IEnumerable<Metric> uploadedData = Enumerable.Empty<Metric>();
-            uploader.Setup(u => u.UploadAsync(It.IsAny<IEnumerable<Metric>>(), ct)).Callback((Action<IEnumerable<Metric>, CancellationToken>)((d, _) => uploadedData = d));
+            uploader.Setup(u => u.UploadAsync(It.IsAny<IEnumerable<Metric>>(), ct)).Callback((Action<IEnumerable<Metric>, CancellationToken>)((d, _) => uploadedData = d)).Returns(Task.CompletedTask);
 
             Worker worker = new Worker(scraper.Object, storage, uploader.Object, systemTime.Object);
             MethodInfo methodInfoScrape = typeof(Worker).GetMethod("Scrape", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -202,16 +204,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
             {
                 return methodInfoScrape.Invoke(worker, parameters) as Task;
             }
+
             Task Upload()
             {
                 return methodInfoUpload.Invoke(worker, parameters) as Task;
             }
 
             /* test without de-duping */
-            scrapeResults = PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 1.0)));
+            scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 1.0)));
             await Scape();
             fakeTime = fakeTime.AddMinutes(10);
-            scrapeResults = PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 2.0)));
+            scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 2.0)));
             await Scape();
             fakeTime = fakeTime.AddMinutes(1);
             await Upload();
@@ -222,7 +225,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
 
             /* test de-duping */
             fakeTime = fakeTime.AddMinutes(20);
-            scrapeResults = PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 5.0)));
+            scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 5.0)));
             await Scape();
             fakeTime = fakeTime.AddMinutes(10);
             await Scape();
@@ -235,13 +238,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
 
             /* test mix of de-duping and not */
             fakeTime = fakeTime.AddMinutes(20);
-            scrapeResults = PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 7.0)));
+            scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 7.0)));
             await Scape();
             fakeTime = fakeTime.AddMinutes(10);
-            scrapeResults = PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", i % 2 == 0 ? 7.0 : 8.0)));
+            scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", i % 2 == 0 ? 7.0 : 8.0)));
             await Scape();
             fakeTime = fakeTime.AddMinutes(10);
-            scrapeResults = PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 7.0)));
+            scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 7.0)));
             await Scape();
             fakeTime = fakeTime.AddMinutes(1);
             await Upload();
@@ -262,7 +265,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
             scraper.Setup(s => s.ScrapeAsync(CancellationToken.None)).Returns(async () =>
             {
                 await scrapeTaskSource.Task;
-                return new Dictionary<string, string> { { "edgeAgent", "" } };
+                return new Dictionary<string, string> { { "edgeAgent", string.Empty } };
             });
 
             var storage = new Mock<IFileStorage>();
@@ -278,6 +281,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
             {
                 return methodInfoScrape.Invoke(worker, parameters) as Task;
             }
+
             Task Upload()
             {
                 return methodInfoUpload.Invoke(worker, parameters) as Task;
@@ -321,13 +325,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
 
         private string PrometheousMetrics(IEnumerable<(string name, double value)> modules)
         {
+            var dataPoints = string.Join("\n", modules.Select(module => $@"
+edgeagent_module_start_total{{iothub=""lefitche-hub-3.azure-devices.net"",edge_device=""device4"",instance_number=""1"",module_name=""{module.name}"",module_version=""1.0""}} {module.value}
+"));
             return $@"
 # HELP edgeagent_module_start_total Start command sent to module
 # TYPE edgeagent_module_start_total counter
-{string.Join("\n", modules.Select(module => $@"
-edgeagent_module_start_total{{iothub=""lefitche-hub-3.azure-devices.net"",edge_device=""device4"",instance_number=""1"",module_name=""{module.name}"",module_version=""1.0""}} {module.value}
-"
-))}
+{dataPoints}
 ";
         }
     }
