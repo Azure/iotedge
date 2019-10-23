@@ -73,3 +73,5 @@ https://docs.microsoft.com/en-us/dotnet/core/testing/selective-unit-tests#nunit
 If you are using a VSCode in Linux, it is recommend that you increase the maximum number of file I/O to prevent a test from erroring out by hitting the limit. To increase the file I/O capacity:
 https://code.visualstudio.com/docs/setup/linux#_visual-studio-code-is-unable-to-watch-for-file-changes-in-this-large-workspace-error-enospc
 
+Note: You will need to increase both `fs.inotify.max_user_instances` and `fs.inotify.max_user_watches`
+
