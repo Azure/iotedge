@@ -2,7 +2,6 @@
 namespace Microsoft.Azure.Devices.Edge.Storage.Test
 {
     using System;
-    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
