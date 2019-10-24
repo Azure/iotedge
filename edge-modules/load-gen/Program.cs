@@ -23,6 +23,7 @@ namespace LoadGen
         static readonly string DeviceId = Environment.GetEnvironmentVariable("IOTEDGE_DEVICEID");
         static readonly string ModuleId = Environment.GetEnvironmentVariable("IOTEDGE_MODULEID");
         static readonly string TwinUpdateIdLabel = "propertyUpdateId";
+        static string prevETag = string.Empty;
         static long MessageId = 0;
         static long TwinUpdateId = 0;
 
@@ -113,6 +114,7 @@ namespace LoadGen
                 try
                 {
                     Twin twin = await RegistryManager.GetTwinAsync(DeviceId, ModuleId);
+                    prevETag = twin.ETag;
                     return twin;
                 }
                 catch (Exception e)
@@ -139,8 +141,8 @@ namespace LoadGen
 
         static async Task TwinUpdateAsync(ModuleClient moduleClient, Twin initialTwin)
         {
-            Logger.LogError(initialTwin.ToJson());
-            Logger.LogError(initialTwin.DeviceId);
+            Logger.LogDebug(initialTwin.ToJson());
+            Logger.LogDebug(initialTwin.DeviceId);
 
             TwinUpdateId += 1;
             string operationErrorContext = $" {TwinUpdateIdLabel}: {TwinUpdateId}, BatchId: {BatchId};{Environment.NewLine}";
@@ -148,7 +150,8 @@ namespace LoadGen
             try
             {
                 string patch = string.Format("{{ properties: {{ desired: {{ {0}: {1}}} }} }}", TwinUpdateIdLabel, TwinUpdateId);
-                await RegistryManager.UpdateTwinAsync(DeviceId, ModuleId, patch, initialTwin.ETag);
+                Twin newTwin = await RegistryManager.UpdateTwinAsync(DeviceId, ModuleId, patch, prevETag);
+                prevETag = newTwin.ETag;
             }
             catch (Exception e)
             {
