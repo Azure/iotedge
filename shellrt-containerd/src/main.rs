@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use log::*;
 use tokio::sync::oneshot;
 
-use containerd_grpc::services::version::v1::client::VersionClient;
+use containerd_grpc::containerd::services::version::v1::client::VersionClient;
 
 mod sock_to_tcp_proxy;
 

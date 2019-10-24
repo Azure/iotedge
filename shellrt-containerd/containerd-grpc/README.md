@@ -23,3 +23,5 @@ containerd uses a go-specific protobuf build system called [`protobuild`](https:
 All `.proto` files are copied over verbatim from their respective repos. They are not patched or modified in any way. 
 
 As such, updating the `.proto` files should be as simple as adding the new/updated `.proto` files to the appropriate subdirectory, updating the build script, and bumping the crate version number.
+
+That said, take heed of the warnings in `build.rs`! protobufs are finicky bits of code, and something as benign as compilation order can have effects on the generated code. Be careful when adding new protobufs, and make sure that all the expected types are generated!
