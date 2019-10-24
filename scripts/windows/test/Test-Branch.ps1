@@ -94,12 +94,10 @@ if ($Filter) {
     $testCommandPrefix += " /TestCaseFilter:`"$Filter`"" 
 }
 
-$count = 0
 foreach($testDll in $testProjectDllsRunSerially)
 {
-    $count++
     $testCommand = "$testCommandPrefix $testDll"
-    $testCommand = $testCommand.Replace("result.trx", "result$count.trx")
+    $testCommand = $testCommand.Replace("result.trx", $testDll.Replace(".dll",".trx"))
     Write-Host "Run test command serially: $testCommand"
     Invoke-Expression "$testCommand"
 

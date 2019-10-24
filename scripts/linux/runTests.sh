@@ -73,12 +73,10 @@ then
   testCommandPrefix+=" /TestCaseFilter:"$testFilterValue""
 fi
 
-count=0
 for testDll in ${testProjectDllsRunSerially[@]}
 do
-  count=$((count+1))
   testCommand="$testCommandPrefix $testDll"
-  testCommand=${testCommand/result.trx/result$count.trx}
+  testCommand=${testCommand/result.trx/${testDll/.dll/.trx}}
   echo "Run test command serially:$testCommand"
   $testCommand
   
