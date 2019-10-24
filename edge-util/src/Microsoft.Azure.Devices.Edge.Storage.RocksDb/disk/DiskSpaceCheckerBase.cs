@@ -37,10 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
 
         public void Dispose()
         {
-            lock (this.updateLock)
-            {
-                this.storageSpaceChecker?.Dispose();
-            }
+            this.storageSpaceChecker.Dispose();
         }
 
         protected ILogger Logger { get; }

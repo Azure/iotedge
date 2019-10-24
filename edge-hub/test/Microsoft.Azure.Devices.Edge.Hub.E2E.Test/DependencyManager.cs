@@ -19,7 +19,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.ProtocolGateway.Instrumentation;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
-    using Microsoft.VisualStudio.TestPlatform.ObjectModel.Client;
     using Moq;
     using Constants = Microsoft.Azure.Devices.Edge.Hub.Service.Constants;
 

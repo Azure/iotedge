@@ -14,6 +14,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         {
         }
 
+        // This constructor should only be used for testing - so that we can
+        // set the checkFrequency to a lower number than the default
         public StoreLimits(long maxSize, Option<int> checkFrequency)
         {
             this.MaxSize = maxSize;

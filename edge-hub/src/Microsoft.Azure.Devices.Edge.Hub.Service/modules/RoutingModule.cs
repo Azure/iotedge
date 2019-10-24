@@ -370,7 +370,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             var checkpointStore = c.Resolve<ICheckpointStore>();
                             var dbStoreProvider = c.Resolve<IDbStoreProvider>();
                             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
-                            IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, TimeSpan.MaxValue);
+                            IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, this.storeAndForwardConfiguration.TimeToLive);
                             return messageStore;
                         })
                     .As<IMessageStore>()

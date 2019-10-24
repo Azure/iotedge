@@ -3,8 +3,8 @@
 namespace Microsoft.Azure.Devices.Edge.Storage.Disk
 {
     using System;
-    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
+
     public class NullStorageSpaceChecker : IStorageSpaceChecker
     {
         public void SetMaxSizeBytes(Option<long> maxStorageBytes)
