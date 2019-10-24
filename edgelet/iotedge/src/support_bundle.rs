@@ -54,7 +54,12 @@ where
             .and_then(SupportBundle::write_check_to_file)
             .and_then(SupportBundle::write_all_inspects)
             .and_then(SupportBundle::write_all_network_inspects)
-            .map(|state| println!("Created support bundle at {}", state.location.to_string_lossy()));
+            .map(|state| {
+                println!(
+                    "Created support bundle at {}",
+                    state.location.to_string_lossy()
+                )
+            });
 
         Box::new(result)
     }
