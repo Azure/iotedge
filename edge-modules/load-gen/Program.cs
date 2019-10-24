@@ -112,7 +112,9 @@ namespace LoadGen
             {
                 try
                 {
-                    return await RegistryManager.GetTwinAsync(DeviceId);
+                    Twin twin = await RegistryManager.GetTwinAsync(DeviceId);
+                    Logger.LogDebug(twin.ToJson());
+                    return twin;
                 }
                 catch (Exception e)
                 {
