@@ -251,7 +251,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 {
                     Option<EdgeHubConfig> edgeHubConfig = await this.lastDesiredProperties
                         .Map(e => this.PatchDesiredProperties(e, twinCollection))
-                        .GetOrElse(() => this.GetConfigInternal());
+                        .GetOrElse(this.GetConfigInternal);
 
                     await edgeHubConfig.ForEachAsync(
                         async config =>

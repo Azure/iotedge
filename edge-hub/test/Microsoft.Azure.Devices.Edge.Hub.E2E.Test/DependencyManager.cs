@@ -19,6 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Azure.Devices.ProtocolGateway.Instrumentation;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
+    using Microsoft.VisualStudio.TestPlatform.ObjectModel.Client;
     using Moq;
     using Constants = Microsoft.Azure.Devices.Edge.Hub.Service.Constants;
 
@@ -114,6 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     Option.Some(edgeHubConnectionString),
                     false,
                     false,
+                    storeAndForwardConfiguration,
                     string.Empty,
                     Option.None<string>(),
                     Option.None<string>(),
@@ -121,7 +123,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     false,
                     this.trustBundle,
                     string.Empty,
-                    metricsConfig));
+                    metricsConfig,
+                    TimeSpan.FromHours(2)));
 
             builder.RegisterModule(
                 new RoutingModule(

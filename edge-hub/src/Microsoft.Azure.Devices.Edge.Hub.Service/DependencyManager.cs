@@ -197,6 +197,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             string proxy = this.configuration.GetValue("https_proxy", string.Empty);
             string productInfo = GetProductInfo();
+            long rocksDbCompactionPeriodSecs = this.configuration.GetValue("RocksDbCompactionPeriodSecs", 7200);
+            TimeSpan rocksDbCompactionPeriod = TimeSpan.FromSeconds(rocksDbCompactionPeriodSecs);
 
             // Register modules
             builder.RegisterModule(
@@ -211,6 +213,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     this.connectionString,
                     optimizeForPerformance,
                     storeAndForward.usePersistentStorage,
+                    storeAndForward.config,
                     storeAndForward.storagePath,
                     workloadUri,
                     workloadApiVersion,
@@ -218,7 +221,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     cacheTokens,
                     this.trustBundle,
                     proxy,
-                    metricsConfig));
+                    metricsConfig,
+                    rocksDbCompactionPeriod));
         }
 
         static string GetProductInfo()
@@ -235,13 +239,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             int timeToLiveSecs = defaultTtl;
             string storagePath = this.GetStoragePath();
             bool storeAndForwardEnabled = this.configuration.GetValue<bool>("storeAndForwardEnabled");
+
             if (storeAndForwardEnabled)
             {
                 IConfiguration storeAndForwardConfigurationSection = this.configuration.GetSection("storeAndForward");
                 timeToLiveSecs = storeAndForwardConfigurationSection.GetValue("timeToLiveSecs", defaultTtl);
             }
 
-            var storeAndForwardConfiguration = new StoreAndForwardConfiguration(timeToLiveSecs);
+            var storeAndForwardConfiguration = new StoreAndForwardConfiguration(timeToLiveSecs, Option.None<StoreLimits>());
             return (storeAndForwardEnabled, usePersistentStorage, storeAndForwardConfiguration, storagePath);
         }
 

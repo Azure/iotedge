@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
     using Microsoft.Azure.Devices.Edge.Hub.Core.Storage;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Twin;
     using Microsoft.Azure.Devices.Edge.Storage;
+    using Microsoft.Azure.Devices.Edge.Storage.Disk;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Routing.Core;
@@ -508,8 +509,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     async c =>
                     {
                         IMessageStore messageStore = this.isStoreAndForwardEnabled ? c.Resolve<IMessageStore>() : null;
+                        var storageSpaceChecker = c.Resolve<IStorageSpaceChecker>();
                         Router router = await c.Resolve<Task<Router>>();
-                        var configUpdater = new ConfigUpdater(router, messageStore, this.configUpdateFrequency);
+                        var configUpdater = new ConfigUpdater(router, messageStore, this.configUpdateFrequency, storageSpaceChecker);
                         return configUpdater;
                     })
                 .As<Task<ConfigUpdater>>()
