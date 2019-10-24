@@ -39,6 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             {
                 throw new ArgumentException("A device created with self-signed mechanism must provide an x509 thumbprint.");
             }
+
             return Profiler.Run(
                 async () =>
                 {

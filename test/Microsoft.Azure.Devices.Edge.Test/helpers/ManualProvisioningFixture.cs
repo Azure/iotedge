@@ -9,11 +9,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
     public class X509ManualProvisioningFixture : ManualProvisioningFixture
     {
-        public X509Thumbprint thumbprint { get; set; }
-        public EdgeDevice device { get; set; }
+        public X509Thumbprint Thumbprint { get; set; }
+        public EdgeDevice Device { get; set; }
 
         public X509ManualProvisioningFixture()
-            :base()
+            : base()
         {
         }
 
@@ -28,24 +28,23 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         CancellationToken token = cts.Token;
                         DateTime startTime = DateTime.Now;
 
-                        this.thumbprint = this.CreateSelfSignedCertificateThumbprint();
+                        this.Thumbprint = this.CreateSelfSignedCertificateThumbprint();
 
                         EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
                         Context.Current.DeviceId + "-x509",
                         this.iotHub,
                         AuthenticationType.SelfSigned,
-                        thumbprint,
+                        this.Thumbprint,
                         token);
 
                         Context.Current.DeleteList.TryAdd(device.Id, device);
 
-                        this.device = device;
+                        this.Device = device;
 
-                        await base.ManuallyProvisionEdgeAsync(device, startTime, token);
+                        await this.ManuallyProvisionEdgeAsync(device, startTime, token);
                     }
                 },
-            "Completed edge manual provisioning");
-
+                "Completed edge manual provisioning");
         }
 
         private X509Thumbprint CreateSelfSignedCertificateThumbprint()
@@ -85,11 +84,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
                         Context.Current.DeleteList.TryAdd(device.Id, device);
 
-                        await base.ManuallyProvisionEdgeAsync(device, startTime, token);
+                        await this.ManuallyProvisionEdgeAsync(device, startTime, token);
                     }
                 },
-            "Completed edge manual provisioning");
-
+                "Completed edge manual provisioning");
         }
     }
 
@@ -116,7 +114,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 this.iotHub);
         }
 
-        
         public async Task ManuallyProvisionEdgeAsync(EdgeDevice device, DateTime startTime, CancellationToken token)
         {
             // NUnit's [Timeout] attribute isn't supported in .NET Standard
@@ -124,7 +121,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             // a test times out. We need teardown to run, to remove the
             // device registration from IoT Hub and stop the daemon. So
             // we have our own timeout mechanism.
-
             IotHubConnectionStringBuilder builder =
                 IotHubConnectionStringBuilder.Create(device.ConnectionString);
 
