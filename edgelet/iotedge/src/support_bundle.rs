@@ -31,6 +31,7 @@ pub struct SupportBundle<M> {
 struct BundleState<M> {
     runtime: M,
     log_options: LogOptions,
+    location: OsString,
     include_ms_only: bool,
     verbose: bool,
     iothub_hostname: Option<String>,
@@ -45,6 +46,7 @@ where
     type Future = Box<dyn Future<Item = (), Error = Error> + Send>;
 
     fn execute(self) -> Self::Future {
+        println!("Making support bundle");
         let result = future::result(self.make_state())
             .and_then(SupportBundle::write_all_logs)
             .and_then(SupportBundle::write_edgelet_log_to_file)
@@ -52,7 +54,12 @@ where
             .and_then(SupportBundle::write_check_to_file)
             .and_then(SupportBundle::write_all_inspects)
             .and_then(SupportBundle::write_all_network_inspects)
-            .map(|state| state.print_verbose("Created support bundle"));
+            .map(|state| {
+                println!(
+                    "Created support bundle at {}",
+                    state.location.to_string_lossy()
+                )
+            });
 
         Box::new(result)
     }
@@ -92,6 +99,7 @@ where
         Ok(BundleState {
             runtime: self.runtime,
             log_options: self.log_options,
+            location: self.location,
             include_ms_only: self.include_ms_only,
             verbose: self.verbose,
             iothub_hostname: self.iothub_hostname,
@@ -169,6 +177,7 @@ where
         let BundleState {
             runtime,
             log_options,
+            location,
             include_ms_only,
             verbose,
             iothub_hostname,
@@ -186,6 +195,7 @@ where
                     let state = BundleState {
                         runtime,
                         log_options,
+                        location,
                         include_ms_only,
                         verbose,
                         iothub_hostname,
