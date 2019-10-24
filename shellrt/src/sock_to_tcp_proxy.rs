@@ -23,11 +23,9 @@ pub async fn server(
 
     while let Some(Ok(inbound)) = incoming.next().await {
         let client_addr = inbound.peer_addr()?;
+        info!("Client connected to sock-tcp proxy: {:?}", client_addr);
         if addr.ip() != client_addr.ip() {
-            failure::bail!(
-                "non-local client ({:?}) attempted to connect to proxy",
-                client_addr
-            );
+            failure::bail!("terminating connection, client is not local");
         }
 
         let sock = sock.clone();
