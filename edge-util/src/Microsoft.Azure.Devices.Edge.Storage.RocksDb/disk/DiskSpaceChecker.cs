@@ -38,24 +38,16 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Disk
         {
             lock (this.updateLock)
             {
-                this.DisableChecker();
+                this.inner.ForEach(b => b.Dispose());
+                Events.DisableChecker(this.storageFolder);
                 this.inner = maxSizeBytes.Match(
-                    size => Option.Some(new FixedSizeDiskSpaceChecker(this.storageFolder, size, TimeSpan.FromSeconds(this.checkFrequency), Events.Log) as DiskSpaceCheckerBase),
+                    size =>
+                    {
+                        DiskSpaceCheckerBase checker = new FixedSizeDiskSpaceChecker(this.storageFolder, size, TimeSpan.FromSeconds(this.checkFrequency), Events.Log) as DiskSpaceCheckerBase;
+                        Events.SetMaxSizeDiskSpaceUsage(size, this.storageFolder);
+                        return Option.Some(checker);
+                    },
                     () => Option.None<DiskSpaceCheckerBase>());
-                maxSizeBytes.ForEach(size => Events.SetMaxSizeDiskSpaceUsage(size, this.storageFolder));
-            }
-        }
-
-        public void DisableChecker()
-        {
-            lock (this.updateLock)
-            {
-                if (this.inner.HasValue)
-                {
-                    this.inner.ForEach(b => b.Dispose());
-                    this.inner = Option.None<DiskSpaceCheckerBase>();
-                    Events.DisableChecker(this.storageFolder);
-                }
             }
         }
 

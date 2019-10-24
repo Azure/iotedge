@@ -134,6 +134,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             {
                 this.messageStore?.SetTimeToLive(TimeSpan.FromSeconds(storeAndForwardConfiguration.TimeToLiveSecs));
 
+                storeAndForwardConfiguration.StoreLimits.Match(
+                    b =>
+                    {
+                        this.storageSpaceChecker.SetMaxSizeBytes(Option.Some(b.MaxSize));
+                        return this.storageSpaceChecker;
+                    },
+                    () =>
+                    {
+                        this.storageSpaceChecker.SetMaxSizeBytes(Option.None<long>());
+                        return this.storageSpaceChecker;
+                    });
+
                 if (storeAndForwardConfiguration.StoreLimits.HasValue)
                 {
                     storeAndForwardConfiguration.StoreLimits.ForEach(b => this.storageSpaceChecker.SetMaxSizeBytes(Option.Some<long>(b.MaxSize)));
