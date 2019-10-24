@@ -112,8 +112,7 @@ namespace LoadGen
             {
                 try
                 {
-                    Twin twin = await RegistryManager.GetTwinAsync(DeviceId);
-                    Logger.LogDebug(twin.ToJson());
+                    Twin twin = await RegistryManager.GetTwinAsync(DeviceId, ModuleId);
                     return twin;
                 }
                 catch (Exception e)
@@ -175,6 +174,7 @@ namespace LoadGen
             try
             {
                 receivedTwin = await moduleClient.GetTwinAsync();
+                Logger.LogDebug(receivedTwin.ToJson());
             }
             catch (Exception e)
             {
@@ -183,18 +183,17 @@ namespace LoadGen
                 return;
             }
 
-            long receivedReportedPropertyId = receivedTwin.Properties.Reported[TwinUpdateIdLabel];
-            long receivedDesiredPropertyId = receivedTwin.Properties.Desired[TwinUpdateIdLabel];
-            string propertyErrorContext = $" {Environment.NewLine}Expected: {TwinUpdateId}, Received: {receivedReportedPropertyId}, BatchId: {BatchId};";
-
-            if (receivedTwin.Tags[TwinUpdateIdLabel] != TwinUpdateId)
+            string propertyErrorContext = $" {Environment.NewLine}Expected: {TwinUpdateId}, BatchId: {BatchId};{Environment.NewLine}ReceivedTwin: {receivedTwin.ToJson()}{Environment.NewLine}";
+            TwinCollection receivedDesired = receivedTwin.Properties.Desired;
+            TwinCollection receivedReported = receivedTwin.Properties.Reported;
+            if (receivedDesired.Contains(TwinUpdateIdLabel)  && receivedDesired[TwinUpdateIdLabel] != TwinUpdateId)
             {
                 string status = $"[TwinUpdateAsync] Reported property update not reflected in twin";
                 HandleWrongPropertyFailure(ModuleId, status, propertyErrorContext, receivedTwin);
                 return;
             }
 
-            if (receivedTwin.Tags[TwinUpdateIdLabel] != TwinUpdateId)
+            if (receivedReported.Contains(TwinUpdateIdLabel) && receivedReported[TwinUpdateIdLabel] != TwinUpdateId)
             {
                 string status = $"[TwinUpdateAsync] Desired property update not reflected in twin";
                 HandleWrongPropertyFailure(ModuleId, status, propertyErrorContext, receivedTwin);
