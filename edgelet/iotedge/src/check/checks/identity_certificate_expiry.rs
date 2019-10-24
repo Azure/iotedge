@@ -51,7 +51,7 @@ impl IdentityCertificateExpiry {
                 }
                 self.provisioning_mode = Some("dps-other");
             }
-            Provisioning::Manual(manual) => {
+            Provisioning::Manual(_manual) => {
                 self.provisioning_mode = Some("manual");
             }
             Provisioning::External(_) => {

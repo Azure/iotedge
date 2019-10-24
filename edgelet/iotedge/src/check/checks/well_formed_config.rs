@@ -57,7 +57,7 @@ impl WellFormedConfig {
             }
         }
 
-        let settings = match Settings::new(config_file) {
+        let settings = match Settings::new(Some(config_file)) {
             Ok(settings) => settings,
             Err(err) => {
                 let message = if check.verbose {
