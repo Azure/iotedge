@@ -2,24 +2,23 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using System;
-    using System.IO;
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Edge.Hub.Service;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
     using Xunit;
     using Xunit.Abstractions;
+    using EdgeHubConstants = Microsoft.Azure.Devices.Edge.Hub.Service.Constants;
     using IotHubConnectionStringBuilder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder;
 
     [Integration]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
-    public class EdgeToDeviceMethodTest : TestConsoleLogger, IClassFixture<ProtocolHeadFixture>
+    public class EdgeToDeviceMethodTest : EdgeHubTestWithLogger
     {
-        public EdgeToDeviceMethodTest(ITestOutputHelper testOutputHelper)
-            : base(testOutputHelper)
+        public EdgeToDeviceMethodTest(EdgeHubFixture edgeHubFixture, ITestOutputHelper testOutputHelper)
+            : base(new EdgeHubTest(edgeHubFixture), testOutputHelper)
         {
         }
 
@@ -34,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             ModuleClient receiver = null;
 
-            string edgeDeviceConnectionString = ConfigHelper.TestConfig[Constants.ConfigKey.IotHubConnectionString];
+            string edgeDeviceConnectionString = ConfigHelper.TestConfig[EdgeHubConstants.ConfigKey.IotHubConnectionString];
             Client.IotHubConnectionStringBuilder edgeHubConnectionStringBuilder = Client.IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
             string edgeDeviceId = edgeHubConnectionStringBuilder.DeviceId;
             Device edgeDevice = await rm.GetDeviceAsync(edgeDeviceId);
@@ -117,7 +116,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             RegistryManager rm = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
             DeviceClient receiver = null;
 
-            string edgeDeviceConnectionString = ConfigHelper.TestConfig[Constants.ConfigKey.IotHubConnectionString];
+            string edgeDeviceConnectionString = ConfigHelper.TestConfig[EdgeHubConstants.ConfigKey.IotHubConnectionString];
             Client.IotHubConnectionStringBuilder edgeHubConnectionStringBuilder = Client.IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
             string edgeDeviceId = edgeHubConnectionStringBuilder.DeviceId;
             Device edgeDevice = await rm.GetDeviceAsync(edgeDeviceId);
