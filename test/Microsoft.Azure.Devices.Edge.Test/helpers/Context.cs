@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public Context()
         {
             IConfiguration context = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
+                .SetBasePath(@"C:\Users\kevindaw\src\edge-e2e-test-cfgs")
                 .AddJsonFile("context.json")
                 .AddEnvironmentVariables("E2E_")
                 .Build();

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
@@ -123,5 +123,16 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 device.Expect(() => new InvalidOperationException(
                     $"Device '{registrationId}' should have been created by DPS, but was not found in '{this.iotHub.Hostname}'")));
         }
+
+        /*
+        [Test]
+        public async Task ManualX509()
+        {
+            (string, string, string) rootCa =
+            Context.Current.RootCaKeys.Expect(() => new InvalidOperationException("Missing root CA keys"));
+            string caCertScriptPath =
+                        Context.Current.CaCertScriptPath.Expect(() => new InvalidOperationException("Missing CA cert script path"));
+        }
+        */
     }
 }
