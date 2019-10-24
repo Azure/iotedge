@@ -47,6 +47,34 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             return await registryMananger.AddConfigurationAsync(configuration);
         }
 
+        public static async Task<Configuration> CreateBaseAddOnConfigurationsAsync(RegistryManager registryMananger, string configurationId, string addOnConfigurationId, string targetCondition, int priority)
+        {
+            var configuration = new Configuration(configurationId)
+            {
+                Labels = new Dictionary<string, string>
+                {
+                    { "App", "Mongo" }
+                },
+                Content = GetBaseConfigurationContent(),
+                Priority = priority + 1,
+                TargetCondition = targetCondition
+            };
+
+            var addonConfiguration = new Configuration(addOnConfigurationId)
+            {
+                Labels = new Dictionary<string, string>
+                {
+                    { "Addon", "Stream Analytics" }
+                },
+                Content = GetAddOnConfigurationContent(),
+                Priority = priority,
+                TargetCondition = targetCondition
+            };
+
+            await registryMananger.AddConfigurationAsync(configuration);
+            return await registryMananger.AddConfigurationAsync(addonConfiguration);
+        }
+
         public static TwinCollection GetEdgeAgentReportedProperties(DeploymentConfigInfo deploymentConfigInfo)
         {
             DeploymentConfig deploymentConfig = deploymentConfigInfo.DeploymentConfig;
@@ -130,6 +158,50 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                     ["asa"] = new Dictionary<string, object>
                     {
                         ["properties.desired"] = GetTwinConfiguration("asa")
+                    }
+                }
+            };
+        }
+
+        public static ConfigurationContent GetBaseConfigurationContent()
+        {
+            return new ConfigurationContent
+            {
+                ModulesContent = new Dictionary<string, IDictionary<string, object>>
+                {
+                    ["$edgeAgent"] = new Dictionary<string, object>
+                    {
+                        ["properties.desired"] = GetEdgeAgentConfiguration()
+                    },
+                    ["$edgeHub"] = new Dictionary<string, object>
+                    {
+                        ["properties.desired"] = GetEdgeHubConfiguration()
+                    },
+                    ["mongoserver"] = new Dictionary<string, object>
+                    {
+                        ["properties.desired"] = GetTwinConfiguration("mongoserver")
+                    }
+                }
+            };
+        }
+
+        public static ConfigurationContent GetAddOnConfigurationContent()
+        {
+            return new ConfigurationContent
+            {
+                ModulesContent = new Dictionary<string, IDictionary<string, object>>
+                {
+                    ["$edgeAgent"] = new Dictionary<string, object>
+                    {
+                        ["properties.desired.modules.asa"] = GetEdgeAgentAddOnConfiguration()
+                    },
+                    ["asa"] = new Dictionary<string, object>
+                    {
+                        ["properties.desired"] = GetTwinConfiguration("asa")
+                    },
+                    ["$edgeHub"] = new Dictionary<string, object>
+                    {
+                        ["properties.desired.routes.route1"] = "from /* INTO $upstream"
                     }
                 }
             };
@@ -365,6 +437,142 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                 try
                 {
                     await DeleteConfigurationAsync(registryManager, configurationId);
+                }
+                catch (Exception)
+                {
+                    // ignored
+                }
+            }
+        }
+
+        [Integration]
+        [Fact]
+        public async Task EdgeAgentConnectionBaseAddOnConfigurationTest()
+        {
+            string edgeDeviceId = "testMmaEdgeDevice1" + Guid.NewGuid();
+            string configurationId = "testconfiguration-" + Guid.NewGuid().ToString();
+            string addOnConfigurationId = "addon" + configurationId;
+            string conditionPropertyName = "condition-" + Guid.NewGuid().ToString("N");
+            string conditionPropertyValue = Guid.NewGuid().ToString();
+            string iotHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("iotHubConnStrKey");
+            IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(iotHubConnectionString);
+            RegistryManager registryManager = RegistryManager.CreateFromConnectionString(iotHubConnectionString);
+
+            try
+            {
+                await registryManager.OpenAsync();
+
+                var edgeDevice = new Device(edgeDeviceId)
+                {
+                    Capabilities = new DeviceCapabilities { IotEdge = true },
+                    Authentication = new AuthenticationMechanism() { Type = AuthenticationType.Sas }
+                };
+                edgeDevice = await registryManager.AddDeviceAsync(edgeDevice);
+
+                Twin twin = await registryManager.GetTwinAsync(edgeDeviceId);
+                twin.Tags[conditionPropertyName] = conditionPropertyValue;
+                await registryManager.UpdateTwinAsync(edgeDeviceId, twin, twin.ETag);
+                await registryManager.GetTwinAsync(edgeDeviceId, "$edgeAgent");
+                await registryManager.GetTwinAsync(edgeDeviceId, "$edgeHub");
+
+                await CreateBaseAddOnConfigurationsAsync(registryManager, configurationId, addOnConfigurationId, $"tags.{conditionPropertyName}='{conditionPropertyValue}'", 10);
+
+                // Service takes about 5 mins to sync config to twin
+                await Task.Delay(TimeSpan.FromMinutes(7));
+
+                string edgeAgentConnectionString = $"HostName={iotHubConnectionStringBuilder.HostName};DeviceId={edgeDeviceId};ModuleId=$edgeAgent;SharedAccessKey={edgeDevice.Authentication.SymmetricKey.PrimaryKey}";
+                IModuleClientProvider moduleClientProvider = new ModuleClientProvider(
+                    edgeAgentConnectionString,
+                    new SdkModuleClientProvider(),
+                    Option.None<UpstreamProtocol>(),
+                    Option.None<IWebProxy>(),
+                    Constants.IoTEdgeAgentProductInfoIdentifier,
+                    false,
+                    TimeSpan.FromDays(1));
+
+                var moduleDeserializerTypes = new Dictionary<string, Type>
+                {
+                    { DockerType, typeof(DockerDesiredModule) }
+                };
+
+                var edgeAgentDeserializerTypes = new Dictionary<string, Type>
+                {
+                    { DockerType, typeof(EdgeAgentDockerModule) }
+                };
+
+                var edgeHubDeserializerTypes = new Dictionary<string, Type>
+                {
+                    { DockerType, typeof(EdgeHubDockerModule) }
+                };
+
+                var runtimeInfoDeserializerTypes = new Dictionary<string, Type>
+                {
+                    { DockerType, typeof(DockerRuntimeInfo) }
+                };
+
+                var deserializerTypes = new Dictionary<Type, IDictionary<string, Type>>
+                {
+                    [typeof(IModule)] = moduleDeserializerTypes,
+                    [typeof(IEdgeAgentModule)] = edgeAgentDeserializerTypes,
+                    [typeof(IEdgeHubModule)] = edgeHubDeserializerTypes,
+                    [typeof(IRuntimeInfo)] = runtimeInfoDeserializerTypes,
+                };
+
+                ISerde<DeploymentConfig> serde = new TypeSpecificSerDe<DeploymentConfig>(deserializerTypes);
+                IEnumerable<IRequestHandler> requestHandlers = new List<IRequestHandler> { new PingRequestHandler() };
+                IEdgeAgentConnection edgeAgentConnection = new EdgeAgentConnection(moduleClientProvider, serde, new RequestManager(requestHandlers, DefaultRequestTimeout));
+                await Task.Delay(TimeSpan.FromSeconds(20));
+
+                Option<DeploymentConfigInfo> deploymentConfigInfo = await edgeAgentConnection.GetDeploymentConfigInfoAsync();
+
+                Assert.True(deploymentConfigInfo.HasValue);
+                DeploymentConfig deploymentConfig = deploymentConfigInfo.OrDefault().DeploymentConfig;
+                Assert.NotNull(deploymentConfig);
+                Assert.NotNull(deploymentConfig.Modules);
+                Assert.NotNull(deploymentConfig.Runtime);
+                Assert.NotNull(deploymentConfig.SystemModules);
+                Assert.Equal(EdgeAgentConnection.ExpectedSchemaVersion.ToString(), deploymentConfig.SchemaVersion);
+                Assert.Equal(2, deploymentConfig.Modules.Count);
+                Assert.NotNull(deploymentConfig.Modules["mongoserver"]);
+                Assert.NotNull(deploymentConfig.Modules["asa"]);
+
+                TwinCollection reportedPatch = GetEdgeAgentReportedProperties(deploymentConfigInfo.OrDefault());
+                await edgeAgentConnection.UpdateReportedPropertiesAsync(reportedPatch);
+
+                // Service takes about 5 mins to sync statistics to config
+                await Task.Delay(TimeSpan.FromMinutes(7));
+
+                Configuration config = await registryManager.GetConfigurationAsync(configurationId);
+                Assert.NotNull(config);
+                Assert.NotNull(config.SystemMetrics);
+                Assert.True(config.SystemMetrics.Results.ContainsKey("targetedCount"));
+                Assert.Equal(1, config.SystemMetrics.Results["targetedCount"]);
+                Assert.True(config.SystemMetrics.Results.ContainsKey("appliedCount"));
+                Assert.Equal(1, config.SystemMetrics.Results["appliedCount"]);
+
+                Configuration addOnConfig = await registryManager.GetConfigurationAsync(addOnConfigurationId);
+                Assert.NotNull(addOnConfig);
+                Assert.NotNull(addOnConfig.SystemMetrics);
+                Assert.True(addOnConfig.SystemMetrics.Results.ContainsKey("targetedCount"));
+                Assert.Equal(1, addOnConfig.SystemMetrics.Results["targetedCount"]);
+                Assert.True(addOnConfig.SystemMetrics.Results.ContainsKey("appliedCount"));
+                Assert.Equal(1, addOnConfig.SystemMetrics.Results["appliedCount"]);
+            }
+            finally
+            {
+                try
+                {
+                    await registryManager.RemoveDeviceAsync(edgeDeviceId);
+                }
+                catch (Exception)
+                {
+                    // ignored
+                }
+
+                try
+                {
+                    await DeleteConfigurationAsync(registryManager, configurationId);
+                    await DeleteConfigurationAsync(registryManager, addOnConfigurationId);
                 }
                 catch (Exception)
                 {
@@ -1734,19 +1942,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
                             image = "mongo",
                             createOptions = string.Empty
                         }
-                    },
-                    asa = new
-                    {
-                        version = "1.0",
-                        type = "docker",
-                        status = "running",
-                        restartPolicy = "on-failure",
-                        settings = new
-                        {
-                            image = "asa",
-                            createOptions = string.Empty
-                        }
                     }
+                }
+            };
+            return desiredProperties;
+        }
+
+        static object GetEdgeAgentAddOnConfiguration()
+        {
+            var desiredProperties = new
+            {
+                version = "1.0",
+                type = "docker",
+                status = "running",
+                restartPolicy = "on-failure",
+                settings = new
+                {
+                    image = "asa",
+                    createOptions = string.Empty
                 }
             };
             return desiredProperties;
