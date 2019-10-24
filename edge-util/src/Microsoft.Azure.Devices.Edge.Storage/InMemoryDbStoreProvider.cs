@@ -2,13 +2,12 @@
 namespace Microsoft.Azure.Devices.Edge.Storage
 {
     using System.Collections.Concurrent;
-    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public class InMemoryDbStoreProvider : IDbStoreProvider
     {
         const string DefaultPartitionName = "$Default";
-        readonly ConcurrentDictionary<string, InMemoryDbStore> partitionDbStoreDictionary = new ConcurrentDictionary<string, InMemoryDbStore>();
+        readonly ConcurrentDictionary<string, IDbStore> partitionDbStoreDictionary = new ConcurrentDictionary<string, IDbStore>();
         readonly Option<IStorageSpaceChecker> memoryStorageSpaceChecker;
 
         public InMemoryDbStoreProvider()
@@ -22,10 +21,10 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             this.memoryStorageSpaceChecker.ForEach(m => m.SetStorageUsageComputer(this.GetTotalMemoryUsage));
         }
 
-        static InMemoryDbStore BuildInMemoryDbStore(Option<IStorageSpaceChecker> memoryStorageSpaceChecker)
+        static IDbStore BuildInMemoryDbStore(Option<IStorageSpaceChecker> memoryStorageSpaceChecker)
             => memoryStorageSpaceChecker
-                .Map(d => new MemoryUsageAwareInMemoryDbStore(d) as InMemoryDbStore)
-                .GetOrElse(new InMemoryDbStore());
+                .Map(d => new MemoryUsageAwareInMemoryDbStore(d) as IDbStore)
+                .GetOrElse(new InMemoryDbStore() as IDbStore);
 
         public IDbStore GetDbStore(string partitionName)
         {
@@ -39,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         public void RemoveDbStore(string partitionName)
         {
             Preconditions.CheckNonWhiteSpace(partitionName, nameof(partitionName));
-            this.partitionDbStoreDictionary.TryRemove(partitionName, out InMemoryDbStore _);
+            this.partitionDbStoreDictionary.TryRemove(partitionName, out IDbStore _);
         }
 
         public void Dispose()
@@ -47,12 +46,15 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             // No-op
         }
 
-        async Task<long> GetTotalMemoryUsage()
+        long GetTotalMemoryUsage()
         {
             long dbSizeInBytes = 0;
             foreach (var inMemoryDbStore in this.partitionDbStoreDictionary)
             {
-                dbSizeInBytes += await inMemoryDbStore.Value.GetDbSizeInBytes();
+                if (inMemoryDbStore.Value is ISizedDbStore)
+                {
+                    dbSizeInBytes += ((ISizedDbStore)inMemoryDbStore.Value).DbSizeInBytes;
+                }
             }
 
             return dbSizeInBytes;

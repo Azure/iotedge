@@ -12,36 +12,59 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
     public class MemorySpaceCheckerTest
     {
         [Fact]
-        public async Task MemorySpaceCheckTest()
+        public void InvalidInputTest()
         {
-            long maxStorageSize = 6 * 1024 * 1024;
-            MemorySpaceChecker memorySpaceChecker = new MemorySpaceChecker(() => Task.FromResult(5 * 1024 * 1024L));
+            Assert.Throws<ArgumentNullException>(() => new MemorySpaceChecker(null));
+
+            MemorySpaceChecker memorySpaceChecker = new MemorySpaceChecker(() => 5 * 1024 * 1024L);
+            Assert.Throws<ArgumentNullException>(() => memorySpaceChecker.SetStorageUsageComputer(null));
+        }
+
+        [Fact]
+        public void MemorySpaceCheckTest()
+        {
+            long maxStorageValue = 6 * 1024 * 1024;
+            Option<long> maxStorageSize = Option.Some(maxStorageValue);
+            MemorySpaceChecker memorySpaceChecker = new MemorySpaceChecker(() => 5 * 1024 * 1024L);
+
+            Assert.False(memorySpaceChecker.IsFull);
             memorySpaceChecker.SetMaxSizeBytes(maxStorageSize);
 
-            Assert.False(memorySpaceChecker.IsFull);
             Assert.Equal(MemoryUsageStatus.Unknown, memorySpaceChecker.UsageStatus);
-
-            // Wait for the checker to run the first time.
-            await Task.Delay(TimeSpan.FromSeconds(4));
             Assert.False(memorySpaceChecker.IsFull);
+
+            // Memory status should be 'Available' after calling 'IsFull'
             Assert.Equal(MemoryUsageStatus.Available, memorySpaceChecker.UsageStatus);
 
-            memorySpaceChecker.SetStorageUsageComputer(() => Task.FromResult(maxStorageSize));
-            await Task.Delay(TimeSpan.FromSeconds(4));
+            memorySpaceChecker.SetStorageUsageComputer(() => maxStorageValue);
             Assert.True(memorySpaceChecker.IsFull);
 
-            long newStorageSize = 8 * 1024 * 1024;
+            long newStorageValue = 8 * 1024 * 1024;
+            Option<long> newStorageSize = Option.Some(newStorageValue);
             memorySpaceChecker.SetMaxSizeBytes(newStorageSize);
 
-            await Task.Delay(TimeSpan.FromSeconds(4));
             Assert.False(memorySpaceChecker.IsFull);
             Assert.Equal(MemoryUsageStatus.Available, memorySpaceChecker.UsageStatus);
 
-            memorySpaceChecker.SetStorageUsageComputer(() => Task.FromResult((long)(newStorageSize * 0.95)));
+            memorySpaceChecker.SetStorageUsageComputer(() => (long)(newStorageValue * 0.95));
 
-            await Task.Delay(TimeSpan.FromSeconds(4));
             Assert.False(memorySpaceChecker.IsFull);
             Assert.Equal(MemoryUsageStatus.Critical, memorySpaceChecker.UsageStatus);
+        }
+
+        [Fact]
+        public void SetMaxSizeBytesTest()
+        {
+            long maxStorageValue = 1 * 1024 * 1024;
+            Option<long> maxStorageSize = Option.Some(maxStorageValue);
+            MemorySpaceChecker memorySpaceChecker = new MemorySpaceChecker(() => 2 * 1024 * 1024L);
+
+            memorySpaceChecker.SetMaxSizeBytes(maxStorageSize);
+            Assert.True(memorySpaceChecker.IsFull);
+
+            memorySpaceChecker.SetMaxSizeBytes(Option.None<long>());
+            Assert.False(memorySpaceChecker.IsFull);
+            Assert.Equal(MemoryUsageStatus.Unknown, memorySpaceChecker.UsageStatus);
         }
     }
 }

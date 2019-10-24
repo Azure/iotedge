@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Storage.Test
 {
-    using System;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -14,8 +13,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
         [Fact]
         public async Task SpaceCheckViolationsTest()
         {
-            long maxStorageBytes = 90;
-            IStorageSpaceChecker checker = new MemorySpaceChecker(() => Task.FromResult(0L));
+            Option<long> maxStorageBytes = Option.Some(90L);
+            IStorageSpaceChecker checker = new MemorySpaceChecker(() => 0L);
             checker.SetMaxSizeBytes(maxStorageBytes);
             InMemoryDbStoreProvider storeProvider = new InMemoryDbStoreProvider(Option.Some(checker));
 
@@ -30,22 +29,72 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             await store1.Put(message1, message1);
             await store2.Put(message2, message2);
 
-            await Task.Delay(TimeSpan.FromSeconds(4));
-
-            // This should succeed as the message store size will be (message1 * 2) + (message2 * 2) size in bytes.
+            // Current sizes -
+            // store1 -> (message1 * 2)
+            // store2 -> (message2 * 2)
+            // Aggregated size is less than limit, adding another item should succeed.
             byte[] message3 = new byte[30];
-            await store1.Put(message3, message3);
+            await store1.Put(message3, message3, CancellationToken.None);
 
-            // Let the space checker run again, this time the usage limit would have been reached (after adding message3).
-            await Task.Delay(TimeSpan.FromSeconds(4));
-
+            // Current sizes -
+            // store1 -> (message1 * 2) + (message3 * 2)
+            // store2 -> (message2 * 2)
+            // Aggregated size is greater than limit, adding another item should fail.
             byte[] message4 = new byte[40];
             await Assert.ThrowsAsync<StorageFullException>(() => store2.Put(message4, message4));
             await Assert.ThrowsAsync<StorageFullException>(() => store2.Put(message4, message4, CancellationToken.None));
 
-            // Remove store2. Once the memory checker runs again, the usage of store1 alone should be less than the max limit.
+            // Remove store2. The usage of store1 alone should be less than the max limit.
+            // Current sizes -
+            // store1 -> (message1 * 2) + (message3 * 2)
+            // store2 -> X
+            // Aggregated size is less than limit, adding another item should succeed.
             storeProvider.RemoveDbStore(store2Name);
-            await Task.Delay(TimeSpan.FromSeconds(4));
+            await store1.Put(message4, message4);
+
+            // Current sizes -
+            // store1 -> (message1 * 2) + (message3 * 2) + (message4 * 2)
+            // store2 -> X
+            // Aggregated size is greater than limit, adding another item should fail.
+            await Assert.ThrowsAsync<StorageFullException>(() => store1.Put(message4, message4));
+
+            // Re-add store2.
+            store2 = storeProvider.GetDbStore(store2Name);
+
+            await store1.Remove(message4);
+
+            // Current sizes -
+            // store1 -> (message1 * 2) + (message3 * 2)
+            // store2 -> X
+            // Aggregated size is less than limit, adding another item should succeed.
+            await store2.Put(message1, message1);
+
+            // Current sizes -
+            // store1 -> (message1 * 2) + (message3 * 2)
+            // store2 -> (message1 * 2)
+            // Aggregated size is greater than limit, adding another item should fail.
+            await Assert.ThrowsAsync<StorageFullException>(() => store1.Put(message4, message4));
+
+            // Remove an item from store1 and then try adding a smaller item to store2 which should succeed.
+            await store1.Remove(message3, CancellationToken.None);
+
+            // Current sizes -
+            // store1 -> (message1 * 2)
+            // store2 -> (message1 * 2)
+            // Aggregated size is less than limit, adding another item should succeed.
+            await store2.Put(message3, message3, CancellationToken.None);
+
+            // Current sizes -
+            // store1 -> (message1 * 2)
+            // store2 -> (message1 * 2) + (message3 * 2)
+            // Aggregated size is greater than limit, adding another item should fail.
+            await Assert.ThrowsAsync<StorageFullException>(() => store2.Put(message4, message4));
+
+            // Set max storage size to be greater than the current db size.
+            Option<long> newMaxStorageBytes = Option.Some((message1.Length * 2) * 2L + (message3.Length * 2) + 10);
+            checker.SetMaxSizeBytes(newMaxStorageBytes);
+
+            // Adding another item should now succeed after the limits have been increased.
             await store1.Put(message4, message4);
         }
     }

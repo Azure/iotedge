@@ -141,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 c =>
                 {
                     IStorageSpaceChecker spaceChecker = !this.usePersistentStorage
-                       ? new MemorySpaceChecker(() => Task.FromResult(0L)) as IStorageSpaceChecker
+                       ? new MemorySpaceChecker(() => 0L) as IStorageSpaceChecker
                        : new NullStorageSpaceChecker() as IStorageSpaceChecker;
                     return spaceChecker;
                 })

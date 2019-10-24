@@ -7,13 +7,9 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
     public interface IStorageSpaceChecker
     {
-        void SetMaxSizeBytes(long maxSizeBytes);
+        void SetMaxSizeBytes(Option<long> maxSizeBytes);
 
-        void SetCheckFrequency(Option<int> checkFrequencySecs);
-
-        void DisableChecker();
-
-        void SetStorageUsageComputer(Func<Task<long>> storageUsageComputer);
+        void SetStorageUsageComputer(Func<long> storageUsageComputer);
 
         bool IsFull { get; }
     }
