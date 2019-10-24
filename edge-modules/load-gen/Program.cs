@@ -200,6 +200,7 @@ namespace LoadGen
                 return;
             }
 
+            Logger.LogDebug("SUCCESS");
             CallAnalyzerToReportStatus(ModuleId, "[TwinUpdateAsync] Success", receivedTwin.ToJson());
         }
 
