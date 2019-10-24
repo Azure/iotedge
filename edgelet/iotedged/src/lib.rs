@@ -381,6 +381,13 @@ where
                         });
 
                         tokio_runtime.block_on(reprovision)?;
+
+                        // Return an error here to let the daemon exit with an error code.
+                        // This will make `systemd` restart the daemon which will re-execute the
+                        // provisioning flow and if the device has been re-provisioned, the daemon
+                        // will configure itself with the new provisioning information as part of
+                        // that flow.
+                        return Err(Error::from(ErrorKind::DeviceDeprovisioned))
                     }
 
                     if code != StartApiReturnStatus::Restart {
