@@ -296,5 +296,49 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
             Assert.Equal(new[] { 2, 4 }, result);
         }
+
+        [Fact]
+        [Unit]
+        public void TestMatchFull()
+        {
+            Option<int> intOption = Option.Some(0);
+            int newTestNum = intOption.Match(b => b + 1, () => -1);
+            Assert.Equal(1, newTestNum);
+        }
+
+        [Fact]
+        [Unit]
+        public void TestMatchEmpty()
+        {
+            Option<int> intOption = Option.None<int>();
+            int newTestNum = intOption.Match(b => b + 1, () => -1);
+            Assert.Equal(-1, newTestNum);
+        }
+
+        [Fact]
+        [Unit]
+        public void TestMatchNoReturnFull()
+        {
+            var val = 0;
+            Option<int> intOption = Option.Some(1);
+            intOption.MatchNoReturn(b => {
+                val = val + b;
+            },
+            () => {});
+            Assert.Equal(1, val);
+        }
+
+        [Fact]
+        [Unit]
+        public void TestMatchNoReturnEmpty()
+        {
+            var val = 0;
+            Option<int> intOption = Option.None<int>();
+            intOption.MatchNoReturn(b => {
+                val = val + b;
+            },
+            () => { });
+            Assert.Equal(0, val);
+        }
     }
 }

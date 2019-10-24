@@ -127,6 +127,19 @@ namespace Microsoft.Azure.Devices.Edge.Util
         [Pure]
         public TResult Match<TResult>(Func<T, TResult> some, Func<TResult> none) => this.HasValue ? some(this.Value) : none();
 
+        [Pure]
+        public void MatchNoReturn(Action<T> some, Action none)
+        {
+            if (this.HasValue)
+            {
+                some(this.Value);
+            }
+            else
+            {
+                none();
+            }
+        }
+
         /// <summary>
         /// Conditionally invokes <paramref name="action"/> with the value of this option
         /// object if this option has a value. This method is a no-op if there is no value
