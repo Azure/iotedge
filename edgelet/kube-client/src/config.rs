@@ -2,7 +2,7 @@
 
 use std::env;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use failure::{Fail, ResultExt};
 use log::info;
@@ -178,7 +178,7 @@ pub fn get_config() -> Result<Config<ValueToken>> {
     // try to get in-cluster config and if that fails
     // well, then we're out of luck
     let kube_config = std::env::var("KUBECONFIG")
-        .map(|path| std::path::PathBuf::from(path))
+        .map(PathBuf::from)
         .map_err(|_err| ErrorKind::KubeConfig(KubeConfigErrorReason::MissingKubeConfig))
         .or_else(|_err| {
             dirs::home_dir()
@@ -197,12 +197,11 @@ pub fn get_config() -> Result<Config<ValueToken>> {
             Config::<ValueToken>::from_config_file(home_dir)
         });
 
-    match kube_config {
-        Ok(val) => Ok(val),
-        Err(_) => {
-            info!("Using in-cluster config");
-            Config::<ValueToken>::in_cluster_config()
-        }
+    if let Ok(kube_config) = kube_config {
+        Ok(kube_config)
+    } else {
+        info!("Using in-cluster config");
+        Config::<ValueToken>::in_cluster_config()
     }
 }
 
