@@ -173,25 +173,36 @@ impl<T: TokenSource> Config<T> {
 }
 
 pub fn get_config() -> Result<Config<ValueToken>> {
+    // try to load config file from KUBECONFIG folder and if that fails
+    // try to load config file from home folder and if that fails
     // try to get in-cluster config and if that fails
-    // try to load config file from home folder and if that
-    // fails, well, then we're out of luck
-    match Config::<ValueToken>::in_cluster_config() {
-        Ok(val) => {
+    // well, then we're out of luck
+    let kube_config = std::env::var("KUBECONFIG")
+        .map(|path| std::path::PathBuf::from(path))
+        .map_err(|_err| ErrorKind::KubeConfig(KubeConfigErrorReason::MissingKubeConfig))
+        .or_else(|_err| {
+            dirs::home_dir()
+                .map(|mut home_dir| {
+                    home_dir.push(".kube/config");
+                    home_dir
+                })
+                .ok_or_else(|| {
+                    Error::from(ErrorKind::KubeConfig(
+                        KubeConfigErrorReason::MissingKubeConfig,
+                    ))
+                })
+        })
+        .and_then(|home_dir| {
+            info!("Attempting to use config from {} file.", home_dir.display());
+            Config::<ValueToken>::from_config_file(home_dir)
+        });
+
+    match kube_config {
+        Ok(val) => Ok(val),
+        Err(_) => {
             info!("Using in-cluster config");
-            Ok(val)
+            Config::<ValueToken>::in_cluster_config()
         }
-        Err(_) => dirs::home_dir()
-            .ok_or_else(|| {
-                Error::from(ErrorKind::KubeConfig(
-                    KubeConfigErrorReason::MissingKubeConfig,
-                ))
-            })
-            .and_then(|mut home_dir| {
-                info!("Attempting to use config from ~/.kube/config file.");
-                home_dir.push(".kube/config");
-                Config::<ValueToken>::from_config_file(home_dir)
-            }),
     }
 }
 
