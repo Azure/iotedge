@@ -9,6 +9,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
     public class X509ManualProvisioningFixture : ManualProvisioningFixture
     {
+        public X509Thumbprint thumbprint { get; set; }
+        public EdgeDevice device { get; set; }
+
         public X509ManualProvisioningFixture()
             :base()
         {
@@ -25,14 +28,18 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         CancellationToken token = cts.Token;
                         DateTime startTime = DateTime.Now;
 
+                        this.thumbprint = this.CreateSelfSignedCertificateThumbprint();
+
                         EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
                         Context.Current.DeviceId + "-x509",
                         this.iotHub,
                         AuthenticationType.SelfSigned,
-                        this.CreateSelfSignedCertificateThumbprint(),
+                        thumbprint,
                         token);
 
                         Context.Current.DeleteList.TryAdd(device.Id, device);
+
+                        this.device = device;
 
                         await base.ManuallyProvisionEdgeAsync(device, startTime, token);
                     }
