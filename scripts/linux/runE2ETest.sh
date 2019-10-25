@@ -154,9 +154,9 @@ function prepare_test_from_artifacts() {
                 if [[ "${TEST_NAME,,}" == 'longhaul' ]]; then
                     echo "Copy deployment file from $long_haul_deployment_artifact_file"
                     cp "$long_haul_deployment_artifact_file" "$deployment_working_file"
-                    sed -i -e "s@<ServiceClientConnectionString>@$IOTHUB_CONNECTION_STRING@g" "$deployment_working_file"
-                    sed -i -e "s@<RandomRestartIntervalInMins>@$RANDOM_RESTART_INTERVAL_IN_MINS@g" "$deployment_working_file"
                     sed -i -e "s@<DesiredModulesToRestartCSV>@$DESIRED_MODULES_TO_RESTART_CSV@g" "$deployment_working_file"
+                    sed -i -e "s@<RandomRestartIntervalInMins>@$RANDOM_RESTART_INTERVAL_IN_MINS@g" "$deployment_working_file"
+                    sed -i -e "s@<ServiceClientConnectionString>@$IOTHUB_CONNECTION_STRING@g" "$deployment_working_file"
                 else
                     echo "Copy deployment file from $stress_deployment_artifact_file"
                     cp "$stress_deployment_artifact_file" "$deployment_working_file"
@@ -629,6 +629,7 @@ function run_longhaul_test() {
     test_setup
 
     local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-longhaul"
+
     sed -i -e "s@<DeviceID>@$device_id@g" "$deployment_working_file"
 
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
@@ -706,6 +707,8 @@ function run_stress_test() {
     test_setup
 
     local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-stress"
+
+    sed -i -e "s@<DeviceID>@$device_id@g" "$deployment_working_file"
 
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run Stress test with -d '$device_id' started at $test_start_time"
