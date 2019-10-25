@@ -14,11 +14,38 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         readonly ModuleClient moduleClient;
         readonly IDictionary<string, ISet<int>> receivedForInput;
         IList<MethodRequest> receivedMethodRequests;
+        bool disposed = false;
 
         TestModule(ModuleClient moduleClient)
         {
             this.moduleClient = moduleClient;
             this.receivedForInput = new Dictionary<string, ISet<int>>();
+        }
+
+        ~TestModule()
+        {
+            this.Dispose(false);
+        }
+
+        public void Dispose()
+        {
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        public void Dispose(bool disposing)
+        {
+            if (this.disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                this.moduleClient?.Dispose();
+            }
+
+            this.disposed = true;
         }
 
         public static async Task<TestModule> CreateAndConnect(string connectionString, ITransportSettings[] settings)
