@@ -1,0 +1,94 @@
+use std::fmt;
+use std::fmt::Display;
+
+use failure::{Backtrace, Context, Fail};
+
+use shellrt_api::v0::{Error as ApiError, ErrorCode as ApiErrorCode};
+
+pub type Result<T> = ::std::result::Result<T, Error>;
+
+#[derive(Debug)]
+pub struct Error {
+    inner: Context<ErrorKind>,
+}
+
+#[derive(Debug, Fail)]
+pub enum ErrorKind {
+    #[fail(display = "Incompatible API version")]
+    IncompatibleVersion,
+
+    #[fail(display = "Could not parse request")]
+    InvalidRequest,
+
+    #[fail(display = "Unimplemented request kind")]
+    UnimplementedReq,
+}
+
+impl Fail for Error {
+    fn cause(&self) -> Option<&dyn Fail> {
+        self.inner.cause()
+    }
+
+    fn backtrace(&self) -> Option<&Backtrace> {
+        self.inner.backtrace()
+    }
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.inner, f)
+    }
+}
+
+impl Error {
+    pub fn new(inner: Context<ErrorKind>) -> Self {
+        Error { inner }
+    }
+
+    pub fn kind(&self) -> &ErrorKind {
+        self.inner.get_context()
+    }
+}
+
+impl From<ErrorKind> for Error {
+    fn from(kind: ErrorKind) -> Self {
+        Error {
+            inner: Context::new(kind),
+        }
+    }
+}
+
+impl From<Context<ErrorKind>> for Error {
+    fn from(inner: Context<ErrorKind>) -> Self {
+        Error { inner }
+    }
+}
+
+impl Into<ApiError> for Error {
+    fn into(self: Error) -> ApiError {
+        use ErrorKind::*;
+
+        ApiError {
+            code: match self.kind() {
+                IncompatibleVersion => ApiErrorCode::IncompatibleVersion,
+                InvalidRequest => ApiErrorCode::InvalidRequest,
+                UnimplementedReq => ApiErrorCode::Other(100),
+            },
+            message: self.to_string(),
+            // TODO: make the details nicer
+            detail: {
+                let err: failure::Error = self.into();
+                let msg = err
+                    .iter_causes()
+                    .map(|cause| format!("\tcaused by: {}", cause))
+                    .collect::<Vec<String>>()
+                    .join("\n");
+                if msg.is_empty() {
+                    None
+                } else {
+                    Some(serde_json::Value::String(msg))
+                }
+            },
+        }
+    }
+}

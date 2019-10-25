@@ -1,0 +1,19 @@
+[package]
+name = "shellrt-containerd"
+version = "0.1.0"
+authors = ["Azure IoT Edge Devs"]
+edition = "2018"
+
+[dependencies]
+containrs = { path = "../../containrs/containrs" }
+containerd-grpc = { path = "../containerd-grpc" }
+shellrt-api = { path = "../shellrt-api" }
+
+bytes = "0.4"
+failure = "0.1"
+futures-preview = { version = "0.3.0-alpha.19", features = ["async-await"]}
+log = "0.4"
+pretty_env_logger = "0.3"
+serde_json = "1.0"
+tokio = "0.2.0-alpha.6"
+tonic = "0.1.0-alpha.4"
