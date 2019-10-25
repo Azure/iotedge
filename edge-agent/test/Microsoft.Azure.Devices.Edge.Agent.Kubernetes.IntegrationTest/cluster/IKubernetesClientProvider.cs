@@ -6,6 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Cluster
 
     public interface IKubernetesClientProvider
     {
-        Task<IKubernetes> GetClient();
+        Task<IKubernetes> GetClientAsync();
     }
 }

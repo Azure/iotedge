@@ -25,17 +25,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
         {
             if (this.clientProvider is IKubernetesClusterManager clusterManager)
             {
-                await clusterManager.Create();
+                await clusterManager.CreateAsync();
             }
 
-            this.Client = await this.clientProvider.GetClient();
+            this.Client = await this.clientProvider.GetClientAsync();
         }
 
         public async Task DisposeAsync()
         {
             if (this.clientProvider is IKubernetesClusterManager clusterManager)
             {
-                await clusterManager.Delete();
+                await clusterManager.DeleteAsync();
             }
         }
 

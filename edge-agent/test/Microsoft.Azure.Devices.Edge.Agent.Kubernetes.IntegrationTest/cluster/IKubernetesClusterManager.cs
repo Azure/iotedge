@@ -5,8 +5,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Cluster
 
     public interface IKubernetesClusterManager : IKubernetesClientProvider
     {
-        Task Create();
+        Task CreateAsync();
 
-        Task Delete();
+        Task DeleteAsync();
     }
 }

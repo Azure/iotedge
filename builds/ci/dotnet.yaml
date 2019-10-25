@@ -8,6 +8,7 @@ pr: none
 variables:
   build.configuration: Release
   dotnet.version: 2.1.302
+  test.filter: Category=Integration&Category!=Stress
 jobs:
   - job: linux
     displayName: Linux
@@ -16,7 +17,6 @@ jobs:
       vmImage: ubuntu-16.04
     variables:
       testEnvironment: linux
-      test.filter: Category=Integration&Category!=Stress
     steps:
       - task: AzureKeyVault@1
         displayName: Get secrets
@@ -93,7 +93,6 @@ jobs:
       vmImage: windows-2019
     variables:
       testEnvironment: windows
-      test.filter: Category=Integration&Category!=Stress&Category!=Kubernetes
     steps:
       - task: AzureKeyVault@1
         displayName: Get secrets
@@ -115,7 +114,7 @@ jobs:
           version: $(dotnet.version)
       - powershell: scripts/windows/build/Publish-Branch.ps1 -Configuration $(Build.Configuration) -UpdateVersion
         displayName: Build
-      - powershell: scripts/windows/test/Test-Branch.ps1 -Filter "$(test.filter)" -BuildConfig $(Build.Configuration)
+      - powershell: scripts/windows/test/Test-Branch.ps1 -Filter "$(test.filter)&Category!=Kubernetes" -BuildConfig $(Build.Configuration)
         displayName: Test
         env:
           DummySecret1: $(DummySecret1)

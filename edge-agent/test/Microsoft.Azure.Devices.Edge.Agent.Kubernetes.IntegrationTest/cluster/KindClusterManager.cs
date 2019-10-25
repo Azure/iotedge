@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Cluster
             this.name = name;
         }
 
-        public async Task Create()
+        public async Task CreateAsync()
         {
             await BashCommand($@"kind create cluster --name ""{this.name}""")
                 .SetStandardOutputCallback(Console.WriteLine)
@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Cluster
                 .ExecuteAsync();
         }
 
-        public async Task Delete()
+        public async Task DeleteAsync()
         {
             await BashCommand($@"kind delete cluster --name ""{this.name}""")
                 .SetStandardOutputCallback(Console.WriteLine)
@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Cluster
                 .ExecuteAsync();
         }
 
-        public async Task<IKubernetes> GetClient()
+        public async Task<IKubernetes> GetClientAsync()
         {
             string path = string.Empty;
 

@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.Cluster
 
     public class KubernetesClientProvider : IKubernetesClientProvider
     {
-        public Task<IKubernetes> GetClient()
+        public Task<IKubernetes> GetClientAsync()
         {
             // load the k8s config from KUBECONFIG or $HOME/.kube/config or in-cluster if its available
             KubernetesClientConfiguration kubeConfig = Option.Maybe(Environment.GetEnvironmentVariable("KUBECONFIG"))
