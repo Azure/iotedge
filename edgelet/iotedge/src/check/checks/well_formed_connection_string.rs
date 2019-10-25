@@ -1,6 +1,6 @@
 use failure::{self, Context, ResultExt};
 
-use edgelet_core::{self, ManualAuthMethod, Provisioning, RuntimeSettings};
+use edgelet_core::{self, ManualAuthMethod, ProvisioningType, RuntimeSettings};
 
 use crate::check::{checker::Checker, Check, CheckResult};
 
@@ -34,7 +34,7 @@ impl WellFormedConnectionString {
             return Ok(CheckResult::Skipped);
         };
 
-        if let Provisioning::Manual(manual) = settings.provisioning() {
+        if let ProvisioningType::Manual(manual) = settings.provisioning().provisioning_type() {
             let hub = match manual.authentication_method() {
                 ManualAuthMethod::DeviceConnectionString(cs) => {
                     let (_, device, hub) = cs.parse_device_connection_string().context(

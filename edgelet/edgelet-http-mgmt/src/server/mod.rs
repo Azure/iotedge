@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use failure::{Compat, Fail, ResultExt};
+use futures::sync::mpsc::UnboundedSender;
 use futures::{future, Future};
+
 use hyper::service::{NewService, Service};
 use hyper::{Body, Request};
 use lazy_static::lazy_static;
@@ -17,10 +19,12 @@ use edgelet_http::route::*;
 use edgelet_http::router;
 use edgelet_http::Version;
 
+mod device_actions;
 mod identity;
 mod module;
 mod system_info;
 
+use self::device_actions::*;
 use self::identity::*;
 pub use self::module::*;
 use self::system_info::*;
@@ -36,7 +40,11 @@ pub struct ManagementService {
 }
 
 impl ManagementService {
-    pub fn new<M, I>(runtime: &M, identity: &I) -> impl Future<Item = Self, Error = Error>
+    pub fn new<M, I>(
+        runtime: &M,
+        identity: &I,
+        initiate_shutdown_and_reprovision: UnboundedSender<()>,
+    ) -> impl Future<Item = Self, Error = Error>
     where
         M: ModuleRuntime + Authenticator<Request = Request<Body>> + Clone + Send + Sync + 'static,
         for<'r> &'r <M as ModuleRuntime>::Error: Into<ModuleRuntimeErrorReason>,
@@ -64,6 +72,8 @@ impl ManagementService {
             delete  Version2018_06_28 runtime Policy::Module(&*AGENT_NAME)  => "/identities/(?P<name>[^/]+)"        => DeleteIdentity::new(identity.clone()),
 
             get     Version2018_06_28 runtime Policy::Anonymous             => "/systeminfo"                        => GetSystemInfo::new(runtime.clone()),
+
+            post    Version2019_10_22 runtime Policy::Module(&*AGENT_NAME)  => "/device/reprovision"                => ReprovisionDevice::new(initiate_shutdown_and_reprovision),
         );
 
         router.new_service().then(|inner| {
