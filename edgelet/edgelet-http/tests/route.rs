@@ -111,6 +111,11 @@ fn same_path_with_different_version() {
             "/route1/(?P<name>[^/]+)",
             route2,
         )
+        .get(
+            Version::Version2019_10_22,
+            "/route1/(?P<name>[^/]+)",
+            route2,
+        )
         .finish();
     let router = Router::from(recognizer);
     let mut service = router.new_service().wait().unwrap();
@@ -121,8 +126,12 @@ fn same_path_with_different_version() {
     let uri2 = "http://example.com/route1/thename2?api-version=2019-01-30";
     let request2 = Request::get(uri2).body(Body::default()).unwrap();
 
+    let uri3 = "http://example.com/route1/thename3?api-version=2019-10-22";
+    let request3 = Request::get(uri3).body(Body::default()).unwrap();
+
     let response1 = service.call(request1).wait().unwrap();
     let response2 = service.call(request2).wait().unwrap();
+    let response3 = service.call(request3).wait().unwrap();
 
     let body1: String = response1
         .into_body()
@@ -136,9 +145,16 @@ fn same_path_with_different_version() {
         .and_then(|body: Chunk| Ok(String::from_utf8(body.to_vec()).unwrap()))
         .wait()
         .unwrap();
+    let body3: String = response3
+        .into_body()
+        .concat2()
+        .and_then(|body: Chunk| Ok(String::from_utf8(body.to_vec()).unwrap()))
+        .wait()
+        .unwrap();
 
     assert_eq!("route1 thename", body1);
     assert_eq!("route1 thename2", body2);
+    assert_eq!("route1 thename3", body3);
 }
 
 #[test]
@@ -226,6 +242,11 @@ fn not_found_for_api_version() {
         )
         .get(
             Version::Version2019_01_30,
+            "/route2/(?P<name>[^/]+)",
+            route2,
+        )
+        .get(
+            Version::Version2019_10_22,
             "/route2/(?P<name>[^/]+)",
             route2,
         )

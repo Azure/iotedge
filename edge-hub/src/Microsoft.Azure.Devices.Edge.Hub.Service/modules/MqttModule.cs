@@ -95,7 +95,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     {
                         if (this.isStoreAndForwardEnabled)
                         {
-                            IEntityStore<string, SessionState> entityStore = new StoreProvider(c.Resolve<IDbStoreProvider>()).GetEntityStore<string, SessionState>(Constants.SessionStorePartitionKey);
+                            IDbStoreProvider dbStoreProvider = await c.Resolve<Task<IDbStoreProvider>>();
+                            IEntityStore<string, SessionState> entityStore = new StoreProvider(dbStoreProvider).GetEntityStore<string, SessionState>(Constants.SessionStorePartitionKey);
                             IEdgeHub edgeHub = await c.Resolve<Task<IEdgeHub>>();
                             return new SessionStateStoragePersistenceProvider(edgeHub, entityStore) as ISessionStatePersistenceProvider;
                         }
@@ -112,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     async c =>
                     {
-                        var productInfoStore = c.Resolve<IProductInfoStore>();
+                        var productInfoStore = await c.Resolve<Task<IProductInfoStore>>();
                         var settingsProvider = c.Resolve<ISettingsProvider>();
                         var websocketListenerRegistry = c.Resolve<IWebSocketListenerRegistry>();
                         var byteBufferAllocator = c.Resolve<IByteBufferAllocator>();
