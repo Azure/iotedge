@@ -397,9 +397,29 @@ impl External {
 }
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+#[serde(rename_all = "lowercase")]
+pub struct Provisioning {
+    #[serde(flatten)]
+    provisioning: ProvisioningType,
+
+    #[serde(default)]
+    dynamic_reprovisioning: bool,
+}
+
+impl Provisioning {
+    pub fn provisioning_type(&self) -> &ProvisioningType {
+        &self.provisioning
+    }
+
+    pub fn dynamic_reprovisioning(&self) -> bool {
+        self.dynamic_reprovisioning
+    }
+}
+
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 #[serde(tag = "source")]
 #[serde(rename_all = "lowercase")]
-pub enum Provisioning {
+pub enum ProvisioningType {
     Manual(Box<Manual>),
     Dps(Box<Dps>),
     External(External),

@@ -23,6 +23,9 @@ pub enum ErrorKind {
 
     #[fail(display = "External provisioning client initialization")]
     InitializeExternalProvisioningClient,
+
+    #[fail(display = "Could not reprovision the device")]
+    ReprovisionDevice,
 }
 
 impl Fail for Error {
