@@ -30,5 +30,13 @@ namespace DevOpsLib
                 throw new ArgumentException("Cannot be null or empty collection.", field);
             }
         }
+
+        public static void ThrowIfNull(object value, string field)
+        {
+            if (value == null)
+            {
+                throw new ArgumentNullException("Cannot be null.", field);
+            }
+        }
     }
 }

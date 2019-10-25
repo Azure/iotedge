@@ -9,6 +9,8 @@ namespace DevOpsLib
 
     public class IoTEdgeVstsAgent : IEquatable<IoTEdgeVstsAgent>, ICloneable
     {
+        const string AgentGroupCapabilityKey = "agent-group";
+
         readonly int id;
         readonly string name;
         readonly string version;
@@ -51,6 +53,8 @@ namespace DevOpsLib
 
         public static IoTEdgeVstsAgent Create(VstsAgent vstsAgent)
         {
+            ValidationUtil.ThrowIfNull(vstsAgent, nameof(vstsAgent));
+
             HashSet<AgentCapability> systemCapabilities = vstsAgent.SystemCapabilities?.Select(c => new AgentCapability(c.Key, c.Value)).ToHashSet();
             HashSet<AgentCapability> userCapabilities = vstsAgent.UserCapabilities?.Select(c => new AgentCapability(c.Key, c.Value)).ToHashSet();
 
@@ -72,7 +76,7 @@ namespace DevOpsLib
 
         public string GetAgentGroup()
         {
-            return this.userCapabilities.Where(c => c.Name.Equals("agent-group")).Select(c => c.Value).FirstOrDefault() ?? string.Empty;
+            return this.userCapabilities.Where(c => c.Name.Equals(AgentGroupCapabilityKey)).Select(c => c.Value).FirstOrDefault() ?? string.Empty;
         }
 
         public object Clone()
@@ -105,8 +109,10 @@ namespace DevOpsLib
             }
 
             if (this.id != other.id ||
-                !string.Equals(this.name, other.name) ||
-                !string.Equals(this.version, other.version) || this.status != other.status || this.enabled != other.enabled)
+                !string.Equals(this.name, other.name, StringComparison.Ordinal) ||
+                !string.Equals(this.version, other.version, StringComparison.Ordinal) ||
+                this.status != other.status ||
+                this.enabled != other.enabled)
             {
                 return false;
             }

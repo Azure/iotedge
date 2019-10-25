@@ -5,6 +5,7 @@ namespace DevOpsLib.VstsModels
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 
+    // Refer to https://docs.microsoft.com/en-us/rest/api/azure/devops/build/builds/get?view=azure-devops-rest-5.1 for schema
     [JsonConverter(typeof(JsonPathConverter))]
     public class VstsBuild
     {

@@ -7,58 +7,67 @@ namespace DevOpsLib
 
     public class AgentMatrix
     {
+        class CapabilityKeys
+        {
+            public const string AgentOS = "Agent.OS";
+            public const string AgentOSArchitecture = "Agent.OSArchitecture";
+            public const string AgentOSName = "agent-os-name";
+            public const string AgentOSBits = "agent-osbits";
+            public const string RunnerOSName = "runner-os-name";
+        }
+
         readonly IList<AgentDemandSet> rows = new List<AgentDemandSet>()
         {
             new AgentDemandSet(
                 "Linux AMD64",
                 new HashSet<AgentCapability>
                 {
-                    new AgentCapability("Agent.OS", "Linux"),
-                    new AgentCapability("Agent.OSArchitecture", "X64"),
+                    new AgentCapability(CapabilityKeys.AgentOS, "Linux"),
+                    new AgentCapability(CapabilityKeys.AgentOSArchitecture, "X64"),
                 }),
             new AgentDemandSet(
                 "Linux ARM32",
                 new HashSet<AgentCapability>
                 {
-                    new AgentCapability("Agent.OS", "Linux"),
-                    new AgentCapability("Agent.OSArchitecture", "ARM"),
-                    new AgentCapability("agent-osbits", "32"),
+                    new AgentCapability(CapabilityKeys.AgentOS, "Linux"),
+                    new AgentCapability(CapabilityKeys.AgentOSArchitecture, "ARM"),
+                    new AgentCapability(CapabilityKeys.AgentOSBits, "32"),
                 }),
             new AgentDemandSet(
                 "Linux ARM64",
                 new HashSet<AgentCapability>
                 {
-                    new AgentCapability("Agent.OS", "Linux"),
-                    new AgentCapability("Agent.OSArchitecture", "ARM"),
-                    new AgentCapability("agent-osbits", "64"),
+                    new AgentCapability(CapabilityKeys.AgentOS, "Linux"),
+                    new AgentCapability(CapabilityKeys.AgentOSArchitecture, "ARM"),
+                    new AgentCapability(CapabilityKeys.AgentOSBits, "64"),
                 }),
             new AgentDemandSet(
                 "Windows AMD64",
                 new HashSet<AgentCapability>
                 {
-                    new AgentCapability("Agent.OS", "Windows_NT"),
-                    new AgentCapability("Agent.OSArchitecture", "X64"),
-                    new AgentCapability("agent-os-name", "WinPro_x64"),
+                    new AgentCapability(CapabilityKeys.AgentOS, "Windows_NT"),
+                    new AgentCapability(CapabilityKeys.AgentOSArchitecture, "X64"),
+                    new AgentCapability(CapabilityKeys.AgentOSName, "WinPro_x64"),
                 }),
             new AgentDemandSet(
                 "Windows Server Core AMD64",
                 new HashSet<AgentCapability>
                 {
-                    new AgentCapability("Agent.OS", "Windows_NT"),
-                    new AgentCapability("Agent.OSArchitecture", "X64"),
-                    new AgentCapability("agent-os-name", "WinServerCore_x64"),
+                    new AgentCapability(CapabilityKeys.AgentOS, "Windows_NT"),
+                    new AgentCapability(CapabilityKeys.AgentOSArchitecture, "X64"),
+                    new AgentCapability(CapabilityKeys.AgentOSName, "WinServerCore_x64"),
                 }),
             new AgentDemandSet(
                 "Windows IoT Core AMD64",
                 new HashSet<AgentCapability>
                 {
-                    new AgentCapability("runner-os-name", "WinIoTCore_x64"),
+                    new AgentCapability(CapabilityKeys.RunnerOSName, "WinIoTCore_x64"),
                 }),
             new AgentDemandSet(
                 "Windows IoT Core ARM32",
                 new HashSet<AgentCapability>
                 {
-                    new AgentCapability("runner-os-name", "WinIoTCore_arm32"),
+                    new AgentCapability(CapabilityKeys.RunnerOSName, "WinIoTCore_arm32"),
                 }),
         };
 
