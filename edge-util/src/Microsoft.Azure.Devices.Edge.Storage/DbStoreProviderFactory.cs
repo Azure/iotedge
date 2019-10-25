@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Storage
 {
-    using Microsoft.Azure.Devices.Edge.Util;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     /// <summary>
     /// Factory with methods to obtain instances of DB Store Providers.

@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Nito.AsyncEx;
 
     /// <summary>
     /// Provides an in memory implementation of the IDbStore that is aware of memory usage limits.
@@ -11,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     class MemoryUsageAwareInMemoryDbStore : InMemoryDbStore, ISizedDbStore
     {
         readonly IStorageSpaceChecker storageSpaceChecker;
+        readonly AsyncLock asyncLock = new AsyncLock();
         long dbSize;
 
         public MemoryUsageAwareInMemoryDbStore(IStorageSpaceChecker diskSpaceChecker)
@@ -21,46 +23,47 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public long DbSizeInBytes => this.dbSize;
 
-        public new Task Put(byte[] key, byte[] value)
+        public new Task Put(byte[] key, byte[] value) => this.Put(key, value, CancellationToken.None);
+
+        public new async Task Put(byte[] key, byte[] value, CancellationToken cancellationToken)
         {
             if (this.storageSpaceChecker.IsFull)
             {
-                return Task.FromException(new StorageFullException("Memory store is full"));
+                throw new StorageFullException("Memory store is full");
             }
 
-            Interlocked.Add(ref this.dbSize, key.Length + value.Length);
-            return base.Put(key, value);
-        }
-
-        public new Task Put(byte[] key, byte[] value, CancellationToken cancellationToken)
-        {
-            if (this.storageSpaceChecker.IsFull)
+            using (await this.asyncLock.LockAsync(cancellationToken))
             {
-                return Task.FromException(new StorageFullException("Memory store is full"));
+                Option<byte[]> existingValue = await this.Get(key, cancellationToken);
+                existingValue.Match(
+                    existing =>
+                    {
+                        this.dbSize += value.Length - existing.Length;
+                        return this.dbSize;
+                    },
+                    () =>
+                    {
+                        this.dbSize += key.Length + value.Length;
+                        return this.dbSize;
+                    });
+
+                await base.Put(key, value, cancellationToken);
             }
-
-            Interlocked.Add(ref this.dbSize, key.Length + value.Length);
-            return base.Put(key, value, cancellationToken);
         }
 
-        public new async Task Remove(byte[] key)
-        {
-            Option<byte[]> value = await this.Get(key);
-            value.ForEach(x =>
-            {
-                Interlocked.Add(ref this.dbSize, -(key.Length + x.Length));
-                base.Remove(key);
-            });
-        }
+        public new Task Remove(byte[] key) => this.Remove(key, CancellationToken.None);
 
         public new async Task Remove(byte[] key, CancellationToken cancellationToken)
         {
-            Option<byte[]> value = await this.Get(key, cancellationToken);
-            value.ForEach(async x =>
+            using (await this.asyncLock.LockAsync(cancellationToken))
             {
-                Interlocked.Add(ref this.dbSize, -(key.Length + x.Length));
-                await base.Remove(key, cancellationToken);
-            });
+                Option<byte[]> value = await this.Get(key, cancellationToken);
+                value.ForEach(async x =>
+                {
+                    this.dbSize -= key.Length + x.Length;
+                    await base.Remove(key, cancellationToken);
+                });
+            }
         }
     }
 }
