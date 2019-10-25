@@ -321,10 +321,12 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         {
             var val = 0;
             Option<int> intOption = Option.Some(1);
-            intOption.MatchNoReturn(b => {
+            intOption.MatchNoReturn(
+            b =>
+            {
                 val = val + b;
             },
-            () => {});
+            () => { });
             Assert.Equal(1, val);
         }
 
@@ -334,7 +336,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         {
             var val = 0;
             Option<int> intOption = Option.None<int>();
-            intOption.MatchNoReturn(b => {
+            intOption.MatchNoReturn(
+            b =>
+            {
                 val = val + b;
             },
             () => { });
