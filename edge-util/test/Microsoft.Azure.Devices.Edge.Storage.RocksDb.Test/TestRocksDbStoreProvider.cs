@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
 {
     using System;
     using System.IO;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public class TestRocksDbStoreProvider : IDbStoreProvider
@@ -38,5 +39,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
         public IDbStore GetDbStore() => this.rocksDbStoreProvider.GetDbStore("default");
 
         public void RemoveDbStore(string partitionName) => throw new NotImplementedException();
+
+        public void RemoveDbStore() => throw new NotImplementedException();
+
+        public Task CloseAsync()
+        {
+            return Task.CompletedTask;
+        }
     }
 }

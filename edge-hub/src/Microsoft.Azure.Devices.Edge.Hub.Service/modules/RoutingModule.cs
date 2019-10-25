@@ -199,7 +199,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     async c =>
                     {
-                        var productInfoStore = c.Resolve<IProductInfoStore>();
+                        var productInfoStore = await c.Resolve<Task<IProductInfoStore>>();
                         var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
                         var clientProvider = c.Resolve<IClientProvider>();
                         var tokenProvider = c.ResolveNamed<ITokenProvider>("EdgeHubClientAuthTokenProvider");
@@ -351,49 +351,50 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     .As<EndpointExecutorConfig>()
                     .SingleInstance();
 
-                // ICheckpointStore
+                // Task<ICheckpointStore>
                 builder.Register(
-                        c =>
+                        async c =>
                         {
-                            var dbStoreProvider = c.Resolve<IDbStoreProvider>();
+                            var dbStoreProvider = await c.Resolve<Task<IDbStoreProvider>>();
                             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
-                            return CheckpointStore.Create(storeProvider);
+                            ICheckpointStore checkpointStore = CheckpointStore.Create(storeProvider);
+                            return checkpointStore;
                         })
-                    .As<ICheckpointStore>()
+                    .As<Task<ICheckpointStore>>()
                     .SingleInstance();
 
-                // IMessageStore
+                // Task<IMessageStore>
                 builder.Register(
-                        c =>
+                        async c =>
                         {
-                            var checkpointStore = c.Resolve<ICheckpointStore>();
-                            var dbStoreProvider = c.Resolve<IDbStoreProvider>();
+                            var checkpointStore = await c.Resolve<Task<ICheckpointStore>>();
+                            var dbStoreProvider = await c.Resolve<Task<IDbStoreProvider>>();
                             IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
                             IMessageStore messageStore = new MessageStore(storeProvider, checkpointStore, TimeSpan.MaxValue);
                             return messageStore;
                         })
-                    .As<IMessageStore>()
+                    .As<Task<IMessageStore>>()
                     .SingleInstance();
 
-                // IEndpointExecutorFactory
+                // Task<IEndpointExecutorFactory>
                 builder.Register(
-                        c =>
+                        async c =>
                         {
                             var endpointExecutorConfig = c.Resolve<EndpointExecutorConfig>();
-                            var messageStore = c.Resolve<IMessageStore>();
+                            var messageStore = await c.Resolve<Task<IMessageStore>>();
                             IEndpointExecutorFactory endpointExecutorFactory = new StoringAsyncEndpointExecutorFactory(endpointExecutorConfig, new AsyncEndpointExecutorOptions(10, TimeSpan.FromSeconds(10)), messageStore);
                             return endpointExecutorFactory;
                         })
-                    .As<IEndpointExecutorFactory>()
+                    .As<Task<IEndpointExecutorFactory>>()
                     .SingleInstance();
 
                 // Task<Router>
                 builder.Register(
                         async c =>
                         {
-                            var checkpointStore = c.Resolve<ICheckpointStore>();
+                            var checkpointStore = await c.Resolve<Task<ICheckpointStore>>();
                             var routerConfig = c.Resolve<RouterConfig>();
-                            var endpointExecutorFactory = c.Resolve<IEndpointExecutorFactory>();
+                            var endpointExecutorFactory = await c.Resolve<Task<IEndpointExecutorFactory>>();
                             return await Router.CreateAsync(Guid.NewGuid().ToString(), this.iotHubName, routerConfig, endpointExecutorFactory, checkpointStore);
                         })
                     .As<Task<Router>>()
@@ -405,7 +406,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                         {
                             if (this.useV1TwinManager)
                             {
-                                var dbStoreProvider = c.Resolve<IDbStoreProvider>();
+                                var dbStoreProvider = await c.Resolve<Task<IDbStoreProvider>>();
                                 var messageConverterProvider = c.Resolve<IMessageConverterProvider>();
                                 IConnectionManager connectionManager = await c.Resolve<Task<IConnectionManager>>();
                                 return TwinManager.CreateTwinManager(connectionManager, messageConverterProvider, Option.Some<IStoreProvider>(new StoreProvider(dbStoreProvider)));
@@ -507,7 +508,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     async c =>
                     {
-                        IMessageStore messageStore = this.isStoreAndForwardEnabled ? c.Resolve<IMessageStore>() : null;
+                        IMessageStore messageStore = this.isStoreAndForwardEnabled ? await c.Resolve<Task<IMessageStore>>() : null;
                         Router router = await c.Resolve<Task<Router>>();
                         var configUpdater = new ConfigUpdater(router, messageStore, this.configUpdateFrequency);
                         return configUpdater;
@@ -572,7 +573,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         {
             string entityName = "EdgeTwin";
             Option<IEntityStore<string, TwinStoreEntity>> twinStoreOption = Option.None<IEntityStore<string, TwinStoreEntity>>();
-            var storeProvider = context.Resolve<IStoreProvider>();
+            var storeProvider = await context.Resolve<Task<IStoreProvider>>();
             if (this.encryptTwinStore)
             {
                 Option<IEncryptionProvider> encryptionProvider = await context.Resolve<Task<Option<IEncryptionProvider>>>();

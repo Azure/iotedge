@@ -9,8 +9,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.DeviceManager;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Test;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models;
+    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json.Linq;
@@ -19,8 +21,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
     [Unit]
     public class ModuleManagementHttpClientTest : IClassFixture<EdgeletFixture>
     {
+        static readonly string[] Versions = new string[] { "2018-06-28", "2019-01-30", "2019-10-22" };
         readonly Uri serverUrl;
         readonly EdgeletFixture edgeletFixture;
+
+        public static IEnumerable<object[]> VersionMap => GetVersionMap();
 
         public ModuleManagementHttpClientTest(EdgeletFixture edgeletFixture)
         {
@@ -51,21 +56,40 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
             Assert.True(versionedClient is Version_2019_01_30.ModuleManagementHttpClient);
 
+            serverApiVersion = "2019-01-30";
+            clientApiVersion = "2019-10-22";
+            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
+            Assert.True(versionedClient is Version_2019_01_30.ModuleManagementHttpClient);
+
+            serverApiVersion = "2019-10-22";
+            clientApiVersion = "2018-06-28";
+            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
+            Assert.True(versionedClient is Version_2018_06_28.ModuleManagementHttpClient);
+
+            serverApiVersion = "2019-10-22";
+            clientApiVersion = "2019-01-30";
+            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
+            Assert.True(versionedClient is Version_2019_01_30.ModuleManagementHttpClient);
+
+            serverApiVersion = "2019-10-22";
+            clientApiVersion = "2019-10-22";
+            versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
+            Assert.True(versionedClient is Version_2019_10_22.ModuleManagementHttpClient);
+
+            // Unsupported server.
             serverApiVersion = "2019-02-30";
             clientApiVersion = "2019-01-30";
             versionedClient = ModuleManagementHttpClient.GetVersionedModuleManagement(this.serverUrl, serverApiVersion, clientApiVersion);
             Assert.True(versionedClient is Version_2019_01_30.ModuleManagementHttpClient);
 
+            // Unsupported client.
             serverApiVersion = "2019-01-30";
             clientApiVersion = "2019-02-30";
             Assert.Throws<InvalidOperationException>(() => new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion));
         }
 
         [Theory]
-        [InlineData("2018-06-28", "2018-06-28")]
-        [InlineData("2018-06-28", "2019-01-30")]
-        [InlineData("2019-01-30", "2018-06-28")]
-        [InlineData("2019-01-30", "2019-01-30")]
+        [MemberData(nameof(VersionMap))]
         public async Task IdentityTest(string serverApiVersion, string clientApiVersion)
         {
             // Arrange
@@ -140,10 +164,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         }
 
         [Theory]
-        [InlineData("2018-06-28", "2018-06-28")]
-        [InlineData("2018-06-28", "2019-01-30")]
-        [InlineData("2019-01-30", "2018-06-28")]
-        [InlineData("2019-01-30", "2019-01-30")]
+        [MemberData(nameof(VersionMap))]
         public async Task ModulesTest(string serverApiVersion, string clientApiVersion)
         {
             // Arrange
@@ -219,10 +240,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         }
 
         [Theory]
-        [InlineData("2018-06-28", "2018-06-28")]
-        [InlineData("2018-06-28", "2019-01-30")]
-        [InlineData("2019-01-30", "2018-06-28")]
-        [InlineData("2019-01-30", "2019-01-30")]
+        [MemberData(nameof(VersionMap))]
         public async Task Test_PrepareUpdate_ShouldSucceed(string serverApiVersion, string clientApiVersion)
         {
             // Arrange
@@ -237,10 +255,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         }
 
         [Theory]
-        [InlineData("2018-06-28", "2018-06-28")]
-        [InlineData("2018-06-28", "2019-01-30")]
-        [InlineData("2019-01-30", "2018-06-28")]
-        [InlineData("2019-01-30", "2019-01-30")]
+        [MemberData(nameof(VersionMap))]
         public async Task ModuleLogsTest(string serverApiVersion, string clientApiVersion)
         {
             // Arrange
@@ -256,6 +271,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             Assert.Equal(buffer.Length, bytesRead);
         }
 
+        [Theory]
+        [MemberData(nameof(VersionMap))]
+        public async Task Test_ReprovisionDevice_ShouldSucceed(string serverApiVersion, string clientApiVersion)
+        {
+            // Arrange
+            IDeviceManager client = new ModuleManagementHttpClient(this.serverUrl, serverApiVersion, clientApiVersion);
+
+            // Act and Assert
+            await client.ReprovisionDeviceAsync();
+        }
+
         [Fact]
         public void ImagePullPolicyTest()
         {
@@ -265,8 +291,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             Assert.Equal(
                 Version_2019_01_30.GeneratedCode.ImagePullPolicy.Never,
                 Version_2019_01_30.ModuleManagementHttpClient.ToGeneratedCodePullPolicy(ImagePullPolicy.Never));
+            Assert.Equal(
+                Version_2019_10_22.GeneratedCode.ImagePullPolicy.OnCreate,
+                Version_2019_10_22.ModuleManagementHttpClient.ToGeneratedCodePullPolicy(ImagePullPolicy.OnCreate));
+            Assert.Equal(
+                Version_2019_10_22.GeneratedCode.ImagePullPolicy.Never,
+                Version_2019_10_22.ModuleManagementHttpClient.ToGeneratedCodePullPolicy(ImagePullPolicy.Never));
 
-            Assert.Throws<InvalidOperationException>(() => Version_2019_01_30.ModuleManagementHttpClient.ToGeneratedCodePullPolicy((ImagePullPolicy)int.MaxValue));
+            Assert.Throws<InvalidOperationException>(() => Version_2019_10_22.ModuleManagementHttpClient.ToGeneratedCodePullPolicy((ImagePullPolicy)int.MaxValue));
+            Assert.Throws<InvalidOperationException>(() => Version_2019_10_22.ModuleManagementHttpClient.ToGeneratedCodePullPolicy((ImagePullPolicy)int.MaxValue));
         }
 
         [Fact]
@@ -274,7 +307,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
         {
             // Arrange
             var client = new Version_2018_06_28.ModuleManagementHttpClient(this.serverUrl, Option.Some(TimeSpan.FromSeconds(10)));
+            await this.ExecuteTimeoutTest_Version_Base(client);
+        }
 
+        [Fact]
+        public async Task ExecuteTimeoutTest_Version_2019_01_30()
+        {
+            // Arrange
+            var client = new Version_2019_01_30.ModuleManagementHttpClient(this.serverUrl, Option.Some(TimeSpan.FromSeconds(10)));
+            await this.ExecuteTimeoutTest_Version_Base(client);
+        }
+
+        [Fact]
+        public async Task ExecuteTimeoutTest_Version_2019_10_22()
+        {
+            // Arrange
+            var client = new Version_2019_10_22.ModuleManagementHttpClient(this.serverUrl, Option.Some(TimeSpan.FromSeconds(10)));
+            await this.ExecuteTimeoutTest_Version_Base(client);
+        }
+
+        async Task ExecuteTimeoutTest_Version_Base(ModuleManagementHttpClientVersioned client)
+        {
+            // Arrange
             async Task<int> LongOperation()
             {
                 await Task.Delay(TimeSpan.FromHours(1));
@@ -289,24 +343,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             Assert.Equal(assertTask, completedTask);
         }
 
-        [Fact]
-        public async Task ExecuteTimeoutTest_Version_2019_01_30()
+        public static IEnumerable<object[]> GetVersionMap()
         {
-            // Arrange
-            var client = new Version_2019_01_30.ModuleManagementHttpClient(this.serverUrl, Option.Some(TimeSpan.FromSeconds(10)));
-
-            async Task<int> LongOperation()
-            {
-                await Task.Delay(TimeSpan.FromHours(1));
-                return 10;
-            }
-
-            // Act
-            Task assertTask = Assert.ThrowsAsync<TimeoutException>(() => client.Execute<int>(LongOperation, "Dummy"));
-            Task delayTask = Task.Delay(TimeSpan.FromSeconds(20));
-
-            Task completedTask = await Task.WhenAny(assertTask, delayTask);
-            Assert.Equal(assertTask, completedTask);
+            List<object[]> versionMap = Versions.SelectMany(x => Versions.Select(y => new object[] { x, y })).ToList();
+            return versionMap;
         }
     }
 }
