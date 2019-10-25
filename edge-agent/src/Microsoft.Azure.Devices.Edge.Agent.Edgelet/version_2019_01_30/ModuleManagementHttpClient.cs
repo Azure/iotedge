@@ -186,6 +186,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
             }
         }
 
+        public override Task ReprovisionDeviceAsync()
+        {
+            return Task.CompletedTask;
+        }
+
         protected override void HandleException(Exception exception, string operation)
         {
             switch (exception)

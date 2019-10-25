@@ -74,6 +74,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
 
         public abstract Task PrepareUpdateAsync(ModuleSpec moduleSpec);
 
+        public abstract Task ReprovisionDeviceAsync();
+
         public virtual async Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<int> since, CancellationToken cancellationToken)
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
