@@ -1,6 +1,6 @@
 {
   "messageFrequency": "00:00:00.02",
-  "twinUpdateFrequency": "00:00:05",
+  "twinUpdateFrequency": "00:00:20",
   "jitterFactor": 0.5,
   "transportType": "amqp",
   "messageSizeInBytes": 1024,

@@ -44,19 +44,19 @@ namespace LoadGen
                     Logger.LogInformation($"Batch Id={BatchId}");
 
                     // setup the message timer
-                    timers.Add(
-                        Settings.Current.MessageFrequency,
-                        Settings.Current.JitterFactor,
-                        () => GenerateMessageAsync(moduleClient, BatchId.ToString()));
-                    timers.Start();
-                    Logger.LogInformation("Load gen starting message send.");
+                    // timers.Add(
+                    //     Settings.Current.MessageFrequency,
+                    //     Settings.Current.JitterFactor,
+                    //     () => GenerateMessageAsync(moduleClient, BatchId.ToString()));
+                    // timers.Start();
+                    // Logger.LogInformation("Load gen starting message send.");
 
                     // setup the twin update timer
-                    Twin initialTwin = await GetInitialTwin(moduleClient, BatchId.ToString());
+                    await InitializeETag(BatchId.ToString());
                     timers.Add(
                         Settings.Current.TwinUpdateFrequency,
                         Settings.Current.JitterFactor,
-                        () => TwinUpdateAsync(moduleClient, initialTwin));
+                        () => TwinUpdateAsync(moduleClient));
                     timers.Start();
                     Logger.LogInformation("Load gen starting twin tests.");
 
@@ -107,13 +107,14 @@ namespace LoadGen
             }
         }
 
-        static async Task<Twin> GetInitialTwin(ModuleClient moduleClient, string batchId)
+        static async Task<Twin> InitializeETag(string batchId)
         {
             while (true)
             {
                 try
                 {
                     Twin twin = await RegistryManager.GetTwinAsync(DeviceId, ModuleId);
+                    Logger.LogDebug("initial twin: {0}", twin.ToJson());
                     prevETag = twin.ETag;
                     return twin;
                 }
@@ -139,11 +140,9 @@ namespace LoadGen
             CallAnalyzerToReportStatus(moduleId, status, twin.ToJson());
         }
 
-        static async Task TwinUpdateAsync(ModuleClient moduleClient, Twin initialTwin)
+        // TODO: remove initial twin from params
+        static async Task TwinUpdateAsync(ModuleClient moduleClient)
         {
-            Logger.LogDebug(initialTwin.ToJson());
-            Logger.LogDebug(initialTwin.DeviceId);
-
             TwinUpdateId += 1;
             string operationErrorContext = $" {TwinUpdateIdLabel}: {TwinUpdateId}, BatchId: {BatchId};{Environment.NewLine}";
 
@@ -155,8 +154,8 @@ namespace LoadGen
             }
             catch (Exception e)
             {
-                string status = $"[TwinUpdateAsync] Failed call to update desired properties";
-                HandleTwinMethodFailure(ModuleId, status, operationErrorContext, e);
+                string failureStatus = $"[TwinUpdateAsync] Failed call to update desired properties";
+                HandleTwinMethodFailure(ModuleId, failureStatus, operationErrorContext, e);
                 return;
             }
 
@@ -168,21 +167,21 @@ namespace LoadGen
             }
             catch (Exception e)
             {
-                string status = $"[TwinUpdateAsync] Failed call to update reported properties";
-                HandleTwinMethodFailure(ModuleId, status, operationErrorContext, e);
+                string failureStatus= $"[TwinUpdateAsync] Failed call to update reported properties";
+                HandleTwinMethodFailure(ModuleId, failureStatus, operationErrorContext, e);
                 return;
             }
 
             Twin receivedTwin;
             try
             {
+                await Task.Delay(5000); // TODO: verify delay is appropriate
                 receivedTwin = await moduleClient.GetTwinAsync();
-                Logger.LogDebug(receivedTwin.ToJson());
             }
             catch (Exception e)
             {
-                string status = "[TwinUpdateAsync] Failed call to get twin";
-                HandleTwinMethodFailure(ModuleId, status, operationErrorContext, e);
+                string failureStatus = "[TwinUpdateAsync] Failed call to get twin";
+                HandleTwinMethodFailure(ModuleId, failureStatus, operationErrorContext, e);
                 return;
             }
 
@@ -191,20 +190,21 @@ namespace LoadGen
             TwinCollection receivedReported = receivedTwin.Properties.Reported;
             if (receivedDesired.Contains(TwinUpdateIdLabel)  && receivedDesired[TwinUpdateIdLabel] != TwinUpdateId)
             {
-                string status = $"[TwinUpdateAsync] Reported property update not reflected in twin";
-                HandleWrongPropertyFailure(ModuleId, status, propertyErrorContext, receivedTwin);
+                string failureStatus = $"[TwinUpdateAsync] Desired property update not reflected in twin";
+                HandleWrongPropertyFailure(ModuleId, failureStatus, propertyErrorContext, receivedTwin);
                 return;
             }
 
             if (receivedReported.Contains(TwinUpdateIdLabel) && receivedReported[TwinUpdateIdLabel] != TwinUpdateId)
             {
-                string status = $"[TwinUpdateAsync] Desired property update not reflected in twin";
-                HandleWrongPropertyFailure(ModuleId, status, propertyErrorContext, receivedTwin);
+                string failureStatus = $"[TwinUpdateAsync] Reported property update not reflected in twin";
+                HandleWrongPropertyFailure(ModuleId, failureStatus, propertyErrorContext, receivedTwin);
                 return;
             }
 
-            Logger.LogDebug("SUCCESS");
-            CallAnalyzerToReportStatus(ModuleId, "[TwinUpdateAsync] Success", receivedTwin.ToJson());
+            string successStatus = "[TwinUpdateAsync] Successful twin update";
+            Logger.LogDebug(successStatus + $" {TwinUpdateId}");
+            CallAnalyzerToReportStatus(ModuleId, successStatus, receivedTwin.ToJson());
         }
 
         static void CallAnalyzerToReportStatus(string moduleId, string status, string responseJson)
