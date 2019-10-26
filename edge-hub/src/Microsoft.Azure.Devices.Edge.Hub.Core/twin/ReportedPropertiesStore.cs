@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
         readonly IEntityStore<string, TwinStoreEntity> twinStore;
         readonly ICloudSync cloudSync;
         readonly AsyncLockProvider<string> lockProvider = new AsyncLockProvider<string>(10);
-        readonly SemaphoreSlim syncToCloudSemaphore = new SemaphoreSlim(1);
+        readonly SemaphoreSlim syncToCloudSemaphore = new SemaphoreSlim(1, 1);
         readonly HashSet<string> syncToCloudClients = new HashSet<string>(StringComparer.Ordinal);
         readonly object syncToCloudSetLock = new object();
         readonly Task syncToCloudTask;
