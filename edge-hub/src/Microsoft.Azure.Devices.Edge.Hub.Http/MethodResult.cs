@@ -1,12 +1,25 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Http
 {
+    using System.Net;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 
-    public class MethodResult
+    public abstract class MethodResult
     {
-        public MethodResult(int status, JRaw payload)
+        protected MethodResult(HttpStatusCode statusCode)
+        {
+            this.StatusCode = statusCode;
+        }
+
+        [JsonIgnore]
+        public HttpStatusCode StatusCode { get; }
+    }
+
+    public class MethodSuccessResult : MethodResult
+    {
+        public MethodSuccessResult(int status, JRaw payload)
+            : base(HttpStatusCode.OK)
         {
             this.Status = status;
             this.Payload = payload;
@@ -21,15 +34,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http
 
     public class MethodErrorResult : MethodResult
     {
-        public MethodErrorResult(int status, JRaw payload, string message, string exceptionMessage)
-            : base(status, payload)
+        public MethodErrorResult(HttpStatusCode statusCode, string message)
+            : base(statusCode)
         {
             this.Message = message;
-            this.ExceptionMessage = exceptionMessage;
         }
 
+        [JsonProperty("message")]
         public string Message { get; }
-
-        public string ExceptionMessage { get; }
     }
 }

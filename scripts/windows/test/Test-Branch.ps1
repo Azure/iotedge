@@ -96,9 +96,16 @@ if ($Filter) {
 
 foreach($testDll in $testProjectDllsRunSerially)
 {
-	$testCommand = "$testCommandPrefix $testDll"
-	Write-Host "Run test command serially: $testCommand"
-	Invoke-Expression "$testCommand"
+    $testCommand = "$testCommandPrefix $testDll"
+    $testCommand = $testCommand.Replace("result.trx", $testDll.Replace(".dll",".trx"))
+    Write-Host "Run test command serially: $testCommand"
+    Invoke-Expression "$testCommand"
+
+    $result = $LastExitCode
+    if ($result -gt 0)
+    {
+        Exit $result
+    }
 }
 
 $testCommand = $testCommandPrefix + $testProjectsDlls

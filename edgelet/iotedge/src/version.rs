@@ -21,7 +21,7 @@ impl Command for Version {
     type Future = FutureResult<(), Error>;
 
     #[allow(clippy::print_literal)]
-    fn execute(&mut self) -> Self::Future {
+    fn execute(self) -> Self::Future {
         println!(
             "{} {}",
             crate_name!(),

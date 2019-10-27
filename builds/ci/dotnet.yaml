@@ -65,7 +65,7 @@ jobs:
         displayName: Publish test results
         inputs:
           testRunner: VSTest
-          testResultsFiles: '**/TestResults/result.trx'
+          testResultsFiles: '**/TestResults/*.trx'
         condition: succeededOrFailed()
   - job: windows
     displayName: Windows

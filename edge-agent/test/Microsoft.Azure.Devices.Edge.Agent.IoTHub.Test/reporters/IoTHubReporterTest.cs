@@ -21,12 +21,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
     using Xunit;
     using ConfigurationInfo = Microsoft.Azure.Devices.Edge.Agent.Core.ConfigurationInfo;
 
+    [Unit]
     public class IoTHubReporterTest
     {
         static readonly TimeSpan Timeout = TimeSpan.FromSeconds(5);
 
         [Fact]
-        [Unit]
         public void CreateInvalidInputs()
         {
             var edgeAgentConnection = new Mock<IEdgeAgentConnection>();
@@ -40,7 +40,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
         }
 
         [Fact]
-        [Unit]
         public async void SkipReportIfNoSavedStateAndNoStateFromConfigSource()
         {
             using (var cts = new CancellationTokenSource(Timeout))
@@ -55,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
 
                 // Act
                 var reporter = new IoTHubReporter(edgeAgentConnection.Object, agentStateSerde.Object, versionInfo);
-                await reporter.ReportAsync(cts.Token, ModuleSet.Empty, Mock.Of<IRuntimeInfo>(), 0, Option.Some(DeploymentStatus.Success));
+                await reporter.ReportAsync(cts.Token, ModuleSet.Empty, Mock.Of<IRuntimeInfo>(), 0, DeploymentStatus.Success);
 
                 // Assert
                 edgeAgentConnection.Verify(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()), Times.Never);
@@ -63,7 +62,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
         }
 
         [Fact]
-        [Unit]
         public async void ClearAndGenerateNewReportedInfoIfDeserializeFails()
         {
             // Arrange
@@ -180,7 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
 
                 // Act
                 var reporter = new IoTHubReporter(edgeAgentConnection.Object, agentStateSerde.Object, versionInfo);
-                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, Option.Some(DeploymentStatus.Success));
+                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, DeploymentStatus.Success);
 
                 // Assert
                 Assert.Equal(2, patches.Count);
@@ -245,7 +243,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
         }
 
         [Fact]
-        [Unit]
         public async void ReportedPatchTest()
         {
             using (var cts = new CancellationTokenSource(Timeout))
@@ -362,7 +359,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
 
                 // Act
                 var reporter = new IoTHubReporter(edgeAgentConnection.Object, agentStateSerde.Object, versionInfo);
-                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, Option.Some(DeploymentStatus.Success));
+                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, DeploymentStatus.Success);
 
                 // Assert
                 Assert.NotNull(patch);
@@ -424,7 +421,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
         }
 
         [Fact]
-        [Unit]
         public async void ReportedPatchNoneStatusTest()
         {
             using (var cts = new CancellationTokenSource())
@@ -541,7 +537,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
 
                 // Act
                 var reporter = new IoTHubReporter(edgeAgentConnection.Object, agentStateSerde.Object, versionInfo);
-                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, Option.Some(DeploymentStatus.Success));
+                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, DeploymentStatus.Success);
 
                 // Assert
                 Assert.NotNull(patch);
@@ -604,7 +600,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 patch = null;
 
                 // Act
-                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, Option.None<DeploymentStatus>());
+                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, DeploymentStatus.Success);
 
                 // Assert
                 Assert.Null(patch);
@@ -612,7 +608,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
         }
 
         [Fact]
-        [Unit]
         public async void ReportedPatchTestStripMetadata()
         {
             using (var cts = new CancellationTokenSource(Timeout))
@@ -735,7 +730,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
 
                 // Act
                 var reporter = new IoTHubReporter(edgeAgentConnection.Object, agentStateSerde.Object, versionInfo);
-                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, deploymentConfigInfo.Version, Option.Some(DeploymentStatus.Success));
+                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, deploymentConfigInfo.Version, DeploymentStatus.Success);
 
                 // Assert
                 Assert.NotNull(patch);
@@ -797,7 +792,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
         }
 
         [Fact]
-        [Unit]
         public async void ReportedPatchTest2()
         {
             using (var cts = new CancellationTokenSource(Timeout))
@@ -913,7 +907,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 var reporter = new IoTHubReporter(edgeAgentConnection.Object, agentStateSerde.Object, versionInfo);
 
                 // this should cause "extra_mod" to get deleted and "mod1" and "mod2" to get updated
-                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, Option.Some(DeploymentStatus.Success));
+                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, DeploymentStatus.Success);
 
                 // now change "current" so that "mod1" fails
                 currentModuleSet = ModuleSet.Create(
@@ -947,7 +941,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                         DateTime.MinValue,
                         ModuleStatus.Running));
 
-                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, Option.Some(DeploymentStatus.Success));
+                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, DeploymentStatus.Success);
 
                 // Assert
                 Assert.NotNull(patch);
@@ -973,7 +967,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
         }
 
         [Fact]
-        [Unit]
         public async void ReportAsyncDoesNotReportIfPatchIsEmpty()
         {
             using (var cts = new CancellationTokenSource(Timeout))
@@ -1084,10 +1077,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 var reporter = new IoTHubReporter(edgeAgentConnection.Object, agentStateSerde.Object, versionInfo);
 
                 // this should cause a patch to get generated
-                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, Option.Some(DeploymentStatus.Success));
+                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, DeploymentStatus.Success);
 
                 // since nothing changed, this call should not cause a patch to be generated
-                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, Option.Some(DeploymentStatus.Success));
+                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, DeploymentStatus.Success);
 
                 // Assert
                 edgeAgentConnection.Verify(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()), Times.Once);
@@ -1095,7 +1088,127 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
         }
 
         [Fact]
-        [Unit]
+        public async void ReportAsyncWithOnlyStatusChange()
+        {
+            using (var cts = new CancellationTokenSource(Timeout))
+            {
+                // Arrange
+                const long DesiredVersion = 10;
+                const string RuntimeType = "docker";
+                const string MinDockerVersion = "1.25";
+                const string LoggingOptions = "logging options";
+                const string OperatingSystemType = "linux";
+                const string Architecture = "x86_x64";
+                const string Version = "17.11.0-ce";
+                var versionInfo = new VersionInfo("v1", "b1", "c1");
+
+                // prepare AgentConfig
+                var deploymentConfig = new DeploymentConfig(
+                    "1.0",
+                    new DockerRuntimeInfo(RuntimeType, new DockerRuntimeConfig(MinDockerVersion, LoggingOptions)),
+                    new SystemModules(null, null),
+                    new Dictionary<string, IModule>());
+                var deploymentConfigInfo = new DeploymentConfigInfo(
+                    DesiredVersion,
+                    deploymentConfig);
+
+                IRuntimeInfo runtimeInfo = new DockerReportedRuntimeInfo(
+                    RuntimeType,
+                    (deploymentConfigInfo.DeploymentConfig.Runtime as DockerRuntimeInfo)?.Config,
+                    new DockerPlatformInfo(OperatingSystemType, Architecture, Version));
+
+                // prepare IEdgeAgentConnection mock
+                var edgeAgentConnection = new Mock<IEdgeAgentConnection>();
+                var reportedState = new AgentState(
+                    DesiredVersion,
+                    DeploymentStatus.Unknown,
+                    runtimeInfo,
+                    null,
+                    ModuleSet.Create(
+                        new TestRuntimeModule(
+                            "mod1",
+                            "1.0",
+                            RestartPolicy.OnUnhealthy,
+                            "test",
+                            ModuleStatus.Running,
+                            new TestConfig("image1"),
+                            0,
+                            string.Empty,
+                            DateTime.MinValue,
+                            DateTime.MinValue,
+                            0,
+                            DateTime.MinValue,
+                            ModuleStatus.Running),
+                        new TestRuntimeModule(
+                            "mod2",
+                            "1.0",
+                            RestartPolicy.OnUnhealthy,
+                            "test",
+                            ModuleStatus.Running,
+                            new TestConfig("image1"),
+                            0,
+                            string.Empty,
+                            DateTime.MinValue,
+                            DateTime.MinValue,
+                            0,
+                            DateTime.MinValue,
+                            ModuleStatus.Backoff)).Modules.ToImmutableDictionary(),
+                    "1.0",
+                    versionInfo);
+                edgeAgentConnection.SetupGet(c => c.ReportedProperties).Returns(Option.Some(new TwinCollection(JsonConvert.SerializeObject(reportedState))));
+                TwinCollection patch = null;
+                edgeAgentConnection.Setup(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()))
+                    .Callback<TwinCollection>(tc => patch = tc)
+                    .Returns(Task.CompletedTask);
+
+                // build current module set
+                ModuleSet currentModuleSet = ModuleSet.Create(
+                    new TestRuntimeModule(
+                        "mod1",
+                        "1.0",
+                        RestartPolicy.OnUnhealthy,
+                        "test",
+                        ModuleStatus.Running,
+                        new TestConfig("image1"),
+                        0,
+                        string.Empty,
+                        DateTime.MinValue,
+                        DateTime.MinValue,
+                        0,
+                        DateTime.MinValue,
+                        ModuleStatus.Running),
+                    new TestRuntimeModule(
+                        "mod2",
+                        "1.0",
+                        RestartPolicy.OnUnhealthy,
+                        "test",
+                        ModuleStatus.Running,
+                        new TestConfig("image1"),
+                        0,
+                        string.Empty,
+                        DateTime.MinValue,
+                        DateTime.MinValue,
+                        0,
+                        DateTime.MinValue,
+                        ModuleStatus.Backoff));
+
+                var agentStateSerde = new Mock<ISerde<AgentState>>();
+                agentStateSerde.Setup(s => s.Deserialize(It.IsAny<string>()))
+                    .Returns(reportedState);
+
+                // Act
+                var reporter = new IoTHubReporter(edgeAgentConnection.Object, agentStateSerde.Object, versionInfo);
+
+                // this should cause a patch to get generated
+                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, DeploymentStatus.Success);
+
+                // Assert
+                edgeAgentConnection.Verify(c => c.UpdateReportedPropertiesAsync(It.IsAny<TwinCollection>()), Times.Once);
+                Assert.Equal(200L, ((Newtonsoft.Json.Linq.JValue)patch["lastDesiredStatus"]?["code"])?.Value);
+            }
+        }
+
+        [Fact]
         public async void ReportedPatchIncludesEdgeHubInSystemModulesTest()
         {
             using (var cts = new CancellationTokenSource(Timeout))
@@ -1212,7 +1325,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
 
                 // Act
                 var reporter = new IoTHubReporter(edgeAgentConnection.Object, agentStateSerde.Object, versionInfo);
-                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, Option.Some(DeploymentStatus.Success));
+                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, DeploymentStatus.Success);
 
                 // Assert
                 Assert.NotNull(patch);
@@ -1274,7 +1387,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
         }
 
         [Fact]
-        [Unit]
         public async void ReportAsyncAcceptsNullInputs()
         {
             using (var cts = new CancellationTokenSource(Timeout))
@@ -1300,7 +1412,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
 
                 // Act
                 var reporter = new IoTHubReporter(edgeAgentConnection.Object, agentStateSerde.Object, versionInfo);
-                await reporter.ReportAsync(cts.Token, null, null, -1, Option.Some(DeploymentStatus.Success));
+                await reporter.ReportAsync(cts.Token, null, null, -1, DeploymentStatus.Success);
 
                 // Assert
                 // Assert
@@ -1328,7 +1440,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
         }
 
         [Fact]
-        [Unit]
         public async void ReportEmptyShutdown()
         {
             using (var cts = new CancellationTokenSource(Timeout))
@@ -1355,7 +1466,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
         }
 
         [Fact]
-        [Unit]
         public async void ReportShutdown()
         {
             using (var cts = new CancellationTokenSource(Timeout))
@@ -1447,7 +1557,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 var reporter = new IoTHubReporter(edgeAgentConnection.Object, agentStateSerde.Object, versionInfo);
 
                 // this should cause all modules to be updated.
-                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, Option.Some(DeploymentStatus.Success));
+                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, DeploymentStatus.Success);
 
                 // Now use the last reported configuration to report a shutdown
                 await reporter.ReportShutdown(DeploymentStatus.Success, cts.Token);
@@ -1500,7 +1610,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
         }
 
         [Fact]
-        [Unit]
         public async void ReportShutdownWithOnlyEdgeAgentInState()
         {
             using (var cts = new CancellationTokenSource(Timeout))
@@ -1561,7 +1670,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
                 var reporter = new IoTHubReporter(edgeAgentConnection.Object, agentStateSerde.Object, versionInfo);
 
                 // this should cause all modules to be updated.
-                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, Option.Some(DeploymentStatus.Success));
+                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, DeploymentStatus.Success);
 
                 // Now use the last reported configuration to report a shutdown
                 await reporter.ReportShutdown(DeploymentStatus.Success, cts.Token);
@@ -1590,7 +1699,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
         }
 
         [Fact]
-        [Unit]
         public async void ReportedPatchWithEnvVarsTest()
         {
             using (var cts = new CancellationTokenSource(Timeout))
@@ -1718,7 +1826,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test.Reporters
 
                 // Act
                 var reporter = new IoTHubReporter(edgeAgentConnection.Object, agentStateSerde.Object, versionInfo);
-                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, Option.Some(DeploymentStatus.Success));
+                await reporter.ReportAsync(cts.Token, currentModuleSet, runtimeInfo, DesiredVersion, DeploymentStatus.Success);
 
                 // Assert
                 Assert.NotNull(patch);

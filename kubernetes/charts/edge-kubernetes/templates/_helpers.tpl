@@ -27,7 +27,35 @@ certificates:
 agent:
   name: "edgeAgent"
   type: "docker"
+  {{- if .Values.edgeAgent.env }}
+  env:
+    {{- if .Values.edgeAgent.env.portMappingServiceType}}
+    PortMappingServiceType: {{ .Values.edgeAgent.env.portMappingServiceType | quote }}
+    {{- end }}
+    {{- if .Values.edgeAgent.env.enableK8sServiceCallTracing}}
+    EnableK8sServiceCallTracing: {{ .Values.edgeAgent.env.enableK8sServiceCallTracing | quote }}
+    {{- end }}
+    {{- if .Values.edgeAgent.env.runtimeLogLevel}}
+    RuntimeLogLevel: {{ .Values.edgeAgent.env.runtimeLogLevel | quote }}
+    {{- end }}
+    {{- if .Values.edgeAgent.env.persistentVolumeClaimDefaultSizeInMb}}
+    PersistentVolumeClaimDefaultSizeInMb: {{ .Values.edgeAgent.env.persistentVolumeClaimDefaultSizeInMb | quote }}
+    {{- end }}
+    {{- if .Values.edgeAgent.env.persistentVolumeName}}
+    PersistentVolumeName: {{ .Values.edgeAgent.env.persistentVolumeName | quote }}
+    {{- end }}
+    {{- if .Values.edgeAgent.env.storageClassName}}
+    StorageClassName: {{- if (eq "-" .Values.edgeAgent.env.storageClassName) }} "" {{- else }} {{ .Values.edgeAgent.env.storageClassName | quote }} {{- end }}
+    {{- end }}
+    {{- if .Values.edgeAgent.env.enableExperimentalFeatures }}
+    ExperimentalFeatures__Enabled: {{ .Values.edgeAgent.env.enableExperimentalFeatures | quote }}
+    {{- end }}
+    {{- if .Values.edgeAgent.env.enableK8sExtensions }}
+    ExperimentalFeatures__EnableK8SExtensions: {{ .Values.edgeAgent.env.enableK8sExtensions | quote }}
+    {{- end }}
+  {{ else }}
   env: {}
+  {{ end }}
   config:
     image: "{{ .Values.edgeAgent.image.repository }}:{{ .Values.edgeAgent.image.tag }}"
   {{- if .Values.edgeAgent.registryCredentials }}
@@ -47,7 +75,6 @@ listen:
   workload_uri: "https://0.0.0.0:{{ .Values.iotedged.ports.workload }}"
 homedir: {{ .Values.iotedged.data.targetPath | quote }}
 namespace: {{ .Release.Namespace | quote }}
-use_pvc: False
 proxy_image:  "{{.Values.iotedgedProxy.image.repository}}:{{.Values.iotedgedProxy.image.tag}}"
 proxy_config_path: "/etc/iotedge-proxy"
 proxy_config_map_name: "iotedged-proxy-config"

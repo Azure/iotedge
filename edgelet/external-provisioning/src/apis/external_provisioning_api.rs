@@ -40,6 +40,11 @@ pub trait ExternalProvisioningApi: Send + Sync {
         dyn Future<Item = crate::models::DeviceProvisioningInfo, Error = Error<serde_json::Value>>
             + Send,
     >;
+
+    fn reprovision_device(
+        &self,
+        api_version: &str,
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send>;
 }
 
 impl<C: hyper::client::connect::Connect> ExternalProvisioningApi
@@ -66,10 +71,6 @@ where
         let uri_str = format!("/device/provisioninginformation?{}", query);
 
         let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
-        // TODO(farcaller): handle error
-        // if let Err(e) = uri {
-        //     return Box::new(futures::future::err(e));
-        // }
         let mut req = hyper::Request::builder();
         req.method(method).uri(uri.unwrap());
         if let Some(ref user_agent) = configuration.user_agent {
@@ -79,10 +80,6 @@ where
         let req = req
             .body(hyper::Body::empty())
             .expect("could not build hyper::Request");
-
-        //        if let Some(ref sas_token) = configuration.sas_token {
-        //            req.headers_mut().set(Authorization(sas_token.clone()));
-        //        }
 
         // send request
         Box::new(
@@ -108,6 +105,53 @@ where
                         serde_json::from_slice(&body);
                     parsed.map_err(Error::from)
                 }),
+        )
+    }
+
+    fn reprovision_device(
+        &self,
+        api_version: &str,
+    ) -> Box<dyn Future<Item = (), Error = Error<serde_json::Value>> + Send> {
+        let configuration: &configuration::Configuration<C> = self.configuration.borrow();
+
+        let method = hyper::Method::GET;
+
+        let query = ::url::form_urlencoded::Serializer::new(String::new())
+            .append_pair("api-version", &api_version.to_string())
+            .finish();
+        let uri_str = format!("/device/reprovision?{}", query);
+
+        let uri = (configuration.uri_composer)(&configuration.base_path, &uri_str);
+        let mut req = hyper::Request::builder();
+        req.method(method).uri(uri.unwrap());
+        if let Some(ref user_agent) = configuration.user_agent {
+            req.header(http::header::USER_AGENT, &**user_agent);
+        }
+
+        let req = req
+            .body(hyper::Body::empty())
+            .expect("could not build hyper::Request");
+
+        // send request
+        Box::new(
+            configuration
+                .client
+                .request(req)
+                .map_err(Error::from)
+                .and_then(|resp| {
+                    let (http::response::Parts { status, .. }, body) = resp.into_parts();
+                    body.concat2()
+                        .and_then(move |body| Ok((status, body)))
+                        .map_err(Error::from)
+                })
+                .and_then(|(status, body)| {
+                    if status.is_success() {
+                        Ok(body)
+                    } else {
+                        Err(Error::from((status, &*body)))
+                    }
+                })
+                .and_then(|_| futures::future::ok(())),
         )
     }
 }
