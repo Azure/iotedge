@@ -4,6 +4,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
 {
     using System;
     using System.Collections.Generic;
+    using System.Reflection;
+    using System.Runtime.CompilerServices;
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
@@ -27,30 +29,30 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
 
             Dictionary<Type, string> recognizedExceptions = new Dictionary<Type, string>
             {
-                { typeof(JsonSerializationException), "json_serialization" },
-                { typeof(ArgumentException), "argument" },
+                { typeof(TestException1), "test1" },
+                { typeof(TestException2), "test2" },
             };
             using (new ExceptionCounter(recognizedExceptions, new HashSet<Type>()))
             {
                 /* test */
                 Assert.Equal(expected, result);
 
-                this.ThrowAndCatch(new ArgumentException());
-                expected["argument"] = 1;
+                this.ThrowAndCatch(new TestException2());
+                expected["test2"] = 1;
                 Assert.Equal(expected, result);
 
-                this.ThrowAndCatch(new ArgumentException());
-                expected["argument"] = 2;
+                this.ThrowAndCatch(new TestException2());
+                expected["test2"] = 2;
                 Assert.Equal(expected, result);
 
-                this.ThrowAndCatch(new JsonSerializationException());
-                expected["json_serialization"] = 1;
+                this.ThrowAndCatch(new TestException1());
+                expected["test1"] = 1;
                 Assert.Equal(expected, result);
 
-                this.ThrowAndCatch(new ArgumentException());
-                this.ThrowAndCatch(new ArgumentException());
-                this.ThrowAndCatch(new ArgumentException());
-                expected["argument"] = 5;
+                this.ThrowAndCatch(new TestException2());
+                this.ThrowAndCatch(new TestException2());
+                this.ThrowAndCatch(new TestException2());
+                expected["test2"] = 5;
                 Assert.Equal(expected, result);
 
                 this.ThrowAndCatch(new DivideByZeroException());
@@ -68,8 +70,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
 
             Dictionary<Type, string> recognizedExceptions = new Dictionary<Type, string>
             {
-                { typeof(JsonSerializationException), "json_serialization" },
-                { typeof(ArgumentException), "argument" },
+                { typeof(TestException1), "test1" },
+                { typeof(TestException2), "test2" },
             };
             HashSet<Type> ignoredExceptions = new HashSet<Type>
             {
@@ -81,8 +83,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                 /* test */
                 Assert.Equal(expected, result);
 
-                this.ThrowAndCatch(new ArgumentException());
-                expected["argument"] = 1;
+                this.ThrowAndCatch(new TestException2());
+                expected["test2"] = 1;
                 Assert.Equal(expected, result);
 
                 this.ThrowAndCatch(new TaskCanceledException());
@@ -102,26 +104,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
 
             Dictionary<Type, string> recognizedExceptions = new Dictionary<Type, string>
             {
-                { typeof(JsonSerializationException), "json_serialization" },
-                { typeof(ArgumentException), "argument" },
+                { typeof(TestException1), "test1" },
+                { typeof(TestException2), "test2" },
             };
             using (new ExceptionCounter(recognizedExceptions, new HashSet<Type>()))
             {
                 /* test */
-                await Task.Run(() => { this.ThrowAndCatch(new ArgumentException()); });
-                Assert.Equal(1, result["argument"]);
+                await Task.Run(() => { this.ThrowAndCatch(new TestException2()); });
+                Assert.Equal(1, result["test2"]);
 
-                await Task.Run(() => { this.ThrowAndCatch(new ArgumentException()); });
-                Assert.Equal(2, result["argument"]);
+                await Task.Run(() => { this.ThrowAndCatch(new TestException1()); });
+                Assert.Equal(1, result["test1"]);
 
-                await Task.Run(() => { this.ThrowAndCatch(new JsonSerializationException()); });
-                Assert.Equal(1, result["json_serialization"]);
+                await Task.Run(() => { this.ThrowAndCatch(new TestException2()); });
+                Assert.Equal(2, result["test2"]);
 
                 await Task.WhenAll(
-                    Task.Run(() => { this.ThrowAndCatch(new ArgumentException()); }),
-                    Task.Run(() => { this.ThrowAndCatch(new ArgumentException()); }),
-                    Task.Run(() => { this.ThrowAndCatch(new ArgumentException()); }));
-                Assert.Equal(5, result["argument"]);
+                    Task.Run(() => { this.ThrowAndCatch(new TestException2()); }),
+                    Task.Run(() => { this.ThrowAndCatch(new TestException2()); }),
+                    Task.Run(() => { this.ThrowAndCatch(new TestException2()); }));
+                Assert.Equal(5, result["test2"]);
             }
         }
 
@@ -181,6 +183,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             catch
             {
             }
+        }
+
+        private class TestException1 : Exception
+        {
+        }
+
+        private class TestException2 : Exception
+        {
         }
     }
 }
