@@ -259,12 +259,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 // { typeof(Docker.DotNet.DockerApiException), "docker" },
                 { typeof(Rest.HttpOperationException), "http" },
             };
-            HashSet<Type> ignoredExeptions = new HashSet<Type>
+            HashSet<Type> ignoredExceptions = new HashSet<Type>
             {
                 typeof(TaskCanceledException),
                 typeof(OperationCanceledException),
             };
-            new ExceptionCounter(recognizedExceptions, ignoredExeptions);
+            new ExceptionCounter(recognizedExceptions, ignoredExceptions);
 
             // TODO move this code to Agent
             if (mode.ToLowerInvariant().Equals(Constants.KubernetesMode))

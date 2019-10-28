@@ -72,40 +72,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             TestUtilities.ApproxEqual(TimeSpan.FromMinutes(2000).TotalDays, availability.ExpectedTime.TotalDays, .1);
             TestUtilities.ApproxEqual(.5, availability.RunningTime.TotalSeconds / availability.ExpectedTime.TotalSeconds, .01);
         }
-
-        [Fact]
-        public void TestAvailibilityToFromRaw()
-        {
-            var systemTime = new Mock<ISystemTime>();
-            DateTime fakeTime = DateTime.Now;
-            systemTime.Setup(x => x.UtcNow).Returns(() => fakeTime);
-
-            var testAvailibilities = Enumerable.Range(0, 10).Select(i =>
-            {
-                var availibility = new Availability($"Test_{i}", "1", systemTime.Object);
-                return availibility;
-            }).ToList();
-
-            var rand = new Random();
-            foreach (Availability availability in testAvailibilities)
-            {
-                for (int i = 0; i < rand.Next(100); i++)
-                {
-                    availability.AddPoint(rand.NextDouble() < .25);
-                    fakeTime = fakeTime.AddMinutes(10);
-                }
-            }
-
-            var rawAvailabilities = testAvailibilities.Select(a => a.ToRaw());
-            var reconstructedAvailibilities = rawAvailabilities.Select(ra => new Availability(ra, SystemTime.Instance)).ToList();
-
-            for (int i = 0; i < 10; i++)
-            {
-                Assert.Equal(testAvailibilities[i].Name, reconstructedAvailibilities[i].Name);
-                Assert.Equal(testAvailibilities[i].Version, reconstructedAvailibilities[i].Version);
-                Assert.Equal(testAvailibilities[i].RunningTime, reconstructedAvailibilities[i].RunningTime);
-                Assert.Equal(testAvailibilities[i].ExpectedTime, reconstructedAvailibilities[i].ExpectedTime);
-            }
-        }
     }
 }

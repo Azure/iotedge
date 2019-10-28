@@ -13,17 +13,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
     {
         private readonly IMetricsCounter exceptions = Util.Metrics.Metrics.Instance.CreateCounter(
             "exceptions_total",
-            "The number of exeptions thrown of the given type",
+            "The number of exceptions thrown of the given type",
             new List<string> { "exception_name" });
 
         private Dictionary<Type, string> recognizedExceptions;
 
-        private HashSet<Type> ignoredExeptions;
+        private HashSet<Type> ignoredExceptions;
 
-        public ExceptionCounter(Dictionary<Type, string> recognizedExceptions, HashSet<Type> ignoredExeptions)
+        public ExceptionCounter(Dictionary<Type, string> recognizedExceptions, HashSet<Type> ignoredExceptions)
         {
             this.recognizedExceptions = recognizedExceptions;
-            this.ignoredExeptions = ignoredExeptions;
+            this.ignoredExceptions = ignoredExceptions;
 
             AppDomain.CurrentDomain.FirstChanceException += this.OnException;
         }
@@ -35,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
         private void OnException(object source, FirstChanceExceptionEventArgs e)
         {
-            if (this.ignoredExeptions.Contains(e.Exception.GetType()))
+            if (this.ignoredExceptions.Contains(e.Exception.GetType()))
             {
                 return;
             }

@@ -26,16 +26,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             this.previousMeasure = time.UtcNow;
         }
 
-        public Availability(AvailabilityRaw raw, ISystemTime time)
-        {
-            this.Name = Preconditions.CheckNotNull(raw.Name);
-            this.Version = Preconditions.CheckNotNull(raw.Version);
-            this.RunningTime = Preconditions.CheckNotNull(raw.Uptime);
-            this.ExpectedTime = Preconditions.CheckNotNull(raw.TotalTime);
-
-            this.time = Preconditions.CheckNotNull(time, nameof(time));
-        }
-
         public void AddPoint(bool isUp)
         {
             DateTime currentTime = this.time.UtcNow;
@@ -60,24 +50,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
         {
             this.previousMeasure = null;
         }
-
-        public AvailabilityRaw ToRaw()
-        {
-            return new AvailabilityRaw
-            {
-                Name = this.Name,
-                Version = this.Version,
-                Uptime = this.RunningTime,
-                TotalTime = this.ExpectedTime
-            };
-        }
-    }
-
-    public struct AvailabilityRaw
-    {
-        public string Name;
-        public string Version;
-        public TimeSpan TotalTime;
-        public TimeSpan Uptime;
     }
 }

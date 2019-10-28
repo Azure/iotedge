@@ -71,12 +71,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                 { typeof(JsonSerializationException), "json_serialization" },
                 { typeof(ArgumentException), "argument" },
             };
-            HashSet<Type> ignoredExeptions = new HashSet<Type>
+            HashSet<Type> ignoredExceptions = new HashSet<Type>
             {
                 typeof(TaskCanceledException),
                 typeof(OperationCanceledException),
             };
-            using (new ExceptionCounter(recognizedExceptions, ignoredExeptions))
+            using (new ExceptionCounter(recognizedExceptions, ignoredExceptions))
             {
                 /* test */
                 Assert.Equal(expected, result);
