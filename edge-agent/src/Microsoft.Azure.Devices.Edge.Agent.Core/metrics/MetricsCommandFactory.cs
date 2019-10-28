@@ -3,16 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices.ComTypes;
-using System.Threading;
 using System.Threading.Tasks;
-using Akka.Streams.Implementation;
-using App.Metrics.Counter;
-using App.Metrics.Formatters.Prometheus;
 using Microsoft.Azure.Devices.Edge.Util;
 using Microsoft.Azure.Devices.Edge.Util.Metrics;
-using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {

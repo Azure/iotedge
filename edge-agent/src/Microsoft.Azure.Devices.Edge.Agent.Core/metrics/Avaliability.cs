@@ -26,6 +26,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             this.previousMeasure = time.UtcNow;
         }
 
+        /* This is used to creae edgeAgent's own avaliability, since it can't track its own downtime. */
+        public Availability(string name, string version, TimeSpan downtime, ISystemTime time)
+        {
+            this.Name = Preconditions.CheckNotNull(name, nameof(name));
+            this.Version = Preconditions.CheckNotNull(version, nameof(version));
+            this.time = Preconditions.CheckNotNull(time, nameof(time));
+            this.previousMeasure = time.UtcNow;
+        }
+
         public void AddPoint(bool isUp)
         {
             DateTime currentTime = this.time.UtcNow;

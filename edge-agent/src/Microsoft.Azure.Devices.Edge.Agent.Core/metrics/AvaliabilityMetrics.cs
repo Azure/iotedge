@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using System.Runtime.CompilerServices;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Extensions.Logging;
@@ -22,10 +23,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             "The amount of time the module was specified in the deployment",
             new List<string> { "module_name", "module_version" });
 
+        public static readonly ILogger Log = Logger.Factory.CreateLogger<Availability>();
+
         public static ISystemTime Time = SystemTime.Instance;
 
         private static List<Availability> availabilities = new List<Availability>();
-        private static Availability edgeAgent = new Availability("edgeAgent", "tempNoVersion", Time);
+        private static Lazy<Availability> edgeAgent = new Lazy<Availability>(() => new Availability("edgeAgent", "tempNoVersion", CalculateEdgeAgentDowntime(), Time));
 
         public static void ComputeAvailability(ModuleSet desired, ModuleSet current)
         {
@@ -44,11 +47,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                 .Select(c => c.Name));
 
             /* handle edgeAgent specially */
-            edgeAgent.AddPoint(true);
+            edgeAgent.Value.AddPoint(true);
             down.Remove("edgeAgent");
             up.Remove("edgeAgent");
-            Running.Set(edgeAgent.ExpectedTime.TotalSeconds, new[] { edgeAgent.Name, edgeAgent.Version });
-            ExpectedRunning.Set(edgeAgent.RunningTime.TotalSeconds, new[] { edgeAgent.Name, edgeAgent.Version });
+            Running.Set(edgeAgent.Value.ExpectedTime.TotalSeconds, new[] { edgeAgent.Value.Name, edgeAgent.Value.Version });
+            ExpectedRunning.Set(edgeAgent.Value.RunningTime.TotalSeconds, new[] { edgeAgent.Value.Name, edgeAgent.Value.Version });
 
             /* Add points for all other modules found */
             foreach (Availability availability in availabilities)
@@ -75,6 +78,38 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             foreach (string module in down.Union(up))
             {
                 availabilities.Add(new Availability(module, "tempNoVersion", Time));
+            }
+        }
+
+        private static TimeSpan CalculateEdgeAgentDowntime()
+        {
+            AppDomain.CurrentDomain.ProcessExit += NoteCurrentTime;
+            try
+            {
+                if (File.Exists("shutdown_time"))
+                {
+                    // TODO: get iotedged uptime. if < a couple minutes, assume intentional shutdown and return 0.
+                    long ticks = long.Parse(File.ReadAllText("shutdown_time"));
+                    return Time.UtcNow - new DateTime(ticks);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.LogError($"Could not load shutdown time:\n{ex}");
+            }
+
+            return TimeSpan.Zero;
+        }
+
+        private static void NoteCurrentTime(object sender, EventArgs e)
+        {
+            try
+            {
+                File.WriteAllText("shutdown_time", Time.UtcNow.Ticks.ToString());
+            }
+            catch (Exception ex)
+            {
+                Log.LogError($"Could not save shutdown time:\n{ex}");
             }
         }
     }
