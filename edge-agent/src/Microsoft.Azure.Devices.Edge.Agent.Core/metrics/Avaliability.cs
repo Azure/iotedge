@@ -11,10 +11,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
     {
         private readonly ISystemTime time;
 
-        public string Name;
-        public string Version;
-        public TimeSpan TotalTime = TimeSpan.Zero;
-        public TimeSpan Uptime = TimeSpan.Zero;
+        public string Name { get; private set; }
+        public string Version { get; private set; }
+        public TimeSpan RunningTime { get; private set; } = TimeSpan.Zero;
+        public TimeSpan ExpectedTime { get; private set; } = TimeSpan.Zero;
 
         private DateTime? previousMeasure = null;
 
@@ -30,23 +30,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
         {
             this.Name = Preconditions.CheckNotNull(raw.Name);
             this.Version = Preconditions.CheckNotNull(raw.Version);
-            this.Uptime = Preconditions.CheckNotNull(raw.Uptime);
-            this.TotalTime = Preconditions.CheckNotNull(raw.TotalTime);
+            this.RunningTime = Preconditions.CheckNotNull(raw.Uptime);
+            this.ExpectedTime = Preconditions.CheckNotNull(raw.TotalTime);
 
             this.time = Preconditions.CheckNotNull(time, nameof(time));
-        }
-
-        public double AvailabilityRatio
-        {
-            get
-            {
-                if (this.TotalTime == TimeSpan.Zero)
-                {
-                    return 0;
-                }
-
-                return this.Uptime.TotalMilliseconds / this.TotalTime.TotalMilliseconds;
-            }
         }
 
         public void AddPoint(bool isUp)
@@ -60,10 +47,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             }
 
             TimeSpan duration = currentTime - this.previousMeasure.Value;
-            this.TotalTime += duration;
+            this.ExpectedTime += duration;
             if (isUp)
             {
-                this.Uptime += duration;
+                this.RunningTime += duration;
             }
 
             this.previousMeasure = currentTime;
@@ -80,8 +67,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             {
                 Name = this.Name,
                 Version = this.Version,
-                Uptime = this.Uptime,
-                TotalTime = this.TotalTime
+                Uptime = this.RunningTime,
+                TotalTime = this.ExpectedTime
             };
         }
     }

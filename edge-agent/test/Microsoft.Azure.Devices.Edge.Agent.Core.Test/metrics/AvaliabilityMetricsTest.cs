@@ -31,26 +31,38 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
         public void ReportsAccurateAvailability()
         {
             /* Setup */
-            Dictionary<string, double> uptimes = new Dictionary<string, double>();
-            Action<double, string[]> onSet = (val, list) =>
+            Dictionary<string, double> runningTime = new Dictionary<string, double>();
+            Dictionary<string, double> expectedTime = new Dictionary<string, double>();
+            Action<double, string[]> onSet(Dictionary<string, double> result)
             {
-                uptimes[list[0]] = val;
-            };
-            var gauge = new Mock<IMetricsGauge>();
-            gauge.Setup(x => x.Set(It.IsAny<double>(), It.IsAny<string[]>())).Callback(onSet);
+                return (val, list) =>
+                    {
+                        if (list[0] == "edgeAgent")
+                        {
+                            return; // Ignore edgeAgent b/c it is calculated differently
+                        }
+
+                        result[list[0]] = val;
+                    };
+            }
 
             var metricsProvider = new Mock<IMetricsProvider>();
-            metricsProvider.Setup(x => x.CreateGauge(
-                    "lifetime_availability",
-                    "total availability since deployment",
-                    new List<string> { "module_name", "module_version" }))
-                .Returns(gauge.Object);
 
+            var runningTimeGauge = new Mock<IMetricsGauge>();
+            runningTimeGauge.Setup(x => x.Set(It.IsAny<double>(), It.IsAny<string[]>())).Callback(onSet(runningTime));
             metricsProvider.Setup(x => x.CreateGauge(
-                    "weekly_availability",
-                    "total availability for the last 7 days",
+                    "total_time_running_correctly_seconds",
+                    "The amount of time the module was specified in the deployment and was in the running state",
                     new List<string> { "module_name", "module_version" }))
-                .Returns(new Mock<IMetricsGauge>().Object);
+                .Returns(runningTimeGauge.Object);
+
+            var expectedTimeGauge = new Mock<IMetricsGauge>();
+            expectedTimeGauge.Setup(x => x.Set(It.IsAny<double>(), It.IsAny<string[]>())).Callback(onSet(expectedTime));
+            metricsProvider.Setup(x => x.CreateGauge(
+                    "total_time_expected_running_seconds",
+                    "The amount of time the module was specified in the deployment",
+                    new List<string> { "module_name", "module_version" }))
+                .Returns(expectedTimeGauge.Object);
 
             Util.Metrics.Metrics.Init(metricsProvider.Object, new NullMetricsListener(), NullLogger.Instance);
 
@@ -66,127 +78,43 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
 
             /* Test */
             AvailabilityMetrics.ComputeAvailability(desiredModuleSet, currentModuleSet);
-            Assert.Empty(uptimes);
+            Assert.Empty(runningTime);
 
             fakeTime = fakeTime.AddMinutes(10);
             AvailabilityMetrics.ComputeAvailability(desiredModuleSet, currentModuleSet);
-            Assert.Equal(3, uptimes.Count);
-            Assert.Equal(1, uptimes[current[0].Name]);
-            Assert.Equal(1, uptimes[current[1].Name]);
-            Assert.Equal(1, uptimes[current[2].Name]);
-
-            fakeTime = fakeTime.AddMinutes(10);
-            current[1].RuntimeStatus = ModuleStatus.Failed;
-            current[2].RuntimeStatus = ModuleStatus.Failed;
-            AvailabilityMetrics.ComputeAvailability(desiredModuleSet, currentModuleSet);
-            Assert.Equal(3, uptimes.Count);
-            Assert.Equal(1, uptimes[current[0].Name]);
-            Assert.Equal(.5, uptimes[current[1].Name]);
-            Assert.Equal(.5, uptimes[current[2].Name]);
-
-            fakeTime = fakeTime.AddMinutes(20);
-            current[1].RuntimeStatus = ModuleStatus.Running;
-            AvailabilityMetrics.ComputeAvailability(desiredModuleSet, currentModuleSet);
-            Assert.Equal(3, uptimes.Count);
-            Assert.Equal(1, uptimes[current[0].Name]);
-            Assert.Equal(.75, uptimes[current[1].Name]);
-            Assert.Equal(.25, uptimes[current[2].Name]);
-        }
-
-        [Fact]
-        public void PersistsUptime()
-        {
-            /* Setup */
-            Dictionary<string, double> uptimes = new Dictionary<string, double>();
-            Action<double, string[]> onSet = (val, list) =>
-            {
-                uptimes[list[0]] = val;
-            };
-            var gauge = new Mock<IMetricsGauge>();
-            gauge.Setup(x => x.Set(It.IsAny<double>(), It.IsAny<string[]>())).Callback(onSet);
-
-            var metricsProvider = new Mock<IMetricsProvider>();
-            metricsProvider.Setup(x => x.CreateGauge(
-                    "lifetime_availability",
-                    "total availability since deployment",
-                    new List<string> { "module_name", "module_version" }))
-                .Returns(gauge.Object);
-
-            metricsProvider.Setup(x => x.CreateGauge(
-                    "weekly_availability",
-                    "total availability for the last 7 days",
-                    new List<string> { "module_name", "module_version" }))
-                .Returns(new Mock<IMetricsGauge>().Object);
-
-            Util.Metrics.Metrics.Init(metricsProvider.Object, new NullMetricsListener(), NullLogger.Instance);
-
-            var systemTime = new Mock<ISystemTime>();
-            DateTime fakeTime = DateTime.Now;
-            systemTime.Setup(x => x.UtcNow).Returns(() => fakeTime);
-
-            string directory = this.GetTempDir();
-
-            (TestRuntimeModule[] current, TestModule[] desired) = GetTestModules(3);
-            ModuleSet currentModuleSet = ModuleSet.Create(current as IModule[]);
-            ModuleSet desiredModuleSet = ModuleSet.Create(desired);
-
-            /* make fake restart func */
-            ConstructorInfo constructor = typeof(AvailabilityMetrics).GetConstructor(BindingFlags.Static | BindingFlags.NonPublic, null, new Type[0], null);
-            constructor.Invoke(null, null);
-            MethodInfo saveData = typeof(AvailabilityMetrics).GetMethod("SaveData", BindingFlags.NonPublic | BindingFlags.Static);
-            object[] parameters = { null, null };
-            Action fakeRestart = () =>
-            {
-                /* save data */
-                saveData.Invoke(null, parameters);
-
-                /* reset metrics */
-                constructor.Invoke(null, null);
-                AvailabilityMetrics.Time = systemTime.Object;
-                AvailabilityMetrics.StoragePath = Option.Some(directory);
-
-                /* simulate long time shutdown */
-                fakeTime = fakeTime.AddMinutes(1000);
-                AvailabilityMetrics.ComputeAvailability(desiredModuleSet, currentModuleSet);
-            };
-
-            AvailabilityMetrics.Time = systemTime.Object;
-            AvailabilityMetrics.StoragePath = Option.Some(directory);
-
-            /* Test */
-            Assert.Empty(uptimes);
-            AvailabilityMetrics.ComputeAvailability(desiredModuleSet, currentModuleSet);
-            fakeTime = fakeTime.AddMinutes(10);
-            AvailabilityMetrics.ComputeAvailability(desiredModuleSet, currentModuleSet);
-            Assert.Equal(3, uptimes.Count);
-            Assert.Equal(1, uptimes[current[0].Name]);
-            Assert.Equal(1, uptimes[current[1].Name]);
-            Assert.Equal(1, uptimes[current[2].Name]);
-            fakeRestart();
+            Assert.Equal(3, runningTime.Count);
+            Assert.Equal(3, expectedTime.Count);
+            Assert.Equal(600, runningTime[current[0].Name]);
+            Assert.Equal(600, expectedTime[current[0].Name]);
+            Assert.Equal(600, runningTime[current[1].Name]);
+            Assert.Equal(600, expectedTime[current[1].Name]);
+            Assert.Equal(600, runningTime[current[2].Name]);
+            Assert.Equal(600, expectedTime[current[2].Name]);
 
             fakeTime = fakeTime.AddMinutes(10);
             current[1].RuntimeStatus = ModuleStatus.Failed;
             current[2].RuntimeStatus = ModuleStatus.Failed;
             AvailabilityMetrics.ComputeAvailability(desiredModuleSet, currentModuleSet);
-            Assert.Equal(3, uptimes.Count);
-            Assert.Equal(1, uptimes[current[0].Name]);
-            Assert.Equal(.5, uptimes[current[1].Name]);
-            Assert.Equal(.5, uptimes[current[2].Name]);
-            fakeRestart();
+            Assert.Equal(3, runningTime.Count);
+            Assert.Equal(3, expectedTime.Count);
+            Assert.Equal(1200, runningTime[current[0].Name]);
+            Assert.Equal(1200, expectedTime[current[0].Name]);
+            Assert.Equal(600, runningTime[current[1].Name]);
+            Assert.Equal(1200, expectedTime[current[1].Name]);
+            Assert.Equal(600, runningTime[current[2].Name]);
+            Assert.Equal(1200, expectedTime[current[2].Name]);
 
-            fakeTime = fakeTime.AddMinutes(20);
+            fakeTime = fakeTime.AddMinutes(10);
             current[1].RuntimeStatus = ModuleStatus.Running;
             AvailabilityMetrics.ComputeAvailability(desiredModuleSet, currentModuleSet);
-            Assert.Equal(3, uptimes.Count);
-            Assert.Equal(1, uptimes[current[0].Name]);
-            Assert.Equal(.75, uptimes[current[1].Name]);
-            Assert.Equal(.25, uptimes[current[2].Name]);
-            fakeRestart();
-
-            Assert.Equal(3, uptimes.Count);
-            Assert.Equal(1, uptimes[current[0].Name]);
-            Assert.Equal(.75, uptimes[current[1].Name]);
-            Assert.Equal(.25, uptimes[current[2].Name]);
+            Assert.Equal(3, runningTime.Count);
+            Assert.Equal(3, expectedTime.Count);
+            Assert.Equal(1800, runningTime[current[0].Name]);
+            Assert.Equal(1800, expectedTime[current[0].Name]);
+            Assert.Equal(1200, runningTime[current[1].Name]);
+            Assert.Equal(1800, expectedTime[current[1].Name]);
+            Assert.Equal(600, runningTime[current[2].Name]);
+            Assert.Equal(1800, expectedTime[current[2].Name]);
         }
 
         private static (TestRuntimeModule[], TestModule[]) GetTestModules(int num)
