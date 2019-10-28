@@ -284,16 +284,13 @@
             }
           },
           "moduleRestarter": {
-            "version": "1.12",
+            "version": "1.0",
             "type": "docker",
             "status": "running",
             "restartPolicy": "always",
             "env": {
               "ServiceClientConnectionString": {
                 "value": "<ServiceClientConnectionString>"
-              },
-              "DeviceId": {
-                "value": "<DeviceID>"
               },
               "DesiredModulesToRestartCSV": {
                 "value": "<DesiredModulesToRestartCSV>"

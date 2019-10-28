@@ -289,9 +289,6 @@
               "ServiceClientConnectionString": {
                 "value": "<ServiceClientConnectionString>"
               },
-              "DeviceId": {
-                "value": "<DeviceID>"
-              },
               "DesiredModulesToRestartCSV": {
                 "value": "<DesiredModulesToRestartCSV>"
               },

@@ -21,7 +21,7 @@ namespace ModuleRestarter
 
                 return new Settings(
                     configuration.GetValue<string>("ServiceClientConnectionString"),
-                    configuration.GetValue<string>("DeviceId"),
+                    configuration.GetValue<string>("IOTEDGE_DEVICEID"),
                     configuration.GetValue<string>("DesiredModulesToRestartCSV", string.Empty),
                     configuration.GetValue<int>("RandomRestartIntervalInMins", 10));
             });
