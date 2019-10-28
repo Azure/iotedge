@@ -165,8 +165,12 @@ mod tests {
             .with_finished_at(Some(Utc.ymd(2018, 4, 13).and_hms_milli(15, 20, 0, 1)))
             .with_image_id(Some("image-id".to_string()));
         let config = TestConfig::new("microsoft/test-image".to_string());
-        let module: TestModule<Error, _> =
-            TestModule::new("test-module".to_string(), config, Ok(state));
+        let module: TestModule<Error, _> = TestModule::new_with_logs(
+            "test-module".to_string(),
+            config,
+            Ok(state),
+            vec![&[b'A', b'B', b'C']],
+        );
         let runtime = TestRuntime::make_runtime(
             TestSettings::new(),
             TestProvisioningResult::new(),
@@ -191,7 +195,7 @@ mod tests {
             .into_body()
             .concat2()
             .and_then(|b| {
-                assert_eq!(0, b.len());
+                assert_eq!(3, b.len());
                 Ok(())
             })
             .wait()
