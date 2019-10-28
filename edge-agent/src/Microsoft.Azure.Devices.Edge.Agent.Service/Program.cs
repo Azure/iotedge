@@ -250,6 +250,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                             : new NullMetricsListener() as IMetricsListener;
             Metrics.Init(metricsProvider, metricsListener, logger);
 
+            // Initialize exeptions counter
+            Dictionary<Type, string> recognizedExceptions = new Dictionary<Type, string>
+            {
+                { typeof(Newtonsoft.Json.JsonSerializationException), "json_serialization" },
+                { typeof(ArgumentException), "argument" },
+                // { typeof(Docker.DotNet.DockerApiException), "docker" },
+                { typeof(Rest.HttpOperationException), "http" },
+            };
+            HashSet<Type> ignoredExeptions = new HashSet<Type>
+            {
+                typeof(TaskCanceledException),
+                typeof(OperationCanceledException),
+            };
+            new ExceptionCounter(recognizedExceptions, ignoredExeptions);
+
             // TODO move this code to Agent
             if (mode.ToLowerInvariant().Equals(Constants.KubernetesMode))
             {

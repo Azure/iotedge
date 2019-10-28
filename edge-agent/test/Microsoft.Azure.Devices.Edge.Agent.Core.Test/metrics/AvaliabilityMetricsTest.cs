@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             /* Setup */
             Dictionary<string, double> runningTime = new Dictionary<string, double>();
             Dictionary<string, double> expectedTime = new Dictionary<string, double>();
-            Action<double, string[]> onSet(Dictionary<string, double> result)
+            Action<double, string[]> OnSet(Dictionary<string, double> result)
             {
                 return (val, list) =>
                     {
@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             var metricsProvider = new Mock<IMetricsProvider>();
 
             var runningTimeGauge = new Mock<IMetricsGauge>();
-            runningTimeGauge.Setup(x => x.Set(It.IsAny<double>(), It.IsAny<string[]>())).Callback(onSet(runningTime));
+            runningTimeGauge.Setup(x => x.Set(It.IsAny<double>(), It.IsAny<string[]>())).Callback(OnSet(runningTime));
             metricsProvider.Setup(x => x.CreateGauge(
                     "total_time_running_correctly_seconds",
                     "The amount of time the module was specified in the deployment and was in the running state",
@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                 .Returns(runningTimeGauge.Object);
 
             var expectedTimeGauge = new Mock<IMetricsGauge>();
-            expectedTimeGauge.Setup(x => x.Set(It.IsAny<double>(), It.IsAny<string[]>())).Callback(onSet(expectedTime));
+            expectedTimeGauge.Setup(x => x.Set(It.IsAny<double>(), It.IsAny<string[]>())).Callback(OnSet(expectedTime));
             metricsProvider.Setup(x => x.CreateGauge(
                     "total_time_expected_running_seconds",
                     "The amount of time the module was specified in the deployment",
