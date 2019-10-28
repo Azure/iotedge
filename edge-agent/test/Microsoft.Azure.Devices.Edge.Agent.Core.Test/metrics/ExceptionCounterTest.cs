@@ -62,6 +62,89 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             Assert.Equal(expected, result);
         }
 
+        [Fact]
+        public void IgnoresExceptions()
+        {
+            /* setup */
+            Dictionary<string, long> result = MockCounter();
+            Dictionary<string, long> expected = new Dictionary<string, long>();
+
+            Dictionary<Type, string> recognizedExceptions = new Dictionary<Type, string>
+            {
+                { typeof(JsonSerializationException), "json_serialization" },
+                { typeof(ArgumentException), "argument" },
+            };
+
+            HashSet<Type> ignoredExeptions = new HashSet<Type>
+            {
+                typeof(TaskCanceledException),
+                typeof(OperationCanceledException),
+            };
+            new ExceptionCounter(recognizedExceptions, ignoredExeptions);
+
+            /* test */
+            Assert.Equal(expected, result);
+
+            ThrowAndCatch(new ArgumentException());
+            expected["argument"] = 1;
+            Assert.Equal(expected, result);
+
+            ThrowAndCatch(new TaskCanceledException());
+            Assert.Equal(expected, result);
+
+            ThrowAndCatch(new TaskCanceledException());
+            ThrowAndCatch(new OperationCanceledException());
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public async Task CountsExceptionsAsync()
+        {
+            /* setup */
+            Dictionary<string, long> result = MockCounter();
+            Dictionary<string, long> expected = new Dictionary<string, long>();
+
+            Dictionary<Type, string> recognizedExceptions = new Dictionary<Type, string>
+            {
+                { typeof(JsonSerializationException), "json_serialization" },
+                { typeof(ArgumentException), "argument" },
+            };
+
+            HashSet<Type> ignoredExeptions = new HashSet<Type>
+            {
+                typeof(TaskCanceledException),
+                typeof(OperationCanceledException),
+            };
+            new ExceptionCounter(recognizedExceptions, ignoredExeptions);
+
+            /* test */
+            Assert.Equal(expected, result);
+
+            await Task.Run(() => { ThrowAndCatch(new ArgumentException()); });
+            expected["argument"] = 1;
+            Assert.Equal(expected, result);
+
+            await Task.Run(() => { ThrowAndCatch(new ArgumentException()); });
+            expected["argument"] = 2;
+            Assert.Equal(expected, result);
+
+            await Task.Run(() => { ThrowAndCatch(new JsonSerializationException()); });
+            expected["json_serialization"] = 1;
+            Assert.Equal(expected, result);
+
+            await Task.WhenAll(
+                Task.Run(() => { ThrowAndCatch(new ArgumentException()); }),
+                Task.Run(() => { ThrowAndCatch(new ArgumentException()); }),
+                Task.Run(() => { ThrowAndCatch(new ArgumentException()); })
+            );
+            expected["argument"] = 5;
+            Assert.Equal(expected, result);
+
+            await Task.Run(() => { ThrowAndCatch(new DivideByZeroException()); });
+            expected["other"] = 1;
+            Assert.Equal(expected, result);
+        }
+
         private Dictionary<string, long> MockCounter()
         {
             Dictionary<string, long> result = new Dictionary<string, long>();
