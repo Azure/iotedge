@@ -4,12 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
 {
     using System;
     using System.Collections.Generic;
-    using System.IO;
-    using System.Linq;
-    using System.Reflection;
-    using System.Text;
-    using System.Threading.Tasks;
-    using Akka.Event;
     using App.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -35,14 +29,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             Dictionary<string, double> expectedTime = new Dictionary<string, double>();
             Action<double, string[]> OnSet(Dictionary<string, double> result)
             {
-                return (val, list) =>
+                return (val, tags) =>
                     {
-                        if (list[0] == "edgeAgent")
+                        if (tags[0] == "edgeAgent")
                         {
                             return; // Ignore edgeAgent b/c it is calculated differently
                         }
 
-                        result[list[0]] = val;
+                        result[tags[0]] = val;
                     };
             }
 
@@ -52,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             runningTimeGauge.Setup(x => x.Set(It.IsAny<double>(), It.IsAny<string[]>())).Callback(OnSet(runningTime));
             metricsProvider.Setup(x => x.CreateGauge(
                     "total_time_running_correctly_seconds",
-                    "The amount of time the module was specified in the deployment and was in the running state",
+                    It.IsAny<string>(),
                     new List<string> { "module_name", "module_version" }))
                 .Returns(runningTimeGauge.Object);
 
@@ -60,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             expectedTimeGauge.Setup(x => x.Set(It.IsAny<double>(), It.IsAny<string[]>())).Callback(OnSet(expectedTime));
             metricsProvider.Setup(x => x.CreateGauge(
                     "total_time_expected_running_seconds",
-                    "The amount of time the module was specified in the deployment",
+                    It.IsAny<string>(),
                     new List<string> { "module_name", "module_version" }))
                 .Returns(expectedTimeGauge.Object);
 

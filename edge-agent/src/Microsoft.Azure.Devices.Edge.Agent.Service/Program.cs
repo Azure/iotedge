@@ -250,7 +250,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                             : new NullMetricsListener() as IMetricsListener;
             Metrics.Init(metricsProvider, metricsListener, logger);
 
-            // Initialize exeptions counter
+            // Initialize exceptions counter
             Dictionary<Type, string> recognizedExceptions = new Dictionary<Type, string>
             {
                 { typeof(Newtonsoft.Json.JsonSerializationException), "json_serialization" },

@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
 
-    public class ExceptionCounter
+    public class ExceptionCounter : IDisposable
     {
         private readonly IMetricsCounter exceptions = Util.Metrics.Metrics.Instance.CreateCounter(
             "exceptions_total",
@@ -26,6 +26,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             this.ignoredExeptions = ignoredExeptions;
 
             AppDomain.CurrentDomain.FirstChanceException += this.OnException;
+        }
+
+        public void Dispose()
+        {
+            AppDomain.CurrentDomain.FirstChanceException -= this.OnException;
         }
 
         private void OnException(object source, FirstChanceExceptionEventArgs e)
