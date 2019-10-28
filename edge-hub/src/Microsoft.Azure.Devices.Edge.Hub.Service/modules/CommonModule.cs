@@ -42,6 +42,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly IList<X509Certificate2> trustBundle;
         readonly string proxy;
         readonly MetricsConfig metricsConfig;
+        readonly bool useBackupAndRestore;
+        readonly Option<string> storageBackupPath;
 
         public CommonModule(
             string productInfo,
@@ -61,7 +63,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             bool persistTokens,
             IList<X509Certificate2> trustBundle,
             string proxy,
-            MetricsConfig metricsConfig)
+            MetricsConfig metricsConfig,
+            bool useBackupAndRestore,
+            Option<string> storageBackupPath)
         {
             this.productInfo = productInfo;
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
@@ -81,6 +85,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.trustBundle = Preconditions.CheckNotNull(trustBundle, nameof(trustBundle));
             this.proxy = Preconditions.CheckNotNull(proxy, nameof(proxy));
             this.metricsConfig = Preconditions.CheckNotNull(metricsConfig, nameof(metricsConfig));
+            this.useBackupAndRestore = useBackupAndRestore;
+            this.storageBackupPath = storageBackupPath;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -136,9 +142,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<IRocksDbOptionsProvider>()
                 .SingleInstance();
 
+            if (!this.usePersistentStorage && this.useBackupAndRestore)
+            {
+                // Backup and restore serialization
+                builder.Register(c => new ProtoBufDataBackupRestore())
+                    .As<IDataBackupRestore>()
+                    .SingleInstance();
+            }
+
             // IDbStoreProvider
             builder.Register(
-                    c =>
+                    async c =>
                     {
                         var loggerFactory = c.Resolve<ILoggerFactory>();
                         ILogger logger = loggerFactory.CreateLogger(typeof(RoutingModule));
@@ -149,37 +163,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             var partitionsList = new List<string> { Core.Constants.MessageStorePartitionKey, Core.Constants.TwinStorePartitionKey, Core.Constants.CheckpointStorePartitionKey };
                             try
                             {
-                                IDbStoreProvider dbStoreprovider = DbStoreProvider.Create(
+                                IDbStoreProvider dbStoreProvider = DbStoreProvider.Create(
                                     c.Resolve<IRocksDbOptionsProvider>(),
                                     this.storagePath,
                                     partitionsList);
                                 logger.LogInformation($"Created persistent store at {this.storagePath}");
-                                return dbStoreprovider;
+                                return dbStoreProvider;
                             }
                             catch (Exception ex) when (!ExceptionEx.IsFatal(ex))
                             {
                                 logger.LogError(ex, "Error creating RocksDB store. Falling back to in-memory store.");
-                                return new InMemoryDbStoreProvider();
+                                IDbStoreProvider dbStoreProvider = await this.BuildInMemoryDbStoreProvider(c);
+                                return dbStoreProvider;
                             }
                         }
                         else
                         {
                             logger.LogInformation($"Using in-memory store");
-                            return new InMemoryDbStoreProvider();
+                            IDbStoreProvider dbStoreProvider = await this.BuildInMemoryDbStoreProvider(c);
+                            return dbStoreProvider;
                         }
                     })
-                .As<IDbStoreProvider>()
-                .SingleInstance();
-
-            // IProductInfoStore
-            builder.Register(
-                    c =>
-                    {
-                        var storeProvider = c.Resolve<IStoreProvider>();
-                        IKeyValueStore<string, string> entityStore = storeProvider.GetEntityStore<string, string>("ProductInfo");
-                        return new ProductInfoStore(entityStore, this.productInfo);
-                    })
-                .As<IProductInfoStore>()
+                .As<Task<IDbStoreProvider>>()
                 .SingleInstance();
 
             // Task<Option<IEncryptionProvider>>
@@ -206,9 +211,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .As<Task<Option<IEncryptionProvider>>>()
                 .SingleInstance();
 
-            // IStoreProvider
-            builder.Register(c => new StoreProvider(c.Resolve<IDbStoreProvider>()))
-                .As<IStoreProvider>()
+            // Task<IStoreProvider>
+            builder.Register(async c =>
+                {
+                var dbStoreProvider = await c.Resolve<Task<IDbStoreProvider>>();
+                IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
+                return storeProvider;
+                })
+                .As<Task<IStoreProvider>>()
+                .SingleInstance();
+
+            // Task<IProductInfoStore>
+            builder.Register(
+                    async c =>
+                    {
+                        var storeProvider = await c.Resolve<Task<IStoreProvider>>();
+                        IKeyValueStore<string, string> entityStore = storeProvider.GetEntityStore<string, string>("ProductInfo");
+                        IProductInfoStore productInfoStore = new ProductInfoStore(entityStore, this.productInfo);
+                        return productInfoStore;
+                    })
+                .As<Task<IProductInfoStore>>()
                 .SingleInstance();
 
             // ITokenProvider
@@ -351,9 +373,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             base.Load(builder);
         }
 
+        async Task<IDbStoreProvider> BuildInMemoryDbStoreProvider(IComponentContext container)
+        {
+            IDbStoreProvider dbStoreProvider = DbStoreProviderFactory.GetInMemoryDbStore();
+            if (this.useBackupAndRestore)
+            {
+                var backupRestore = container.Resolve<IDataBackupRestore>();
+                string backupPathValue = this.storageBackupPath.Expect(() => new InvalidOperationException("Storage backup path missing"));
+                dbStoreProvider = await dbStoreProvider.WithBackupRestore(backupPathValue, backupRestore);
+            }
+
+            return dbStoreProvider;
+        }
+
         static async Task<IKeyValueStore<string, string>> GetEncryptedStore(IComponentContext context, string entityName)
         {
-            var storeProvider = context.Resolve<IStoreProvider>();
+            var storeProvider = await context.Resolve<Task<IStoreProvider>>();
             Option<IEncryptionProvider> encryptionProvider = await context.Resolve<Task<Option<IEncryptionProvider>>>();
             IKeyValueStore<string, string> encryptedStore = encryptionProvider
                 .Map(

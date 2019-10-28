@@ -7,6 +7,7 @@ provisioning:
     method: "symmetric_key"
     registration_id: "register me fool"
     symmetric_key: "key"
+  dynamic_reprovisioning: true
 
 agent:
   name: "edgeAgent"

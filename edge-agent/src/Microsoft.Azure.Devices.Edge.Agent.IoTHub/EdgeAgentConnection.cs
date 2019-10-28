@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.DeviceManager;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -33,6 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly PeriodicTask refreshTwinTask;
         readonly IModuleConnection moduleConnection;
         readonly bool pullOnReconnect;
+        readonly IDeviceManager deviceManager;
 
         Option<TwinCollection> desiredProperties;
         Option<TwinCollection> reportedProperties;
@@ -41,8 +43,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         public EdgeAgentConnection(
             IModuleClientProvider moduleClientProvider,
             ISerde<DeploymentConfig> desiredPropertiesSerDe,
-            IRequestManager requestManager)
-            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, true, DefaultConfigRefreshFrequency, TransientRetryStrategy)
+            IRequestManager requestManager,
+            IDeviceManager deviceManager)
+            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, true, DefaultConfigRefreshFrequency, TransientRetryStrategy)
         {
         }
 
@@ -50,9 +53,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             IModuleClientProvider moduleClientProvider,
             ISerde<DeploymentConfig> desiredPropertiesSerDe,
             IRequestManager requestManager,
+            IDeviceManager deviceManager,
             bool enableSubscriptions,
             TimeSpan configRefreshFrequency)
-            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, enableSubscriptions, configRefreshFrequency, TransientRetryStrategy)
+            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, enableSubscriptions, configRefreshFrequency, TransientRetryStrategy)
         {
         }
 
@@ -60,6 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             IModuleClientProvider moduleClientProvider,
             ISerde<DeploymentConfig> desiredPropertiesSerDe,
             IRequestManager requestManager,
+            IDeviceManager deviceManager,
             bool enableSubscriptions,
             TimeSpan refreshConfigFrequency,
             RetryStrategy retryStrategy)
@@ -72,6 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.refreshTwinTask = new PeriodicTask(this.ForceRefreshTwin, refreshConfigFrequency, refreshConfigFrequency, Events.Log, "refresh twin config");
             this.initTask = this.ForceRefreshTwin();
             this.pullOnReconnect = enableSubscriptions;
+            this.deviceManager = Preconditions.CheckNotNull(deviceManager, nameof(deviceManager));
             Events.TwinRefreshInit(refreshConfigFrequency);
         }
 
@@ -134,6 +140,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             try
             {
                 Events.ConnectionStatusChanged(status, reason);
+
+                // TODO: Change this to `Device_Not_Found` after that reason is added to the C# IoT SDK
+                // and uncomment the following block to enable dynamic reprovisioning based on the
+                // new ConnectionStatusChangeReason.
+                // if (reason == ConnectionStatusChangeReason.Device_Not_Found)
+                // {
+                //    await this.deviceManager.ReprovisionDeviceAsync();
+                // }
                 if (this.pullOnReconnect && this.initTask.IsCompleted && status == ConnectionStatus.Connected)
                 {
                     using (await this.twinLock.LockAsync())
