@@ -3,12 +3,13 @@
 use std::fmt;
 use std::str::FromStr;
 
-pub const API_VERSION: Version = Version::Version2019_01_30;
+pub const API_VERSION: Version = Version::Version2019_10_22;
 
 #[derive(Clone, Copy, Debug, PartialOrd, PartialEq)]
 pub enum Version {
     Version2018_06_28,
     Version2019_01_30,
+    Version2019_10_22,
 }
 
 impl FromStr for Version {
@@ -18,6 +19,7 @@ impl FromStr for Version {
         match s {
             "2018-06-28" => Ok(Version::Version2018_06_28),
             "2019-01-30" => Ok(Version::Version2019_01_30),
+            "2019-10-22" => Ok(Version::Version2019_10_22),
             _ => Err(()),
         }
     }
@@ -28,6 +30,7 @@ impl fmt::Display for Version {
         match *self {
             Version::Version2018_06_28 => write!(f, "2018-06-28"),
             Version::Version2019_01_30 => write!(f, "2019-01-30"),
+            Version::Version2019_10_22 => write!(f, "2019-10-22"),
         }
     }
 }
