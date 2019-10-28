@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
+    using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.IO;
@@ -17,10 +18,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
     public class KubernetesRuntimeInfoProvider : IRuntimeInfoProvider, IRuntimeInfoSource
     {
+        static readonly TimeSpan SystemInfoTimeout = TimeSpan.FromSeconds(3);
         readonly string deviceNamespace;
         readonly IKubernetes client;
         readonly ConcurrentDictionary<string, ModuleRuntimeInfo> moduleRuntimeInfo;
         readonly IModuleManager moduleManager;
+        readonly CancellationTokenSource tokenSource;
 
         public KubernetesRuntimeInfoProvider(string deviceNamespace, IKubernetes client, IModuleManager moduleManager)
         {
@@ -28,6 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.moduleManager = Preconditions.CheckNotNull(moduleManager, nameof(moduleManager));
             this.moduleRuntimeInfo = new ConcurrentDictionary<string, ModuleRuntimeInfo>();
+            this.tokenSource = new CancellationTokenSource(SystemInfoTimeout);
         }
 
         public void CreateOrUpdateAddPodInfo(string podName, V1Pod pod)
@@ -55,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public Task<SystemInfo> GetSystemInfo()
         {
-            return this.moduleManager.GetSystemInfoAsync();
+            return this.moduleManager.GetSystemInfoAsync(this.tokenSource.Token);
         }
     }
 }
