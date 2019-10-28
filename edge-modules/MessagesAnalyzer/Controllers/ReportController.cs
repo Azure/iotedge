@@ -20,7 +20,7 @@ namespace MessagesAnalyzer.Controllers
                 this.logAnalytics = new AzureLogAnalytics(
                     "be10913e-ac28-44d0-9534-207a6df99b0d", 
                     "Fft9PBDAyW68EAabfF5Gk1v1hSjtzLY+Fi0LJ9dncBdMRRc1h/xgxKh7jz3w9sztMPEL63berYS9QRHKCYvRew==", 
-                    "promMetrics");
+                    "bearLog");
             }
         }
 
