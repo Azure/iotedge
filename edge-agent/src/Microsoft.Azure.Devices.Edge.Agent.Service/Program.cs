@@ -253,6 +253,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             // Initialize exceptions counter
             Dictionary<Type, string> recognizedExceptions = new Dictionary<Type, string>
             {
+                // TODO: Decide what exceptions to recognize and ignore
                 { typeof(Newtonsoft.Json.JsonSerializationException), "json_serialization" },
                 { typeof(ArgumentException), "argument" },
                 // { typeof(Docker.DotNet.DockerApiException), "docker" },
