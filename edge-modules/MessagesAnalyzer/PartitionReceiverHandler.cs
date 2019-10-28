@@ -7,6 +7,7 @@ namespace MessagesAnalyzer
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.EventHubs;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics;
 
     class PartitionReceiveHandler : IPartitionReceiveHandler
     {

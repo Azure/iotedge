@@ -20,7 +20,7 @@ namespace MessagesAnalyzer
         static async Task Main(string[] args)
         {
             Log.LogInformation($"Starting analyzer for [deviceId: {Settings.Current.DeviceId}] with [consumerGroupId: {Settings.Current.ConsumerGroupId}], exclude-modules: {string.Join(", ", Settings.Current.ExcludedModuleIds.ToArray())}");
-
+            
             await ReceiveMessages();
 
             var cts = new CancellationTokenSource();
