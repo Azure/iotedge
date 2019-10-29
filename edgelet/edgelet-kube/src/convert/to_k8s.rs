@@ -59,16 +59,16 @@ fn spec_to_podspec(
     if EDGE_EDGE_AGENT_NAME == module_label_value {
         env_vars.push(env(EDGE_NETWORK_ID_KEY, ""));
         env_vars.push(env(NAMESPACE_KEY, settings.namespace()));
-        env_vars.push(env(PROXY_IMAGE_KEY, settings.proxy_image()));
+        env_vars.push(env(PROXY_IMAGE_KEY, settings.proxy().image()));
         env_vars.push(env(PROXY_CONFIG_VOLUME_KEY, PROXY_CONFIG_VOLUME_NAME));
         env_vars.push(env(
             PROXY_CONFIG_MAP_NAME_KEY,
-            settings.proxy_config_map_name(),
+            settings.proxy().config_map_name(),
         ));
-        env_vars.push(env(PROXY_CONFIG_PATH_KEY, settings.proxy_config_path()));
+        env_vars.push(env(PROXY_CONFIG_PATH_KEY, settings.proxy().config_path()));
         env_vars.push(env(
             PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME_KEY,
-            settings.proxy_trust_bundle_config_map_name(),
+            settings.proxy().trust_bundle_config_map_name(),
         ));
         env_vars.push(env(
             PROXY_TRUST_BUNDLE_VOLUME_KEY,
@@ -76,14 +76,14 @@ fn spec_to_podspec(
         ));
         env_vars.push(env(
             PROXY_TRUST_BUNDLE_PATH_KEY,
-            settings.proxy_trust_bundle_path(),
+            settings.proxy().trust_bundle_path(),
         ));
     }
 
     // Bind/volume mounts
     // ConfigMap volume name is fixed: "config-volume"
     let proxy_config_volume_source = api_core::ConfigMapVolumeSource {
-        name: Some(settings.proxy_config_map_name().to_string()),
+        name: Some(settings.proxy().config_map_name().to_string()),
         ..api_core::ConfigMapVolumeSource::default()
     };
     // Volume entry for proxy's config map
@@ -95,7 +95,7 @@ fn spec_to_podspec(
 
     // trust bundle ConfigMap volume name is fixed: "trust-bundle-volume"
     let trust_bundle_config_volume_source = api_core::ConfigMapVolumeSource {
-        name: Some(settings.proxy_trust_bundle_config_map_name().to_string()),
+        name: Some(settings.proxy().trust_bundle_config_map_name().to_string()),
         ..api_core::ConfigMapVolumeSource::default()
     };
     // Volume entry for proxy's trust bundle config map
@@ -109,7 +109,7 @@ fn spec_to_podspec(
 
     // Where to mount proxy config map
     let proxy_volume_mount = api_core::VolumeMount {
-        mount_path: settings.proxy_config_path().to_string(),
+        mount_path: settings.proxy().config_path().to_string(),
         name: PROXY_CONFIG_VOLUME_NAME.to_string(),
         read_only: Some(true),
         ..api_core::VolumeMount::default()
@@ -117,7 +117,7 @@ fn spec_to_podspec(
 
     // Where to mount proxy trust bundle config map
     let trust_bundle_volume_mount = api_core::VolumeMount {
-        mount_path: settings.proxy_trust_bundle_path().to_string(),
+        mount_path: settings.proxy().trust_bundle_path().to_string(),
         name: PROXY_TRUST_BUNDLE_VOLUME_NAME.to_string(),
         read_only: Some(true),
         ..api_core::VolumeMount::default()
@@ -251,7 +251,7 @@ fn spec_to_podspec(
                 name: module_label_value.clone(),
                 env: Some(env_vars.clone()),
                 image: Some(module_image),
-                image_pull_policy: Some(settings.image_pull_policy().to_string()),
+                image_pull_policy: Some(settings.proxy().image_pull_policy().to_string()), //todo user edgeagent imagepullpolicy instead
                 security_context: security,
                 volume_mounts: Some(volume_mounts),
                 ..api_core::Container::default()
@@ -260,8 +260,8 @@ fn spec_to_podspec(
             api_core::Container {
                 name: PROXY_CONTAINER_NAME.to_string(),
                 env: Some(env_vars),
-                image: Some(settings.proxy_image().to_string()),
-                image_pull_policy: Some(settings.image_pull_policy().to_string()),
+                image: Some(settings.proxy().image().to_string()),
+                image_pull_policy: Some(settings.proxy().image_pull_policy().to_string()),
                 volume_mounts: Some(proxy_volume_mounts),
                 ..api_core::Container::default()
             },
@@ -464,7 +464,7 @@ pub fn trust_bundle_to_config_map(
 
     let mut data = BTreeMap::new();
     data.insert(PROXY_TRUST_BUNDLE_FILENAME.to_string(), cert.to_string());
-    let config_map_name = settings.proxy_trust_bundle_config_map_name().to_string();
+    let config_map_name = settings.proxy().trust_bundle_config_map_name().to_string();
 
     let config_map = api_core::ConfigMap {
         metadata: Some(api_meta::ObjectMeta {
