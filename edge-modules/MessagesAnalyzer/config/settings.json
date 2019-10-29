@@ -8,5 +8,9 @@
   },
   "WebhostPort": "15000",
   "ToleranceInMilliseconds": 10000,
-  "EventHubConnectionString": ""
+  "EventHubConnectionString": "",
+  "LogaAnalyticEnabled" : "",
+  "LogAnalyticWorkspaceId": "",
+  "LogAnalyticSharedKey": "", 
+  "LogAnalyticLogType": ""
 }
