@@ -9,7 +9,10 @@
   "WebhostPort": "15000",
   "ToleranceInMilliseconds": 10000,
   "EventHubConnectionString": "",
+<<<<<<< HEAD
   "LogaAnalyticEnabled" : "",
+=======
+>>>>>>> d0fb9a093a06d231735816dbc1eda54068a401bd
   "LogAnalyticWorkspaceId": "",
   "LogAnalyticSharedKey": "", 
   "LogAnalyticLogType": ""

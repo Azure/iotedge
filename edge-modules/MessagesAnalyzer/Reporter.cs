@@ -5,25 +5,11 @@ namespace MessagesAnalyzer
     using System.Collections.Generic;
     using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics;
     using Microsoft.Extensions.Logging;
 
     class Reporter
     {
         static readonly ILogger Log = Logger.Factory.CreateLogger<Reporter>();
-        // AzureLogAnalytics logAnalytics = null;
-        // Reporter()
-        // {
-        //     if(this.logAnalytics == null)
-        //     {
-        //         // BEARWASHERE
-        //         //( Workspace Id, Key [Advance settings > connected sources], log type, api version  )
-        //         this.logAnalytics = new AzureLogAnalytics(
-        //             "be10913e-ac28-44d0-9534-207a6df99b0d", 
-        //             "Fft9PBDAyW68EAabfF5Gk1v1hSjtzLY+Fi0LJ9dncBdMRRc1h/xgxKh7jz3w9sztMPEL63berYS9QRHKCYvRew==", 
-        //             "promMetrics");
-        //     }
-        // }
 
         public static DeviceReport GetReceivedMessagesReport(double toleranceInMilliseconds)
         {
@@ -35,11 +21,6 @@ namespace MessagesAnalyzer
             {
                 report.Add(GetReceivedMessagesReport(moduleMessages.Key, toleranceInMilliseconds, moduleMessages.Value, enDateTime));
             }
-
-            //BEARWASHERE -- Testing
-            // DeviceReport devReport = new DeviceReport(report);
-            // this.logAnalytics.Post(devReport.ToString());
-            // return devReport;
 
             return new DeviceReport(report);
         }
