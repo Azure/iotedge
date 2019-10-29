@@ -18,10 +18,8 @@ namespace MessagesAnalyzer.Controllers
         public ActionResult<string> Get()
         {
             
-            if(this.logAnalytics == null)
+            if(Settings.Current.LogaAnalyticEnabled && this.logAnalytics == null)
             {
-                // BEARWASHERE
-                //( Workspace Id, Key [Advance settings > connected sources], log type, api version  )
                 this.logAnalytics = new AzureLogAnalytics(
                     Settings.Current.LogAnalyticWorkspaceId, 
                     Settings.Current.LogAnalyticSharedKey, 
@@ -29,7 +27,10 @@ namespace MessagesAnalyzer.Controllers
             }
 
             string resultJson = Reporter.GetReceivedMessagesReport(Settings.Current.ToleranceInMilliseconds).ToString();
-            this.logAnalytics.Post(Encoding.UTF8.GetBytes(resultJson));
+            if(Settings.Current.LogaAnalyticEnabled)
+            {
+                this.logAnalytics.Post(Encoding.UTF8.GetBytes(resultJson));
+            }
             return resultJson;
         }
     }

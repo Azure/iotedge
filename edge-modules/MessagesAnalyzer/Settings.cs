@@ -18,6 +18,7 @@ namespace MessagesAnalyzer
         const string DefaultConsumerGroupId = "$Default";
         const string DefaultWebhostPort = "5001";
         const double DefaultToleranceInMilliseconds = 1000 * 60;
+        const string LogaAnalyticEnabledName = "LogaAnalyticEnabled";
         const string LogAnalyticWorkspaceIdName = "LogAnalyticWorkspaceId";
         const string LogAnalyticSharedKeyName = "LogAnalyticSharedKey";
         const string LogAnalyticLogTypeName = "LogAnalyticLogType";
@@ -40,12 +41,13 @@ namespace MessagesAnalyzer
                     excludedModules,
                     configuration.GetValue(WebhostPortPropertyName, DefaultWebhostPort),
                     configuration.GetValue(ToleranceInMillisecondsPropertyName, DefaultToleranceInMilliseconds),
+                    configuration.GetValue(LogaAnalyticEnabledName, "false"),
                     configuration.GetValue(LogAnalyticWorkspaceIdName, ""),
                     configuration.GetValue(LogAnalyticSharedKeyName, ""),
                     configuration.GetValue(LogAnalyticLogTypeName, ""));
             });
 
-        Settings(string eventHubCs, string consumerGroupId, string deviceId, IList<string> excludedModuleIds, string webhostPort, double tolerance, string laWorkspaceIdName, string laSharedKeyName, string laLogTypeName)
+        Settings(string eventHubCs, string consumerGroupId, string deviceId, IList<string> excludedModuleIds, string webhostPort, double tolerance, string laEnabled, string laWorkspaceIdName, string laSharedKeyName, string laLogTypeName)
         {
             this.EventHubConnectionString = eventHubCs;
             this.ConsumerGroupId = consumerGroupId;
@@ -53,6 +55,7 @@ namespace MessagesAnalyzer
             this.DeviceId = deviceId;
             this.WebhostPort = webhostPort;
             this.ToleranceInMilliseconds = tolerance;
+            this.LogaAnalyticEnabled = Convert.ToBoolean(laEnabled);
             this.LogAnalyticWorkspaceId = laWorkspaceIdName;
             this.LogAnalyticSharedKey = laSharedKeyName;
             this.LogAnalyticLogType = laLogTypeName;
@@ -71,6 +74,8 @@ namespace MessagesAnalyzer
         public string WebhostPort { get; }
 
         public double ToleranceInMilliseconds { get; }
+
+        public bool LogaAnalyticEnabled { get; }
 
         public string LogAnalyticWorkspaceId { get; }
 
