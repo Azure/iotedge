@@ -7,12 +7,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.DeviceManager;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
 
-    public class ModuleManagementHttpClient : IModuleManager, IIdentityManager
+    public class ModuleManagementHttpClient : IModuleManager, IIdentityManager, IDeviceManager
     {
         readonly ModuleManagementHttpClientVersioned inner;
 
@@ -54,6 +55,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         public Task PrepareUpdateAsync(ModuleSpec moduleSpec) => this.inner.PrepareUpdateAsync(moduleSpec);
 
+        public Task ReprovisionDeviceAsync() => this.inner.ReprovisionDeviceAsync();
+
         public Task<Stream> GetModuleLogs(string name, bool follow, Option<int> tail, Option<int> since, CancellationToken cancellationToken) =>
             this.inner.GetModuleLogs(name, follow, tail, since, cancellationToken);
 
@@ -68,6 +71,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             if (supportedVersion == ApiVersion.Version20190130)
             {
                 return new Version_2019_01_30.ModuleManagementHttpClient(managementUri);
+            }
+
+            if (supportedVersion == ApiVersion.Version20191022)
+            {
+                return new Version_2019_10_22.ModuleManagementHttpClient(managementUri);
             }
 
             return new Version_2018_06_28.ModuleManagementHttpClient(managementUri);

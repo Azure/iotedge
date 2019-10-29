@@ -21,7 +21,8 @@ All URIs are relative to *http://localhost*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
-*ExternalProvisioningApi* | [**get_device_provisioning_information**](docs/ExternalProvisioningApi.md#get_device_provisioning_information) | **Get** /edge/device/provisioninginformation | Gets the IoT hub provisioning information of the device.
+*ExternalProvisioningApi* | [**get_device_provisioning_information**](docs/ExternalProvisioningApi.md#get_device_provisioning_information) | **Get** /device/provisioninginformation | Gets the IoT hub provisioning information of the device.
+*ExternalProvisioningApi* | [**reprovision_device**](docs/ExternalProvisioningApi.md#reprovision_device) | **Post** /device/reprovision | Trigger to reprovision the Edge device.
 
 
 ## Documentation For Models
