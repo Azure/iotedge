@@ -1,6 +1,5 @@
 {
   "ServiceClientConnectionString": "",
-  "DeviceId": "",
   "DesiredModulesToRestartCSV": "ModuleRestarter",
   "RestartIntervalInMins": "10"
 }
