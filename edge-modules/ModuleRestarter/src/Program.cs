@@ -39,6 +39,7 @@ namespace ModuleRestarter
         /// </summary>
         static async Task RestartModules(CancellationTokenSource cts)
         {
+            // mitigate unintended repeated commas
             List<string> moduleNames = new List<string>();
             foreach (string name in DesiredModulesToRestartCSV.Split(","))
             {
@@ -46,6 +47,11 @@ namespace ModuleRestarter
                 {
                     moduleNames.Add(name);
                 }
+            }
+
+            if (moduleNames.Count == 0)
+            {
+                throw new ArgumentException("No module names specified");
             }
 
             ServiceClient iotHubServiceClient = ServiceClient.CreateFromConnectionString(ServiceClientConnectionString);
