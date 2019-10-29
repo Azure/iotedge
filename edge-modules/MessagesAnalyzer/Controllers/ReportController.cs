@@ -23,17 +23,14 @@ namespace MessagesAnalyzer.Controllers
                 // BEARWASHERE
                 //( Workspace Id, Key [Advance settings > connected sources], log type, api version  )
                 this.logAnalytics = new AzureLogAnalytics(
-                    "be10913e-ac28-44d0-9534-207a6df99b0d", 
-                    "Fft9PBDAyW68EAabfF5Gk1v1hSjtzLY+Fi0LJ9dncBdMRRc1h/xgxKh7jz3w9sztMPEL63berYS9QRHKCYvRew==", 
-                    "bearLog");
+                    Settings.Current.LogAnalyticWorkspaceId, 
+                    Settings.Current.LogAnalyticSharedKey, 
+                    Settings.Current.LogAnalyticLogType);
             }
 
             string resultJson = Reporter.GetReceivedMessagesReport(Settings.Current.ToleranceInMilliseconds).ToString();
             this.logAnalytics.Post(Encoding.UTF8.GetBytes(resultJson));
-            Console.WriteLine("resultJson: "+resultJson);
-            this.logAnalytics.Post(Encoding.UTF8.GetBytes("{ \"bearwashere\" : \"" +  new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds().ToString() +"\" }"));
             return resultJson;
-            //return Reporter.GetReceivedMessagesReport(Settings.Current.ToleranceInMilliseconds).ToString();
         }
     }
 }

@@ -45,7 +45,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
 
             //BEARWASHERE
             Console.WriteLine("Content: "+ System.Text.Encoding.UTF8.GetString(content));
-            Console.WriteLine("Signature: "+signature);
 
             using (HttpWebResponse responseAsync = (HttpWebResponse)request.GetResponse())
             {
