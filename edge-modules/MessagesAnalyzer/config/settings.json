@@ -1,5 +1,5 @@
 {
-  "DeviceId": "device1",
+  "DeviceId": "e2e-bearLinEdgeVM-191029-093638.328",
   "ExcludeModules": {
     "Ids": [
       "$edgeAgent",
