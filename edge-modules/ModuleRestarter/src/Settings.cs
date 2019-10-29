@@ -47,5 +47,10 @@ namespace ModuleRestarter
         public string DesiredModulesToRestartCSV { get; }
 
         public int RestartIntervalInMins { get; }
+
+        public override string ToString()
+        {
+            return JsonConvert.SerializeObject(this, Formatting.Indented);
+        }
     }
 }

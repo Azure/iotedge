@@ -15,8 +15,8 @@ namespace ModuleRestarter
         static readonly ILogger Logger = ModuleUtil.CreateLogger("ModuleRestarter");
         static readonly string ServiceClientConnectionString = Preconditions.CheckNonWhiteSpace(Settings.Current.ServiceClientConnectionString, "ServiceClientConnectionString");
         static readonly string DeviceId = Preconditions.CheckNonWhiteSpace(Settings.Current.DeviceId, "DeviceId");
-        static readonly string DesiredModulesToRestartCSV = Settings.Current.DesiredModulesToRestartCSV;
-        static readonly int RestartIntervalInMins = Settings.Current.RestartIntervalInMins;
+        static readonly string DesiredModulesToRestartCSV = Preconditions.CheckNonWhiteSpace(Settings.Current.DesiredModulesToRestartCSV, "DesiredModulesToRestartCSV");
+        static readonly int RestartIntervalInMins = Preconditions.CheckRange(Settings.Current.RestartIntervalInMins, 0);
 
         public static int Main() => MainAsync().Result;
 
@@ -59,7 +59,14 @@ namespace ModuleRestarter
                 Logger.LogInformation("RestartModule Method Payload: {0}", payload);
                 c2dMethod.SetPayloadJson(payload);
 
-                await iotHubServiceClient.InvokeDeviceMethodAsync(DeviceId, "$edgeAgent", c2dMethod);
+                try
+                {
+                    await iotHubServiceClient.InvokeDeviceMethodAsync(DeviceId, "$edgeAgent", c2dMethod);
+                }
+                catch (Exception e)
+                {
+                    Logger.LogError($"Exception caught: {e}");
+                }
 
                 await Task.Delay(RestartIntervalInMins * 60 * 1000, cts.Token);
             }
