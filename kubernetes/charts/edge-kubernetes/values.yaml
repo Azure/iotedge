@@ -66,6 +66,9 @@ edgeAgent:
     # Configure edge agent log verbosity
     runtimeLogLevel: 'debug'
 
+    # Set this to set the upstream protocol for edgeAgent (default: Amqp with AmpqWs as fallback)
+    # upstreamProtocol: 'AmqpWs'
+
     # Configure the default claim size to use (in megabytes) when creating PVCs.
     # persistentVolumeClaimDefaultSizeInMb: ""
 
