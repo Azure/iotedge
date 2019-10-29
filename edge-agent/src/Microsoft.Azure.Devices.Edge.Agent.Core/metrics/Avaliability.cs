@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
         public TimeSpan RunningTime { get; private set; } = TimeSpan.Zero;
         public TimeSpan ExpectedTime { get; private set; } = TimeSpan.Zero;
 
-        private DateTime? previousMeasure = null;
+        private DateTime? previousMeasure;
 
         public Availability(string name, string version, ISystemTime time)
         {
@@ -26,13 +26,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             this.previousMeasure = time.UtcNow;
         }
 
-        /* This is used to creae edgeAgent's own avaliability, since it can't track its own downtime. */
+        // This is used to create edgeAgent's own avaliability, since it can't track its own downtime.
         public Availability(string name, string version, TimeSpan downtime, ISystemTime time)
         {
             this.Name = Preconditions.CheckNotNull(name, nameof(name));
             this.Version = Preconditions.CheckNotNull(version, nameof(version));
             this.time = Preconditions.CheckNotNull(time, nameof(time));
             this.previousMeasure = time.UtcNow;
+
+            this.ExpectedTime = downtime;
         }
 
         public void AddPoint(bool isUp)

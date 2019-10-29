@@ -27,8 +27,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             for (int i = 1; i < 100; i++)
             {
                 Availability availability = new Availability("Test", "test", systemTime.Object);
-                // seed avaliability so it knows when to start counting from
-                availability.AddPoint(false);
                 fakeTime = fakeTime.AddMinutes(10);
 
                 for (int j = 0; j < 100; j++)
@@ -70,7 +68,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
 
             // Note approx equal since we lose a bit of information when no point is measured
             TestUtilities.ApproxEqual(TimeSpan.FromMinutes(2000).TotalDays, availability.ExpectedTime.TotalDays, .1);
-            TestUtilities.ApproxEqual(.5, availability.RunningTime.TotalSeconds / availability.ExpectedTime.TotalSeconds, .01);
+            TestUtilities.ApproxEqual(TimeSpan.FromMinutes(1000).TotalDays, availability.RunningTime.TotalDays, .1);
         }
     }
 }

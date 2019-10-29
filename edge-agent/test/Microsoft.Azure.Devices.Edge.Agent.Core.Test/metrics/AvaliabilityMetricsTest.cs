@@ -15,11 +15,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
     using Xunit;
 
     [Unit]
-    public class AvailabilityMetricsTest : TempDirectory
+    public class AvailabilityMetricsTest
     {
         static readonly TestConfig Config = new TestConfig("image1");
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
-        static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>();
 
         [Fact]
         public void ReportsAccurateAvailability()
@@ -129,6 +128,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
         private static (TestRuntimeModule, TestModule) GetTestModulePair()
         {
             string name = $"module_{Guid.NewGuid()}";
+            IDictionary<string, EnvVal> envVars = new Dictionary<string, EnvVal>();
+
             return (
                 new TestRuntimeModule(
                         name,
@@ -146,7 +147,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                         ModuleStatus.Running,
                         ImagePullPolicy.OnCreate,
                         null,
-                        EnvVars),
+                        envVars),
                 new TestModule(
                         name,
                         "version1",
@@ -156,7 +157,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                         RestartPolicy.Always,
                         ImagePullPolicy.OnCreate,
                         DefaultConfigurationInfo,
-                        EnvVars)
+                        envVars)
              );
         }
     }
