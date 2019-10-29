@@ -169,9 +169,6 @@
               "EventHubConnectionString": {
                 "value": "<Analyzer.EventHubConnectionString>"
               },
-              "DeviceId": {
-                "value": "<DeviceID>"
-              },
               "ConsumerGroupId": {
                 "value": "<Analyzer.ConsumerGroupId>"
               }
