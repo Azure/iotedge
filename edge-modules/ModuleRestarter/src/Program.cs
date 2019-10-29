@@ -13,10 +13,6 @@ namespace ModuleRestarter
     class Program
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("ModuleRestarter");
-        static readonly string ServiceClientConnectionString = Preconditions.CheckNonWhiteSpace(Settings.Current.ServiceClientConnectionString, "ServiceClientConnectionString");
-        static readonly string DeviceId = Preconditions.CheckNonWhiteSpace(Settings.Current.DeviceId, "DeviceId");
-        static readonly string DesiredModulesToRestartCSV = Preconditions.CheckNonWhiteSpace(Settings.Current.DesiredModulesToRestartCSV, "DesiredModulesToRestartCSV");
-        static readonly int RestartIntervalInMins = Preconditions.CheckRange(Settings.Current.RestartIntervalInMins, 0);
 
         public static int Main() => MainAsync().Result;
 
@@ -39,42 +35,28 @@ namespace ModuleRestarter
         /// </summary>
         static async Task RestartModules(CancellationTokenSource cts)
         {
-            // mitigate unintended repeated commas
-            List<string> moduleNames = new List<string>();
-            foreach (string name in DesiredModulesToRestartCSV.Split(","))
-            {
-                if (!string.IsNullOrWhiteSpace(name))
-                {
-                    moduleNames.Add(name);
-                }
-            }
-
-            if (moduleNames.Count == 0)
-            {
-                throw new ArgumentException("No module names specified");
-            }
-
-            ServiceClient iotHubServiceClient = ServiceClient.CreateFromConnectionString(ServiceClientConnectionString);
+            ServiceClient iotHubServiceClient = ServiceClient.CreateFromConnectionString(Settings.Current.ServiceClientConnectionString);
             CloudToDeviceMethod c2dMethod = new CloudToDeviceMethod("RestartModule");
             Random random = new Random();
 
+            string payloadSchema = "{{ \"SchemaVersion\": \"1.0\", \"Id\": \"{0}\" }}";
+            List<string> moduleNames = Settings.Current.GetDesiredModulesToRestart();
             while (!cts.Token.IsCancellationRequested)
             {
-                string payload = "{{ \"SchemaVersion\": \"1.0\", \"Id\": \"{0}\" }}";
-                payload = string.Format(payload, moduleNames[random.Next(0, moduleNames.Count)]);
+                string payload = string.Format(payloadSchema, moduleNames[random.Next(0, moduleNames.Count)]);
                 Logger.LogInformation("RestartModule Method Payload: {0}", payload);
                 c2dMethod.SetPayloadJson(payload);
 
                 try
                 {
-                    await iotHubServiceClient.InvokeDeviceMethodAsync(DeviceId, "$edgeAgent", c2dMethod);
+                    await iotHubServiceClient.InvokeDeviceMethodAsync(Settings.Current.DeviceId, "$edgeAgent", c2dMethod);
                 }
                 catch (Exception e)
                 {
                     Logger.LogError($"Exception caught: {e}");
                 }
 
-                await Task.Delay(RestartIntervalInMins * 60 * 1000, cts.Token);
+                await Task.Delay(Settings.Current.RestartIntervalInMins * 60 * 1000, cts.Token);
             }
         }
     }
