@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Autofac;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.DeviceManager;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker;
@@ -21,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     /// <summary>
     /// Initializes Edgelet specific types.
     /// TODO: Right now, it assumes Edgelet supports docker. Need to make it completely implementation agnostic
-    /// But that requires IModule implementations to be made generic
+    /// But that requires IModule implementations to be made generic.
     /// </summary>
     public class EdgeletModule : Module
     {
@@ -84,6 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(c => new ModuleManagementHttpClient(this.managementUri, this.apiVersion, Constants.EdgeletClientApiVersion))
                 .As<IModuleManager>()
                 .As<IIdentityManager>()
+                .As<IDeviceManager>()
                 .SingleInstance();
 
             // IModuleIdentityLifecycleManager
@@ -127,7 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                     async c =>
                     {
-                        var moduleStateStore = c.Resolve<IEntityStore<string, ModuleState>>();
+                        var moduleStateStore = await c.Resolve<Task<IEntityStore<string, ModuleState>>>();
                         var restartPolicyManager = c.Resolve<IRestartPolicyManager>();
                         IRuntimeInfoProvider runtimeInfoProvider = await c.Resolve<Task<IRuntimeInfoProvider>>();
                         IEnvironmentProvider dockerEnvironmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, moduleStateStore, restartPolicyManager);

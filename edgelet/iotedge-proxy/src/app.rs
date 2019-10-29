@@ -30,6 +30,7 @@ pub fn init() -> Result<Settings, Error> {
     Ok(settings)
 }
 
+#[allow(deprecated)]
 fn create_app() -> App<'static, 'static> {
     App::new(crate_name!())
         .author(crate_authors!("\n"))

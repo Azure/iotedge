@@ -3,8 +3,7 @@
 use std::collections::BTreeMap;
 use std::str;
 
-use base64;
-use docker::models::{AuthConfig, HostConfig};
+use docker::models::HostConfig;
 use edgelet_core::{Certificate, ModuleSpec};
 use edgelet_docker::DockerConfig;
 use failure::ResultExt;
@@ -12,117 +11,14 @@ use k8s_openapi::api::apps::v1 as api_apps;
 use k8s_openapi::api::core::v1 as api_core;
 use k8s_openapi::api::rbac::v1 as api_rbac;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1 as api_meta;
-use k8s_openapi::ByteString;
 use log::warn;
-use serde_json;
 
+use crate::constants::env::*;
 use crate::constants::*;
-use crate::convert::sanitize_dns_value;
-use crate::error::{ErrorKind, PullImageErrorReason, Result};
+use crate::convert::{sanitize_dns_domain, sanitize_dns_value};
+use crate::error::{ErrorKind, Result};
+use crate::registry::ImagePullSecret;
 use crate::settings::Settings;
-
-// Use username and server from Docker AuthConfig to construct an image pull secret name.
-fn auth_to_pull_secret_name(auth: &AuthConfig) -> Option<String> {
-    match (auth.username(), auth.serveraddress()) {
-        (Some(user), Some(server)) => {
-            Some(format!("{}-{}", user.to_lowercase(), server.to_lowercase()))
-        }
-        _ => None,
-    }
-}
-
-// AuthEntry models the JSON string needed for entryies in the image pull secrets.
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
-struct AuthEntry {
-    pub username: String,
-    pub password: String,
-    pub auth: String,
-}
-
-impl AuthEntry {
-    pub fn new(username: String, password: String) -> AuthEntry {
-        let auth = base64::encode(&format!("{}:{}", username, password));
-        AuthEntry {
-            username,
-            password,
-            auth,
-        }
-    }
-}
-
-// Auth represents the JSON string needed for image pull secrets.
-// JSON struct is
-// { "auths":
-//   {"<registry>" :
-//      { "username":"<user>",
-//        "password":"<password>",
-//        "email":"<email>" (not needed)
-//        "auth":"<base64 of '<user>:<password>'>"
-//       }
-//   }
-// }
-#[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
-struct Auth {
-    pub auths: BTreeMap<String, AuthEntry>,
-}
-
-impl Auth {
-    pub fn new(auths: BTreeMap<String, AuthEntry>) -> Auth {
-        Auth { auths }
-    }
-
-    pub fn secret_data(&self) -> Result<ByteString> {
-        let data =
-            serde_json::to_vec(self).context(ErrorKind::PullImage(PullImageErrorReason::Json))?;
-        Ok(ByteString(data))
-    }
-}
-
-/// Converts Docker `AuthConfig` to a K8s image pull secret.
-pub fn auth_to_image_pull_secret(
-    namespace: &str,
-    auth: &AuthConfig,
-) -> Result<(String, api_core::Secret)> {
-    let secret_name = auth_to_pull_secret_name(auth)
-        .ok_or_else(|| ErrorKind::PullImage(PullImageErrorReason::AuthName))?;
-
-    let registry = auth
-        .serveraddress()
-        .ok_or_else(|| ErrorKind::PullImage(PullImageErrorReason::AuthServerAddress))?;
-
-    let user = auth
-        .username()
-        .ok_or_else(|| ErrorKind::PullImage(PullImageErrorReason::AuthUser))?;
-
-    let password = auth
-        .password()
-        .ok_or_else(|| ErrorKind::PullImage(PullImageErrorReason::AuthPassword))?;
-
-    let mut auths = BTreeMap::new();
-    auths.insert(
-        registry.to_string(),
-        AuthEntry::new(user.to_string(), password.to_string()),
-    );
-
-    // construct a JSON string from "auths" structure
-    let auth_string = Auth::new(auths).secret_data()?;
-
-    // create a pull secret from auths string.
-    let mut secret_data = BTreeMap::new();
-    secret_data.insert(PULL_SECRET_DATA_NAME.to_string(), auth_string);
-    Ok((
-        secret_name.clone(),
-        api_core::Secret {
-            data: Some(secret_data),
-            metadata: Some(api_meta::ObjectMeta {
-                name: Some(secret_name),
-                namespace: Some(namespace.to_string()),
-                ..api_meta::ObjectMeta::default()
-            }),
-            ..api_core::Secret::default()
-        },
-    ))
-}
 
 /// Converts Docker `ModuleSpec` to K8s `PodSpec`
 fn spec_to_podspec(
@@ -159,14 +55,29 @@ fn spec_to_podspec(
             ..api_core::EnvVar::default()
         })
         .collect();
-    // Pass along "USE_PERSISTENT_VOLUMES" to EdgeAgent
-    if settings.use_pvc() && EDGE_EDGE_AGENT_NAME == module_label_value {
-        let env_var = api_core::EnvVar {
-            name: USE_PERSISTENT_VOLUME_CLAIMS.to_string(),
-            value: Some("True".to_string()),
-            ..api_core::EnvVar::default()
-        };
-        env_vars.push(env_var);
+
+    if EDGE_EDGE_AGENT_NAME == module_label_value {
+        env_vars.push(env(EDGE_NETWORK_ID_KEY, ""));
+        env_vars.push(env(NAMESPACE_KEY, settings.namespace()));
+        env_vars.push(env(PROXY_IMAGE_KEY, settings.proxy_image()));
+        env_vars.push(env(PROXY_CONFIG_VOLUME_KEY, PROXY_CONFIG_VOLUME_NAME));
+        env_vars.push(env(
+            PROXY_CONFIG_MAP_NAME_KEY,
+            settings.proxy_config_map_name(),
+        ));
+        env_vars.push(env(PROXY_CONFIG_PATH_KEY, settings.proxy_config_path()));
+        env_vars.push(env(
+            PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME_KEY,
+            settings.proxy_trust_bundle_config_map_name(),
+        ));
+        env_vars.push(env(
+            PROXY_TRUST_BUNDLE_VOLUME_KEY,
+            PROXY_TRUST_BUNDLE_VOLUME_NAME,
+        ));
+        env_vars.push(env(
+            PROXY_TRUST_BUNDLE_PATH_KEY,
+            settings.proxy_trust_bundle_path(),
+        ));
     }
 
     // Bind/volume mounts
@@ -295,31 +206,13 @@ fn spec_to_podspec(
                     }
                 }
                 Some("volume") => {
-                    // Treat volume mounts one of two ways:
-                    // 1. if use_pvc is set, we assume the user has created a
-                    // Persistent Volume and Claim named "source" for us to use.
-                    // 2. is use_pvc is not set, we create a simple EmptyDir
-                    // volume for this pod to use.  This volume is not persistent.
                     if let (Some(source), Some(target)) = (mount.source(), mount.target()) {
                         let volume_name = sanitize_dns_value(source)?;
 
-                        let volume = if settings.use_pvc() {
-                            api_core::Volume {
-                                name: volume_name.clone(),
-                                persistent_volume_claim: Some(
-                                    api_core::PersistentVolumeClaimVolumeSource {
-                                        claim_name: volume_name.clone(),
-                                        read_only: mount.read_only().cloned(),
-                                    },
-                                ),
-                                ..api_core::Volume::default()
-                            }
-                        } else {
-                            api_core::Volume {
-                                name: volume_name.clone(),
-                                empty_dir: Some(api_core::EmptyDirVolumeSource::default()),
-                                ..api_core::Volume::default()
-                            }
+                        let volume = api_core::Volume {
+                            name: volume_name.clone(),
+                            empty_dir: Some(api_core::EmptyDirVolumeSource::default()),
+                            ..api_core::Volume::default()
                         };
                         let volume_mount = api_core::VolumeMount {
                             mount_path: target.to_string(),
@@ -339,12 +232,17 @@ fn spec_to_podspec(
             }
         }
     };
+
     //pull secrets
-    let image_pull_secrets = spec.config().auth().and_then(|auth| {
-        Some(vec![api_core::LocalObjectReference {
-            name: auth_to_pull_secret_name(auth),
-        }])
-    });
+    let image_pull_secrets = spec
+        .config()
+        .auth()
+        .and_then(|auth| ImagePullSecret::from_auth(&auth))
+        .map(|image_pull_secret| {
+            vec![api_core::LocalObjectReference {
+                name: image_pull_secret.name(),
+            }]
+        });
 
     Ok(api_core::PodSpec {
         containers: vec![
@@ -375,6 +273,14 @@ fn spec_to_podspec(
     })
 }
 
+fn env<V: Into<String>>(key: &str, value: V) -> api_core::EnvVar {
+    api_core::EnvVar {
+        name: key.to_string(),
+        value: Some(value.into()),
+        ..api_core::EnvVar::default()
+    }
+}
+
 /// Converts Docker Module Spec into a K8S Deployment.
 pub fn spec_to_deployment(
     settings: &Settings,
@@ -384,7 +290,7 @@ pub fn spec_to_deployment(
     let module_label_value = sanitize_dns_value(spec.name())?;
     let device_label_value =
         sanitize_dns_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?)?;
-    let hubname_label = sanitize_dns_value(
+    let hubname_label = sanitize_dns_domain(
         settings
             .iot_hub_hostname()
             .ok_or(ErrorKind::MissingHubName)?,
@@ -453,7 +359,7 @@ pub fn spec_to_service_account(
     let module_label_value = sanitize_dns_value(spec.name())?;
     let device_label_value =
         sanitize_dns_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?)?;
-    let hubname_label = sanitize_dns_value(
+    let hubname_label = sanitize_dns_domain(
         settings
             .iot_hub_hostname()
             .ok_or(ErrorKind::MissingHubName)?,
@@ -493,7 +399,7 @@ pub fn spec_to_role_binding(
     let module_label_value = sanitize_dns_value(spec.name())?;
     let device_label_value =
         sanitize_dns_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?)?;
-    let hubname_label = sanitize_dns_value(
+    let hubname_label = sanitize_dns_domain(
         settings
             .iot_hub_hostname()
             .ok_or(ErrorKind::MissingHubName)?,
@@ -542,7 +448,7 @@ pub fn trust_bundle_to_config_map(
 ) -> Result<(String, api_core::ConfigMap)> {
     let device_label_value =
         sanitize_dns_value(settings.device_id().ok_or(ErrorKind::MissingDeviceId)?)?;
-    let hubname_label = sanitize_dns_value(
+    let hubname_label = sanitize_dns_domain(
         settings
             .iot_hub_hostname()
             .ok_or(ErrorKind::MissingHubName)?,
@@ -575,9 +481,10 @@ pub fn trust_bundle_to_config_map(
 
 #[cfg(test)]
 mod tests {
-    use std::collections::{BTreeMap, HashMap};
+    use std::collections::HashMap;
     use std::str;
 
+    use k8s_openapi::api::core::v1 as api_core;
     use k8s_openapi::apimachinery::pkg::apis::meta::v1 as api_meta;
 
     use docker::models::AuthConfig;
@@ -588,13 +495,13 @@ mod tests {
     use edgelet_docker::DockerConfig;
     use edgelet_test_utils::cert::TestCert;
 
+    use crate::constants::env::*;
     use crate::constants::*;
-    use crate::convert::to_k8s::{Auth, AuthEntry};
     use crate::convert::{
-        auth_to_image_pull_secret, spec_to_deployment, spec_to_role_binding,
-        spec_to_service_account, trust_bundle_to_config_map,
+        spec_to_deployment, spec_to_role_binding, spec_to_service_account,
+        trust_bundle_to_config_map,
     };
-    use crate::tests::make_settings;
+    use crate::tests::{make_settings, PROXY_CONFIG_MAP_NAME, PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME};
     use crate::ErrorKind;
 
     fn create_module_spec() -> ModuleSpec<DockerConfig> {
@@ -694,8 +601,7 @@ mod tests {
             if let Some(podspec) = spec.template.spec.as_ref() {
                 assert_eq!(podspec.containers.len(), 2);
                 if let Some(module) = podspec.containers.iter().find(|c| c.name == "edgeagent") {
-                    // 2 from module spec, 1 for use_pvc
-                    assert_eq!(module.env.as_ref().map(Vec::len).unwrap(), 3);
+                    validate_container_env(module.env.as_ref().unwrap());
                     assert_eq!(module.volume_mounts.as_ref().map(Vec::len).unwrap(), 6);
                     assert_eq!(module.image.as_ref().unwrap(), "my-image:v1.0");
                     assert_eq!(module.image_pull_policy.as_ref().unwrap(), "IfNotPresent");
@@ -705,8 +611,7 @@ mod tests {
                     .iter()
                     .find(|c| c.name == PROXY_CONTAINER_NAME)
                 {
-                    // 2 from module spec, 1 for use_pvc
-                    assert_eq!(proxy.env.as_ref().map(Vec::len).unwrap(), 3);
+                    validate_container_env(proxy.env.as_ref().unwrap());
                     assert_eq!(proxy.volume_mounts.as_ref().map(Vec::len).unwrap(), 2);
                     assert_eq!(proxy.image.as_ref().unwrap(), "proxy:latest");
                     assert_eq!(proxy.image_pull_policy.as_ref().unwrap(), "IfNotPresent");
@@ -719,49 +624,33 @@ mod tests {
         }
     }
 
-    #[test]
-    fn auth_to_image_pull_secret_success() {
-        let mut auths = BTreeMap::new();
-        auths.insert(
-            "REGISTRY".to_string(),
-            AuthEntry::new("USER".to_string(), "a password".to_string()),
-        );
-        let json_data = serde_json::to_string(&Auth::new(auths)).unwrap();
-        let auth_config = AuthConfig::new()
-            .with_password(String::from("a password"))
-            .with_username(String::from("USER"))
-            .with_serveraddress(String::from("REGISTRY"));
-        let (name, secret) = auth_to_image_pull_secret("namespace", &auth_config).unwrap();
-        assert_eq!(name, "user-registry");
-
-        assert!(secret.metadata.is_some());
-        if let Some(meta) = secret.metadata.as_ref() {
-            assert_eq!(meta.name, Some(name));
-            assert_eq!(meta.namespace, Some("namespace".to_string()));
-        }
-        assert_eq!(
-            str::from_utf8(secret.data.unwrap()[".dockerconfigjson"].0.as_slice()).unwrap(),
-            json_data
-        );
-    }
-
-    #[test]
-    fn auth_to_image_pull_secret_failure() {
-        let auths = vec![
-            AuthConfig::new()
-                .with_username(String::from("USER"))
-                .with_serveraddress(String::from("REGISTRY")),
-            AuthConfig::new()
-                .with_password(String::from("a password"))
-                .with_serveraddress(String::from("REGISTRY")),
-            AuthConfig::new()
-                .with_password(String::from("a password"))
-                .with_username(String::from("USER")),
-        ];
-        for auth in auths {
-            let result = auth_to_image_pull_secret("namespace", &auth);
-            assert!(result.is_err());
-        }
+    fn validate_container_env(env: &[api_core::EnvVar]) {
+        assert_eq!(env.len(), 11);
+        assert!(env.contains(&super::env("a", "b")));
+        assert!(env.contains(&super::env("C", "D")));
+        assert!(env.contains(&super::env(NAMESPACE_KEY, "default")));
+        assert!(env.contains(&super::env(PROXY_IMAGE_KEY, "proxy:latest")));
+        assert!(env.contains(&super::env(
+            PROXY_CONFIG_VOLUME_KEY,
+            PROXY_CONFIG_VOLUME_NAME,
+        )));
+        assert!(env.contains(&super::env(PROXY_CONFIG_PATH_KEY, "/etc/traefik")));
+        assert!(env.contains(&super::env(
+            PROXY_CONFIG_MAP_NAME_KEY,
+            PROXY_CONFIG_MAP_NAME,
+        )));
+        assert!(env.contains(&super::env(
+            PROXY_TRUST_BUNDLE_VOLUME_KEY,
+            PROXY_TRUST_BUNDLE_VOLUME_NAME,
+        )));
+        assert!(env.contains(&super::env(
+            &PROXY_TRUST_BUNDLE_PATH_KEY,
+            "/etc/trust-bundle",
+        )));
+        assert!(env.contains(&super::env(
+            &PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME_KEY,
+            PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME,
+        )));
     }
 
     #[test]

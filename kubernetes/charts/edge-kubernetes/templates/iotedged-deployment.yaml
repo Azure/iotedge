@@ -26,6 +26,9 @@ spec:
           imagePullPolicy: {{ .Values.iotedged.image.pullPolicy }}
           command: ["/app/iotedged"]
           args: ["-c", "/etc/iotedged/config.yaml"]
+          env:
+          - name: "IOTEDGE_LOG"
+            value: "debug"
           volumeMounts:
           - name: config
             mountPath: "/etc/iotedged"
@@ -46,29 +49,31 @@ spec:
               protocol: TCP
           livenessProbe:
             httpGet:
+              scheme: HTTPS
               path: "/systeminfo?api-version={{ .Values.iotedged.apiVersion }}"
               port: {{ .Values.iotedged.ports.management }}
           readinessProbe:
             httpGet:
+              scheme: HTTPS
               path: "/systeminfo?api-version={{ .Values.iotedged.apiVersion }}"
               port: {{ .Values.iotedged.ports.management }}
       serviceAccount: "iotedged"
       {{- /* Render image pull secrets if they have been provided. */ -}}
       {{- if .Values.registryCredentials }}
       imagePullSecrets:
-        - name: {{ include "edge-kubernetes.fullname" . }}-regcreds
+        - name: regcreds
       {{ end }}
       volumes:
       - name: config
         secret:
-          secretName: {{ include "edge-kubernetes.fullname" . }}-iotedged-config
+          secretName: iotedged-config
       {{- if .Values.iotedged.certificates }}
       {{- /*
         NOTE: This sets up iotedged with a volume "/etc/edgecerts" populated with the given CA certs.
       */}}
       - name: edge-certs
         secret:
-          secretName: {{ include "edge-kubernetes.fullname" . }}-edgecerts
+          secretName: edgecerts
       {{else}}
       {{- /*
         NOTE: This sets up iotedged in the "quickstart" mode which is NOT meant

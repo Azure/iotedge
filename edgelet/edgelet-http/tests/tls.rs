@@ -63,7 +63,7 @@ pub fn configure_test(address: &str) -> (Run, u16) {
     println!("IOTEDGE_HOMEDIR set to {:#?}", home_dir.path());
 
     let hsm_lock = HsmLock::new();
-    let crypto = Crypto::new(hsm_lock).unwrap();
+    let crypto = Crypto::new(hsm_lock, 1000).unwrap();
 
     // create the default issuing CA cert properties
     let edgelet_ca_props = CertificateProperties::new(

@@ -193,5 +193,4 @@ mod tests {
             &ErrorKind::Initialize(InitializeErrorReason::ClientConfig)
         );
     }
-
 }

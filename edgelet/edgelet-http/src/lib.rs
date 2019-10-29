@@ -5,6 +5,7 @@
 #![allow(
     clippy::default_trait_access,
     clippy::module_name_repetitions,
+    clippy::pub_enum_variant_names,
     clippy::similar_names,
     clippy::use_self
 )]
@@ -398,16 +399,21 @@ impl HyperExt for Http {
                             })?,
                         )
                     }
-                    Socket::Unknown => Err(ErrorKind::InvalidUrlWithReason(
-                        url.to_string(),
-                        InvalidUrlReason::UnrecognizedSocket,
-                    ))?,
+                    Socket::Unknown => {
+                        return Err(ErrorKind::InvalidUrlWithReason(
+                            url.to_string(),
+                            InvalidUrlReason::UnrecognizedSocket,
+                        )
+                        .into())
+                    }
                 }
             }
-            _ => Err(Error::from(ErrorKind::InvalidUrlWithReason(
-                url.to_string(),
-                InvalidUrlReason::InvalidScheme,
-            )))?,
+            _ => {
+                return Err(Error::from(ErrorKind::InvalidUrlWithReason(
+                    url.to_string(),
+                    InvalidUrlReason::InvalidScheme,
+                )))
+            }
         };
 
         Ok(Server {

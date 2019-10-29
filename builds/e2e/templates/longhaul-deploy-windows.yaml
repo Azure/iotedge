@@ -12,6 +12,7 @@ parameters:
   snitch.storage.account: ''
   snitch.storage.masterKey: ''
   loadGen.message.frequency: ''
+  analyzer.consumerGroupId: ''
 
 steps:
   - task: CopyFiles@2
@@ -34,5 +35,5 @@ steps:
         #Requires -RunAsAdministrator
         $testName="LongHaul"
         $ArtifactInfo=convertfrom-stringdata (get-content $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt -raw)
-        $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/windows/test/Run-E2ETest.ps1 -E2ETestFolder "$(Agent.HomeDirectory)/.." -ReleaseLabel "${{ parameters['release.label'] }}" -ArtifactImageBuildNumber "$($ArtifactInfo.BuildNumber)" -TestName "$testName" -ContainerRegistry "${{ parameters['container.registry'] }}" -ContainerRegistryUsername "${{ parameters['container.registry.username'] }}" -ContainerRegistryPassword "${{ parameters['container.registry.password'] }}" -IoTHubConnectionString "${{ parameters['iotHub.connectionString'] }}" -EventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" -SnitchBuildNumber "${{ parameters['snitch.build.number'] }}" -SnitchStorageAccount "${{ parameters['snitch.storage.account'] }}" -SnitchStorageMasterKey "${{ parameters['snitch.storage.masterKey'] }}" -SnitchAlertUrl "${{ parameters['snitch.alert.url'] }}" -LoadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}"
+        $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/windows/test/Run-E2ETest.ps1 -E2ETestFolder "$(Agent.HomeDirectory)/.." -ReleaseLabel "${{ parameters['release.label'] }}" -ArtifactImageBuildNumber "$($ArtifactInfo.BuildNumber)" -TestName "$testName" -ContainerRegistry "${{ parameters['container.registry'] }}" -ContainerRegistryUsername "${{ parameters['container.registry.username'] }}" -ContainerRegistryPassword "${{ parameters['container.registry.password'] }}" -IoTHubConnectionString "${{ parameters['iotHub.connectionString'] }}" -EventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" -SnitchBuildNumber "${{ parameters['snitch.build.number'] }}" -SnitchStorageAccount "${{ parameters['snitch.storage.account'] }}" -SnitchStorageMasterKey "${{ parameters['snitch.storage.masterKey'] }}" -SnitchAlertUrl "${{ parameters['snitch.alert.url'] }}" -LoadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" -EventHubConsumerGroupId "${{ parameters['analyzer.consumerGroupId'] }}"
       workingDirectory: "$(Agent.HomeDirectory)/.."

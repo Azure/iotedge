@@ -19,7 +19,6 @@ pub struct Settings {
     #[serde(flatten)]
     base: BaseSettings<DockerConfig>,
     namespace: String,
-    use_pvc: bool,
     iot_hub_hostname: Option<String>,
     device_id: Option<String>,
     proxy_image: String,
@@ -28,7 +27,6 @@ pub struct Settings {
     proxy_trust_bundle_path: String,
     proxy_trust_bundle_config_map_name: String,
     image_pull_policy: String,
-    service_account_name: String,
     device_hub_selector: String,
 }
 
@@ -66,10 +64,6 @@ impl Settings {
         &self.namespace
     }
 
-    pub fn use_pvc(&self) -> bool {
-        self.use_pvc
-    }
-
     pub fn iot_hub_hostname(&self) -> Option<&str> {
         self.iot_hub_hostname.as_ref().map(String::as_str)
     }
@@ -100,10 +94,6 @@ impl Settings {
 
     pub fn image_pull_policy(&self) -> &str {
         &self.image_pull_policy
-    }
-
-    pub fn service_account_name(&self) -> &str {
-        &self.service_account_name
     }
 
     pub fn device_hub_selector(&self) -> &str {
@@ -142,7 +132,7 @@ impl RuntimeSettings for Settings {
         self.base.homedir()
     }
 
-    fn certificates(&self) -> Option<&Certificates> {
+    fn certificates(&self) -> &Certificates {
         self.base.certificates()
     }
 

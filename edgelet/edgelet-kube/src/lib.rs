@@ -13,6 +13,7 @@ mod constants;
 mod convert;
 mod error;
 mod module;
+mod registry;
 mod runtime;
 mod settings;
 
@@ -40,6 +41,7 @@ mod tests {
     use crate::KubeModuleRuntime;
 
     pub const PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME: &str = "device1-iotedged-proxy-trust-bundle";
+    pub const PROXY_CONFIG_MAP_NAME: &str = "device1-iotedged-proxy-config";
 
     pub fn make_settings(merge_json: Option<JsonValue>) -> Settings {
         let mut config = Config::default();
@@ -68,16 +70,14 @@ mod tests {
             },
             "homedir": "/var/lib/iotedge",
             "namespace": "default",
-            "use_pvc": true,
             "iot_hub_hostname": "iotHub",
             "device_id": "device1",
             "proxy_image": "proxy:latest",
             "proxy_config_path": "/etc/traefik",
-            "proxy_config_map_name": PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME,
+            "proxy_config_map_name": PROXY_CONFIG_MAP_NAME,
             "proxy_trust_bundle_path": "/etc/trust-bundle",
-            "proxy_trust_bundle_config_map_name": "device1-iotedged-proxy-trust-bundle",
+            "proxy_trust_bundle_config_map_name": PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME,
             "image_pull_policy": "IfNotPresent",
-            "service_account_name": "iotedge",
             "device_hub_selector": "",
         });
 

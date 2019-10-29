@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
-    using System;
-
     public static class Constants
     {
         public const string OwnerValue = "Microsoft.Azure.Devices.Edge.Agent";
@@ -79,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string NetworkIdKey = "NetworkId";
 
-        public const string EdgeletClientApiVersion = "2019-01-30";
+        public const string EdgeletClientApiVersion = "2019-10-22";
 
         public const string EdgeletInitializationVectorFileName = "IOTEDGE_BACKUP_IV";
 
@@ -89,19 +87,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string AllModulesIdentifier = "all";
 
-        public const string ProxyImageEnvKey = "ProxyImage";
-
-        public const string ProxyConfigPathEnvKey = "ProxyConfigPath";
-
-        public const string ProxyConfigVolumeEnvKey = "ProxyConfigVolume";
-
-        public const string DisableCloudSubscriptions = "DisableCloudSubscriptions";
-
         public const string CloseOnIdleTimeout = "CloseCloudConnectionOnIdleTimeout";
 
         public const string IdleTimeoutSecs = "CloudConnectionIdleTimeoutSecs";
-
-        public const string EdgeAgentServiceAccountName = "ServiceAccountName";
 
         public const string IoTEdgeAgentProductInfoIdentifier = "EdgeAgent";
 
