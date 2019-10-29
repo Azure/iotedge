@@ -155,7 +155,7 @@ function prepare_test_from_artifacts() {
                     echo "Copy deployment file from $long_haul_deployment_artifact_file"
                     cp "$long_haul_deployment_artifact_file" "$deployment_working_file"
                     sed -i -e "s@<DesiredModulesToRestartCSV>@$DESIRED_MODULES_TO_RESTART_CSV@g" "$deployment_working_file"
-                    sed -i -e "s@<RandomRestartIntervalInMins>@$RANDOM_RESTART_INTERVAL_IN_MINS@g" "$deployment_working_file"
+                    sed -i -e "s@<RestartIntervalInMins>@$RESTART_INTERVAL_IN_MINS@g" "$deployment_working_file"
                     sed -i -e "s@<ServiceClientConnectionString>@$IOTHUB_CONNECTION_STRING@g" "$deployment_working_file"
                 else
                     echo "Copy deployment file from $stress_deployment_artifact_file"
@@ -357,7 +357,7 @@ function process_args() {
             DESIRED_MODULES_TO_RESTART_CSV="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 31 ]; then
-            RANDOM_RESTART_INTERVAL_IN_MINS="$arg"
+            RESTART_INTERVAL_IN_MINS="$arg"
             saveNextArg=0;
         else
             case "$arg" in
@@ -392,7 +392,7 @@ function process_args() {
                 '-dpsMasterSymmetricKey' ) saveNextArg=28;;
                 '-eventHubConsumerGroupId' ) saveNextArg=29;;
                 '-desiredModulesToRestartCSV' ) saveNextArg=30;;
-                '-randomRestartIntervalInMins' ) saveNextArg=31;;
+                '-restartIntervalInMins' ) saveNextArg=31;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -975,8 +975,8 @@ function usage() {
     echo ' -installRootCACertPath            Optional path to root CA certificate to be used for certificate generation'
     echo ' -installRootCAKeyPath             Optional path to root CA certificate private key to be used for certificate generation'
     echo ' -installRootCAKeyPassword         Optional password to access the root CA certificate private key to be used for certificate generation'
-    echo ' -desiredModulesToRestartCSV       Optional CSV string of module names for long haul specifying what modules to restart. If specified, then "randomRestartIntervalInMins" must be specified as well.'
-    echo ' -randomRestartIntervalInMins      Optional value for long haul specifying how often a random module will restart. If specified, then "desiredModulesToRestartJsonPath" must be specified as well.'
+    echo ' -desiredModulesToRestartCSV       Optional CSV string of module names for long haul specifying what modules to restart. If specified, then "restartIntervalInMins" must be specified as well.'
+    echo ' -restartIntervalInMins            Optional value for long haul specifying how often a random module will restart. If specified, then "desiredModulesToRestartCSV" must be specified as well.'
     exit 1;
 }
 
@@ -993,7 +993,7 @@ LOADGEN4_TRANSPORT_TYPE="${LOADGEN4_TRANSPORT_TYPE:-mqtt}"
 if [[ "${TEST_NAME,,}" == "longhaul" ]]; then
     DESIRED_MODULES_TO_RESTART_CSV="${DESIRED_MODULES_TO_RESTART_CSV:-moduleRestarter}"
     LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:01}"
-    RANDOM_RESTART_INTERVAL_IN_MINS="${RANDOM_RESTART_INTERVAL_IN_MINS:-10}"
+    RESTART_INTERVAL_IN_MINS="${RESTART_INTERVAL_IN_MINS:-10}"
     SNITCH_REPORTING_INTERVAL_IN_SECS="${SNITCH_REPORTING_INTERVAL_IN_SECS:-86400}"
     SNITCH_TEST_DURATION_IN_SECS="${SNITCH_TEST_DURATION_IN_SECS:-604800}"
 fi

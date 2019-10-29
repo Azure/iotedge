@@ -295,8 +295,8 @@
               "DesiredModulesToRestartCSV": {
                 "value": "<DesiredModulesToRestartCSV>"
               },
-              "RandomRestartIntervalInMins": {
-                "value": "<RandomRestartIntervalInMins>"
+              "RestartIntervalInMins": {
+                "value": "<RestartIntervalInMins>"
               }
             },
             "settings": {

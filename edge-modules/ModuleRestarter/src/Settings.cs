@@ -23,19 +23,19 @@ namespace ModuleRestarter
                     configuration.GetValue<string>("ServiceClientConnectionString"),
                     configuration.GetValue<string>("IOTEDGE_DEVICEID"),
                     configuration.GetValue<string>("DesiredModulesToRestartCSV", string.Empty),
-                    configuration.GetValue<int>("RandomRestartIntervalInMins", 10));
+                    configuration.GetValue<int>("RestartIntervalInMins", 10));
             });
 
         Settings(
             string serviceClientConnectionString,
             string deviceId,
             string desiredModulesToRestartCSV,
-            int randomRestartIntervalInMins)
+            int restartIntervalInMins)
         {
             this.ServiceClientConnectionString = serviceClientConnectionString;
             this.DeviceId = deviceId;
             this.DesiredModulesToRestartCSV = desiredModulesToRestartCSV;
-            this.RandomRestartIntervalInMins = randomRestartIntervalInMins;
+            this.RestartIntervalInMins = restartIntervalInMins;
         }
 
         public static Settings Current => DefaultSettings.Value;
@@ -46,6 +46,6 @@ namespace ModuleRestarter
 
         public string DesiredModulesToRestartCSV { get; }
 
-        public int RandomRestartIntervalInMins { get; }
+        public int RestartIntervalInMins { get; }
     }
 }

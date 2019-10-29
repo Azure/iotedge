@@ -90,7 +90,7 @@ jobs:
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
-          longHaul.randomRestartIntervalInMins: '$(longHaul.randomRestartIntervalInMins)'
+          longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           analyzer.consumerGroupId: 'longhaul_linux_amd64'
 
 ################################################################################
@@ -158,7 +158,7 @@ jobs:
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.arm32v7)'
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
-          longHaul.randomRestartIntervalInMins: '$(longHaul.randomRestartIntervalInMins)'
+          longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           analyzer.consumerGroupId: 'longhaul_linux_arm32v7'
 
 ################################################################################
@@ -226,7 +226,7 @@ jobs:
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.arm64v8)'
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
-          longHaul.randomRestartIntervalInMins: '$(longHaul.randomRestartIntervalInMins)'
+          longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           analyzer.consumerGroupId: 'longhaul_linux_arm64v8'
           
 ################################################################################
@@ -296,7 +296,7 @@ jobs:
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
-          longHaul.randomRestartIntervalInMins: '$(longHaul.randomRestartIntervalInMins)'
+          longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           analyzer.consumerGroupId: 'longhaul_windows_amd64'
 
 ################################################################################
@@ -366,7 +366,7 @@ jobs:
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
-          longHaul.randomRestartIntervalInMins: '$(longHaul.randomRestartIntervalInMins)'
+          longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           analyzer.consumerGroupId: 'longhaul_windows_servercore_amd64'
 
 ################################################################################
@@ -435,5 +435,5 @@ jobs:
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
-          longHaul.randomRestartIntervalInMins: '$(longHaul.randomRestartIntervalInMins)'
+          longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           analyzer.consumerGroupId: 'longhaul_iotuap_amd64'

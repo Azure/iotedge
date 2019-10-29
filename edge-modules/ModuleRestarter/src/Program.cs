@@ -16,7 +16,7 @@ namespace ModuleRestarter
         static readonly string ServiceClientConnectionString = Preconditions.CheckNonWhiteSpace(Settings.Current.ServiceClientConnectionString, "ServiceClientConnectionString");
         static readonly string DeviceId = Preconditions.CheckNonWhiteSpace(Settings.Current.DeviceId, "DeviceId");
         static readonly string DesiredModulesToRestartCSV = Settings.Current.DesiredModulesToRestartCSV;
-        static readonly int RestartIntervalInMins = Settings.Current.RandomRestartIntervalInMins;
+        static readonly int RestartIntervalInMins = Settings.Current.RestartIntervalInMins;
 
         public static int Main() => MainAsync().Result;
 
