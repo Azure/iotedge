@@ -8,5 +8,5 @@
   },
   "WebhostPort": "15000",
   "ToleranceInMilliseconds": 10000,
-  "EventHubConnectionString": ""
+  "EventHubConnectionString": "Endpoint=sb://iothub-ns-testiothub-503584-034668f27d.servicebus.windows.net/;SharedAccessKeyName=iothubowner;SharedAccessKey=PO4Ym5x/Y08wfEX1ZCfihChub6bFwixO2PANSCQ1ats=;EntityPath=testiothub114"
 }

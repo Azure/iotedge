@@ -5,7 +5,6 @@ namespace MessagesAnalyzer
     using System.Collections.Generic;
     using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics;
     using Microsoft.Extensions.Logging;
 
     class Reporter
