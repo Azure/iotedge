@@ -57,9 +57,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 sinceSeconds: since.Map(sec => (int?)sec).OrDefault(),
                 cancellationToken: cancellationToken);
 
-        public Task<SystemInfo> GetSystemInfo()
-        {
-            return this.moduleManager.GetSystemInfoAsync(this.tokenSource.Token);
-        }
+        public Task<SystemInfo> GetSystemInfo() => this.moduleManager.GetSystemInfoAsync(this.tokenSource.Token);
     }
 }
