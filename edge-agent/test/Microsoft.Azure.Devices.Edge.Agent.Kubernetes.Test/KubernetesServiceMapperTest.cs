@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -21,6 +22,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
         static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>();
         static readonly DockerConfig Config1 = new DockerConfig("test-image:1");
+        static readonly ResourceName ResourceName = new ResourceName("hostname", "deviceId");
+        static readonly EdgeDeploymentDefinition EdgeDeploymentDefinition = new EdgeDeploymentDefinition("v1", "EdgeDeployment", new k8s.Models.V1ObjectMeta(name: ResourceName), new List<KubernetesModule>(), null);
 
         [Fact]
         public void EmptyIsNotAllowedAsServiceAnnotation()
@@ -35,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var moduleLabels = new Dictionary<string, string>();
             var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
 
-            Assert.Throws<InvalidKubernetesNameException>(() => mapper.CreateService(moduleId, module, moduleLabels));
+            Assert.Throws<InvalidKubernetesNameException>(() => mapper.CreateService(moduleId, module, moduleLabels, EdgeDeploymentDefinition));
         }
 
         [Fact]
@@ -50,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
             var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
 
-            var service = mapper.CreateService(moduleId, module, moduleLabels);
+            var service = mapper.CreateService(moduleId, module, moduleLabels, EdgeDeploymentDefinition);
             Assert.False(service.HasValue);
         }
 
@@ -67,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var moduleLabels = new Dictionary<string, string>();
             var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
 
-            var service = mapper.CreateService(moduleId, module, moduleLabels);
+            var service = mapper.CreateService(moduleId, module, moduleLabels, EdgeDeploymentDefinition);
 
             Assert.False(service.HasValue);
         }
@@ -85,7 +88,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var moduleLabels = new Dictionary<string, string>();
             var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
 
-            var service = mapper.CreateService(moduleId, module, moduleLabels);
+            var service = mapper.CreateService(moduleId, module, moduleLabels, EdgeDeploymentDefinition);
 
             Assert.False(service.HasValue);
         }
@@ -103,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
             var moduleId = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
 
-            var service = mapper.CreateService(moduleId, module, moduleLabels).OrDefault();
+            var service = mapper.CreateService(moduleId, module, moduleLabels, EdgeDeploymentDefinition).OrDefault();
 
             Assert.Equal(1, service.Spec.Ports.Count);
             Assert.Equal(2, service.Metadata.Annotations.Count);
@@ -125,7 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
             var moduleId = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
 
-            var service = mapper.CreateService(moduleId, module, moduleLabels).OrDefault();
+            var service = mapper.CreateService(moduleId, module, moduleLabels, EdgeDeploymentDefinition).OrDefault();
 
             Assert.Equal(1, service.Spec.Ports.Count);
             Assert.Equal(1, service.Metadata.Annotations.Count);
@@ -155,7 +158,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
             var moduleId = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
 
-            var service = mapper.CreateService(moduleId, module, moduleLabels).OrDefault();
+            var service = mapper.CreateService(moduleId, module, moduleLabels, EdgeDeploymentDefinition).OrDefault();
 
             Assert.Equal(1, service.Spec.Ports.Count);
             AssertPort(new V1ServicePort(10, "hostport-10-tcp", null, "TCP", 10), service.Spec.Ports.First());
@@ -174,7 +177,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
             var moduleId = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
 
-            var service = mapper.CreateService(moduleId, module, moduleLabels).OrDefault();
+            var service = mapper.CreateService(moduleId, module, moduleLabels, EdgeDeploymentDefinition).OrDefault();
 
             Assert.Equal(1, service.Spec.Ports.Count);
             AssertPort(new V1ServicePort(10, "exposedport-10-tcp", null, "TCP"), service.Spec.Ports.First());
@@ -200,7 +203,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
             var moduleId = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
 
-            var service = mapper.CreateService(moduleId, module, moduleLabels).OrDefault();
+            var service = mapper.CreateService(moduleId, module, moduleLabels, EdgeDeploymentDefinition).OrDefault();
 
             Assert.Equal(1, service.Spec.Ports.Count);
             AssertPort(new V1ServicePort(10, "hostport-10-tcp", null, "TCP", 10), service.Spec.Ports.First());

@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -54,6 +55,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
             [KubernetesConstants.K8sEdgeHubNameLabel] = KubeUtils.SanitizeLabelValue("hostname")
         };
 
+        static readonly ResourceName ResourceName = new ResourceName("hostname", "deviceId");
+
+        static readonly EdgeDeploymentDefinition EdgeDeploymentDefinition = new EdgeDeploymentDefinition("v1", "EdgeDeployment", new k8s.Models.V1ObjectMeta(name: ResourceName), new List<KubernetesModule>(), null);
+
         [Fact]
         public void NullMountsNoClaims()
         {
@@ -62,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesPvcMapper(string.Empty, "storage", 1);
 
-            var pvcs = mapper.CreatePersistentVolumeClaims(module, DefaultLabels);
+            var pvcs = mapper.CreatePersistentVolumeClaims(module, DefaultLabels, EdgeDeploymentDefinition);
 
             Assert.False(pvcs.HasValue);
         }
@@ -75,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesPvcMapper(string.Empty, "storage", 1);
 
-            var pvcs = mapper.CreatePersistentVolumeClaims(module, DefaultLabels);
+            var pvcs = mapper.CreatePersistentVolumeClaims(module, DefaultLabels, EdgeDeploymentDefinition);
 
             Assert.False(pvcs.HasValue);
         }
@@ -88,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesPvcMapper(null, null, 0);
 
-            var pvcs = mapper.CreatePersistentVolumeClaims(module, DefaultLabels);
+            var pvcs = mapper.CreatePersistentVolumeClaims(module, DefaultLabels, EdgeDeploymentDefinition);
 
             Assert.False(pvcs.HasValue);
         }
@@ -101,7 +106,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
             var module = new KubernetesModule(docker, config);
             var mapper = new KubernetesPvcMapper(string.Empty, null, 0);
 
-            var pvcs = mapper.CreatePersistentVolumeClaims(module, DefaultLabels);
+            var pvcs = mapper.CreatePersistentVolumeClaims(module, DefaultLabels, EdgeDeploymentDefinition);
 
             Assert.False(pvcs.HasValue);
         }
@@ -115,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
             var mapper = new KubernetesPvcMapper(string.Empty, string.Empty, 10);
             var resourceQuantity = new ResourceQuantity("10Mi");
 
-            var pvcs = mapper.CreatePersistentVolumeClaims(module, DefaultLabels);
+            var pvcs = mapper.CreatePersistentVolumeClaims(module, DefaultLabels, EdgeDeploymentDefinition);
 
             Assert.True(pvcs.HasValue);
             var pvcList = pvcs.OrDefault();
@@ -146,7 +151,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
             var mapper = new KubernetesPvcMapper(string.Empty, "default", 10);
             var resourceQuantity = new ResourceQuantity("10Mi");
 
-            var pvcs = mapper.CreatePersistentVolumeClaims(module, DefaultLabels);
+            var pvcs = mapper.CreatePersistentVolumeClaims(module, DefaultLabels, EdgeDeploymentDefinition);
 
             Assert.True(pvcs.HasValue);
             var pvcList = pvcs.OrDefault();
@@ -177,7 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
             var mapper = new KubernetesPvcMapper("a-pvc-name", null, 37);
             var resourceQuantity = new ResourceQuantity("37Mi");
 
-            var pvcs = mapper.CreatePersistentVolumeClaims(module, DefaultLabels);
+            var pvcs = mapper.CreatePersistentVolumeClaims(module, DefaultLabels, EdgeDeploymentDefinition);
 
             Assert.True(pvcs.HasValue);
             var pvcList = pvcs.OrDefault();
@@ -208,7 +213,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
             var mapper = new KubernetesPvcMapper("a-pvc-name", "storageclass", 1);
             var resourceQuantity = new ResourceQuantity("1Mi");
 
-            var pvcs = mapper.CreatePersistentVolumeClaims(module, DefaultLabels);
+            var pvcs = mapper.CreatePersistentVolumeClaims(module, DefaultLabels, EdgeDeploymentDefinition);
 
             Assert.True(pvcs.HasValue);
             var pvcList = pvcs.OrDefault();
