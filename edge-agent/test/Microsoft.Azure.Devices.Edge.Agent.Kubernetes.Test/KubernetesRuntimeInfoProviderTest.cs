@@ -108,6 +108,34 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         }
 
         [Fact]
+        public async Task ReturnsModuleRuntimeInfoWhenPodsAreUpdated()
+        {
+            
+            var client = new Mock<IKubernetes>(MockBehavior.Strict);
+            var moduleManager = new Mock<IModuleManager>(MockBehavior.Strict);
+            var runtimeInfo = new KubernetesRuntimeInfoProvider(Namespace, client.Object, moduleManager.Object);
+            
+            V1Pod edgeagent1 = BuildPodList()["edgeagent"];
+            edgeagent1.Metadata.Name = "edgeAgent1";
+            edgeagent1.Status.StartTime = new DateTime(2019,10, 28);
+            runtimeInfo.CreateOrUpdateAddPodInfo("edgeagent", edgeagent1);
+
+            V1Pod edgeagent2 = BuildPodList()["edgeagent"];
+            edgeagent2.Metadata.Name = "edgeAgent2";
+            var expectedTime = edgeagent2.Status.StartTime = new DateTime(2019, 10, 29);
+            runtimeInfo.CreateOrUpdateAddPodInfo("edgeagent", edgeagent2);
+
+            runtimeInfo.RemovePodInfo("edgeagent");
+
+            var modules = await runtimeInfo.GetModules(CancellationToken.None);
+
+            var info = modules.Single();
+            var currentModuleStartTime = info.StartTime;
+            Assert.NotNull(info);
+            Assert.NotEqual(currentModuleStartTime.ToString(), expectedTime.ToString());
+        }
+        
+        [Fact]
         public async Task ConvertsPodsToModules()
         {
             var client = new Mock<IKubernetes>(MockBehavior.Strict);
