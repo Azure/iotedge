@@ -63,18 +63,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             DateTime fakeTime = DateTime.Now;
             systemTime.Setup(x => x.UtcNow).Returns(() => fakeTime);
 
-            AvailabilityMetrics.Time = systemTime.Object;
+            AvailabilityMetrics availabilityMetrics = new AvailabilityMetrics(systemTime.Object);
 
             (TestRuntimeModule[] current, TestModule[] desired) = GetTestModules(3);
             ModuleSet currentModuleSet = ModuleSet.Create(current as IModule[]);
             ModuleSet desiredModuleSet = ModuleSet.Create(desired);
 
             /* Test */
-            AvailabilityMetrics.ComputeAvailability(desiredModuleSet, currentModuleSet);
+            availabilityMetrics.ComputeAvailability(desiredModuleSet, currentModuleSet);
             Assert.Empty(runningTime);
 
             fakeTime = fakeTime.AddMinutes(10);
-            AvailabilityMetrics.ComputeAvailability(desiredModuleSet, currentModuleSet);
+            availabilityMetrics.ComputeAvailability(desiredModuleSet, currentModuleSet);
             Assert.Equal(3, runningTime.Count);
             Assert.Equal(3, expectedTime.Count);
             Assert.Equal(600, runningTime[current[0].Name]);
@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             fakeTime = fakeTime.AddMinutes(10);
             current[1].RuntimeStatus = ModuleStatus.Failed;
             current[2].RuntimeStatus = ModuleStatus.Failed;
-            AvailabilityMetrics.ComputeAvailability(desiredModuleSet, currentModuleSet);
+            availabilityMetrics.ComputeAvailability(desiredModuleSet, currentModuleSet);
             Assert.Equal(3, runningTime.Count);
             Assert.Equal(3, expectedTime.Count);
             Assert.Equal(1200, runningTime[current[0].Name]);
@@ -99,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
 
             fakeTime = fakeTime.AddMinutes(10);
             current[1].RuntimeStatus = ModuleStatus.Running;
-            AvailabilityMetrics.ComputeAvailability(desiredModuleSet, currentModuleSet);
+            availabilityMetrics.ComputeAvailability(desiredModuleSet, currentModuleSet);
             Assert.Equal(3, runningTime.Count);
             Assert.Equal(3, expectedTime.Count);
             Assert.Equal(1800, runningTime[current[0].Name]);

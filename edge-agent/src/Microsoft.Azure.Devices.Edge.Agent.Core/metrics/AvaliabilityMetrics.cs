@@ -11,26 +11,40 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Extensions.Logging;
 
-    static class AvailabilityMetrics
+    public interface IAvailabilityMetric
     {
-        private static readonly IMetricsGauge Running = Util.Metrics.Metrics.Instance.CreateGauge(
+        void ComputeAvailability(ModuleSet desired, ModuleSet current);
+    }
+
+    public class AvailabilityMetrics : IAvailabilityMetric
+    {
+        private readonly IMetricsGauge running = Util.Metrics.Metrics.Instance.CreateGauge(
             "total_time_running_correctly_seconds",
             "The amount of time the module was specified in the deployment and was in the running state",
             new List<string> { "module_name", "module_version" });
 
-        private static readonly IMetricsGauge ExpectedRunning = Util.Metrics.Metrics.Instance.CreateGauge(
+        private readonly IMetricsGauge expectedRunning = Util.Metrics.Metrics.Instance.CreateGauge(
             "total_time_expected_running_seconds",
             "The amount of time the module was specified in the deployment",
             new List<string> { "module_name", "module_version" });
 
-        public static readonly ILogger Log = Logger.Factory.CreateLogger<Availability>();
+        private readonly ILogger log = Logger.Factory.CreateLogger<Availability>();
+        private readonly ISystemTime time;
+        private readonly List<Availability> availabilities = new List<Availability>();
+        private readonly Lazy<Availability> edgeAgent;
 
-        public static ISystemTime Time = SystemTime.Instance;
+        public AvailabilityMetrics()
+            : this(SystemTime.Instance)
+        {
+        }
 
-        private static List<Availability> availabilities = new List<Availability>();
-        private static Lazy<Availability> edgeAgent = new Lazy<Availability>(() => new Availability("edgeAgent", "tempNoVersion", CalculateEdgeAgentDowntime(), Time));
+        public AvailabilityMetrics(ISystemTime time)
+        {
+            this.time = time;
+            this.edgeAgent = new Lazy<Availability>(() => new Availability("edgeAgent", "tempNoVersion", this.CalculateEdgeAgentDowntime(), this.time));
+        }
 
-        public static void ComputeAvailability(ModuleSet desired, ModuleSet current)
+        public void ComputeAvailability(ModuleSet desired, ModuleSet current)
         {
             /* Get all modules that are not running but should be */
             var down = new HashSet<string>(current.Modules.Values
@@ -47,14 +61,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                 .Select(c => c.Name));
 
             /* handle edgeAgent specially */
-            edgeAgent.Value.AddPoint(true);
+            this.edgeAgent.Value.AddPoint(true);
             down.Remove("edgeAgent");
             up.Remove("edgeAgent");
-            Running.Set(edgeAgent.Value.ExpectedTime.TotalSeconds, new[] { edgeAgent.Value.Name, edgeAgent.Value.Version });
-            ExpectedRunning.Set(edgeAgent.Value.RunningTime.TotalSeconds, new[] { edgeAgent.Value.Name, edgeAgent.Value.Version });
+            this.running.Set(this.edgeAgent.Value.ExpectedTime.TotalSeconds, new[] { this.edgeAgent.Value.Name, this.edgeAgent.Value.Version });
+            this.expectedRunning.Set(this.edgeAgent.Value.RunningTime.TotalSeconds, new[] { this.edgeAgent.Value.Name, this.edgeAgent.Value.Version });
 
             /* Add points for all other modules found */
-            foreach (Availability availability in availabilities)
+            foreach (Availability availability in this.availabilities)
             {
                 if (down.Remove(availability.Name))
                 {
@@ -70,46 +84,46 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                     availability.NoPoint();
                 }
 
-                Running.Set(availability.RunningTime.TotalSeconds, new[] { availability.Name, availability.Version });
-                ExpectedRunning.Set(availability.ExpectedTime.TotalSeconds, new[] { availability.Name, availability.Version });
+                this.running.Set(availability.RunningTime.TotalSeconds, new[] { availability.Name, availability.Version });
+                this.expectedRunning.Set(availability.ExpectedTime.TotalSeconds, new[] { availability.Name, availability.Version });
             }
 
             /* Add new modules to track */
             foreach (string module in down.Union(up))
             {
-                availabilities.Add(new Availability(module, "tempNoVersion", Time));
+                this.availabilities.Add(new Availability(module, "tempNoVersion", this.time));
             }
         }
 
-        private static TimeSpan CalculateEdgeAgentDowntime()
+        private TimeSpan CalculateEdgeAgentDowntime()
         {
-            AppDomain.CurrentDomain.ProcessExit += NoteCurrentTime;
+            AppDomain.CurrentDomain.ProcessExit += this.NoteCurrentTime;
             try
             {
                 if (File.Exists("shutdown_time"))
                 {
                     // TODO: get iotedged uptime. if < a couple minutes, assume intentional shutdown and return 0.
                     long ticks = long.Parse(File.ReadAllText("shutdown_time"));
-                    return Time.UtcNow - new DateTime(ticks);
+                    return this.time.UtcNow - new DateTime(ticks);
                 }
             }
             catch (Exception ex)
             {
-                Log.LogError($"Could not load shutdown time:\n{ex}");
+                this.log.LogError($"Could not load shutdown time:\n{ex}");
             }
 
             return TimeSpan.Zero;
         }
 
-        private static void NoteCurrentTime(object sender, EventArgs e)
+        private void NoteCurrentTime(object sender, EventArgs e)
         {
             try
             {
-                File.WriteAllText("shutdown_time", Time.UtcNow.Ticks.ToString());
+                File.WriteAllText("shutdown_time", this.time.UtcNow.Ticks.ToString());
             }
             catch (Exception ex)
             {
-                Log.LogError($"Could not save shutdown time:\n{ex}");
+                this.log.LogError($"Could not save shutdown time:\n{ex}");
             }
         }
     }
