@@ -84,6 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             Dictionary<string, string> dockerLoggingOptions;
             IEnumerable<global::Docker.DotNet.Models.AuthConfig> dockerAuthConfig;
             int configRefreshFrequencySecs;
+            MetricsConfig metricsConfig;
 
             try
             {
@@ -108,8 +109,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
 
             IContainer container;
-            string iothubHostname;
-            string deviceId;
             try
             {
                 var builder = new ContainerBuilder();
@@ -121,6 +120,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 int idleTimeoutSecs = configuration.GetValue(Constants.IdleTimeoutSecs, 300);
                 TimeSpan idleTimeout = TimeSpan.FromSeconds(idleTimeoutSecs);
                 ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(configuration.GetSection("experimentalFeatures"), logger);
+                metricsConfig = new MetricsConfig(true, MetricsListenerConfig.Create(configuration));
+                string iothubHostname;
+                string deviceId;
+
                 switch (mode.ToLowerInvariant())
                 {
                     case Constants.DockerMode:
@@ -129,6 +132,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         IotHubConnectionStringBuilder connectionStringParser = IotHubConnectionStringBuilder.Create(deviceConnectionString);
                         deviceId = connectionStringParser.DeviceId;
                         iothubHostname = connectionStringParser.HostName;
+                        builder.RegisterInstance(metricsConfig.Enabled
+                                 ? new MetricsProvider("edgeagent", iothubHostname, deviceId)
+                                 : new NullMetricsProvider() as IMetricsProvider);
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath));
                         builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout));
                         break;
@@ -141,6 +147,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         string moduleId = configuration.GetValue(Constants.ModuleIdVariableName, Constants.EdgeAgentModuleIdentityName);
                         string moduleGenerationId = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
                         string apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
+                        builder.RegisterInstance(metricsConfig.Enabled
+                                 ? new MetricsProvider("edgeagent", iothubHostname, deviceId)
+                                 : new NullMetricsProvider() as IMetricsProvider);
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId)));
                         builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, new Uri(managementUri), new Uri(workloadUri), apiVersion, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout));
                         break;
@@ -169,6 +178,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         string deviceNamespace = configuration.GetValue<string>(K8sConstants.K8sNamespaceKey);
                         var kubernetesExperimentalFeatures = KubernetesExperimentalFeatures.Create(configuration.GetSection("experimentalFeatures"), logger);
 
+                        builder.RegisterInstance(metricsConfig.Enabled
+                                 ? new MetricsProvider("edgeagent", iothubHostname, deviceId)
+                                 : new NullMetricsProvider() as IMetricsProvider);
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId)));
                         builder.RegisterModule(new KubernetesModule(
                             iothubHostname,
@@ -241,16 +253,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
 
             // Initialize metrics
-            var metricsConfig = new MetricsConfig(true, MetricsListenerConfig.Create(configuration));
-            var metricsProvider = metricsConfig.Enabled
-                             ? new MetricsProvider("edgeagent", iothubHostname, deviceId)
-                             : new NullMetricsProvider() as IMetricsProvider;
-            var metricsListener = metricsConfig.Enabled
-                            ? new MetricsListener(metricsConfig.ListenerConfig, metricsProvider)
-                            : new NullMetricsListener() as IMetricsListener;
-            Metrics.Init(metricsProvider, metricsListener, logger);
+            if (metricsConfig.Enabled)
+            {
+                var metricsListener = new MetricsListener(metricsConfig.ListenerConfig, container.Resolve<IMetricsProvider>());
+                metricsListener.Start(logger);
+            }
 
-            // Initialize exceptions counter
             Dictionary<Type, string> recognizedExceptions = new Dictionary<Type, string>
             {
                 // TODO: Decide what exceptions to recognize and ignore
@@ -264,7 +272,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 typeof(TaskCanceledException),
                 typeof(OperationCanceledException),
             };
-            new ExceptionCounter(recognizedExceptions, ignoredExceptions);
+            new ExceptionCounter(recognizedExceptions, ignoredExceptions, container.Resolve<IMetricsProvider>());
 
             // TODO move this code to Agent
             if (mode.ToLowerInvariant().Equals(Constants.KubernetesMode))

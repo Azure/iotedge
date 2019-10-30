@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
         public void CountsExceptions()
         {
             /* setup */
-            Dictionary<string, long> result = this.MockCounter();
+            (Dictionary<string, long> result, IMetricsProvider provider) = this.MockCounter();
             Dictionary<string, long> expected = new Dictionary<string, long>();
 
             Dictionary<Type, string> recognizedExceptions = new Dictionary<Type, string>
@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                 { typeof(TestException1), "test1" },
                 { typeof(TestException2), "test2" },
             };
-            using (new ExceptionCounter(recognizedExceptions, new HashSet<Type>()))
+            using (new ExceptionCounter(recognizedExceptions, new HashSet<Type>(), provider))
             {
                 /* test */
                 Assert.Equal(expected, result);
@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
         public void IgnoresExceptions()
         {
             /* setup */
-            Dictionary<string, long> result = this.MockCounter();
+            (Dictionary<string, long> result, IMetricsProvider provider) = this.MockCounter();
             Dictionary<string, long> expected = new Dictionary<string, long>();
 
             Dictionary<Type, string> recognizedExceptions = new Dictionary<Type, string>
@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                 typeof(TaskCanceledException),
                 typeof(OperationCanceledException),
             };
-            using (new ExceptionCounter(recognizedExceptions, ignoredExceptions))
+            using (new ExceptionCounter(recognizedExceptions, ignoredExceptions, provider))
             {
                 /* test */
                 Assert.Equal(expected, result);
@@ -100,14 +100,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
         public async Task CountsExceptionsAsync()
         {
             /* setup */
-            Dictionary<string, long> result = this.MockCounter();
+            (Dictionary<string, long> result, IMetricsProvider provider) = this.MockCounter();
 
             Dictionary<Type, string> recognizedExceptions = new Dictionary<Type, string>
             {
                 { typeof(TestException1), "test1" },
                 { typeof(TestException2), "test2" },
             };
-            using (new ExceptionCounter(recognizedExceptions, new HashSet<Type>()))
+            using (new ExceptionCounter(recognizedExceptions, new HashSet<Type>(), provider))
             {
                 /* test */
                 await Task.Run(() => { this.ThrowAndCatch(new TestException2()); });
@@ -131,9 +131,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
         public void DisposeUnsubscribes()
         {
             /* setup */
-            Dictionary<string, long> result = this.MockCounter();
+            (Dictionary<string, long> result, IMetricsProvider provider) = this.MockCounter();
             Dictionary<string, long> expected = new Dictionary<string, long>();
-            using (new ExceptionCounter(new Dictionary<Type, string>(), new HashSet<Type>()))
+            using (new ExceptionCounter(new Dictionary<Type, string>(), new HashSet<Type>(), provider))
             {
                 this.ThrowAndCatch(new Exception());
                 expected["other"] = 1;
@@ -144,7 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             Assert.Equal(expected, result);
         }
 
-        private Dictionary<string, long> MockCounter()
+        private (Dictionary<string, long> result, IMetricsProvider provider) MockCounter()
         {
             Dictionary<string, long> result = new Dictionary<string, long>();
             void Increment(long val, string[] tags)
@@ -169,9 +169,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                     new List<string> { "exception_name" }))
                 .Returns(counter.Object);
 
-            Util.Metrics.Metrics.Init(metricsProvider.Object, new NullMetricsListener(), NullLogger.Instance);
-
-            return result;
+            return (result, metricsProvider.Object);
         }
 
         private void ThrowAndCatch(Exception e)

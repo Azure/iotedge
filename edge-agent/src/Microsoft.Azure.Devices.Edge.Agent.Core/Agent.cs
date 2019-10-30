@@ -70,7 +70,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             IEnvironmentProvider environmentProvider,
             IEntityStore<string, string> configStore,
             ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde,
-            IEncryptionProvider encryptionProvider)
+            IEncryptionProvider encryptionProvider,
+            IAvailabilityMetric availabilityMetric)
         {
             Preconditions.CheckNotNull(deploymentConfigInfoSerde, nameof(deploymentConfigInfoSerde));
             Preconditions.CheckNotNull(configStore, nameof(configStore));
@@ -90,8 +91,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             {
                 Events.ErrorDeserializingConfig(ex);
             }
-
-            var availabilityMetric = new AvailabilityMetrics();
 
             var agent = new Agent(
                 configSource,

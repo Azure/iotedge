@@ -12,20 +12,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
     public class ExceptionCounter : IDisposable
     {
-        private readonly IMetricsCounter exceptions = Util.Metrics.Metrics.Instance.CreateCounter(
-            "exceptions_total",
-            "The number of exceptions thrown of the given type",
-            new List<string> { "exception_name" });
+        private readonly IMetricsCounter exceptions;
+        private readonly Dictionary<Type, string> recognizedExceptions;
+        private readonly HashSet<Type> ignoredExceptions;
 
-        private Dictionary<Type, string> recognizedExceptions;
-
-        private HashSet<Type> ignoredExceptions;
-
-        public ExceptionCounter(Dictionary<Type, string> recognizedExceptions, HashSet<Type> ignoredExceptions)
+        public ExceptionCounter(Dictionary<Type, string> recognizedExceptions, HashSet<Type> ignoredExceptions, IMetricsProvider metricsProvider)
         {
             this.recognizedExceptions = Preconditions.CheckNotNull(recognizedExceptions, nameof(recognizedExceptions));
             this.ignoredExceptions = Preconditions.CheckNotNull(ignoredExceptions, nameof(ignoredExceptions));
-            Preconditions.CheckNotNull(this.exceptions);
+            Preconditions.CheckNotNull(metricsProvider, nameof(metricsProvider));
+            this.exceptions = Preconditions.CheckNotNull(metricsProvider.CreateCounter(
+                "exceptions_total",
+                "The number of exceptions thrown of the given type",
+                new List<string> { "exception_name" }));
+
             AppDomain.CurrentDomain.FirstChanceException += this.OnException;
         }
 

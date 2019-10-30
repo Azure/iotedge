@@ -18,29 +18,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
     public class AvailabilityMetrics : IAvailabilityMetric
     {
-        private readonly IMetricsGauge running = Util.Metrics.Metrics.Instance.CreateGauge(
-            "total_time_running_correctly_seconds",
-            "The amount of time the module was specified in the deployment and was in the running state",
-            new List<string> { "module_name", "module_version" });
-
-        private readonly IMetricsGauge expectedRunning = Util.Metrics.Metrics.Instance.CreateGauge(
-            "total_time_expected_running_seconds",
-            "The amount of time the module was specified in the deployment",
-            new List<string> { "module_name", "module_version" });
-
-        private readonly ILogger log = Logger.Factory.CreateLogger<Availability>();
+        private readonly IMetricsGauge running;
+        private readonly IMetricsGauge expectedRunning;
         private readonly ISystemTime time;
-        private readonly List<Availability> availabilities = new List<Availability>();
+        private readonly ILogger log = Logger.Factory.CreateLogger<Availability>();
+
+        private readonly List<Availability> availabilities;
         private readonly Lazy<Availability> edgeAgent;
 
-        public AvailabilityMetrics()
-            : this(SystemTime.Instance)
+        public AvailabilityMetrics(IMetricsProvider metricsProvider, ISystemTime time)
         {
-        }
+            this.running = metricsProvider.CreateGauge(
+                "total_time_running_correctly_seconds",
+                "The amount of time the module was specified in the deployment and was in the running state",
+                new List<string> { "module_name", "module_version" });
 
-        public AvailabilityMetrics(ISystemTime time)
-        {
+            this.expectedRunning = metricsProvider.CreateGauge(
+                "total_time_expected_running_seconds",
+                "The amount of time the module was specified in the deployment",
+                new List<string> { "module_name", "module_version" });
+
             this.time = time;
+            this.availabilities = new List<Availability>();
             this.edgeAgent = new Lazy<Availability>(() => new Availability("edgeAgent", "tempNoVersion", this.CalculateEdgeAgentDowntime(), this.time));
         }
 

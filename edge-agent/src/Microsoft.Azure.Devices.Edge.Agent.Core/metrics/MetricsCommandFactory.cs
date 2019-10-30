@@ -11,17 +11,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     public class MetricsCommandFactory : ICommandFactory
     {
-        readonly ICommandFactory underlying;
+        private readonly ICommandFactory underlying;
+        private readonly FactoryMetrics factoryMetrics;
 
-        public MetricsCommandFactory(ICommandFactory underlying)
+        public MetricsCommandFactory(ICommandFactory underlying, IMetricsProvider metricsProvider)
         {
             this.underlying = Preconditions.CheckNotNull(underlying, nameof(underlying));
+            this.factoryMetrics = new FactoryMetrics(metricsProvider);
         }
 
         public async Task<ICommand> CreateAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
         {
-            FactoryMetrics.AddMessage(module.Module, FactoryMetrics.ModuleCommandMetric.Start);
-            using (FactoryMetrics.MeasureTime("create"))
+            this.factoryMetrics.AddMessage(module.Module, FactoryMetrics.ModuleCommandMetric.Start);
+            using (this.factoryMetrics.MeasureTime("create"))
             {
                 return await this.underlying.CreateAsync(module, runtimeInfo);
             }
@@ -29,9 +31,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public async Task<ICommand> UpdateAsync(IModule current, IModuleWithIdentity next, IRuntimeInfo runtimeInfo)
         {
-            FactoryMetrics.AddMessage(current, FactoryMetrics.ModuleCommandMetric.Start);
-            FactoryMetrics.AddMessage(next.Module, FactoryMetrics.ModuleCommandMetric.Stop);
-            using (FactoryMetrics.MeasureTime("update"))
+            this.factoryMetrics.AddMessage(current, FactoryMetrics.ModuleCommandMetric.Start);
+            this.factoryMetrics.AddMessage(next.Module, FactoryMetrics.ModuleCommandMetric.Stop);
+            using (this.factoryMetrics.MeasureTime("update"))
             {
                 return await this.underlying.UpdateAsync(current, next, runtimeInfo);
             }
@@ -39,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public async Task<ICommand> UpdateEdgeAgentAsync(IModuleWithIdentity module, IRuntimeInfo runtimeInfo)
         {
-            using (FactoryMetrics.MeasureTime("update"))
+            using (this.factoryMetrics.MeasureTime("update"))
             {
                 return await this.underlying.UpdateEdgeAgentAsync(module, runtimeInfo);
             }
@@ -47,8 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public async Task<ICommand> RemoveAsync(IModule module)
         {
-            FactoryMetrics.AddMessage(module, FactoryMetrics.ModuleCommandMetric.Stop);
-            using (FactoryMetrics.MeasureTime("remove"))
+            this.factoryMetrics.AddMessage(module, FactoryMetrics.ModuleCommandMetric.Stop);
+            using (this.factoryMetrics.MeasureTime("remove"))
             {
                 return await this.underlying.RemoveAsync(module);
             }
@@ -56,8 +58,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public async Task<ICommand> StartAsync(IModule module)
         {
-            FactoryMetrics.AddMessage(module, FactoryMetrics.ModuleCommandMetric.Start);
-            using (FactoryMetrics.MeasureTime("start"))
+            this.factoryMetrics.AddMessage(module, FactoryMetrics.ModuleCommandMetric.Start);
+            using (this.factoryMetrics.MeasureTime("start"))
             {
                 return await this.underlying.StartAsync(module);
             }
@@ -65,8 +67,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public async Task<ICommand> StopAsync(IModule module)
         {
-            FactoryMetrics.AddMessage(module, FactoryMetrics.ModuleCommandMetric.Stop);
-            using (FactoryMetrics.MeasureTime("stop"))
+            this.factoryMetrics.AddMessage(module, FactoryMetrics.ModuleCommandMetric.Stop);
+            using (this.factoryMetrics.MeasureTime("stop"))
             {
                 return await this.underlying.StopAsync(module);
             }
@@ -74,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public async Task<ICommand> RestartAsync(IModule module)
         {
-            using (FactoryMetrics.MeasureTime("restart"))
+            using (this.factoryMetrics.MeasureTime("restart"))
             {
                 return await this.underlying.RestartAsync(module);
             }
@@ -82,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public async Task<ICommand> WrapAsync(ICommand command)
         {
-            using (FactoryMetrics.MeasureTime("wrap"))
+            using (this.factoryMetrics.MeasureTime("wrap"))
             {
                 return await this.underlying.WrapAsync(command);
             }
@@ -94,7 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 /// This exposes 1 metric of the duration of all commands, with a different tag for each command, and
 /// 1 metric per deployed module, of the number of times each command is called, with a different tag for each module.
 /// </summary>
-static class FactoryMetrics
+public class FactoryMetrics
 {
     /// <summary>
     /// Denotes commands that will have a metric per module
@@ -106,31 +108,37 @@ static class FactoryMetrics
         Stop
     }
 
-    static readonly Dictionary<ModuleCommandMetric, IMetricsCounter> commandCounters = Enum.GetValues(typeof(ModuleCommandMetric)).Cast<ModuleCommandMetric>().ToDictionary(c => c, command =>
-    {
-        string commandName = Enum.GetName(typeof(ModuleCommandMetric), command).ToLower();
-        return Metrics.Instance.CreateCounter(
-            $"module_{commandName}_total",
-            "Command sent to module",
-            new List<string> { "module_name", "module_version" });
-    });
+    private readonly Dictionary<ModuleCommandMetric, IMetricsCounter> commandCounters;
+    private readonly IMetricsDuration commandTiming;
 
-    static IMetricsDuration commandTiming = Metrics.Instance.CreateDuration(
+    public FactoryMetrics(IMetricsProvider metricsProvider)
+    {
+        this.commandCounters = Enum.GetValues(typeof(ModuleCommandMetric)).Cast<ModuleCommandMetric>().ToDictionary(c => c, command =>
+        {
+            string commandName = Enum.GetName(typeof(ModuleCommandMetric), command).ToLower();
+            return metricsProvider.CreateCounter(
+                $"module_{commandName}_total",
+                "Command sent to module",
+                new List<string> { "module_name", "module_version" });
+        });
+
+        this.commandTiming = metricsProvider.CreateDuration(
             $"command_latency_seconds",
             "Command sent to module",
             new List<string> { "command" });
-
-    public static void AddMessage(Microsoft.Azure.Devices.Edge.Agent.Core.IModule module, ModuleCommandMetric command)
-    {
-        commandCounters[command].Increment(1, new[] { module.Name, module.Version });
     }
 
-    public static DurationSetter MeasureTime(string command)
+    public void AddMessage(Microsoft.Azure.Devices.Edge.Agent.Core.IModule module, ModuleCommandMetric command)
     {
-        return new DurationSetter(duration => commandTiming.Set(duration, new string[] { command }));
+        this.commandCounters[command].Increment(1, new[] { module.Name, module.Version });
     }
 
-    internal class DurationSetter : IDisposable
+    public DurationSetter MeasureTime(string command)
+    {
+        return new DurationSetter(duration => this.commandTiming.Set(duration, new string[] { command }));
+    }
+
+    public class DurationSetter : IDisposable
     {
         private Stopwatch timer = Stopwatch.StartNew();
         private Action<double> setDuration;

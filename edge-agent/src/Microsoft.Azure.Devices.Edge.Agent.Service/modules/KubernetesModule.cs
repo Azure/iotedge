@@ -23,6 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Extensions.Logging;
     using Microsoft.Rest;
     using Constants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
@@ -176,9 +177,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                     c =>
                     {
+                        var metricsProvider = c.Resolve<IMetricsProvider>();
                         var loggerFactory = c.Resolve<ILoggerFactory>();
                         ICommandFactory factory = new KubernetesCommandFactory();
-                        factory = new MetricsCommandFactory(factory);
+                        factory = new MetricsCommandFactory(factory, metricsProvider);
                         factory = new LoggingCommandFactory(factory, loggerFactory);
                         return Task.FromResult(factory);
                     })

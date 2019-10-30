@@ -57,13 +57,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                     new List<string> { "module_name", "module_version" }))
                 .Returns(expectedTimeGauge.Object);
 
-            Util.Metrics.Metrics.Init(metricsProvider.Object, new NullMetricsListener(), NullLogger.Instance);
-
             var systemTime = new Mock<ISystemTime>();
             DateTime fakeTime = DateTime.Now;
             systemTime.Setup(x => x.UtcNow).Returns(() => fakeTime);
 
-            AvailabilityMetrics availabilityMetrics = new AvailabilityMetrics(systemTime.Object);
+            AvailabilityMetrics availabilityMetrics = new AvailabilityMetrics(metricsProvider.Object, systemTime.Object);
 
             (TestRuntimeModule[] current, TestModule[] desired) = GetTestModules(3);
             ModuleSet currentModuleSet = ModuleSet.Create(current as IModule[]);
