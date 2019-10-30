@@ -20,6 +20,12 @@ namespace ModuleRestarter
         {
             Logger.LogInformation($"Starting module restarter with the following settings:\r\n{Settings.Current}");
 
+            if (Settings.Current.DesiredModulesToRestart.Count == 0)
+            {
+                Logger.LogInformation($"No modules names found in input. Stopping.");
+                return 0;
+            }
+
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
             await RestartModules(cts);
@@ -40,7 +46,7 @@ namespace ModuleRestarter
             Random random = new Random();
 
             string payloadSchema = "{{ \"SchemaVersion\": \"1.0\", \"Id\": \"{0}\" }}";
-            List<string> moduleNames = Settings.Current.GetDesiredModulesToRestart();
+            List<string> moduleNames = Settings.Current.DesiredModulesToRestart;
             while (!cts.Token.IsCancellationRequested)
             {
                 string payload = string.Format(payloadSchema, moduleNames[random.Next(0, moduleNames.Count)]);

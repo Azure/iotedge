@@ -36,8 +36,17 @@ namespace ModuleRestarter
         {
             this.ServiceClientConnectionString = Preconditions.CheckNonWhiteSpace(serviceClientConnectionString, "ServiceClientConnectionString");
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, "DeviceId");
-            this.DesiredModulesToRestartCSV = Preconditions.CheckNonWhiteSpace(desiredModulesToRestartCSV, "DesiredModulesToRestartCSV");
             this.RestartIntervalInMins = Preconditions.CheckRange(restartIntervalInMins, 0);
+
+            // mitigate unintended repeated commas
+            this.DesiredModulesToRestart = new List<string>();
+            foreach (string name in desiredModulesToRestartCSV.Split(","))
+            {
+                if (!string.IsNullOrWhiteSpace(name))
+                {
+                    this.DesiredModulesToRestart.Add(name);
+                }
+            }
         }
 
         public static Settings Current => DefaultSettings.Value;
@@ -46,38 +55,14 @@ namespace ModuleRestarter
 
         public string DeviceId { get; }
 
-        private string DesiredModulesToRestartCSV { get; }
+        public List<string> DesiredModulesToRestart { get; }
 
         public int RestartIntervalInMins { get; }
 
-        public List<string> GetDesiredModulesToRestart()
-        {
-            // mitigate unintended repeated commas
-            List<string> moduleNames = new List<string>();
-            foreach (string name in this.DesiredModulesToRestartCSV.Split(","))
-            {
-                if (!string.IsNullOrWhiteSpace(name))
-                {
-                    moduleNames.Add(name);
-                }
-            }
-
-            if (moduleNames.Count == 0)
-            {
-                throw new ArgumentException("No module names specified");
-            }
-
-            return moduleNames;
-        }
 
         public override string ToString()
         {
-            Dictionary<string, string> state = new Dictionary<string, string>();
-            state.Add("DeviceId", this.DeviceId);
-            state.Add("ServiceClientConnectionString", this.ServiceClientConnectionString);
-            state.Add("DesiredModulesToRestart", string.Join(",", this.GetDesiredModulesToRestart()));
-            state.Add("RestartInterval", this.RestartIntervalInMins.ToString());
-            return JsonConvert.SerializeObject(state, Formatting.Indented);
+            return JsonConvert.SerializeObject(this, Formatting.Indented);
         }
     }
 }

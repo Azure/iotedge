@@ -1504,7 +1504,7 @@ If ([string]::IsNullOrWhiteSpace($EdgeE2ERootCAKeyRSAFile))
 
 If ($TestName -eq "LongHaul")
 {
-    If ([string]::IsNullOrEmpty($DesiredModulesToRestartCSV)) {$DesiredModulesToRestartCSV = "moduleRestarter"}
+    If ([string]::IsNullOrEmpty($DesiredModulesToRestartCSV)) {$DesiredModulesToRestartCSV = ","}
     If ([string]::IsNullOrEmpty($LoadGenMessageFrequency)) {$LoadGenMessageFrequency = "00:00:01"}
     If ([string]::IsNullOrEmpty($RestartIntervalInMins)) {$RestartIntervalInMins = "10"}
     If ([string]::IsNullOrEmpty($SnitchReportingIntervalInSecs)) {$SnitchReportingIntervalInSecs = "86400"}
