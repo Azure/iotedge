@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
 
             for (int i = 1; i < 100; i++)
             {
-                Availability availability = new Availability("Test", "test", systemTime.Object);
+                Availability availability = new Availability("Test", systemTime.Object);
                 fakeTime = fakeTime.AddMinutes(10);
 
                 for (int j = 0; j < 100; j++)
@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             DateTime fakeTime = DateTime.Now;
             systemTime.Setup(x => x.UtcNow).Returns(() => fakeTime);
 
-            Availability availability = new Availability("Test", "test", systemTime.Object);
+            Availability availability = new Availability("Test", systemTime.Object);
             for (int j = 0; j < 100; j++)
             {
                 availability.AddPoint(true);

@@ -46,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             metricsProvider.Setup(x => x.CreateGauge(
                     "total_time_running_correctly_seconds",
                     It.IsAny<string>(),
-                    new List<string> { "module_name", "module_version" }))
+                    new List<string> { "module_name" }))
                 .Returns(runningTimeGauge.Object);
 
             var expectedTimeGauge = new Mock<IMetricsGauge>();
@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             metricsProvider.Setup(x => x.CreateGauge(
                     "total_time_expected_running_seconds",
                     It.IsAny<string>(),
-                    new List<string> { "module_name", "module_version" }))
+                    new List<string> { "module_name" }))
                 .Returns(expectedTimeGauge.Object);
 
             var systemTime = new Mock<ISystemTime>();

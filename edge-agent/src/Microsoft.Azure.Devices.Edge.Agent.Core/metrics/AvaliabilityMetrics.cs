@@ -31,16 +31,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             this.running = metricsProvider.CreateGauge(
                 "total_time_running_correctly_seconds",
                 "The amount of time the module was specified in the deployment and was in the running state",
-                new List<string> { "module_name", "module_version" });
+                new List<string> { "module_name" });
 
             this.expectedRunning = metricsProvider.CreateGauge(
                 "total_time_expected_running_seconds",
                 "The amount of time the module was specified in the deployment",
-                new List<string> { "module_name", "module_version" });
+                new List<string> { "module_name" });
 
             this.time = time;
             this.availabilities = new List<Availability>();
-            this.edgeAgent = new Lazy<Availability>(() => new Availability("edgeAgent", "tempNoVersion", this.CalculateEdgeAgentDowntime(), this.time));
+            this.edgeAgent = new Lazy<Availability>(() => new Availability("edgeAgent", this.CalculateEdgeAgentDowntime(), this.time));
         }
 
         public void ComputeAvailability(ModuleSet desired, ModuleSet current)
@@ -63,8 +63,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             this.edgeAgent.Value.AddPoint(true);
             down.Remove("edgeAgent");
             up.Remove("edgeAgent");
-            this.running.Set(this.edgeAgent.Value.ExpectedTime.TotalSeconds, new[] { this.edgeAgent.Value.Name, this.edgeAgent.Value.Version });
-            this.expectedRunning.Set(this.edgeAgent.Value.RunningTime.TotalSeconds, new[] { this.edgeAgent.Value.Name, this.edgeAgent.Value.Version });
+            this.running.Set(this.edgeAgent.Value.ExpectedTime.TotalSeconds, new[] { this.edgeAgent.Value.Name });
+            this.expectedRunning.Set(this.edgeAgent.Value.RunningTime.TotalSeconds, new[] { this.edgeAgent.Value.Name });
 
             /* Add points for all other modules found */
             foreach (Availability availability in this.availabilities)
@@ -83,14 +83,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                     availability.NoPoint();
                 }
 
-                this.running.Set(availability.RunningTime.TotalSeconds, new[] { availability.Name, availability.Version });
-                this.expectedRunning.Set(availability.ExpectedTime.TotalSeconds, new[] { availability.Name, availability.Version });
+                this.running.Set(availability.RunningTime.TotalSeconds, new[] { availability.Name });
+                this.expectedRunning.Set(availability.ExpectedTime.TotalSeconds, new[] { availability.Name });
             }
 
             /* Add new modules to track */
             foreach (string module in down.Union(up))
             {
-                this.availabilities.Add(new Availability(module, "tempNoVersion", this.time));
+                this.availabilities.Add(new Availability(module, this.time));
             }
         }
 
