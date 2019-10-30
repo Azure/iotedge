@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Storage
 {
     using System.Collections.Concurrent;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public class InMemoryDbStoreProvider : IDbStoreProvider
@@ -27,6 +28,14 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         public void Dispose()
         {
             // No-op
+        }
+
+        public void RemoveDbStore() => this.RemoveDbStore(DefaultPartitionName);
+
+        public Task CloseAsync()
+        {
+            // No-op
+            return Task.CompletedTask;
         }
     }
 }

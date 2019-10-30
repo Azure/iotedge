@@ -162,19 +162,6 @@ namespace Microsoft.Azure.Devices.Edge.Storage
             }
         }
 
-        class Item
-        {
-            public Item(byte[] key, byte[] value)
-            {
-                this.Key = Preconditions.CheckNotNull(key, nameof(key));
-                this.Value = Preconditions.CheckNotNull(value, nameof(value));
-            }
-
-            public byte[] Key { get; }
-
-            public byte[] Value { get; set; }
-        }
-
         class ItemKeyedCollection : KeyedCollection<byte[], Item>
         {
             public ItemKeyedCollection(IEqualityComparer<byte[]> keyEqualityComparer)

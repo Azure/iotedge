@@ -10,8 +10,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
     [Integration]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
-    public class TelemetryTest : IClassFixture<ProtocolHeadFixture>
+    public class TelemetryTest : EdgeHubTest
     {
+        public TelemetryTest(EdgeHubFixture edgeHubFixture)
+            : base(edgeHubFixture)
+        {
+        }
+
         [Theory]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
         async Task SendTelemetryTest(ITransportSettings[] transportSettings)

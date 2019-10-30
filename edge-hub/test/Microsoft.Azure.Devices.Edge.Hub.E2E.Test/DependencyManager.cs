@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Moq;
-    using Constants = Microsoft.Azure.Devices.Edge.Hub.Service.Constants;
+    using EdgeHubConstants = Microsoft.Azure.Devices.Edge.Hub.Service.Constants;
 
     class DependencyManager : IDependencyManager
     {
@@ -76,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         {
             const int ConnectionPoolSize = 10;
 
-            string edgeHubConnectionString = $"{this.configuration[Constants.ConfigKey.IotHubConnectionString]};ModuleId=$edgeHub";
+            string edgeHubConnectionString = $"{this.configuration[EdgeHubConstants.ConfigKey.IotHubConnectionString]};ModuleId=$edgeHub";
             IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeHubConnectionString);
             var topics = new MessageAddressConversionConfiguration(this.inboundTemplates, this.outboundTemplates);
 
@@ -101,6 +101,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var versionInfo = new VersionInfo("v1", "b1", "c1");
             var storeAndForwardConfiguration = new StoreAndForwardConfiguration(-1);
             var metricsConfig = new MetricsConfig(true, new MetricsListenerConfig());
+            var backupFolder = Option.None<string>();
+
+            if (!bool.TryParse(this.configuration["UsePersistentStorage"], out bool usePersistentStorage))
+            {
+                usePersistentStorage = false;
+            }
+
+            if (bool.TryParse(this.configuration["EnableNonPersistentStorageBackup"], out bool enableNonPersistentStorageBackup))
+            {
+                backupFolder = Option.Some(this.configuration["BackupFolder"]);
+            }
 
             builder.RegisterModule(
                 new CommonModule(
@@ -113,7 +124,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     AuthenticationMode.CloudAndScope,
                     Option.Some(edgeHubConnectionString),
                     false,
-                    false,
+                    usePersistentStorage,
                     string.Empty,
                     Option.None<string>(),
                     Option.None<string>(),
@@ -121,7 +132,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     false,
                     this.trustBundle,
                     string.Empty,
-                    metricsConfig));
+                    metricsConfig,
+                    enableNonPersistentStorageBackup,
+                    backupFolder));
 
             builder.RegisterModule(
                 new RoutingModule(
