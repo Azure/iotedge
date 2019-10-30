@@ -90,6 +90,10 @@ jobs:
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           analyzer.consumerGroupId: 'stress_linux_amd64'
+          analyzer.loganalyticenabled: '$(LogAnalyticEnabled)'
+          analyzer.loganalyticworkspaceid: '$(LogAnalyticWorkspaceId)'
+          analyzer.loganalyticsharedkey: '$(LogAnalyticSharedKey)'
+          analyzer.loganalyticlogtype: '$(LogAnalyticLogType)'
 
 ################################################################################
   - job: linux_arm32v7_moby
