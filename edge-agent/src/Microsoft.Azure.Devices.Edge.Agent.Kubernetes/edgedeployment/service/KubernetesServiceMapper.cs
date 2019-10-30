@@ -19,9 +19,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service
             this.defaultMapServiceType = defaultMapServiceType;
         }
 
-        public Option<V1Service> CreateService(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels)
+        public Option<V1Service> CreateService(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels, EdgeDeploymentDefinition edgeDeploymentDefinition)
         {
-            Option<V1Service> service = this.PrepareService(identity, module, labels);
+            Option<V1Service> service = this.PrepareService(identity, module, labels, edgeDeploymentDefinition);
             service.ForEach(s => s.Metadata.Annotations[KubernetesConstants.CreationString] = JsonConvert.SerializeObject(s));
 
             return service;
@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service
             to.Spec.ClusterIP = from.Spec.ClusterIP;
         }
 
-        Option<V1Service> PrepareService(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels)
+        Option<V1Service> PrepareService(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels, EdgeDeploymentDefinition edgeDeploymentDefinition)
         {
             // Add annotations from Docker labels. This provides the customer a way to assign annotations to services if they want
             // to tie backend services to load balancers via an Ingress Controller.
@@ -63,7 +63,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service
             {
                 // Selector: by module name and device name, also how we will label this puppy.
                 string name = identity.DeploymentName();
-                var objectMeta = new V1ObjectMeta(annotations: annotations, labels: labels, name: name);
+                var ownerReferences = new List<V1OwnerReference> {
+                new V1OwnerReference(
+                    apiVersion: edgeDeploymentDefinition.ApiVersion,
+                    kind: edgeDeploymentDefinition.Kind,
+                    name: edgeDeploymentDefinition.Metadata.Name,
+                    uid: edgeDeploymentDefinition.Metadata.Uid,
+                    blockOwnerDeletion: true)
+            };
+
+                var objectMeta = new V1ObjectMeta(annotations: annotations, labels: labels, name: name, ownerReferences: ownerReferences);
 
                 // How we manage this service is dependent on the port mappings user asks for.
                 // If the user tells us to only use ClusterIP ports, we will always set the type to ClusterIP.

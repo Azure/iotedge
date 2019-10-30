@@ -114,14 +114,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 case WatchEventType.Added:
                 case WatchEventType.Modified:
                     var desiredModules = ModuleSet.Create(edgeDeploymentDefinition.Spec.ToArray());
-                    var status = await this.controller.DeployModulesAsync(desiredModules, this.currentModules);
+                    var status = await this.controller.DeployModulesAsync(desiredModules, this.currentModules, edgeDeploymentDefinition);
                     await this.ReportEdgeDeploymentStatus(edgeDeploymentDefinition, status);
                     this.currentModules = desiredModules;
                     this.currentStatus = status;
                     break;
 
                 case WatchEventType.Deleted:
-                    await this.controller.PurgeModulesAsync();
+                    // Kubernetes garbage collection will handle cleanup of deployment artifacts
                     this.currentModules = ModuleSet.Empty;
                     this.currentStatus = DefaultStatus;
                     break;

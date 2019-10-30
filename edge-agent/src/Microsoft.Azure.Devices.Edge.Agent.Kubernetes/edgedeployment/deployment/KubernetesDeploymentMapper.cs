@@ -67,9 +67,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             this.managementUri = managementUri;
         }
 
-        public V1Deployment CreateDeployment(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels)
+        public V1Deployment CreateDeployment(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels, EdgeDeploymentDefinition edgeDeploymentDefinition)
         {
-            var deployment = this.PrepareDeployment(identity, module, labels);
+            var deployment = this.PrepareDeployment(identity, module, labels, edgeDeploymentDefinition);
             deployment.Metadata.Annotations[KubernetesConstants.CreationString] = JsonConvert.SerializeObject(deployment);
 
             return deployment;
@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             to.Metadata.ResourceVersion = from.Metadata.ResourceVersion;
         }
 
-        V1Deployment PrepareDeployment(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels)
+        V1Deployment PrepareDeployment(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels, EdgeDeploymentDefinition edgeDeploymentDefinition)
         {
             string name = identity.DeploymentName();
 
@@ -88,8 +88,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
 
             var selector = new V1LabelSelector(matchLabels: labels);
             var deploymentSpec = new V1DeploymentSpec(replicas: 1, selector: selector, template: podSpec);
+            var ownerReferences = new List<V1OwnerReference> {
+                new V1OwnerReference(
+                    apiVersion: edgeDeploymentDefinition.ApiVersion,
+                    kind: edgeDeploymentDefinition.Kind,
+                    name: edgeDeploymentDefinition.Metadata.Name,
+                    uid: edgeDeploymentDefinition.Metadata.Uid,
+                    blockOwnerDeletion: true)
+            };
 
-            var deploymentMeta = new V1ObjectMeta(name: name, labels: labels, annotations: new Dictionary<string, string>());
+            var deploymentMeta = new V1ObjectMeta(name: name, labels: labels, annotations: new Dictionary<string, string>(), ownerReferences: ownerReferences);
             return new V1Deployment(metadata: deploymentMeta, spec: deploymentSpec);
         }
 
