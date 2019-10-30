@@ -7,16 +7,16 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     using Nito.AsyncEx;
 
     /// <summary>
-    /// Provides an in memory implementation of the IDbStore that is aware of memory usage limits.
+    /// Provides a wrapper over a db store that is aware of storage space limits.
     /// </summary>
-    class MemoryUsageAwareInMemoryDbStore : InMemoryDbStore, ISizedDbStore
+    class StorageSpaceAwareDbStore : DbStoreDecorator, ISizedDbStore
     {
         readonly IStorageSpaceChecker storageSpaceChecker;
         readonly AsyncLock asyncLock = new AsyncLock();
         long dbSize;
 
-        public MemoryUsageAwareInMemoryDbStore(IStorageSpaceChecker diskSpaceChecker)
-            : base()
+        public StorageSpaceAwareDbStore(IDbStore dbStore, IStorageSpaceChecker diskSpaceChecker)
+            : base(dbStore)
         {
             this.storageSpaceChecker = Preconditions.CheckNotNull(diskSpaceChecker, nameof(diskSpaceChecker));
         }

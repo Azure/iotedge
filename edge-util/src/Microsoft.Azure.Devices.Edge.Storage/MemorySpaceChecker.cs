@@ -5,6 +5,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
+    /// <summary>
+    /// Provides functionality to check whether total memory space consumption hasn't exceeded configured limits.
+    /// NOTE: The methods in this class aren't thread safe. The expectation is for callers to employ thread-safe
+    /// practices when using methods of this class.
+    /// </summary>
     public class MemorySpaceChecker : IStorageSpaceChecker
     {
         internal enum MemoryUsageStatus

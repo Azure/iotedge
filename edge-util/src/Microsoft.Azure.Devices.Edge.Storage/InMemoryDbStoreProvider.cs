@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         static IDbStore BuildInMemoryDbStore(Option<IStorageSpaceChecker> memoryStorageSpaceChecker)
             => memoryStorageSpaceChecker
-                .Map(d => new MemoryUsageAwareInMemoryDbStore(d) as IDbStore)
+                .Map(d => new StorageSpaceAwareDbStore(new InMemoryDbStore(), d) as IDbStore)
                 .GetOrElse(new InMemoryDbStore() as IDbStore);
 
         public IDbStore GetDbStore(string partitionName)
