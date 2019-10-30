@@ -204,6 +204,18 @@
               },
               "ConsumerGroupId": {
                 "value": "<Analyzer.ConsumerGroupId>"
+              },
+              "LogaAnalyticEnabled": {
+                "value": "<Analyzer.LogaAnalyticEnabled>"
+              },
+              "LogAnalyticWorkspaceId": {
+                "value": "<Analyzer.LogAnalyticWorkspaceId>"
+              },
+              "LogAnalyticSharedKey": {
+                "value": "<Analyzer.LogAnalyticSharedKey>"
+              },
+              "LogAnalyticLogType": {
+                "value": "<Analyzer.LogAnalyticLogType>"
               }
             },
             "settings": {

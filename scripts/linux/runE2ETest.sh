@@ -170,6 +170,10 @@ function prepare_test_from_artifacts() {
                 local escapedSnitchAlertUrl
                 local escapedBuildId
                 sed -i -e "s@<Analyzer.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.LogaAnalyticEnabled>@$ANALYZER_LA_ENABLED_STRING@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.LogAnalyticWorkspaceId>@$ANALYZER_LA_WORKSPACE_ID@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.LogAnalyticSharedKey>@$ANALYZER_LA_SHARED_KEY@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.LogAnalyticLogType>@$ANALYZER_LA_LOGTYPE@g" "$deployment_working_file"
                 sed -i -e "s@<Analyzer.ConsumerGroupId>@$EVENT_HUB_CONSUMER_GROUP_ID@g" "$deployment_working_file"
                 sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
                 escapedSnitchAlertUrl="${SNITCH_ALERT_URL//&/\\&}"
@@ -352,6 +356,18 @@ function process_args() {
         elif [ $saveNextArg -eq 29 ]; then
             EVENT_HUB_CONSUMER_GROUP_ID="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 30 ]; then
+            ANALYZER_LA_ENABLED_STRING="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 31 ]; then
+            ANALYZER_LA_WORKSPACE_ID="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 32 ]; then
+            ANALYZER_LA_SHARED_KEY="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 33 ]; then
+            ANALYZER_LA_LOGTYPE="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -384,6 +400,10 @@ function process_args() {
                 '-dpsScopeId' ) saveNextArg=27;;
                 '-dpsMasterSymmetricKey' ) saveNextArg=28;;
                 '-eventHubConsumerGroupId' ) saveNextArg=29;;
+                '-analyzerLaEnabled' ) saveNextArg=30;;
+                '-analyzerLaWorkspaceId' ) saveNextArg=31;;
+                '-analyzerLaSharedKey' ) saveNextArg=32;;
+                '-analyzerLaLogType' ) saveNextArg=33;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -398,6 +418,10 @@ function process_args() {
     [[ -z "$CONTAINER_REGISTRY_PASSWORD" ]] && { print_error 'Container registry password is required'; exit 1; }
     [[ -z "$IOTHUB_CONNECTION_STRING" ]] && { print_error 'IoT hub connection string is required'; exit 1; }
     [[ -z "$EVENTHUB_CONNECTION_STRING" ]] && { print_error 'Event hub connection string is required'; exit 1; }
+    [[ -z "$ANALYZER_LA_ENABLED_STRING" ]] && { print_error 'Analyzer Log Analytic Enable is required'; exit 1; }
+    [[ -z "$ANALYZER_LA_WORKSPACE_ID" ]] && { print_error 'Analyzer Log Analytic Workspace ID is required'; exit 1; }
+    [[ -z "$ANALYZER_LA_SHARED_KEY" ]] && { print_error 'Analyzer Log Analytic Shared Key is required'; exit 1; }
+    [[ -z "$ANALYZER_LA_LOGTYPE" ]] && { print_error 'Analyzer Log Analytic Log Type is required'; exit 1; }
 
     echo 'Required parameters are provided'
 }

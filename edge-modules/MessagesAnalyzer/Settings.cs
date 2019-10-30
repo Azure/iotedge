@@ -41,10 +41,10 @@ namespace MessagesAnalyzer
                     excludedModules,
                     configuration.GetValue(WebhostPortPropertyName, DefaultWebhostPort),
                     configuration.GetValue(ToleranceInMillisecondsPropertyName, DefaultToleranceInMilliseconds),
-                    configuration.GetValue(LogaAnalyticEnabledName, "false"),
-                    configuration.GetValue(LogAnalyticWorkspaceIdName, ""),
-                    configuration.GetValue(LogAnalyticSharedKeyName, ""),
-                    configuration.GetValue(LogAnalyticLogTypeName, ""));
+                    configuration.GetValue<string>(LogaAnalyticEnabledName),
+                    configuration.GetValue<string>(LogAnalyticWorkspaceIdName),
+                    configuration.GetValue<string>(LogAnalyticSharedKeyName),
+                    configuration.GetValue<string>(LogAnalyticLogTypeName));
             });
 
         Settings(string eventHubCs, string consumerGroupId, string deviceId, IList<string> excludedModuleIds, string webhostPort, double tolerance, string laEnabled, string laWorkspaceIdName, string laSharedKeyName, string laLogTypeName)
