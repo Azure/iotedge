@@ -22,7 +22,7 @@ namespace ModuleRestarter
 
             if (Settings.Current.DesiredModulesToRestart.Count == 0)
             {
-                Logger.LogInformation($"No modules names found in input. Stopping.");
+                Logger.LogInformation("No modules names found in input. Stopping.");
                 return 0;
             }
 
