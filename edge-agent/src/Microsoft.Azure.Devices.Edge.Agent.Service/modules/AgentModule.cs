@@ -28,9 +28,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly Option<string> workloadApiVersion;
         readonly string moduleId;
         readonly Option<string> moduleGenerationId;
+        readonly bool useBackupAndRestore;
+        readonly Option<string> storageBackupPath;
 
-        public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds, bool usePersistentStorage, string storagePath)
-            : this(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.None<Uri>(), Option.None<string>(), Constants.EdgeAgentModuleIdentityName, Option.None<string>())
+        public AgentModule(int maxRestartCount, TimeSpan intensiveCareTime, int coolOffTimeUnitInSeconds, bool usePersistentStorage, string storagePath, bool useBackupAndRestore, Option<string> storageBackupPath)
+            : this(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.None<Uri>(), Option.None<string>(), Constants.EdgeAgentModuleIdentityName, Option.None<string>(), useBackupAndRestore, storageBackupPath)
         {
         }
 
@@ -43,7 +45,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             Option<Uri> workloadUri,
             Option<string> workloadApiVersion,
             string moduleId,
-            Option<string> moduleGenerationId)
+            Option<string> moduleGenerationId,
+            bool useBackupAndRestore,
+            Option<string> storageBackupPath)
         {
             this.maxRestartCount = maxRestartCount;
             this.intensiveCareTime = intensiveCareTime;
@@ -54,6 +58,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.workloadApiVersion = workloadApiVersion;
             this.moduleId = moduleId;
             this.moduleGenerationId = moduleGenerationId;
+            this.useBackupAndRestore = useBackupAndRestore;
+            this.storageBackupPath = storageBackupPath;
         }
 
         static Dictionary<Type, IDictionary<string, Type>> DeploymentConfigTypeMapping
@@ -134,9 +140,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<IRocksDbOptionsProvider>()
                 .SingleInstance();
 
-            // IDbStore
+            if (!this.usePersistentStorage && this.useBackupAndRestore)
+            {
+                // Backup and restore serialization
+                builder.Register(c => new ProtoBufDataBackupRestore())
+                    .As<IDataBackupRestore>()
+                    .SingleInstance();
+            }
+
+            // IDbStoreProvider
             builder.Register(
-                    c =>
+                    async c =>
                     {
                         var loggerFactory = c.Resolve<ILoggerFactory>();
                         ILogger logger = loggerFactory.CreateLogger(typeof(AgentModule));
@@ -157,31 +171,46 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             catch (Exception ex) when (!ExceptionEx.IsFatal(ex))
                             {
                                 logger.LogError(ex, "Error creating RocksDB store. Falling back to in-memory store.");
-                                return new InMemoryDbStoreProvider();
+                                IDbStoreProvider dbStoreProvider = await this.BuildInMemoryDbStoreProvider(c);
+                                return dbStoreProvider;
                             }
                         }
                         else
                         {
                             logger.LogInformation($"Using in-memory store");
-                            return new InMemoryDbStoreProvider();
+                            IDbStoreProvider dbStoreProvider = await this.BuildInMemoryDbStoreProvider(c);
+                            return dbStoreProvider;
                         }
                     })
-                .As<IDbStoreProvider>()
+                .As<Task<IDbStoreProvider>>()
                 .SingleInstance();
 
-            // IStoreProvider
-            builder.Register(c => new StoreProvider(c.Resolve<IDbStoreProvider>()))
-                .As<IStoreProvider>()
-                .SingleInstance();
+            // Task<IStoreProvider>
+            builder.Register(async c =>
+            {
+                var dbStoreProvider = await c.Resolve<Task<IDbStoreProvider>>();
+                IStoreProvider storeProvider = new StoreProvider(dbStoreProvider);
+                return storeProvider;
+            })
+            .As<Task<IStoreProvider>>()
+            .SingleInstance();
 
             // IEntityStore<string, ModuleState>
-            builder.Register(c => c.Resolve<IStoreProvider>().GetEntityStore<string, ModuleState>("moduleState"))
-                .As<IEntityStore<string, ModuleState>>()
+            builder.Register(async c =>
+                {
+                IStoreProvider storeProvider = await c.Resolve<Task<IStoreProvider>>();
+                return storeProvider.GetEntityStore<string, ModuleState>("moduleState");
+                })
+                .As<Task<IEntityStore<string, ModuleState>>>()
                 .SingleInstance();
 
             // IEntityStore<string, DeploymentConfigInfo>
-            builder.Register(c => c.Resolve<IStoreProvider>().GetEntityStore<string, string>("deploymentConfig"))
-                .As<IEntityStore<string, string>>()
+            builder.Register(async c =>
+                {
+                IStoreProvider storeProvider = await c.Resolve<Task<IStoreProvider>>();
+                return storeProvider.GetEntityStore<string, string>("deploymentConfig");
+                })
+                .As<Task<IEntityStore<string, string>>>()
                 .SingleInstance();
 
             // IRestartManager
@@ -193,7 +222,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                     async c => new HealthRestartPlanner(
                         await c.Resolve<Task<ICommandFactory>>(),
-                        c.Resolve<IEntityStore<string, ModuleState>>(),
+                        await c.Resolve<Task<IEntityStore<string, ModuleState>>>(),
                         this.intensiveCareTime,
                         c.Resolve<IRestartPolicyManager>()) as IPlanner)
                 .As<Task<IPlanner>>()
@@ -238,7 +267,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         var reporter = c.Resolve<IReporter>();
                         var moduleIdentityLifecycleManager = c.Resolve<IModuleIdentityLifecycleManager>();
                         var deploymentConfigInfoSerde = c.Resolve<ISerde<DeploymentConfigInfo>>();
-                        var deploymentConfigInfoStore = c.Resolve<IEntityStore<string, string>>();
+                        var deploymentConfigInfoStore = await c.Resolve<Task<IEntityStore<string, string>>>();
                         var encryptionProvider = c.Resolve<Task<IEncryptionProvider>>();
                         return await Agent.Create(
                             await configSource,
@@ -255,6 +284,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             base.Load(builder);
+        }
+
+        async Task<IDbStoreProvider> BuildInMemoryDbStoreProvider(IComponentContext container)
+        {
+            IDbStoreProvider dbStoreProvider = DbStoreProviderFactory.GetInMemoryDbStore();
+            if (this.useBackupAndRestore)
+            {
+                var backupRestore = container.Resolve<IDataBackupRestore>();
+
+                string backupPathValue = this.storageBackupPath.Expect(() => new InvalidOperationException("Storage backup path missing"));
+                dbStoreProvider = await dbStoreProvider.WithBackupRestore(backupPathValue, backupRestore);
+            }
+
+            return dbStoreProvider;
         }
     }
 }
