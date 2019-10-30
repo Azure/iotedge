@@ -7,9 +7,7 @@ namespace ModuleRestarter
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
-    using Newtonsoft.Json.Serialization;
 
-    [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
     public class Settings
     {
         static readonly Lazy<Settings> DefaultSettings = new Lazy<Settings>(
