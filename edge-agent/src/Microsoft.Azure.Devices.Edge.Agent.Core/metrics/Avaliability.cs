@@ -9,13 +9,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
     public class Availability
     {
-        private readonly ISystemTime time;
+        readonly ISystemTime time;
 
         public string Name { get; private set; }
         public TimeSpan RunningTime { get; private set; } = TimeSpan.Zero;
         public TimeSpan ExpectedTime { get; private set; } = TimeSpan.Zero;
 
-        private DateTime? previousMeasure;
+        DateTime? previousMeasure;
 
         public Availability(string name, ISystemTime time)
         {

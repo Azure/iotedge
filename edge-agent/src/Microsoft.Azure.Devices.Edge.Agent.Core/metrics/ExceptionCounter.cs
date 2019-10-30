@@ -12,9 +12,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
     public class ExceptionCounter : IDisposable
     {
-        private readonly IMetricsCounter exceptions;
-        private readonly Dictionary<Type, string> recognizedExceptions;
-        private readonly HashSet<Type> ignoredExceptions;
+        readonly IMetricsCounter exceptions;
+        readonly Dictionary<Type, string> recognizedExceptions;
+        readonly HashSet<Type> ignoredExceptions;
 
         public ExceptionCounter(Dictionary<Type, string> recognizedExceptions, HashSet<Type> ignoredExceptions, IMetricsProvider metricsProvider)
         {
@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             AppDomain.CurrentDomain.FirstChanceException -= this.OnException;
         }
 
-        private void OnException(object source, FirstChanceExceptionEventArgs e)
+        void OnException(object source, FirstChanceExceptionEventArgs e)
         {
             if (this.ignoredExceptions.Contains(e.Exception.GetType()))
             {

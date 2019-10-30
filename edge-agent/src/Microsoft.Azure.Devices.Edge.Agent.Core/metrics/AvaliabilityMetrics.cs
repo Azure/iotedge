@@ -18,13 +18,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
     public class AvailabilityMetrics : IAvailabilityMetric
     {
-        private readonly IMetricsGauge running;
-        private readonly IMetricsGauge expectedRunning;
-        private readonly ISystemTime time;
-        private readonly ILogger log = Logger.Factory.CreateLogger<Availability>();
+        readonly IMetricsGauge running;
+        readonly IMetricsGauge expectedRunning;
+        readonly ISystemTime time;
+        readonly ILogger log = Logger.Factory.CreateLogger<Availability>();
 
-        private readonly List<Availability> availabilities;
-        private readonly Lazy<Availability> edgeAgent;
+        readonly List<Availability> availabilities;
+        readonly Lazy<Availability> edgeAgent;
 
         public AvailabilityMetrics(IMetricsProvider metricsProvider, ISystemTime time)
         {
@@ -94,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             }
         }
 
-        private TimeSpan CalculateEdgeAgentDowntime()
+        TimeSpan CalculateEdgeAgentDowntime()
         {
             AppDomain.CurrentDomain.ProcessExit += this.NoteCurrentTime;
             try
@@ -114,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             return TimeSpan.Zero;
         }
 
-        private void NoteCurrentTime(object sender, EventArgs e)
+        void NoteCurrentTime(object sender, EventArgs e)
         {
             try
             {
