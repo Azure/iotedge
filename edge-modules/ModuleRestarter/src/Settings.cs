@@ -59,10 +59,13 @@ namespace ModuleRestarter
 
         public int RestartIntervalInMins { get; }
 
-
         public override string ToString()
         {
-            return JsonConvert.SerializeObject(this, Formatting.Indented);
+            Dictionary<string, string> state = new Dictionary<string, string>();
+            state.Add("DeviceId", this.DeviceId);
+            state.Add("DesiredModulesToRestart", string.Join(",", this.DesiredModulesToRestart));
+            state.Add("RestartInterval", this.RestartIntervalInMins.ToString());
+            return JsonConvert.SerializeObject(state, Formatting.Indented);
         }
     }
 }

@@ -3,6 +3,7 @@ namespace ModuleRestarter
 {
     using System;
     using System.Collections.Generic;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
@@ -41,29 +42,44 @@ namespace ModuleRestarter
         /// </summary>
         static async Task RestartModules(CancellationTokenSource cts)
         {
-            ServiceClient iotHubServiceClient = ServiceClient.CreateFromConnectionString(Settings.Current.ServiceClientConnectionString);
-            CloudToDeviceMethod c2dMethod = new CloudToDeviceMethod("RestartModule");
-            Random random = new Random();
-
-            string payloadSchema = "{{ \"SchemaVersion\": \"1.0\", \"Id\": \"{0}\" }}";
-            List<string> moduleNames = Settings.Current.DesiredModulesToRestart;
-            while (!cts.Token.IsCancellationRequested)
+            try
             {
-                string payload = string.Format(payloadSchema, moduleNames[random.Next(0, moduleNames.Count)]);
-                Logger.LogInformation("RestartModule Method Payload: {0}", payload);
-                c2dMethod.SetPayloadJson(payload);
+                ServiceClient iotHubServiceClient = ServiceClient.CreateFromConnectionString(Settings.Current.ServiceClientConnectionString);
 
-                try
-                {
-                    await iotHubServiceClient.InvokeDeviceMethodAsync(Settings.Current.DeviceId, "$edgeAgent", c2dMethod);
-                }
-                catch (Exception e)
-                {
-                    Logger.LogError($"Exception caught: {e}");
-                }
+                CloudToDeviceMethod c2dMethod = new CloudToDeviceMethod("RestartModule");
+                Random random = new Random();
 
-                await Task.Delay(Settings.Current.RestartIntervalInMins * 60 * 1000, cts.Token);
+                string payloadSchema = "{{ \"SchemaVersion\": \"1.0\", \"Id\": \"{0}\" }}";
+                List<string> moduleNames = Settings.Current.DesiredModulesToRestart;
+                while (!cts.Token.IsCancellationRequested)
+                {
+                    string payload = string.Format(payloadSchema, moduleNames[random.Next(0, moduleNames.Count)]);
+                    Logger.LogInformation("RestartModule Method Payload: {0}", payload);
+                    c2dMethod.SetPayloadJson(payload);
+
+                    try
+                    {
+                        CloudToDeviceMethodResult response = await iotHubServiceClient.InvokeDeviceMethodAsync(Settings.Current.DeviceId, "$edgeAgent", c2dMethod);
+                        if (response.Status != (int)HttpStatusCode.OK)
+                        {
+                            Logger.LogError($"Calling Direct Method failed with status code {response.Status}.");
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.LogError($"Exception caught for payload {payload}: {e}");
+                    }
+
+                    await Task.Delay(Settings.Current.RestartIntervalInMins * 60 * 1000, cts.Token);
+                }
             }
+            catch (Exception e)
+            {
+                Logger.LogError($"Exception caught: {e}");
+                throw;
+            }
+
+            Logger.LogInformation("RestartModules finished.");
         }
     }
 }
