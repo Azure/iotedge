@@ -253,10 +253,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
 
             // Initialize metrics
+            var metricsLifetimes = new List<IDisposable>();
             if (metricsConfig.Enabled)
             {
                 var metricsListener = new MetricsListener(metricsConfig.ListenerConfig, container.Resolve<IMetricsProvider>());
                 metricsListener.Start(logger);
+                metricsLifetimes.Add(metricsListener);
             }
 
             Dictionary<Type, string> recognizedExceptions = new Dictionary<Type, string>
@@ -264,7 +266,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 // TODO: Decide what exceptions to recognize and ignore
                 { typeof(Newtonsoft.Json.JsonSerializationException), "json_serialization" },
                 { typeof(ArgumentException), "argument" },
-                // { typeof(Docker.DotNet.DockerApiException), "docker" },
                 { typeof(Rest.HttpOperationException), "http" },
             };
             HashSet<Type> ignoredExceptions = new HashSet<Type>
@@ -272,7 +273,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 typeof(TaskCanceledException),
                 typeof(OperationCanceledException),
             };
-            new ExceptionCounter(recognizedExceptions, ignoredExceptions, container.Resolve<IMetricsProvider>());
+            metricsLifetimes.Add(new ExceptionCounter(recognizedExceptions, ignoredExceptions, container.Resolve<IMetricsProvider>()));
 
             // TODO move this code to Agent
             if (mode.ToLowerInvariant().Equals(Constants.KubernetesMode))
@@ -334,6 +335,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                     returnCode = 1;
                 }
 
+                metricsLifetimes.ForEach(m => m.Dispose());
                 // Attempt to report shutdown of Agent
                 await Cleanup(agentOption, logger);
                 completed.Set();
