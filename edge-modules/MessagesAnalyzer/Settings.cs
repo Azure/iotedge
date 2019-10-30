@@ -18,7 +18,7 @@ namespace MessagesAnalyzer
         const string DefaultConsumerGroupId = "$Default";
         const string DefaultWebhostPort = "5001";
         const double DefaultToleranceInMilliseconds = 1000 * 60;
-        const string LogaAnalyticEnabledName = "LogaAnalyticEnabled";
+        const string LogAnalyticEnabledName = "LogAnalyticEnabled";
         const string LogAnalyticWorkspaceIdName = "LogAnalyticWorkspaceId";
         const string LogAnalyticSharedKeyName = "LogAnalyticSharedKey";
         const string LogAnalyticLogTypeName = "LogAnalyticLogType";
@@ -41,7 +41,7 @@ namespace MessagesAnalyzer
                     excludedModules,
                     configuration.GetValue(WebhostPortPropertyName, DefaultWebhostPort),
                     configuration.GetValue(ToleranceInMillisecondsPropertyName, DefaultToleranceInMilliseconds),
-                    configuration.GetValue<string>(LogaAnalyticEnabledName),
+                    configuration.GetValue<string>(LogAnalyticEnabledName),
                     configuration.GetValue<string>(LogAnalyticWorkspaceIdName),
                     configuration.GetValue<string>(LogAnalyticSharedKeyName),
                     configuration.GetValue<string>(LogAnalyticLogTypeName));
@@ -55,7 +55,7 @@ namespace MessagesAnalyzer
             this.DeviceId = deviceId;
             this.WebhostPort = webhostPort;
             this.ToleranceInMilliseconds = tolerance;
-            this.LogaAnalyticEnabled = Convert.ToBoolean(laEnabled);
+            this.LogAnalyticEnabled = Convert.ToBoolean(laEnabled);
             this.LogAnalyticWorkspaceId = laWorkspaceIdName;
             this.LogAnalyticSharedKey = laSharedKeyName;
             this.LogAnalyticLogType = laLogTypeName;
@@ -75,7 +75,7 @@ namespace MessagesAnalyzer
 
         public double ToleranceInMilliseconds { get; }
 
-        public bool LogaAnalyticEnabled { get; }
+        public bool LogAnalyticEnabled { get; }
 
         public string LogAnalyticWorkspaceId { get; }
 

@@ -15,7 +15,7 @@ namespace MessagesAnalyzer.Controllers
         [HttpGet]
         public ActionResult<string> Get()
         {
-            if (Settings.Current.LogaAnalyticEnabled && this.logAnalytics == null)
+            if (Settings.Current.LogAnalyticEnabled && this.logAnalytics == null)
             {
                 this.logAnalytics = new AzureLogAnalytics(
                     Settings.Current.LogAnalyticWorkspaceId,
@@ -24,7 +24,7 @@ namespace MessagesAnalyzer.Controllers
             }
 
             string resultJson = Reporter.GetReceivedMessagesReport(Settings.Current.ToleranceInMilliseconds).ToString();
-            if (Settings.Current.LogaAnalyticEnabled)
+            if (Settings.Current.LogAnalyticEnabled)
             {
                 this.logAnalytics.Post(Encoding.UTF8.GetBytes(resultJson));
             }

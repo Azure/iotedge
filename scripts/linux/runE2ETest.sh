@@ -170,7 +170,7 @@ function prepare_test_from_artifacts() {
                 local escapedSnitchAlertUrl
                 local escapedBuildId
                 sed -i -e "s@<Analyzer.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
-                sed -i -e "s@<Analyzer.LogaAnalyticEnabled>@$ANALYZER_LA_ENABLED_STRING@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.LogAnalyticEnabled>@$ANALYZER_LA_ENABLED_STRING@g" "$deployment_working_file"
                 sed -i -e "s@<Analyzer.LogAnalyticWorkspaceId>@$ANALYZER_LA_WORKSPACE_ID@g" "$deployment_working_file"
                 sed -i -e "s@<Analyzer.LogAnalyticSharedKey>@$ANALYZER_LA_SHARED_KEY@g" "$deployment_working_file"
                 sed -i -e "s@<Analyzer.LogAnalyticLogType>@$ANALYZER_LA_LOGTYPE@g" "$deployment_working_file"

@@ -175,8 +175,8 @@
               "ConsumerGroupId": {
                 "value": "<Analyzer.ConsumerGroupId>"
               }, 
-              "LogaAnalyticEnabled": {
-                "value": "<Analyzer.LogaAnalyticEnabled>"
+              "LogAnalyticEnabled": {
+                "value": "<Analyzer.LogAnalyticEnabled>"
               },
               "LogAnalyticWorkspaceId": {
                 "value": "<Analyzer.LogAnalyticWorkspaceId>"
