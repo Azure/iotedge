@@ -39,7 +39,7 @@ jobs:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - bearwashere -equals true
+        - run-stress -equals true
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'
     steps:
