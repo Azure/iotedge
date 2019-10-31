@@ -267,8 +267,6 @@ Param (
     [ValidateSet("true", "false")]
     [string] $MqttSettingsEnabled = "true",
 
-    [switch] $BypassEdgeInstallation,
-
     [string] $AnalyzerLaEnabled = $null,
 
     [ValidateNotNullOrEmpty()]
@@ -278,7 +276,9 @@ Param (
     [string] $AnalyzerLaSharedKey = $(Throw "Analyzer Log Analytic shared key string is required"),
 
     [ValidateNotNullOrEmpty()]
-    [string] $AnalyzerLaLogType = $(Throw "Analyzer Log Analytic log type string is required")
+    [string] $AnalyzerLaLogType = $(Throw "Analyzer Log Analytic log type string is required"),
+
+    [switch] $BypassEdgeInstallation
 )
 
 Add-Type -TypeDefinition @"
