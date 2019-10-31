@@ -148,6 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             try
             {
                 sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", transportSettings);
+                receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", transportSettings);
 
                 Console.WriteLine($"Sending {beforeBackupMessageCount} messages.");
 
@@ -170,7 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 // Get new fixture to re-initialize the edge hub container.
                 protocolHeadFixture = this.edgeHubFixture.GetFixture();
 
-                receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", transportSettings);
+                // Register the message handler now.
                 await receiver.SetupReceiveMessageHandler();
 
                 Console.WriteLine($"Sending {afterBackupMessageCount} messages.");
