@@ -63,14 +63,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service
             {
                 // Selector: by module name and device name, also how we will label this puppy.
                 string name = identity.DeploymentName();
-                var ownerReferences = new List<V1OwnerReference> {
-                new V1OwnerReference(
-                    apiVersion: edgeDeploymentDefinition.ApiVersion,
-                    kind: edgeDeploymentDefinition.Kind,
-                    name: edgeDeploymentDefinition.Metadata.Name,
-                    uid: edgeDeploymentDefinition.Metadata.Uid,
-                    blockOwnerDeletion: true)
-            };
+                var ownerReferences = new List<V1OwnerReference>
+                {
+                    new V1OwnerReference(
+                        apiVersion: edgeDeploymentDefinition.ApiVersion,
+                        kind: edgeDeploymentDefinition.Kind,
+                        name: edgeDeploymentDefinition.Metadata.Name,
+                        uid: edgeDeploymentDefinition.Metadata.Uid,
+                        blockOwnerDeletion: true)
+                };
 
                 var objectMeta = new V1ObjectMeta(annotations: annotations, labels: labels, name: name, ownerReferences: ownerReferences);
 

@@ -16,7 +16,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     using Xunit;
     using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
-
     [Unit]
     public class KubernetesDeploymentMapperTest
     {
@@ -43,7 +42,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         static readonly ResourceName ResourceName = new ResourceName("hostname", "deviceId");
 
         static readonly EdgeDeploymentDefinition EdgeDeploymentDefinition = new EdgeDeploymentDefinition("v1", "EdgeDeployment", new k8s.Models.V1ObjectMeta(name: ResourceName), new List<KubernetesModule>(), null);
-
 
         [Fact]
         public void EmptyIsNotAllowedAsPodAnnotation()

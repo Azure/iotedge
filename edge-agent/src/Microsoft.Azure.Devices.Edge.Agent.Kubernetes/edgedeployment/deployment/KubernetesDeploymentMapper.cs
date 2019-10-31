@@ -88,7 +88,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
 
             var selector = new V1LabelSelector(matchLabels: labels);
             var deploymentSpec = new V1DeploymentSpec(replicas: 1, selector: selector, template: podSpec);
-            var ownerReferences = new List<V1OwnerReference> {
+            var ownerReferences = new List<V1OwnerReference>
+            {
                 new V1OwnerReference(
                     apiVersion: edgeDeploymentDefinition.ApiVersion,
                     kind: edgeDeploymentDefinition.Kind,

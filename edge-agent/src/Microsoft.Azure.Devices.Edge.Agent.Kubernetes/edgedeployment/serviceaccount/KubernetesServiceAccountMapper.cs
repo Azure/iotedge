@@ -16,7 +16,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.ServiceAc
                 [KubernetesConstants.K8sEdgeOriginalModuleId] = ModuleIdentityHelper.GetModuleName(identity.ModuleId)
             };
 
-            var ownerReferences = new List<V1OwnerReference> {
+            var ownerReferences = new List<V1OwnerReference>
+            {
                 new V1OwnerReference(
                     apiVersion: edgeDeploymentDefinition.ApiVersion,
                     kind: edgeDeploymentDefinition.Kind,

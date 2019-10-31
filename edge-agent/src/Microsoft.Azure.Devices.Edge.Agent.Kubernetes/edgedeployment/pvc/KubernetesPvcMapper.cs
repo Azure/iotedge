@@ -66,7 +66,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
                 this.storageClassName.ForEach(storageClass => persistentVolumeClaimSpec.StorageClassName = storageClass);
             }
 
-            var ownerReferences = new List<V1OwnerReference> {
+            var ownerReferences = new List<V1OwnerReference>
+            {
                 new V1OwnerReference(
                     apiVersion: edgeDeploymentDefinition.ApiVersion,
                     kind: edgeDeploymentDefinition.Kind,

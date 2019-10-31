@@ -10,14 +10,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     using Xunit;
     using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
-
     [Unit]
     public class KubernetesServiceAccountMapperTest
     {
         static readonly ResourceName ResourceName = new ResourceName("hostname", "deviceId");
 
         static readonly EdgeDeploymentDefinition EdgeDeploymentDefinition = new EdgeDeploymentDefinition("v1", "EdgeDeployment", new k8s.Models.V1ObjectMeta(name: ResourceName), new List<KubernetesModule>(), null);
-
 
         [Fact]
         public void RequiredMetadataExistsWhenCreated()
@@ -38,7 +36,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Assert.Equal(1, serviceAccount.Metadata.OwnerReferences.Count);
             Assert.Equal(KubernetesConstants.EdgeDeployment.Kind, serviceAccount.Metadata.OwnerReferences[0].Kind);
             Assert.Equal(ResourceName, serviceAccount.Metadata.OwnerReferences[0].Name);
-
         }
     }
 }
