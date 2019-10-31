@@ -11,8 +11,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     public class MetricsCommandFactory : ICommandFactory
     {
-        private readonly ICommandFactory underlying;
-        private readonly FactoryMetrics factoryMetrics;
+        readonly ICommandFactory underlying;
+        readonly FactoryMetrics factoryMetrics;
 
         public MetricsCommandFactory(ICommandFactory underlying, IMetricsProvider metricsProvider)
         {
@@ -108,8 +108,8 @@ public class FactoryMetrics
         Stop
     }
 
-    private readonly Dictionary<ModuleCommandMetric, IMetricsCounter> commandCounters;
-    private readonly IMetricsDuration commandTiming;
+    readonly Dictionary<ModuleCommandMetric, IMetricsCounter> commandCounters;
+    readonly IMetricsDuration commandTiming;
 
     public FactoryMetrics(IMetricsProvider metricsProvider)
     {
@@ -140,8 +140,8 @@ public class FactoryMetrics
 
     public class DurationSetter : IDisposable
     {
-        private Stopwatch timer = Stopwatch.StartNew();
-        private Action<double> setDuration;
+        Stopwatch timer = Stopwatch.StartNew();
+        Action<double> setDuration;
 
         internal DurationSetter(Action<double> setDuration)
         {

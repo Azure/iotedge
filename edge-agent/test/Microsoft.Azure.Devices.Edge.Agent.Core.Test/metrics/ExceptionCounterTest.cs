@@ -144,7 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             Assert.Equal(expected, result);
         }
 
-        private (Dictionary<string, long> result, IMetricsProvider provider) MockCounter()
+        (Dictionary<string, long> result, IMetricsProvider provider) MockCounter()
         {
             Dictionary<string, long> result = new Dictionary<string, long>();
             void Increment(long val, string[] tags)
@@ -172,7 +172,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             return (result, metricsProvider.Object);
         }
 
-        private void ThrowAndCatch(Exception e)
+        void ThrowAndCatch(Exception e)
         {
             try
             {
@@ -183,11 +183,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             }
         }
 
-        private class TestException1 : Exception
+        class TestException1 : Exception
         {
         }
 
-        private class TestException2 : Exception
+        class TestException2 : Exception
         {
         }
     }

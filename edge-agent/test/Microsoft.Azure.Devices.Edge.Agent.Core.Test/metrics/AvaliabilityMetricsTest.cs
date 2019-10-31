@@ -108,7 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             Assert.Equal(1800, expectedTime[current[2].Name]);
         }
 
-        private static (TestRuntimeModule[], TestModule[]) GetTestModules(int num)
+        static (TestRuntimeModule[], TestModule[]) GetTestModules(int num)
         {
             List<TestRuntimeModule> current = new List<TestRuntimeModule>();
             List<TestModule> desired = new List<TestModule>();
@@ -123,7 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             return (current.ToArray(), desired.ToArray());
         }
 
-        private static (TestRuntimeModule, TestModule) GetTestModulePair()
+        static (TestRuntimeModule, TestModule) GetTestModulePair()
         {
             string name = $"module_{Guid.NewGuid()}";
             IDictionary<string, EnvVal> envVars = new Dictionary<string, EnvVal>();
