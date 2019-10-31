@@ -19,6 +19,10 @@ parameters:
   loadGen3.transportType: 'Mqtt_Tcp_Only'
   loadGen4.transportType: 'Mqtt_WebSocket_Only'
   analyzer.consumerGroupId: ''
+  analyzer.loganalyticenabled: ''
+  analyzer.loganalyticworkspaceid: ''
+  analyzer.loganalyticsharedkey: ''
+  analyzer.loganalyticlogtype: ''
 
 steps:
   - task: CopyFiles@2

@@ -13,6 +13,8 @@ variables:
   #pool.name: ''
   #container.registry: ''
   #snitch.storage.account: ''
+  #LogAnalyticEnabled
+  #LogAnalyticLogType
   # Variables settable at queue time
   #edgelet.package.branchName
   #images.branchName
@@ -37,7 +39,7 @@ jobs:
         - agent-group -equals $(agent.group)
         - Agent.OS -equals Linux
         - Agent.OSArchitecture -equals X64
-        - run-stress -equals true
+        - bearwashere -equals true
     variables:
       edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'
     steps:
