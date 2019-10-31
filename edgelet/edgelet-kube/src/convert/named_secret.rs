@@ -25,10 +25,10 @@ impl NamedSecret {
     }
 }
 
-impl<'a> TryFrom<(&str, &ImagePullSecret<'a>)> for NamedSecret {
+impl<'a> TryFrom<(&str, ImagePullSecret<'a>)> for NamedSecret {
     type Error = crate::error::Error;
 
-    fn try_from((namespace, image_pull_secret): (&str, &ImagePullSecret<'a>)) -> Result<Self> {
+    fn try_from((namespace, image_pull_secret): (&str, ImagePullSecret<'a>)) -> Result<Self> {
         let secret_name = image_pull_secret
             .name()
             .ok_or_else(|| ErrorKind::PullImage(PullImageErrorReason::AuthName))?;
