@@ -31,6 +31,9 @@ pub enum ErrorKind {
     #[fail(display = "Could not construct API Endpoint request")]
     InvalidApiEndpoint,
 
+    #[fail(display = "Invalid Descriptor URL")]
+    InvalidDescriptorUrl,
+
     // API communication
     #[fail(display = "Could not send HTTP request")]
     ClientRequest,
@@ -55,6 +58,12 @@ pub enum ErrorKind {
 
     #[fail(display = "API returned a mismatched Docker-Content-Digest header")]
     ApiMismatchedDigest,
+
+    #[fail(display = "API returned a blob with an unexpected media type")]
+    ApiMismatchedBlobMediaType,
+
+    #[fail(display = "API returned a blob with an unexpected size")]
+    ApiMismatchedBlobSize,
 
     #[fail(
         display = "API returned an out of spec response (status code: {}). See debug logs for response contents.",

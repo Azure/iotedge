@@ -9,7 +9,7 @@ use crate::validator::Validator;
 ///
 /// To validate data using it's Digest, use the [`validator`] to construct a new
 /// [`Validator`].
-#[derive(Debug, PartialEq, Eq, Ord, PartialOrd, Hash, Clone)]
+#[derive(PartialEq, Eq, Ord, PartialOrd, Hash, Clone)]
 pub struct Digest {
     string: String,
 }
@@ -39,6 +39,11 @@ impl Digest {
         &self.string
     }
 
+    /// Consume self, returning the underlying string
+    pub fn into_inner(self) -> String {
+        self.string
+    }
+
     /// Reference to the algorithm component of the digest string.
     pub fn algorithm(&self) -> &str {
         &self.string[..self.string.find(':').unwrap()]
@@ -53,6 +58,12 @@ impl Digest {
 impl fmt::Display for Digest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&self.string)
+    }
+}
+
+impl fmt::Debug for Digest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Digest({})", self.string)
     }
 }
 

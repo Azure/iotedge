@@ -199,15 +199,31 @@ impl Client {
     }
 
     /// Retrieve the blob with given `digest` from the specified `repo`.
-    pub async fn get_raw_blob(&self, repo: &str, digest: &Digest) -> Result<Blob> {
-        self.get_raw_blob_part(repo, digest, ..).await
+    ///
+    /// Unlike `get_blob` (which requires specifying a proper [Descriptor]),
+    /// this method has several limitations:
+    /// - it cannot perform any size validation
+    /// - it cannot perform any content-type validation
+    /// - the blob _must_ be stored by the registry directly (i.e: when
+    ///   applicable, `get_blob` attempts to download blobs from the
+    ///   descriptors' URLs field)
+    pub async fn get_blob_from_registry(&self, repo: &str, digest: &Digest) -> Result<Blob> {
+        self.get_blob_part_from_registry(repo, digest, ..).await
     }
 
-    /// Retrieve a slice of the blob with specified `digest` from the `repo`.
+    /// Retrieve the blob with given `digest` from the specified `repo`.
     ///
-    /// If the server doesn't support the use of a  Range header, this function
+    /// If the server doesn't support the use of a Range header, this function
     /// will return a [ErrorKind::ApiRangeHeaderNotSupported]
-    pub async fn get_raw_blob_part(
+    ///
+    /// Unlike `get_blob_part` (which requires specifying a proper
+    /// [Descriptor]), this method has several limitations:
+    /// - it cannot perform any size validation
+    /// - it cannot perform any content-type validation
+    /// - the blob _must_ be stored by the registry directly (i.e: when
+    ///   applicable, `get_blob_part` attempts to download blobs from the
+    ///   descriptors' URLs field)
+    pub async fn get_blob_part_from_registry(
         &self,
         repo: &str,
         digest: &Digest,
@@ -221,11 +237,109 @@ impl Client {
             .join(format!("/v2/{}/blobs/{}", repo, digest).as_str())
             .context(ErrorKind::InvalidApiEndpoint)?;
 
+        self.get_blob_part_impl(
+            self.client.head(url.clone(), &scope).await?,
+            self.client.get(url, &scope).await?,
+            BlobEither::Digest(digest),
+            range,
+        )
+        .await
+    }
+
+    /// Retrieve the blob with given `descriptor` from the specified `repo`.
+    ///
+    /// NOTE: If the descriptor has a non-empty `urls` field, `get_blob` will
+    /// download the blob from those URLs. If none of the URLs work / are
+    /// valid, it will query the registry directly.
+    pub async fn get_blob(&self, repo: &str, descriptor: &Descriptor) -> Result<Blob> {
+        self.get_blob_part(repo, descriptor, ..).await
+    }
+
+    /// Retrieve a part of the blob with specified `descriptor` from the `repo`.
+    ///
+    /// NOTE: If the descriptor has a non-empty `urls` field, `get_blob_part`
+    /// will download the blob from those URLs. If none of the URLs work / are
+    /// valid, it will query the registry directly.
+    ///
+    /// If the server doesn't support the use of a Range header, this function
+    /// will return a [ErrorKind::ApiRangeHeaderNotSupported]
+    pub async fn get_blob_part(
+        &self,
+        repo: &str,
+        descriptor: &Descriptor,
+        range: impl RangeBounds<u64>,
+    ) -> Result<Blob> {
+        // TODO: double check this scope
+        let scope = Scope::new(Resource::repo(repo), &[Action::Pull]);
+
+        // if the descriptor specifies any external URLs, attempt to download the blob
+        // from them first.
+        if let Some(urls) = &descriptor.urls {
+            for url in urls {
+                let url = url
+                    .parse::<Url>()
+                    .context(ErrorKind::InvalidDescriptorUrl)?;
+
+                // no need to use authenticated requests
+                let res = self
+                    .get_blob_part_impl(
+                        self.client.raw_client().head(url.clone()),
+                        self.client.raw_client().get(url),
+                        BlobEither::Descriptor(descriptor),
+                        clone_range(&range),
+                    )
+                    .await;
+
+                match res {
+                    Ok(res) => return Ok(res),
+                    Err(_) => continue,
+                }
+            }
+
+            if !urls.is_empty() {
+                warn!(
+                    "Could not download blob from any of the specified URLs ({:?})",
+                    descriptor
+                );
+            }
+        }
+
+        // if no URLs were specified, or the blob could not be downloaded from any
+        // external URLs, try to download the blob from the registry directly.
+
+        let url = self
+            .registry_base
+            .join(format!("/v2/{}/blobs/{}", repo, descriptor.digest).as_str())
+            .context(ErrorKind::InvalidApiEndpoint)?;
+
+        // use authenticated requests
+        self.get_blob_part_impl(
+            self.client.head(url.clone(), &scope).await?,
+            self.client.get(url, &scope).await?,
+            BlobEither::Descriptor(descriptor),
+            range,
+        )
+        .await
+    }
+
+    /// Private shared implementation to download blobs from registries and/or
+    /// external URLs
+    ///
+    /// If the server doesn't support the use of a Range header, this function
+    /// will return a [ErrorKind::ApiRangeHeaderNotSupported]
+    async fn get_blob_part_impl(
+        &self,
+        range_check_req: reqwest::RequestBuilder,
+        mut download_req: reqwest::RequestBuilder,
+        kind: BlobEither<'_>,
+        range: impl RangeBounds<u64>,
+    ) -> Result<Blob> {
+        let calc_range_size = range_size(&range);
+
         let range_header = match (range.start_bound(), range.end_bound()) {
             (Bound::Unbounded, Bound::Unbounded) | (Bound::Included(0), Bound::Unbounded) => {
                 // This is an unbounded range over the whole file, which is equivalent to not
-                // sending a range header at all. Just in case, don't send the range
-                // header in these cases.
+                // sending a range header at all.
                 None
             }
             _ => {
@@ -238,7 +352,7 @@ impl Client {
                     // be detected by issuing a HEAD request. If the header Accept-Range: bytes is
                     // returned, range requests can be used to fetch partial content."
 
-                    let res = self.client.head(url.clone(), &scope).await?.send().await?;
+                    let res = range_check_req.send().await?;
 
                     // FIXME: this could be a stricter check
                     supports_range_header
@@ -254,13 +368,12 @@ impl Client {
             }
         };
 
-        let mut req = self.client.get(url, &scope).await?;
         if let Some(range_header) = range_header {
             let mut m = HeaderMap::new();
             m.typed_insert(range_header);
-            req = req.headers(m);
+            download_req = download_req.headers(m);
         }
-        let res = req.send().await?;
+        let res = download_req.send().await?;
 
         match res.status() {
             status if status.is_success() => {
@@ -280,17 +393,41 @@ impl Client {
                 //     return Err(ErrorKind::ApiInvalidDigestHeader.into());
                 // }
 
-                let content_type = res.headers().get_required("Content-Type")?;
-                let content_length = res.headers().get_required("Content-Length")?;
+                let content_type = res.headers().get_required::<String>("Content-Type")?;
+                let content_length = res.headers().get_required::<i64>("Content-Length")?;
 
-                Ok(Blob::new_streaming(
-                    res,
-                    Descriptor::new_base(content_type, digest.clone(), content_length),
-                ))
+                if content_type != "application/octet-stream" {
+                    return Err(failure::err_msg(content_type)
+                        .context(ErrorKind::ApiMismatchedBlobMediaType)
+                        .into());
+                }
+
+                let descriptor = match kind {
+                    // if the descriptor is given, double check for a well-behaved server
+                    BlobEither::Descriptor(descriptor) => {
+                        let expected_length = calc_range_size(descriptor.size as u64);
+                        if content_length != expected_length as i64 {
+                            return Err(failure::err_msg(format!(
+                                "got {} expected {}",
+                                content_length, expected_length
+                            ))
+                            .context(ErrorKind::ApiMismatchedBlobSize)
+                            .into());
+                        }
+
+                        descriptor.clone()
+                    }
+                    // if only the digest is given, it's not possible to perform size validation
+                    BlobEither::Digest(digest) => {
+                        Descriptor::new_base(content_type, digest.clone(), content_length)
+                    }
+                };
+
+                Ok(Blob::new_streaming(res, descriptor))
             }
             StatusCode::UNAUTHORIZED => {
                 // TODO: attempt to re-authenticate
-                unimplemented!("get_raw_blob: UNAUTHORIZED")
+                unimplemented!("get_blob: UNAUTHORIZED")
             }
             _ => Err(new_api_error(res).await),
         }
@@ -348,4 +485,41 @@ async fn new_api_error(res: Response) -> Error {
             ErrorKind::ApiUnexpectedStatus(status).into()
         }
     }
+}
+
+/// Helper enum for `get_blob_part_impl`
+enum BlobEither<'a> {
+    Descriptor(&'a Descriptor),
+    Digest(&'a Digest),
+}
+
+/// Returns a closure which computes a range's size given a expected end-bound  
+fn range_size(range: &impl RangeBounds<u64>) -> impl Fn(u64) -> u64 {
+    let end = match range.end_bound() {
+        Bound::Unbounded => None,
+        Bound::Included(x) => Some(*x),
+        Bound::Excluded(x) => Some(*x - 1),
+    };
+    let start = match range.start_bound() {
+        Bound::Unbounded => 0,
+        Bound::Included(x) => *x,
+        Bound::Excluded(x) => *x + 1,
+    };
+
+    move |true_end| end.unwrap_or(true_end) - start
+}
+
+/// https://github.com/rust-lang/rust/issues/48649
+fn clone_range(range: &impl RangeBounds<u64>) -> (Bound<u64>, Bound<u64>) {
+    let start = match range.start_bound() {
+        Bound::Unbounded => Bound::Unbounded,
+        Bound::Included(x) => Bound::Included(*x),
+        Bound::Excluded(x) => Bound::Excluded(*x),
+    };
+    let end = match range.end_bound() {
+        Bound::Unbounded => Bound::Unbounded,
+        Bound::Included(x) => Bound::Included(*x),
+        Bound::Excluded(x) => Bound::Excluded(*x),
+    };
+    (start, end)
 }

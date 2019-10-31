@@ -13,7 +13,6 @@ use tokio::fs::{self, File};
 use tokio::prelude::*;
 
 use containrs::oci_image::v1 as ociv1;
-use containrs::Digest;
 use containrs::{Blob, Client, Credentials, Paginate};
 use containrs::{Reference, ReferenceKind};
 
@@ -288,22 +287,22 @@ async fn true_main() -> Result<(), failure::Error> {
                     progress.set_style(PB_STYLE.clone());
                     progress.set_message("manifest.json");
 
-                    let mut manifest = client.get_raw_manifest(&image).await?;
+                    let mut manifest_blob = client.get_raw_manifest(&image).await?;
                     progress.println(format!(
                         "Server reported digest: {}",
-                        manifest.get_descriptor().digest
+                        manifest_blob.descriptor().digest
                     ));
 
-                    progress.set_length(manifest.len().unwrap_or(0));
+                    progress.set_length(manifest_blob.len().unwrap_or(0));
 
                     // dump the blob to stdout, chunk by chunk
-                    let mut validator = manifest
-                        .get_descriptor()
+                    let mut validator = manifest_blob
+                        .descriptor()
                         .digest
                         .validator()
                         .ok_or_else(|| failure::err_msg("unsupported digest algorithm"))?;
                     let mut stdout = tokio::io::stdout();
-                    while let Some(data) = manifest.chunk().await? {
+                    while let Some(data) = manifest_blob.chunk().await? {
                         validator.input(&data);
                         let bytes_written = stdout.write(data.as_ref()).await?;
                         progress.inc(bytes_written as u64);
@@ -342,10 +341,10 @@ async fn true_main() -> Result<(), failure::Error> {
                         Some(s) => {
                             let range: ParsableRange<u64> = s.parse()?;
                             client
-                                .get_raw_blob_part(image.repo(), digest, range)
+                                .get_blob_part_from_registry(image.repo(), digest, range)
                                 .await?
                         }
-                        None => client.get_raw_blob(image.repo(), digest).await?,
+                        None => client.get_blob_from_registry(image.repo(), digest).await?,
                     };
 
                     progress.set_length(blob.len().unwrap_or(0));
@@ -431,7 +430,7 @@ async fn true_main() -> Result<(), failure::Error> {
             // fetch manifest
             let manifest_blob = client.get_raw_manifest(&image).await?;
             eprintln!("downloading manifest.json...");
-            let mut manifest_descriptor = manifest_blob.get_descriptor().clone();
+            let mut manifest_descriptor = manifest_blob.descriptor().clone();
             let manifest_json = manifest_blob.bytes().await?;
             eprintln!("downloaded manifest.json");
 
@@ -446,8 +445,9 @@ async fn true_main() -> Result<(), failure::Error> {
             let manifest = serde_json::from_slice::<ociv1::Manifest>(&manifest_json)
                 .context("while parsing manifest.json")?;
 
-            // before passing it off to ociv1::ImageLayout, annotate the manifest_descriptor
-            // with some useful information.
+            // annotate the manifest_descriptor with some useful metadata prior to passing
+            // it off to ImageLayout. This metadata enables containerd to properly import
+            // the image into it's content store / image database.
             manifest_descriptor
                 .add_annotation(ociv1::annotations::key::REFNAME, &image.to_string());
 
@@ -473,14 +473,9 @@ async fn true_main() -> Result<(), failure::Error> {
 
             eprintln!("firing off download requests...");
 
-            // FIXME?: Don't re-download Manifests when outputting as OCI Image Layout
-            // Since the manifest is one of the blobs in the ImageLayout, the following code
-            // will simply re-download it. This could be avoided with some additional
-            // checks.
-
             // build up a list of blobs to download.
             let mut paths = Vec::new();
-            let mut digests = Vec::new();
+            let mut descriptors = Vec::new();
 
             for (path, descriptor) in image_layout.blobs() {
                 // ensure the directory exists
@@ -497,13 +492,13 @@ async fn true_main() -> Result<(), failure::Error> {
                 }
 
                 paths.push(out_dir.join(path));
-                digests.push(&descriptor.digest);
+                descriptors.push(descriptor);
             }
 
             // fire off downloads in parallel
-            let blob_futures = digests
+            let blob_futures = descriptors
                 .iter()
-                .map(|digest| client.get_raw_blob(image.repo(), &digest));
+                .map(|descriptor| client.get_blob(image.repo(), descriptor));
 
             // TODO: there's no need to artificially wait for all the futures to kick off.
             // This checkpoint is only here for benchmarking how well the auth header cache
@@ -567,8 +562,8 @@ async fn true_main() -> Result<(), failure::Error> {
 
             let validations = paths
                 .iter()
-                .zip(digests.iter())
-                .map(|(path, digest)| validate_file(path, digest, &validate_progress))
+                .zip(descriptors.iter())
+                .map(|(path, descriptor)| validate_file(path, descriptor, &validate_progress))
                 .collect::<Vec<_>>();
 
             let progress_handle = std::thread::spawn(move || {
@@ -614,10 +609,11 @@ async fn write_blob_to_file(
 /// Reads a file from disk, and validates it with the given digest
 async fn validate_file(
     file_path: &Path,
-    digest: &Digest,
+    descriptor: &ociv1::Descriptor,
     progress: &ProgressBar,
 ) -> Result<(), failure::Error> {
-    let mut validator = digest
+    let mut validator = descriptor
+        .digest
         .validator()
         .ok_or_else(|| failure::err_msg("unsupported digest algorithm"))?;
 

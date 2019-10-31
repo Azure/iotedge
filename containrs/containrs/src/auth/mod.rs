@@ -46,6 +46,11 @@ impl AuthClient {
         }
     }
 
+    /// Return reference to underlying unauthenticated reqwest client.
+    pub fn raw_client(&self) -> &ReqwestClient {
+        &self.client
+    }
+
     /// Wrapper around [ReqwestClient::request] which appends authentication
     /// headers. Unlike [ReqwestClient::request], this method is async, as it
     /// _may_ perform some authentication flow HTTP requests prior to returning
