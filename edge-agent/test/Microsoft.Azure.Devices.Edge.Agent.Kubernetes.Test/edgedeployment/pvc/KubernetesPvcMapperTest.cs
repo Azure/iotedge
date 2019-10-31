@@ -133,6 +133,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
             Assert.Null(aVolumeClaim.Spec.VolumeName);
             Assert.Equal(string.Empty, aVolumeClaim.Spec.StorageClassName);
             Assert.Equal(resourceQuantity, aVolumeClaim.Spec.Resources.Requests["storage"]);
+            Assert.Equal(1, aVolumeClaim.Metadata.OwnerReferences.Count);
+            Assert.Equal(KubernetesConstants.EdgeDeployment.Kind, aVolumeClaim.Metadata.OwnerReferences[0].Kind);
+            Assert.Equal(ResourceName, aVolumeClaim.Metadata.OwnerReferences[0].Name);
 
             var bVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == "b-volume");
             Assert.True(bVolumeClaim.Metadata.Labels.SequenceEqual(DefaultLabels));
@@ -140,6 +143,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
             Assert.Null(bVolumeClaim.Spec.VolumeName);
             Assert.Equal(string.Empty, bVolumeClaim.Spec.StorageClassName);
             Assert.Equal(resourceQuantity, bVolumeClaim.Spec.Resources.Requests["storage"]);
+            Assert.Equal(1, bVolumeClaim.Metadata.OwnerReferences.Count);
+            Assert.Equal(KubernetesConstants.EdgeDeployment.Kind, bVolumeClaim.Metadata.OwnerReferences[0].Kind);
+            Assert.Equal(ResourceName, bVolumeClaim.Metadata.OwnerReferences[0].Name);
         }
 
         [Fact]
@@ -164,6 +170,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
             Assert.Null(aVolumeClaim.Spec.VolumeName);
             Assert.Equal("default", aVolumeClaim.Spec.StorageClassName);
             Assert.Equal(resourceQuantity, aVolumeClaim.Spec.Resources.Requests["storage"]);
+            Assert.Equal(1, aVolumeClaim.Metadata.OwnerReferences.Count);
+            Assert.Equal(KubernetesConstants.EdgeDeployment.Kind, aVolumeClaim.Metadata.OwnerReferences[0].Kind);
+            Assert.Equal(ResourceName, aVolumeClaim.Metadata.OwnerReferences[0].Name);
 
             var bVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == "b-volume");
             Assert.True(bVolumeClaim.Metadata.Labels.SequenceEqual(DefaultLabels));
@@ -171,6 +180,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
             Assert.Null(bVolumeClaim.Spec.VolumeName);
             Assert.Equal("default", bVolumeClaim.Spec.StorageClassName);
             Assert.Equal(resourceQuantity, bVolumeClaim.Spec.Resources.Requests["storage"]);
+            Assert.Equal(1, bVolumeClaim.Metadata.OwnerReferences.Count);
+            Assert.Equal(KubernetesConstants.EdgeDeployment.Kind, bVolumeClaim.Metadata.OwnerReferences[0].Kind);
+            Assert.Equal(ResourceName, bVolumeClaim.Metadata.OwnerReferences[0].Name);
         }
 
         [Fact]
@@ -195,6 +207,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
             Assert.Null(aVolumeClaim.Spec.StorageClassName);
             Assert.Equal("a-pvc-name", aVolumeClaim.Spec.VolumeName);
             Assert.Equal(resourceQuantity, aVolumeClaim.Spec.Resources.Requests["storage"]);
+            Assert.Equal(1, aVolumeClaim.Metadata.OwnerReferences.Count);
+            Assert.Equal(KubernetesConstants.EdgeDeployment.Kind, aVolumeClaim.Metadata.OwnerReferences[0].Kind);
+            Assert.Equal(ResourceName, aVolumeClaim.Metadata.OwnerReferences[0].Name);
 
             var bVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == "b-volume");
             Assert.True(bVolumeClaim.Metadata.Labels.SequenceEqual(DefaultLabels));
@@ -202,6 +217,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
             Assert.Null(bVolumeClaim.Spec.StorageClassName);
             Assert.Equal("a-pvc-name", bVolumeClaim.Spec.VolumeName);
             Assert.Equal(resourceQuantity, bVolumeClaim.Spec.Resources.Requests["storage"]);
+            Assert.Equal(1, bVolumeClaim.Metadata.OwnerReferences.Count);
+            Assert.Equal(KubernetesConstants.EdgeDeployment.Kind, bVolumeClaim.Metadata.OwnerReferences[0].Kind);
+            Assert.Equal(ResourceName, bVolumeClaim.Metadata.OwnerReferences[0].Name);
         }
 
         [Fact]
@@ -226,6 +244,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
             Assert.Null(aVolumeClaim.Spec.StorageClassName);
             Assert.Equal("a-pvc-name", aVolumeClaim.Spec.VolumeName);
             Assert.Equal(resourceQuantity, aVolumeClaim.Spec.Resources.Requests["storage"]);
+            Assert.Equal(1, aVolumeClaim.Metadata.OwnerReferences.Count);
+            Assert.Equal(KubernetesConstants.EdgeDeployment.Kind, aVolumeClaim.Metadata.OwnerReferences[0].Kind);
+            Assert.Equal(ResourceName, aVolumeClaim.Metadata.OwnerReferences[0].Name);
 
             var bVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == "b-volume");
             Assert.True(bVolumeClaim.Metadata.Labels.SequenceEqual(DefaultLabels));
@@ -233,6 +254,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
             Assert.Null(bVolumeClaim.Spec.StorageClassName);
             Assert.Equal("a-pvc-name", bVolumeClaim.Spec.VolumeName);
             Assert.Equal(resourceQuantity, bVolumeClaim.Spec.Resources.Requests["storage"]);
+            Assert.Equal(1, bVolumeClaim.Metadata.OwnerReferences.Count);
+            Assert.Equal(KubernetesConstants.EdgeDeployment.Kind, bVolumeClaim.Metadata.OwnerReferences[0].Kind);
+            Assert.Equal(ResourceName, bVolumeClaim.Metadata.OwnerReferences[0].Name);
         }
     }
 }

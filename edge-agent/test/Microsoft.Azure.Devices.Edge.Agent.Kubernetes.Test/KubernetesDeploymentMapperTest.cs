@@ -14,6 +14,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
+    using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
+
 
     [Unit]
     public class KubernetesDeploymentMapperTest
@@ -62,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         }
 
         [Fact]
-        public void SimplePodCreationHappyPath()
+        public void SimpleDeploymentCreationHappyPath()
         {
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
             var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.None<AuthConfig>());
@@ -71,9 +73,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var mapper = new KubernetesDeploymentMapper("namespace", "edgehub", "proxy", "configPath", "configVolumeName", "configMapName", "trustBundlePAth", "trustBundleVolumeName", "trustBundleConfigMapName", string.Empty, string.Empty, "apiVersion", new Uri("http://workload"), new Uri("http://management"));
             var labels = new Dictionary<string, string>();
 
-            var pod = mapper.CreateDeployment(identity, module, labels, EdgeDeploymentDefinition);
+            var deployment = mapper.CreateDeployment(identity, module, labels, EdgeDeploymentDefinition);
 
-            Assert.True(pod != null);
+            Assert.NotNull(deployment);
+            Assert.Equal(1, deployment.Metadata.OwnerReferences.Count);
+            Assert.Equal(KubernetesConstants.EdgeDeployment.Kind, deployment.Metadata.OwnerReferences[0].Kind);
+            Assert.Equal(ResourceName, deployment.Metadata.OwnerReferences[0].Name);
         }
 
         [Fact]

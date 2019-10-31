@@ -94,6 +94,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         }
 
         [Fact]
+        public void SimpleServiceCreationHappyPath()
+        {
+            var exposedPorts = new Dictionary<string, EmptyStruct> { ["10/TCP"] = default(EmptyStruct) };
+            var createOptions = CreatePodParameters.Create(exposedPorts: exposedPorts);
+            var config = new KubernetesConfig("image", createOptions, Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            var module = new KubernetesModule(docker, config);
+            var moduleLabels = new Dictionary<string, string>();
+            var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
+            var moduleId = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
+
+            var service = mapper.CreateService(moduleId, module, moduleLabels, EdgeDeploymentDefinition).OrDefault();
+
+            Assert.NotNull(service);
+            Assert.Equal(1, service.Metadata.OwnerReferences.Count);
+            Assert.Equal(KubernetesConstants.EdgeDeployment.Kind, service.Metadata.OwnerReferences[0].Kind);
+            Assert.Equal(ResourceName, service.Metadata.OwnerReferences[0].Name);
+            Assert.Equal(1, service.Spec.Ports.Count);
+            Assert.Equal(0, service.Spec.Selector.Count);
+        }
+
+        [Fact]
         public void DockerLabelsConvertedAsAnnotations()
         {
             var exposedPorts = new Dictionary<string, EmptyStruct> { ["10/TCP"] = default(EmptyStruct) };

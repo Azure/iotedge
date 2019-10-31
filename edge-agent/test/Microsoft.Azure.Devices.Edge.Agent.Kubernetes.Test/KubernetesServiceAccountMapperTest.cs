@@ -8,7 +8,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
-    using Constants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
+    using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
+
 
     [Unit]
     public class KubernetesServiceAccountMapperTest
@@ -28,11 +29,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
             var serviceAccount = mapper.CreateServiceAccount(identity, labels, EdgeDeploymentDefinition);
 
+            Assert.NotNull(serviceAccount);
             Assert.Equal("moduleid", serviceAccount.Metadata.Name);
             Assert.Equal(1, serviceAccount.Metadata.Annotations.Count);
-            Assert.Equal("ModuleId", serviceAccount.Metadata.Annotations[Constants.K8sEdgeOriginalModuleId]);
+            Assert.Equal("ModuleId", serviceAccount.Metadata.Annotations[KubernetesConstants.K8sEdgeOriginalModuleId]);
             Assert.Equal(1, serviceAccount.Metadata.Labels.Count);
             Assert.Equal("k8s-device", serviceAccount.Metadata.Labels["device"]);
+            Assert.Equal(1, serviceAccount.Metadata.OwnerReferences.Count);
+            Assert.Equal(KubernetesConstants.EdgeDeployment.Kind, serviceAccount.Metadata.OwnerReferences[0].Kind);
+            Assert.Equal(ResourceName, serviceAccount.Metadata.OwnerReferences[0].Name);
+
         }
     }
 }
