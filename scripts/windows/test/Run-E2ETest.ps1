@@ -267,7 +267,8 @@ Param (
     [ValidateSet("true", "false")]
     [string] $MqttSettingsEnabled = "true",
 
-    [string] $AnalyzerLaEnabled = $null,
+    [ValidateNotNullOrEmpty()]
+    [string] $AnalyzerLaEnabled = $(Throw "Analyzer Log Analytic enable string is required"),
 
     [ValidateNotNullOrEmpty()]
     [string] $AnalyzerLaWorkspaceId = $(Throw "Analyzer Log Analytic WorkspaceId string is required"),
