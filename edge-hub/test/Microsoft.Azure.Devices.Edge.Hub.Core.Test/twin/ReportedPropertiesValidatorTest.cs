@@ -28,7 +28,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
                             {
                                 level4 = new
                                 {
-                                    level5 = new { }
+                                    level5 = new
+                                    {
+                                        level6 = new
+                                        {
+                                            level7 = new
+                                            {
+                                                level8 = new
+                                                {
+                                                    level9 = new
+                                                    {
+                                                        level10 = new { }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
