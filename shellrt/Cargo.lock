@@ -1732,6 +1732,7 @@ dependencies = [
  "containrs",
  "failure",
  "futures-preview",
+ "lazy_static",
  "log",
  "pretty_env_logger",
  "serde_json",
@@ -2062,9 +2063,9 @@ dependencies = [
 
 [[package]]
 name = "tonic"
-version = "0.1.0-alpha.4"
+version = "0.1.0-alpha.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7bf57fd0d61642eafe664fea69239aa80876361422742281386a2ac3793518ac"
+checksum = "d68951b701f4b3750dc78b4115f7e030d2835207a9805e47cd6e2e45b2e06410"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -2085,16 +2086,15 @@ dependencies = [
  "tower-balance",
  "tower-load",
  "tower-make",
- "tower-reconnect",
  "tower-service",
  "tracing",
 ]
 
 [[package]]
 name = "tonic-build"
-version = "0.1.0-alpha.4"
+version = "0.1.0-alpha.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f2dee0462a93da0c8cf446434290f74ba4bd8926f3b9b42a287b02e5880da0b0"
+checksum = "4793fb2a8779db542bed2b0b744d93149c24aaa8a4933f20531b8482f0396180"
 dependencies = [
  "proc-macro2 1.0.6",
  "prost-build",
@@ -2221,18 +2221,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "316d47dd40cde4ac5d88110eaf9a10a4e2a68612d9c056cd2aa24e37dcb484cd"
 dependencies = [
  "tokio-io",
- "tower-service",
-]
-
-[[package]]
-name = "tower-reconnect"
-version = "0.3.0-alpha.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec3b0ff785d951558016852c0d92f274296f34e7b7fa6e15fd3b8c55f43f1907"
-dependencies = [
- "log",
- "pin-project",
- "tower-make",
  "tower-service",
 ]
 

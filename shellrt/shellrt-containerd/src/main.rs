@@ -4,24 +4,37 @@ use failure::ResultExt;
 use log::*;
 use tokio::sync::oneshot;
 
-use containerd_grpc::containerd::services::version::v1::client::VersionClient;
-
 use shellrt_api::v0::{
     plugin::{Input, Output, Request, Response},
-    request, response, VERSION,
+    VERSION,
 };
 
 mod error;
+mod handler;
 mod sock_to_tcp_proxy;
+mod util;
 
-use error::{ErrorKind, Result};
+use error::*;
 
 #[tokio::main]
 async fn main() {
-    // first, spin up the sock_to_tcp_proxy server
+    pretty_env_logger::init();
+
+    // TODO: how to specify containerd socket path?
+    //       sent on each request? loaded from config file?
     let containerd_sock = PathBuf::from("/run/containerd/containerd.sock");
     let tcp_proxy_port = 9090;
 
+    if !containerd_sock.exists() {
+        let err = Error::new(ErrorKind::GrpcConnect.into());
+        let output = Output::new(Err(err.into()));
+        serde_json::to_writer_pretty(std::io::stdout(), &output)
+            .expect("failed to write output to stdout");
+        return;
+    }
+
+    // HACK: remove sock_to_tcp_proxy::server once tonic supports custom transports
+    // Use a oneshot to ensure the proxy server is ready to receive gRPC clients.
     let (tx, rx) = oneshot::channel::<()>();
     tokio::spawn(async move {
         if let Err(e) = sock_to_tcp_proxy::server(containerd_sock, tcp_proxy_port, tx).await {
@@ -29,11 +42,10 @@ async fn main() {
         }
     });
     rx.await.unwrap();
-
     let grpc_uri = format!("http://localhost:{}", tcp_proxy_port);
 
-    let response = handle_input(grpc_uri).await.map_err(|e| e.into());
-    let output = Output::new(response);
+    // handle incoming input
+    let output = Output::new(handle_input(grpc_uri).await.map_err(Into::into));
 
     info!("{:#?}", output);
 
@@ -42,39 +54,25 @@ async fn main() {
 }
 
 async fn handle_input(grpc_uri: String) -> Result<Response> {
-    pretty_env_logger::init();
-
-    // parse a pull request from stdin
+    // parse an incoming request
     let input: Input =
         serde_json::from_reader(std::io::stdin()).context(ErrorKind::InvalidRequest)?;
 
+    info!("{:#?}", input);
+
+    // TODO: use semver for more lenient version compatibility
     if input.version() != VERSION {
         return Err(ErrorKind::IncompatibleVersion.into());
     }
 
-    info!("{:#?}", input);
-
-    match input.into_inner() {
-        Request::Pull(request::Pull { image, credentials }) => {
-            // TODO: the actual code to handle this lol
-
-            Ok(Response::Pull(response::Pull {}))
+    // TODO?: use a macro for these match statement
+    let res = match input.into_inner() {
+        Request::Pull(req) => Response::Pull(handler::Pull::new(grpc_uri).handle(req).await?),
+        Request::RuntimeVersion(req) => {
+            Response::RuntimeVersion(handler::RuntimeVersion::new(grpc_uri).handle(req).await?)
         }
-        Request::RuntimeVersion(request::RuntimeVersion {}) => {
-            let mut client = VersionClient::connect(grpc_uri).unwrap();
+        _ => return Err(ErrorKind::UnimplementedReq.into()),
+    };
 
-            let request = tonic::Request::new(());
-            let response = client.version(request).await.unwrap().into_inner();
-
-            Ok(Response::RuntimeVersion(response::RuntimeVersion {
-                info: format!(
-                    "shellrt-containerd {}\ncontainerd {} rev {}",
-                    env!("CARGO_PKG_VERSION"),
-                    response.version,
-                    response.revision,
-                ),
-            }))
-        }
-        _ => Err(ErrorKind::UnimplementedReq.into()),
-    }
+    Ok(res)
 }

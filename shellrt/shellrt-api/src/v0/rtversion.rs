@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 #[serde(tag = "type", rename = "version")]
 pub struct RuntimeVersionRequest {}
 
-/// Returned once a PullRequest completes successfully
+/// Returned once a RuntimeVersionRequest completes successfully
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RuntimeVersionResponse {
     pub info: String,

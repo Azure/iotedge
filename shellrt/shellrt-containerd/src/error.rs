@@ -1,7 +1,8 @@
 use std::fmt;
 use std::fmt::Display;
 
-use failure::{Backtrace, Context, Fail};
+pub use failure::{Backtrace, Context, Fail, ResultExt};
+use log::*;
 
 use shellrt_api::v0::{Error as ApiError, ErrorCode as ApiErrorCode};
 
@@ -22,6 +23,26 @@ pub enum ErrorKind {
 
     #[fail(display = "Unimplemented request kind")]
     UnimplementedReq,
+
+    #[fail(display = "Could not connect to containerd")]
+    GrpcConnect,
+
+    #[fail(display = "Unexpected error while communicating with containerd")]
+    GrpcUnexpectedErr,
+
+    #[fail(display = "Malformed image reference")]
+    MalformedReference,
+
+    #[fail(display = "Malformed credentials")]
+    MalformedCredentials,
+
+    #[fail(display = "Registry returned a malformed image manifest")]
+    MalformedManifest,
+
+    // TODO: this error is too broad. it might be better to map several of the more "informative"
+    // containrs errors to specific ErrorKinds / ErrorCodes.
+    #[fail(display = "Error while communicating with registry")]
+    RegistryError,
 }
 
 impl Fail for Error {
@@ -72,15 +93,23 @@ impl Into<ApiError> for Error {
             code: match self.kind() {
                 IncompatibleVersion => ApiErrorCode::IncompatibleVersion,
                 InvalidRequest => ApiErrorCode::InvalidRequest,
-                UnimplementedReq => ApiErrorCode::Other(100),
+                // XXX: assign specific error codes to all ErrorKind variants
+                _ => ApiErrorCode::Other(999),
             },
-            message: self.to_string(),
+            message: {
+                error!("{:?}", self.to_string());
+                self.to_string()
+            },
             // TODO: make the details nicer
             detail: {
                 let err: failure::Error = self.into();
                 let msg = err
                     .iter_causes()
                     .map(|cause| format!("\tcaused by: {}", cause))
+                    .map(|cause| {
+                        error!("{}", cause);
+                        cause
+                    })
                     .collect::<Vec<String>>()
                     .join("\n");
                 if msg.is_empty() {

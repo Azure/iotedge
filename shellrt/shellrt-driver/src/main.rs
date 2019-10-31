@@ -160,6 +160,7 @@ impl Plugin {
 
         let output: Output<Response> = serde_json::from_slice(&output)?;
 
+        // TODO: use semver for more lenient version compatibility
         if output.version() != VERSION {
             failure::bail!("Bad response: invalid API version");
         }
