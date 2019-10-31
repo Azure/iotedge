@@ -304,7 +304,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
         V1Volume GetVolume(KubernetesModule module, Mount mount)
         {
             string name = KubeUtils.SanitizeK8sValue(mount.Source);
-            string pvcName = KubeUtils.SanitizeK8sValue(module.Name) + name;
+            string pvcName = KubernetesModule.PvcName(module, mount);
 
             // PVC name will be modulename + volume name
             // Volume name will be customer defined name or modulename + mount.source
@@ -321,7 +321,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             {
                 return new V1Volume(name, emptyDir: new V1EmptyDirVolumeSource());
             }
-           
         }
     }
 }
