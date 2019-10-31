@@ -81,7 +81,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
                                 {
                                     level5 = new
                                     {
-                                        level6 = new { }
+                                        level6 = new
+                                        {
+                                            level7 = new
+                                             {
+                                                level8 = new
+                                                {
+                                                    level9 = new
+                                                    {
+                                                        level10 = new
+                                                        {
+                                                            level11 = new { }
+                                                        }
+                                                    }
+                                                }
+                                             }
+                                        }
                                     }
                                 }
                             }
@@ -89,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
                     }
                 })),
                 typeof(InvalidOperationException),
-                "Nested depth of twin property exceeds 5"
+                "Nested depth of twin property exceeds 10"
             };
 
             yield return new object[]
@@ -132,6 +147,37 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
                 null,
                 string.Empty
             };
+
+            yield return new object[]
+            {
+                new TwinCollection("{ \"o#k\":\"good\", \"level1\": { \"field1\": null } }"),
+                typeof(InvalidOperationException),
+                "Property name o#k contains invalid character '#'"
+            };
+
+            yield return new object[]
+            {
+                new TwinCollection("{ \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\":\"good\", \"level1\": { \"field1\": null } }"),
+                typeof(InvalidOperationException),
+                "Length of property name aaaaaaaaaa.. exceeds maximum length of 1024"
+            };
+            
+            yield return new object[]
+            {
+                new TwinCollection(JsonConvert.SerializeObject(new  {
+                    LargeByteArray = new byte[3000],
+                    LargeByteArray2 = new byte[3000],
+                    LargeByteArray3 = new byte[3000],
+                    LargeByteArray4 = new byte[3000],
+                    LargeByteArray5 = new byte[3000],
+                    LargeByteArray6 = new byte[3000],
+                    LargeByteArray7 = new byte[3000],
+                    LargeByteArray8 = new byte[3000],
+                    LargeByteArray9 = new byte[3000]
+                } )),
+                typeof(InvalidOperationException),
+                "Twin properties size 36189 exceeds maximum 32768"
+            };
         }
 
         [Unit]
@@ -139,6 +185,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
         [MemberData(nameof(GetTwinCollections))]
         public void ValidateReportedPropertiesTest(TwinCollection twinCollection, Type expectedExceptionType, string expectedExceptionMessage)
         {
+            //this.testLogger = new TestConsoleLogger(testOutputHelper);
             // Arrange
             var reportedPropertiesValidator = new ReportedPropertiesValidator();
 
