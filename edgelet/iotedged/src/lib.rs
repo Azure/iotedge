@@ -6,6 +6,7 @@
     clippy::doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
     clippy::module_name_repetitions,
     clippy::shadow_unrelated,
+    clippy::type_complexity,
     clippy::use_self,
 )]
 
@@ -21,6 +22,7 @@ pub mod unix;
 #[cfg(target_os = "windows")]
 pub mod windows;
 
+use futures::sync::mpsc;
 use std::collections::HashMap;
 use std::env;
 use std::fs;
@@ -32,7 +34,7 @@ use std::sync::Arc;
 use failure::{Context, Fail, ResultExt};
 use futures::future::{Either, IntoFuture};
 use futures::sync::oneshot::{self, Receiver};
-use futures::{future, Future};
+use futures::{future, Future, Stream};
 use hyper::server::conn::Http;
 use hyper::{Body, Request, Uri};
 use log::{debug, info, Level};
@@ -51,10 +53,10 @@ use edgelet_core::crypto::{
 use edgelet_core::watchdog::Watchdog;
 use edgelet_core::{
     AttestationMethod, Authenticator, Certificate, CertificateIssuer, CertificateProperties,
-    CertificateType, Dps, External, MakeModuleRuntime, ManualAuthMethod,
-    ManualDeviceConnectionString, ManualX509Auth, Module, ModuleRuntime, ModuleRuntimeErrorReason,
-    ModuleSpec, Provisioning, ProvisioningResult as CoreProvisioningResult, RuntimeSettings,
-    SymmetricKeyAttestationInfo, TpmAttestationInfo, WorkloadConfig,
+    CertificateType, Dps, MakeModuleRuntime, ManualAuthMethod, Module, ModuleRuntime,
+    ModuleRuntimeErrorReason, ModuleSpec, ProvisioningResult as CoreProvisioningResult,
+    ProvisioningType, RuntimeSettings, SymmetricKeyAttestationInfo, TpmAttestationInfo,
+    WorkloadConfig, X509AttestationInfo,
 };
 use edgelet_hsm::tpm::{TpmKey, TpmKeyStore};
 use edgelet_hsm::{Crypto, HsmLock, X509};
@@ -263,7 +265,7 @@ where
         let mut tokio_runtime = tokio::runtime::Runtime::new()
             .context(ErrorKind::Initialize(InitializeErrorReason::Tokio))?;
 
-        let external_provisioning_info =
+        let (external_provisioning_info, external_provisioning) =
             get_external_provisioning_info(&settings, &mut tokio_runtime)?;
 
         set_iot_edge_env_vars(&settings, &external_provisioning_info)
@@ -313,7 +315,7 @@ where
             ))?;
 
         macro_rules! start_edgelet {
-            ($key_store:ident, $provisioning_result:ident, $root_key:ident, $force_reprovision:ident, $id_cert_thumprint:ident,) => {{
+            ($key_store:ident, $provisioning_result:ident, $root_key:ident, $force_reprovision:ident, $id_cert_thumprint:ident, $provision:ident,) => {{
                 info!("Finished provisioning edge device.");
 
                 let runtime = init_runtime::<M>(
@@ -361,7 +363,7 @@ where
                 // This "do-while" loop runs until a StartApiReturnStatus::Shutdown
                 // is received. If the TLS cert needs a restart, we will loop again.
                 loop {
-                    let code = start_api::<_, _, _, _, _, M>(
+                    let (code, should_reprovision) = start_api::<_, _, _, _, _, M>(
                         &settings,
                         hyper_client.clone(),
                         &runtime,
@@ -372,6 +374,21 @@ where
                         &crypto,
                         &mut tokio_runtime,
                     )?;
+
+                    if should_reprovision {
+                        let reprovision = $provision.reprovision().map_err(|err| {
+                            return Error::from(err.context(ErrorKind::ReprovisionFailure))
+                        });
+
+                        tokio_runtime.block_on(reprovision)?;
+
+                        // Return an error here to let the daemon exit with an error code.
+                        // This will make `systemd` restart the daemon which will re-execute the
+                        // provisioning flow and if the device has been re-provisioned, the daemon
+                        // will configure itself with the new provisioning information as part of
+                        // that flow.
+                        return Err(Error::from(ErrorKind::DeviceDeprovisioned))
+                    }
 
                     if code != StartApiReturnStatus::Restart {
                         break;
@@ -392,19 +409,26 @@ where
             external_provisioning_info.as_ref(),
         )?;
 
-        match settings.provisioning() {
-            Provisioning::Manual(manual) => {
+        match settings.provisioning().provisioning_type() {
+            ProvisioningType::Manual(manual) => {
                 match manual.authentication_method() {
                     ManualAuthMethod::DeviceConnectionString(cs) => {
                         info!("Starting provisioning edge device via manual mode using a device connection string...");
+                        let (key, device_id, hub) = cs
+                            .parse_device_connection_string()
+                            .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
+                        let manual = ManualProvisioning::new(key, device_id, hub);
+
                         let (key_store, provisioning_result, root_key) =
-                            manual_provision_connection_string(&cs, &mut tokio_runtime)?;
+                            manual_provision_connection_string(&manual, &mut tokio_runtime)?;
+
                         start_edgelet!(
                             key_store,
                             provisioning_result,
                             root_key,
                             force_module_reprovision,
                             None,
+                            manual,
                         );
                     }
                     ManualAuthMethod::X509(x509) => {
@@ -418,10 +442,14 @@ where
                             ErrorKind::Initialize(InitializeErrorReason::ManualProvisioningClient)
                         })?;
 
+                        let manual = ManualProvisioning::new(
+                            MemoryKey::new(key_bytes),
+                            x509.device_id().to_string(),
+                            x509.iothub_hostname().to_string(),
+                        );
                         let (key_store, provisioning_result, root_key) = manual_provision_x509(
-                            x509,
+                            &manual,
                             &mut tokio_runtime,
-                            &key_bytes,
                             id_data.thumbprint.clone(),
                         )?;
                         let thumbprint_op = Some(id_data.thumbprint.as_str());
@@ -431,11 +459,12 @@ where
                             root_key,
                             force_module_reprovision,
                             thumbprint_op,
+                            manual,
                         );
                     }
                 };
             }
-            Provisioning::External(_external) => {
+            ProvisioningType::External(_external) => {
                 info!("Starting provisioning edge device via external provisioning mode...");
                 let provisioning_result = external_provisioning_info.ok_or_else(|| {
                     ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient(
@@ -455,6 +484,11 @@ where
                     )));
                 };
 
+                let external_provisioning_val = external_provisioning.ok_or_else(|| {
+                    ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient(
+                        ExternalProvisioningErrorReason::Provisioning,
+                    ))
+                })?;
                 match credentials.auth_type() {
                     AuthType::SymmetricKey(symmetric_key) => {
                         if let Some(key) = symmetric_key.key() {
@@ -465,6 +499,7 @@ where
                                 memory_key,
                                 force_module_reprovision,
                                 None,
+                                external_provisioning_val,
                             );
                         } else {
                             let (derived_key_store, tpm_key) =
@@ -475,6 +510,7 @@ where
                                 tpm_key,
                                 force_module_reprovision,
                                 None,
+                                external_provisioning_val,
                             );
                         }
                     }
@@ -500,74 +536,79 @@ where
                             root_key,
                             force_module_reprovision,
                             thumbprint_op,
+                            external_provisioning_val,
                         );
                     }
                 };
             }
-            Provisioning::Dps(dps) => {
+            ProvisioningType::Dps(dps) => {
                 let dps_path = cache_subdir_path.join(EDGE_PROVISIONING_BACKUP_FILENAME);
 
                 match dps.attestation() {
                     AttestationMethod::Tpm(ref tpm) => {
                         info!("Starting provisioning edge device via TPM...");
+                        let (tpm_instance, dps_tpm) =
+                            dps_tpm_provision_init(&dps, hyper_client.clone(), tpm)?;
                         let (key_store, provisioning_result, root_key) = dps_tpm_provision(
-                            &dps,
-                            hyper_client.clone(),
                             dps_path,
                             &mut tokio_runtime,
-                            tpm,
                             hsm_lock.clone(),
+                            tpm_instance,
+                            &dps_tpm,
                         )?;
+
                         start_edgelet!(
                             key_store,
                             provisioning_result,
                             root_key,
                             force_module_reprovision,
                             None,
+                            dps_tpm,
                         );
                     }
                     AttestationMethod::SymmetricKey(ref symmetric_key_info) => {
                         info!("Starting provisioning edge device via symmetric key...");
+                        let (memory_hsm, dps_symmetric_key) = dps_symmetric_key_provision_init(
+                            &dps,
+                            hyper_client.clone(),
+                            symmetric_key_info,
+                        )?;
                         let (key_store, provisioning_result, root_key) =
                             dps_symmetric_key_provision(
-                                &dps,
-                                hyper_client.clone(),
                                 dps_path,
                                 &mut tokio_runtime,
-                                symmetric_key_info,
+                                memory_hsm,
+                                &dps_symmetric_key,
                             )?;
+
                         start_edgelet!(
                             key_store,
                             provisioning_result,
                             root_key,
                             force_module_reprovision,
                             None,
+                            dps_symmetric_key,
                         );
                     }
                     AttestationMethod::X509(ref x509_info) => {
                         info!("Starting provisioning edge device via X509 provisioning...");
-
                         let id_data = device_cert_identity_data.ok_or_else(|| {
                             ErrorKind::Initialize(InitializeErrorReason::DpsProvisioningClient)
                         })?;
 
-                        // use the client provided registration id if provided else use the CN
-                        let reg_id = match x509_info.registration_id() {
-                            Some(id) => id.to_string(),
-                            None => id_data.common_name,
-                        };
-
-                        let key_bytes = hybrid_identity_key.ok_or_else(|| {
-                            ErrorKind::Initialize(InitializeErrorReason::DpsProvisioningClient)
-                        })?;
-
-                        let (key_store, provisioning_result, root_key) = dps_x509_provision(
-                            reg_id,
+                        let (memory_hsm, dps_x509) = dps_x509_provision_init(
                             &dps,
                             hyper_client.clone(),
+                            x509_info,
+                            hybrid_identity_key,
+                            &id_data.common_name,
+                        )?;
+
+                        let (key_store, provisioning_result, root_key) = dps_x509_provision(
+                            memory_hsm,
+                            &dps_x509,
                             dps_path,
                             &mut tokio_runtime,
-                            &key_bytes,
                             id_data.thumbprint.clone(),
                         )?;
                         let thumbprint_op = Some(id_data.thumbprint.as_str());
@@ -577,6 +618,7 @@ where
                             root_key,
                             force_module_reprovision,
                             thumbprint_op,
+                            dps_x509,
                         );
                     }
                 }
@@ -588,108 +630,116 @@ where
     }
 }
 
-fn retrieve_external_provisioning_info(
-    external: &External,
-    tokio_runtime: &mut tokio::runtime::Runtime,
-) -> Result<ProvisioningResult, Error> {
-    info!("Retrieving provisioning information from the external endpoint...");
-    let external_provisioning_client = ExternalProvisioningClient::new(external.endpoint())
-        .context(ErrorKind::Initialize(
-            InitializeErrorReason::ExternalProvisioningClient(
-                ExternalProvisioningErrorReason::ClientInitialization,
-            ),
-        ))?;
-    let external_provisioning = ExternalProvisioning::new(external_provisioning_client);
-
-    let provision_fut = external_provisioning
-        .provision(MemoryKeyStore::new())
-        .map_err(|err| {
-            Error::from(err.context(ErrorKind::Initialize(
-                InitializeErrorReason::ExternalProvisioningClient(
-                    ExternalProvisioningErrorReason::Provisioning,
-                ),
-            )))
-        });
-
-    tokio_runtime.block_on(provision_fut)
-}
+type ExternalProvisioningInfo = (
+    Option<ProvisioningResult>,
+    Option<ExternalProvisioning<ExternalProvisioningClient, MemoryKeyStore>>,
+);
 
 fn get_external_provisioning_info<S>(
     settings: &S,
     tokio_runtime: &mut tokio::runtime::Runtime,
-) -> Result<Option<ProvisioningResult>, Error>
+) -> Result<ExternalProvisioningInfo, Error>
 where
     S: RuntimeSettings,
 {
-    if let Provisioning::External(external) = settings.provisioning() {
+    if let ProvisioningType::External(external) = settings.provisioning().provisioning_type() {
         // Set the external provisioning endpoint environment variable for use by the custom HSM library.
         env::set_var(
             EXTERNAL_PROVISIONING_ENDPOINT_KEY,
             external.endpoint().as_str(),
         );
 
-        let prov_info = retrieve_external_provisioning_info(external, tokio_runtime)?;
+        let external_provisioning_client = ExternalProvisioningClient::new(external.endpoint())
+            .context(ErrorKind::Initialize(
+                InitializeErrorReason::ExternalProvisioningClient(
+                    ExternalProvisioningErrorReason::ClientInitialization,
+                ),
+            ))?;
+        let external_provisioning = ExternalProvisioning::new(external_provisioning_client);
 
-        if let Some(credentials) = prov_info.credentials() {
-            if let CredentialSource::Payload = credentials.source() {
-                if let AuthType::X509(x509) = credentials.auth_type() {
-                    let subdir_path =
-                        Path::new(&settings.homedir()).join(EDGE_EXTERNAL_PROVISIONING_SUBDIR);
+        info!("Retrieving provisioning information from the external endpoint...");
+        let provision_fut = external_provisioning
+            .provision(MemoryKeyStore::new())
+            .map_err(|err| {
+                Error::from(err.context(ErrorKind::Initialize(
+                    InitializeErrorReason::ExternalProvisioningClient(
+                        ExternalProvisioningErrorReason::Provisioning,
+                    ),
+                )))
+            });
 
-                    // Ignore errors from this operation because we could be recovering from a previous bad
-                    // configuration and shouldn't stall the current configuration because of that
-                    let _u = fs::remove_dir_all(&subdir_path);
-                    DirBuilder::new()
-                        .recursive(true)
-                        .create(&subdir_path)
-                        .context(ErrorKind::Initialize(
-                            InitializeErrorReason::ExternalProvisioningClient(
-                                ExternalProvisioningErrorReason::ExternalProvisioningDirCreate,
-                            ),
-                        ))?;
-
-                    let cert_bytes = base64::decode(x509.identity_cert()).context(
-                        ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient(
-                            ExternalProvisioningErrorReason::DownloadIdentityCertificate,
-                        )),
-                    )?;
-                    let pk_bytes = base64::decode(x509.identity_private_key()).context(
-                        ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient(
-                            ExternalProvisioningErrorReason::DownloadIdentityPrivateKey,
-                        )),
-                    )?;
-
-                    let path = subdir_path.join(EDGE_EXTERNAL_PROVISIONING_ID_CERT_FILENAME);
-                    let mut file = File::create(path).context(ErrorKind::Initialize(
-                        InitializeErrorReason::ExternalProvisioningClient(
-                            ExternalProvisioningErrorReason::DownloadIdentityCertificate,
-                        ),
-                    ))?;
-                    file.write_all(&cert_bytes).context(ErrorKind::Initialize(
-                        InitializeErrorReason::ExternalProvisioningClient(
-                            ExternalProvisioningErrorReason::DownloadIdentityCertificate,
-                        ),
-                    ))?;
-
-                    let path = subdir_path.join(EDGE_EXTERNAL_PROVISIONING_ID_KEY_FILENAME);
-                    let mut file = File::create(path).context(ErrorKind::Initialize(
-                        InitializeErrorReason::ExternalProvisioningClient(
-                            ExternalProvisioningErrorReason::DownloadIdentityPrivateKey,
-                        ),
-                    ))?;
-                    file.write_all(&pk_bytes).context(ErrorKind::Initialize(
-                        InitializeErrorReason::ExternalProvisioningClient(
-                            ExternalProvisioningErrorReason::DownloadIdentityPrivateKey,
-                        ),
-                    ))?;
-                }
-            }
-        };
-
-        Ok(Some(prov_info))
+        let prov_info = tokio_runtime.block_on(provision_fut)?;
+        configure_external_provisioning(&prov_info, settings)?;
+        Ok((Some(prov_info), Some(external_provisioning)))
     } else {
-        Ok(None)
+        Ok((None, None))
     }
+}
+
+fn configure_external_provisioning<S>(
+    provisioning_info: &ProvisioningResult,
+    settings: &S,
+) -> Result<(), Error>
+where
+    S: RuntimeSettings,
+{
+    if let Some(credentials) = provisioning_info.credentials() {
+        if let CredentialSource::Payload = credentials.source() {
+            if let AuthType::X509(x509) = credentials.auth_type() {
+                let subdir_path =
+                    Path::new(&settings.homedir()).join(EDGE_EXTERNAL_PROVISIONING_SUBDIR);
+
+                // Ignore errors from this operation because we could be recovering from a previous bad
+                // configuration and shouldn't stall the current configuration because of that
+                let _u = fs::remove_dir_all(&subdir_path);
+                DirBuilder::new()
+                    .recursive(true)
+                    .create(&subdir_path)
+                    .context(ErrorKind::Initialize(
+                        InitializeErrorReason::ExternalProvisioningClient(
+                            ExternalProvisioningErrorReason::ExternalProvisioningDirCreate,
+                        ),
+                    ))?;
+
+                let cert_bytes = base64::decode(x509.identity_cert()).context(
+                    ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient(
+                        ExternalProvisioningErrorReason::DownloadIdentityCertificate,
+                    )),
+                )?;
+                let pk_bytes = base64::decode(x509.identity_private_key()).context(
+                    ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient(
+                        ExternalProvisioningErrorReason::DownloadIdentityPrivateKey,
+                    )),
+                )?;
+
+                let path = subdir_path.join(EDGE_EXTERNAL_PROVISIONING_ID_CERT_FILENAME);
+                let mut file = File::create(path).context(ErrorKind::Initialize(
+                    InitializeErrorReason::ExternalProvisioningClient(
+                        ExternalProvisioningErrorReason::DownloadIdentityCertificate,
+                    ),
+                ))?;
+                file.write_all(&cert_bytes).context(ErrorKind::Initialize(
+                    InitializeErrorReason::ExternalProvisioningClient(
+                        ExternalProvisioningErrorReason::DownloadIdentityCertificate,
+                    ),
+                ))?;
+
+                let path = subdir_path.join(EDGE_EXTERNAL_PROVISIONING_ID_KEY_FILENAME);
+                let mut file = File::create(path).context(ErrorKind::Initialize(
+                    InitializeErrorReason::ExternalProvisioningClient(
+                        ExternalProvisioningErrorReason::DownloadIdentityPrivateKey,
+                    ),
+                ))?;
+                file.write_all(&pk_bytes).context(ErrorKind::Initialize(
+                    InitializeErrorReason::ExternalProvisioningClient(
+                        ExternalProvisioningErrorReason::DownloadIdentityPrivateKey,
+                    ),
+                ))?;
+            }
+        }
+    };
+
+    Ok(())
 }
 
 fn set_iot_edge_env_vars<S>(
@@ -742,8 +792,8 @@ where
         }
     };
 
-    match settings.provisioning() {
-        Provisioning::Manual(manual) => {
+    match settings.provisioning().provisioning_type() {
+        ProvisioningType::Manual(manual) => {
             if let ManualAuthMethod::X509(x509) = manual.authentication_method() {
                 let path = x509.identity_cert().context(ErrorKind::Initialize(
                     InitializeErrorReason::IdentityCertificateSettings,
@@ -756,7 +806,7 @@ where
                 env::set_var(DEVICE_IDENTITY_KEY_PATH_ENV_KEY, path.as_os_str());
             }
         }
-        Provisioning::External(_external) => {
+        ProvisioningType::External(_external) => {
             let prov_result = provisioning_result.as_ref().ok_or_else(|| {
                 ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient(
                     ExternalProvisioningErrorReason::Provisioning,
@@ -788,7 +838,7 @@ where
                 }
             }
         }
-        Provisioning::Dps(dps) => match dps.attestation() {
+        ProvisioningType::Dps(dps) => match dps.attestation() {
             AttestationMethod::Tpm(ref tpm) => {
                 env::set_var(
                     DPS_REGISTRATION_ID_ENV_KEY,
@@ -1263,13 +1313,13 @@ fn get_provisioning_auth_method<S>(
 where
     S: RuntimeSettings,
 {
-    match settings.provisioning() {
-        Provisioning::Manual(manual) => {
+    match settings.provisioning().provisioning_type() {
+        ProvisioningType::Manual(manual) => {
             if let ManualAuthMethod::X509(_) = manual.authentication_method() {
                 return Ok(ProvisioningAuthMethod::X509);
             }
         }
-        Provisioning::External(_external) => {
+        ProvisioningType::External(_external) => {
             let prov_result = provisioning_result.as_ref().ok_or_else(|| {
                 ErrorKind::Initialize(InitializeErrorReason::ExternalProvisioningClient(
                     ExternalProvisioningErrorReason::Provisioning,
@@ -1282,7 +1332,7 @@ where
                 }
             }
         }
-        Provisioning::Dps(dps) => {
+        ProvisioningType::Dps(dps) => {
             if let AttestationMethod::X509(_) = dps.attestation() {
                 return Ok(ProvisioningAuthMethod::X509);
             }
@@ -1351,7 +1401,7 @@ fn start_api<HC, K, F, C, W, M>(
     shutdown_signal: F,
     crypto: &C,
     tokio_runtime: &mut tokio::runtime::Runtime,
-) -> Result<StartApiReturnStatus, Error>
+) -> Result<(StartApiReturnStatus, bool), Error>
 where
     F: Future<Item = (), Error = ()> + Send + 'static,
     HC: ClientImpl + 'static,
@@ -1391,6 +1441,7 @@ where
     let id_man = HubIdentityManager::new(key_store.clone(), device_client);
 
     let (mgmt_tx, mgmt_rx) = oneshot::channel();
+    let (mgmt_stop_and_reprovision_tx, mgmt_stop_and_reprovision_rx) = mpsc::unbounded();
     let (work_tx, work_rx) = oneshot::channel();
 
     let edgelet_cert_props = CertificateProperties::new(
@@ -1424,8 +1475,14 @@ where
 
     let cert_manager = Arc::new(cert_manager);
 
-    let mgmt =
-        start_management::<_, _, _, M>(settings, runtime, &id_man, mgmt_rx, cert_manager.clone());
+    let mgmt = start_management::<_, _, _, M>(
+        settings,
+        runtime,
+        &id_man,
+        mgmt_rx,
+        cert_manager.clone(),
+        mgmt_stop_and_reprovision_tx,
+    );
 
     let workload = start_workload::<_, _, _, _, M>(
         settings,
@@ -1447,25 +1504,69 @@ where
         runt_rx,
     )?;
 
+    // This mpsc sender/receiver is used for getting notifications from the mgmt service
+    // indicating that the daemon should shut down and attempt to reprovision the device.
+    let mgmt_stop_and_reprovision_signaled = mgmt_stop_and_reprovision_rx
+        .then(|res| match res {
+            Ok(_) => Err(None),
+            Err(_) => Err(Some(Error::from(ErrorKind::ManagementService))),
+        })
+        .for_each(move |_x: Option<Error>| Ok(()))
+        .then(|res| match res {
+            Ok(_) | Err(None) => Ok(None),
+            Err(Some(e)) => Err(Some(e)),
+        });
+
+    let mgmt_stop_and_reprovision_signaled = if settings.provisioning().dynamic_reprovisioning() {
+        futures::future::Either::B(mgmt_stop_and_reprovision_signaled)
+    } else {
+        futures::future::Either::A(future::empty())
+    };
+
+    let edge_rt_with_mgmt_signal = edge_rt.select2(mgmt_stop_and_reprovision_signaled).then(
+        |res: Result<
+            Either<((), _), (Option<Error>, _)>,
+            Either<(Error, _), (Option<Error>, _)>,
+        >| {
+            // A -> EdgeRt Future
+            // B -> Mgmt Stop and Reprovision Signal Future
+            match res {
+                Ok(Either::A((_x, _y))) => {
+                    Ok((StartApiReturnStatus::Shutdown, false)).into_future()
+                }
+                Ok(Either::B((_x, _y))) => {
+                    debug!("Shutdown with device reprovisioning.");
+                    Ok((StartApiReturnStatus::Shutdown, true)).into_future()
+                }
+                Err(Either::A((err, _y))) => Err(err).into_future(),
+                Err(Either::B((err, _y))) => {
+                    debug!("The mgmt shutdown and reprovision signal failed.");
+                    Err(err.unwrap()).into_future()
+                }
+            }
+        },
+    );
+
     // Wait for the watchdog to finish, and then send signal to the workload and management services.
     // This way the edgeAgent can finish shutting down all modules.
+    let edge_rt_with_cleanup = edge_rt_with_mgmt_signal
+        .select2(restart_rx)
+        .then(move |res| {
+            mgmt_tx.send(()).unwrap_or(());
+            work_tx.send(()).unwrap_or(());
 
-    let edge_rt_with_cleanup = edge_rt.select2(restart_rx).then(move |res| {
-        mgmt_tx.send(()).unwrap_or(());
-        work_tx.send(()).unwrap_or(());
-
-        // A -> EdgeRt Future
-        // B -> Restart Signal Future
-        match res {
-            Ok(Either::A(_)) => Ok(StartApiReturnStatus::Shutdown).into_future(),
-            Ok(Either::B(_)) => Ok(StartApiReturnStatus::Restart).into_future(),
-            Err(Either::A((err, _))) => Err(err).into_future(),
-            Err(Either::B(_)) => {
-                debug!("The restart signal failed, shutting down.");
-                Ok(StartApiReturnStatus::Shutdown).into_future()
+            // A -> EdgeRt + Mgmt Stop and Reprovision Signal Future
+            // B -> Restart Signal Future
+            match res {
+                Ok(Either::A((x, _))) => Ok((StartApiReturnStatus::Shutdown, x.1)).into_future(),
+                Ok(Either::B(_)) => Ok((StartApiReturnStatus::Restart, false)).into_future(),
+                Err(Either::A((err, _))) => Err(err).into_future(),
+                Err(Either::B(_)) => {
+                    debug!("The restart signal failed, shutting down.");
+                    Ok((StartApiReturnStatus::Shutdown, false)).into_future()
+                }
             }
-        }
-    });
+        });
 
     let shutdown = shutdown_signal.map(move |_| {
         debug!("shutdown signaled");
@@ -1477,12 +1578,11 @@ where
     let services = mgmt
         .join4(workload, edge_rt_with_cleanup, expiration_timer)
         .then(|result| match result {
-            Ok(((), (), code, ())) => Ok(code),
+            Ok(((), (), (code, should_reprovision), ())) => Ok((code, should_reprovision)),
             Err(err) => Err(err),
         });
-    let restart_code = tokio_runtime.block_on(services)?;
-
-    Ok(restart_code)
+    let (restart_code, should_reprovision) = tokio_runtime.block_on(services)?;
+    Ok((restart_code, should_reprovision))
 }
 
 fn init_runtime<M>(
@@ -1506,13 +1606,9 @@ where
 }
 
 fn manual_provision_connection_string(
-    cs: &ManualDeviceConnectionString,
+    manual: &ManualProvisioning,
     tokio_runtime: &mut tokio::runtime::Runtime,
 ) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey), Error> {
-    let (key, device_id, hub) = cs
-        .parse_device_connection_string()
-        .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
-    let manual = ManualProvisioning::new(key, device_id, hub);
     let memory_hsm = MemoryKeyStore::new();
     let provision = manual
         .provision(memory_hsm.clone())
@@ -1538,17 +1634,10 @@ fn manual_provision_connection_string(
 }
 
 fn manual_provision_x509(
-    x509: &ManualX509Auth,
+    manual: &ManualProvisioning,
     tokio_runtime: &mut tokio::runtime::Runtime,
-    hybrid_identity_key: &[u8],
     cert_thumbprint: String,
 ) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey), Error> {
-    let key = MemoryKey::new(hybrid_identity_key);
-    let manual = ManualProvisioning::new(
-        key,
-        x509.device_id().to_string(),
-        x509.iothub_hostname().to_string(),
-    );
     let memory_hsm = MemoryKeyStore::new();
     let provision = manual
         .provision(memory_hsm.clone())
@@ -1569,33 +1658,33 @@ fn manual_provision_x509(
     tokio_runtime.block_on(provision)
 }
 
-#[allow(clippy::too_many_arguments)]
-fn dps_x509_provision<HC>(
-    reg_id: String,
-    provisioning: &Dps,
+fn dps_x509_provision_init<HC>(
+    dps: &Dps,
     hyper_client: HC,
-    backup_path: PathBuf,
-    tokio_runtime: &mut tokio::runtime::Runtime,
-    hybrid_identity_key: &[u8],
-    cert_thumbprint: String,
-) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey), Error>
+    x509_info: &X509AttestationInfo,
+    hybrid_identity_key: Option<Vec<u8>>,
+    common_name: &str,
+) -> Result<(MemoryKeyStore, DpsX509Provisioning<HC>), Error>
 where
     HC: 'static + ClientImpl,
 {
+    // use the client provided registration id if provided else use the CN
+    let reg_id = match x509_info.registration_id() {
+        Some(id) => id.to_string(),
+        None => common_name.to_string(),
+    };
+
+    let key_bytes = hybrid_identity_key
+        .ok_or_else(|| ErrorKind::Initialize(InitializeErrorReason::DpsProvisioningClient))?;
+
     let mut memory_hsm = MemoryKeyStore::new();
-
     memory_hsm
-        .activate_identity_key(
-            KeyIdentity::Device,
-            "primary".to_string(),
-            hybrid_identity_key,
-        )
+        .activate_identity_key(KeyIdentity::Device, "primary".to_string(), key_bytes)
         .context(ErrorKind::ActivateSymmetricKey)?;
-
-    let dps = DpsX509Provisioning::new(
+    let dps_x509 = DpsX509Provisioning::new(
         hyper_client,
-        provisioning.global_endpoint().clone(),
-        provisioning.scope_id().to_string(),
+        dps.global_endpoint().clone(),
+        dps.scope_id().to_string(),
         reg_id,
         DPS_API_VERSION.to_string(),
     )
@@ -1603,6 +1692,20 @@ where
         InitializeErrorReason::DpsProvisioningClient,
     ))?;
 
+    Ok((memory_hsm, dps_x509))
+}
+
+#[allow(clippy::too_many_arguments)]
+fn dps_x509_provision<HC>(
+    memory_hsm: MemoryKeyStore,
+    dps: &DpsX509Provisioning<HC>,
+    backup_path: PathBuf,
+    tokio_runtime: &mut tokio::runtime::Runtime,
+    cert_thumbprint: String,
+) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey), Error>
+where
+    HC: 'static + ClientImpl,
+{
     let provision_with_file_backup = BackupProvisioning::new(dps, backup_path);
 
     let provision = provision_with_file_backup
@@ -1710,13 +1813,11 @@ fn external_provision_x509(
     Ok((derived_key_store, hybrid_derived_key))
 }
 
-fn dps_symmetric_key_provision<HC>(
+fn dps_symmetric_key_provision_init<HC>(
     provisioning: &Dps,
     hyper_client: HC,
-    backup_path: PathBuf,
-    tokio_runtime: &mut tokio::runtime::Runtime,
     key: &SymmetricKeyAttestationInfo,
-) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey), Error>
+) -> Result<(MemoryKeyStore, DpsSymmetricKeyProvisioning<HC>), Error>
 where
     HC: 'static + ClientImpl,
 {
@@ -1738,6 +1839,18 @@ where
     .context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
     ))?;
+    Ok((memory_hsm, dps))
+}
+
+fn dps_symmetric_key_provision<HC>(
+    backup_path: PathBuf,
+    tokio_runtime: &mut tokio::runtime::Runtime,
+    memory_hsm: MemoryKeyStore,
+    dps: &DpsSymmetricKeyProvisioning<HC>,
+) -> Result<(DerivedKeyStore<MemoryKey>, ProvisioningResult, MemoryKey), Error>
+where
+    HC: 'static + ClientImpl,
+{
     let provision_with_file_backup = BackupProvisioning::new(dps, backup_path);
 
     let provision =
@@ -1760,14 +1873,11 @@ where
     tokio_runtime.block_on(provision)
 }
 
-fn dps_tpm_provision<HC>(
+fn dps_tpm_provision_init<HC>(
     provisioning: &Dps,
     hyper_client: HC,
-    backup_path: PathBuf,
-    tokio_runtime: &mut tokio::runtime::Runtime,
     tpm_attestation_info: &TpmAttestationInfo,
-    hsm_lock: Arc<HsmLock>,
-) -> Result<(DerivedKeyStore<TpmKey>, ProvisioningResult, TpmKey), Error>
+) -> Result<(Tpm, DpsTpmProvisioning<HC>), Error>
 where
     HC: 'static + ClientImpl,
 {
@@ -1807,6 +1917,19 @@ where
     .context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
     ))?;
+    Ok((tpm, dps))
+}
+
+fn dps_tpm_provision<HC>(
+    backup_path: PathBuf,
+    tokio_runtime: &mut tokio::runtime::Runtime,
+    hsm_lock: Arc<HsmLock>,
+    tpm: Tpm,
+    dps: &DpsTpmProvisioning<HC>,
+) -> Result<(DerivedKeyStore<TpmKey>, ProvisioningResult, TpmKey), Error>
+where
+    HC: 'static + ClientImpl,
+{
     let tpm_hsm = TpmKeyStore::from_hsm(tpm, hsm_lock).context(ErrorKind::Initialize(
         InitializeErrorReason::DpsProvisioningClient,
     ))?;
@@ -1928,6 +2051,7 @@ fn start_management<C, K, HC, M>(
     id_man: &HubIdentityManager<DerivedKeyStore<K>, HC, K>,
     shutdown: Receiver<()>,
     cert_manager: Arc<CertificateManager<C>>,
+    initiate_shutdown_and_reprovision: mpsc::UnboundedSender<()>,
 ) -> impl Future<Item = (), Error = Error>
 where
     C: CreateCertificate + Clone,
@@ -1944,8 +2068,7 @@ where
 
     let label = "mgmt".to_string();
     let url = settings.listen().management_uri().clone();
-
-    ManagementService::new(runtime, id_man)
+    ManagementService::new(runtime, id_man, initiate_shutdown_and_reprovision)
         .then(move |service| -> Result<_, Error> {
             let service = service.context(ErrorKind::Initialize(
                 InitializeErrorReason::ManagementService,
@@ -2075,7 +2198,7 @@ mod tests {
         "../edgelet-docker/test/linux/bad_sample_settings.cs.4.yaml";
     #[cfg(unix)]
     static GOOD_SETTINGS_EXTERNAL: &str =
-        "../edgelet-docker/test/linux/sample_settings.external.yaml";
+        "../edgelet-docker/test/linux/sample_settings.external.1.yaml";
 
     #[cfg(windows)]
     static GOOD_SETTINGS: &str = "../edgelet-docker/test/windows/sample_settings.yaml";
@@ -2098,7 +2221,7 @@ mod tests {
         "../edgelet-docker/test/windows/bad_sample_settings.cs.4.yaml";
     #[cfg(windows)]
     static GOOD_SETTINGS_EXTERNAL: &str =
-        "../edgelet-docker/test/windows/sample_settings.external.yaml";
+        "../edgelet-docker/test/windows/sample_settings.external.1.yaml";
 
     #[derive(Clone, Copy, Debug, Fail)]
     pub struct Error;
@@ -2361,10 +2484,9 @@ mod tests {
         }
     }
 
-    #[test]
-    fn settings_manual_connection_string_auth_first_time_creates_backup() {
+    fn settings_first_time_creates_backup(settings_path: &str) {
         let tmp_dir = TempDir::new("blah").unwrap();
-        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
+        let settings = Settings::new(Path::new(settings_path)).unwrap();
         let config = DockerConfig::new(
             "microsoft/test-image".to_string(),
             ContainerCreateBody::new(),
@@ -2419,126 +2541,26 @@ mod tests {
             .path()
             .join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME)
             .exists());
+    }
+
+    #[test]
+    fn settings_manual_connection_string_auth_first_time_creates_backup() {
+        settings_first_time_creates_backup(GOOD_SETTINGS);
     }
 
     #[test]
     fn settings_dps_symm_key_auth_first_time_creates_backup() {
-        let tmp_dir = TempDir::new("blah").unwrap();
-        let settings = Settings::new(Path::new(GOOD_SETTINGS_DPS_SYMM_KEY)).unwrap();
-        let config = DockerConfig::new(
-            "microsoft/test-image".to_string(),
-            ContainerCreateBody::new(),
-            None,
-        )
-        .unwrap();
-        let state = ModuleRuntimeState::default();
-        let module: TestModule<Error, _> =
-            TestModule::new_with_config("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::make_runtime(
-            settings.clone(),
-            TestProvisioningResult::new(),
-            TestHsm::default(),
-        )
-        .wait()
-        .unwrap()
-        .with_module(Ok(module));
-        let crypto = TestCrypto {
-            use_expired_ca: false,
-            fail_device_ca_alias: false,
-            fail_decrypt: false,
-            fail_encrypt: false,
-        };
-        let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
-        check_settings_state::<TestRuntime<_, Settings>, _>(
-            tmp_dir.path(),
-            "settings_state",
-            &settings,
-            &runtime,
-            &crypto,
-            &mut tokio_runtime,
-            None,
-        )
-        .unwrap();
-        let expected = serde_json::to_string(&settings).unwrap();
-        let expected_sha = Sha256::digest_str(&expected);
-        let expected_base64 = base64::encode(&expected_sha);
-        let mut written = String::new();
-        File::open(tmp_dir.path().join("settings_state"))
-            .unwrap()
-            .read_to_string(&mut written)
-            .unwrap();
-
-        assert_eq!(expected_base64, written);
-
-        // non x.509 auth modes shouldn't have these files created
-        assert!(!tmp_dir
-            .path()
-            .join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME)
-            .exists());
-        assert!(!tmp_dir
-            .path()
-            .join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME)
-            .exists());
+        settings_first_time_creates_backup(GOOD_SETTINGS_DPS_SYMM_KEY);
     }
 
     #[test]
     fn settings_dps_tpm_auth_first_time_creates_backup() {
-        let tmp_dir = TempDir::new("blah").unwrap();
-        let settings = Settings::new(Path::new(GOOD_SETTINGS_DPS_TPM1)).unwrap();
-        let config = DockerConfig::new(
-            "microsoft/test-image".to_string(),
-            ContainerCreateBody::new(),
-            None,
-        )
-        .unwrap();
-        let state = ModuleRuntimeState::default();
-        let module: TestModule<Error, _> =
-            TestModule::new_with_config("test-module".to_string(), config, Ok(state));
-        let runtime = TestRuntime::make_runtime(
-            settings.clone(),
-            TestProvisioningResult::new(),
-            TestHsm::default(),
-        )
-        .wait()
-        .unwrap()
-        .with_module(Ok(module));
-        let crypto = TestCrypto {
-            use_expired_ca: false,
-            fail_device_ca_alias: false,
-            fail_decrypt: false,
-            fail_encrypt: false,
-        };
-        let mut tokio_runtime = tokio::runtime::Runtime::new().unwrap();
-        check_settings_state::<TestRuntime<_, Settings>, _>(
-            tmp_dir.path(),
-            "settings_state",
-            &settings,
-            &runtime,
-            &crypto,
-            &mut tokio_runtime,
-            None,
-        )
-        .unwrap();
-        let expected = serde_json::to_string(&settings).unwrap();
-        let expected_sha = Sha256::digest_str(&expected);
-        let expected_base64 = base64::encode(&expected_sha);
-        let mut written = String::new();
-        File::open(tmp_dir.path().join("settings_state"))
-            .unwrap()
-            .read_to_string(&mut written)
-            .unwrap();
+        settings_first_time_creates_backup(GOOD_SETTINGS_DPS_TPM1);
+    }
 
-        assert_eq!(expected_base64, written);
-
-        // non x.509 auth modes shouldn't have these files created
-        assert!(!tmp_dir
-            .path()
-            .join(EDGE_HYBRID_IDENTITY_MASTER_KEY_FILENAME)
-            .exists());
-        assert!(!tmp_dir
-            .path()
-            .join(EDGE_HYBRID_IDENTITY_MASTER_KEY_IV_FILENAME)
-            .exists());
+    #[test]
+    fn settings_external_provisioning_first_time_creates_backup() {
+        settings_first_time_creates_backup(GOOD_SETTINGS_EXTERNAL);
     }
 
     #[test]

@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use failure::{self, Context, ResultExt};
 
-use edgelet_core::{self, AttestationMethod, ManualAuthMethod, Provisioning, RuntimeSettings};
+use edgelet_core::{self, AttestationMethod, ManualAuthMethod, ProvisioningType, RuntimeSettings};
 
 use crate::check::{checker::Checker, Check, CheckResult};
 
@@ -38,8 +38,8 @@ impl IdentityCertificateExpiry {
             return Ok(CheckResult::Skipped);
         };
 
-        match settings.provisioning() {
-            Provisioning::Dps(dps) => {
+        match settings.provisioning().provisioning_type() {
+            ProvisioningType::Dps(dps) => {
                 if let AttestationMethod::X509(x509_info) = dps.attestation() {
                     self.provisioning_mode = Some("dps-x509");
                     let path = x509_info.identity_cert()?;
@@ -51,7 +51,7 @@ impl IdentityCertificateExpiry {
                 }
                 self.provisioning_mode = Some("dps-other");
             }
-            Provisioning::Manual(manual) => {
+            ProvisioningType::Manual(manual) => {
                 if let ManualAuthMethod::X509(x509) = manual.authentication_method() {
                     self.provisioning_mode = Some("manual-x509");
                     let path = x509.identity_cert()?;
@@ -64,7 +64,7 @@ impl IdentityCertificateExpiry {
                 }
                 self.provisioning_mode = Some("manual-other");
             }
-            Provisioning::External(_) => {
+            ProvisioningType::External(_) => {
                 self.provisioning_mode = Some("external");
             }
         }

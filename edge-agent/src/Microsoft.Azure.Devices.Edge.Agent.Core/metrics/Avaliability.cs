@@ -9,44 +9,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
     public class Availability
     {
-        private readonly ISystemTime time;
+        readonly ISystemTime time;
 
-        public string Name;
-        public string Version;
-        public TimeSpan TotalTime = TimeSpan.Zero;
-        public TimeSpan Uptime = TimeSpan.Zero;
+        public string Name { get; private set; }
+        public TimeSpan RunningTime { get; private set; } = TimeSpan.Zero;
+        public TimeSpan ExpectedTime { get; private set; } = TimeSpan.Zero;
 
-        private DateTime? previousMeasure = null;
+        DateTime? previousMeasure;
 
-        public Availability(string name, string version, ISystemTime time)
+        public Availability(string name, ISystemTime time)
         {
             this.Name = Preconditions.CheckNotNull(name, nameof(name));
-            this.Version = Preconditions.CheckNotNull(version, nameof(version));
             this.time = Preconditions.CheckNotNull(time, nameof(time));
             this.previousMeasure = time.UtcNow;
         }
 
-        public Availability(AvailabilityRaw raw, ISystemTime time)
+        // This is used to create edgeAgent's own avaliability, since it can't track its own downtime.
+        public Availability(string name, TimeSpan downtime, ISystemTime time)
         {
-            this.Name = Preconditions.CheckNotNull(raw.Name);
-            this.Version = Preconditions.CheckNotNull(raw.Version);
-            this.Uptime = Preconditions.CheckNotNull(raw.Uptime);
-            this.TotalTime = Preconditions.CheckNotNull(raw.TotalTime);
-
+            this.Name = Preconditions.CheckNotNull(name, nameof(name));
             this.time = Preconditions.CheckNotNull(time, nameof(time));
-        }
+            this.previousMeasure = time.UtcNow;
 
-        public double AvailabilityRatio
-        {
-            get
-            {
-                if (this.TotalTime == TimeSpan.Zero)
-                {
-                    return 0;
-                }
-
-                return this.Uptime.TotalMilliseconds / this.TotalTime.TotalMilliseconds;
-            }
+            this.ExpectedTime = downtime;
         }
 
         public void AddPoint(bool isUp)
@@ -60,10 +45,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             }
 
             TimeSpan duration = currentTime - this.previousMeasure.Value;
-            this.TotalTime += duration;
+            this.ExpectedTime += duration;
             if (isUp)
             {
-                this.Uptime += duration;
+                this.RunningTime += duration;
             }
 
             this.previousMeasure = currentTime;
@@ -73,24 +58,5 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
         {
             this.previousMeasure = null;
         }
-
-        public AvailabilityRaw ToRaw()
-        {
-            return new AvailabilityRaw
-            {
-                Name = this.Name,
-                Version = this.Version,
-                Uptime = this.Uptime,
-                TotalTime = this.TotalTime
-            };
-        }
-    }
-
-    public struct AvailabilityRaw
-    {
-        public string Name;
-        public string Version;
-        public TimeSpan TotalTime;
-        public TimeSpan Uptime;
     }
 }
