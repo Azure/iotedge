@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace LoadGen
+namespace TwinTester
 {
     using System;
     using System.IO;
@@ -9,6 +9,7 @@ namespace LoadGen
     using Newtonsoft.Json.Converters;
     using Newtonsoft.Json.Serialization;
 
+    // TODO: remove
     [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
     public class Settings
     {
@@ -22,45 +23,37 @@ namespace LoadGen
                     .Build();
 
                 return new Settings(
-                    configuration.GetValue("messageFrequency", TimeSpan.FromMilliseconds(20)),
                     configuration.GetValue<double>("jitterFactor", 0.5),
-                    configuration.GetValue<ulong>("messageSizeInBytes", 1024),
+                    configuration.GetValue("twinUpdateFrequency", TimeSpan.FromMilliseconds(500)),
                     configuration.GetValue<TransportType>("transportType", TransportType.Amqp_Tcp_Only),
-                    configuration.GetValue<string>("outputName", "output1"),
-                    configuration.GetValue<string>("analyzerUrl", "http://analyzer:15000"));
+                    configuration.GetValue<string>("analyzerUrl", "http://analyzer:15000"),
+                    configuration.GetValue<string>("serviceClientConnectionString", string.Empty));
             });
 
         Settings(
-            TimeSpan messageFrequency,
             double jitterFactor,
-            ulong messageSizeInBytes,
+            TimeSpan twinUpdateFrequency,
             TransportType transportType,
-            string outputName,
-            string analyzerUrl)
+            string analyzerUrl,
+            string serviceClientConnectionString)
         {
-            this.MessageFrequency = messageFrequency;
-            this.JitterFactor = jitterFactor;
-            this.MessageSizeInBytes = messageSizeInBytes;
+            this.TwinUpdateFrequency = twinUpdateFrequency;
             this.TransportType = transportType;
-            this.OutputName = outputName;
             this.AnalyzerUrl = analyzerUrl;
+            this.ServiceClientConnectionString = serviceClientConnectionString;
         }
 
         public static Settings Current => DefaultSettings.Value;
 
-        public TimeSpan MessageFrequency { get; }
-
         public double JitterFactor { get; }
-
-        public ulong MessageSizeInBytes { get; }
+        public TimeSpan TwinUpdateFrequency { get; }
 
         [JsonConverter(typeof(StringEnumConverter))]
         public TransportType TransportType { get; }
-
-        public string OutputName { get; }
-
         public string AnalyzerUrl { get; }
+        public string ServiceClientConnectionString { get; }
 
+        // TODO: change approach to not log connection string
         public override string ToString()
         {
             return JsonConvert.SerializeObject(this, Formatting.Indented);
