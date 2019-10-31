@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service;
     using Microsoft.Azure.Devices.Edge.Agent.Service.Modules;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Edge.Util.Metrics.NullMetrics;
@@ -32,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
         const string ConfigFileName = "appsettings_agent.json";
         const string DefaultLocalConfigFilePath = "config.json";
         const string EdgeAgentStorageFolder = "edgeAgent";
+        const string EdgeAgentStorageBackupFolder = "edgeAgent_backup";
         const string VersionInfoFileName = "versionInfo.json";
         static readonly TimeSpan ShutdownWaitPeriod = TimeSpan.FromMinutes(1);
         static readonly TimeSpan ReconcileTimeout = TimeSpan.FromMinutes(10);
@@ -79,6 +81,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             int coolOffTimeUnitInSeconds;
             bool usePersistentStorage;
             string storagePath;
+            bool enableNonPersistentStorageBackup;
+            Option<string> storageBackupPath = Option.None<string>();
             string edgeDeviceHostName;
             string dockerLoggingDriver;
             Dictionary<string, string> dockerLoggingOptions;
@@ -95,7 +99,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 intensiveCareTime = TimeSpan.FromMinutes(configuration.GetValue<int>("IntensiveCareTimeInMinutes"));
                 coolOffTimeUnitInSeconds = configuration.GetValue("CoolOffTimeUnitInSeconds", 10);
                 usePersistentStorage = configuration.GetValue("UsePersistentStorage", true);
-                storagePath = GetStoragePath(configuration);
+
+                // Note: Keep in sync with iotedge-check's edge-agent-storage-mounted-from-host check (edgelet/iotedge/src/check/checks/storage_mounted_from_host.rs)
+                storagePath = GetOrCreateDirectoryPath(configuration.GetValue<string>("StorageFolder"), EdgeAgentStorageFolder);
+                enableNonPersistentStorageBackup = configuration.GetValue("EnableNonPersistentStorageBackup", false);
+
+                if (enableNonPersistentStorageBackup)
+                {
+                    storageBackupPath = Option.Some(GetOrCreateDirectoryPath(configuration.GetValue<string>("BackupFolder"), EdgeAgentStorageBackupFolder));
+                }
+
                 edgeDeviceHostName = configuration.GetValue<string>(Constants.EdgeDeviceHostNameKey);
                 dockerLoggingDriver = configuration.GetValue<string>("DockerLoggingDriver");
                 dockerLoggingOptions = configuration.GetSection("DockerLoggingOptions").Get<Dictionary<string, string>>() ?? new Dictionary<string, string>();
@@ -135,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         builder.RegisterInstance(metricsConfig.Enabled
                                  ? new MetricsProvider("edgeagent", iothubHostname, deviceId)
                                  : new NullMetricsProvider() as IMetricsProvider);
-                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath));
+                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, enableNonPersistentStorageBackup, storageBackupPath));
                         builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout));
                         break;
 
@@ -150,7 +163,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         builder.RegisterInstance(metricsConfig.Enabled
                                  ? new MetricsProvider("edgeagent", iothubHostname, deviceId)
                                  : new NullMetricsProvider() as IMetricsProvider);
-                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId)));
+                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), enableNonPersistentStorageBackup, storageBackupPath));
                         builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, new Uri(managementUri), new Uri(workloadUri), apiVersion, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout));
                         break;
 
@@ -181,7 +194,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         builder.RegisterInstance(metricsConfig.Enabled
                                  ? new MetricsProvider("edgeagent", iothubHostname, deviceId)
                                  : new NullMetricsProvider() as IMetricsProvider);
-                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId)));
+                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), enableNonPersistentStorageBackup, storageBackupPath));
                         builder.RegisterModule(new KubernetesModule(
                             iothubHostname,
                             deviceId,
@@ -338,6 +351,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 metricsLifetimes.ForEach(m => m.Dispose());
                 // Attempt to report shutdown of Agent
                 await Cleanup(agentOption, logger);
+                await CloseDbStoreProviderAsync(container);
                 completed.Set();
             }
 
@@ -376,22 +390,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
         }
 
-        // Note: Keep in sync with iotedge-check's edge-agent-storage-mounted-from-host check (edgelet/iotedge/src/check/checks/storage_mounted_from_host.rs)
-        static string GetStoragePath(IConfiguration configuration)
+        static string GetOrCreateDirectoryPath(string baseDirectoryPath, string directoryName)
         {
-            string baseStoragePath = configuration.GetValue<string>("StorageFolder");
-            if (string.IsNullOrWhiteSpace(baseStoragePath) || !Directory.Exists(baseStoragePath))
+            if (string.IsNullOrWhiteSpace(baseDirectoryPath) || !Directory.Exists(baseDirectoryPath))
             {
-                baseStoragePath = Path.GetTempPath();
+                baseDirectoryPath = Path.GetTempPath();
             }
 
-            string storagePath = Path.Combine(baseStoragePath, EdgeAgentStorageFolder);
-            if (!Directory.Exists(storagePath))
+            string directoryPath = Path.Combine(baseDirectoryPath, directoryName);
+            if (!Directory.Exists(directoryPath))
             {
-                Directory.CreateDirectory(storagePath);
+                Directory.CreateDirectory(directoryPath);
             }
 
-            return storagePath;
+            return directoryPath;
         }
 
         static string GetLocalConfigFilePath(IConfiguration configuration, ILogger logger)
@@ -412,6 +424,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             Enum.TryParse(configuration.GetValue(K8sConstants.PortMappingServiceType, string.Empty), true, out PortMapServiceType defaultServiceType)
                 ? defaultServiceType
                 : Kubernetes.Constants.DefaultPortMapServiceType;
+
+        static async Task CloseDbStoreProviderAsync(IContainer container)
+        {
+            IDbStoreProvider dbStoreProvider = await container.Resolve<Task<IDbStoreProvider>>();
+            await dbStoreProvider.CloseAsync();
+        }
 
         static void LogLogo(ILogger logger)
         {

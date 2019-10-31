@@ -21,6 +21,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             public const string Plural = "edgedeployments";
         }
 
+        public const string CreationString = "net.azure-devices.edge.creationstring";
+
+        public const string DefaultDeletePropagationPolicy = "Background";
+
+        public const PortMapServiceType DefaultPortMapServiceType = PortMapServiceType.ClusterIP;
+
         public const string K8sEdgeModuleLabel = "net.azure-devices.edge.module";
 
         public const string K8sEdgeOriginalModuleId = "net.azure-devices.edge.original-moduleid";
@@ -28,8 +34,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public const string K8sEdgeDeviceLabel = "net.azure-devices.edge.deviceid";
 
         public const string K8sEdgeHubNameLabel = "net.azure-devices.edge.hub";
-
-        public const string CreationString = "net.azure-devices.edge.creationstring";
 
         public const string K8sNameDivider = "-";
 
@@ -42,8 +46,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public const string EnableK8sServiceCallTracingName = "EnableK8sServiceCallTracing";
 
         public const string K8sNamespaceKey = "K8sNamespace";
-
-        public const PortMapServiceType DefaultPortMapServiceType = PortMapServiceType.ClusterIP;
 
         public const string ProxyImageEnvKey = "ProxyImage";
 

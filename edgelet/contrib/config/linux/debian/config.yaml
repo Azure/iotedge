@@ -69,12 +69,24 @@
 # External Settings
 #     endpoint - Required. Value of the endpoint used to retrieve device specific
 #                information such as its IoT hub connection information.
+#
+# Dynamic Re-provisioning Settings
+#     dynamic_reprovisioning - Optional. A flag to opt-in to the dynamic re-provisioning 
+#                              feature. If enabled, IoT Edge on detecting a possible 
+#                              device re-provisioning event will shut down the daemon.
+#                              This is so that on the next daemon startup, the device is 
+#                              set up with the new provisioning information of the device in 
+#                              in IoT Hub.
+#                              For the external provisioning mode specifically, the daemon 
+#                              will notify the external provisioning endpoint about the
+#                              re-provisioning event before shutting down.
 ###############################################################################
 
 # Manual provisioning configuration using a connection string
 provisioning:
   source: "manual"
   device_connection_string: "<ADD DEVICE CONNECTION STRING HERE>"
+  dynamic_reprovisioning: false
 
 # Manual provisioning configuration using an X.509 identity certificate
 # provisioning:
@@ -85,6 +97,7 @@ provisioning:
 #     device_id: "<REQUIRED DEVICE ID PROVISIONED IN IOTHUB>"
 #     identity_cert: "<REQUIRED URI TO DEVICE IDENTITY CERTIFICATE>"
 #     identity_pk: "<REQUIRED URI TO DEVICE IDENTITY PRIVATE KEY>"
+#   dynamic_reprovisioning: false
 
 # DPS TPM provisioning configuration
 # provisioning:
@@ -94,6 +107,7 @@ provisioning:
 #   attestation:
 #     method: "tpm"
 #     registration_id: "{registration_id}"
+#   dynamic_reprovisioning: false
 
 # DPS symmetric key provisioning configuration
 # provisioning:
@@ -104,6 +118,7 @@ provisioning:
 #     method: "symmetric_key"
 #     registration_id: "{registration_id}"
 #     symmetric_key: "{symmetric_key}"
+#   dynamic_reprovisioning: false
 
 # DPS X.509 provisioning configuration
 # provisioning:
@@ -115,11 +130,13 @@ provisioning:
 #     registration_id: "<OPTIONAL REGISTRATION ID. IF UNSPECIFIED CAN BE OBTAINED FROM CN OF identity_cert"
 #     identity_cert: "<REQUIRED URI TO DEVICE IDENTITY CERTIFICATE>"
 #     identity_pk: "<REQUIRED URI TO DEVICE IDENTITY PRIVATE KEY>"
+#   dynamic_reprovisioning: false
 
 # External provisioning configuration
 # provisioning:
 #   source: "external"
 #   endpoint: "http://localhost:9999"
+#   dynamic_reprovisioning: false
 
 ###############################################################################
 # Certificate settings
