@@ -160,10 +160,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
                 typeof(InvalidOperationException),
                 "Length of property name **********.. exceeds maximum length of 1024"
            };
-            
+
             yield return new object[]
             {
-                new TwinCollection(JsonConvert.SerializeObject(new  {
+                new TwinCollection(JsonConvert.SerializeObject(new
+                {
                     LargeByteArray = new byte[3000],
                     LargeByteArray2 = new byte[3000],
                     LargeByteArray3 = new byte[3000],
