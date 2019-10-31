@@ -162,6 +162,10 @@ jobs:
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: $(loadGen.message.frequency.arm32v7)
           analyzer.consumerGroupId: 'stress_linux_arm32v7'
+          analyzer.loganalyticenabled: '$(LogAnalyticEnabled)'
+          analyzer.loganalyticworkspaceid: '$(LogAnalyticWorkspaceId)'
+          analyzer.loganalyticsharedkey: '$(LogAnalyticSharedKey)'
+          analyzer.loganalyticlogtype: '$(LogAnalyticLogType)'
 
 ################################################################################
   - job: linux_arm64v8_docker
@@ -228,6 +232,10 @@ jobs:
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: $(loadGen.message.frequency.arm64v8)
           analyzer.consumerGroupId: 'stress_linux_arm64v8'
+          analyzer.loganalyticenabled: '$(LogAnalyticEnabled)'
+          analyzer.loganalyticworkspaceid: '$(LogAnalyticWorkspaceId)'
+          analyzer.loganalyticsharedkey: '$(LogAnalyticSharedKey)'
+          analyzer.loganalyticlogtype: '$(LogAnalyticLogType)'
 
 ################################################################################
   - job: windows_amd64_moby
@@ -296,6 +304,10 @@ jobs:
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           analyzer.consumerGroupId: 'stress_windows_amd64'
+          analyzer.loganalyticenabled: '$(LogAnalyticEnabled)'
+          analyzer.loganalyticworkspaceid: '$(LogAnalyticWorkspaceId)'
+          analyzer.loganalyticsharedkey: '$(LogAnalyticSharedKey)'
+          analyzer.loganalyticlogtype: '$(LogAnalyticLogType)'
 
 ################################################################################
   - job: windows_servercore_amd64_moby
@@ -364,6 +376,10 @@ jobs:
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           analyzer.consumerGroupId: 'stress_windows_servercore_amd64'
+          analyzer.loganalyticenabled: '$(LogAnalyticEnabled)'
+          analyzer.loganalyticworkspaceid: '$(LogAnalyticWorkspaceId)'
+          analyzer.loganalyticsharedkey: '$(LogAnalyticSharedKey)'
+          analyzer.loganalyticlogtype: '$(LogAnalyticLogType)'
 
 ################################################################################
   - job: iotuap_amd64_moby
@@ -431,3 +447,7 @@ jobs:
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           analyzer.consumerGroupId: 'stress_iotuap_amd64'
+          analyzer.loganalyticenabled: '$(LogAnalyticEnabled)'
+          analyzer.loganalyticworkspaceid: '$(LogAnalyticWorkspaceId)'
+          analyzer.loganalyticsharedkey: '$(LogAnalyticSharedKey)'
+          analyzer.loganalyticlogtype: '$(LogAnalyticLogType)'
