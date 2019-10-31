@@ -8,10 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Shared;
     using Newtonsoft.Json;
-    using Newtonsoft.Json.Linq;
     using Xunit;
-    using static System.FormattableString;
-
 
     public class ReportedPropertiesValidatorTest
     {
@@ -187,7 +184,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
         [MemberData(nameof(GetTwinCollections))]
         public void ValidateReportedPropertiesTest(TwinCollection twinCollection, Type expectedExceptionType, string expectedExceptionMessage)
         {
-            //this.testLogger = new TestConsoleLogger(testOutputHelper);
             // Arrange
             var reportedPropertiesValidator = new ReportedPropertiesValidator();
 
