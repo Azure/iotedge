@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             this.logger = new TestConsoleLogger(testOutputHelper);
         }
 
-        public void Dispose()
+        public new void Dispose()
         {
             this.logger.Dispose();
         }
