@@ -17,7 +17,7 @@ impl<T> TonicRequestExt<T> for Request<T> {
     /// Create a new gRPC request with metadata
     /// {"containerd-namespace":"<shellrt-containerd-namespace>"}
     fn new_namespaced(msg: T) -> Request<T> {
-        let mut req = tonic::Request::new(msg);
+        let mut req = Request::new(msg);
         req.metadata_mut()
             .insert("containerd-namespace", NAMESPACE.clone());
         req

@@ -19,7 +19,7 @@ use containerd_grpc::containerd::{
 use shellrt_api::v0::{request, response};
 
 use crate::error::*;
-use crate::util::TonicRequestExt;
+use crate::util::*;
 
 pub struct PullHandler {
     grpc_uri: String,
@@ -151,17 +151,10 @@ impl PullHandler {
 }
 
 /// Check if a blob already exists in containerd's content store
-async fn already_in_containerd<C>(
+async fn already_in_containerd(
     digest: &Digest,
-    mut content_client: ContentClient<C>,
-) -> Result<bool>
-where
-    C: tonic::client::GrpcService<tonic::body::BoxBody>,
-    C::ResponseBody: tonic::codegen::Body + tonic::codegen::HttpBody + Send + 'static,
-    C::Error: Into<tonic::codegen::StdError>,
-    <C::ResponseBody as tonic::codegen::HttpBody>::Error: Into<tonic::codegen::StdError> + Send,
-    <C::ResponseBody as tonic::codegen::HttpBody>::Data: Into<bytes::Bytes> + Send,
-{
+    mut content_client: ContentClient<tonic::transport::Channel>,
+) -> Result<bool> {
     let req = tonic::Request::new_namespaced(InfoRequest {
         digest: digest.to_string(),
     });
@@ -191,17 +184,10 @@ where
 
 /// Check if a blob has been partially downloaded to containerd, returning the
 /// downloaded offset if applicable.
-async fn partially_in_containerd<C>(
+async fn partially_in_containerd(
     digest: &Digest,
-    mut content_client: ContentClient<C>,
-) -> Result<Option<u64>>
-where
-    C: tonic::client::GrpcService<tonic::body::BoxBody>,
-    C::ResponseBody: tonic::codegen::Body + tonic::codegen::HttpBody + Send + 'static,
-    C::Error: Into<tonic::codegen::StdError>,
-    <C::ResponseBody as tonic::codegen::HttpBody>::Error: Into<tonic::codegen::StdError> + Send,
-    <C::ResponseBody as tonic::codegen::HttpBody>::Data: Into<bytes::Bytes> + Send,
-{
+    mut content_client: ContentClient<tonic::transport::Channel>,
+) -> Result<Option<u64>> {
     let req = tonic::Request::new_namespaced(StatusRequest {
         r#ref: digest.to_string(),
     });
@@ -229,19 +215,12 @@ where
     Ok(offset)
 }
 
-async fn stream_to_containerd<C>(
+async fn stream_to_containerd(
     blob: Blob,
     offset: u64,
     labels: HashMap<String, String>,
-    mut content_client: ContentClient<C>,
-) -> Result<()>
-where
-    C: tonic::client::GrpcService<tonic::body::BoxBody>,
-    C::ResponseBody: tonic::codegen::Body + tonic::codegen::HttpBody + Send + 'static,
-    C::Error: Into<tonic::codegen::StdError>,
-    <C::ResponseBody as tonic::codegen::HttpBody>::Error: Into<tonic::codegen::StdError> + Send,
-    <C::ResponseBody as tonic::codegen::HttpBody>::Data: Into<bytes::Bytes> + Send,
-{
+    mut content_client: ContentClient<tonic::transport::Channel>,
+) -> Result<()> {
     // why two digests? combinators.
     let digest = blob.descriptor().digest.clone();
     let digest_2 = digest.clone();
@@ -342,18 +321,11 @@ where
     }
 }
 
-async fn register_image_with_containerd<C>(
+async fn register_image_with_containerd(
     image: &Reference,
     manifest_descriptor: &Descriptor,
-    mut images_client: ImagesClient<C>,
-) -> Result<()>
-where
-    C: tonic::client::GrpcService<tonic::body::BoxBody>,
-    C::ResponseBody: tonic::codegen::Body + tonic::codegen::HttpBody + Send + 'static,
-    C::Error: Into<tonic::codegen::StdError>,
-    <C::ResponseBody as tonic::codegen::HttpBody>::Error: Into<tonic::codegen::StdError> + Send,
-    <C::ResponseBody as tonic::codegen::HttpBody>::Data: Into<bytes::Bytes> + Send,
-{
+    mut images_client: ImagesClient<tonic::transport::Channel>,
+) -> Result<()> {
     let now = std::time::SystemTime::now();
     let image = || {
         let manifest_descriptor = manifest_descriptor.clone();
