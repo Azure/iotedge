@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             // instances are closed. This is because a ProtocolHeadFixture encapsulates a
             // socket connection over an address and only one usage of this address is allowed
             // at a time.
-            foreach (ProtocolHeadFixture fixture in fixtures)
+            foreach (ProtocolHeadFixture fixture in this.fixtures)
             {
                 if (!fixture.IsClosed)
                 {
