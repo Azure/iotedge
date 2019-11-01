@@ -25,6 +25,7 @@ namespace TwinTester
                     configuration.GetValue<string>("IOTEDGE_DEVICEID", string.Empty),
                     configuration.GetValue<string>("IOTEDGE_MODULEID", string.Empty),
                     configuration.GetValue<double>("jitterFactor", 0),
+                    configuration.GetValue<int>("twinUpdateCharCount", 1),
                     configuration.GetValue<TimeSpan>("twinUpdateFrequency", TimeSpan.FromMilliseconds(500)),
                     configuration.GetValue<TimeSpan>("twinUpdateFailureThreshold", TimeSpan.FromMinutes(1)), // TODO: tune
                     configuration.GetValue<TransportType>("transportType", TransportType.Amqp_Tcp_Only),
@@ -38,6 +39,7 @@ namespace TwinTester
             string deviceId,
             string moduleId,
             double jitterFactor,
+            int twinUpdateCharCount,
             TimeSpan twinUpdateFrequency,
             TimeSpan twinUpdateFailureThreshold,
             TransportType transportType,
@@ -48,6 +50,7 @@ namespace TwinTester
         {
             this.DeviceId = deviceId;
             this.ModuleId = moduleId;
+            this.TwinUpdateCharCount = twinUpdateCharCount;
             this.TwinUpdateFrequency = twinUpdateFrequency;
             this.TwinUpdateFailureThreshold = twinUpdateFailureThreshold;
             this.TransportType = transportType;
@@ -62,13 +65,14 @@ namespace TwinTester
         public string DeviceId { get; }
         public string ModuleId { get; }
         public double JitterFactor { get; }
+        public int TwinUpdateCharCount { get; }
         public TimeSpan TwinUpdateFrequency { get; }
         public TimeSpan TwinUpdateFailureThreshold { get; }
 
         [JsonConverter(typeof(StringEnumConverter))]
         public TransportType TransportType { get; }
         public string AnalyzerUrl { get; }
-        [JsonIgnore] 
+        [JsonIgnore]
         public string ServiceClientConnectionString { get; }
         public string StoragePath { get; }
         public bool StorageOptimizeForPerformance { get; }

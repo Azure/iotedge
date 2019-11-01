@@ -18,17 +18,16 @@ namespace TwinTester
         const string DesiredPropertyReceivedPartitionKey = "DesiredPropertyReceivedCache";
         const string ReportedPropertyUpdatePartitionKey = "ReportedPropertyUpdateCache";
         static readonly ILogger Log = Logger.Factory.CreateLogger<Storage>();
-        ISequentialStore<KeyValuePair<string, DateTime>> desiredPropertyUpdateCache;
-        ISequentialStore<KeyValuePair<string, DateTime>> desiredPropertyReceivedCache;
-        ISequentialStore<KeyValuePair<string, DateTime>> reportedPropertyUpdateCache;
+        IEntityStore<string, DateTime> desiredPropertyUpdateCache;
+        IEntityStore<string, DateTime> desiredPropertyReceivedCache;
+        IEntityStore<string, DateTime> reportedPropertyUpdateCache;
 
-
-        public async Task Init(string storagePath, ISystemEnvironment systemEnvironment, bool optimizeForPerformance)
+        public void Init(string storagePath, ISystemEnvironment systemEnvironment, bool optimizeForPerformance)
         {
             StoreProvider storeProvider;
             try
             {
-                var partitionsList = new List<string> { "messages", "dm" };
+                var partitionsList = new List<string> { "desiredPropertyUpdated", "desiredPropertyReceived", "reportedPropertyUpdated" }; // TODO: what is this used for
                 IDbStoreProvider dbStoreprovider = DbStoreProvider.Create(
                     new RocksDbOptionsProvider(systemEnvironment, optimizeForPerformance),
                     this.GetStoragePath(storagePath),
@@ -42,9 +41,9 @@ namespace TwinTester
                 storeProvider = new StoreProvider(new InMemoryDbStoreProvider());
             }
 
-            this.desiredPropertyUpdateCache = await storeProvider.GetSequentialStore<KeyValuePair<string, DateTime>>(DesiredPropertyUpdatePartitionKey);
-            this.desiredPropertyReceivedCache = await storeProvider.GetSequentialStore<KeyValuePair<string, DateTime>>(DesiredPropertyReceivedPartitionKey);
-            this.reportedPropertyUpdateCache = await storeProvider.GetSequentialStore<KeyValuePair<string, DateTime>>(ReportedPropertyUpdatePartitionKey);
+            this.desiredPropertyUpdateCache = storeProvider.GetEntityStore<string, DateTime>(DesiredPropertyUpdatePartitionKey);
+            this.desiredPropertyReceivedCache = storeProvider.GetEntityStore<string, DateTime>(DesiredPropertyReceivedPartitionKey);
+            this.reportedPropertyUpdateCache = storeProvider.GetEntityStore<string, DateTime>(ReportedPropertyUpdatePartitionKey);
         }
 
         string GetStoragePath(string baseStoragePath)
@@ -59,55 +58,68 @@ namespace TwinTester
             return storagePath;
         }
 
-        public async Task<bool> AddDesiredPropertyUpdate(KeyValuePair<string, DateTime> desiredPropertyUpdate)
+        public async Task<bool> AddDesiredPropertyUpdate(string desiredPropertyUpdateId, DateTime desiredPropertyUpdateTime)
         {
-            await this.desiredPropertyUpdateCache.Append(desiredPropertyUpdate);
+            await this.desiredPropertyUpdateCache.Put(desiredPropertyUpdateId, desiredPropertyUpdateTime);
             return true;
         }
 
-        public async Task<bool> AddDesiredPropertyReceived(KeyValuePair<string, DateTime> desiredPropertyReceived)
+        public async Task<bool> AddDesiredPropertyReceived(string desiredPropertyReceivedId, DateTime desiredPropertyReceivedTime)
         {
-            await this.desiredPropertyReceivedCache.Append(desiredPropertyReceived);
+            await this.desiredPropertyReceivedCache.Put(desiredPropertyReceivedId, desiredPropertyReceivedTime);
             return true;
         }
 
-        public async Task<bool> AddReportedPropertyUpdate(KeyValuePair<string, DateTime> reportedPropertyUpdate)
+        public async Task<bool> AddReportedPropertyUpdate(string reportedPropertyUpdateId, DateTime reportedPropertyUpdateTime)
         {
-            await this.reportedPropertyUpdateCache.Append(reportedPropertyUpdate);
+            await this.reportedPropertyUpdateCache.Put(reportedPropertyUpdateId, reportedPropertyUpdateTime);
             return true;
         }
 
-        public async Task ProcessAllDesiredPropertiesUpdated(Action<KeyValuePair<string, DateTime>> callback)
+        public async Task<bool> RemoveDesiredPropertyUpdate(string desiredPropertyUpdateId)
         {
-            await this.ProcessAllHelper(this.desiredPropertyUpdateCache, callback);
+            await this.desiredPropertyUpdateCache.Remove(desiredPropertyUpdateId);
+            return true;
         }
 
-        public async Task ProcessAllDesiredPropertiesReceived(Action<KeyValuePair<string, DateTime>> callback)
+        public async Task<bool> RemoveDesiredPropertyReceived(string desiredPropertyReceivedId)
         {
-            await this.ProcessAllHelper(this.desiredPropertyReceivedCache, callback);
+            await this.desiredPropertyReceivedCache.Remove(desiredPropertyReceivedId);
+            return true;
         }
 
-        public async Task ProcessAllReportedPropertiesUpdated(Action<KeyValuePair<string, DateTime>> callback)
+        public async Task<bool> RemoveReportedPropertyUpdate(string reportedPropertyUpdateId)
         {
-            await this.ProcessAllHelper(this.reportedPropertyUpdateCache, callback);
+            await this.reportedPropertyUpdateCache.Remove(reportedPropertyUpdateId);
+            return true;
         }
 
-        public async Task ProcessAllHelper<T>(ISequentialStore<T> store, Action<T> callback)
+        public async Task<Dictionary<string, DateTime>> GetAllDesiredPropertiesUpdated()
         {
-            int batchSize = 10;
-            long lastKey = 0;
-            var batch = await store.GetBatch(lastKey, batchSize);
+            return await this.GetAllUpdatesHelper(this.desiredPropertyUpdateCache);
+        }
 
-            while (batch.Any())
-            {
-                foreach ((long, T) item in batch)
+        public async Task<Dictionary<string, DateTime>> GetAllDesiredPropertiesReceived()
+        {
+            return await this.GetAllUpdatesHelper(this.desiredPropertyReceivedCache);
+        }
+
+        public async Task<Dictionary<string, DateTime>> GetAllReportedPropertiesUpdated()
+        {
+            return await this.GetAllUpdatesHelper(this.reportedPropertyUpdateCache);
+        }
+
+        public async Task<Dictionary<string, DateTime>> GetAllUpdatesHelper(IEntityStore<string, DateTime> store)
+        {
+            Dictionary<string, DateTime> allData = new Dictionary<string, DateTime>();
+            await store.IterateBatch(
+                int.MaxValue,
+                (key, value) =>
                 {
-                    lastKey = item.Item1;
-                    callback(item.Item2);
-                }
-
-                batch = await store.GetBatch(lastKey + 1, batchSize);
-            }
+                    allData[key] = value;
+                    return Task.CompletedTask;
+                });
+            return allData;
         }
     }
 }

@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-// TODO: move to module util
-namespace TwinTester
+namespace TwinTester // TODO: module util move
 {
     using System;
     using System.Collections.Generic;
