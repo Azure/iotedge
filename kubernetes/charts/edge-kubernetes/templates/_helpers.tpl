@@ -41,6 +41,9 @@ agent:
     {{- if .Values.edgeAgent.env.persistentVolumeClaimDefaultSizeInMb}}
     PersistentVolumeClaimDefaultSizeInMb: {{ .Values.edgeAgent.env.persistentVolumeClaimDefaultSizeInMb | quote }}
     {{- end }}
+    {{- if .Values.edgeAgent.env.upstreamProtocol}}
+    UpstreamProtocol: {{ .Values.edgeAgent.env.upstreamProtocol | quote }}
+    {{- end }}
     {{- if .Values.edgeAgent.env.persistentVolumeName}}
     PersistentVolumeName: {{ .Values.edgeAgent.env.persistentVolumeName | quote }}
     {{- end }}
