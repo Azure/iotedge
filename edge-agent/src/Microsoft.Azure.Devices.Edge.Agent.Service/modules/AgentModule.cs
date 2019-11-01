@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Planners;
     using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
@@ -14,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Storage.RocksDb;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Extensions.Logging;
 
     public class AgentModule : Module
@@ -256,6 +258,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<Task<IEncryptionProvider>>()
                 .SingleInstance();
 
+            // IAvailabilityMetric
+            builder.Register(c => new AvailabilityMetrics(c.Resolve<IMetricsProvider>(), SystemTime.Instance))
+                .As<IAvailabilityMetric>()
+                .SingleInstance();
+
             // Task<Agent>
             builder.Register(
                     async c =>
@@ -269,6 +276,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         var deploymentConfigInfoSerde = c.Resolve<ISerde<DeploymentConfigInfo>>();
                         var deploymentConfigInfoStore = await c.Resolve<Task<IEntityStore<string, string>>>();
                         var encryptionProvider = c.Resolve<Task<IEncryptionProvider>>();
+                        var availabilityMetric = c.Resolve<IAvailabilityMetric>();
                         return await Agent.Create(
                             await configSource,
                             await planner,
@@ -278,7 +286,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             await environmentProvider,
                             deploymentConfigInfoStore,
                             deploymentConfigInfoSerde,
-                            await encryptionProvider);
+                            await encryptionProvider,
+                            availabilityMetric);
                     })
                 .As<Task<Agent>>()
                 .SingleInstance();
