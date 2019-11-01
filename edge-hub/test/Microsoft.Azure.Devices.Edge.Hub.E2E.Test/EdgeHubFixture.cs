@@ -20,9 +20,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         internal ProtocolHeadFixture GetFixture()
         {
-            ProtocolHeadFixture fixture = new ProtocolHeadFixture();
-            this.fixtures.Add(fixture);
-            return fixture;
+            // Before creating a new fixture, we need to ensure that other ProtocolHeadFixture
+            // instances are closed. This is because a ProtocolHeadFixture encapsulates a
+            // socket connection over an address and only one usage of this address is allowed
+            // at a time.
+            foreach (ProtocolHeadFixture fixture in fixtures)
+            {
+                if (!fixture.IsClosed)
+                {
+                    fixture.CloseAsync().Wait();
+                }
+            }
+
+            ProtocolHeadFixture newFixture = new ProtocolHeadFixture();
+            this.fixtures.Add(newFixture);
+            return newFixture;
         }
 
         public void Dispose()
