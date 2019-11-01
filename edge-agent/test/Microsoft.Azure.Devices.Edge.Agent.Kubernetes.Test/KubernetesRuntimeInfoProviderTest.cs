@@ -167,8 +167,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             }
 
             var modules = (await runtimeInfo.GetModules(CancellationToken.None)).ToList();
-
             Assert.Equal(3, modules.Count);
+
+            // Normal operation statuses
             foreach (var i in modules)
             {
                 if (string.Equals("edgeAgent", i.Name))
@@ -197,6 +198,42 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 if (i is ModuleRuntimeInfo<DockerReportedConfig> d)
                 {
                     Assert.NotEqual("unknown:unknown", d.Config.Image);
+                }
+            }
+
+            string unknownDescription = "Could not reach pod";
+            modified["edgeagent"].Status.Phase = "Unknown";
+            modified["edgeagent"].Status.Reason = unknownDescription;
+
+            modified["edgehub"].Status = null;
+
+            foreach ((string podName, var pod) in modified)
+            {
+                runtimeInfo.CreateOrUpdateAddPodInfo(podName, pod);
+            }
+
+            var abnormalModules = (await runtimeInfo.GetModules(CancellationToken.None)).ToList();
+            Assert.Equal(3, modules.Count);
+
+            // Abnormal operation statuses
+            foreach (var i in abnormalModules)
+            {
+                if (string.Equals("edgeAgent", i.Name))
+                {
+                    Assert.Equal(ModuleStatus.Failed, i.ModuleStatus);
+                    Assert.Equal(unknownDescription, i.Description);
+                }
+                else if (string.Equals("edgeHub", i.Name))
+                {
+                    Assert.Equal(ModuleStatus.Failed, i.ModuleStatus);
+                    Assert.Equal("Unable to get pod status", i.Description);
+                }
+                else if (string.Equals("SimulatedTemperatureSensor", i.Name))
+                {
+                }
+                else
+                {
+                    Assert.True(false, $"Missing module {i.Name} in validation");
                 }
             }
         }

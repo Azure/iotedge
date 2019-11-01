@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                         default:
                             throw new InvalidOperationException($"Invalid pod status {status.Phase}");
                     }
-                }).GetOrElse(() => throw new InvalidParameterException("No pod status"));
+                }).GetOrElse(() => new ReportedModuleStatus(ModuleStatus.Failed, "Unable to get pod status"));
         }
 
         static RuntimeData GetRuntimeData(V1ContainerStatus status)
