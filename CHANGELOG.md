@@ -1,3 +1,9 @@
+# 1.0.8.4 (2019-11-1)
+## Edge Hub
+### Bug Fixes
+* Fix Twin property 4K length validation ([c4a97a4](https://github.com/Azure/iotedge/commit/c4a97a40e0b1db1ceb1483baa7dab6b17705467b))
+* Updating Twin update limits to match IoTHub ([0ae34d3](https://github.com/Azure/iotedge/commit/0ae34d3a8b6750e9caae8045b71cd21d2e40e119))
+
 # 1.0.8.3 (2019-10-18)
 ## Edge Hub
 ### Bug Fixes
