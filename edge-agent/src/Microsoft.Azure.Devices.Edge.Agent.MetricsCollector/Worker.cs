@@ -13,15 +13,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
 
     public class Worker
     {
-        private readonly IScraper scraper;
-        private readonly IFileStorage storage;
-        private readonly IMetricsUpload uploader;
-        private readonly ISystemTime systemTime;
-        private readonly MetricsParser metricsParser = new MetricsParser();
-        private readonly AsyncLock scrapeUploadLock = new AsyncLock();
+        readonly IScraper scraper;
+        readonly IFileStorage storage;
+        readonly IMetricsUpload uploader;
+        readonly ISystemTime systemTime;
+        readonly MetricsParser metricsParser = new MetricsParser();
+        readonly AsyncLock scrapeUploadLock = new AsyncLock();
 
-        private DateTime lastUploadTime = DateTime.MinValue;
-        private Dictionary<int, Metric> metrics = new Dictionary<int, Metric>();
+        DateTime lastUploadTime = DateTime.MinValue;
+        Dictionary<int, Metric> metrics = new Dictionary<int, Metric>();
 
         public Worker(IScraper scraper, IFileStorage storage, IMetricsUpload uploader, ISystemTime systemTime = null)
         {
@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
             await Task.WhenAll(scraper, uploader);
         }
 
-        private async Task Scrape(CancellationToken cancellationToken)
+        async Task Scrape(CancellationToken cancellationToken)
         {
             using (await this.scrapeUploadLock.GetLock(cancellationToken))
             {
@@ -91,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
             }
         }
 
-        private async Task Upload(CancellationToken cancellationToken)
+        async Task Upload(CancellationToken cancellationToken)
         {
             using (await this.scrapeUploadLock.GetLock(cancellationToken))
             {
@@ -101,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
             }
         }
 
-        private IEnumerable<Metric> GetMetricsToUpload(DateTime lastUploadTime)
+        IEnumerable<Metric> GetMetricsToUpload(DateTime lastUploadTime)
         {
             foreach (KeyValuePair<DateTime, Func<string>> data in this.storage.GetData(lastUploadTime))
             {
@@ -127,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
     {
         public class OwnedLock : IDisposable
         {
-            private SemaphoreSlim semaphore;
+            SemaphoreSlim semaphore;
             internal OwnedLock(SemaphoreSlim semaphore)
             {
                 this.semaphore = semaphore;
@@ -139,7 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
             }
         }
 
-        private SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
+        SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
 
         public async Task<OwnedLock> GetLock(CancellationToken cancellationToken)
         {

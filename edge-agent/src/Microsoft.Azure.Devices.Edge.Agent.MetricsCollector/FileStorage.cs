@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
             return this.GetData(ticks => start.Ticks <= ticks && ticks <= end.Ticks);
         }
 
-        private IDictionary<DateTime, Func<string>> GetData(Func<long, bool> inTimeRange)
+        IDictionary<DateTime, Func<string>> GetData(Func<long, bool> inTimeRange)
         {
             return Directory.GetFiles(this.directory)
                 .Select(Path.GetFileName)
@@ -85,6 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
         }
     }
 
+    // TODO: move to common linq extensions
     public static class SelectWhereClass
     {
         public static IEnumerable<TResult> SelectWhere<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, (bool, TResult)> selector)
