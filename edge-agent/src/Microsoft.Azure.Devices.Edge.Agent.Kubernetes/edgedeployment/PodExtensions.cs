@@ -6,7 +6,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Org.BouncyCastle.Security;
     using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
     using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
