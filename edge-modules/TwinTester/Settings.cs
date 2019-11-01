@@ -9,7 +9,6 @@ namespace TwinTester
     using Newtonsoft.Json.Converters;
     using Newtonsoft.Json.Serialization;
 
-    // TODO: remove
     [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
     public class Settings
     {
@@ -27,6 +26,7 @@ namespace TwinTester
                     configuration.GetValue<string>("IOTEDGE_MODULEID", string.Empty),
                     configuration.GetValue<double>("jitterFactor", 0),
                     configuration.GetValue<TimeSpan>("twinUpdateFrequency", TimeSpan.FromMilliseconds(500)),
+                    configuration.GetValue<TimeSpan>("twinUpdateFailureThreshold", TimeSpan.FromMinutes(1)), // TODO: tune
                     configuration.GetValue<TransportType>("transportType", TransportType.Amqp_Tcp_Only),
                     configuration.GetValue<string>("analyzerUrl", "http://analyzer:15000"),
                     configuration.GetValue<string>("serviceClientConnectionString", string.Empty),
@@ -39,6 +39,7 @@ namespace TwinTester
             string moduleId,
             double jitterFactor,
             TimeSpan twinUpdateFrequency,
+            TimeSpan twinUpdateFailureThreshold,
             TransportType transportType,
             string analyzerUrl,
             string serviceClientConnectionString,
@@ -48,6 +49,7 @@ namespace TwinTester
             this.DeviceId = deviceId;
             this.ModuleId = moduleId;
             this.TwinUpdateFrequency = twinUpdateFrequency;
+            this.TwinUpdateFailureThreshold = twinUpdateFailureThreshold;
             this.TransportType = transportType;
             this.AnalyzerUrl = analyzerUrl;
             this.ServiceClientConnectionString = serviceClientConnectionString;
@@ -61,15 +63,16 @@ namespace TwinTester
         public string ModuleId { get; }
         public double JitterFactor { get; }
         public TimeSpan TwinUpdateFrequency { get; }
+        public TimeSpan TwinUpdateFailureThreshold { get; }
 
         [JsonConverter(typeof(StringEnumConverter))]
         public TransportType TransportType { get; }
         public string AnalyzerUrl { get; }
+        [JsonIgnore] 
         public string ServiceClientConnectionString { get; }
         public string StoragePath { get; }
         public bool StorageOptimizeForPerformance { get; }
 
-        // TODO: change approach to not log connection string
         public override string ToString()
         {
             return JsonConvert.SerializeObject(this, Formatting.Indented);

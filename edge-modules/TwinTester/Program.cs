@@ -93,29 +93,13 @@ namespace TwinTester
 
         static async Task OnDesiredPropertyUpdateAsync(TwinCollection desiredProperties, object userContext)
         {
-            // iterate through fields in twin collection
-            // store received desired properties
-
-            Storage storage = (Storage)userContext;
             // TODO: If expected behavior is calling once per desired property update, then we should not be looping
+            Storage storage = (Storage)userContext;
             foreach(dynamic twinUpdate in desiredProperties)
             {
                 KeyValuePair<string, object> pair = (KeyValuePair<string, object>) twinUpdate;
                 await storage.AddDesiredPropertyReceived(new KeyValuePair<string, DateTime>(pair.Key, DateTime.Now));
             }
-
-            // Logger.LogDebug("STARTED ON DESIRED PROPERTY CALLBACK");
-            // Logger.LogDebug(desiredProperties.ToJson());
-            // foreach(dynamic key in desiredProperties)
-            // {
-            //     string s = key.ToString();
-            //     Logger.LogDebug(s);
-            //     string s2 = key.GetType().ToString();
-            //     Logger.LogDebug(s2);
-            //     KeyValuePair<string, object> l = (KeyValuePair<string, object>) key;
-            //     Logger.LogDebug(l.Key);
-            //     Logger.LogDebug(l.Value.ToString());
-            // }
         }                
 
         static async Task ValidateDesiredPropertyUpdates(ModuleClient moduleClient, AnalyzerClient analyzerClient)
@@ -144,10 +128,10 @@ namespace TwinTester
             //      if in twin:
             //          remove from twin
             //          remove from storage
-            //      else
-            //          check failure threshold for missing property
+            //      elif check failure threshold for missing property
+            //              report error
             // 
-            // clear twin entirely (could be populated from updates that then failed to write to storage)
+            // clear all reported properties entirely (could be populated from updates that then failed to write to storage)
 
             Twin receivedTwin;
             try
