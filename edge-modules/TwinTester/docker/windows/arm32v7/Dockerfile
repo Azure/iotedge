@@ -8,4 +8,4 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
-CMD ["dotnet", "load-gen.dll"]
+CMD ["dotnet", "TwinTester.dll"]

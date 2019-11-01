@@ -5,5 +5,5 @@
   "transportType": "amqp",
   "messageSizeInBytes": 1024,
   "outputName": "output1",
-  "serviceConnectionString": ""
+  "serviceClientConnectionString": ""
 }

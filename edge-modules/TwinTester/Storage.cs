@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace MessagesAnalyzer
+namespace TwinTester
 {
     using System;
     using System.Collections.Generic;
@@ -14,20 +14,21 @@ namespace MessagesAnalyzer
 
     public class Storage
     {
-        const string MessageStorePartitionKey = "MessagesCache";
-        const string DirectMethodsStorePartitionKey = "DmCache";
-        const string TwinsStorePartitionKey = "TwinCache";
+        const string DesiredPropertyUpdatePartitionKey = "DesiredPropertyUpdateCache";
+        const string DesiredPropertyReceivedPartitionKey = "DesiredPropertyReceivedCache";
+        const string ReportedPropertyUpdatePartitionKey = "ReportedPropertyUpdateCache";
         static readonly ILogger Log = Logger.Factory.CreateLogger<Storage>();
-        ISequentialStore<MessageDetails> messagesStore;
-        ISequentialStore<ResponseStatus> dmStore;
-        ISequentialStore<ResponseStatus> twinStore;
+        ISequentialStore<KeyValuePair<string, DateTime>> desiredPropertyUpdateCache;
+        ISequentialStore<KeyValuePair<string, DateTime>> desiredPropertyReceivedCache;
+        ISequentialStore<KeyValuePair<string, DateTime>> reportedPropertyUpdateCache;
+
 
         public async Task Init(string storagePath, ISystemEnvironment systemEnvironment, bool optimizeForPerformance)
         {
             StoreProvider storeProvider;
             try
             {
-                var partitionsList = new List<string> { "messages", "dm", "twins" };
+                var partitionsList = new List<string> { "messages", "dm" };
                 IDbStoreProvider dbStoreprovider = DbStoreProvider.Create(
                     new RocksDbOptionsProvider(systemEnvironment, optimizeForPerformance),
                     this.GetStoragePath(storagePath),
@@ -41,9 +42,9 @@ namespace MessagesAnalyzer
                 storeProvider = new StoreProvider(new InMemoryDbStoreProvider());
             }
 
-            this.messagesStore = await storeProvider.GetSequentialStore<MessageDetails>(MessageStorePartitionKey);
-            this.dmStore = await storeProvider.GetSequentialStore<ResponseStatus>(DirectMethodsStorePartitionKey);
-            this.twinStore = await storeProvider.GetSequentialStore<ResponseStatus>(TwinsStorePartitionKey);
+            this.desiredPropertyUpdateCache = await storeProvider.GetSequentialStore<KeyValuePair<string, DateTime>>(DesiredPropertyUpdatePartitionKey);
+            this.desiredPropertyReceivedCache = await storeProvider.GetSequentialStore<KeyValuePair<string, DateTime>>(DesiredPropertyReceivedPartitionKey);
+            this.reportedPropertyUpdateCache = await storeProvider.GetSequentialStore<KeyValuePair<string, DateTime>>(ReportedPropertyUpdatePartitionKey);
         }
 
         string GetStoragePath(string baseStoragePath)
@@ -58,38 +59,37 @@ namespace MessagesAnalyzer
             return storagePath;
         }
 
-        public async Task<bool> AddMessage(MessageDetails message)
+        public async Task<bool> AddDesiredPropertyUpdate(KeyValuePair<string, DateTime> desiredPropertyUpdate)
         {
-            await this.messagesStore.Append(message);
+            await this.desiredPropertyUpdateCache.Append(desiredPropertyUpdate);
             return true;
         }
 
-        public async Task<bool> AddDirectMethod(ResponseStatus dmStatus)
+        public async Task<bool> AddDesiredPropertyReceived(KeyValuePair<string, DateTime> desiredPropertyReceived)
         {
-            await this.dmStore.Append(dmStatus);
+            await this.desiredPropertyReceivedCache.Append(desiredPropertyReceived);
             return true;
         }
 
-        public async Task<bool> AddTwin(ResponseStatus dmStatus)
+        public async Task<bool> AddReportedPropertyUpdate(KeyValuePair<string, DateTime> reportedPropertyUpdate)
         {
-            await this.twinStore.Append(dmStatus);
+            await this.reportedPropertyUpdateCache.Append(reportedPropertyUpdate);
             return true;
         }
 
-        // TODO: reorder
-        public async Task ProcessAllMessages(Action<MessageDetails> callback)
+        public async Task ProcessAllDesiredPropertiesUpdated(Action<KeyValuePair<string, DateTime>> callback)
         {
-            await this.ProcessAllHelper(this.messagesStore, callback);
+            await this.ProcessAllHelper(this.desiredPropertyUpdateCache, callback);
         }
 
-        public async Task ProcessAllDirectMethods(Action<ResponseStatus> callback)
+        public async Task ProcessAllDesiredPropertiesReceived(Action<KeyValuePair<string, DateTime>> callback)
         {
-            await this.ProcessAllHelper(this.dmStore, callback);
+            await this.ProcessAllHelper(this.desiredPropertyReceivedCache, callback);
         }
 
-        public async Task ProcessAllTwins(Action<ResponseStatus> callback)
+        public async Task ProcessAllReportedPropertiesUpdated(Action<KeyValuePair<string, DateTime>> callback)
         {
-            await this.ProcessAllHelper(this.twinStore, callback);
+            await this.ProcessAllHelper(this.reportedPropertyUpdateCache, callback);
         }
 
         public async Task ProcessAllHelper<T>(ISequentialStore<T> store, Action<T> callback)
