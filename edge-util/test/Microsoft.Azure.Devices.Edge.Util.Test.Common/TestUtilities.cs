@@ -15,17 +15,18 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
             Assert.True(Math.Abs(expected - actual) <= tolerance, $"Expected {expected} to be within {tolerance} of {actual}");
         }
 
-        public static void ReflectionEqualCollection<T>(IEnumerable<T> expected, IEnumerable<T> actual)
+        public static void ReflectionEqualEnumerable<T>(IEnumerable<T> expected, IEnumerable<T> actual)
         {
             var expectedEnum = expected.GetEnumerator();
             var actualEnum = actual.GetEnumerator();
 
-            while (expectedEnum.MoveNext() & actualEnum.MoveNext())
+            while (expectedEnum.MoveNext())
             {
+                Assert.True(actualEnum.MoveNext(), "Expected enumerables to have the same length");
                 ReflectionEqual(expectedEnum.Current, actualEnum.Current);
             }
 
-            Assert.False(expectedEnum.MoveNext() || actualEnum.MoveNext());
+            Assert.False(actualEnum.MoveNext(), "Expected enumerables to have the same length");
         }
 
         public static void ReflectionEqual<T>(T expected, T actual)

@@ -128,7 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
 
             /* test */
             await Upload();
-            TestUtilities.ReflectionEqualCollection(metrics.OrderBy(x => x.Tags), uploadedData.OrderBy(x => x.Tags));
+            TestUtilities.ReflectionEqualEnumerable(metrics.OrderBy(x => x.Tags), uploadedData.OrderBy(x => x.Tags));
             Assert.Single(storage.Invocations.Where(s => s.Method.Name == "GetData"));
             Assert.Equal(1, uploader.Invocations.Count);
         }
