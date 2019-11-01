@@ -18,13 +18,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
         const int MaxStorageSize = MessageSize * DefaultMessageCount + BufferSize;
         ProtocolHeadFixture protocolHeadFixture;
 
-        public StoreLimitsTestBase(EdgeHubFixture edgeHubFixture, bool usePersistentStorage)
+        public StoreLimitsTestBase(EdgeHubTestFixtureCollection edgeHubFixtureCollection, bool usePersistentStorage)
         {
             ConfigHelper.TestConfig["UsePersistentStorage"] = usePersistentStorage.ToString();
             ConfigHelper.TestConfig["MaxStorageBytes"] = MaxStorageSize.ToString();
             ConfigHelper.TestConfig["TimeToLiveSecs"] = "0";
             ConfigHelper.TestConfig["Routes"] = JsonConvert.SerializeObject(Routes);
-            this.protocolHeadFixture = edgeHubFixture.GetFixture();
+            this.protocolHeadFixture = edgeHubFixtureCollection.GetFixture();
         }
 
         public void Dispose()

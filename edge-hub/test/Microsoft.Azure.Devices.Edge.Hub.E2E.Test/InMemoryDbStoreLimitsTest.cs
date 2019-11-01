@@ -6,11 +6,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using Xunit;
 
     [Integration]
-    [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
+    [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Collection.Test")]
     public class InMemoryDbStoreLimitsTest : StoreLimitsTestBase
     {
-        public InMemoryDbStoreLimitsTest(EdgeHubFixture edgeHubFixture)
-            : base(edgeHubFixture, false)
+        public InMemoryDbStoreLimitsTest(EdgeHubTestFixtureCollection edgeHubFixtureCollection)
+            : base(edgeHubFixtureCollection, false)
         {
         }
 

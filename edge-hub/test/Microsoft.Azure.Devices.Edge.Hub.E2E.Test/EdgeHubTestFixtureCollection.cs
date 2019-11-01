@@ -4,16 +4,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System;
     using System.Collections.Generic;
 
-    public class EdgeHubFixture : IDisposable
+    public class EdgeHubTestFixtureCollection : IDisposable
     {
         readonly IList<ProtocolHeadFixture> fixtures = new List<ProtocolHeadFixture>();
         bool disposed = false;
 
-        public EdgeHubFixture()
+        public EdgeHubTestFixtureCollection()
         {
         }
 
-        ~EdgeHubFixture()
+        ~EdgeHubTestFixtureCollection()
         {
             this.Dispose(false);
         }

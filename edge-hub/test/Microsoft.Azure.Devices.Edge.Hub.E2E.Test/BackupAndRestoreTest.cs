@@ -23,17 +23,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     /// using AMQP should suffice for now.
     /// </summary>
     [Integration]
-    [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
+    [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Collection.Test")]
     [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
     public class BackupAndRestoreTest : IDisposable
     {
         readonly string backupFolder;
-        EdgeHubFixture edgeHubFixture;
+        EdgeHubTestFixtureCollection edgeHubFixtureCollection;
         TestConsoleLogger logger;
 
-        public BackupAndRestoreTest(EdgeHubFixture edgeHubFixture, ITestOutputHelper testOutputHelper)
+        public BackupAndRestoreTest(EdgeHubTestFixtureCollection edgeHubFixtureCollection, ITestOutputHelper testOutputHelper)
         {
-            this.edgeHubFixture = edgeHubFixture;
+            this.edgeHubFixtureCollection = edgeHubFixtureCollection;
             string tempFolder = Path.GetTempPath();
             this.backupFolder = Path.Combine(tempFolder, $"edgeTestBackup{Guid.NewGuid()}");
             if (Directory.Exists(this.backupFolder))
@@ -136,7 +136,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             int expectedMessageCountAfterRestore,
             Action postBackupModifier)
         {
-            ProtocolHeadFixture protocolHeadFixture = this.edgeHubFixture.GetFixture();
+            ProtocolHeadFixture protocolHeadFixture = this.edgeHubFixtureCollection.GetFixture();
             TestModule sender = null;
             TestModule receiver = null;
 
@@ -168,7 +168,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 postBackupModifier();
 
                 // Get new fixture to re-initialize the edge hub container.
-                protocolHeadFixture = this.edgeHubFixture.GetFixture();
+                protocolHeadFixture = this.edgeHubFixtureCollection.GetFixture();
 
                 receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", transportSettings);
                 await receiver.SetupReceiveMessageHandler();
