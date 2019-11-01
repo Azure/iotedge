@@ -12,6 +12,7 @@ namespace TwinTester
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json;
 
     class Program
     {
@@ -22,7 +23,7 @@ namespace TwinTester
 
         static async Task Main()
         {
-            Logger.LogInformation($"Starting load gen with the following settings:\r\n{Settings.Current}");
+            Logger.LogInformation($"Starting twin tester with the following settings:\r\n{Settings.Current}");
 
             try
             {
@@ -30,6 +31,7 @@ namespace TwinTester
                 await storage.Init(Settings.Current.StoragePath, new SystemEnvironment(), Settings.Current.StorageOptimizeForPerformance);
 
                 RegistryManager registryManager = RegistryManager.CreateFromConnectionString(Settings.Current.ServiceClientConnectionString);
+                currentTwinETag = await GetTwinETag(registryManager);
                 
                 ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
                     Settings.Current.TransportType,
@@ -43,7 +45,6 @@ namespace TwinTester
                 using (var timers = new Timers())
                 {
                     // setup the twin update timer
-                    currentTwinETag = await GetTwinETag(registryManager);
                     timers.Add(
                         Settings.Current.TwinUpdateFrequency,
                         Settings.Current.JitterFactor,
@@ -76,13 +77,15 @@ namespace TwinTester
             {
                 try
                 {
-                    Twin twin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
-                    Logger.LogDebug("initial twin: {0}", twin.ToJson());
-                    return twin.ETag;
+                    Twin originalTwin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
+                    Twin newTwin = new Twin();
+                    newTwin = await registryManager.ReplaceTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId, new Twin(), originalTwin.ETag);
+                    Logger.LogInformation($"Reset state of module twin: {JsonConvert.SerializeObject(newTwin, Formatting.Indented)}");
+                    return newTwin.ETag;
                 }
                 catch (Exception e)
                 {
-                    Logger.LogInformation($"Failed initial call to get twin: {e}");
+                    Logger.LogInformation($"Retrying failed initial call to get twin: {e}");
                     await Task.Delay(5000); // TODO: tune wait period
                 }
             }
@@ -93,13 +96,27 @@ namespace TwinTester
             // iterate through fields in twin collection
             // store received desired properties
 
-            Logger.LogDebug("STARTED ON DESIRED PROPERTY CALLBACK");
-            Logger.LogDebug(desiredProperties.ToJson());
-            foreach(string key in desiredProperties)
+            Storage storage = (Storage)userContext;
+            // TODO: If expected behavior is calling once per desired property update, then we should not be looping
+            foreach(dynamic twinUpdate in desiredProperties)
             {
-                Logger.LogDebug(key);
+                KeyValuePair<string, object> pair = (KeyValuePair<string, object>) twinUpdate;
+                await storage.AddDesiredPropertyReceived(new KeyValuePair<string, DateTime>(pair.Key, DateTime.Now));
             }
-        }
+
+            // Logger.LogDebug("STARTED ON DESIRED PROPERTY CALLBACK");
+            // Logger.LogDebug(desiredProperties.ToJson());
+            // foreach(dynamic key in desiredProperties)
+            // {
+            //     string s = key.ToString();
+            //     Logger.LogDebug(s);
+            //     string s2 = key.GetType().ToString();
+            //     Logger.LogDebug(s2);
+            //     KeyValuePair<string, object> l = (KeyValuePair<string, object>) key;
+            //     Logger.LogDebug(l.Key);
+            //     Logger.LogDebug(l.Value.ToString());
+            // }
+        }                
 
         static async Task ValidateDesiredPropertyUpdates(ModuleClient moduleClient, AnalyzerClient analyzerClient)
         {
@@ -150,6 +167,7 @@ namespace TwinTester
                 // TODO: add timestamp
                 string patch = string.Format("{{ properties: {{ desired: {{ {0}: {0}}} }} }}", desiredPropertyUpdateCounter);
                 Twin newTwin = await registryManager.UpdateTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId, patch, currentTwinETag);
+                // Logger.LogDebug(newTwin.ToJson());
                 currentTwinETag = newTwin.ETag;
             }
             catch (Exception e)
