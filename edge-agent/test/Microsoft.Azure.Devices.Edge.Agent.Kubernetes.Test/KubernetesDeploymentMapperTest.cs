@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
         static readonly ResourceName ResourceName = new ResourceName("hostname", "deviceId");
 
-        static readonly EdgeDeploymentDefinition EdgeDeploymentDefinition = new EdgeDeploymentDefinition("v1", "EdgeDeployment", new k8s.Models.V1ObjectMeta(name: ResourceName), new List<KubernetesModule>(), null);
+        static readonly EdgeDeploymentDefinition EdgeDeploymentDefinition = new EdgeDeploymentDefinition("v1", "EdgeDeployment", new k8s.Models.V1ObjectMeta(name: ResourceName), new List<KubernetesModule>());
 
         [Fact]
         public void EmptyIsNotAllowedAsPodAnnotation()
