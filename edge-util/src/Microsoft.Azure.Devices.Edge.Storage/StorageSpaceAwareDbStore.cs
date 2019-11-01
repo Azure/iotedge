@@ -27,26 +27,25 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public new async Task Put(byte[] key, byte[] value, CancellationToken cancellationToken)
         {
-            if (this.storageSpaceChecker.IsFull)
-            {
-                throw new StorageFullException("Memory store is full");
-            }
-
             using (await this.asyncLock.LockAsync(cancellationToken))
             {
                 Option<byte[]> existingValue = await this.Get(key, cancellationToken);
-                existingValue.Match(
+                int sizeIncrease = existingValue.Match(
                     existing =>
                     {
-                        this.dbSize += value.Length - existing.Length;
-                        return this.dbSize;
+                        return value.Length - existing.Length;
                     },
                     () =>
                     {
-                        this.dbSize += key.Length + value.Length;
-                        return this.dbSize;
+                        return key.Length + value.Length;
                     });
 
+                if (sizeIncrease > 0 && this.storageSpaceChecker.IsFull)
+                {
+                    throw new StorageFullException("Memory store is full");
+                }
+
+                this.dbSize += sizeIncrease;
                 await base.Put(key, value, cancellationToken);
             }
         }
