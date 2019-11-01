@@ -42,10 +42,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
                             metricName = name.Value;
                         }
 
-                        var value = match.Groups["metricvalue"];
-                        if (value?.Length > 0)
+                        var valueGroup = match.Groups["metricvalue"];
+                        if (valueGroup?.Length > 0)
                         {
-                            metricValue = value.Value;
+                            metricValue = valueGroup.Value;
                         }
 
                         var tagnames = match.Groups["tagname"];
@@ -68,14 +68,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
 
                         var tags = tagNames.Zip(tagValues, (k, v) => new { k, v })
                             .ToDictionary(x => x.k, x => x.v);
-                        var metricsData = new Metric(
-                            timeGeneratedUtc,
-                            "prometheus",
-                            metricName,
-                            metricValue,
-                            JsonConvert.SerializeObject(tags));
 
-                        metricsDataList.Add(metricsData);
+                        if (double.TryParse(metricValue, out double value))
+                        {
+                            var metricsData = new Metric(
+                                timeGeneratedUtc,
+                                "prometheus",
+                                metricName,
+                                value,
+                                JsonConvert.SerializeObject(tags));
+
+                            metricsDataList.Add(metricsData);
+                        }
                     }
                 }
             }
@@ -89,10 +93,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
         public DateTime TimeGeneratedUtc { get; set; }
         public string Namespace { get; set; }
         public string Name { get; set; }
-        public string Value { get; set; }
+        public double Value { get; set; }
         public string Tags { get; set; }
 
-        public Metric(DateTime timeGeneratedUtc, string @namespace, string name, string value, string tags)
+        public Metric(DateTime timeGeneratedUtc, string @namespace, string name, double value, string tags)
         {
             this.TimeGeneratedUtc = timeGeneratedUtc;
             this.Namespace = @namespace;

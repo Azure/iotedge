@@ -104,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
         public async Task UploadContent()
         {
             /* test data */
-            var metrics = Enumerable.Range(1, 10).Select(i => new Metric(DateTime.Now, "test_namespace", "test_metric", "3", $"tag_{i}")).ToList();
+            var metrics = Enumerable.Range(1, 10).Select(i => new Metric(DateTime.Now, "test_namespace", "test_metric", 3, $"tag_{i}")).ToList();
 
             /* Setup mocks */
             var scraper = new Mock<IScraper>();
@@ -141,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
             string Metrics()
             {
                 metricsCalls++;
-                return Newtonsoft.Json.JsonConvert.SerializeObject(Enumerable.Range(1, 10).Select(i => new Metric(DateTime.Now, "1", "2", "3", $"{i}")));
+                return Newtonsoft.Json.JsonConvert.SerializeObject(Enumerable.Range(1, 10).Select(i => new Metric(DateTime.Now, "1", "2", 3, $"{i}")));
             }
 
             Dictionary<DateTime, Func<string>> data = Enumerable.Range(1, 10).ToDictionary(i => new DateTime(i * 100000000), _ => (Func<string>)Metrics);
