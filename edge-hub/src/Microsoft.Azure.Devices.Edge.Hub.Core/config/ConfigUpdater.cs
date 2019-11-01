@@ -132,7 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         {
             if (storeAndForwardConfiguration != null)
             {
-                this.messageStore?.SetTimeToLive(TimeSpan.FromSeconds(storeAndForwardConfiguration.TimeToLiveSecs));
+                this.messageStore?.SetTimeToLive(storeAndForwardConfiguration.TimeToLive);
 
                 storeAndForwardConfiguration.StoreLimits.Match(
                     s =>
