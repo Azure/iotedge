@@ -25,6 +25,7 @@ async fn main() {
 
 async fn true_main() -> Result<(), failure::Error> {
     pretty_env_logger::init();
+
     let app_m = App::new("shellrt-driver")
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .version("0.1.0")
@@ -59,6 +60,16 @@ async fn true_main() -> Result<(), failure::Error> {
         .subcommand(
             SubCommand::with_name("pull")
                 .about("Pull an image using the specified docker-style reference")
+                .arg(
+                    Arg::with_name("image")
+                        .help("Image reference")
+                        .required(true)
+                        .index(1),
+                ),
+        )
+        .subcommand(
+            SubCommand::with_name("remove")
+                .about("Remove an image using the specified docker-style reference")
                 .arg(
                     Arg::with_name("image")
                         .help("Image reference")
@@ -102,20 +113,37 @@ async fn true_main() -> Result<(), failure::Error> {
 
             let image = Reference::parse(image, default_registry, docker_compat)?;
 
-            let _response: response::Pull = plugin
+            let res: response::Pull = plugin
                 .send(request::Pull {
                     image: image.to_string(),
                     credentials,
                 })
                 .await?;
 
-            println!("image pulled successfully");
+            println!("the image was pulled successfully");
+            debug!("{:#?}", res);
+        }
+        ("remove", Some(sub_m)) => {
+            let image = sub_m
+                .value_of("image")
+                .expect("image should be a required argument");
+
+            let image = Reference::parse(image, default_registry, docker_compat)?;
+
+            let res: response::Remove = plugin
+                .send(request::Remove {
+                    image: image.to_string(),
+                })
+                .await?;
+
+            println!("the image was removed successfully");
+            debug!("{:#?}", res);
         }
         ("rtversion", Some(_sub_m)) => {
-            let response: response::RuntimeVersion =
-                plugin.send(request::RuntimeVersion {}).await?;
+            let res: response::RuntimeVersion = plugin.send(request::RuntimeVersion {}).await?;
 
-            println!("{}", response.info);
+            println!("{}", res.info);
+            debug!("{:#?}", res);
         }
         _ => unreachable!(),
     }

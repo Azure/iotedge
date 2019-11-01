@@ -68,6 +68,7 @@ async fn handle_input(grpc_uri: String) -> Result<Response> {
     // TODO?: use a macro for these match statement
     let res = match input.into_inner() {
         Request::Pull(req) => Response::Pull(handler::Pull::new(grpc_uri).handle(req).await?),
+        Request::Remove(req) => Response::Remove(handler::Remove::new(grpc_uri).handle(req).await?),
         Request::RuntimeVersion(req) => {
             Response::RuntimeVersion(handler::RuntimeVersion::new(grpc_uri).handle(req).await?)
         }
