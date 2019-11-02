@@ -1,11 +1,11 @@
 {
   "jitterFactor": 0.5,
   "twinUpdateFrequency": "00:00:20",
-  "twinUpdateFailureThreshold": "00:00:20",
+  "twinUpdateFailureThreshold": "00:01:00",
   "transportType": "amqp",
   "analyzerURL": "http://analyzer:15000",
   "serviceClientConnectionString": "",
   "StoragePath": "",
-  "StorageOptimizeForPerformance": "",
-  "twinUpdateCharCount": ""
+  "StorageOptimizeForPerformance": true,
+  "twinUpdateCharCount": 1
 }

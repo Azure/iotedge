@@ -171,6 +171,8 @@ namespace TwinTester
                     await CallAnalyzerToReportStatus(analyzerClient, Settings.Current.ModuleId, successStatus, string.Empty);
 
                     propertiesToRemoveFromTwin.Add(desiredPropertyUpdate.Key, null); // erase twin property by assigning null
+
+                    Logger.LogDebug($"Succesfully validated desired property update: {desiredPropertyUpdate.Key}");
                 }
                 else if (IsPastFailureThreshold(desiredPropertyUpdate.Value))
                 {
@@ -200,7 +202,6 @@ namespace TwinTester
             {
                 string patch = $"{{ properties: {{ reported: {JsonConvert.SerializeObject(propertiesToRemoveFromTwin)} }}";
                 Twin newTwin = await registryManager.UpdateTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId, patch, currentTwinETag);
-                // Logger.LogDebug(newTwin.ToJson());
                 currentTwinETag = newTwin.ETag;
             }
             catch (Exception e)
@@ -271,7 +272,6 @@ namespace TwinTester
             {
                 string patch = $"{{ properties: {{ reported: {JsonConvert.SerializeObject(propertiesToRemoveFromTwin)} }}";
                 Twin newTwin = await registryManager.UpdateTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId, patch, currentTwinETag);
-                // Logger.LogDebug(newTwin.ToJson());
                 currentTwinETag = newTwin.ETag;
             }
             catch (Exception e)
@@ -287,8 +287,8 @@ namespace TwinTester
                 string desiredPropertyUpdate = new string('*', Settings.Current.TwinUpdateCharCount);
                 string patch = string.Format("{{ properties: {{ desired: {{ {0}: {1}}} }} }}", desiredPropertyUpdateCounter, desiredPropertyUpdate);
                 Twin newTwin = await registryManager.UpdateTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId, patch, currentTwinETag);
-                // Logger.LogDebug(newTwin.ToJson());
                 currentTwinETag = newTwin.ETag;
+                Logger.LogDebug($"Performed property update: {JsonConvert.SerializeObject(newTwin, Formatting.Indented)}");
             }
             catch (Exception e)
             {
@@ -339,9 +339,9 @@ namespace TwinTester
         static async Task PerformTwinTestsAsync(RegistryManager registryManager, ModuleClient moduleClient, AnalyzerClient analyzerClient, Storage storage)
         {
             await ValidateDesiredPropertyUpdates(registryManager, moduleClient, analyzerClient, storage);
-            await ValidateReportedPropertyUpdates(registryManager, analyzerClient, storage);
+            // await ValidateReportedPropertyUpdates(registryManager, analyzerClient, storage);
             await PerformDesiredPropertyUpdate(registryManager, storage);
-            await PerformReportedPropertyUpdate(moduleClient, analyzerClient, storage);
+            // await PerformReportedPropertyUpdate(moduleClient, analyzerClient, storage);
         }
     }
 }
