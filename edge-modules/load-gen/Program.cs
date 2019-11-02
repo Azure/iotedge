@@ -18,7 +18,7 @@ namespace LoadGen
         static readonly Guid BatchId = Guid.NewGuid();
         static readonly string DeviceId = Environment.GetEnvironmentVariable("IOTEDGE_DEVICEID");
         static readonly string ModuleId = Environment.GetEnvironmentVariable("IOTEDGE_MODULEID");
-        static long MessageId = 0;
+        static long messageId = 0;
 
         static async Task Main()
         {
@@ -78,8 +78,8 @@ namespace LoadGen
                     // build message
                     var messageBody = new { data = data.Data };
                     var message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)));
-                    MessageId += 1;
-                    message.Properties.Add("sequenceNumber", MessageId.ToString());
+                    messageId += 1;
+                    message.Properties.Add("sequenceNumber", messageId.ToString());
                     message.Properties.Add("batchId", batchId.ToString());
 
                     await client.SendEventAsync(Settings.Current.OutputName, message);
@@ -87,7 +87,7 @@ namespace LoadGen
             }
             catch (Exception e)
             {
-                Logger.LogError($"[GenerateMessageAsync] Sequence number {MessageId}, BatchId: {batchId.ToString()};{Environment.NewLine}{e}");
+                Logger.LogError($"[GenerateMessageAsync] Sequence number {messageId}, BatchId: {batchId.ToString()};{Environment.NewLine}{e}");
             }
         }
     }
