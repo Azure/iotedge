@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
         {
             using (await this.scrapeUploadLock.GetLock(cancellationToken))
             {
-                Console.WriteLine($"\n\n\nScraping Metrics");
+                Console.WriteLine($"{DateTime.UtcNow}Scraping Metrics");
                 List<Metric> metricsToPersist = new List<Metric>();
 
                 foreach (var moduleResult in await this.scraper.ScrapeAsync(cancellationToken))
@@ -69,23 +69,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
 
                     foreach (Metric scrapedMetric in scrapedMetrics)
                     {
+                        // Get the previous scrape for this metric
                         if (this.metrics.TryGetValue(scrapedMetric.GetValuelessHash(), out Metric oldMetric))
                         {
+                            // If the metric is unchanged, do nothing
                             if (oldMetric.Value.Equals(scrapedMetric.Value))
                             {
                                 continue;
                             }
 
+                            // if the metric has changed, write the previous metric to disk
                             metricsToPersist.Add(oldMetric);
                         }
 
+                        // if new metric or metric changed, save to local buffer
                         this.metrics[scrapedMetric.GetValuelessHash()] = scrapedMetric;
                     }
                 }
 
                 if (metricsToPersist.Count != 0)
                 {
-                    Console.WriteLine($"Storing metrics");
+                    Console.WriteLine($"{DateTime.UtcNow}Storing metrics");
                     this.storage.AddScrapeResult(Newtonsoft.Json.JsonConvert.SerializeObject(metricsToPersist));
                 }
             }
@@ -95,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
         {
             using (await this.scrapeUploadLock.GetLock(cancellationToken))
             {
-                Console.WriteLine($"\n\n\nUploading Metrics");
+                Console.WriteLine($"{DateTime.UtcNow}Uploading Metrics");
                 await this.uploader.UploadAsync(this.GetMetricsToUpload(this.lastUploadTime), cancellationToken);
                 this.lastUploadTime = this.systemTime.UtcNow;
             }
@@ -105,8 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
         {
             foreach (KeyValuePair<DateTime, Func<string>> data in this.storage.GetData(lastUploadTime))
             {
-                var temp = data.Value();
-                var fileMetrics = Newtonsoft.Json.JsonConvert.DeserializeObject<Metric[]>(temp) ?? Enumerable.Empty<Metric>();
+                var fileMetrics = Newtonsoft.Json.JsonConvert.DeserializeObject<Metric[]>(data.Value()) ?? Enumerable.Empty<Metric>();
                 foreach (Metric metric in fileMetrics)
                 {
                     yield return metric;
@@ -123,7 +126,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
         }
     }
 
-    public class AsyncLock
+    /// <summary>
+    /// Used to ensure upload and scrape don't run simultaneously.
+    /// </summary>
+    class AsyncLock
     {
         public class OwnedLock : IDisposable
         {

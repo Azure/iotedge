@@ -55,10 +55,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
         [Fact]
         public void TestDeflate()
         {
-            int n = 10000;
-            byte[] data = new byte[n];
+            byte[] data = new byte[10000];
             this.rand.NextBytes(data);
-            Array.Fill<byte>(data, 100, 50, 5000);
 
             byte[] compressedData = DeflateSerializer.Compress(data);
             byte[] originalData = DeflateSerializer.Decompress(compressedData);
