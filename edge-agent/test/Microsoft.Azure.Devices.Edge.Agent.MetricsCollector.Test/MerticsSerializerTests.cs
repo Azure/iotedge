@@ -53,6 +53,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
         }
 
         [Fact]
+        public void TestDeflate()
+        {
+            int n = 10000;
+            byte[] data = new byte[n];
+            this.rand.NextBytes(data);
+            Array.Fill<byte>(data, 100, 50, 5000);
+
+            byte[] compressedData = DeflateSerializer.Compress(data);
+            byte[] originalData = DeflateSerializer.Decompress(compressedData);
+
+            Assert.NotEqual(data, compressedData);
+            Assert.Equal(data, originalData);
+        }
+
+        [Fact]
         public void RawValuesSerialize()
         {
             var time = DateTime.UtcNow;

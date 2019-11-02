@@ -23,9 +23,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
         public async Task UploadAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
         {
             IEnumerable<byte> data = RawMetric.MetricsToBytes(metrics);
-            Message message = new Message(data.ToArray());
+            byte[] compressedData = DeflateSerializer.Compress(data);
 
             // TODO: add check for too big of a message
+            Message message = new Message(compressedData);
             await this.moduleClient.SendEventAsync(message);
         }
     }

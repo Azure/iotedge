@@ -22,16 +22,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
             return rawValues.SelectMany(t => BitConverter.GetBytes(t.TimeGeneratedUtc.Ticks).Concat(BitConverter.GetBytes(t.Value)));
         }
 
-        public static IEnumerable<RawValue> BytesToRawValues(byte[] bytes, int start = 0, int length = 1)
+        public static IEnumerable<RawValue> BytesToRawValues(byte[] bytes, int startIndex = 0, int length = 1)
         {
-            int index = start;
-            int stop = start + length * Size;
-            while (index < stop)
+            int stop = startIndex + length * Size;
+            while (startIndex < stop)
             {
-                long ticks = BitConverter.ToInt64(bytes, index);
-                index += sizeof(long);
-                double value = BitConverter.ToDouble(bytes, index);
-                index += sizeof(double);
+                long ticks = BitConverter.ToInt64(bytes, startIndex);
+                startIndex += sizeof(long);
+                double value = BitConverter.ToDouble(bytes, startIndex);
+                startIndex += sizeof(double);
 
                 yield return new RawValue
                 {
@@ -49,17 +48,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
     {
         public static IEnumerable<byte> MetricsToBytes(IEnumerable<Metric> metrics)
         {
-            return metrics.GroupBy(m => m.GetValuelessHash()).SelectMany(x => RawMetric.MetricGroupsToBytes(
+            return metrics.GroupBy(m => m.GetValuelessHash()).SelectMany(x => MetricGroupsToBytes(
                 x.First().Name,
                 x.First().Tags,
                 x.Select(m => new RawValue
                 {
                     TimeGeneratedUtc = m.TimeGeneratedUtc,
                     Value = m.Value
-                }).ToArray()));
+                })));
         }
 
-        static IEnumerable<byte> MetricGroupsToBytes(string name, string tags, RawValue[] rawValues)
+        static IEnumerable<byte> MetricGroupsToBytes(string name, string tags, IEnumerable<RawValue> rawValues)
         {
             byte[] nameArray = Encoding.UTF8.GetBytes(name);
             byte[] nameLength = BitConverter.GetBytes(name.Length);
@@ -67,8 +66,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
             byte[] tagsArray = Encoding.UTF8.GetBytes(tags);
             byte[] tagsLength = BitConverter.GetBytes(tags.Length);
 
-            byte[] valuesLength = BitConverter.GetBytes(rawValues.Length);
-            IEnumerable<byte> values = RawValue.RawValuesToBytes(rawValues);
+            // Unfortunately this extra array is necessary, since we need to know the length before we enumerate the values.
+            RawValue[] rawValuesArray = rawValues.ToArray();
+            byte[] valuesLength = BitConverter.GetBytes(rawValuesArray.Length);
+            IEnumerable<byte> values = RawValue.RawValuesToBytes(rawValuesArray);
 
             return nameLength.Concat(nameArray).Concat(tagsLength).Concat(tagsArray).Concat(valuesLength).Concat(values);
         }
