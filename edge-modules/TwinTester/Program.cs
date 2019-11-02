@@ -150,7 +150,6 @@ namespace TwinTester
             Dictionary<string, DateTime> desiredPropertiesUpdated = await storage.GetAllDesiredPropertiesUpdated();
             Dictionary<string, DateTime> desiredPropertiesReceived = await storage.GetAllDesiredPropertiesReceived();
             Dictionary<string, string> propertiesToRemoveFromTwin = new Dictionary<string, string>();
-
             foreach (KeyValuePair<string, DateTime> desiredPropertyUpdate in desiredPropertiesUpdated)
             {
                 bool doesTwinHaveUpdate = propertyUpdatesFromTwin.Contains(desiredPropertyUpdate.Key);
@@ -191,7 +190,7 @@ namespace TwinTester
                         failureStatus = "Failure receiving desired property update in both twin and callback"; // TODO: add codes
                     }
 
-                    Logger.LogError(failureStatus + $"for update # {desiredPropertyUpdate.Key}");
+                    Logger.LogError(failureStatus + $" for update # {desiredPropertyUpdate.Key}");
                     await CallAnalyzerToReportStatus(analyzerClient, Settings.Current.ModuleId, failureStatus, string.Empty);
 
                     propertiesToRemoveFromTwin.Add(desiredPropertyUpdate.Key, null); // erase twin property by assigning null
@@ -200,9 +199,12 @@ namespace TwinTester
 
             try
             {
-                string patch = $"{{ properties: {{ reported: {JsonConvert.SerializeObject(propertiesToRemoveFromTwin)} }}";
+                string patch = $"{{ properties: {{ desired: {JsonConvert.SerializeObject(propertiesToRemoveFromTwin)} }}";
                 Twin newTwin = await registryManager.UpdateTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId, patch, currentTwinETag);
                 currentTwinETag = newTwin.ETag;
+
+                Logger.LogDebug("Attempting to patch twin: " + JsonConvert.SerializeObject(patch));
+                Logger.LogDebug("New twin received:  " + JsonConvert.SerializeObject(newTwin));
             }
             catch (Exception e)
             {
@@ -284,7 +286,7 @@ namespace TwinTester
         {
             try
             {
-                string desiredPropertyUpdate = new string('*', Settings.Current.TwinUpdateCharCount);
+                string desiredPropertyUpdate = new string('1', Settings.Current.TwinUpdateCharCount);
                 string patch = string.Format("{{ properties: {{ desired: {{ {0}: {1}}} }} }}", desiredPropertyUpdateCounter, desiredPropertyUpdate);
                 Twin newTwin = await registryManager.UpdateTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId, patch, currentTwinETag);
                 currentTwinETag = newTwin.ETag;
@@ -293,6 +295,7 @@ namespace TwinTester
             catch (Exception e)
             {
                 Logger.LogInformation($"Failed call to desired property update: {e}");
+                return;
             }
 
             try
@@ -308,7 +311,7 @@ namespace TwinTester
 
         static async Task PerformReportedPropertyUpdate(ModuleClient moduleClient, AnalyzerClient analyzerClient, Storage storage)
         {
-            string reportedPropertyUpdate = new string('*', Settings.Current.TwinUpdateCharCount);
+            string reportedPropertyUpdate = new string('1', Settings.Current.TwinUpdateCharCount);
             var twin = new TwinCollection();
             twin[reportedPropertyUpdateCounter.ToString()] = reportedPropertyUpdate;
             try
