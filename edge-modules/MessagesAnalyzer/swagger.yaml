@@ -6,13 +6,13 @@ info:
 schemes:
 - "https"
 paths:
-  /api/respponsestatus:
+  /api/twinstatus:
     post:
       tags:
-      - "responseStatus"
-      summary: "Add a new response status"
+      - "twinStatus"
+      summary: "Add a new twin status"
       description: ""
-      operationId: "addResponseStatus"
+      operationId: "addTwinStatus"
       consumes:
       - "application/json"
       produces:
@@ -20,7 +20,28 @@ paths:
       parameters:
       - in: "body"
         name: "body"
-        description: "Response status details"
+        description: "Twin status details"
+        required: true
+        schema:
+          $ref: "#/definitions/ResponseStatus"
+      responses:
+        200:
+          description: "Ok"
+  /api/directmethodstatus:
+    post:
+      tags:
+      - "directMethodStatus"
+      summary: "Add a new direct method status"
+      description: ""
+      operationId: "addDirectMethodStatus"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "Direct method status details"
         required: true
         schema:
           $ref: "#/definitions/ResponseStatus"

@@ -17,7 +17,6 @@ namespace MessagesAnalyzer
 
         public IList<ResponseOrientedReport> DmReport { get; }
         public IList<ResponseOrientedReport> TwinsReport { get; }
-
         public IList<ModuleMessagesReport> MessagesReport { get; }
 
         public override string ToString()

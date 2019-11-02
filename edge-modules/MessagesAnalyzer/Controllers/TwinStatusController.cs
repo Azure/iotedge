@@ -1,18 +1,18 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace MessagesAnalyzer.Controllers
 {
-    using System;
+    using System.Threading.Tasks;
     using Microsoft.AspNetCore.Mvc;
 
     [Route("api/[controller]")]
     [ApiController]
     public class TwinStatusController : Controller
     {
-        // POST api/directmethodstatus
+        // POST api/twinstatus
         [HttpPost]
-        public ActionResult<bool> Post(ResponseStatus twinStatus)
+        public async Task<ActionResult<bool>> Post(ResponseStatus twinStatus)
         {
-            MessagesCache.Instance.AddTwinStatus(twinStatus);
+            await MessagesCacheWithStorage.Instance.AddTwin(twinStatus);
             return true;
         }
     }

@@ -21,6 +21,7 @@ namespace TwinTester
         static long desiredPropertyUpdateCounter = 0;
         static long reportedPropertyUpdateCounter = 0;
 
+        // TODO: add init that resumes from storage
         static async Task Main()
         {
             Logger.LogInformation($"Starting twin tester with the following settings:\r\n{Settings.Current}");
@@ -111,7 +112,7 @@ namespace TwinTester
         {
             try
             {
-                await analyzerClient.AddResponseStatusAsync(new ResponseStatus { ModuleId = moduleId, StatusCode = status, ResultAsJson = responseJson, EnqueuedDateTime = DateTime.UtcNow });
+                await analyzerClient.AddTwinStatusAsync(new ResponseStatus { ModuleId = moduleId, StatusCode = status, ResultAsJson = responseJson, EnqueuedDateTime = DateTime.UtcNow });
             }
             catch (Exception e)
             {
