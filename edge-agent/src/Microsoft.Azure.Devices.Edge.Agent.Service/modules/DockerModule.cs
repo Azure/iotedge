@@ -9,11 +9,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using global::Docker.DotNet;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.DeviceManager;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Extensions.Logging;
 
     public class DockerModule : Module
@@ -100,8 +102,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         var dockerLoggingConfig = c.Resolve<DockerLoggingConfig>();
                         var combinedDockerConfigProvider = c.Resolve<ICombinedConfigProvider<CombinedDockerConfig>>();
                         IConfigSource configSource = await c.Resolve<Task<IConfigSource>>();
-                        var dockerFactory = new DockerCommandFactory(dockerClient, dockerLoggingConfig, configSource, combinedDockerConfigProvider);
-                        return new LoggingCommandFactory(dockerFactory, c.Resolve<ILoggerFactory>()) as ICommandFactory;
+                        ICommandFactory factory = new DockerCommandFactory(dockerClient, dockerLoggingConfig, configSource, combinedDockerConfigProvider);
+                        factory = new MetricsCommandFactory(factory, c.Resolve<IMetricsProvider>());
+                        return new LoggingCommandFactory(factory, c.Resolve<ILoggerFactory>()) as ICommandFactory;
                     })
                 .As<Task<ICommandFactory>>()
                 .SingleInstance();
@@ -120,13 +123,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                     async c =>
                     {
-                        var moduleStateStore = c.Resolve<IEntityStore<string, ModuleState>>();
+                        var moduleStateStore = await c.Resolve<Task<IEntityStore<string, ModuleState>>>();
                         var restartPolicyManager = c.Resolve<IRestartPolicyManager>();
                         IRuntimeInfoProvider runtimeInfoProvider = await c.Resolve<Task<IRuntimeInfoProvider>>();
                         IEnvironmentProvider dockerEnvironmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, moduleStateStore, restartPolicyManager);
                         return dockerEnvironmentProvider;
                     })
                 .As<Task<IEnvironmentProvider>>()
+                .SingleInstance();
+
+            // IDeviceManager
+            builder.Register(c => new NullDeviceManager())
+                .As<IDeviceManager>()
                 .SingleInstance();
         }
     }

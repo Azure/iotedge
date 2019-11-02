@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
         readonly TextWriter originalConsoleWriter;
         readonly TextWriter consoleWriter;
 
-        protected TestConsoleLogger(ITestOutputHelper testOutputHelper)
+        public TestConsoleLogger(ITestOutputHelper testOutputHelper)
         {
             this.testOutputHelper = testOutputHelper;
             this.originalConsoleWriter = Console.Out;

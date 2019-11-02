@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         public DateTime LastRestartTimeUtc { get; }
 
         [JsonProperty(PropertyName = "runtimeStatus")]
-        public ModuleStatus RuntimeStatus { get; }
+        public ModuleStatus RuntimeStatus { get; set; }
 
         public override bool Equals(object obj) => this.Equals(obj as TestModuleBase<TestConfig>);
 

@@ -63,11 +63,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
                 throw new InvalidModuleException($"Kubernetes deployment currently only handles type={typeof(DockerConfig).FullName}");
             }
 
-            // This is a workaround for K8s Public Preview Refresh
-            // TODO: remove this workaround when merging to the main release
-            desired = new ModuleSet(desired.Modules.Remove(Constants.EdgeAgentModuleName));
-            current = new ModuleSet(current.Modules.Remove(Constants.EdgeAgentModuleName));
-
             Diff moduleDifference = desired.Diff(current);
 
             Plan plan;
@@ -76,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners
                 // The "Plan" here is very simple - if we have any change, publish all desired modules to a EdgeDeployment CRD.
                 // The CRD allows us to give the customer a Kubernetes-centric way to see the deployment
                 // and the status of that deployment through the "edgedeployments" API.
-                var crdCommand = new EdgeDeploymentCommand(this.deviceNamespace, this.resourceName, this.client, desired.Modules.Values, runtimeInfo, this.configProvider);
+                var crdCommand = new EdgeDeploymentCommand(this.deviceNamespace, this.resourceName, this.client, desired.Modules.Values, current, runtimeInfo, this.configProvider);
                 var planCommand = await this.commandFactory.WrapAsync(crdCommand);
                 var planList = new List<ICommand>
                 {

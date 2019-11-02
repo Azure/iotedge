@@ -12,6 +12,7 @@
     <OutputType>Exe</OutputType>
     <LangVersion>latest</LangVersion>
     <Configurations>Debug;Release;CheckInBuild</Configurations>
+    <HighEntropyVA>true</HighEntropyVA>
   </PropertyGroup>
 
   <ItemGroup>

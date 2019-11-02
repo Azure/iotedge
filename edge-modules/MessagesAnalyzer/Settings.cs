@@ -16,11 +16,11 @@ namespace MessagesAnalyzer
         const string ToleranceInMillisecondsPropertyName = "ToleranceInMilliseconds";
         const string StoragePathPropertyName = "StoragePath";
         const string OptimizeForPerformancePropertyName = "StorageOptimizeForPerformance";
-        const string DefaultDeviceId = "device1";
         const string DefaultConsumerGroupId = "$Default";
         const string DefaultWebhostPort = "5001";
         const double DefaultToleranceInMilliseconds = 1000 * 60;
         const string DefaultStoragePath = "";
+        static readonly string DefaultDeviceId = Environment.GetEnvironmentVariable("IOTEDGE_DEVICEID");
 
         static readonly Lazy<Settings> Setting = new Lazy<Settings>(
             () =>

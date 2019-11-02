@@ -12,8 +12,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
     [Integration]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
-    public class TwinDiffE2ETest : IClassFixture<ProtocolHeadFixture>
+    public class TwinDiffE2ETest : EdgeHubTest
     {
+        public TwinDiffE2ETest(EdgeHubFixture edgeHubFixture)
+            : base(edgeHubFixture)
+        {
+        }
+
         const string DeviceNamePrefix = "E2E_twin_";
 
         [Theory]
