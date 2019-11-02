@@ -277,8 +277,8 @@
               "EventHubConnectionString": {
                 "value": "<Analyzer.EventHubConnectionString>"
               },
-              "DeviceId": {
-                "value": "<Analyzer.DeviceID>"
+              "ConsumerGroupId": {
+                "value": "<Analyzer.ConsumerGroupId>"
               }
             },
             "settings": {

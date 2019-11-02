@@ -358,6 +358,11 @@ function process_args() {
         elif [ $saveNextArg -eq 29 ]; then
             DPS_MASTER_SYMMETRIC_KEY="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 30 ]; then
+            DESIRED_MODULES_TO_RESTART_CSV="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 31 ]; then
+            RESTART_INTERVAL_IN_MINS="$arg"
         elif [ $saveNextArg -eq 36 ]; then
             TWIN_UPDATE_SIZE="$arg"
             saveNextArg=0;
@@ -645,8 +650,6 @@ function run_longhaul_test() {
 
     local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-longhaul"
 
-    sed -i -e "s@<Analyzer.DeviceID>@$device_id@g" "$deployment_working_file"
-
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run Long Haul test with -d '$device_id' started at $test_start_time"
 
@@ -722,8 +725,6 @@ function run_stress_test() {
     test_setup
 
     local device_id="$RELEASE_LABEL-Linux-$image_architecture_label-stress"
-
-    sed -i -e "s@<Analyzer.DeviceID>@$device_id@g" "$deployment_working_file"
 
     test_start_time="$(date '+%Y-%m-%d %H:%M:%S')"
     print_highlighted_message "Run Stress test with -d '$device_id' started at $test_start_time"
@@ -1021,7 +1022,9 @@ TRANSPORT_TYPE_3="${TRANSPORT_TYPE_3:-mqtt}"
 TRANSPORT_TYPE_4="${TRANSPORT_TYPE_4:-mqtt}"
 TWIN_UPDATE_FAILURE_THRESHOLD="${TWIN_UPDATE_FAILURE_THRESHOLD:-00:01:00}"
 if [[ "${TEST_NAME,,}" == "longhaul" ]]; then
+    DESIRED_MODULES_TO_RESTART_CSV="${DESIRED_MODULES_TO_RESTART_CSV:-,}"
     LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:01}"
+    RESTART_INTERVAL_IN_MINS="${RESTART_INTERVAL_IN_MINS:-10}"
     SNITCH_REPORTING_INTERVAL_IN_SECS="${SNITCH_REPORTING_INTERVAL_IN_SECS:-86400}"
     SNITCH_TEST_DURATION_IN_SECS="${SNITCH_TEST_DURATION_IN_SECS:-604800}"
     TWIN_UPDATE_SIZE="${TWIN_UPDATE_SIZE:-1}"
