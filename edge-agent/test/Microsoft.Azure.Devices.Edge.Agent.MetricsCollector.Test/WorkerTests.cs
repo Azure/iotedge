@@ -31,8 +31,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
 
             var uploader = new Mock<IMetricsUpload>();
 
-            Worker worker = new Worker(scraper.Object, storage.Object, uploader.Object);
-            MethodInfo methodInfo = typeof(Worker).GetMethod("Scrape", BindingFlags.NonPublic | BindingFlags.Instance);
+            MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
+            MethodInfo methodInfo = typeof(MetricsWorker).GetMethod("Scrape", BindingFlags.NonPublic | BindingFlags.Instance);
             object[] parameters = { CancellationToken.None };
             Task Scape()
             {
@@ -85,8 +85,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
             IEnumerable<Metric> uploadedData = Enumerable.Empty<Metric>();
             uploader.Setup(u => u.UploadAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Callback((Action<IEnumerable<Metric>, CancellationToken>)((data, __) => uploadedData = data)).Returns(Task.CompletedTask);
 
-            Worker worker = new Worker(scraper.Object, storage.Object, uploader.Object);
-            MethodInfo methodInfo = typeof(Worker).GetMethod("Upload", BindingFlags.NonPublic | BindingFlags.Instance);
+            MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
+            MethodInfo methodInfo = typeof(MetricsWorker).GetMethod("Upload", BindingFlags.NonPublic | BindingFlags.Instance);
             object[] parameters = { CancellationToken.None };
             Task Upload()
             {
@@ -118,8 +118,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
             IEnumerable<Metric> uploadedData = Enumerable.Empty<Metric>();
             uploader.Setup(u => u.UploadAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Callback((Action<IEnumerable<Metric>, CancellationToken>)((d, _) => uploadedData = d)).Returns(Task.CompletedTask);
 
-            Worker worker = new Worker(scraper.Object, storage.Object, uploader.Object);
-            MethodInfo methodInfo = typeof(Worker).GetMethod("Upload", BindingFlags.NonPublic | BindingFlags.Instance);
+            MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
+            MethodInfo methodInfo = typeof(MetricsWorker).GetMethod("Upload", BindingFlags.NonPublic | BindingFlags.Instance);
             object[] parameters = { CancellationToken.None };
             Task Upload()
             {
@@ -156,8 +156,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
             IEnumerable<Metric> uploadedData = Enumerable.Empty<Metric>();
             uploader.Setup(u => u.UploadAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Callback((Action<IEnumerable<Metric>, CancellationToken>)((d, _) => uploadedData = d)).Returns(Task.CompletedTask);
 
-            Worker worker = new Worker(scraper.Object, storage.Object, uploader.Object);
-            MethodInfo methodInfo = typeof(Worker).GetMethod("Upload", BindingFlags.NonPublic | BindingFlags.Instance);
+            MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
+            MethodInfo methodInfo = typeof(MetricsWorker).GetMethod("Upload", BindingFlags.NonPublic | BindingFlags.Instance);
             object[] parameters = { CancellationToken.None };
             Task Upload()
             {
@@ -196,9 +196,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
             IEnumerable<Metric> uploadedData = Enumerable.Empty<Metric>();
             uploader.Setup(u => u.UploadAsync(It.IsAny<IEnumerable<Metric>>(), ct)).Callback((Action<IEnumerable<Metric>, CancellationToken>)((d, _) => uploadedData = d)).Returns(Task.CompletedTask);
 
-            Worker worker = new Worker(scraper.Object, storage, uploader.Object, systemTime.Object);
-            MethodInfo methodInfoScrape = typeof(Worker).GetMethod("Scrape", BindingFlags.NonPublic | BindingFlags.Instance);
-            MethodInfo methodInfoUpload = typeof(Worker).GetMethod("Upload", BindingFlags.NonPublic | BindingFlags.Instance);
+            MetricsWorker worker = new MetricsWorker(scraper.Object, storage, uploader.Object, systemTime.Object);
+            MethodInfo methodInfoScrape = typeof(MetricsWorker).GetMethod("Scrape", BindingFlags.NonPublic | BindingFlags.Instance);
+            MethodInfo methodInfoUpload = typeof(MetricsWorker).GetMethod("Upload", BindingFlags.NonPublic | BindingFlags.Instance);
             object[] parameters = { ct };
             Task Scape()
             {
@@ -273,9 +273,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
             var uploader = new Mock<IMetricsUpload>();
             uploader.Setup(u => u.UploadAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Returns(async () => await uploadTaskSource.Task);
 
-            Worker worker = new Worker(scraper.Object, storage.Object, uploader.Object);
-            MethodInfo methodInfoScrape = typeof(Worker).GetMethod("Scrape", BindingFlags.NonPublic | BindingFlags.Instance);
-            MethodInfo methodInfoUpload = typeof(Worker).GetMethod("Upload", BindingFlags.NonPublic | BindingFlags.Instance);
+            MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
+            MethodInfo methodInfoScrape = typeof(MetricsWorker).GetMethod("Scrape", BindingFlags.NonPublic | BindingFlags.Instance);
+            MethodInfo methodInfoUpload = typeof(MetricsWorker).GetMethod("Upload", BindingFlags.NonPublic | BindingFlags.Instance);
             object[] parameters = { CancellationToken.None };
             Task Scape()
             {

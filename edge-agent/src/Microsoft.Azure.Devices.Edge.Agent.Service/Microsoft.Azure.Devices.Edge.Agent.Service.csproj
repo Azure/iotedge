@@ -40,6 +40,7 @@
     <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Agent.Edgelet\Microsoft.Azure.Devices.Edge.Agent.Edgelet.csproj" />
     <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Agent.IoTHub\Microsoft.Azure.Devices.Edge.Agent.IoTHub.csproj" />
     <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Agent.Kubernetes\Microsoft.Azure.Devices.Edge.Agent.Kubernetes.csproj" />
+    <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Agent.MetricsCollector\Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="../../docker*/**/*.*" CopyToPublishDirectory="Always">

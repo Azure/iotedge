@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class Worker
+    public class MetricsWorker
     {
         readonly IScraper scraper;
         readonly IFileStorage storage;
@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
         DateTime lastUploadTime = DateTime.MinValue;
         Dictionary<int, Metric> metrics = new Dictionary<int, Metric>();
 
-        public Worker(IScraper scraper, IFileStorage storage, IMetricsUpload uploader, ISystemTime systemTime = null)
+        public MetricsWorker(IScraper scraper, IFileStorage storage, IMetricsUpload uploader, ISystemTime systemTime = null)
         {
             this.scraper = scraper;
             this.storage = storage;

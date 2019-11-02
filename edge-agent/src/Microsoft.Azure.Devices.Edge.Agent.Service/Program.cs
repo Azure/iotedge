@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service;
+    using Microsoft.Azure.Devices.Edge.Agent.MetricsCollector;
     using Microsoft.Azure.Devices.Edge.Agent.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -145,9 +146,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         IotHubConnectionStringBuilder connectionStringParser = IotHubConnectionStringBuilder.Create(deviceConnectionString);
                         deviceId = connectionStringParser.DeviceId;
                         iothubHostname = connectionStringParser.HostName;
-                        builder.RegisterInstance(metricsConfig.Enabled
-                                 ? new MetricsProvider("edgeagent", iothubHostname, deviceId)
-                                 : new NullMetricsProvider() as IMetricsProvider);
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, enableNonPersistentStorageBackup, storageBackupPath));
                         builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout));
                         break;
@@ -160,9 +158,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         string moduleId = configuration.GetValue(Constants.ModuleIdVariableName, Constants.EdgeAgentModuleIdentityName);
                         string moduleGenerationId = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
                         string apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
-                        builder.RegisterInstance(metricsConfig.Enabled
-                                 ? new MetricsProvider("edgeagent", iothubHostname, deviceId)
-                                 : new NullMetricsProvider() as IMetricsProvider);
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), enableNonPersistentStorageBackup, storageBackupPath));
                         builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, new Uri(managementUri), new Uri(workloadUri), apiVersion, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout));
                         break;
@@ -191,9 +186,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         string deviceNamespace = configuration.GetValue<string>(K8sConstants.K8sNamespaceKey);
                         var kubernetesExperimentalFeatures = KubernetesExperimentalFeatures.Create(configuration.GetSection("experimentalFeatures"), logger);
 
-                        builder.RegisterInstance(metricsConfig.Enabled
-                                 ? new MetricsProvider("edgeagent", iothubHostname, deviceId)
-                                 : new NullMetricsProvider() as IMetricsProvider);
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), enableNonPersistentStorageBackup, storageBackupPath));
                         builder.RegisterModule(new KubernetesModule(
                             iothubHostname,
@@ -257,6 +249,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         throw new InvalidOperationException($"ConfigSource '{configSourceConfig}' not supported.");
                 }
 
+                builder.RegisterModule(new MetricsCollectorModule(storagePath));
+                builder.RegisterInstance(metricsConfig.Enabled
+                                 ? new MetricsProvider("edgeagent", iothubHostname, deviceId)
+                                 : new NullMetricsProvider() as IMetricsProvider);
+
                 container = builder.Build();
             }
             catch (Exception ex)
@@ -309,6 +306,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             // Initialize stream request listener
             IStreamRequestListener streamRequestListener = await container.Resolve<Task<IStreamRequestListener>>();
             streamRequestListener.InitPump();
+
+            MetricsWorker worker = container.Resolve<MetricsWorker>();
+            Task metricsScraper = worker.Start();
 
             int returnCode;
             using (IConfigSource unused = await container.Resolve<Task<IConfigSource>>())
