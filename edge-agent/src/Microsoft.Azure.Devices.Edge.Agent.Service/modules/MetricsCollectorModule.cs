@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 .SingleInstance();
 
             // IMetricsUpload
-            builder.Register(c => new StdoutUploader())
+            builder.Register(c => new FileUploader())
                 .As<IMetricsUpload>()
                 .SingleInstance();
 
