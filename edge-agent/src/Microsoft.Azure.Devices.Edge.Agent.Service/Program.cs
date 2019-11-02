@@ -308,7 +308,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             streamRequestListener.InitPump();
 
             MetricsWorker worker = container.Resolve<MetricsWorker>();
-            Task metricsScraper = worker.Start();
+            TimeSpan scrapeInterval = configuration.GetValue<TimeSpan>("metric_scrape_interval");
+            TimeSpan uploadInterval = configuration.GetValue<TimeSpan>("metric_upload_interval");
+            Task metricsScraperTask = worker.Start(scrapeInterval, uploadInterval, cts.Token);
 
             int returnCode;
             using (IConfigSource unused = await container.Resolve<Task<IConfigSource>>())
@@ -352,6 +354,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 // Attempt to report shutdown of Agent
                 await Cleanup(agentOption, logger);
                 await CloseDbStoreProviderAsync(container);
+
+                try
+                {
+                    await metricsScraperTask;
+                }
+                catch (OperationCanceledException)
+                {
+                }
+
                 completed.Set();
             }
 
