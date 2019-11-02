@@ -52,9 +52,6 @@
               },
               "transportType": {
                 "value": "amqp"
-              },
-              "ServiceClientConnectionString": {
-                "value": "<ServiceClientConnectionString>"
               }
             },
             "settings": {
@@ -73,15 +70,39 @@
               },
               "transportType": {
                 "value": "mqtt"
-              },
-              "ServiceClientConnectionString": {
-                "value": "<ServiceClientConnectionString>"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": ""
             }
+          },
+          "twinTester": {
+            "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-windows-<Architecture>",
+                "createOptions": ""
+            },
+            "type": "docker",
+            "version": "1.0",
+            "env": {
+                "TransportType": {
+                    "value": "mqtt"
+                },
+                "ServiceClientConnectionString": {
+                    "value": "<ServiceClientConnectionString>"
+                },
+                "TwinUpdateCharCount": {
+                    "value": "<TwinTester.TwinUpdateCharCount>"
+                },
+                "TwinUpdateFrequency": {
+                    "value": "<TwinTester.TwinUpdateFrequency>"
+                },
+                "TwinUpdateFailureThreshold": {
+                    "value": "<TwinTester.TwinUpdateFailureThreshold>"
+                }
+            },
+            "status": "running",
+            "restartPolicy": "always"
           },
           "tempSensor": {
             "version": "1.0",

@@ -4,6 +4,5 @@
   "jitterFactor": 0.5,
   "transportType": "amqp",
   "messageSizeInBytes": 1024,
-  "outputName": "output1",
-  "serviceClientConnectionString": ""
+  "outputName": "output1"
 }

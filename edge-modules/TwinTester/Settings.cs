@@ -24,13 +24,13 @@ namespace TwinTester
                 return new Settings(
                     configuration.GetValue<string>("IOTEDGE_DEVICEID", string.Empty),
                     configuration.GetValue<string>("IOTEDGE_MODULEID", string.Empty),
-                    configuration.GetValue<double>("jitterFactor", 0),
-                    configuration.GetValue<int>("twinUpdateCharCount", 1),
-                    configuration.GetValue<TimeSpan>("twinUpdateFrequency", TimeSpan.FromMilliseconds(500)),
-                    configuration.GetValue<TimeSpan>("twinUpdateFailureThreshold", TimeSpan.FromMinutes(1)), // TODO: tune
-                    configuration.GetValue<TransportType>("transportType", TransportType.Amqp_Tcp_Only),
-                    configuration.GetValue<string>("analyzerUrl", "http://analyzer:15000"),
-                    configuration.GetValue<string>("serviceClientConnectionString", string.Empty),
+                    configuration.GetValue<double>("JitterFactor", 0),
+                    configuration.GetValue<int>("TwinUpdateCharCount", 1),
+                    configuration.GetValue<TimeSpan>("TwinUpdateFrequency", TimeSpan.FromMilliseconds(500)),
+                    configuration.GetValue<TimeSpan>("TwinUpdateFailureThreshold", TimeSpan.FromMinutes(1)), // TODO: tune
+                    configuration.GetValue<TransportType>("TransportType", TransportType.Amqp_Tcp_Only),
+                    configuration.GetValue<string>("AnalyzerUrl", "http://analyzer:15000"),
+                    configuration.GetValue<string>("ServiceClientConnectionString", string.Empty),
                     configuration.GetValue<string>("StoragePath", string.Empty),
                     configuration.GetValue<bool>("StorageOptimizeForPerformance", true));
             });

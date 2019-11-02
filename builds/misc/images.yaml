@@ -104,6 +104,13 @@ jobs:
         inputs:
            filePath: scripts/linux/buildImage.sh
            arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-module-restarter -n microsoft -P ModuleRestarter --target-arch aarch64
+
+      # Twin Tester - Not Using Template for ARM64 because we have 2 different .NET Core.
+      - task: Bash@3
+        displayName: Build Image - Twin Tester - aarch64
+        inputs:
+           filePath: scripts/linux/buildImage.sh
+           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-twin-tester -n microsoft -P TwinTester --target-arch aarch64
            
           
 ################################################################################
@@ -207,6 +214,13 @@ jobs:
           name: Module Restarter
           imageName: azureiotedge-module-restarter
           project: ModuleRestarter
+
+     # Twin Tester
+      - template: templates/image-linux.yaml
+        parameters:
+          name: TwinTester
+          imageName: azureiotedge-twin-tester
+          project: TwinTester
 
 ################################################################################
 # linux - Rust amd64
@@ -353,6 +367,13 @@ jobs:
           name: Module Restarter
           imageName: azureiotedge-module-restarter
           project: ModuleRestarter
+
+     # Twin Tester
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Twin Tester
+          imageName: azureiotedge-twin-tester
+          project: TwinTester
 
       - powershell: docker system prune -a -f
         displayName: Clean Machine
