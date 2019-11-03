@@ -1,7 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
+  <PropertyGroup Condition="'$(DotNet_Runtime)' != 'netcoreapp3.0'">
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(OS)|$(DotNet_Runtime)' == 'Unix|netcoreapp3.0'">
     <TargetFramework>netcoreapp3.0</TargetFramework>
+  </PropertyGroup>
+  
+  <PropertyGroup>
     <OutputType>Exe</OutputType>
     <RootNamespace>TwinTester</RootNamespace>
     <LangVersion>latest</LangVersion>
@@ -26,7 +33,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
     <ProjectReference Include="..\ModuleLib\Microsoft.Azure.Devices.Edge.ModuleUtil.csproj" />
   </ItemGroup>
 
