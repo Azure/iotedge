@@ -86,7 +86,7 @@
             "version": "1.0",
             "env": {
                 "TransportType": {
-                    "value": "mqtt"
+                    "value": "amqp"
                 },
                 "ServiceClientConnectionString": {
                     "value": "<ServiceClientConnectionString>"
@@ -113,7 +113,7 @@
             "version": "1.0",
             "env": {
                 "TransportType": {
-                    "value": "amqp"
+                    "value": "mqtt"
                 },
                 "ServiceClientConnectionString": {
                     "value": "<ServiceClientConnectionString>"
