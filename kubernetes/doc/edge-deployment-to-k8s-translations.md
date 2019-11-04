@@ -1,8 +1,8 @@
 # Conversion of Edge Deployment ModuleSpec to Kubernetes Deployments.
 
-Azure IoT Edge on Kuberenetes project will take an existing Azure IoT Edge application that is 
+Azure IoT Edge on Kubernetes project will take an existing Azure IoT Edge application that is 
 running on a single device and install that application into a Kubernetes cluster.  The expectation 
-is that these applications will "just work," regarless of where it is installed.  In order to do 
+is that these applications will "just work," regardless of where it is installed.  In order to do 
 that, the Edge on K8s project has to transform the edge deployment into Kubernetes objects which 
 will provide the framework for modules to communicate with other modules.
 
@@ -141,7 +141,7 @@ contain the following fields:
 ## PersistentVolumeClaim
 
 Persistent volume claims are created when a docker volume is requested (all volume mounts from 
-`settings.createOptions.HostConfig.Mounts`), the peristent volume claim has not been created by the 
+`settings.createOptions.HostConfig.Mounts`), the persistent volume claim has not been created by the 
 user, and the runtime has been set to expect to use persistent volumes.
 
 The runtime is set to expect PVs by assigning `persistentVolumeName` or `storageClassName` at 
