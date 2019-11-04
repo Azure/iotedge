@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -28,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         readonly AsyncLock reconcileLock = new AsyncLock();
         readonly ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde;
         readonly IEncryptionProvider encryptionProvider;
+        readonly IAvailabilityMetric availabilityMetric;
         IEnvironment environment;
         DeploymentConfigInfo currentConfig;
 
@@ -41,7 +43,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             IEntityStore<string, string> configStore,
             DeploymentConfigInfo initialDeployedConfigInfo,
             ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde,
-            IEncryptionProvider encryptionProvider)
+            IEncryptionProvider encryptionProvider,
+            IAvailabilityMetric availabilityMetric)
         {
             this.configSource = Preconditions.CheckNotNull(configSource, nameof(configSource));
             this.planner = Preconditions.CheckNotNull(planner, nameof(planner));
@@ -54,6 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             this.deploymentConfigInfoSerde = Preconditions.CheckNotNull(deploymentConfigInfoSerde, nameof(deploymentConfigInfoSerde));
             this.environment = this.environmentProvider.Create(this.currentConfig.DeploymentConfig);
             this.encryptionProvider = Preconditions.CheckNotNull(encryptionProvider, nameof(encryptionProvider));
+            this.availabilityMetric = Preconditions.CheckNotNull(availabilityMetric, nameof(availabilityMetric));
             Events.AgentCreated();
         }
 
@@ -66,7 +70,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
             IEnvironmentProvider environmentProvider,
             IEntityStore<string, string> configStore,
             ISerde<DeploymentConfigInfo> deploymentConfigInfoSerde,
-            IEncryptionProvider encryptionProvider)
+            IEncryptionProvider encryptionProvider,
+            IAvailabilityMetric availabilityMetric)
         {
             Preconditions.CheckNotNull(deploymentConfigInfoSerde, nameof(deploymentConfigInfoSerde));
             Preconditions.CheckNotNull(configStore, nameof(configStore));
@@ -97,7 +102,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                 configStore,
                 deploymentConfigInfo.GetOrElse(DeploymentConfigInfo.Empty),
                 deploymentConfigInfoSerde,
-                encryptionProvider);
+                encryptionProvider,
+                availabilityMetric);
             return agent;
         }
 
@@ -125,6 +131,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                     else
                     {
                         ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
+                        this.availabilityMetric.ComputeAvailability(desiredModuleSet, current);
+
                         // TODO - Update this logic to create identities only when needed, in the Command factory, instead of creating all the identities
                         // up front here. That will allow handling the case when only the state of the system has changed (say one module crashes), and
                         // no new identities need to be created. This will simplify the logic to allow EdgeAgent to work when offline.
