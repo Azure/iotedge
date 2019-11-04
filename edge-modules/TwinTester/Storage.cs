@@ -58,21 +58,21 @@ namespace TwinTester
             return storagePath;
         }
 
-        public async Task<bool> AddDesiredPropertyUpdate(string desiredPropertyUpdateId, DateTime desiredPropertyUpdateTime)
+        public async Task<bool> AddDesiredPropertyUpdate(string desiredPropertyUpdateId)
         {
-            await this.desiredPropertyUpdateCache.Put(desiredPropertyUpdateId, desiredPropertyUpdateTime);
+            await this.desiredPropertyUpdateCache.Put(desiredPropertyUpdateId, DateTime.UtcNow);
             return true;
         }
 
-        public async Task<bool> AddDesiredPropertyReceived(string desiredPropertyReceivedId, DateTime desiredPropertyReceivedTime)
+        public async Task<bool> AddDesiredPropertyReceived(string desiredPropertyReceivedId)
         {
-            await this.desiredPropertyReceivedCache.Put(desiredPropertyReceivedId, desiredPropertyReceivedTime);
+            await this.desiredPropertyReceivedCache.Put(desiredPropertyReceivedId, DateTime.UtcNow);
             return true;
         }
 
-        public async Task<bool> AddReportedPropertyUpdate(string reportedPropertyUpdateId, DateTime reportedPropertyUpdateTime)
+        public async Task<bool> AddReportedPropertyUpdate(string reportedPropertyUpdateId)
         {
-            await this.reportedPropertyUpdateCache.Put(reportedPropertyUpdateId, reportedPropertyUpdateTime);
+            await this.reportedPropertyUpdateCache.Put(reportedPropertyUpdateId, DateTime.UtcNow);
             return true;
         }
 
