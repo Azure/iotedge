@@ -90,6 +90,9 @@ jobs:
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           analyzer.consumerGroupId: 'stress_linux_amd64'
+          twinTester.twinUpdateCharCount: '$(twinTester.twinUpdateCharCount)'
+          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
+          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
 
 ################################################################################
   - job: linux_arm32v7_moby
@@ -156,6 +159,9 @@ jobs:
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: $(loadGen.message.frequency.arm32v7)
           analyzer.consumerGroupId: 'stress_linux_arm32v7'
+          twinTester.twinUpdateCharCount: '$(twinTester.twinUpdateCharCount)'
+          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
+          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
 
 ################################################################################
   - job: linux_arm64v8_docker
@@ -222,6 +228,9 @@ jobs:
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: $(loadGen.message.frequency.arm64v8)
           analyzer.consumerGroupId: 'stress_linux_arm64v8'
+          twinTester.twinUpdateCharCount: '$(twinTester.twinUpdateCharCount)'
+          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
+          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
 
 ################################################################################
   - job: windows_amd64_moby
@@ -290,6 +299,9 @@ jobs:
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           analyzer.consumerGroupId: 'stress_windows_amd64'
+          twinTester.twinUpdateCharCount: '$(twinTester.twinUpdateCharCount)'
+          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
+          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
 
 ################################################################################
   - job: windows_servercore_amd64_moby
@@ -358,6 +370,9 @@ jobs:
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           analyzer.consumerGroupId: 'stress_windows_servercore_amd64'
+          twinTester.twinUpdateCharCount: '$(twinTester.twinUpdateCharCount)'
+          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
+          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
 
 ################################################################################
   - job: iotuap_amd64_moby
@@ -425,3 +440,6 @@ jobs:
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           analyzer.consumerGroupId: 'stress_iotuap_amd64'
+          twinTester.twinUpdateCharCount: '$(twinTester.twinUpdateCharCount)'
+          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
+          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
