@@ -303,15 +303,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
 
         V1Volume GetVolume(KubernetesModule module, Mount mount)
         {
-            string name = KubeUtils.SanitizeK8sValue(mount.Source);
+            string volumeName = KubeUtils.SanitizeK8sValue(mount.Source);
             string pvcName = KubernetesModule.PvcName(module, mount);
 
             // PVC name will be modulename + volume name
             // Volume name will be customer defined name or modulename + mount.source
             if (this.persistentVolumeName.HasValue)
             {
-                this.persistentVolumeName.ForEach(volumeName => name = volumeName);
-                return new V1Volume(name, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(pvcName, mount.ReadOnly));
+                this.persistentVolumeName.ForEach(pvVolumeName => volumeName = pvVolumeName);
+                return new V1Volume(volumeName, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(pvcName, mount.ReadOnly));
             }
             else if (this.storageClassName.HasValue)
             {
@@ -319,7 +319,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             }
             else
             {
-                return new V1Volume(name, emptyDir: new V1EmptyDirVolumeSource());
+                return new V1Volume(volumeName, emptyDir: new V1EmptyDirVolumeSource());
             }
         }
     }
