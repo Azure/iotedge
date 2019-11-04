@@ -56,6 +56,11 @@ fn spec_to_podspec(
         })
         .collect();
 
+    let proxy_pull_secret = settings
+        .proxy()
+        .auth()
+        .and_then(|auth| ImagePullSecret::from_auth(auth).and_then(|secret| secret.name()));
+
     if EDGE_EDGE_AGENT_NAME == module_label_value {
         env_vars.push(env(EDGE_NETWORK_ID_KEY, ""));
         env_vars.push(env(NAMESPACE_KEY, settings.namespace()));
@@ -78,6 +83,10 @@ fn spec_to_podspec(
             PROXY_TRUST_BUNDLE_PATH_KEY,
             settings.proxy().trust_bundle_path(),
         ));
+
+        if let Some(proxy_pull_secret) = &proxy_pull_secret {
+            env_vars.push(env(PROXY_IMAGE_PULL_SECRET_NAME_KEY, proxy_pull_secret))
+        }
     }
 
     // Bind/volume mounts
@@ -233,16 +242,16 @@ fn spec_to_podspec(
         }
     };
 
-    //pull secrets
-    let image_pull_secrets = spec
+    let module_pull_secret = spec
         .config()
         .auth()
-        .and_then(|auth| ImagePullSecret::from_auth(&auth))
-        .map(|image_pull_secret| {
-            vec![api_core::LocalObjectReference {
-                name: image_pull_secret.name(),
-            }]
-        });
+        .and_then(|auth| ImagePullSecret::from_auth(&auth).and_then(|secret| secret.name()));
+
+    //pull secrets
+    let image_pull_secrets = vec![proxy_pull_secret, module_pull_secret]
+        .into_iter()
+        .filter_map(|name| name.map(|name| api_core::LocalObjectReference { name: Some(name) }))
+        .collect::<Vec<_>>();
 
     Ok(api_core::PodSpec {
         containers: vec![
@@ -266,7 +275,11 @@ fn spec_to_podspec(
                 ..api_core::Container::default()
             },
         ],
-        image_pull_secrets,
+        image_pull_secrets: if image_pull_secrets.is_empty() {
+            None
+        } else {
+            Some(image_pull_secrets)
+        },
         service_account_name: Some(module_label_value),
         volumes: Some(volumes),
         ..api_core::PodSpec::default()
@@ -618,6 +631,13 @@ mod tests {
                 }
                 assert_eq!(podspec.service_account_name.as_ref().unwrap(), "edgeagent");
                 assert!(podspec.image_pull_secrets.is_some());
+                if let Some(image_pull_secrets) = &podspec.image_pull_secrets {
+                    assert_eq!(image_pull_secrets.len(), 1);
+                    assert_eq!(
+                        image_pull_secrets[0].name,
+                        Some("username-registry".to_string())
+                    );
+                }
                 // 4 bind mounts, 2 volume mounts, 1 proxy configmap, 1 trust bundle configmap
                 assert_eq!(podspec.volumes.as_ref().map(Vec::len).unwrap(), 8);
             }
