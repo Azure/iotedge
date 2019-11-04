@@ -87,10 +87,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
                     }
                 }
 
+                Console.WriteLine($"{DateTime.UtcNow}Scraped Metrics");
+
                 if (metricsToPersist.Count != 0)
                 {
                     Console.WriteLine($"{DateTime.UtcNow}Storing metrics");
                     this.storage.AddScrapeResult(Newtonsoft.Json.JsonConvert.SerializeObject(metricsToPersist));
+                    Console.WriteLine($"{DateTime.UtcNow}Stored metrics");
                 }
             }
         }

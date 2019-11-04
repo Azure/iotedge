@@ -9,12 +9,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     {
         public ExperimentalFeatures(bool enabled, bool disableCloudSubscriptions, bool enableUploadLogs, bool enableGetLogs, bool enableMetrics, bool enableMetricsUpload)
         {
-            Enabled = enabled;
-            DisableCloudSubscriptions = disableCloudSubscriptions;
-            EnableUploadLogs = enableUploadLogs;
-            EnableGetLogs = enableGetLogs;
-            EnableMetrics = enableMetrics;
-            EnableMetricsUpload = enableMetricsUpload;
+            this.Enabled = enabled;
+            this.DisableCloudSubscriptions = disableCloudSubscriptions;
+            this.EnableUploadLogs = enableUploadLogs;
+            this.EnableGetLogs = enableGetLogs;
+            this.EnableMetrics = enableMetrics;
+            this.EnableMetricsUpload = enableMetricsUpload;
         }
 
         public static ExperimentalFeatures Create(IConfiguration experimentalFeaturesConfig, ILogger logger)

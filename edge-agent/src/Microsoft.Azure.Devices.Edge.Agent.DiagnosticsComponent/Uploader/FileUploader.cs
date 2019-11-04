@@ -13,9 +13,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
     {
         public async Task UploadAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
         {
-            using (FileStream file = File.OpenWrite("MetricsUpload"))
+            using (FileStream file = File.Open(@"/shared/MetricsUpload.txt", FileMode.Append))
             {
-                byte[] buffer = Encoding.UTF8.GetBytes($"\n\n\n{DateTime.UtcNow}New Upload");
+                Console.WriteLine("Writing to file");
+                byte[] buffer = Encoding.UTF8.GetBytes($"\n\n\nNew Upload: {DateTime.UtcNow}");
                 await file.WriteAsync(buffer, 0, buffer.Length, cancellationToken);
                 foreach (Metric metric in metrics)
                 {
