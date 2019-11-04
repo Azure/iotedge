@@ -77,7 +77,7 @@
               "createOptions": ""
             }
           },
-          "twinTester": {
+          "twinTester1": {
             "settings": {
                 "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-windows-<Architecture>",
                 "createOptions": ""
@@ -92,13 +92,13 @@
                     "value": "<ServiceClientConnectionString>"
                 },
                 "TwinUpdateCharCount": {
-                    "value": "<TwinTester.TwinUpdateCharCount>"
+                    "value": "<TwinUpdateCharCount>"
                 },
                 "TwinUpdateFrequency": {
-                    "value": "<TwinTester.TwinUpdateFrequency>"
+                    "value": "<TwinUpdateFrequency>"
                 },
                 "TwinUpdateFailureThreshold": {
-                    "value": "<TwinTester.TwinUpdateFailureThreshold>"
+                    "value": "<TwinUpdateFailureThreshold>"
                 }
             },
             "status": "running",
@@ -113,19 +113,19 @@
             "version": "1.0",
             "env": {
                 "TransportType": {
-                    "value": "mqtt"
+                    "value": "amqp"
                 },
                 "ServiceClientConnectionString": {
                     "value": "<ServiceClientConnectionString>"
                 },
                 "TwinUpdateCharCount": {
-                    "value": "<TwinTester.TwinUpdateCharCount>"
+                    "value": "<TwinUpdateCharCount>"
                 },
                 "TwinUpdateFrequency": {
-                    "value": "<TwinTester.TwinUpdateFrequency>"
+                    "value": "<TwinUpdateFrequency>"
                 },
                 "TwinUpdateFailureThreshold": {
-                    "value": "<TwinTester.TwinUpdateFailureThreshold>"
+                    "value": "<TwinUpdateFailureThreshold>"
                 }
             },
             "status": "running",

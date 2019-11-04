@@ -75,6 +75,7 @@ namespace TwinTester
 
         static async Task<string> InitializeModuleTwin(RegistryManager registryManager, ModuleClient moduleClient, Storage storage)
         {
+            int waitPeriodInMs = 1000 * 5;
             while (true)
             {
                 try
@@ -92,7 +93,7 @@ namespace TwinTester
                         TwinCollection eraseReportedProperties = GetReportedPropertiesResetTwin(moduleClient, desiredPropertyResetTwin);
                         await moduleClient.UpdateReportedPropertiesAsync(eraseReportedProperties);
 
-                        await Task.Delay(1000 * 5); // TODO: tune delay
+                        await Task.Delay(waitPeriodInMs);
                     }
 
                     Twin initializedTwin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
@@ -104,7 +105,7 @@ namespace TwinTester
                 catch (Exception e)
                 {
                     Logger.LogInformation($"Retrying failed twin initialization: {e}");
-                    await Task.Delay(5000); // TODO: tune wait period
+                    await Task.Delay(waitPeriodInMs);
                 }
             }
         }
@@ -293,7 +294,7 @@ namespace TwinTester
 
         static async Task PerformReportedPropertyUpdate(ModuleClient moduleClient, AnalyzerClient analyzerClient, Storage storage)
         {
-            string reportedPropertyUpdate = new string('1', Settings.Current.TwinUpdateCharCount); // TODO: change string value?
+            string reportedPropertyUpdate = new string('1', Settings.Current.TwinUpdateCharCount);
             var twin = new TwinCollection();
             twin[reportedPropertyUpdateCounter.ToString()] = reportedPropertyUpdate;
             try

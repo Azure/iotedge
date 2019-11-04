@@ -131,7 +131,7 @@
               "createOptions": ""
             }
           },
-          "twinTester": {
+          "twinTester1": {
             "settings": {
                 "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-windows-<Architecture>",
                 "createOptions": ""
@@ -140,19 +140,19 @@
             "version": "1.0",
             "env": {
                 "TransportType": {
-                    "value": "mqtt"
+                    "value": "<TwinTester1.TransportType>"
                 },
                 "ServiceClientConnectionString": {
                     "value": "<ServiceClientConnectionString>"
                 },
                 "TwinUpdateCharCount": {
-                    "value": "<TwinTester.TwinUpdateCharCount>"
+                    "value": "<TwinUpdateCharCount>"
                 },
                 "TwinUpdateFrequency": {
-                    "value": "<TwinTester.TwinUpdateFrequency>"
+                    "value": "<TwinUpdateFrequency>"
                 },
                 "TwinUpdateFailureThreshold": {
-                    "value": "<TwinTester.TwinUpdateFailureThreshold>"
+                    "value": "<TwinUpdateFailureThreshold>"
                 }
             },
             "status": "running",
@@ -167,19 +167,19 @@
             "version": "1.0",
             "env": {
                 "TransportType": {
-                    "value": "mqtt"
+                    "value": "<TwinTester2.TransportType>"
                 },
                 "ServiceClientConnectionString": {
                     "value": "<ServiceClientConnectionString>"
                 },
                 "TwinUpdateCharCount": {
-                    "value": "<TwinTester.TwinUpdateCharCount>"
+                    "value": "<TwinUpdateCharCount>"
                 },
                 "TwinUpdateFrequency": {
-                    "value": "<TwinTester.TwinUpdateFrequency>"
+                    "value": "<TwinUpdateFrequency>"
                 },
                 "TwinUpdateFailureThreshold": {
-                    "value": "<TwinTester.TwinUpdateFailureThreshold>"
+                    "value": "<TwinUpdateFailureThreshold>"
                 }
             },
             "status": "running",
@@ -194,19 +194,19 @@
             "version": "1.0",
             "env": {
                 "TransportType": {
-                    "value": "mqtt"
+                    "value": "<TwinTester3.TransportType>"
                 },
                 "ServiceClientConnectionString": {
                     "value": "<ServiceClientConnectionString>"
                 },
                 "TwinUpdateCharCount": {
-                    "value": "<TwinTester.TwinUpdateCharCount>"
+                    "value": "<TwinUpdateCharCount>"
                 },
                 "TwinUpdateFrequency": {
-                    "value": "<TwinTester.TwinUpdateFrequency>"
+                    "value": "<TwinUpdateFrequency>"
                 },
                 "TwinUpdateFailureThreshold": {
-                    "value": "<TwinTester.TwinUpdateFailureThreshold>"
+                    "value": "<TwinUpdateFailureThreshold>"
                 }
             },
             "status": "running",
@@ -221,19 +221,19 @@
             "version": "1.0",
             "env": {
                 "TransportType": {
-                    "value": "mqtt"
+                    "value": "<TwinTester4.TransportType>"
                 },
                 "ServiceClientConnectionString": {
                     "value": "<ServiceClientConnectionString>"
                 },
                 "TwinUpdateCharCount": {
-                    "value": "<TwinTester.TwinUpdateCharCount>"
+                    "value": "<TwinUpdateCharCount>"
                 },
                 "TwinUpdateFrequency": {
-                    "value": "<TwinTester.TwinUpdateFrequency>"
+                    "value": "<TwinUpdateFrequency>"
                 },
                 "TwinUpdateFailureThreshold": {
-                    "value": "<TwinTester.TwinUpdateFailureThreshold>"
+                    "value": "<TwinUpdateFailureThreshold>"
                 }
             },
             "status": "running",
