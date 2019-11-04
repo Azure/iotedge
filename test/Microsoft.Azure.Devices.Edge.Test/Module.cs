@@ -132,7 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 TempSensorToTempFilter = "FROM /messages/modules/" + tempSensorModule.Name + "/outputs/temperatureOutput " +
                                                             "INTO BrokeredEndpoint('/modules/" + filterFuncModuleName + "/inputs/input1')"
                             }
-                        } );
+                        });
                 },
                 token);
 
