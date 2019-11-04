@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
+namespace Microsoft.Azure.Devices.Edge.Util.Test
 {
     using System.Collections.Generic;
     using System.Linq;
