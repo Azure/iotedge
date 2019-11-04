@@ -47,7 +47,7 @@ namespace MessagesAnalyzer
                     configuration.GetValue<string>(LogAnalyticLogTypeName));
             });
 
-        Settings(string eventHubCs, string consumerGroupId, string deviceId, IList<string> excludedModuleIds, string webhostPort, double tolerance, string laEnabled, string laWorkspaceIdName, string laSharedKeyName, string laLogTypeName)
+        Settings(string eventHubCs, string consumerGroupId, string deviceId, IList<string> excludedModuleIds, string webhostPort, double tolerance, string logAnalyticsEnabled, string logAnalyticsWorkspaceIdName, string logAnalyticsSharedKeyName, string logAnalyticsLogTypeName)
         {
             this.EventHubConnectionString = eventHubCs;
             this.ConsumerGroupId = consumerGroupId;
@@ -55,10 +55,10 @@ namespace MessagesAnalyzer
             this.DeviceId = deviceId;
             this.WebhostPort = webhostPort;
             this.ToleranceInMilliseconds = tolerance;
-            this.LogAnalyticEnabled = Convert.ToBoolean(laEnabled);
-            this.LogAnalyticWorkspaceId = laWorkspaceIdName;
-            this.LogAnalyticSharedKey = laSharedKeyName;
-            this.LogAnalyticLogType = laLogTypeName;
+            this.LogAnalyticEnabled = Convert.ToBoolean(logAnalyticsEnabled);
+            this.LogAnalyticWorkspaceId = logAnalyticsWorkspaceIdName;
+            this.LogAnalyticSharedKey = logAnalyticsSharedKeyName;
+            this.LogAnalyticLogType = logAnalyticsLogTypeName;
         }
 
         public static Settings Current => Setting.Value;
