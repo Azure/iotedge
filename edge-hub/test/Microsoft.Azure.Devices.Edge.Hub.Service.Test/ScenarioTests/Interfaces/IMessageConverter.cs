@@ -8,6 +8,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
     public interface IMessageConverter<T>
     {
         T Convert(IMessage message);
-        T Convert(IEnumerable<IMessage> message);
+        T Convert(IEnumerable<IMessage> messages);
+
+        T Convert(Client.Message message);
+        T Convert(IEnumerable<Client.Message> messages);
     }
 }

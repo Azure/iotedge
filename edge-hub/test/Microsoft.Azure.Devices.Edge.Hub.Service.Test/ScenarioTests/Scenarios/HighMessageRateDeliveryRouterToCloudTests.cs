@@ -10,89 +10,86 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
 
     [Scenario]
-    public class HighMessageRateDeliveryRouterToModuleTests
+    public class HighMessageRateDeliveryRouterToCloudTests
     {
         private const int BigPack = 10000;
-        private const int MidPack = 1000;
-        private const int SmallPack = 10;
+        private const int SmallPack = 100;
 
         [RunnableInDebugOnly]
         public async Task SendWithNoError()
         {
-            var deliverable = StandardDeliverable
+            var deliverable = RoutingMessageDeliverable
                                 .Create()
                                 .WithPackSize(BigPack)
                                 .WithTimingStrategy<NoWaitTimingStrategy>();
 
-            var moduleProxy = FlakyDeviceProxy
+            var cloudProxy = FlakyCloudProxy
                                 .Create()
                                 .WithSendOutAction(deliverable.ConfirmDelivery)
-                                .WithThrowTimeStrategy<DoNotThrowStrategy>();
+                                .WithThrowTimingStrategy<DoNotThrowStrategy>();
 
             var router = RouterBuilder
                             .Create()
-                            .WithRoute(route => route.WithModuleProxy(moduleProxy))
+                            .WithRoute(route => route.WithProxyGetter(cloudProxy.CreateCloudProxyGetter()))
                             .Build();
 
             await deliverable.StartDeliveringAsync(router);
-            await deliverable.WaitTillAllDeliveredAsync(this.TimeoutToken(TimeSpan.FromMinutes(20)));
+            await deliverable.WaitTillAllDeliveredAsync(TimeSpan.FromMinutes(10));
 
-            deliverable.DeliveredJournal.EnsureOrdered();
+            deliverable.DeliveryJournal.EnsureOrdered();
         }
 
-        // TODO: this test runs really slow, figure out why and if it is possible to improve perf - maybe related to retry
         [RunnableInDebugOnly]
         public async Task SendWithRetriableErrors()
         {
-            var deliverable = StandardDeliverable
+            var deliverable = RoutingMessageDeliverable
                                 .Create()
                                 .WithPackSize(BigPack)
                                 .WithTimingStrategy<NoWaitTimingStrategy>();
 
-            var moduleProxy = FlakyDeviceProxy
+            var cloudProxy = FlakyCloudProxy
                                 .Create()
                                 .WithSendOutAction(deliverable.ConfirmDelivery)
-                                .WithException<Core.EdgeHubIOException>()
-                                .WithThrowTimeStrategy<RandomThrowTimeStrategy>(throwing => throwing.WithOddsToThrow(0.2)); // 20% that throws
+                                .WithException<Client.Exceptions.IotHubException>()
+                                .WithThrowTimingStrategy<RandomThrowTimingStrategy>(throwing => throwing.WithOddsToThrow(0.2)); // 20% that throws
 
             var router = RouterBuilder
                             .Create()
-                            .WithRoute(route => route.WithModuleProxy(moduleProxy))
+                            .WithRoute(route => route.WithProxyGetter(cloudProxy.CreateCloudProxyGetter()))
                             .Build();
 
             await deliverable.StartDeliveringAsync(router);
-            await deliverable.WaitTillAllDeliveredAsync(this.TimeoutToken(TimeSpan.FromMinutes(60)));
+            await deliverable.WaitTillAllDeliveredAsync(TimeSpan.FromMinutes(10));
 
-            deliverable.DeliveredJournal.EnsureOrdered();
+            deliverable.DeliveryJournal.EnsureOrdered();
         }
 
         [RunnableInDebugOnly]
         public async Task SendWithNonRetriableErrors()
         {
-            var deliverable = StandardDeliverable
+            var deliverable = RoutingMessageDeliverable
                                 .Create()
                                 .WithPackSize(BigPack)
                                 .WithTimingStrategy<NoWaitTimingStrategy>();
 
-            var moduleProxy = FlakyDeviceProxy
+            var cloudProxy = FlakyCloudProxy
                                 .Create()
                                 .WithSendOutAction(deliverable.ConfirmDelivery)
                                 .WithThrowingAction((msg, ex) => deliverable.DontExpectDelivery(msg))
                                 .WithException<Exception>()
-                                .WithThrowTimeStrategy<RandomThrowTimeStrategy>(throwing => throwing.WithOddsToThrow(0.2)); // 20% that throws
+                                .WithThrowTimingStrategy<RandomThrowTimingStrategy>(throwing => throwing.WithOddsToThrow(0.2)); // 20% that throws
 
             var router = RouterBuilder
                             .Create()
-                            .WithRoute(route => route.WithModuleProxy(moduleProxy))
+                            .WithRoute(route => route.WithProxyGetter(cloudProxy.CreateCloudProxyGetter()))
                             .Build();
 
             await deliverable.StartDeliveringAsync(router);
-            await deliverable.WaitTillAllDeliveredAsync(this.TimeoutToken(TimeSpan.FromMinutes(10)));
+            await deliverable.WaitTillAllDeliveredAsync(TimeSpan.FromMinutes(10));
 
-            deliverable.DeliveredJournal.EnsureOrderedWithGaps();
+            deliverable.DeliveryJournal.EnsureOrderedWithGaps();
         }
 
-        // TODO: this test runs really slow, figure out why and if it is possible to improve perf - maybe related to retry
         [RunnableInDebugOnly]
         public async Task SendWithMixedErrors()
         {
@@ -100,7 +97,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             {
                 typeof(TimeoutException),
                 typeof(IOException),
-                typeof(Core.EdgeHubIOException)
+                typeof(Client.Exceptions.IotHubException),
+                typeof(Client.Exceptions.UnauthorizedException)
             };
 
             var nonRetriableExceptions = new HashSet<Type>
@@ -110,125 +108,117 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
                 typeof(ArgumentNullException)
             };
 
-            var deliverable = StandardDeliverable
+            var deliverable = RoutingMessageDeliverable
                                 .Create()
                                 .WithPackSize(BigPack)
                                 .WithTimingStrategy<NoWaitTimingStrategy>();
 
-            Action<Core.IMessage, Exception> handleExceptions =
+            Action<IReadOnlyCollection<Core.IMessage>, Exception> handleExceptions =
                 (msg, ex) =>
                 {
                     if (!retriableExceptions.Contains(ex.GetType()))
                         deliverable.DontExpectDelivery(msg);
                 };
 
-            var moduleProxy = FlakyDeviceProxy
+            var cloudProxy = FlakyCloudProxy
                                 .Create()
                                 .WithSendOutAction(deliverable.ConfirmDelivery)
                                 .WithThrowingAction(handleExceptions)
                                 .WithThrowTypeStrategy<MultiThrowTypeStrategy>(
                                     exception => exception.WithExceptionSuite(retriableExceptions)
                                                           .WithExceptionSuite(nonRetriableExceptions))
-                                .WithThrowTimeStrategy<RandomThrowTimeStrategy>(
+                                .WithThrowTimingStrategy<RandomThrowTimingStrategy>(
                                     throwing => throwing.WithOddsToThrow(0.2));
 
             var router = RouterBuilder
                             .Create()
-                            .WithRoute(route => route.WithModuleProxy(moduleProxy))
+                            .WithRoute(route => route.WithProxyGetter(cloudProxy.CreateCloudProxyGetter()))
                             .Build();
 
             await deliverable.StartDeliveringAsync(router);
-            await deliverable.WaitTillAllDeliveredAsync(this.TimeoutToken(TimeSpan.FromMinutes(60)));
+            await deliverable.WaitTillAllDeliveredAsync(TimeSpan.FromMinutes(10));
 
-            deliverable.DeliveredJournal.EnsureOrderedWithGaps();
+            deliverable.DeliveryJournal.EnsureOrderedWithGaps();
         }
 
         [RunnableInDebugOnly]
-        public async Task SendWithSlowReceivingSide()
+        public async Task SendWithSlowNetwork()
         {
-            var deliverable = StandardDeliverable
+            var deliverable = RoutingMessageDeliverable
                                 .Create()
-                                .WithPackSize(MidPack)
+                                .WithPackSize(BigPack)
                                 .WithTimingStrategy<NoWaitTimingStrategy>();
 
-            var moduleProxy = FlakyDeviceProxy
+            var cloudProxy = FlakyCloudProxy
                                 .Create()
                                 .WithSendOutAction(deliverable.ConfirmDelivery)
                                 .WithSendDelay(1000, 500) // a packet is completed in 0.5-1.5 seconds
-                                .WithThrowTimeStrategy<DoNotThrowStrategy>();
+                                .WithThrowTimingStrategy<DoNotThrowStrategy>();
 
             var router = RouterBuilder
                             .Create()
-                            .WithRoute(route => route.WithModuleProxy(moduleProxy))
+                            .WithRoute(route => route.WithProxyGetter(cloudProxy.CreateCloudProxyGetter()))
                             .Build();
 
             await deliverable.StartDeliveringAsync(router);
-            await deliverable.WaitTillAllDeliveredAsync(this.TimeoutToken(TimeSpan.FromMinutes(60)));
+            await deliverable.WaitTillAllDeliveredAsync(TimeSpan.FromMinutes(20));
 
-            deliverable.DeliveredJournal.EnsureOrdered();
+            deliverable.DeliveryJournal.EnsureOrdered();
         }
 
         [RunnableInDebugOnly]
-        public async Task SendWithLaggingReceivingSide()
+        public async Task SendWithLaggingNetwork()
         {
-            var deliverable = StandardDeliverable
+            var deliverable = RoutingMessageDeliverable
                                 .Create()
                                 .WithPackSize(SmallPack) // careful, this test waits a lot
                                 .WithTimingStrategy<NoWaitTimingStrategy>();
 
-            var moduleProxy = FlakyDeviceProxy
+            var cloudProxy = FlakyCloudProxy
                                 .Create()
                                 .WithSendOutAction(deliverable.ConfirmDelivery)
-                                .WithThrowTimeStrategy<DoNotThrowStrategy>()
+                                .WithThrowTimingStrategy<DoNotThrowStrategy>()
                                 .WithSendDelayStrategy<RandomLaggingTimingStrategy>(
-                                        delay => delay.WithDelay(TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(4))
-                                                    .WithOddsToGetStuck(0.05) // lag at every ~20th send in average
-                                                    .WithBaseStrategy<LinearTimingStrategy>(
+                                     delay => delay.WithDelay(TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(4))
+                                                   .WithOddsToGetStuck(0.05) // lag at every ~20th send in average
+                                                   .WithBaseStrategy<LinearTimingStrategy>(
                                                         baseDelay => baseDelay.WithDelay(300, 100))); // 0.2-0.4 sec normal delay
 
             var router = RouterBuilder
                             .Create()
-                            .WithRoute(route => route.WithModuleProxy(moduleProxy))
+                            .WithRoute(route => route.WithProxyGetter(cloudProxy.CreateCloudProxyGetter()))
                             .Build();
 
             await deliverable.StartDeliveringAsync(router);
-            await deliverable.WaitTillAllDeliveredAsync(this.TimeoutToken(TimeSpan.FromMinutes(60)));
+            await deliverable.WaitTillAllDeliveredAsync(TimeSpan.FromMinutes(60));
 
-            deliverable.DeliveredJournal.EnsureOrdered();
+            deliverable.DeliveryJournal.EnsureOrdered();
         }
 
         [RunnableInDebugOnly]
         public async Task SendBigMessages()
         {
-            var deliverable = StandardDeliverable
+            var deliverable = RoutingMessageDeliverable
                                 .Create()
                                 .WithPackSize(SmallPack)
-                                .WithMessageGeneratingStrategy<SimpleMessageGeneratingStrategy>(
+                                .WithDeliverableGeneratingStrategy<SimpleRoutingMessageGeneratingStrategy>(
                                     message => message.WithBodySize((int)Core.Constants.MaxMessageSize / 4, (int)Core.Constants.MaxMessageSize))
                                 .WithTimingStrategy<NoWaitTimingStrategy>();
 
-            var moduleProxy = FlakyDeviceProxy
+            var cloudProxy = FlakyCloudProxy
                                 .Create()
                                 .WithSendOutAction(deliverable.ConfirmDelivery)
-                                .WithThrowTimeStrategy<DoNotThrowStrategy>();
+                                .WithThrowTimingStrategy<DoNotThrowStrategy>();
 
             var router = RouterBuilder
                             .Create()
-                            .WithRoute(route => route.WithModuleProxy(moduleProxy))
+                            .WithRoute(route => route.WithProxyGetter(cloudProxy.CreateCloudProxyGetter()))
                             .Build();
 
             await deliverable.StartDeliveringAsync(router);
-            await deliverable.WaitTillAllDeliveredAsync(this.TimeoutToken(TimeSpan.FromMinutes(20)));
+            await deliverable.WaitTillAllDeliveredAsync(TimeSpan.FromMinutes(20));
 
-            deliverable.DeliveredJournal.EnsureOrdered();
-        }
-
-        private CancellationToken TimeoutToken(TimeSpan timeSpan)
-        {
-            var tokenSource = new CancellationTokenSource();
-            tokenSource.CancelAfter(timeSpan);
-
-            return tokenSource.Token;
+            deliverable.DeliveryJournal.EnsureOrdered();
         }
     }
 }

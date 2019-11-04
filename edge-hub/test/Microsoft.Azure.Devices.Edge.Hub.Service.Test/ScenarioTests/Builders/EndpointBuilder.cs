@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
     using System.Threading;
     using System.Threading.Tasks;
 
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -16,7 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
         private string input = "test-input";
 
         private ConnectionManagerBuilder connectionManagerBuilder = ConnectionManagerBuilder.Create();
-        private Func<string, Task<Option<ICloudProxy>>> cloudProxyGetterFunc = _ => Task.FromResult(Option.Some(new AllGoodCloudProxy() as ICloudProxy));
+        private ConnectionManager passedDownConnectionManager = null;
+        private Func<string, Task<Option<ICloudProxy>>> cloudProxyGetterFunc = null; // use only to override connectionManager's getter
         private Core.IMessageConverter<Routing.Core.IMessage> messageConverter = new Core.Routing.RoutingMessageConverter();
         private int maxBatchSize = 10;
         private int fanoutFactor = 10;
@@ -123,6 +125,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             return this;
         }
 
+        public EndpointBuilder WithConnectionManager(ConnectionManager connectionManager)
+        {
+            this.passedDownConnectionManager = connectionManager;
+            return this;
+        }
+
         public Routing.Core.Endpoint Build()
         {
             var result = default(Routing.Core.Endpoint);
@@ -133,20 +141,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
                                     this.id,
                                     this.moduleId,
                                     this.input,
-                                    this.connectionManagerBuilder.Build(),
+                                    this.passedDownConnectionManager ?? this.connectionManagerBuilder.Build(),
                                     this.messageConverter);
             }
             else
             {
                 result = new Core.Routing.CloudEndpoint(
                                     this.id,
-                                    this.cloudProxyGetterFunc,
+                                    this.cloudProxyGetterFunc ?? this.BuildFromConnectionManager(),
                                     this.messageConverter,
                                     this.maxBatchSize,
                                     this.fanoutFactor);
             }
 
             return result;
+        }
+
+        private Func<string, Task<Option<ICloudProxy>>> BuildFromConnectionManager()
+        {
+            var connectionManager = this.passedDownConnectionManager ?? this.connectionManagerBuilder.Build();
+            return id => connectionManager.GetCloudConnection(id);
         }
     }
 }

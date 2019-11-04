@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Cloud;
     using Microsoft.Azure.Devices.Edge.Hub.Core.Device;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -22,11 +23,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 
         private string id = "test-route-" + NextRouteNumber();
         private string condition = "true";
-        private string iotHubName = "test-hub";
+        private string iotHubName = TestContext.IotHubName;
 
         // many times the only customization is the proxy, so create a shortcut at this level, it creates a
         // default pipeline with the custom proxy at the end of the chain. Might or might not be used.
         private Func<string, Task<Option<ICloudProxy>>> cloudProxyGetterFunc = null;
+
+        private ConnectionManager passedDownConnectionManager = null;
 
         private IMessageSource messageSource = TelemetryMessageSource.Instance;
 
@@ -47,9 +50,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             return this;
         }
 
-        public RouteBuilder WithEndpoint(Func<EndpointBuilder, EndpointBuilder> builder)
+        public RouteBuilder WithEndpoint(Func<EndpointBuilder, EndpointBuilder> builderDecorator)
         {
-            this.toBeBuiltEndpoints.Add(builder(EndpointBuilder.Create()));
+            this.toBeBuiltEndpoints.Add(builderDecorator(EndpointBuilder.Create()));
             return this;
         }
 
@@ -113,6 +116,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             return this;
         }
 
+        public RouteBuilder WithConnectionManager(ConnectionManager connectionManager)
+        {
+            this.passedDownConnectionManager = connectionManager;
+            return this;
+        }
+
         public Routing.Core.Route Build()
         {
             var endpoints = new HashSet<Routing.Core.Endpoint>();
@@ -120,12 +129,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             {
                 if (!this.explicitEndpoints.Any() && !this.toBeBuiltEndpoints.Any() && this.cloudProxyGetterFunc == null)
                 {
-                    endpoints.Add(EndpointBuilder.Create().Build());
+                    endpoints.Add(this.WithPassedDownConnectionManager(EndpointBuilder.Create()).Build());
                 }
                 else
                 {
                     this.explicitEndpoints.ForEach(e => endpoints.Add(e));
-                    this.toBeBuiltEndpoints.ForEach(e => endpoints.Add(e.Build()));
+                    this.toBeBuiltEndpoints.ForEach(e => endpoints.Add(this.WithPassedDownConnectionManager(e).Build()));
 
                     if (this.cloudProxyGetterFunc != null)
                     {
@@ -141,6 +150,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
                                 this.messageSource,
                                 endpoints);
             return result;
+        }
+
+        private EndpointBuilder WithPassedDownConnectionManager(EndpointBuilder builder)
+        {
+            if (this.passedDownConnectionManager != null)
+            {
+                builder.WithConnectionManager(this.passedDownConnectionManager);
+            }
+
+            return builder;
         }
     }
 }

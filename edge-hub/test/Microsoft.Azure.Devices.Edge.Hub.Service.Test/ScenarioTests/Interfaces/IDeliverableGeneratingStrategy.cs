@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 {
-    public interface IMessageGeneratingStrategy
+    public interface IDeliverableGeneratingStrategy<T>
     {
-        Routing.Core.Message Next();
+        T Next();
     }
 }

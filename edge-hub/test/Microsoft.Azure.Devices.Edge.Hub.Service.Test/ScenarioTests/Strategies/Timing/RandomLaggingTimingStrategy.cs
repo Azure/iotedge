@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
         private int coreDelayMs = 80000;
         private int varianceMs = 20000;
 
-        private Random random = new Random(278934); // use a constant seed to be more replayable
+        private Random random = new Random(278934);
 
         public static RandomLaggingTimingStrategy Create() => new RandomLaggingTimingStrategy();
 
@@ -35,10 +35,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             return this;
         }
 
-        public RandomLaggingTimingStrategy WithBaseStrategy<T>(Func<T, T> baseStrategy)
+        public RandomLaggingTimingStrategy WithBaseStrategy<T>(Func<T, T> baseStrategyDecorator)
             where T : ITimingStrategy, new()
         {
-            this.baseStrategy = baseStrategy(new T());
+            this.baseStrategy = baseStrategyDecorator(new T());
             return this;
         }
 

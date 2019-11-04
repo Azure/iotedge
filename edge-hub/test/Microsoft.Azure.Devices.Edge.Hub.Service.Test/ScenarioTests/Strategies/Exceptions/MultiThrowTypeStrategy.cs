@@ -22,12 +22,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
         public MultiThrowTypeStrategy WithExceptionSuite(IEnumerable<Type> exceptions)
         {
             if (exceptions.Any(e => !typeof(Exception).IsAssignableFrom(e)))
+            {
                 throw new ArgumentException("Only types of Exception can be used in Exception Suite");
+            }
 
             var existingExceptions = new HashSet<Type>(this.exceptionSuite);
 
             foreach (var exception in exceptions)
+            {
                 existingExceptions.Add(exception);
+            }
 
             this.exceptionSuite = existingExceptions.ToList();
 
@@ -56,6 +60,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             if (messages.Any() && messages.First().SystemProperties.TryGetValue(SystemProperties.MessageId, out string id))
             {
                 errorMessage += $" for msg: {id}";
+                if (messages.Count() > 1)
+                {
+                    errorMessage += $" and {messages.Count() - 1} more...";
+                }
+            }
+
+            var toThrow = this.CreateInstance(this.PickException(), errorMessage);
+            toThrow.Data["Messages"] = messages;
+
+            return toThrow;
+        }
+
+        public Exception Convert(Client.Message message)
+        {
+            var errorMessage = $"test-error for msg: {message.MessageId}";
+            var toThrow = this.CreateInstance(this.PickException(), errorMessage);
+            toThrow.Data["Messages"] = new Client.Message[] { message };
+
+            return toThrow;
+        }
+
+        public Exception Convert(IEnumerable<Client.Message> messages)
+        {
+            var errorMessage = "test-error";
+
+            if (messages.Any())
+            {
+                errorMessage += $" for msg: {messages.First().MessageId}";
                 if (messages.Count() > 1)
                 {
                     errorMessage += $" and {messages.Count() - 1} more...";

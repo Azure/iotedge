@@ -8,6 +8,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 
     public class AllGoodCloudProxy : ICloudProxy
     {
+        public AllGoodCloudProxy()
+        {
+        }
+
         public bool IsActive => true;
 
         public virtual Task<bool> CloseAsync() => Task.FromResult(true);

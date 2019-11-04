@@ -18,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
         // however if the user explicitly says they don't need any device, this flag shows that
         private bool withDevices = true;
         private List<ConnectedDeviceBuilder> toBeBuiltDevices = new List<ConnectedDeviceBuilder>();
+        private ICloudConnectionProvider cloudConnectionProvider = new SimpleCloudConnectionProvider();
 
         public static ConnectionManagerBuilder Create() => new ConnectionManagerBuilder();
 
@@ -39,10 +40,48 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             return this;
         }
 
+        public ConnectionManagerBuilder WithCloudConnectionProvider(ICloudConnectionProvider cloudConnectionProvider)
+        {
+            this.cloudConnectionProvider = cloudConnectionProvider;
+            return this;
+        }
+
+        public ConnectionManagerBuilder WithCloudConnectionProvider(Func<CloudConnectionProviderBuilder, CloudConnectionProviderBuilder> cloudConnectionProviderDecorator)
+        {
+            this.cloudConnectionProvider =
+                    cloudConnectionProviderDecorator(
+                        CloudConnectionProviderBuilder.Create())
+                   .Build();
+
+            return this;
+        }
+
+        public ConnectionManagerBuilder WithCloudConnectionProvider<T>()
+            where T : IClientBuilder, new()
+        {
+            this.cloudConnectionProvider = CloudConnectionProviderBuilder
+                                                .Create()
+                                                .WithClientProvider(new GenericClientProvider<T>())
+                                                .Build();
+
+            return this;
+        }
+
+        public ConnectionManagerBuilder WithCloudConnectionProvider<T>(Func<T, T> clientBuilderDecorator)
+            where T : IClientBuilder, new()
+        {
+            this.cloudConnectionProvider = CloudConnectionProviderBuilder
+                                                .Create()
+                                                .WithClientProvider(new GenericClientProvider<T>().WithBuilder(clientBuilderDecorator))
+                                                .Build();
+
+            return this;
+        }
+
         public ConnectionManager Build()
         {
             var result = new ConnectionManager(
-                                new SimpleCloudConnectionProvider(),
+                                this.cloudConnectionProvider,
                                 new NullCredentialsCache(),
                                 new IdentityProvider(this.iotHubName));
 
@@ -97,6 +136,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             {
                 this.AsModule();
                 this.moduleId = moduleId;
+                return this;
+            }
+
+            public ConnectedDeviceBuilder WithNoSubscription()
+            {
+                this.useDefaultSubscription = false;
                 return this;
             }
 

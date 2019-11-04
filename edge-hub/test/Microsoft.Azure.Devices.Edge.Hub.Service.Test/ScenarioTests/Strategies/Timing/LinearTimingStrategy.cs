@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
         private int coreDelayMs = 100;
         private int varianceMs = 50;
 
-        private Random random = new Random(532567); // use a constant seed to be more replayable
+        private Random random = new Random(532567);
 
         public static LinearTimingStrategy Create() => new LinearTimingStrategy();
 

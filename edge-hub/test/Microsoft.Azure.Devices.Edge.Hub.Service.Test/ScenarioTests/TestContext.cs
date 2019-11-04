@@ -11,44 +11,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
     /// </summary>
     internal class TestContext
     {
-        // using ThreadStatic to allow parallel tests. Note, that this has the pitfall when using
-        // async providers which may cause a builder to access these properties from a different
-        // thread.
-        [ThreadStatic]
-        private static int deviceCounter;
-
-        [ThreadStatic]
-        private static int moduleCounter;
-
-        [ThreadStatic]
-        private static string iotHubName;
+        private static AsyncLocal<int> deviceCounter = new AsyncLocal<int>();
+        private static AsyncLocal<int> moduleCounter = new AsyncLocal<int>();
+        private static AsyncLocal<string> iotHubName = new AsyncLocal<string>();
 
         public static void StartNewContext()
         {
-            TestContext.deviceCounter = 0;
-            TestContext.moduleCounter = 0;
-            TestContext.iotHubName = null;
+            TestContext.deviceCounter.Value = 0;
+            TestContext.moduleCounter.Value = 0;
+            TestContext.iotHubName.Value = null;
         }
 
-        public static string DeviceId => $"device-{TestContext.deviceCounter + 1}";
-        public static string ModuleId => $"device-{TestContext.deviceCounter + 1}/module-{TestContext.moduleCounter + 1}";
-        public static string IotHubName => TestContext.iotHubName ?? "test-hub";
+        public static string DeviceId => $"device-{TestContext.deviceCounter.Value + 1}";
+        public static string ModuleId => $"device-{TestContext.deviceCounter.Value + 1}/module-{TestContext.moduleCounter.Value + 1}";
+        public static string IotHubName => TestContext.iotHubName.Value ?? "test-hub";
 
         public static TextContextBuilder WithNextDevice()
         {
-            Interlocked.Increment(ref TestContext.deviceCounter);
+            TestContext.deviceCounter.Value = TestContext.deviceCounter.Value + 1;
             return new TextContextBuilder();
         }
 
         public static TextContextBuilder WithNextModule()
         {
-            Interlocked.Increment(ref TestContext.moduleCounter);
+            TestContext.moduleCounter.Value = TestContext.moduleCounter.Value + 1;
             return new TextContextBuilder();
         }
 
         public static TextContextBuilder WithIotHubName(string iotHubName)
         {
-            Volatile.Write(ref TestContext.iotHubName, iotHubName);
+            TestContext.iotHubName.Value = iotHubName;
             return new TextContextBuilder();
         }
 
@@ -57,6 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             public TextContextBuilder WithNextDevice()
             {
                 TestContext.WithNextDevice();
+                TestContext.moduleCounter.Value = 0;
                 return this;
             }
 

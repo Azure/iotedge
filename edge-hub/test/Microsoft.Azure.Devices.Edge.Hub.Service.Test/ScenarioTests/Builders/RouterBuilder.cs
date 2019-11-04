@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
     using System.Linq;
     using System.Threading;
 
+    using Microsoft.Azure.Devices.Edge.Hub.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Routing.Core;
@@ -21,11 +22,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
         private bool withRoutes = true;
 
         private string id = "test-router-" + NextRouterNumber();
-        private string iotHubName = "test-hub";
+        private string iotHubName = TestContext.IotHubName;
 
         private Option<Route> fallback = Option.None<Route>();
 
-        IEndpointExecutorFactory executorFactory;
+        private IEndpointExecutorFactory executorFactory;
+
+        private ConnectionManager passedDownConnectionManager = null;
 
         static int routerCounter;
         static int NextRouterNumber() => Interlocked.Increment(ref routerCounter);
@@ -67,9 +70,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             return this;
         }
 
-        public RouterBuilder WithRoute(Func<RouteBuilder, RouteBuilder> builder)
+        public RouterBuilder WithRoute(Func<RouteBuilder, RouteBuilder> builderDecorator)
         {
-            this.toBeBuiltRoutes.Add(builder(RouteBuilder.Create()));
+            this.toBeBuiltRoutes.Add(builderDecorator(RouteBuilder.Create()));
             return this;
         }
 
@@ -79,13 +82,26 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             return this;
         }
 
+        public RouterBuilder WithConnectionManager(ConnectionManager connectionManager)
+        {
+            this.passedDownConnectionManager = connectionManager;
+            return this;
+        }
+
         public Router Build()
         {
             var routes = new List<Route>();
             if (this.withRoutes)
             {
-                routes.AddRange(this.explicitRoutes);
-                routes.AddRange(this.toBeBuiltRoutes.Select(b => b.Build()));
+                if (!this.explicitRoutes.Any() && !this.toBeBuiltRoutes.Any())
+                {
+                    routes.Add(this.WithPassedDownConnectionManager(RouteBuilder.Create()).Build());
+                }
+                else
+                {
+                    routes.AddRange(this.explicitRoutes);
+                    routes.AddRange(this.toBeBuiltRoutes.Select(b => this.WithPassedDownConnectionManager(b).Build()));
+                }
             }
 
             var routerConfig = new RouterConfig(routes.SelectMany(r => r.Endpoints), routes, this.fallback);
@@ -109,6 +125,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             var messageStore = new Core.Storage.MessageStore(storeProvider, checkpointStore, TimeSpan.MaxValue);
 
             this.executorFactory = new StoringAsyncEndpointExecutorFactory(endpointExecutorConfig, new AsyncEndpointExecutorOptions(10, TimeSpan.FromSeconds(10)), messageStore);
+        }
+
+        private RouteBuilder WithPassedDownConnectionManager(RouteBuilder builder)
+        {
+            if (this.passedDownConnectionManager != null)
+            {
+                builder.WithConnectionManager(this.passedDownConnectionManager);
+            }
+
+            return builder;
         }
     }
 }

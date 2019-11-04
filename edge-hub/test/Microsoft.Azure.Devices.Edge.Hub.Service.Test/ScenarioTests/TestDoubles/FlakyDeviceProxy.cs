@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
     public class FlakyDeviceProxy : AllGoodDeviceProxy
     {
         private IMessageConverter<Exception> throwTypeStrategy = SingleThrowTypeStrategy.Create().WithType<IotHubException>();
-        private IMessageConverter<bool> throwTimeStrategy = RandomThrowTimeStrategy.Create().WithOddsToThrow(0.1);
+        private IMessageConverter<bool> throwTimeStrategy = RandomThrowTimingStrategy.Create().WithOddsToThrow(0.1);
         private ITimingStrategy timingStrategy = LinearTimingStrategy.Create().WithDelay(60, 40);
         private Action<IMessage> sendOutAction = _ => { };
         private Action<IMessage, Exception> throwingAction = (_, __) => { };
@@ -41,20 +41,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             return this;
         }
 
-        public FlakyDeviceProxy WithThrowTimeStrategy(IMessageConverter<bool> throwTimeStrategy)
+        public FlakyDeviceProxy WithThrowTimingStrategy(IMessageConverter<bool> throwTimeStrategy)
         {
             this.throwTimeStrategy = throwTimeStrategy;
             return this;
         }
 
-        public FlakyDeviceProxy WithThrowTimeStrategy<T>()
+        public FlakyDeviceProxy WithThrowTimingStrategy<T>()
             where T : IMessageConverter<bool>, new()
         {
             this.throwTimeStrategy = new T();
             return this;
         }
 
-        public FlakyDeviceProxy WithThrowTimeStrategy<T>(Func<T, T> throwTimeStrategy)
+        public FlakyDeviceProxy WithThrowTimingStrategy<T>(Func<T, T> throwTimeStrategy)
             where T : IMessageConverter<bool>, new()
         {
             this.throwTimeStrategy = throwTimeStrategy(new T());

@@ -6,32 +6,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 
     using Microsoft.Azure.Devices.Edge.Hub.Core;
 
-    public class RandomThrowTimeStrategy : IMessageConverter<bool>
+    public class RandomThrowTimingStrategy : IMessageConverter<bool>
     {
         private Random random = new Random(645637);
         private double oddsToThrow = 0.1;
 
-        public RandomThrowTimeStrategy()
+        public RandomThrowTimingStrategy()
         {
         }
 
-        public static RandomThrowTimeStrategy Create() => new RandomThrowTimeStrategy();
+        public static RandomThrowTimingStrategy Create() => new RandomThrowTimingStrategy();
 
-        public RandomThrowTimeStrategy WithOddsToThrow(double oddsToThrow)
+        public RandomThrowTimingStrategy WithOddsToThrow(double oddsToThrow)
         {
             this.oddsToThrow = oddsToThrow;
             return this;
         }
 
-        public bool Convert(IMessage message)
-        {
-            return this.RollTheDice();
-        }
-
-        public bool Convert(IEnumerable<IMessage> message)
-        {
-            return this.RollTheDice();
-        }
+        public bool Convert(IMessage message) => this.RollTheDice();
+        public bool Convert(IEnumerable<IMessage> message) => this.RollTheDice();
+        public bool Convert(Client.Message message) => this.RollTheDice();
+        public bool Convert(IEnumerable<Client.Message> messages) => this.RollTheDice();
 
         private bool RollTheDice()
         {

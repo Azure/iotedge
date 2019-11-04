@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
     public class FlakyCloudProxy : AllGoodCloudProxy
     {
         private IMessageConverter<Exception> throwTypeStrategy = SingleThrowTypeStrategy.Create().WithType<IotHubException>();
-        private IMessageConverter<bool> throwTimeStrategy = RandomThrowTimeStrategy.Create().WithOddsToThrow(0.1);
+        private IMessageConverter<bool> throwTimeStrategy = RandomThrowTimingStrategy.Create().WithOddsToThrow(0.1);
         private ITimingStrategy timingStrategy = LinearTimingStrategy.Create().WithDelay(200, 100);
         private Action<IReadOnlyCollection<IMessage>> sendOutAction = _ => { };
         private Action<IReadOnlyCollection<IMessage>, Exception> throwingAction = (_, __) => { };
@@ -40,20 +40,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             return this;
         }
 
-        public FlakyCloudProxy WithThrowTimeStrategy(IMessageConverter<bool> throwTimeStrategy)
+        public FlakyCloudProxy WithThrowTimingStrategy(IMessageConverter<bool> throwTimeStrategy)
         {
             this.throwTimeStrategy = throwTimeStrategy;
             return this;
         }
 
-        public FlakyCloudProxy WithThrowTimeStrategy<T>()
+        public FlakyCloudProxy WithThrowTimingStrategy<T>()
             where T : IMessageConverter<bool>, new()
         {
             this.throwTimeStrategy = new T();
             return this;
         }
 
-        public FlakyCloudProxy WithThrowTimeStrategy<T>(Func<T, T> throwTimeStrategy)
+        public FlakyCloudProxy WithThrowTimingStrategy<T>(Func<T, T> throwTimeStrategy)
             where T : IMessageConverter<bool>, new()
         {
             this.throwTimeStrategy = throwTimeStrategy(new T());
@@ -78,9 +78,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
             return this;
         }
 
-        public FlakyCloudProxy WithSendDelay(int delayCore, int delayVariance)
+        public FlakyCloudProxy WithSendDelay(int delayCoreMs, int delayVarianceMs)
         {
-            this.timingStrategy = LinearTimingStrategy.Create().WithDelay(delayCore, delayVariance);
+            this.timingStrategy = LinearTimingStrategy.Create().WithDelay(delayCoreMs, delayVarianceMs);
             return this;
         }
 

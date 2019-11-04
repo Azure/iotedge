@@ -14,5 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
         public static DoNotThrowStrategy Create() => new DoNotThrowStrategy();
         public bool Convert(IMessage message) => false;
         public bool Convert(IEnumerable<IMessage> message) => false;
+        public bool Convert(Client.Message message) => false;
+        public bool Convert(IEnumerable<Client.Message> messages) => false;
     }
 }
