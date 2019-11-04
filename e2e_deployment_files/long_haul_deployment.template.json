@@ -196,9 +196,6 @@
               "EventHubConnectionString": {
                 "value": "<Analyzer.EventHubConnectionString>"
               },
-              "DeviceId": {
-                "value": "<Analyzer.DeviceID>"
-              },
               "ConsumerGroupId": {
                 "value": "<Analyzer.ConsumerGroupId>"
               }
@@ -278,6 +275,26 @@
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
+            }
+          },
+          "moduleRestarter": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "on-failure",
+            "env": {
+              "ServiceClientConnectionString": {
+                "value": "<ServiceClientConnectionString>"
+              },
+              "DesiredModulesToRestartCSV": {
+                "value": "<DesiredModulesToRestartCSV>"
+              },
+              "RestartIntervalInMins": {
+                "value": "<RestartIntervalInMins>"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-module-restarter:<Build.BuildNumber>-linux-<Architecture>"
             }
           }
         }
