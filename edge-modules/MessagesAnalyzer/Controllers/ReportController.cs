@@ -1,10 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace MessagesAnalyzer.Controllers
 {
-    using System.Text;
-    using System.Web;
-    using System.Runtime.Serialization.Formatters.Binary;
     using System.IO;
+    using System.Runtime.Serialization.Formatters.Binary;
+    using System.Text;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics;
 
@@ -15,10 +14,10 @@ namespace MessagesAnalyzer.Controllers
         // Modified from https://stackoverflow.com/questions/33022660/how-to-convert-byte-array-to-any-type
         byte[] TypeToBytes<T>(T obj)
         {
-            if(obj == null)
+            if (obj == null)
                 return null;
             BinaryFormatter bf = new BinaryFormatter();
-            using(MemoryStream ms = new MemoryStream())
+            using (MemoryStream ms = new MemoryStream())
             {
                 bf.Serialize(ms, obj);
                 return ms.ToArray();
@@ -27,10 +26,10 @@ namespace MessagesAnalyzer.Controllers
 
         T BytesToType<T>(byte[] data)
         {
-            if(data == null)
+            if (data == null)
                 return default(T);
             BinaryFormatter bf = new BinaryFormatter();
-            using(MemoryStream ms = new MemoryStream(data))
+            using (MemoryStream ms = new MemoryStream(data))
             {
                 object obj = bf.Deserialize(ms);
                 return (T)obj;
@@ -48,13 +47,12 @@ namespace MessagesAnalyzer.Controllers
                 // A controller in ASP.net is created everytime there is a request.
                 // This means the value attribute does not persist between requests.
                 // Here, we are using HttpContext session to store value for inter-request use.
-
                 AzureLogAnalytics logAnalytics = null;
                 const string logAnalyticsVarKey = "logAnalytics";
                 byte[] logAnalyticsBytes;
-                if(HttpContext.Session.TryGetValue(logAnalyticsVarKey, out logAnalyticsBytes))
+                if (this.HttpContext.Session.TryGetValue(logAnalyticsVarKey, out logAnalyticsBytes))
                 {
-                    logAnalytics = BytesToType<AzureLogAnalytics>(logAnalyticsBytes);
+                    logAnalytics = this.BytesToType<AzureLogAnalytics>(logAnalyticsBytes);
                 }
                 else
                 {
@@ -62,7 +60,7 @@ namespace MessagesAnalyzer.Controllers
                         Settings.Current.LogAnalyticWorkspaceId,
                         Settings.Current.LogAnalyticSharedKey,
                         Settings.Current.LogAnalyticLogType);
-                    HttpContext.Session.Set(logAnalyticsVarKey, TypeToBytes<AzureLogAnalytics>(logAnalytics));
+                    this.HttpContext.Session.Set(logAnalyticsVarKey, this.TypeToBytes<AzureLogAnalytics>(logAnalytics));
                 }
 
                 // Upload the data to Log Analytics
