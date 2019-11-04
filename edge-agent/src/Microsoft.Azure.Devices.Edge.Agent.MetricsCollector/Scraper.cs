@@ -17,17 +17,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
         Task<IDictionary<string, string>> ScrapeAsync(CancellationToken cancellationToken);
     }
 
-    public class Scraper : IScraper
+    public class Scraper : IScraper, IDisposable
     {
         const string UrlPattern = @"[^/:]+://(?<host>[^/:]+)(:[^:]+)?$";
         static readonly Regex UrlRegex = new Regex(UrlPattern, RegexOptions.Compiled);
         readonly HttpClient httpClient;
-        readonly IDictionary<string, string> endpoints = new Dictionary<string, string>();
+        readonly Lazy<IDictionary<string, string>> endpoints;
 
         public Scraper(IList<string> endpoints)
         {
             this.httpClient = new HttpClient();
-            this.endpoints = endpoints.ToDictionary(e => e, GetUriWithIpAddress);
+            this.endpoints = new Lazy<IDictionary<string, string>>(() => endpoints.ToDictionary(e => e, GetUriWithIpAddress));
         }
 
         static string GetUriWithIpAddress(string endpoint)
@@ -50,14 +50,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
             return endpointWithIp;
         }
 
+        public void Dispose()
+        {
+            this.httpClient.Dispose();
+        }
+
         public async Task<IDictionary<string, string>> ScrapeAsync(CancellationToken cancellationToken)
         {
             var metrics = new Dictionary<string, string>();
-            foreach (KeyValuePair<string, string> endpoint in this.endpoints)
+            foreach (KeyValuePair<string, string> endpoint in this.endpoints.Value)
             {
                 Console.WriteLine($"Scraping endpoint {endpoint.Key}");
                 string metricsData = await this.ScrapeEndpoint(endpoint.Value, cancellationToken);
-                Console.WriteLine($"Got metrics from endpoint {endpoint}:\n{metricsData}");
                 metrics.Add(endpoint.Key, metricsData);
             }
 

@@ -89,6 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             Dictionary<string, string> dockerLoggingOptions;
             IEnumerable<global::Docker.DotNet.Models.AuthConfig> dockerAuthConfig;
             int configRefreshFrequencySecs;
+            ExperimentalFeatures experimentalFeatures;
             MetricsConfig metricsConfig;
 
             try
@@ -133,7 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 bool closeOnIdleTimeout = configuration.GetValue(Constants.CloseOnIdleTimeout, false);
                 int idleTimeoutSecs = configuration.GetValue(Constants.IdleTimeoutSecs, 300);
                 TimeSpan idleTimeout = TimeSpan.FromSeconds(idleTimeoutSecs);
-                ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(configuration.GetSection("experimentalFeatures"), logger);
+                experimentalFeatures = ExperimentalFeatures.Create(configuration.GetSection("experimentalFeatures"), logger);
                 metricsConfig = new MetricsConfig(experimentalFeatures.EnableMetrics, MetricsListenerConfig.Create(configuration));
                 string iothubHostname;
                 string deviceId;
@@ -307,10 +308,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             IStreamRequestListener streamRequestListener = await container.Resolve<Task<IStreamRequestListener>>();
             streamRequestListener.InitPump();
 
-            MetricsWorker worker = container.Resolve<MetricsWorker>();
-            TimeSpan scrapeInterval = configuration.GetValue<TimeSpan>("metric_scrape_interval");
-            TimeSpan uploadInterval = configuration.GetValue<TimeSpan>("metric_upload_interval");
-            Task metricsScraperTask = worker.Start(scrapeInterval, uploadInterval, cts.Token);
+            Task metricsScraperTask;
+            if (experimentalFeatures.EnableMetricsUpload)
+            {
+                MetricsWorker worker = container.Resolve<MetricsWorker>();
+                TimeSpan scrapeInterval = configuration.GetValue<TimeSpan>("metric_scrape_interval");
+                TimeSpan uploadInterval = configuration.GetValue<TimeSpan>("metric_upload_interval");
+                Console.WriteLine($"Scraping frequency: {scrapeInterval}\nUpload Frequency: {uploadInterval}");
+                metricsScraperTask = worker.Start(scrapeInterval, uploadInterval, cts.Token);
+            }
+            else
+            {
+                metricsScraperTask = Task.CompletedTask;
+            }
 
             int returnCode;
             using (IConfigSource unused = await container.Resolve<Task<IConfigSource>>())
