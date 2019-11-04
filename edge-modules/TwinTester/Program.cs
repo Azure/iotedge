@@ -269,7 +269,7 @@ namespace TwinTester
         {
             try
             {
-                string desiredPropertyUpdate = new string('a', Settings.Current.TwinUpdateCharCount);
+                string desiredPropertyUpdate = new string('1', Settings.Current.TwinUpdateCharCount);
                 string patch = string.Format("{{ properties: {{ desired: {{ {0}: {1}}} }} }}", desiredPropertyUpdateCounter, desiredPropertyUpdate);
                 Twin newTwin = await registryManager.UpdateTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId, patch, currentTwinETag);
                 currentTwinETag = newTwin.ETag;
@@ -293,7 +293,7 @@ namespace TwinTester
 
         static async Task PerformReportedPropertyUpdate(ModuleClient moduleClient, AnalyzerClient analyzerClient, Storage storage)
         {
-            string reportedPropertyUpdate = new string('a', Settings.Current.TwinUpdateCharCount); // TODO: change string value?
+            string reportedPropertyUpdate = new string('1', Settings.Current.TwinUpdateCharCount); // TODO: change string value?
             var twin = new TwinCollection();
             twin[reportedPropertyUpdateCounter.ToString()] = reportedPropertyUpdate;
             try
