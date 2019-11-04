@@ -433,7 +433,6 @@ Function PrepareTestFromArtifacts
                     Copy-Item $LongHaulDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
                     (Get-Content $DeploymentWorkingFilePath).replace('<DesiredModulesToRestartCSV>',$DesiredModulesToRestartCSV) | Set-Content $DeploymentWorkingFilePath
                     (Get-Content $DeploymentWorkingFilePath).replace('<RestartIntervalInMins>',$RestartIntervalInMins) | Set-Content $DeploymentWorkingFilePath
-                    (Get-Content $DeploymentWorkingFilePath).replace('<ServiceClientConnectionString>',$IoTHubConnectionString) | Set-Content $DeploymentWorkingFilePath
                 }
                 Else
                 {

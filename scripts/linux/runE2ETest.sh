@@ -156,7 +156,6 @@ function prepare_test_from_artifacts() {
                     cp "$long_haul_deployment_artifact_file" "$deployment_working_file"
                     sed -i -e "s@<DesiredModulesToRestartCSV>@$DESIRED_MODULES_TO_RESTART_CSV@g" "$deployment_working_file"
                     sed -i -e "s@<RestartIntervalInMins>@$RESTART_INTERVAL_IN_MINS@g" "$deployment_working_file"
-                    sed -i -e "s@<ServiceClientConnectionString>@$IOTHUB_CONNECTION_STRING@g" "$deployment_working_file"
                 else
                     echo "Copy deployment file from $stress_deployment_artifact_file"
                     cp "$stress_deployment_artifact_file" "$deployment_working_file"
