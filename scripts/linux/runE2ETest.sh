@@ -159,10 +159,10 @@ function prepare_test_from_artifacts() {
                 else
                     echo "Copy deployment file from $stress_deployment_artifact_file"
                     cp "$stress_deployment_artifact_file" "$deployment_working_file"
-                    sed -i -e "s@<LoadGen1.TransportType>@$LOADGEN1_TRANSPORT_TYPE@g" "$deployment_working_file"
-                    sed -i -e "s@<LoadGen2.TransportType>@$LOADGEN2_TRANSPORT_TYPE@g" "$deployment_working_file"
-                    sed -i -e "s@<LoadGen3.TransportType>@$LOADGEN3_TRANSPORT_TYPE@g" "$deployment_working_file"
-                    sed -i -e "s@<LoadGen4.TransportType>@$LOADGEN4_TRANSPORT_TYPE@g" "$deployment_working_file"
+                    sed -i -e "s@<TransportType1>@$TRANSPORT_TYPE_1@g" "$deployment_working_file"
+                    sed -i -e "s@<TransportType2>@$TRANSPORT_TYPE_2@g" "$deployment_working_file"
+                    sed -i -e "s@<TransportType3>@$TRANSPORT_TYPE_3@g" "$deployment_working_file"
+                    sed -i -e "s@<TransportType4>@$TRANSPORT_TYPE_4@g" "$deployment_working_file"
                     sed -i -e "s@<amqpSettings__enabled>@$AMQP_SETTINGS_ENABLED@g" "$deployment_working_file"
                     sed -i -e "s@<mqttSettings__enabled>@$MQTT_SETTINGS_ENABLED@g" "$deployment_working_file"
                 fi
@@ -182,6 +182,9 @@ function prepare_test_from_artifacts() {
                 sed -i -e "s@<Snitch.StorageAccount>@$SNITCH_STORAGE_ACCOUNT@g" "$deployment_working_file"
                 sed -i -e "s@<Snitch.StorageMasterKey>@$SNITCH_STORAGE_MASTER_KEY@g" "$deployment_working_file"
                 sed -i -e "s@<Snitch.TestDurationInSecs>@$SNITCH_TEST_DURATION_IN_SECS@g" "$deployment_working_file";;
+                sed -i -e "s@<TwinUpdateCharCount>@$TWIN_UPDATE_CHAR_COUNT@g" "$deployment_working_file";;
+                sed -i -e "s@<TwinUpdateFrequency>@$TWIN_UPDATE_FREQUENCY@g" "$deployment_working_file";;
+                sed -i -e "s@<TwinUpdateFailureThreshold>@$TWIN_UPDATE_FAILURE_THRESHOLD@g" "$deployment_working_file";;
             'tempfilter')
                 echo "Copy deployment file from $module_to_module_deployment_artifact_file"
                 cp "$module_to_module_deployment_artifact_file" "$deployment_working_file";;
@@ -312,16 +315,16 @@ function process_args() {
             SNITCH_TEST_DURATION_IN_SECS="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 17 ]; then
-            LOADGEN1_TRANSPORT_TYPE="$arg"
+            TRANSPORT_TYPE_1="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 18 ]; then
-            LOADGEN2_TRANSPORT_TYPE="$arg"
+            TRANSPORT_TYPE_2="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 19 ]; then
-            LOADGEN3_TRANSPORT_TYPE="$arg"
+            TRANSPORT_TYPE_3="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 20 ]; then
-            LOADGEN4_TRANSPORT_TYPE="$arg"
+            TRANSPORT_TYPE_4="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 21 ]; then
             AMQP_SETTINGS_ENABLED="$arg"
@@ -359,6 +362,15 @@ function process_args() {
         elif [ $saveNextArg -eq 31 ]; then
             RESTART_INTERVAL_IN_MINS="$arg"
             saveNextArg=0;
+        elif [ $saveNextArg -eq 32 ]; then
+            TWIN_UPDATE_CHAR_COUNT="$arg"
+            saveNextArg=0;
+        elif [ $saveNextArg -eq 33 ]; then
+            TWIN_UPDATE_FREQUENCY="$arg"
+            saveNextArg=0;
+        elif [ $saveNextArg -eq 34 ]; then
+            TWIN_UPDATE_FAILURE_THRESHOLD="$arg"
+            saveNextArg=0;
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -378,10 +390,10 @@ function process_args() {
                 '-snitchStorageAccount' ) saveNextArg=14;;
                 '-snitchStorageMasterKey' ) saveNextArg=15;;
                 '-snitchTestDurationInSecs' ) saveNextArg=16;;
-                '-loadGen1TransportType' ) saveNextArg=17;;
-                '-loadGen2TransportType' ) saveNextArg=18;;
-                '-loadGen3TransportType' ) saveNextArg=19;;
-                '-loadGen4TransportType' ) saveNextArg=20;;
+                '-transportType1' ) saveNextArg=17;;
+                '-transportType2' ) saveNextArg=18;;
+                '-transportType3' ) saveNextArg=19;;
+                '-transportType4' ) saveNextArg=20;;
                 '-amqpSettingsEnabled' ) saveNextArg=21;;
                 '-mqttSettingsEnabled' ) saveNextArg=22;;
                 '-certScriptDir' ) saveNextArg=23;;
@@ -393,6 +405,9 @@ function process_args() {
                 '-eventHubConsumerGroupId' ) saveNextArg=29;;
                 '-desiredModulesToRestartCSV' ) saveNextArg=30;;
                 '-restartIntervalInMins' ) saveNextArg=31;;
+                '-twinUpdateCharCount' ) saveNextArg=32;;
+                '-twinUpdateFrequency' ) saveNextArg=33;;
+                '-twinUpdateFailureThreshold' ) saveNextArg=34;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -973,6 +988,9 @@ function usage() {
     echo ' -installRootCAKeyPassword         Optional password to access the root CA certificate private key to be used for certificate generation'
     echo ' -desiredModulesToRestartCSV       Optional CSV string of module names for long haul specifying what modules to restart. If specified, then "restartIntervalInMins" must be specified as well.'
     echo ' -restartIntervalInMins            Optional value for long haul specifying how often a random module will restart. If specified, then "desiredModulesToRestartCSV" must be specified as well.'
+    echo ' -twinUpdateCharCount              Specifies the char count (i.e. size) of each twin update.'
+    echo ' -twinUpdateFrequency              Frequency to make twin updates. This should be specified in DateTime format.'
+    echo ' -twinUpdateFailureThreshold       Specifies the longest period of time a twin update can take before being marked as a failure. This should be specified in DateTime format.'
     exit 1;
 }
 
@@ -982,21 +1000,25 @@ CONTAINER_REGISTRY="${CONTAINER_REGISTRY:-edgebuilds.azurecr.io}"
 E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
 EVENT_HUB_CONSUMER_GROUP_ID=${EVENT_HUB_CONSUMER_GROUP_ID:-\$Default}
 SNITCH_BUILD_NUMBER="${SNITCH_BUILD_NUMBER:-1.2}"
-LOADGEN1_TRANSPORT_TYPE="${LOADGEN1_TRANSPORT_TYPE:-amqp}"
-LOADGEN2_TRANSPORT_TYPE="${LOADGEN2_TRANSPORT_TYPE:-amqp}"
-LOADGEN3_TRANSPORT_TYPE="${LOADGEN3_TRANSPORT_TYPE:-mqtt}"
-LOADGEN4_TRANSPORT_TYPE="${LOADGEN4_TRANSPORT_TYPE:-mqtt}"
+TRANSPORT_TYPE_1="${TRANSPORT_TYPE_1:-amqp}"
+TRANSPORT_TYPE_2="${TRANSPORT_TYPE_2:-amqp}"
+TRANSPORT_TYPE_3="${TRANSPORT_TYPE_3:-mqtt}"
+TRANSPORT_TYPE_4="${TRANSPORT_TYPE_4:-mqtt}"
+TWIN_UPDATE_FREQUENCY="${TWIN_UPDATE_FREQUENCY:-1}"
+TWIN_UPDATE_FAILURE_THRESHOLD="${TWIN_UPDATE_FAILURE_THRESHOLD:-00:01:00}"
 if [[ "${TEST_NAME,,}" == "longhaul" ]]; then
     DESIRED_MODULES_TO_RESTART_CSV="${DESIRED_MODULES_TO_RESTART_CSV:-,}"
     LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:01}"
     RESTART_INTERVAL_IN_MINS="${RESTART_INTERVAL_IN_MINS:-10}"
     SNITCH_REPORTING_INTERVAL_IN_SECS="${SNITCH_REPORTING_INTERVAL_IN_SECS:-86400}"
     SNITCH_TEST_DURATION_IN_SECS="${SNITCH_TEST_DURATION_IN_SECS:-604800}"
+    TWIN_UPDATE_CHAR_COUNT="${TWIN_UPDATE_CHAR_COUNT:-1}"
 fi
 if [[ "${TEST_NAME,,}" == "stress" ]]; then
     LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:00.03}"
     SNITCH_REPORTING_INTERVAL_IN_SECS="${SNITCH_REPORTING_INTERVAL_IN_SECS:-1700000}"
     SNITCH_TEST_DURATION_IN_SECS="${SNITCH_TEST_DURATION_IN_SECS:-14400}"
+    TWIN_UPDATE_CHAR_COUNT="${TWIN_UPDATE_CHAR_COUNT:-100}"
 fi
 if [ "$AMQP_SETTINGS_ENABLED" != "false" ]; then
     AMQP_SETTINGS_ENABLED="true"

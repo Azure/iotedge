@@ -57,7 +57,7 @@
                 "value": "<LoadGen.MessageFrequency>"
               },
               "transportType": {
-                "value": "<LoadGen1.TransportType>"
+                "value": "<TransportType1>"
               }
             },
             "settings": {
@@ -78,7 +78,7 @@
                 "value": "<LoadGen.MessageFrequency>"
               },
               "transportType": {
-                "value": "<LoadGen2.TransportType>"
+                "value": "<TransportType2>"
               }
             },
             "settings": {
@@ -99,7 +99,7 @@
                 "value": "<LoadGen.MessageFrequency>"
               },
               "transportType": {
-                "value": "<LoadGen3.TransportType>"
+                "value": "<TransportType3>"
               },
               "ServiceClientConnectionString": {
                 "value": "<ServiceClientConnectionString>"
@@ -120,7 +120,7 @@
                 "value": "<LoadGen.MessageFrequency>"
               },
               "transportType": {
-                "value": "<LoadGen4.TransportType>"
+                "value": "<TransportType4>"
               },
               "ServiceClientConnectionString": {
                 "value": "<ServiceClientConnectionString>"
@@ -140,7 +140,7 @@
             "version": "1.0",
             "env": {
                 "TransportType": {
-                    "value": "<TwinTester1.TransportType>"
+                    "value": "<TransportType1>"
                 },
                 "ServiceClientConnectionString": {
                     "value": "<ServiceClientConnectionString>"
@@ -167,7 +167,7 @@
             "version": "1.0",
             "env": {
                 "TransportType": {
-                    "value": "<TwinTester2.TransportType>"
+                    "value": "<TransportType2>"
                 },
                 "ServiceClientConnectionString": {
                     "value": "<ServiceClientConnectionString>"
@@ -194,7 +194,7 @@
             "version": "1.0",
             "env": {
                 "TransportType": {
-                    "value": "<TwinTester3.TransportType>"
+                    "value": "<TransportType3>"
                 },
                 "ServiceClientConnectionString": {
                     "value": "<ServiceClientConnectionString>"
@@ -221,7 +221,7 @@
             "version": "1.0",
             "env": {
                 "TransportType": {
-                    "value": "<TwinTester4.TransportType>"
+                    "value": "<TransportType4>"
                 },
                 "ServiceClientConnectionString": {
                     "value": "<ServiceClientConnectionString>"
