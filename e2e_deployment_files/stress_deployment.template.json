@@ -131,6 +131,114 @@
               "createOptions": ""
             }
           },
+          "twinTester": {
+            "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
+                "createOptions": ""
+            },
+            "type": "docker",
+            "version": "1.0",
+            "env": {
+                "TransportType": {
+                    "value": "mqtt"
+                },
+                "ServiceClientConnectionString": {
+                    "value": "<ServiceClientConnectionString>"
+                },
+                "TwinUpdateCharCount": {
+                    "value": "<TwinTester.TwinUpdateCharCount>"
+                },
+                "TwinUpdateFrequency": {
+                    "value": "<TwinTester.TwinUpdateFrequency>"
+                },
+                "TwinUpdateFailureThreshold": {
+                    "value": "<TwinTester.TwinUpdateFailureThreshold>"
+                }
+            },
+            "status": "running",
+            "restartPolicy": "always"
+          },
+          "twinTester2": {
+            "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
+                "createOptions": ""
+            },
+            "type": "docker",
+            "version": "1.0",
+            "env": {
+                "TransportType": {
+                    "value": "mqtt"
+                },
+                "ServiceClientConnectionString": {
+                    "value": "<ServiceClientConnectionString>"
+                },
+                "TwinUpdateCharCount": {
+                    "value": "<TwinTester.TwinUpdateCharCount>"
+                },
+                "TwinUpdateFrequency": {
+                    "value": "<TwinTester.TwinUpdateFrequency>"
+                },
+                "TwinUpdateFailureThreshold": {
+                    "value": "<TwinTester.TwinUpdateFailureThreshold>"
+                }
+            },
+            "status": "running",
+            "restartPolicy": "always"
+          },
+          "twinTester3": {
+            "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
+                "createOptions": ""
+            },
+            "type": "docker",
+            "version": "1.0",
+            "env": {
+                "TransportType": {
+                    "value": "mqtt"
+                },
+                "ServiceClientConnectionString": {
+                    "value": "<ServiceClientConnectionString>"
+                },
+                "TwinUpdateCharCount": {
+                    "value": "<TwinTester.TwinUpdateCharCount>"
+                },
+                "TwinUpdateFrequency": {
+                    "value": "<TwinTester.TwinUpdateFrequency>"
+                },
+                "TwinUpdateFailureThreshold": {
+                    "value": "<TwinTester.TwinUpdateFailureThreshold>"
+                }
+            },
+            "status": "running",
+            "restartPolicy": "always"
+          },
+          "twinTester4": {
+            "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
+                "createOptions": ""
+            },
+            "type": "docker",
+            "version": "1.0",
+            "env": {
+                "TransportType": {
+                    "value": "mqtt"
+                },
+                "ServiceClientConnectionString": {
+                    "value": "<ServiceClientConnectionString>"
+                },
+                "TwinUpdateCharCount": {
+                    "value": "<TwinTester.TwinUpdateCharCount>"
+                },
+                "TwinUpdateFrequency": {
+                    "value": "<TwinTester.TwinUpdateFrequency>"
+                },
+                "TwinUpdateFailureThreshold": {
+                    "value": "<TwinTester.TwinUpdateFailureThreshold>"
+                }
+            },
+            "status": "running",
+            "restartPolicy": "always"
+          },
           "snitcher": {
             "version": "2.0",
             "type": "docker",
