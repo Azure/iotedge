@@ -58,7 +58,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan idleTimeout;
         readonly KubernetesExperimentalFeatures experimentalFeatures;
-        readonly CancellationTokenSource tokenSource;
 
         public KubernetesModule(
             string iotHubHostname,
@@ -114,7 +113,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.idleTimeout = idleTimeout;
             this.experimentalFeatures = experimentalFeatures;
-            this.tokenSource = new CancellationTokenSource(SystemInfoTimeout);
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -296,10 +294,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                     async c =>
                     {
+                        CancellationTokenSource tokenSource = new CancellationTokenSource(SystemInfoTimeout);
                         var moduleStateStore = await c.Resolve<Task<IEntityStore<string, ModuleState>>>();
                         var restartPolicyManager = c.Resolve<IRestartPolicyManager>();
                         IRuntimeInfoProvider runtimeInfoProvider = c.Resolve<IRuntimeInfoProvider>();
-                        IEnvironmentProvider dockerEnvironmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, moduleStateStore, restartPolicyManager, this.tokenSource.Token);
+                        IEnvironmentProvider dockerEnvironmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, moduleStateStore, restartPolicyManager, tokenSource.Token);
                         return dockerEnvironmentProvider;
                     })
                 .As<Task<IEnvironmentProvider>>()
