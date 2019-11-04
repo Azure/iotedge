@@ -41,7 +41,7 @@ namespace TwinTester
 
                 AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = Settings.Current.AnalyzerUrl };
 
-                currentTwinETag = await GetTwinETag(registryManager);
+                currentTwinETag = await GetTwinETag(registryManager, moduleClient);
 
                 await moduleClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertyUpdateAsync, storage);
 
@@ -74,37 +74,46 @@ namespace TwinTester
             }
         }
 
-        static async Task<string> GetTwinETag(RegistryManager registryManager)
+        static async Task<string> GetTwinETag(RegistryManager registryManager, ModuleClient moduleClient)
         {
             while (true)
             {
                 try
                 {
+                    // reset desired properties
                     Twin originalTwin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
-                    Twin newTwin = new Twin();
-                    newTwin = await registryManager.ReplaceTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId, new Twin(), originalTwin.ETag);
+                    Twin desiredPropertyResetTwin = await registryManager.ReplaceTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId, new Twin(), originalTwin.ETag);
 
-                    Logger.LogInformation($"Reset state of module twin: {JsonConvert.SerializeObject(newTwin, Formatting.Indented)}");
+                    // reset reported properties
+                    TwinCollection eraseReportedProperties = GetReportedPropertiesResetTwin(moduleClient, desiredPropertyResetTwin);
+                    await moduleClient.UpdateReportedPropertiesAsync(eraseReportedProperties);
 
-                    return newTwin.ETag;
+                    await Task.Delay(1000 * 5); // TODO: tune delay
+
+                    Twin initializedTwin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
+
+                    Logger.LogInformation($"Initialized new twin: {JsonConvert.SerializeObject(initializedTwin, Formatting.Indented)}");
+
+                    return initializedTwin.ETag;
                 }
                 catch (Exception e)
                 {
-                    Logger.LogInformation($"Retrying failed initial call to get twin: {e}");
+                    Logger.LogInformation($"Retrying failed twin initialization: {e}");
                     await Task.Delay(5000); // TODO: tune wait period
                 }
             }
         }
 
-        static async Task OnDesiredPropertyUpdateAsync(TwinCollection desiredProperties, object userContext)
+        static TwinCollection GetReportedPropertiesResetTwin(ModuleClient moduleClient, Twin originalTwin)
         {
-            // TODO: If expected behavior is calling once per desired property update, then we should not be looping
-            Storage storage = (Storage)userContext;
-            foreach (dynamic twinUpdate in desiredProperties) // TODO: remove casting
+            TwinCollection eraseReportedProperties = new TwinCollection();
+            foreach (dynamic twinUpdate in originalTwin.Properties.Reported)
             {
                 KeyValuePair<string, object> pair = (KeyValuePair<string, object>)twinUpdate;
-                await storage.AddDesiredPropertyReceived(pair.Key);
+                eraseReportedProperties[pair.Key] = null; // erase from twin by setting null property value
             }
+
+            return eraseReportedProperties;
         }
 
         static bool IsPastFailureThreshold(DateTime twinUpdateTime)
@@ -212,7 +221,7 @@ namespace TwinTester
             }
             catch (Exception e)
             {
-                Logger.LogInformation($"Failed call to desired property update: {e}");
+                Logger.LogInformation($"Failed call to remove successful desired property updates: {e}");
             }
         }
 
@@ -268,22 +277,10 @@ namespace TwinTester
                }
             }
 
-            Dictionary<string, string> propertiesToRemoveFromTwin = new Dictionary<string, string>();
-            foreach (dynamic twinUpdate in reportedPropertiesUpdated)
-            {
-                KeyValuePair<string, DateTime> pair = (KeyValuePair<string, DateTime>)twinUpdate;
-                propertiesToRemoveFromTwin.Add(pair.Key, null); // erase from twin by setting null property value
-                // TODO: populate twin obj here to pass into moduleclient update
-            }
-
+            TwinCollection eraseReportedProperties = GetReportedPropertiesResetTwin(moduleClient, receivedTwin);
             try
             {
-                string patch = $"{{ properties: {{ reported: {JsonConvert.SerializeObject(propertiesToRemoveFromTwin)} }}";
-                Logger.LogDebug(patch);
-                // Twin newTwin = await registryManager.UpdateTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId, patch, currentTwinETag);
-                await moduleClient.UpdateReportedPropertiesAsync(new TwinCollection());
-                // Logger.LogDebug("Twin clearout: " + JsonConvert.SerializeObject(newTwin, Formatting.Indented));
-                // currentTwinETag = newTwin.ETag;
+                await moduleClient.UpdateReportedPropertiesAsync(eraseReportedProperties);
             }
             catch (Exception e)
             {
@@ -354,6 +351,17 @@ namespace TwinTester
             await ValidateReportedPropertyUpdates(registryManager, moduleClient, analyzerClient, storage);
             // await PerformDesiredPropertyUpdate(registryManager, storage);
             await PerformReportedPropertyUpdate(moduleClient, analyzerClient, storage);
+        }
+
+        static async Task OnDesiredPropertyUpdateAsync(TwinCollection desiredProperties, object userContext)
+        {
+            // TODO: If expected behavior is calling once per desired property update, then we should not be looping
+            Storage storage = (Storage)userContext;
+            foreach (dynamic twinUpdate in desiredProperties) // TODO: remove casting
+            {
+                KeyValuePair<string, object> pair = (KeyValuePair<string, object>)twinUpdate;
+                await storage.AddDesiredPropertyReceived(pair.Key);
+            }
         }
     }
 }
