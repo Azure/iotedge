@@ -146,44 +146,94 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             }
 
             Dictionary<string, V1Pod> modified = BuildPodList();
-            modified["edgeagent"].Status.ContainerStatuses[0].State.Running = null;
-            modified["edgeagent"].Status.ContainerStatuses[0].State.Terminated = new V1ContainerStateTerminated(139, finishedAt: DateTime.Parse("2019-06-12T16:13:07Z"), startedAt: DateTime.Parse("2019-06-12T16:11:22Z"));
-            modified["edgehub"].Status.ContainerStatuses[0].State.Running = null;
-            modified["edgehub"].Status.ContainerStatuses[1].State.Waiting = new V1ContainerStateWaiting("waiting", "reason");
+
+            DateTime agentStartTime = new DateTime(2019, 6, 11);
+            modified["edgeagent"].Status.Phase = "Running";
+            modified["edgeagent"].Status.StartTime = agentStartTime;
+
+            string pendingDescription = "0/1 node available";
+            modified["edgehub"].Status.Phase = "Pending";
+            modified["edgehub"].Status.Reason = pendingDescription;
+
+            string finishedDescription = "Pod finished";
+            modified["simulatedtemperaturesensor"].Status.Phase = "Succeeded";
+            modified["simulatedtemperaturesensor"].Status.Reason = finishedDescription;
             modified["simulatedtemperaturesensor"].Status.ContainerStatuses[1].State.Running = null;
+            modified["simulatedtemperaturesensor"].Status.ContainerStatuses[1].State.Terminated = new V1ContainerStateTerminated(139, finishedAt: DateTime.Parse("2019-06-12T16:13:07Z"), startedAt: DateTime.Parse("2019-06-12T16:11:22Z"));
+
             foreach ((string podName, var pod) in modified)
             {
                 runtimeInfo.CreateOrUpdateAddPodInfo(podName, pod);
             }
 
             var modules = (await runtimeInfo.GetModules(CancellationToken.None)).ToList();
-
             Assert.Equal(3, modules.Count);
+
+            // Normal operation statuses
             foreach (var i in modules)
             {
-                if (!string.Equals("edgeAgent", i.Name))
+                if (string.Equals("edgeAgent", i.Name))
                 {
-                    Assert.Equal(ModuleStatus.Unknown, i.ModuleStatus);
+                    Assert.Equal(ModuleStatus.Running, i.ModuleStatus);
+                    Assert.Equal($"Started at {agentStartTime.ToString()}", i.Description);
                 }
-                else
+                else if (string.Equals("edgeHub", i.Name))
                 {
                     Assert.Equal(ModuleStatus.Failed, i.ModuleStatus);
-                }
-
-                if (string.Equals("edgeHub", i.Name))
-                {
+                    Assert.Equal(pendingDescription, i.Description);
                     Assert.Equal(Option.None<DateTime>(), i.ExitTime);
-                    Assert.Equal(Option.None<DateTime>(), i.StartTime);
+                }
+                else if (string.Equals("SimulatedTemperatureSensor", i.Name))
+                {
+                    Assert.Equal(ModuleStatus.Stopped, i.ModuleStatus);
+                    Assert.Equal(finishedDescription, i.Description);
+                    Assert.Equal(new DateTime(2019, 6, 12), i.StartTime.OrDefault().Date);
+                    Assert.Equal(new DateTime(2019, 6, 12), i.ExitTime.OrDefault().Date);
                 }
                 else
                 {
-                    Assert.Equal(new DateTime(2019, 6, 12), i.StartTime.OrDefault().Date);
-                    Assert.Equal(new DateTime(2019, 6, 12), i.ExitTime.OrDefault().Date);
+                    Assert.True(false, $"Missing module {i.Name} in validation");
                 }
 
                 if (i is ModuleRuntimeInfo<DockerReportedConfig> d)
                 {
                     Assert.NotEqual("unknown:unknown", d.Config.Image);
+                }
+            }
+
+            string unknownDescription = "Could not reach pod";
+            modified["edgeagent"].Status.Phase = "Unknown";
+            modified["edgeagent"].Status.Reason = unknownDescription;
+
+            modified["edgehub"].Status = null;
+
+            foreach ((string podName, var pod) in modified)
+            {
+                runtimeInfo.CreateOrUpdateAddPodInfo(podName, pod);
+            }
+
+            var abnormalModules = (await runtimeInfo.GetModules(CancellationToken.None)).ToList();
+            Assert.Equal(3, modules.Count);
+
+            // Abnormal operation statuses
+            foreach (var i in abnormalModules)
+            {
+                if (string.Equals("edgeAgent", i.Name))
+                {
+                    Assert.Equal(ModuleStatus.Failed, i.ModuleStatus);
+                    Assert.Equal(unknownDescription, i.Description);
+                }
+                else if (string.Equals("edgeHub", i.Name))
+                {
+                    Assert.Equal(ModuleStatus.Failed, i.ModuleStatus);
+                    Assert.Equal("Unable to get pod status", i.Description);
+                }
+                else if (string.Equals("SimulatedTemperatureSensor", i.Name))
+                {
+                }
+                else
+                {
+                    Assert.True(false, $"Missing module {i.Name} in validation");
                 }
             }
         }
