@@ -188,6 +188,10 @@ function Initialize-IoTEdge {
         [Parameter(ParameterSetName = 'DpsX509')]
         [Switch] $DpsX509,
 
+        # Specified the daemon will be configured using an external provisioning endpoint.
+        [Parameter(ParameterSetName = 'External')]
+        [Switch] $External,
+
         # The device connection string.
         [Parameter(Mandatory = $true, ParameterSetName = 'ManualConnectionString')]
         [String] $DeviceConnectionString,
@@ -1793,6 +1797,11 @@ function Set-ProvisioningMode {
                 "  endpoint: '$ExternalProvisioningEndpoint'",
                 "  dynamic_reprovisioning: $DynamicReprovisioning")
             $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
+
+            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"\s*#?\s*dynamic_reprovisioning:\s*.*'
+            $replacementContent = ''
+            $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
+
             Write-HostGreen 'Configured device for external provisioning.'
             return $configurationYaml
         }
