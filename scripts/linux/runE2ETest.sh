@@ -19,9 +19,6 @@ function clean_up() {
     rm -rf /var/run/iotedge/
     rm -rf /etc/iotedge/config.yaml
 
-    echo 'Remove mounted storage folder'
-    rm -rf $mounted_storage_path
-
     if [ "$CLEAN_ALL" = '1' ]; then
         echo 'Prune docker system'
         docker system prune -af --volumes || true
@@ -821,8 +818,7 @@ function run_tempsensor_test() {
     return $ret
 }
 
-function run_test()
-{
+function run_test() {
     if [[ $INSTALL_CA_CERT -eq 1 ]]; then
         set_certificate_generation_tools_dir
         [[ -z "$CERT_SCRIPT_DIR" ]] && { print_error 'Certificate script dir is required'; exit 1; }
@@ -856,6 +852,9 @@ function run_test()
 }
 
 function setup_mounted_storage() {
+    echo 'Remove mounted storage folder'
+    rm -rf $mounted_storage_path
+
     if [ ! -d $mounted_storage_path ]; then
         mkdir $mounted_storage_path
     fi
