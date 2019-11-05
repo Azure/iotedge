@@ -352,37 +352,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             return desiredSet.Diff(existingSet);
         }
 
-        public async Task PurgeModulesAsync()
-        {
-            // Delete all services for current edge deployment
-            V1ServiceList services = await this.client.ListNamespacedServiceAsync(this.deviceNamespace, labelSelector: this.deploymentSelector);
-            var serviceTasks = services.Items
-                .Select(service => this.client.DeleteNamespacedServiceAsync(service.Metadata.Name, this.deviceNamespace, new V1DeleteOptions()));
-            await Task.WhenAll(serviceTasks);
-
-            // Delete all deployments for current edge deployment
-            V1DeploymentList deployments = await this.client.ListNamespacedDeploymentAsync(this.deviceNamespace, labelSelector: this.deploymentSelector);
-            var deploymentTasks = deployments.Items
-                .Select(
-                    deployment => this.client.DeleteNamespacedDeploymentAsync(
-                        deployment.Metadata.Name,
-                        this.deviceNamespace,
-                        new V1DeleteOptions(propagationPolicy: KubernetesConstants.DefaultDeletePropagationPolicy),
-                        propagationPolicy: KubernetesConstants.DefaultDeletePropagationPolicy));
-            await Task.WhenAll(deploymentTasks);
-
-            V1PersistentVolumeClaimList pvcs = await this.client.ListNamespacedPersistentVolumeClaimAsync(this.deviceNamespace, labelSelector: this.deploymentSelector);
-            var pvcTasks = pvcs.Items
-                .Select(pvc => this.client.DeleteNamespacedPersistentVolumeClaimAsync(pvc.Metadata.Name, this.deviceNamespace, new V1DeleteOptions()));
-            await Task.WhenAll(pvcTasks);
-
-            // Delete the service account for all deployments
-            V1ServiceAccountList serviceAccounts = await this.client.ListNamespacedServiceAccountAsync(this.deviceNamespace, labelSelector: this.deploymentSelector);
-            var serviceAccountTasks = serviceAccounts.Items
-                .Select(service => this.client.DeleteNamespacedServiceAsync(service.Metadata.Name, this.deviceNamespace, new V1DeleteOptions()));
-            await Task.WhenAll(serviceAccountTasks);
-        }
-
         static class Events
         {
             const int IdStart = KubernetesEventIds.EdgeDeploymentController;
