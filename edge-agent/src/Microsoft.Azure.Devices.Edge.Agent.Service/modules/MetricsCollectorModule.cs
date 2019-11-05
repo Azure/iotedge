@@ -7,7 +7,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using System.IO;
     using System.Text;
     using Autofac;
-    using Microsoft.Azure.Devices.Edge.Agent.MetricsCollector;
+    using Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent;
+    using Microsoft.Extensions.Logging;
 
     public class MetricsCollectorModule : Module
     {
@@ -21,17 +22,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
         protected override void Load(ContainerBuilder builder)
         {
             // IScraper
-            builder.Register(c => new Scraper(new string[] { "http://edgeHub:9600/metrics", "http://edgeAgent:9600/metrics" }))
-                .As<IScraper>()
+            builder.Register(c => new Scraper(new string[] { "http://edgeHub:9600/metrics", "http://edgeAgent:9600/metrics" }, c.Resolve<ILogger>()))
+                .As<IMetricsScraper>()
                 .SingleInstance();
 
             // IFileStorage
-            builder.Register(c => new FileStorage(this.storagePath))
-                .As<IFileStorage>()
+            builder.Register(c => new MetricsFileStorage(this.storagePath))
+                .As<IMetricsFileStorage>()
                 .SingleInstance();
 
             // IMetricsUpload
-            builder.Register(c => new FileUploader())
+            builder.Register(c => new FileWriter())
                 .As<IMetricsUpload>()
                 .SingleInstance();
 

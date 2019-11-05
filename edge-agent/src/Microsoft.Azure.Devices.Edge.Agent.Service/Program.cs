@@ -11,11 +11,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
+    using Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service;
-    using Microsoft.Azure.Devices.Edge.Agent.MetricsCollector;
     using Microsoft.Azure.Devices.Edge.Agent.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -286,6 +286,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             };
             metricsLifetimes.Add(new ExceptionCounter(recognizedExceptions, ignoredExceptions, container.Resolve<IMetricsProvider>()));
 
+            // Initialize metric uploading
+            if (experimentalFeatures.EnableMetricsUpload)
+            {
+                MetricsWorker worker = container.Resolve<MetricsWorker>();
+                TimeSpan scrapeInterval = configuration.GetValue<TimeSpan>("metric_scrape_interval");
+                TimeSpan uploadInterval = configuration.GetValue<TimeSpan>("metric_upload_interval");
+                Console.WriteLine($"Scraping frequency: {scrapeInterval}\nUpload Frequency: {uploadInterval}");
+                worker.Start(scrapeInterval, uploadInterval);
+            }
+
             // TODO move this code to Agent
             if (mode.ToLowerInvariant().Equals(Constants.KubernetesMode))
             {
@@ -307,20 +317,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             // Initialize stream request listener
             IStreamRequestListener streamRequestListener = await container.Resolve<Task<IStreamRequestListener>>();
             streamRequestListener.InitPump();
-
-            Task metricsScraperTask;
-            if (experimentalFeatures.EnableMetricsUpload)
-            {
-                MetricsWorker worker = container.Resolve<MetricsWorker>();
-                TimeSpan scrapeInterval = configuration.GetValue<TimeSpan>("metric_scrape_interval");
-                TimeSpan uploadInterval = configuration.GetValue<TimeSpan>("metric_upload_interval");
-                Console.WriteLine($"Scraping frequency: {scrapeInterval}\nUpload Frequency: {uploadInterval}");
-                metricsScraperTask = worker.Start(scrapeInterval, uploadInterval, cts.Token);
-            }
-            else
-            {
-                metricsScraperTask = Task.CompletedTask;
-            }
 
             int returnCode;
             using (IConfigSource unused = await container.Resolve<Task<IConfigSource>>())
@@ -364,15 +360,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 // Attempt to report shutdown of Agent
                 await Cleanup(agentOption, logger);
                 await CloseDbStoreProviderAsync(container);
-
-                try
-                {
-                    await metricsScraperTask;
-                }
-                catch (OperationCanceledException)
-                {
-                }
-
                 completed.Set();
             }
 

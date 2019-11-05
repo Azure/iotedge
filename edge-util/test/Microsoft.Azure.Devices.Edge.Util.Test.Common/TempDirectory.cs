@@ -9,9 +9,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
 
     public class TempDirectory : IDisposable
     {
-        private List<string> dirs = new List<string>();
+        List<string> dirs = new List<string>();
 
-        protected string GetTempDir()
+        public string GetTempDir()
         {
             string newDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(newDir);

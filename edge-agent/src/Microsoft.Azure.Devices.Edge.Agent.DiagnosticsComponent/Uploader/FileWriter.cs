@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
+namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
 {
     using System;
     using System.Collections.Generic;
@@ -9,7 +9,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
     using System.Threading;
     using System.Threading.Tasks;
 
-    public class FileUploader : IMetricsUpload
+    /// <summary>
+    /// Writes to a local file instead of uploading.
+    /// </summary>
+    public class FileWriter : IMetricsUpload
     {
         public async Task UploadAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
         {

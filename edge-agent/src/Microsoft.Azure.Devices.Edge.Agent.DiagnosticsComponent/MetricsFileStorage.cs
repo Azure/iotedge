@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
+namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
 {
     using System;
     using System.Collections;
@@ -11,22 +11,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
     using System.Threading;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public interface IFileStorage
+    public class MetricsFileStorage : IMetricsFileStorage
     {
-        void AddScrapeResult(string data);
-        IDictionary<DateTime, Func<string>> GetData();
-        IDictionary<DateTime, Func<string>> GetData(DateTime start);
-        IDictionary<DateTime, Func<string>> GetData(DateTime start, DateTime end);
-        void RemoveOldEntries(DateTime keepAfter);
-    }
+        readonly ISystemTime systemTime;
 
-    public class FileStorage : IFileStorage
-    {
-        private readonly ISystemTime systemTime;
+        string directory;
 
-        private string directory;
-
-        public FileStorage(string directory, ISystemTime systemTime = null)
+        public MetricsFileStorage(string directory, ISystemTime systemTime = null)
         {
             this.directory = directory;
             this.systemTime = systemTime ?? SystemTime.Instance;
@@ -82,22 +73,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
             .Select(timestamp => Path.Combine(this.directory, timestamp.Ticks.ToString()))
             .ToList()
             .ForEach(File.Delete);
-        }
-    }
-
-    // TODO: move to common linq extensions
-    public static class SelectWhereClass
-    {
-        public static IEnumerable<TResult> SelectWhere<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, (bool, TResult)> selector)
-        {
-            foreach (TSource s in source)
-            {
-                (bool include, TResult result) = selector(s);
-                if (include)
-                {
-                    yield return result;
-                }
-            }
         }
     }
 }

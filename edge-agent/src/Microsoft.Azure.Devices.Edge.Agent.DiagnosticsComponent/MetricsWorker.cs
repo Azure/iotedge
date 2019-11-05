@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
+namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
 {
     using System;
     using System.Collections;
@@ -10,62 +10,48 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
 
-    public class MetricsWorker
+    public class MetricsWorker : IDisposable
     {
-        readonly IScraper scraper;
-        readonly IFileStorage storage;
+        readonly IMetricsScraper scraper;
+        readonly IMetricsFileStorage storage;
         readonly IMetricsUpload uploader;
+        readonly ILogger logger;
         readonly ISystemTime systemTime;
-        readonly MetricsParser metricsParser = new MetricsParser();
         readonly AsyncLock scrapeUploadLock = new AsyncLock();
 
         DateTime lastUploadTime = DateTime.MinValue;
         Dictionary<int, Metric> metrics = new Dictionary<int, Metric>();
 
-        public MetricsWorker(IScraper scraper, IFileStorage storage, IMetricsUpload uploader, ISystemTime systemTime = null)
+        PeriodicTask scrape;
+        PeriodicTask upload;
+
+        public MetricsWorker(IMetricsScraper scraper, IMetricsFileStorage storage, IMetricsUpload uploader, ILogger logger, ISystemTime systemTime = null)
         {
             this.scraper = scraper;
             this.storage = storage;
             this.uploader = uploader;
+            this.logger = logger;
             this.systemTime = systemTime ?? SystemTime.Instance;
         }
 
-        public async Task Start(TimeSpan scrapingInterval, TimeSpan uploadInterval, CancellationToken cancellationToken)
+        public void Start(TimeSpan scrapingInterval, TimeSpan uploadInterval)
         {
-            Task scraper = Task.Run(
-                async () =>
-            {
-                while (!cancellationToken.IsCancellationRequested)
-                {
-                    await Task.Delay(scrapingInterval, cancellationToken);
-                    await this.Scrape(cancellationToken);
-                }
-            }, cancellationToken);
-
-            Task uploader = Task.Run(
-                async () =>
-            {
-                while (!cancellationToken.IsCancellationRequested)
-                {
-                    await Task.Delay(uploadInterval, cancellationToken);
-                    await this.Upload(cancellationToken);
-                }
-            }, cancellationToken);
-
-            await Task.WhenAll(scraper, uploader);
+            this.scrape = new PeriodicTask(this.Scrape, scrapingInterval, scrapingInterval, this.logger, "Scrape");
+            this.upload = new PeriodicTask(this.Upload, uploadInterval, uploadInterval, this.logger, "Scrape");
         }
 
         async Task Scrape(CancellationToken cancellationToken)
         {
             using (await this.scrapeUploadLock.GetLock(cancellationToken))
             {
-                Console.WriteLine($"{DateTime.UtcNow}Scraping Metrics");
+                this.logger.LogInformation("Scraping Metrics");
                 List<Metric> metricsToPersist = new List<Metric>();
 
                 foreach (var moduleResult in await this.scraper.ScrapeAsync(cancellationToken))
                 {
-                    var scrapedMetrics = this.metricsParser.ParseMetrics(this.systemTime.UtcNow, moduleResult.Value);
+                    IEnumerable<Metric> scrapedMetrics = MetricsParser.ParseMetrics(this.systemTime.UtcNow, moduleResult.Value);
 
                     foreach (Metric scrapedMetric in scrapedMetrics)
                     {
@@ -87,13 +73,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
                     }
                 }
 
-                Console.WriteLine($"{DateTime.UtcNow}Scraped Metrics");
+                this.logger.LogInformation("Scraped Metrics");
 
                 if (metricsToPersist.Count != 0)
                 {
-                    Console.WriteLine($"{DateTime.UtcNow}Storing metrics");
+                    this.logger.LogInformation("Storing Metrics");
                     this.storage.AddScrapeResult(Newtonsoft.Json.JsonConvert.SerializeObject(metricsToPersist));
-                    Console.WriteLine($"{DateTime.UtcNow}Stored metrics");
+                    this.logger.LogInformation("Stored Metrics");
                 }
             }
         }
@@ -102,9 +88,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
         {
             using (await this.scrapeUploadLock.GetLock(cancellationToken))
             {
-                Console.WriteLine($"{DateTime.UtcNow}Uploading Metrics");
+                this.logger.LogInformation("Uploading Metrics");
                 await this.uploader.UploadAsync(this.GetMetricsToUpload(this.lastUploadTime), cancellationToken);
                 this.lastUploadTime = this.systemTime.UtcNow;
+                this.logger.LogInformation("Uploaded Metrics");
             }
         }
 
@@ -126,6 +113,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
 
             this.storage.RemoveOldEntries(lastUploadTime);
             this.metrics.Clear();
+        }
+
+        public void Dispose()
+        {
+            this.scrape?.Dispose();
+            this.upload?.Dispose();
         }
     }
 

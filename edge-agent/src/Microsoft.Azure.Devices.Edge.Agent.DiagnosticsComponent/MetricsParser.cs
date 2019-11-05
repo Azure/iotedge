@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
+namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
 {
     using System;
     using System.Collections.Generic;
@@ -9,13 +9,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
     using System.Text.RegularExpressions;
     using Newtonsoft.Json;
 
-    public class MetricsParser
+    public static class MetricsParser
     {
-        const string IdentifierPropertyName = "MessageIdentifier";
         const string PrometheusMetricSchema = @"^(?<metricname>[^#\{\}]+)(\{((?<tagname>[^="",]+)=(\""(?<tagvalue>[^="",]+)\"")(,(?<tagname>[^="",]+)=(\""(?<tagvalue>[^="",]+)\""))*)\})?\s(?<metricvalue>.+)$";
         static readonly Regex PrometheusSchemaRegex = new Regex(PrometheusMetricSchema, RegexOptions.Compiled);
 
-        public IList<Metric> ParseMetrics(DateTime timeGeneratedUtc, string prometheusMessage)
+        public static IList<Metric> ParseMetrics(DateTime timeGeneratedUtc, string prometheusMessage)
         {
             var metricsDataList = new List<Metric>();
             using (StringReader sr = new StringReader(prometheusMessage))
@@ -73,7 +72,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
                         {
                             var metricsData = new Metric(
                                 timeGeneratedUtc,
-                                "prometheus",
                                 metricName,
                                 value,
                                 JsonConvert.SerializeObject(tags));
@@ -85,36 +83,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
             }
 
             return metricsDataList;
-        }
-    }
-
-    public class Metric
-    {
-        public DateTime TimeGeneratedUtc { get; set; }
-        public string Namespace { get; set; }
-        public string Name { get; set; }
-        public double Value { get; set; }
-        public string Tags { get; set; }
-
-        public Metric(DateTime timeGeneratedUtc, string @namespace, string name, double value, string tags)
-        {
-            this.TimeGeneratedUtc = timeGeneratedUtc;
-            this.Namespace = @namespace;
-            this.Name = name;
-            this.Value = value;
-            this.Tags = tags;
-        }
-
-        public int GetValuelessHash()
-        {
-            // TODO: replace with
-            // return HashCode.Combine(Namespace.GetHashCode(), Name.GetHashCode(), Tags.GetHashCode());
-            int hash = 17;
-            hash = hash * 31 + this.Namespace.GetHashCode();
-            hash = hash * 31 + this.Name.GetHashCode();
-            hash = hash * 31 + this.Tags.GetHashCode();
-
-            return hash;
         }
     }
 }

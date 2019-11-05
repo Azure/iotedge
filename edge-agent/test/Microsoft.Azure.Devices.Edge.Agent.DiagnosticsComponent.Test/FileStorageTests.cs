@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
+namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
 {
     using System;
     using System.Collections.Generic;
@@ -11,10 +11,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
     using Moq;
     using Xunit;
 
-    public class FileStorageTests : TempDirectory
+    public class FileStorageTests : IDisposable
     {
-        private DateTime fakeTime;
-        private ISystemTime systemTime;
+        DateTime fakeTime;
+        ISystemTime systemTime;
+        TempDirectory tempDirectory = new TempDirectory();
+
         public FileStorageTests()
         {
             var systemTime = new Mock<ISystemTime>();
@@ -26,8 +28,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
         [Fact]
         public void Storage()
         {
-            string directory = this.GetTempDir();
-            FileStorage storage = new FileStorage(directory, this.systemTime);
+            string directory = this.tempDirectory.GetTempDir();
+            MetricsFileStorage storage = new MetricsFileStorage(directory, this.systemTime);
 
             storage.AddScrapeResult(string.Join(", ", Enumerable.Range(0, 10)));
 
@@ -37,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
         [Fact]
         public void GetDataSingleEntry()
         {
-            FileStorage storage = new FileStorage(this.GetTempDir(), this.systemTime);
+            MetricsFileStorage storage = new MetricsFileStorage(this.tempDirectory.GetTempDir(), this.systemTime);
 
             string testData = string.Join(", ", Enumerable.Range(0, 10));
             storage.AddScrapeResult(testData);
@@ -50,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
         [Fact]
         public void GetDataByTime()
         {
-            FileStorage storage = new FileStorage(this.GetTempDir(), this.systemTime);
+            MetricsFileStorage storage = new MetricsFileStorage(this.tempDirectory.GetTempDir(), this.systemTime);
 
             storage.AddScrapeResult("data1");
 
@@ -82,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
         [Fact]
         public void RemoveOld()
         {
-            FileStorage storage = new FileStorage(this.GetTempDir(), this.systemTime);
+            MetricsFileStorage storage = new MetricsFileStorage(this.tempDirectory.GetTempDir(), this.systemTime);
 
             storage.AddScrapeResult("data1");
 
@@ -118,6 +120,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
             storage.RemoveOldEntries(DateTime.UtcNow);
             actual = storage.GetData();
             Assert.Empty(actual);
+        }
+
+        public void Dispose()
+        {
+            this.tempDirectory.Dispose();
         }
     }
 }

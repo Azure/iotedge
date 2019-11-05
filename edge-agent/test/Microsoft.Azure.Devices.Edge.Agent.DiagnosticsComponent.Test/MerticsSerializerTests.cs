@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
+namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
 {
     using System;
     using System.Collections.Generic;
@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
         [Fact]
         public void SingleMetricSerializes()
         {
-            Metric testMetric = new Metric(DateTime.UtcNow, "prometheous", this.metrics[0].name, this.rand.NextDouble() * 50, this.metrics[0].tags);
+            Metric testMetric = new Metric(DateTime.UtcNow, this.metrics[0].name, this.rand.NextDouble() * 50, this.metrics[0].tags);
 
             byte[] data = RawMetric.MetricsToBytes(new Metric[] { testMetric }).ToArray();
             var reconstructedValues = RawMetric.BytesToMetrics(data).ToArray();
@@ -69,10 +69,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
         public void RawValuesSerialize()
         {
             var time = DateTime.UtcNow;
-            var testValues = Enumerable.Range(1, 10).Select(i => new RawValue { TimeGeneratedUtc = time.AddHours(i), Value = this.rand.NextDouble() * 200 }).ToArray();
+            var testValues = Enumerable.Range(1, 10).Select(i => new RawMetricValue { TimeGeneratedUtc = time.AddHours(i), Value = this.rand.NextDouble() * 200 }).ToArray();
 
-            byte[] data = RawValue.RawValuesToBytes(testValues).ToArray();
-            var reconstructedValues = RawValue.BytesToRawValues(data, 0, testValues.Length).ToArray();
+            byte[] data = RawMetricValue.RawValuesToBytes(testValues).ToArray();
+            var reconstructedValues = RawMetricValue.BytesToRawValues(data, 0, testValues.Length).ToArray();
 
             TestUtilities.ReflectionEqualEnumerable(testValues, reconstructedValues);
         }
@@ -82,7 +82,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector.Test
             var time = new DateTime(1000000 * this.rand.Next(1000));
             return Enumerable.Range(1, n).Select(i => new Metric(
                 time.AddDays(i + 1.25 * this.rand.NextDouble()),
-                "prometheous",
                 name,
                 this.rand.NextDouble() * 100,
                 tags));

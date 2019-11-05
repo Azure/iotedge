@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
+namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
 {
     using System;
     using System.Collections;
@@ -11,28 +11,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Extensions.Logging;
 
-    public interface IScraper
-    {
-        Task<IDictionary<string, string>> ScrapeAsync(CancellationToken cancellationToken);
-    }
-
-    public class Scraper : IScraper, IDisposable
+    public class Scraper : IMetricsScraper, IDisposable
     {
         const string UrlPattern = @"[^/:]+://(?<host>[^/:]+)(:[^:]+)?$";
         static readonly Regex UrlRegex = new Regex(UrlPattern, RegexOptions.Compiled);
         readonly HttpClient httpClient;
         readonly Lazy<IDictionary<string, string>> endpoints;
+        readonly ILogger logger;
 
-        public Scraper(IList<string> endpoints)
+        public Scraper(IList<string> endpoints, ILogger logger)
         {
             this.httpClient = new HttpClient();
-            this.endpoints = new Lazy<IDictionary<string, string>>(() => endpoints.ToDictionary(e => e, GetUriWithIpAddress));
+            this.endpoints = new Lazy<IDictionary<string, string>>(() => endpoints.ToDictionary(e => e, this.GetUriWithIpAddress));
+            this.logger = logger;
         }
 
-        static string GetUriWithIpAddress(string endpoint)
+        string GetUriWithIpAddress(string endpoint)
         {
-            Console.WriteLine($"Getting uri with Ip for {endpoint}");
+            this.logger.LogInformation($"Getting uri with Ip for {endpoint}");
             Match match = UrlRegex.Match(endpoint);
             if (!match.Success)
             {
@@ -46,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
             var builder = new UriBuilder(endpoint);
             builder.Host = ipAddr;
             string endpointWithIp = builder.Uri.ToString();
-            Console.WriteLine($"Endpoint = {endpoint}, IP Addr = {ipAddr}, Endpoint with Ip = {endpointWithIp}");
+            this.logger.LogInformation($"Endpoint = {endpoint}, IP Addr = {ipAddr}, Endpoint with Ip = {endpointWithIp}");
             return endpointWithIp;
         }
 
@@ -60,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
             var metrics = new Dictionary<string, string>();
             foreach (KeyValuePair<string, string> endpoint in this.endpoints.Value)
             {
-                Console.WriteLine($"Scraping endpoint {endpoint.Key}");
+                this.logger.LogInformation($"Scraping endpoint {endpoint.Key}");
                 string metricsData = await this.ScrapeEndpoint(endpoint.Value, cancellationToken);
                 metrics.Add(endpoint.Key, metricsData);
             }
@@ -79,13 +77,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.MetricsCollector
                 }
                 else
                 {
-                    Console.WriteLine($"Result error code {result.StatusCode}");
-                    throw new InvalidOperationException("Error connecting EdgeHub");
+                    this.logger.LogInformation($"Error connecting to {endpoint}\nResult error code {result.StatusCode}");
+                    throw new InvalidOperationException($"Error connecting to {endpoint}");
                 }
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Error scraping endpoint {endpoint} - {e.Message}");
+                this.logger.LogInformation($"Error scraping endpoint {endpoint} - {e.Message}");
                 throw;
             }
         }
