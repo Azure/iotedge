@@ -1332,6 +1332,12 @@ Function SetEnvironmentVariable
 
 Function SetupMountedStorage
 {
+    $MountedStoragePath = "C:\data\edgehub"
+    If ((Test-Path $MountedStoragePath))
+    {
+        Remove-Item $MountedStoragePath -Recurse -Force -ErrorAction SilentlyContinue | Out-Null
+    }
+
     If (!(Test-Path $MountedStoragePath))
     {
         New-Item -ItemType directory -Path $MountedStoragePath | Out-Null
