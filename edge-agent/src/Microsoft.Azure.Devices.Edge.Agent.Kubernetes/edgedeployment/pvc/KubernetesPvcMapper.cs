@@ -64,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
             }
             else if (this.storageClassName.HasValue)
             {
-                this.storageClassName.ForEach(storageClass => persistentVolumeClaimSpec.StorageClassName = storageClass);
+                persistentVolumeClaimSpec.StorageClassName = this.storageClassName.OrDefault();
             }
 
             return new V1PersistentVolumeClaim(metadata: new V1ObjectMeta(name: volumeName, labels: labels), spec: persistentVolumeClaimSpec);
