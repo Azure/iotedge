@@ -24,6 +24,7 @@ namespace MessagesAnalyzer.Controllers
 
                 // Upload the data to Log Analytics
                 logAnalytics.Post(Encoding.UTF8.GetBytes(resultJson), Settings.Current.LogAnalyticLogType);
+                //logAnalytics.PostAsync(resultJson, Settings.Current.LogAnalyticLogType);
             }
 
             return resultJson;
