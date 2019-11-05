@@ -1,9 +1,16 @@
+# 1.0.8.3 (2019-10-18)
+## Edge Hub
+### Bug Fixes
+* Add ASC support ([466759f](https://github.com/Azure/iotedge/commit/466759fc6a24acec3b124af4f5f05dd98ab0d190))
+* Fix deployment status ([f602329](https://github.com/Azure/iotedge/commit/f602329a5555b7e32dda2326cf0dd6956c20a80f))
+* Fix message loss caused by connectivity exceptions ([e079073](https://github.com/Azure/iotedge/commit/e0790738e1888c1f8a53bf8ab2600edcb6eba304))
+
 # 1.0.8.2 (2019-09-23)
 ## Edge Hub
 ### Bug Fixes
 * Set RocksDB total WAL size to 512M ([07ee35d](https://github.com/Azure/iotedge/commit/07ee35d79a11eb6daab2a883e82ffbd7a1e93682))
 * Fix leaking event handlers in offline scenario ([f3b8a46](https://github.com/Azure/iotedge/commit/f3b8a463372d94163c286bd4c1a81ea9eb811832))
-* Fix error if client does not send product info  ([9267a05](https://github.com/Azure/iotedge/commit/9267a0545ac4394400afbcabdc123737ebcfbc17))
+* Fix error if client does not send product info ([9267a05](https://github.com/Azure/iotedge/commit/9267a0545ac4394400afbcabdc123737ebcfbc17))
 
 # 1.0.8.1 (2019-08-26)
 ## Edge Hub
