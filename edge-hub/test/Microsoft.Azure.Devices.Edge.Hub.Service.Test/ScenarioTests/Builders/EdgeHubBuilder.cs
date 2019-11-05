@@ -84,7 +84,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
                                                         [typeof(TwinCollection)] = new TwinCollectionMessageConverter()
                                                     });
 
-            // use StoringTwinManager?
             var storeProvider = new StoreProvider(new InMemoryDbStoreProvider());
             var entityStore = storeProvider.GetEntityStore<string, TwinStoreEntity>("EdgeTwin");
 
