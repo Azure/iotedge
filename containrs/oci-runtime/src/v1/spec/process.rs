@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 /// Process contains information to start a specific application inside the
 /// container.
-#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct Process {
     /// Terminal creates an interactive terminal for the container.
     #[serde(rename = "terminal", skip_serializing_if = "Option::is_none")]
@@ -68,7 +68,7 @@ pub struct LinuxCapabilities {
 
 /// Box specifies dimensions of a rectangle. Used for specifying the size of a
 /// console.
-#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct Box {
     /// Height is the vertical dimension of a box.
     #[serde(rename = "height")]
@@ -80,7 +80,7 @@ pub struct Box {
 
 /// User specifies specific user (and group) information for the container
 /// process.
-#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct User {
     /// UID is the user id.
     #[serde(rename = "uid")]
@@ -97,7 +97,7 @@ pub struct User {
 }
 
 /// POSIXRlimit type and restrictions
-#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct POSIXRlimit {
     /// Type of the rlimit to set
     #[serde(rename = "type")]

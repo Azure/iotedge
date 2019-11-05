@@ -17,7 +17,7 @@ use solaris::*;
 use windows::*;
 
 /// Spec is the base configuration for the container. (config.json)
-#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct Spec {
     /// Version of the Open Container Runtime Specification with which the
     /// bundle complies.
@@ -53,8 +53,25 @@ pub struct Spec {
     pub windows: Option<Windows>,
 }
 
+impl Default for Spec {
+    fn default() -> Spec {
+        Spec {
+            version: super::VERSION.to_string(),
+            process: None,
+            root: None,
+            hostname: None,
+            mounts: None,
+            hooks: None,
+            annotations: None,
+            linux: None,
+            solaris: None,
+            windows: None,
+        }
+    }
+}
+
 /// Root contains information about the container's root filesystem on the host.
-#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct Root {
     /// Path is the absolute path to the container's root filesystem.
     #[serde(rename = "path")]
@@ -66,7 +83,7 @@ pub struct Root {
 }
 
 /// Mount specifies a mount for a container.
-#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct Mount {
     /// Destination is the absolute path where the mount will be placed in the
     /// container.
@@ -101,7 +118,7 @@ pub struct Hooks {
 
 /// Hook specifies a command that is run at a particular event in the lifecycle
 /// of a container
-#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct Hook {
     #[serde(rename = "path")]
     pub path: String,

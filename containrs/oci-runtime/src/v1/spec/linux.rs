@@ -100,7 +100,7 @@ impl std::fmt::Display for LinuxNamespaceType {
 }
 
 /// LinuxIDMapping specifies UID/GID mappings
-#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct LinuxIDMapping {
     /// HostID is the starting UID/GID on the host to be mapped to 'ContainerID'
     #[serde(rename = "hostID")]
@@ -114,7 +114,7 @@ pub struct LinuxIDMapping {
 }
 
 /// LinuxHugepageLimit structure corresponds to limiting kernel hugepages
-#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct LinuxHugepageLimit {
     /// Pagesize is the hugepage size
     #[serde(rename = "pageSize")]
@@ -125,7 +125,7 @@ pub struct LinuxHugepageLimit {
 }
 
 /// LinuxInterfacePriority for network interfaces
-#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct LinuxInterfacePriority {
     /// Name is the name of the network interface
     #[serde(rename = "name")]
@@ -136,7 +136,7 @@ pub struct LinuxInterfacePriority {
 }
 
 /// LinuxWeightDevice struct holds a `major:minor weight` pair for weightDevice
-#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct LinuxWeightDevice {
     /// Major is the device's major number.
     #[serde(rename = "major")]
@@ -154,7 +154,7 @@ pub struct LinuxWeightDevice {
 }
 
 /// LinuxThrottleDevice struct holds a `major:minor rate_per_second` pair
-#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct LinuxThrottleDevice {
     /// Major is the device's major number.
     #[serde(rename = "major")]
@@ -260,7 +260,7 @@ pub struct LinuxCPU {
 }
 
 /// LinuxPids for Linux cgroup 'pids' resource management (Linux 4.3)
-#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct LinuxPids {
     /// Maximum number of PIDs. Default is "no limit".
     #[serde(rename = "limit")]
@@ -305,7 +305,7 @@ pub struct LinuxResources {
 }
 
 /// LinuxDevice represents the mknod information for a Linux special device file
-#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct LinuxDevice {
     /// Path to the device.
     #[serde(rename = "path")]
@@ -331,7 +331,7 @@ pub struct LinuxDevice {
 }
 
 /// LinuxDeviceCgroup represents a device rule for the whitelist controller
-#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct LinuxDeviceCgroup {
     /// Allow or deny
     #[serde(rename = "allow")]
