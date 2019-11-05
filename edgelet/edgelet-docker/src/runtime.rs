@@ -1402,6 +1402,10 @@ mod tests {
             unimplemented!()
         }
 
+        fn system_resources(&self) -> SystemResources {
+            unimplemented!()
+        }
+
         fn list(&self) -> Self::ListFuture {
             future::ok(self.modules.clone())
         }
