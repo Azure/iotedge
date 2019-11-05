@@ -253,7 +253,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 storageBackupPath = Option.Some(GetOrCreateDirectoryPath(this.configuration.GetValue<string>("BackupFolder"), Constants.EdgeHubStorageBackupFolder));
             }
 
-            var storeAndForwardConfiguration = new StoreAndForwardConfiguration(timeToLiveSecs, Option.None<StoreLimits>());
+            var storeAndForwardConfiguration = new StoreAndForwardConfiguration(timeToLiveSecs, Option.Some(new StoreLimits(1000000)));
             return (storeAndForwardEnabled, usePersistentStorage, storeAndForwardConfiguration, storagePath, useBackupAndRestore, storageBackupPath);
         }
 
