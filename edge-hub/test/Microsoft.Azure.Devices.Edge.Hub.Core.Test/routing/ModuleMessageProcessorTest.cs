@@ -169,11 +169,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             var result = await messageProcessor.ProcessAsync(messages, CancellationToken.None);
 
-            Func<SendFailureDetails> throwError = new Func<SendFailureDetails>(() => throw new Exception());
             Assert.False(result.IsSuccessful);
             Assert.Equal(1, result.Succeeded.Count);
             Assert.Equal(4, result.Failed.Count);
-            Assert.Equal(FailureKind.Transient, result.SendFailureDetails.GetOrElse(throwError()).FailureKind);
+            Assert.Equal(FailureKind.Transient, result.SendFailureDetails.OrDefault().FailureKind);
         }
 
         [Fact]
