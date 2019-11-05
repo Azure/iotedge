@@ -1751,6 +1751,13 @@ function Set-ProvisioningMode {
     Update-ConfigYaml({
         param($configurationYaml)
 
+        if ($DynamicReprovisioning) {
+            $DynamicReprovisioning = 'true'
+        }
+        else {
+            $DynamicReprovisioning = 'false'
+        }
+
         if ($ManualConnectionString -or $ManualX509) {
             $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"\s*#?\s*dynamic_reprovisioning:\s*".*"'
             $authenticationMethod = Get-ManualAuthSettings
