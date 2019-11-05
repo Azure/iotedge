@@ -255,6 +255,9 @@ function Initialize-IoTEdge {
         [ValidateNotNullOrEmpty()]
         [String] $ExternalProvisioningEndpoint,
 
+        # Specifies whether dynamic reprovisioning should be enabled or not.
+        [Switch] $DynamicReprovisioning,
+
         # The base OS of all the containers that will be run on this device via the security daemon.
         #
         # If set to Linux, a separate installation of Docker for Windows is expected.
@@ -677,6 +680,9 @@ function Install-IoTEdge {
         [ValidateNotNullOrEmpty()]
         [String] $ExternalProvisioningEndpoint,
 
+        # Specifies whether dynamic reprovisioning should be enabled or not.
+        [Switch] $DynamicReprovisioning,
+
         # The base OS of all the containers that will be run on this device via the security daemon.
         #
         # If set to Linux, a separate installation of Docker for Windows is expected.
@@ -788,7 +794,8 @@ function Install-IoTEdge {
     if ($AgentImage) { $Params["-AgentImage"] = $AgentImage }
     if ($Username) { $Params["-Username"] = $Username }
     if ($Password) { $Params["-Password"] = $Password }
-
+    $Params["-DynamicReprovisioning"] = $DynamicReprovisioning
+    
     # Used to suppress some messages from Initialize-IoTEdge that have already been emitted by Deploy-IoTEdge
     $initializeCalledFromInstall = $true
 
@@ -1745,13 +1752,14 @@ function Set-ProvisioningMode {
         param($configurationYaml)
 
         if ($ManualConnectionString -or $ManualX509) {
-            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"'
+            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"\s*#?\s*dynamic_reprovisioning:\s*".*"'
             $authenticationMethod = Get-ManualAuthSettings
             if ($authenticationMethod -eq 'device_connection_string') {
                 $replacementContent = @(
                     'provisioning:',
                     '  source: ''manual''',
-                    "  device_connection_string: '$DeviceConnectionString'")
+                    "  device_connection_string: '$DeviceConnectionString'",
+                    "  dynamic_reprovisioning: $DynamicReprovisioning")
             } elseif ($authenticationMethod -eq 'x509') {
                 $certUri = ([System.Uri][System.IO.Path]::GetFullPath($X509IdentityCertificate)).AbsoluteUri
                 $pkUri = ([System.Uri][System.IO.Path]::GetFullPath($X509IdentityPrivateKey)).AbsoluteUri
@@ -1763,18 +1771,20 @@ function Set-ProvisioningMode {
                     "    iothub_hostname: '$IotHubHostName'"
                     "    device_id: '$DeviceId'"
                     "    identity_cert: '$certUri'"
-                    "    identity_pk: '$pkUri'")
+                    "    identity_pk: '$pkUri'",
+                    "  dynamic_reprovisioning: $DynamicReprovisioning")
             }
             $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
             Write-HostGreen 'Configured device for manual provisioning.'
             return $configurationYaml
         }
         elseif ($External -or $ExternalProvisioningEndpoint){
-            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*endpoint:\s*".*"'
+            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*endpoint:\s*".*"\s*#?\s*dynamic_reprovisioning:\s*.*'
             $replacementContent = @(
                 'provisioning:',
                 '  source: ''external''',
-                "  endpoint: '$ExternalProvisioningEndpoint'")
+                "  endpoint: '$ExternalProvisioningEndpoint'",
+                "  dynamic_reprovisioning: $DynamicReprovisioning")
             $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
             Write-HostGreen 'Configured device for external provisioning.'
             return $configurationYaml
@@ -1788,6 +1798,8 @@ function Set-ProvisioningMode {
             } elseif ($attestationMethod -eq 'x509') {
                 $selectionRegex += '\s*#?\s*identity_cert:\s".*"\s*#?\s*identity_pk:\s".*"'
             }
+
+            $selectionRegex += '\s*#?\s*dynamic_reprovisioning:\s*.*'
             $replacementContent = @(
                 'provisioning:',
                 '  source: ''dps''',
@@ -1809,9 +1821,11 @@ function Set-ProvisioningMode {
                 $uri = ([System.Uri][System.IO.Path]::GetFullPath($X509IdentityPrivateKey)).AbsoluteUri
                 $replacementContent += "    identity_pk: '$uri'"
             }
+
+            $replacementContent += "  dynamic_reprovisioning: $DynamicReprovisioning"
             $configurationYaml = $configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")
 
-            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"'
+            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"\s*#?\s*dynamic_reprovisioning:\s*.*'
             $replacementContent = ''
             $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
 
