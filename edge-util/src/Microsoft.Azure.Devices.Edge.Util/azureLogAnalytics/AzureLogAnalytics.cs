@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
             string dateString = dateTime.ToString("r");
             string signature = this.GetSignature("POST", content.Length, "application/json", dateString, "/api/logs");
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(requestUriString);
-            request.ContentType = "application/json;";
+            request.ContentType = "application/json";
             request.Method = "POST";
             request.Headers["Log-Type"] = LogType;
             request.Headers["x-ms-date"] = dateString;
