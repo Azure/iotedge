@@ -68,12 +68,6 @@ $IoTEdgedArtifactFolder = Join-Path $E2ETestFolder "artifacts\iotedged-windows"
 $InstallationScriptPath = Join-Path $E2ETestFolder "artifacts\core-windows\scripts\windows\setup\IotEdgeSecurityDaemon.ps1"
 Invoke-Expression $InstallationScriptPath
 
-$MountedStoragePath = "C:\data\edgehub"
-If ((Test-Path $MountedStoragePath))
-{
-    Remove-Item $MountedStoragePath -Recurse -Force | Out-Null
-}
-
 If ($osEdition -eq "IoTUAP")    # Windows IoT Core - update iotedge
 {
     # Check iotedge version
