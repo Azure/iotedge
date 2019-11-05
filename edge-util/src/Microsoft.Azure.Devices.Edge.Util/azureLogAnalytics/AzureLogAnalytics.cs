@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
     public sealed class AzureLogAnalytics
     {
         static AzureLogAnalytics instance = null;
+        static readonly ILogger Log = Logger.Factory.CreateLogger<AzureLogAnalytics>();
         AzureLogAnalytics(string workspaceId, string sharedKey, string apiVersion = "2016-04-01")
         {
             this.WorkspaceId = workspaceId;
@@ -27,7 +28,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
         public string SharedKey { get; }
         public string ApiVersion { get; }
 
-        public static AzureLogAnalytics getInstance(string workspaceId, string sharedKey)
+        public static AzureLogAnalytics getInstance()
+        {
+            Preconditions.CheckNotNull(instance);
+            return instance;
+        }
+
+        public static AzureLogAnalytics initInstance(string workspaceId, string sharedKey)
         {
             if(instance == null)
             {
@@ -55,6 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
 
             using (HttpWebResponse responseAsync = (HttpWebResponse)request.GetResponse())
             {
+                Log.LogInformation(responseAsync.StatusDescription);
                 Console.WriteLine(responseAsync.StatusDescription);
 
                 // Get the stream containing content returned by the server.
@@ -63,6 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
                 {
                     StreamReader reader = new StreamReader(dataStream);
                     string responseFromServer = reader.ReadToEnd();
+                    Log.LogInformation(responseAsync.StatusDescription);
                     Console.WriteLine(responseFromServer);
                 }
             }

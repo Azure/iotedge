@@ -18,7 +18,7 @@ namespace MessagesAnalyzer.Controllers
 
             if (Settings.Current.LogAnalyticEnabled)
             {
-                logAnalytics = AzureLogAnalytics.getInstance(
+                logAnalytics = AzureLogAnalytics.initInstance(
                     Settings.Current.LogAnalyticWorkspaceId,
                     Settings.Current.LogAnalyticSharedKey );
 
