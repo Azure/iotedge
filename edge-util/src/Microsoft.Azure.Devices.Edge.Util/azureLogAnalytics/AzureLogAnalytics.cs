@@ -6,28 +6,37 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
     using System.Net;
     using System.Security.Cryptography;
     using System.Text;
+    using Microsoft.Extensions.Logging;
 
     /* Sample code from:
     /* https://github.com/veyalla/MetricsCollector/blob/master/modules/MetricsCollector/AzureLogAnalytics.cs
     /* https://dejanstojanovic.net/aspnet/2018/february/send-data-to-azure-log-analytics-from-c-code/
     */
 
-    public class AzureLogAnalytics
+    public sealed class AzureLogAnalytics
     {
-        public AzureLogAnalytics(string workspaceId, string sharedKey, string logType, string apiVersion = "2016-04-01")
+        static AzureLogAnalytics instance = null;
+        AzureLogAnalytics(string workspaceId, string sharedKey, string apiVersion = "2016-04-01")
         {
             this.WorkspaceId = workspaceId;
             this.SharedKey = sharedKey;
-            this.LogType = logType;
             this.ApiVersion = apiVersion;
         }
 
         public string WorkspaceId { get; }
         public string SharedKey { get; }
         public string ApiVersion { get; }
-        public string LogType { get; }
 
-        public void Post(byte[] content)
+        public static AzureLogAnalytics getInstance(string workspaceId, string sharedKey)
+        {
+            if(instance == null)
+            {
+                instance = new AzureLogAnalytics(workspaceId, sharedKey);
+            }
+            return instance;
+        }
+
+        public void Post(byte[] content, string LogType)
         {
             string requestUriString = $"https://{this.WorkspaceId}.ods.opinsights.azure.com/api/logs?api-version={this.ApiVersion}";
             DateTime dateTime = DateTime.UtcNow;
@@ -36,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(requestUriString);
             request.ContentType = "application/json";
             request.Method = "POST";
-            request.Headers["Log-Type"] = this.LogType;
+            request.Headers["Log-Type"] = LogType;
             request.Headers["x-ms-date"] = dateString;
             request.Headers["Authorization"] = signature;
             using (Stream requestStreamAsync = request.GetRequestStream())
