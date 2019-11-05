@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment
 
             // DeployModules returns a status, confirm this is what is reported.
             var controller = Mock.Of<IEdgeDeploymentController>();
-            Mock.Get(controller).Setup(c => c.DeployModulesAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>(), edgeDefinition))
+            Mock.Get(controller).Setup(c => c.DeployModulesAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>()))
                 .ReturnsAsync(returnedStatus);
 
             var client = Mock.Of<IKubernetes>();
@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment
 
             // DeployModules returns a status, confirm this is what is reported.
             var controller = Mock.Of<IEdgeDeploymentController>();
-            Mock.Get(controller).Setup(c => c.DeployModulesAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>(), edgeDefinition))
+            Mock.Get(controller).Setup(c => c.DeployModulesAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>()))
                 .ReturnsAsync(returnedStatus);
 
             var client = Mock.Of<IKubernetes>();
@@ -97,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment
             await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Added, edgeDefinition);
             await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Modified, edgeDefinition);
 
-            Mock.Get(controller).Verify(c => c.DeployModulesAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>(), edgeDefinition), Times.Exactly(2));
+            Mock.Get(controller).Verify(c => c.DeployModulesAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>()), Times.Exactly(2));
             Mock.Get(client).Verify(c => c.ReplaceNamespacedCustomObjectStatusWithHttpMessagesAsync(It.IsAny<object>(), Constants.EdgeDeployment.Group, Constants.EdgeDeployment.Version, DeviceNamespace, Constants.EdgeDeployment.Plural, It.IsAny<string>(), null, It.IsAny<CancellationToken>()), Times.Once);
         }
 
@@ -154,7 +154,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment
             };
 
             var controller = Mock.Of<IEdgeDeploymentController>();
-            Mock.Get(controller).Setup(c => c.DeployModulesAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>(), edgeDefinition))
+            Mock.Get(controller).Setup(c => c.DeployModulesAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>()))
                 .ThrowsAsync(controllerException);
 
             var client = Mock.Of<IKubernetes>();
@@ -198,7 +198,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment
             };
 
             var controller = Mock.Of<IEdgeDeploymentController>();
-            Mock.Get(controller).Setup(c => c.DeployModulesAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>(), edgeDefinition))
+            Mock.Get(controller).Setup(c => c.DeployModulesAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>()))
                 .ThrowsAsync(controllerException);
 
             var client = Mock.Of<IKubernetes>();

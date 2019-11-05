@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             this.serviceAccountMapper = serviceAccountMapper;
         }
 
-        public async Task<EdgeDeploymentStatus> DeployModulesAsync(ModuleSet desiredModules, ModuleSet currentModules, EdgeDeploymentDefinition edgeDeploymentDefinition)
+        public async Task<EdgeDeploymentStatus> DeployModulesAsync(ModuleSet desiredModules, ModuleSet currentModules)
         {
             try
             {
@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 };
 
                 var desiredServices = desiredModules.Modules
-                    .Select(module => this.serviceMapper.CreateService(moduleIdentities[module.Key], module.Value as KubernetesModule, labels[module.Key], edgeDeploymentDefinition))
+                    .Select(module => this.serviceMapper.CreateService(moduleIdentities[module.Key], (KubernetesModule)module.Value, labels[module.Key]))
                     .FilterMap()
                     .ToList();
 
@@ -86,14 +86,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 await this.ManageServices(currentServices, desiredServices);
 
                 var desiredDeployments = desiredModules.Modules
-                    .Select(module => this.deploymentMapper.CreateDeployment(moduleIdentities[module.Key], module.Value as KubernetesModule, labels[module.Key], edgeDeploymentDefinition))
+                    .Select(module => this.deploymentMapper.CreateDeployment(moduleIdentities[module.Key], (KubernetesModule)module.Value, labels[module.Key]))
                     .ToList();
 
                 V1DeploymentList currentDeployments = await this.client.ListNamespacedDeploymentAsync(this.deviceNamespace, labelSelector: this.deploymentSelector);
                 await this.ManageDeployments(currentDeployments, desiredDeployments);
 
                 var desiredPvcs = desiredModules.Modules
-                    .Select(module => this.pvcMapper.CreatePersistentVolumeClaims(module.Value as KubernetesModule, deviceOnlyLabels, edgeDeploymentDefinition))
+                    .Select(module => this.pvcMapper.CreatePersistentVolumeClaims((KubernetesModule)module.Value, deviceOnlyLabels))
                     .FilterMap()
                     .SelectMany(x => x)
                     .Distinct(KubernetesPvcByValueEqualityComparer);
@@ -103,7 +103,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 await this.ManagePvcs(currentPvcList, desiredPvcs);
 
                 var desiredServiceAccounts = desiredModules.Modules
-                    .Select(module => this.serviceAccountMapper.CreateServiceAccount(moduleIdentities[module.Key], labels[module.Key], edgeDeploymentDefinition))
+                    .Select(module => this.serviceAccountMapper.CreateServiceAccount((KubernetesModule)module.Value, moduleIdentities[module.Key], labels[module.Key]))
                     .ToList();
 
                 V1ServiceAccountList currentServiceAccounts = await this.client.ListNamespacedServiceAccountAsync(this.deviceNamespace, labelSelector: this.deploymentSelector);

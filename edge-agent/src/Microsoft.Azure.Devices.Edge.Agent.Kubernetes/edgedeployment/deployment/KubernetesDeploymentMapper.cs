@@ -67,9 +67,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             this.managementUri = managementUri;
         }
 
-        public V1Deployment CreateDeployment(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels, EdgeDeploymentDefinition edgeDeploymentDefinition)
+        public V1Deployment CreateDeployment(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels)
         {
-            var deployment = this.PrepareDeployment(identity, module, labels, edgeDeploymentDefinition);
+            var deployment = this.PrepareDeployment(identity, module, labels);
             deployment.Metadata.Annotations[KubernetesConstants.CreationString] = JsonConvert.SerializeObject(deployment);
 
             return deployment;
@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             to.Metadata.ResourceVersion = from.Metadata.ResourceVersion;
         }
 
-        V1Deployment PrepareDeployment(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels, EdgeDeploymentDefinition edgeDeploymentDefinition)
+        V1Deployment PrepareDeployment(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels)
         {
             string name = identity.DeploymentName();
 
@@ -91,10 +91,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             var ownerReferences = new List<V1OwnerReference>
             {
                 new V1OwnerReference(
-                    apiVersion: edgeDeploymentDefinition.ApiVersion,
-                    kind: edgeDeploymentDefinition.Kind,
-                    name: edgeDeploymentDefinition.Metadata.Name,
-                    uid: edgeDeploymentDefinition.Metadata.Uid,
+                    apiVersion: module.Owner.ApiVersion,
+                    kind: module.Owner.Kind,
+                    name: module.Owner.Name,
+                    uid: module.Owner.Uid,
                     blockOwnerDeletion: true)
             };
 

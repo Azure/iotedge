@@ -7,7 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
     public interface IKubernetesDeploymentMapper
     {
-        V1Deployment CreateDeployment(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels, EdgeDeploymentDefinition edgeDeploymentDefinition);
+        V1Deployment CreateDeployment(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels);
 
         void UpdateDeployment(V1Deployment to, V1Deployment from);
     }

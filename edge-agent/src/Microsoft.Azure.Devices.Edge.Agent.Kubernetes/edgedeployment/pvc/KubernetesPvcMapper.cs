@@ -25,10 +25,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
             this.persistentVolumeClaimSizeMb = persistentVolumeClaimSizeMb;
         }
 
-        public Option<List<V1PersistentVolumeClaim>> CreatePersistentVolumeClaims(KubernetesModule module, IDictionary<string, string> labels, EdgeDeploymentDefinition edgeDeploymentDefinition) =>
+        public Option<List<V1PersistentVolumeClaim>> CreatePersistentVolumeClaims(KubernetesModule module, IDictionary<string, string> labels) =>
             module.Config.CreateOptions.HostConfig
                 .FlatMap(hostConfig => Option.Maybe(hostConfig.Mounts))
-                .Map(mounts => mounts.Where(this.ShouldCreatePvc).Select(mount => this.ExtractPvc(mount, labels, edgeDeploymentDefinition)).ToList())
+                .Map(mounts => mounts.Where(this.ShouldCreatePvc).Select(mount => this.ExtractPvc(mount, labels, module)).ToList())
                 .Filter(mounts => mounts.Any());
 
         bool ShouldCreatePvc(Mount mount)
@@ -41,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
             return this.storageClassName.HasValue || this.persistentVolumeName.HasValue;
         }
 
-        V1PersistentVolumeClaim ExtractPvc(Mount mount, IDictionary<string, string> labels, EdgeDeploymentDefinition edgeDeploymentDefinition)
+        V1PersistentVolumeClaim ExtractPvc(Mount mount, IDictionary<string, string> labels, KubernetesModule module)
         {
             string name = KubeUtils.SanitizeK8sValue(mount.Source);
             bool readOnly = mount.ReadOnly;
@@ -69,10 +69,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
             var ownerReferences = new List<V1OwnerReference>
             {
                 new V1OwnerReference(
-                    apiVersion: edgeDeploymentDefinition.ApiVersion,
-                    kind: edgeDeploymentDefinition.Kind,
-                    name: edgeDeploymentDefinition.Metadata.Name,
-                    uid: edgeDeploymentDefinition.Metadata.Uid,
+                    apiVersion: module.Owner.ApiVersion,
+                    kind: module.Owner.Kind,
+                    name: module.Owner.Name,
+                    uid: module.Owner.Uid,
                     blockOwnerDeletion: true)
             };
             return new V1PersistentVolumeClaim(metadata: new V1ObjectMeta(name: name, labels: labels, ownerReferences: ownerReferences), spec: persistentVolumeClaimSpec);

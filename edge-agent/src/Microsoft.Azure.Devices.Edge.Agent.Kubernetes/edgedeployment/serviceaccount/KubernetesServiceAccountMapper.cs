@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.ServiceAc
 
     public class KubernetesServiceAccountMapper : IKubernetesServiceAccountMapper
     {
-        public V1ServiceAccount CreateServiceAccount(IModuleIdentity identity, IDictionary<string, string> labels, EdgeDeploymentDefinition edgeDeploymentDefinition)
+        public V1ServiceAccount CreateServiceAccount(KubernetesModule module, IModuleIdentity identity, IDictionary<string, string> labels)
         {
             string name = identity.DeploymentName();
             var annotations = new Dictionary<string, string>
@@ -19,10 +19,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.ServiceAc
             var ownerReferences = new List<V1OwnerReference>
             {
                 new V1OwnerReference(
-                    apiVersion: edgeDeploymentDefinition.ApiVersion,
-                    kind: edgeDeploymentDefinition.Kind,
-                    name: edgeDeploymentDefinition.Metadata.Name,
-                    uid: edgeDeploymentDefinition.Metadata.Uid,
+                    apiVersion: module.Owner.ApiVersion,
+                    kind: module.Owner.Kind,
+                    name: module.Owner.Name,
+                    uid: module.Owner.Uid,
                     blockOwnerDeletion: true)
             };
             var metadata = new V1ObjectMeta(annotations, name: name, labels: labels, ownerReferences: ownerReferences);

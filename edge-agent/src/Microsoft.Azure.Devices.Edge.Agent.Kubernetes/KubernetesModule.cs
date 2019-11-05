@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         static readonly CombinedKubernetesConfigEqualityComparer ConfigComparer = new CombinedKubernetesConfigEqualityComparer();
 
-        public KubernetesModule(IModule module, KubernetesConfig config)
+        public KubernetesModule(IModule module, KubernetesConfig config, KubernetesModuleOwner owner)
         {
             this.Name = module.Name;
             this.Version = module.Version;
@@ -25,6 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.Env = module.Env?.ToImmutableDictionary() ?? ImmutableDictionary<string, EnvVal>.Empty;
             this.ImagePullPolicy = module.ImagePullPolicy;
             this.Config = config;
+            this.Owner = owner;
         }
 
         [JsonConstructor]
@@ -77,6 +78,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         [JsonProperty(PropertyName = "settings")]
         [JsonConverter(typeof(ObjectToStringConverter<KubernetesConfig>))]
         public KubernetesConfig Config { get; }
+
+        [JsonProperty(PropertyName = "owner")]
+        public KubernetesModuleOwner Owner { get; }
 
         public virtual bool Equals(IModule other) => this.Equals(other as KubernetesModule);
 

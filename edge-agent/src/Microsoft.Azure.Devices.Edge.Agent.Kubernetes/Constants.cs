@@ -66,5 +66,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public const string StorageClassNameKey = "StorageClassName";
 
         public const string PersistentVolumeClaimDefaultSizeInMbKey = "PersistentVolumeClaimDefaultSizeInMb";
+
+        public const string EdgeK8sObjectOwnerApiVersion = "EdgeK8sObjectOwnerApiVersion";
+
+        public const string EdgeK8sObjectOwnerKind = "EdgeK8sObjectOwnerKind";
+
+        public const string EdgeK8sObjectOwnerName = "EdgeK8sObjectOwnerName";
+
+        public const string EdgeK8sObjectOwnerUid = "EdgeK8sObjectOwnerUid";
     }
 }

@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
     public interface IKubernetesServiceMapper
     {
-        Option<V1Service> CreateService(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels, EdgeDeploymentDefinition edgeDeploymentDefinition);
+        Option<V1Service> CreateService(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels);
 
         void UpdateService(V1Service to, V1Service from);
     }

@@ -2,9 +2,13 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 {
     using System.Collections.Generic;
+    using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.ServiceAccount;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -15,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     {
         static readonly ResourceName ResourceName = new ResourceName("hostname", "deviceId");
 
-        static readonly EdgeDeploymentDefinition EdgeDeploymentDefinition = new EdgeDeploymentDefinition("v1", "EdgeDeployment", new k8s.Models.V1ObjectMeta(name: ResourceName), new List<KubernetesModule>(), null);
+        static readonly KubernetesModuleOwner EdgeletModuleOwner = new KubernetesModuleOwner("v1", "Deployment", "iotedged", "123");
 
         [Fact]
         public void RequiredMetadataExistsWhenCreated()
@@ -23,9 +27,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "ModuleId", Mock.Of<ICredentials>());
             var mapper = new KubernetesServiceAccountMapper();
             var labels = new Dictionary<string, string> { ["device"] = "k8s-device" };
-            var edgeDefinition = new EdgeDeploymentDefinition("v1", "EdgeDeployment", new k8s.Models.V1ObjectMeta(name: ResourceName), new List<KubernetesModule>(), null);
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(labels: labels), Option.None<AuthConfig>());
+            var configurationInfo = new ConfigurationInfo("1");
+            var envVarsDict = new Dictionary<string, EnvVal>();
 
-            var serviceAccount = mapper.CreateServiceAccount(identity, labels, EdgeDeploymentDefinition);
+            var dockerConfig = new DockerConfig("test-image:1");
+
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, dockerConfig, ImagePullPolicy.OnCreate, configurationInfo, envVarsDict);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
+
+            var serviceAccount = mapper.CreateServiceAccount(module, identity, labels);
 
             Assert.NotNull(serviceAccount);
             Assert.Equal("moduleid", serviceAccount.Metadata.Name);
@@ -34,8 +45,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Assert.Equal(1, serviceAccount.Metadata.Labels.Count);
             Assert.Equal("k8s-device", serviceAccount.Metadata.Labels["device"]);
             Assert.Equal(1, serviceAccount.Metadata.OwnerReferences.Count);
-            Assert.Equal(KubernetesConstants.EdgeDeployment.Kind, serviceAccount.Metadata.OwnerReferences[0].Kind);
-            Assert.Equal(ResourceName, serviceAccount.Metadata.OwnerReferences[0].Name);
+            Assert.Equal(V1Deployment.KubeKind, serviceAccount.Metadata.OwnerReferences[0].Kind);
+            Assert.Equal(EdgeletModuleOwner.Name, serviceAccount.Metadata.OwnerReferences[0].Name);
         }
     }
 }

@@ -19,9 +19,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service
             this.defaultMapServiceType = defaultMapServiceType;
         }
 
-        public Option<V1Service> CreateService(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels, EdgeDeploymentDefinition edgeDeploymentDefinition)
+        public Option<V1Service> CreateService(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels)
         {
-            Option<V1Service> service = this.PrepareService(identity, module, labels, edgeDeploymentDefinition);
+            Option<V1Service> service = this.PrepareService(identity, module, labels);
             service.ForEach(s => s.Metadata.Annotations[KubernetesConstants.CreationString] = JsonConvert.SerializeObject(s));
 
             return service;
@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service
             to.Spec.ClusterIP = from.Spec.ClusterIP;
         }
 
-        Option<V1Service> PrepareService(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels, EdgeDeploymentDefinition edgeDeploymentDefinition)
+        Option<V1Service> PrepareService(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels)
         {
             // Add annotations from Docker labels. This provides the customer a way to assign annotations to services if they want
             // to tie backend services to load balancers via an Ingress Controller.
@@ -66,10 +66,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service
                 var ownerReferences = new List<V1OwnerReference>
                 {
                     new V1OwnerReference(
-                        apiVersion: edgeDeploymentDefinition.ApiVersion,
-                        kind: edgeDeploymentDefinition.Kind,
-                        name: edgeDeploymentDefinition.Metadata.Name,
-                        uid: edgeDeploymentDefinition.Metadata.Uid,
+                        apiVersion: module.Owner.ApiVersion,
+                        kind: module.Owner.Kind,
+                        name: module.Owner.Name,
+                        uid: module.Owner.Uid,
                         blockOwnerDeletion: true)
                 };
 

@@ -30,6 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         readonly string deviceNamespace;
         readonly ResourceName resourceName;
         readonly JsonSerializerSettings serializerSettings;
+        readonly KubernetesModuleOwner moduleOwner;
 
         // We use the sum of the IDs of the underlying commands as the id for this group
         // command.
@@ -42,7 +43,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             IEnumerable<IModule> desiredmodules,
             ModuleSet currentmodules,
             IRuntimeInfo runtimeInfo,
-            ICombinedConfigProvider<CombinedKubernetesConfig> configProvider)
+            ICombinedConfigProvider<CombinedKubernetesConfig> configProvider,
+            KubernetesModuleOwner moduleOwner)
         {
             this.deviceNamespace = KubeUtils.SanitizeK8sValue(Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace)));
             this.resourceName = Preconditions.CheckNotNull(resourceName, nameof(resourceName));
@@ -53,6 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             this.configProvider = Preconditions.CheckNotNull(configProvider, nameof(configProvider));
             this.id = new Lazy<string>(() => this.modules.Aggregate(string.Empty, (prev, module) => module.Name + prev));
             this.serializerSettings = EdgeDeploymentSerialization.SerializerSettings;
+            this.moduleOwner = Preconditions.CheckNotNull(moduleOwner, nameof(moduleOwner));
         }
 
         public async Task ExecuteAsync(CancellationToken token)
@@ -79,7 +82,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         {
             foreach (var imagePullSecret in imagePullSecrets)
             {
-                var secretMeta = new V1ObjectMeta(name: imagePullSecret.Name, namespaceProperty: this.deviceNamespace);
+                var ownerReferences = new List<V1OwnerReference>
+                {
+                    new V1OwnerReference(
+                        apiVersion: this.moduleOwner.ApiVersion,
+                        kind: this.moduleOwner.Kind,
+                        name: this.moduleOwner.Name,
+                        uid: this.moduleOwner.Uid,
+                        blockOwnerDeletion: true)
+                };
+                var secretMeta = new V1ObjectMeta(name: imagePullSecret.Name, namespaceProperty: this.deviceNamespace, ownerReferences: ownerReferences);
                 var secretData = new Dictionary<string, byte[]> { [Constants.K8sPullSecretData] = Encoding.UTF8.GetBytes(imagePullSecret.GenerateSecret()) };
                 var newSecret = new V1Secret("v1", secretData, type: Constants.K8sPullSecretType, kind: "Secret", metadata: secretMeta);
                 Option<V1Secret> currentSecret;
@@ -140,7 +152,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                         }
 
                         var authConfig = combinedConfig.ImagePullSecret.Map(secret => new AuthConfig(secret.Name));
-                        return new KubernetesModule(module, new KubernetesConfig(image, combinedConfig.CreateOptions, authConfig));
+                        return new KubernetesModule(module, new KubernetesConfig(image, combinedConfig.CreateOptions, authConfig), this.moduleOwner);
                     })
                 .ToList();
 
