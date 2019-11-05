@@ -18,7 +18,7 @@ use hyper_tls::HttpsConnector;
 use edgelet_core::{
     AuthId, Authenticator, GetTrustBundle, LogOptions, MakeModuleRuntime, ModuleRegistry,
     ModuleRuntime, ModuleRuntimeState, ModuleSpec, ProvisioningResult as CoreProvisioningResult,
-    RuntimeOperation, SystemInfo,
+    RuntimeOperation, SystemInfo, SystemResources,
 };
 use edgelet_docker::DockerConfig;
 use kube_client::{get_config, Client as KubeClient, HttpClient, TokenSource, ValueToken};
@@ -291,6 +291,11 @@ where
             });
 
         Box::new(fut)
+    }
+
+    fn system_resources(&self) -> SystemResources {
+        // TODO: add support for system resources on k8s
+        SystemResources::new(0, 0, vec![])
     }
 
     fn list(&self) -> Self::ListFuture {

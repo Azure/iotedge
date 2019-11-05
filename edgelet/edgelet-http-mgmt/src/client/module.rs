@@ -17,7 +17,9 @@ use serde_json;
 use url::Url;
 
 use edgelet_core::*;
-use edgelet_core::{ModuleOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, UrlExt};
+use edgelet_core::{
+    ModuleOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
+};
 use edgelet_docker::{self, DockerConfig};
 use edgelet_http::{UrlConnector, API_VERSION};
 
@@ -246,6 +248,10 @@ impl ModuleRuntime for ModuleClient {
     }
 
     fn system_info(&self) -> Self::SystemInfoFuture {
+        unimplemented!()
+    }
+
+    fn system_resources(&self) -> SystemResources {
         unimplemented!()
     }
 

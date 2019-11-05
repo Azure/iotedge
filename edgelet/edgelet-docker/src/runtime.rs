@@ -14,6 +14,7 @@ use hyper::{Body, Chunk as HyperChunk, Client, Request};
 use lazy_static::lazy_static;
 use log::{debug, info, Level};
 use serde_json;
+use sysinfo::{DiskExt, SystemExt};
 use url::Url;
 
 use docker::apis::client::APIClient;
@@ -22,7 +23,7 @@ use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig
 use edgelet_core::{
     AuthId, Authenticator, GetTrustBundle, Ipam as CoreIpam, LogOptions, MakeModuleRuntime,
     MobyNetwork, Module, ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, UrlExt,
+    RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, SystemResources, DiskInfo, UrlExt,
 };
 use edgelet_http::{Pid, UrlConnector};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
@@ -587,6 +588,31 @@ impl ModuleRuntime for DockerModuleRuntime {
                         Err(err)
                     }
                 }),
+        )
+    }
+
+    fn system_resources(&self) -> SystemResources {
+        info!("Querying system resources...");
+
+        let mut system = sysinfo::System::new();
+
+        system.refresh_all();
+        SystemResources::new(
+            system.get_total_memory(),
+            system.get_used_memory(),
+            system
+                .get_disks()
+                .iter()
+                .map(|disk| {
+                    DiskInfo::new(
+                        disk.get_name().to_string_lossy().into_owned(),
+                        disk.get_available_space(),
+                        disk.get_total_space(),
+                        String::from_utf8_lossy(disk.get_file_system()).into_owned(),
+                        format!("{:?}", disk.get_type()),
+                    )
+                })
+                .collect(),
         )
     }
 

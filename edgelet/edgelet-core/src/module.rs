@@ -379,6 +379,51 @@ impl SystemInfo {
     }
 }
 
+#[derive(Debug, serde_derive::Serialize)]
+pub struct SystemResources {
+    used_ram: u64,
+    total_ram: u64,
+
+    disks: Vec<DiskInfo>,
+}
+
+impl SystemResources {
+    pub fn new(used_ram: u64, total_ram: u64, disks: Vec<DiskInfo>) -> Self {
+        SystemResources {
+            used_ram,
+            total_ram,
+            disks,
+        }
+    }
+}
+
+#[derive(Debug, serde_derive::Serialize)]
+pub struct DiskInfo {
+    name: String,
+    available_space: u64,
+    total_space: u64,
+    file_system: String,
+    file_type: String,
+}
+
+impl DiskInfo {
+    pub fn new(
+        name: String,
+        available_space: u64,
+        total_space: u64,
+        file_system: String,
+        file_type: String,
+    ) -> Self {
+        DiskInfo {
+            name,
+            available_space,
+            total_space,
+            file_system,
+            file_type,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct ModuleTop {
     /// Name of the module. Example: tempSensor
@@ -452,6 +497,7 @@ pub trait ModuleRuntime: Sized {
     fn restart(&self, id: &str) -> Self::RestartFuture;
     fn remove(&self, id: &str) -> Self::RemoveFuture;
     fn system_info(&self) -> Self::SystemInfoFuture;
+    fn system_resources(&self) -> SystemResources;
     fn list(&self) -> Self::ListFuture;
     fn list_with_details(&self) -> Self::ListWithDetailsStream;
     fn logs(&self, id: &str, options: &LogOptions) -> Self::LogsFuture;

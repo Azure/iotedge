@@ -391,6 +391,20 @@ where
         }
     }
 
+    fn system_resources(&self) -> SystemResources {
+        SystemResources::new(
+            5000,
+            8000,
+            vec![DiskInfo::new(
+                "test disk".to_owned(),
+                10000,
+                20000,
+                "test system".to_owned(),
+                "test type".to_owned()
+            )],
+        )
+    }
+
     fn list(&self) -> Self::ListFuture {
         match self.module.as_ref().unwrap() {
             Ok(ref m) => future::ok(vec![m.clone()]),
