@@ -452,7 +452,7 @@ async fn true_main() -> Result<(), failure::Error> {
                 .add_annotation(ociv1::annotations::key::REFNAME, &image.to_string());
 
             // Calculate the OCI Image Layout for this single-manifest image.
-            let image_layout = ociv1::ImageLayout::builder()
+            let image_layout = ociv1::util::ImageLayout::builder()
                 .manifest(manifest, manifest_descriptor.clone())
                 .build();
 

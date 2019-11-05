@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use super::{media_type, MediaType, SchemaVersion};
-use super::{Annotations, Descriptor};
+use super::{media_type, Annotations, Descriptor, SchemaVersion};
+use crate::MediaType;
 
 /// Manifest provides `application/vnd.oci.image.manifest.v1+json` mediatype
 /// structure when marshalled to JSON.

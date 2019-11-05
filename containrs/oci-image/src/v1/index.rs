@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use super::{media_type, MediaType, SchemaVersion};
-use super::{Annotations, Descriptor};
+use super::{media_type, Annotations, Descriptor, SchemaVersion};
+use crate::MediaType;
 
 /// Index references manifests for various platforms.
 /// This structure provides `application/vnd.oci.image.index.v1+json` mediatype

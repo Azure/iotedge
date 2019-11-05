@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 
 use oci_digest::Digest;
 
-use super::Annotations;
-use super::{media_type, MediaType};
+use super::{media_type, Annotations};
+use crate::MediaType;
 
 #[derive(Debug, Serialize, Deserialize, Default, PartialEq, Eq, Hash, Copy, Clone)]
 pub struct EmptyObj {}

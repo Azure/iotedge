@@ -1,20 +1,17 @@
+pub mod annotations;
+pub mod media_type;
+pub mod util;
+
 mod config;
 mod descriptor;
 mod index;
 mod manifest;
 
-pub mod annotations;
-pub mod image_layout;
-pub mod media_type;
-
-pub use annotations::*;
+pub use annotations::Annotations;
 pub use config::*;
 pub use descriptor::*;
-pub use image_layout::*;
 pub use index::*;
 pub use manifest::*;
-
-use crate::MediaType;
 
 use serde::{de, Deserialize, Deserializer};
 use serde::{ser, Serialize, Serializer};

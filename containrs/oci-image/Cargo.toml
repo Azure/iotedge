@@ -6,5 +6,6 @@ edition = "2018"
 
 [dependencies]
 oci-digest = { path = "../oci-digest" }
+oci-runtime = { path = "../oci-runtime" }
 
 serde = { version = "1.0", features = ["derive"] }

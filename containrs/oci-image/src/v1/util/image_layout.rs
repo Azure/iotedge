@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use super::{media_type, MediaType};
-use super::{Annotations, Descriptor, Index, Manifest};
+use crate::v1::{media_type, Annotations, Descriptor, Index, Manifest};
+use crate::MediaType;
 
 use std::path::{Path, PathBuf};
 

@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 
 use oci_digest::Digest;
 
-use super::Annotations;
-use super::{media_type, MediaType};
+use super::{media_type, Annotations};
+use crate::MediaType;
 
 /// Descriptor describes the disposition of targeted content.
 /// This structure provides `application/vnd.oci.descriptor.v1+json` mediatype
