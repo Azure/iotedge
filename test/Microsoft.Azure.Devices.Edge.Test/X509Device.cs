@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
 
-    class Device : SasManualProvisioningFixture
+    class X509Device : X509ManualProvisioningFixture
     {
         [Test]
         public async Task QuickstartCerts()
@@ -21,13 +21,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
             await this.runtime.DeployConfigurationAsync(token);
 
             string leafDeviceId =
-                IdentityLimits.CheckLeafId($"{Context.Current.DeviceId}-quickstart-certs");
+                IdentityLimits.CheckLeafId($"{Context.Current.DeviceId}-x509-quickstart-certs");
 
             var leaf = await LeafDevice.CreateAsync(
                 leafDeviceId,
                 Protocol.Amqp,
-                AuthenticationType.Sas,
-                Option.None<string>(),
+                AuthenticationType.SelfSigned,
+                Option.Some(Context.Current.DeviceId + "-x509"),
                 false,
                 CertificateAuthority.GetQuickstart(),
                 this.iotHub,
