@@ -419,13 +419,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             var sinkResult = await cloudMessageProcessor.ProcessAsync(GetMessages("device1", 3 * batchSize), CancellationToken.None);
 
-            Func<SendFailureDetails> throwError = new Func<SendFailureDetails>(() => throw new Exception("Failure unwrapping SendFailureDetails"));
             Assert.True(sinkResult.IsSuccessful); // non-transient errors are ignored, but reported in SendFailureDetails
             Assert.Equal(2 * batchSize, sinkResult.Succeeded.Count);
             Assert.Equal(0, sinkResult.Failed.Count);
             Assert.Equal(batchSize, sinkResult.InvalidDetailsList.Count);
             Assert.True(sinkResult.SendFailureDetails.HasValue);
-            Assert.Equal(FailureKind.InvalidInput, sinkResult.SendFailureDetails.GetOrElse(throwError()).FailureKind);
+            Assert.Equal(FailureKind.InvalidInput, sinkResult.SendFailureDetails.OrDefault().FailureKind);
         }
 
         [Fact]
@@ -451,13 +450,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Routing
 
             var sinkResult = await cloudMessageProcessor.ProcessAsync(GetMessages("device1", 3 * batchSize), CancellationToken.None);
 
-            Func<SendFailureDetails> throwError = new Func<SendFailureDetails>(() => throw new Exception("Failure unwrapping SendFailureDetails"));
             Assert.False(sinkResult.IsSuccessful);
             Assert.Equal(0, sinkResult.Succeeded.Count);
             Assert.Equal(2 * batchSize, sinkResult.Failed.Count);
             Assert.Equal(1 * batchSize, sinkResult.InvalidDetailsList.Count);
             Assert.True(sinkResult.SendFailureDetails.HasValue);
-            Assert.Equal(FailureKind.Transient, sinkResult.SendFailureDetails.GetOrElse(throwError()).FailureKind);
+            Assert.Equal(FailureKind.Transient, sinkResult.SendFailureDetails.OrDefault().FailureKind);
         }
 
         [Fact]

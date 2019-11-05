@@ -91,8 +91,8 @@ namespace Microsoft.Azure.Devices.Routing.Core
             // at this point something has happened before, as well as now. Pick the more significant
             // var baseUnwrapped = baseDetails.Expect(ThrowBadProgramLogic);
             // var currentUnwrapped = currentDetails.Expect(ThrowBadProgramLogic);
-            var baseUnwrapped = baseDetails.GetOrElse(ThrowBadProgramLogic());
-            var currentUnwrapped = currentDetails.GetOrElse(ThrowBadProgramLogic());
+            var baseUnwrapped = baseDetails.OrDefault();
+            var currentUnwrapped = currentDetails.OrDefault();
 
             // in theory this case is represened by Option.None, but let's check it just for sure
             if (currentUnwrapped.FailureKind == FailureKind.None)
@@ -103,8 +103,6 @@ namespace Microsoft.Azure.Devices.Routing.Core
                 return true;
 
             return false;
-
-            SendFailureDetails ThrowBadProgramLogic() => throw new InvalidOperationException("Error in program logic, uwrapped Option<T> should have had value");
         }
     }
 }
