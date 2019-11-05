@@ -1,0 +1,19 @@
+﻿@model DashboardViewModel
+@{
+    ViewData["Title"] = "IoT Edge Dashboard";
+}
+
+<div class="text-center">
+    <h1 class="display-4">IoT Edge Dashboard</h1>
+
+    <table>
+        <tr>
+            <td>
+                <b>CI build</b><br />
+                @Model.CIBuild.Result<br/>
+                @Model.CIBuild.Status<br/>
+                @Model.CIBuild.BuildNumber<br/>
+            </td>
+        </tr>
+    </table>
+</div>

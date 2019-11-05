@@ -38,6 +38,9 @@
     .PARAMETER ContainerRegistryPassword
         Password of given username for container registory
 
+    .PARAMETER DesiredModulesToRestartCSV
+        Optional CSV string of module names for long haul specifying what modules to restart. If specified, then "RestartIntervalInMins" must be specified as well.
+
     .PARAMETER IoTHubConnectionString
         IoT hub connection string for creating edge device
 
@@ -52,6 +55,9 @@
 
     .PARAMETER LoadGenMessageFrequency
         Frequency to send messages in LoadGen module for long haul and stress test. Default is 00.00.01 for long haul and 00:00:00.03 for stress test.
+
+    .PARAMETER RestartIntervalInMins
+        Optional value for long haul specifying how often a random module will restart. If specified, then "desiredModulesToRestartJsonPath" must be specified as well.
 
     .PARAMETER SnitchAlertUrl
         Alert Url pointing to Azure Logic App for email preparation and sending for long haul and stress test.
@@ -200,6 +206,8 @@ Param (
     [ValidateNotNullOrEmpty()]
     [string] $ContainerRegistryPassword = $(Throw "Container registry password is required"),
 
+    [string] $DesiredModulesToRestartCSV = $null,
+
     [ValidateNotNullOrEmpty()]
     [string] $DpsScopeId = $null,
 
@@ -225,6 +233,8 @@ Param (
 
     [ValidateScript({($_ -as [System.Uri]).AbsoluteUri -ne $null})]
     [string] $ProxyUri = $null,
+
+    [string] $RestartIntervalInMins = $null,
 
     [ValidateNotNullOrEmpty()]
     [string] $SnitchAlertUrl = $null,
@@ -421,6 +431,8 @@ Function PrepareTestFromArtifacts
                 {
                     Write-Host "Copy deployment file from $LongHaulDeploymentArtifactFilePath"
                     Copy-Item $LongHaulDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
+                    (Get-Content $DeploymentWorkingFilePath).replace('<DesiredModulesToRestartCSV>',$DesiredModulesToRestartCSV) | Set-Content $DeploymentWorkingFilePath
+                    (Get-Content $DeploymentWorkingFilePath).replace('<RestartIntervalInMins>',$RestartIntervalInMins) | Set-Content $DeploymentWorkingFilePath
                     (Get-Content $DeploymentWorkingFilePath).replace('<ServiceClientConnectionString>',$IoTHubConnectionString) | Set-Content $DeploymentWorkingFilePath
                 }
                 Else
@@ -932,7 +944,6 @@ Function RunLongHaulTest
 
     $testStartAt = Get-Date
     $deviceId = "${ReleaseLabel}-Windows-${Architecture}-longHaul"
-    (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.DeviceID>',$deviceId) | Set-Content $DeploymentWorkingFilePath
     PrintHighlightedMessage "Run Long Haul test with -d ""$deviceId"" started at $testStartAt"
 
     $testCommand = "&$IotEdgeQuickstartExeTestPath ``
@@ -964,7 +975,6 @@ Function RunStressTest
 
     $testStartAt = Get-Date
     $deviceId = "${ReleaseLabel}-Windows-${Architecture}-stress"
-    (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.DeviceID>',$deviceId) | Set-Content $DeploymentWorkingFilePath
     PrintHighlightedMessage "Run Stress test with -d ""$deviceId"" started at $testStartAt"
 
     $testCommand = "&$IotEdgeQuickstartExeTestPath ``
@@ -1494,7 +1504,9 @@ If ([string]::IsNullOrWhiteSpace($EdgeE2ERootCAKeyRSAFile))
 
 If ($TestName -eq "LongHaul")
 {
+    If ([string]::IsNullOrEmpty($DesiredModulesToRestartCSV)) {$DesiredModulesToRestartCSV = ","}
     If ([string]::IsNullOrEmpty($LoadGenMessageFrequency)) {$LoadGenMessageFrequency = "00:00:01"}
+    If ([string]::IsNullOrEmpty($RestartIntervalInMins)) {$RestartIntervalInMins = "10"}
     If ([string]::IsNullOrEmpty($SnitchReportingIntervalInSecs)) {$SnitchReportingIntervalInSecs = "86400"}
     If ([string]::IsNullOrEmpty($SnitchTestDurationInSecs)) {$SnitchTestDurationInSecs = "604800"}
 }
