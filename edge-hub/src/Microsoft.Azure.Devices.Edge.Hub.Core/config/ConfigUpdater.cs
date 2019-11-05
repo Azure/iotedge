@@ -142,7 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
                     },
                     () =>
                     {
-                        this.storageSpaceChecker.SetMaxSizeBytes(Option.None<long>());
+                        // this.storageSpaceChecker.SetMaxSizeBytes(Option.None<long>());
                         return this.storageSpaceChecker;
                     });
 
