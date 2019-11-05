@@ -53,19 +53,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
         }
 
         [Fact]
-        public void TestDeflate()
-        {
-            byte[] data = new byte[10000];
-            this.rand.NextBytes(data);
-
-            byte[] compressedData = DeflateSerializer.Compress(data);
-            byte[] originalData = DeflateSerializer.Decompress(compressedData);
-
-            Assert.NotEqual(data, compressedData);
-            Assert.Equal(data, originalData);
-        }
-
-        [Fact]
         public void RawValuesSerialize()
         {
             var time = DateTime.UtcNow;
