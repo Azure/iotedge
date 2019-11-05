@@ -7,7 +7,7 @@ pub mod annotations;
 pub mod image_layout;
 pub mod media_type;
 
-pub use annotations::Annotations;
+pub use annotations::*;
 pub use config::*;
 pub use descriptor::*;
 pub use image_layout::*;
