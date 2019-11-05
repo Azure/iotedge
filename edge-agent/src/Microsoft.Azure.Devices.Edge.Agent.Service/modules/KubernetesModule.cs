@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using System.IO;
     using System.Net;
     using System.Net.Http;
+    using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
     using k8s;
@@ -31,6 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
     public class KubernetesModule : Module
     {
+        static readonly TimeSpan SystemInfoTimeout = TimeSpan.FromSeconds(3);
         readonly ResourceName resourceName;
         readonly string edgeDeviceHostName;
         readonly string proxyImage;
@@ -292,10 +294,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                     async c =>
                     {
+                        CancellationTokenSource tokenSource = new CancellationTokenSource(SystemInfoTimeout);
                         var moduleStateStore = await c.Resolve<Task<IEntityStore<string, ModuleState>>>();
                         var restartPolicyManager = c.Resolve<IRestartPolicyManager>();
                         IRuntimeInfoProvider runtimeInfoProvider = c.Resolve<IRuntimeInfoProvider>();
-                        IEnvironmentProvider dockerEnvironmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, moduleStateStore, restartPolicyManager);
+                        IEnvironmentProvider dockerEnvironmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, moduleStateStore, restartPolicyManager, tokenSource.Token);
                         return dockerEnvironmentProvider;
                     })
                 .As<Task<IEnvironmentProvider>>()
