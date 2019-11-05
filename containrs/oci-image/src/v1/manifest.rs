@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::{media_type, MediaType};
+use super::{media_type, MediaType, SchemaVersion};
 use super::{Annotations, Descriptor};
 
 /// Manifest provides `application/vnd.oci.image.manifest.v1+json` mediatype
@@ -12,11 +12,8 @@ pub struct Manifest {
     /// compatibility with older versions of Docker. The value of this field
     /// will not change. This field MAY be removed in a future version of the
     /// specification.
-    #[serde(
-        rename = "schemaVersion",
-        deserialize_with = "super::validate_schema_is_2"
-    )]
-    schema_version: i32,
+    #[serde(rename = "schemaVersion")]
+    pub schema_version: SchemaVersion,
 
     /// This property is reserved for use, to maintain compatibility. When used,
     /// this field contains the media type of this document, which differs from

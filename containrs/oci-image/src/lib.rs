@@ -13,7 +13,7 @@ pub trait MediaType {
 use serde::{de, Deserializer};
 
 /// Serde `deserialize_with` helper for reserved fields
-pub(crate) fn reserved_field<'de, D, T>(_des: D) -> Result<Option<T>, D::Error>
+pub(crate) fn de_reserved_field<'de, D, T>(_des: D) -> Result<Option<T>, D::Error>
 where
     D: Deserializer<'de>,
 {

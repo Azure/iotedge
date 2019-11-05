@@ -53,9 +53,9 @@ pub struct Descriptor {
         rename = "data",
         skip_serializing,
         default,
-        deserialize_with = "crate::reserved_field"
+        deserialize_with = "crate::de_reserved_field"
     )]
-    _data: Option<String>,
+    pub _data: Option<String>,
 }
 
 impl Descriptor {
@@ -150,7 +150,7 @@ pub struct Platform {
         rename = "features",
         skip_serializing,
         default,
-        deserialize_with = "crate::reserved_field"
+        deserialize_with = "crate::de_reserved_field"
     )]
-    _features: Option<Vec<String>>,
+    pub _features: Option<Vec<String>>,
 }

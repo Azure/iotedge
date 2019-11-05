@@ -135,7 +135,7 @@ pub struct RootFS {
     ///
     /// MUST be set to layers.
     #[serde(rename = "type", deserialize_with = "validate_rootfs_type_is_layers")]
-    pub rootfs_type: String, // avoid raw identifier syntax (i.e: `pub r#type: String`)
+    pub type_: String,
 
     /// DiffIDs is an array of layer content hashes (DiffIDs), in order from
     /// bottom-most to top-most.
