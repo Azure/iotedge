@@ -310,7 +310,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             // Volume name will be customer defined name or modulename + mount.source
             if (this.persistentVolumeName.HasValue)
             {
-                this.persistentVolumeName.ForEach(pvVolumeName => volumeName = pvVolumeName);
+                volumeName = this.persistentVolumeName.OrDefault();
                 return new V1Volume(volumeName, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(pvcName, mount.ReadOnly));
             }
             else if (this.storageClassName.HasValue)

@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
 
         V1PersistentVolumeClaim ExtractPvc(KubernetesModule module, Mount mount, IDictionary<string, string> labels)
         {
-            string name = KubernetesModule.PvcName(module, mount);
+            string volumeName = KubernetesModule.PvcName(module, mount);
             bool readOnly = mount.ReadOnly;
             var persistentVolumeClaimSpec = new V1PersistentVolumeClaimSpec()
             {
@@ -60,14 +60,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
             // prefer persistent volume name to storage class name, if both are set.
             if (this.persistentVolumeName.HasValue)
             {
-                this.persistentVolumeName.ForEach(volumeName => persistentVolumeClaimSpec.VolumeName = volumeName);
+                persistentVolumeClaimSpec.VolumeName = this.persistentVolumeName.OrDefault();
             }
             else if (this.storageClassName.HasValue)
             {
                 this.storageClassName.ForEach(storageClass => persistentVolumeClaimSpec.StorageClassName = storageClass);
             }
 
-            return new V1PersistentVolumeClaim(metadata: new V1ObjectMeta(name: name, labels: labels), spec: persistentVolumeClaimSpec);
+            return new V1PersistentVolumeClaim(metadata: new V1ObjectMeta(name: volumeName, labels: labels), spec: persistentVolumeClaimSpec);
         }
 
         public void UpdatePersistentVolumeClaim(V1PersistentVolumeClaim to, V1PersistentVolumeClaim from)
