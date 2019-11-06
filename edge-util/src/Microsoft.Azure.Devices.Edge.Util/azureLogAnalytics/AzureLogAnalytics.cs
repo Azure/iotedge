@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
     using System.IO;
     using System.Net;
     using System.Net.Http;
+    using System.Net.Http.Headers;
     using System.Security.Cryptography;
     using System.Text;
     using Microsoft.Extensions.Logging;
@@ -65,6 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
             using (HttpWebResponse responseAsync = (HttpWebResponse)request.GetResponse())
             {
                 Console.WriteLine(request.Headers.ToString());
+                Console.WriteLine("content.Length: " + content.Length.ToString());
 
                 Log.LogInformation(responseAsync.StatusDescription);
                 Console.WriteLine(responseAsync.StatusDescription);
@@ -83,60 +85,46 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
 
         public async void PostAsync(string content, string LogType)
         {
-            string dateString = DateTime.UtcNow.ToString("r");
-            string signature = this.GetSignature("POST", Encoding.UTF8.GetBytes(content).Length, "application/json", dateString, "/api/logs");
+            //string dateString = DateTime.UtcNow.ToString("r");
+            Uri RequestUri = new Uri($"https://{this.WorkspaceId}.ods.opinsights.azure.com/api/logs?api-version={this.ApiVersion}");
+            DateTime dateTime = DateTime.UtcNow;
+            string dateString = dateTime.ToString("r");
+            string signature = this.GetSignature("POST", content.Length, "application/json", dateString, "/api/logs");
 
-            using (var client = new HttpClient())
-            using (var requestMsg = new HttpRequestMessage
-            {
-                Method = HttpMethod.Post,
-                RequestUri = new Uri($"https://{this.WorkspaceId}.ods.opinsights.azure.com/api/logs?api-version={this.ApiVersion}"),
-                Headers = {
-                    {HttpRequestHeader.Authorization.ToString(), signature},
-                    {HttpRequestHeader.Accept.ToString(), "application/json"},
-                    {"Log-Type",  LogType},
-                    {"x-ms-date", dateString}
-                },
-                Content = new StringContent(JsonConvert.SerializeObject(content), Encoding.Default, "application/json")
-            })
-            using (var response = await client.SendAsync(requestMsg).ConfigureAwait(false))
-            {
-                Console.WriteLine(requestMsg.ToString());
-                Log.LogInformation(response.ToString());
-                Console.WriteLine(response.ToString());
-                //response.EnsureSuccessStatusCode();
-            }
-
-            //string requestUriString = $"https://{this.WorkspaceId}.ods.opinsights.azure.com/api/logs?api-version={this.ApiVersion}";
-            //DateTime dateTime = DateTime.UtcNow;
-            //string dateString = dateTime.ToString("r");
-            //string signature = this.GetSignature("POST", content.Length, "application/json", dateString, "/api/logs");
-            //HttpWebRequest request = (HttpWebRequest)WebRequest.Create(requestUriString);
-            //request.ContentType = "application/json";
-            //request.Method = "POST";
-            //request.Headers["Log-Type"] = LogType;
-            //request.Headers["x-ms-date"] = dateString;
-            //request.Headers["Authorization"] = signature;
-            // using (Stream requestStreamAsync = request.GetRequestStream())
+            var client = new HttpClient();
+            // var requestMsg = new HttpRequestMessage
             // {
-            //     requestStreamAsync.Write(content, 0, content.Length);
-            // }
+            //     Method = HttpMethod.Post,
+            //     RequestUri = new Uri($"https://{this.WorkspaceId}.ods.opinsights.azure.com/api/logs?api-version={this.ApiVersion}"),
+            //     Headers = {
+            //         {HttpRequestHeader.Authorization.ToString(), signature},
+            //         {HttpRequestHeader.Accept.ToString(), "application/json"},
+            //         {"Log-Type",  LogType},
+            //         {"x-ms-date", dateString}
+            //     },
+            //     Content = new StringContent(JsonConvert.SerializeObject(content), Encoding.UTF8, "application/json")
+            // };
+            // requestMsg.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+            // Console.WriteLine(requestMsg.ToString());
 
-            // using (HttpWebResponse responseAsync = (HttpWebResponse)request.GetResponse())
-            // {
-            //     Log.LogInformation(responseAsync.StatusDescription);
-            //     Console.WriteLine(responseAsync.StatusDescription);
+            // //var response = await client.SendAsync(requestMsg).ConfigureAwait(false);
+            // var response = await client.SendAsync(requestMsg).ConfigureAwait(false);
 
-            //     // Get the stream containing content returned by the server.
-            //     // The using block ensures the stream is automatically closed.
-            //     using (Stream dataStream = responseAsync.GetResponseStream())
-            //     {
-            //         StreamReader reader = new StreamReader(dataStream);
-            //         string responseFromServer = reader.ReadToEnd();
-            //         Log.LogInformation(responseFromServer);
-            //         Console.WriteLine(responseFromServer);
-            //     }
-            // }
+            // Log.LogInformation( await response.Content.ReadAsStringAsync() );
+            // Console.WriteLine(response.ToString());
+            // //response.EnsureSuccessStatusCode();
+
+            client.DefaultRequestHeaders.Add("Authorization", signature);
+            client.DefaultRequestHeaders.Add("Accept", "application/json");
+            client.DefaultRequestHeaders.Add("Log-Type", LogType);
+            client.DefaultRequestHeaders.Add("x-ms-date", dateString);
+
+            var contentMsg = new StringContent(content, Encoding.UTF8);
+            contentMsg.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+            Console.WriteLine( "content: " + content );
+
+            var response = client.PostAsync(RequestUri, contentMsg);
+            Console.WriteLine( "resp: " + await response.Result.Content.ReadAsStringAsync() );
         }
 
         private string GetSignature(string method, int contentLength, string contentType, string date, string resource)
