@@ -34,6 +34,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public void SetMaxSizeBytes(Option<long> maxSizeBytes)
         {
+            Events.SetMaxMemorySpaceUsage(10);
+
             this.maxSize = maxSizeBytes.Match(
                 s =>
                 {
