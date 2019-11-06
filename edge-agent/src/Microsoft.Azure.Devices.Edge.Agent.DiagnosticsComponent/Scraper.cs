@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
     public class Scraper : IMetricsScraper, IDisposable
@@ -19,18 +20,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
         static readonly Regex UrlRegex = new Regex(UrlPattern, RegexOptions.Compiled);
         readonly HttpClient httpClient;
         readonly Lazy<IDictionary<string, string>> endpoints;
-        readonly ILogger logger;
+        static readonly ILogger Log = Logger.Factory.CreateLogger<Scraper>();
 
-        public Scraper(IList<string> endpoints, ILogger logger)
+        public Scraper(IList<string> endpoints)
         {
             this.httpClient = new HttpClient();
             this.endpoints = new Lazy<IDictionary<string, string>>(() => endpoints.ToDictionary(e => e, this.GetUriWithIpAddress));
-            this.logger = logger;
         }
 
         string GetUriWithIpAddress(string endpoint)
         {
-            this.logger.LogInformation($"Getting uri with Ip for {endpoint}");
+            Log.LogInformation($"Getting uri with Ip for {endpoint}");
             Match match = UrlRegex.Match(endpoint);
             if (!match.Success)
             {
@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
             var builder = new UriBuilder(endpoint);
             builder.Host = ipAddr;
             string endpointWithIp = builder.Uri.ToString();
-            this.logger.LogInformation($"Endpoint = {endpoint}, IP Addr = {ipAddr}, Endpoint with Ip = {endpointWithIp}");
+            Log.LogInformation($"Endpoint = {endpoint}, IP Addr = {ipAddr}, Endpoint with Ip = {endpointWithIp}");
             return endpointWithIp;
         }
 
@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
             var metrics = new Dictionary<string, string>();
             foreach (KeyValuePair<string, string> endpoint in this.endpoints.Value)
             {
-                this.logger.LogInformation($"Scraping endpoint {endpoint.Key}");
+                Log.LogInformation($"Scraping endpoint {endpoint.Key}");
                 string metricsData = await this.ScrapeEndpoint(endpoint.Value, cancellationToken);
                 metrics.Add(endpoint.Key, metricsData);
             }
@@ -77,13 +77,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
                 }
                 else
                 {
-                    this.logger.LogInformation($"Error connecting to {endpoint}\nResult error code {result.StatusCode}");
+                    Log.LogInformation($"Error connecting to {endpoint}\nResult error code {result.StatusCode}");
                     throw new InvalidOperationException($"Error connecting to {endpoint}");
                 }
             }
             catch (Exception e)
             {
-                this.logger.LogInformation($"Error scraping endpoint {endpoint} - {e.Message}");
+                Log.LogInformation($"Error scraping endpoint {endpoint} - {e.Message}");
                 throw;
             }
         }

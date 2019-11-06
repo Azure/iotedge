@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
         protected override void Load(ContainerBuilder builder)
         {
             // IScraper
-            builder.Register(c => new Scraper(new string[] { "http://edgeHub:9600/metrics", "http://edgeAgent:9600/metrics" }, c.Resolve<ILogger>()))
+            builder.Register(c => new Scraper(new string[] { "http://edgeHub:9600/metrics", "http://edgeAgent:9600/metrics" }))
                 .As<IMetricsScraper>()
                 .SingleInstance();
 
