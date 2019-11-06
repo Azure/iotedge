@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         public static ModuleRuntimeInfo ConvertToRuntime(this V1Pod pod, string name)
         {
             Option<V1ContainerStatus> containerStatus = GetContainerByName(name, pod);
-            ReportedModuleStatus moduleStatus = ConvertPodStatusToModuleStatus(containerStatus);
+            ReportedModuleStatus moduleStatus = ConvertPodStatusToModuleStatus(Option.Maybe(pod.Status));
             RuntimeData runtimeData = GetRuntimeData(containerStatus.OrDefault());
 
             string moduleName = string.Empty;
@@ -43,31 +43,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             return Option.Maybe(status);
         }
 
-        static ReportedModuleStatus ConvertPodStatusToModuleStatus(Option<V1ContainerStatus> podStatus)
+        static ReportedModuleStatus ConvertPodStatusToModuleStatus(Option<V1PodStatus> podStatus)
         {
             return podStatus.Map(
-                pod =>
+                status =>
                 {
-                    if (pod.State != null)
+                    switch (status.Phase)
                     {
-                        if (pod.State.Running != null)
-                        {
-                            return new ReportedModuleStatus(ModuleStatus.Running, $"Started at {pod.State.Running.StartedAt.GetValueOrDefault(DateTime.Now)}");
-                        }
-
-                        if (pod.State.Terminated != null)
-                        {
-                            return new ReportedModuleStatus(ModuleStatus.Failed, pod.State.Terminated.Message);
-                        }
-
-                        if (pod.State.Waiting != null)
-                        {
-                            return new ReportedModuleStatus(ModuleStatus.Failed, pod.State.Waiting.Message);
-                        }
+                        case "Running":
+                            return new ReportedModuleStatus(ModuleStatus.Running, $"Started at {status.StartTime}");
+                        case "Failed":
+                        case "Pending":
+                        case "Unknown":
+                            return new ReportedModuleStatus(ModuleStatus.Failed, status.Reason);
+                        case "Succeeded":
+                            return new ReportedModuleStatus(ModuleStatus.Stopped, status.Reason);
+                        default:
+                            throw new InvalidOperationException($"Invalid pod status {status.Phase}");
                     }
-
-                    return new ReportedModuleStatus(ModuleStatus.Unknown, "Unknown");
-                }).GetOrElse(() => new ReportedModuleStatus(ModuleStatus.Unknown, "Unknown"));
+                }).GetOrElse(() => new ReportedModuleStatus(ModuleStatus.Failed, "Unable to get pod status"));
         }
 
         static RuntimeData GetRuntimeData(V1ContainerStatus status)

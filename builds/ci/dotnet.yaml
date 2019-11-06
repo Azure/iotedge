@@ -83,7 +83,7 @@ jobs:
           sudo -E bash -c './scripts/linux/runTests.sh "--filter $(test.filter)&Category=Kubernetes" $(Build.Configuration)'
         displayName: Kubernetes Integration Tests
         condition: succeededOrFailed()
-      - task: PublishTestResults@1
+      - task: PublishTestResults@2
         displayName: Publish test results
         inputs:
           testRunner: VSTest
@@ -127,7 +127,7 @@ jobs:
           IotDevice3ConnStr2: $(IotDevice3ConnStr2)
           IotHubConnStr2: $(IotHubConnStr2)
           IotHubMqttHeadCert: $(IotHubMqttHeadCert)
-      - task: PublishTestResults@1
+      - task: PublishTestResults@2
         displayName: Publish test results
         condition: succeededOrFailed()
         inputs:

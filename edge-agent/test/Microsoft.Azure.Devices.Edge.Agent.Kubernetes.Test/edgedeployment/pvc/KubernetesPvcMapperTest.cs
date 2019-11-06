@@ -122,14 +122,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
             Assert.True(pvcList.Any());
             Assert.Equal(2, pvcList.Count);
 
-            var aVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == "a-volume");
+            var aVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == module.Name + "-a-volume");
             Assert.True(aVolumeClaim.Metadata.Labels.SequenceEqual(DefaultLabels));
             Assert.Equal("ReadOnlyMany", aVolumeClaim.Spec.AccessModes[0]);
             Assert.Null(aVolumeClaim.Spec.VolumeName);
             Assert.Equal(string.Empty, aVolumeClaim.Spec.StorageClassName);
             Assert.Equal(resourceQuantity, aVolumeClaim.Spec.Resources.Requests["storage"]);
 
-            var bVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == "b-volume");
+            var bVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == module.Name + "-b-volume");
             Assert.True(bVolumeClaim.Metadata.Labels.SequenceEqual(DefaultLabels));
             Assert.Equal("ReadWriteMany", bVolumeClaim.Spec.AccessModes[0]);
             Assert.Null(bVolumeClaim.Spec.VolumeName);
@@ -153,14 +153,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
             Assert.True(pvcList.Any());
             Assert.Equal(2, pvcList.Count);
 
-            var aVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == "a-volume");
+            var aVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == module.Name + "-a-volume");
             Assert.True(aVolumeClaim.Metadata.Labels.SequenceEqual(DefaultLabels));
             Assert.Equal("ReadOnlyMany", aVolumeClaim.Spec.AccessModes[0]);
             Assert.Null(aVolumeClaim.Spec.VolumeName);
             Assert.Equal("default", aVolumeClaim.Spec.StorageClassName);
             Assert.Equal(resourceQuantity, aVolumeClaim.Spec.Resources.Requests["storage"]);
 
-            var bVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == "b-volume");
+            var bVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == module.Name + "-b-volume");
             Assert.True(bVolumeClaim.Metadata.Labels.SequenceEqual(DefaultLabels));
             Assert.Equal("ReadWriteMany", bVolumeClaim.Spec.AccessModes[0]);
             Assert.Null(bVolumeClaim.Spec.VolumeName);
@@ -184,14 +184,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
             Assert.True(pvcList.Any());
             Assert.Equal(2, pvcList.Count);
 
-            var aVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == "a-volume");
+            var aVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == module.Name + "-a-volume");
             Assert.True(aVolumeClaim.Metadata.Labels.SequenceEqual(DefaultLabels));
             Assert.Equal("ReadOnlyMany", aVolumeClaim.Spec.AccessModes[0]);
             Assert.Null(aVolumeClaim.Spec.StorageClassName);
             Assert.Equal("a-pvc-name", aVolumeClaim.Spec.VolumeName);
             Assert.Equal(resourceQuantity, aVolumeClaim.Spec.Resources.Requests["storage"]);
 
-            var bVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == "b-volume");
+            var bVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == module.Name + "-b-volume");
             Assert.True(bVolumeClaim.Metadata.Labels.SequenceEqual(DefaultLabels));
             Assert.Equal("ReadWriteMany", bVolumeClaim.Spec.AccessModes[0]);
             Assert.Null(bVolumeClaim.Spec.StorageClassName);
@@ -215,14 +215,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
             Assert.True(pvcList.Any());
             Assert.Equal(2, pvcList.Count);
 
-            var aVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == "a-volume");
+            var aVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == module.Name + "-a-volume");
             Assert.True(aVolumeClaim.Metadata.Labels.SequenceEqual(DefaultLabels));
             Assert.Equal("ReadOnlyMany", aVolumeClaim.Spec.AccessModes[0]);
             Assert.Null(aVolumeClaim.Spec.StorageClassName);
             Assert.Equal("a-pvc-name", aVolumeClaim.Spec.VolumeName);
             Assert.Equal(resourceQuantity, aVolumeClaim.Spec.Resources.Requests["storage"]);
 
-            var bVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == "b-volume");
+            var bVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == module.Name + "-b-volume");
             Assert.True(bVolumeClaim.Metadata.Labels.SequenceEqual(DefaultLabels));
             Assert.Equal("ReadWriteMany", bVolumeClaim.Spec.AccessModes[0]);
             Assert.Null(bVolumeClaim.Spec.StorageClassName);
