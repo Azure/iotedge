@@ -82,11 +82,11 @@ device_hub_selector: ""
 proxy:
   image: "{{.Values.iotedgedProxy.image.repository}}:{{.Values.iotedgedProxy.image.tag}}"
   image_pull_policy: {{ .Values.iotedgedProxy.image.pullPolicy | quote }}
-  {{- if .Values.edgeAgent.registryCredentials }}
+  {{- if .Values.iotedgedProxy.registryCredentials }}
   auth:
-    username: {{ .Values.edgeAgent.registryCredentials.username | quote }}
-    password: {{ .Values.edgeAgent.registryCredentials.password | quote }}
-    serveraddress: {{ .Values.edgeAgent.registryCredentials.serveraddress | quote }}
+    username: {{ .Values.iotedgedProxy.registryCredentials.username | quote }}
+    password: {{ .Values.iotedgedProxy.registryCredentials.password | quote }}
+    serveraddress: {{ .Values.iotedgedProxy.registryCredentials.serveraddress | quote }}
   {{ else }}
   auth: {}
   {{ end }}
