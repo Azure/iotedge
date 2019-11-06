@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using System;
     using System.Collections.Generic;
     using System.Net;
+    using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
     using global::Docker.DotNet;
@@ -126,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         var moduleStateStore = await c.Resolve<Task<IEntityStore<string, ModuleState>>>();
                         var restartPolicyManager = c.Resolve<IRestartPolicyManager>();
                         IRuntimeInfoProvider runtimeInfoProvider = await c.Resolve<Task<IRuntimeInfoProvider>>();
-                        IEnvironmentProvider dockerEnvironmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, moduleStateStore, restartPolicyManager);
+                        IEnvironmentProvider dockerEnvironmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, moduleStateStore, restartPolicyManager, CancellationToken.None);
                         return dockerEnvironmentProvider;
                     })
                 .As<Task<IEnvironmentProvider>>()
