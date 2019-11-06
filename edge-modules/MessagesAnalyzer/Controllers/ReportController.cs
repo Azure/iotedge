@@ -23,8 +23,6 @@ namespace MessagesAnalyzer.Controllers
                     Settings.Current.LogAnalyticSharedKey );
 
                 // Upload the data to Log Analytics
-                //logAnalytics.Post(Encoding.UTF8.GetBytes(resultJson), Settings.Current.LogAnalyticLogType);
-                Console.WriteLine( "resultJson: " + resultJson );
                 logAnalytics.PostAsync(resultJson, Settings.Current.LogAnalyticLogType);
             }
 

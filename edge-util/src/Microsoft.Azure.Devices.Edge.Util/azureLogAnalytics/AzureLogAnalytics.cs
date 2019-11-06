@@ -20,16 +20,15 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
     {
         static AzureLogAnalytics instance = null;
         static readonly ILogger Log = Logger.Factory.CreateLogger<AzureLogAnalytics>();
+        public string WorkspaceId { get; }
+        public string SharedKey { get; }
+        public string ApiVersion { get; }
         AzureLogAnalytics(string workspaceId, string sharedKey, string apiVersion = "2016-04-01")
         {
             this.WorkspaceId = workspaceId;
             this.SharedKey = sharedKey;
             this.ApiVersion = apiVersion;
         }
-
-        public string WorkspaceId { get; }
-        public string SharedKey { get; }
-        public string ApiVersion { get; }
 
         public static AzureLogAnalytics getInstance()
         {
@@ -92,28 +91,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
             string signature = this.GetSignature("POST", content.Length, "application/json", dateString, "/api/logs");
 
             var client = new HttpClient();
-            // var requestMsg = new HttpRequestMessage
-            // {
-            //     Method = HttpMethod.Post,
-            //     RequestUri = new Uri($"https://{this.WorkspaceId}.ods.opinsights.azure.com/api/logs?api-version={this.ApiVersion}"),
-            //     Headers = {
-            //         {HttpRequestHeader.Authorization.ToString(), signature},
-            //         {HttpRequestHeader.Accept.ToString(), "application/json"},
-            //         {"Log-Type",  LogType},
-            //         {"x-ms-date", dateString}
-            //     },
-            //     Content = new StringContent(JsonConvert.SerializeObject(content), Encoding.UTF8, "application/json")
-            // };
-            // requestMsg.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-            // Console.WriteLine(requestMsg.ToString());
-
-            // //var response = await client.SendAsync(requestMsg).ConfigureAwait(false);
-            // var response = await client.SendAsync(requestMsg).ConfigureAwait(false);
-
-            // Log.LogInformation( await response.Content.ReadAsStringAsync() );
-            // Console.WriteLine(response.ToString());
-            // //response.EnsureSuccessStatusCode();
-
             client.DefaultRequestHeaders.Add("Authorization", signature);
             client.DefaultRequestHeaders.Add("Accept", "application/json");
             client.DefaultRequestHeaders.Add("Log-Type", LogType);
@@ -121,10 +98,17 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
 
             var contentMsg = new StringContent(content, Encoding.UTF8);
             contentMsg.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-            Console.WriteLine( "content: " + content );
+            Log.LogDebug(
+                client.DefaultRequestHeaders.ToString() + 
+                contentMsg.Headers + 
+                contentMsg.ReadAsStringAsync().Result);
 
-            var response = client.PostAsync(RequestUri, contentMsg);
-            Console.WriteLine( "resp: " + await response.Result.Content.ReadAsStringAsync() );
+            var response = await client.PostAsync(RequestUri, contentMsg).ConfigureAwait(false);
+            var responseMsg = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            Log.LogDebug(
+                ((int)response.StatusCode).ToString() + " " 
+                + response.ReasonPhrase + " " 
+                + responseMsg);
         }
 
         private string GetSignature(string method, int contentLength, string contentType, string date, string resource)
