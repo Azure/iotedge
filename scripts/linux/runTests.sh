@@ -87,6 +87,7 @@ do
 done
 
 testCommand="$testCommandPrefix$testProjectDlls"
+testCommand=${testCommand/result.trx/$(mktemp result.XXXXXXXX.trx)}
 echo "Run test command:$testCommand"
 $testCommand
 

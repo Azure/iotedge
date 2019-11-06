@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using System.IO;
     using System.Net;
     using System.Net.Http;
+    using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
     using k8s;
@@ -24,12 +25,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Extensions.Logging;
     using Microsoft.Rest;
     using Constants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
     public class KubernetesModule : Module
     {
+        static readonly TimeSpan SystemInfoTimeout = TimeSpan.FromSeconds(3);
         readonly ResourceName resourceName;
         readonly string edgeDeviceHostName;
         readonly string proxyImage;
@@ -178,9 +181,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                     c =>
                     {
+                        var metricsProvider = c.Resolve<IMetricsProvider>();
                         var loggerFactory = c.Resolve<ILoggerFactory>();
-                        var kubernetesCommandFactory = new KubernetesCommandFactory();
-                        ICommandFactory factory = new LoggingCommandFactory(kubernetesCommandFactory, loggerFactory);
+                        ICommandFactory factory = new KubernetesCommandFactory();
+                        factory = new MetricsCommandFactory(factory, metricsProvider);
+                        factory = new LoggingCommandFactory(factory, loggerFactory);
                         return Task.FromResult(factory);
                     })
                 .As<Task<ICommandFactory>>()
@@ -289,10 +294,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                     async c =>
                     {
+                        CancellationTokenSource tokenSource = new CancellationTokenSource(SystemInfoTimeout);
                         var moduleStateStore = await c.Resolve<Task<IEntityStore<string, ModuleState>>>();
                         var restartPolicyManager = c.Resolve<IRestartPolicyManager>();
                         IRuntimeInfoProvider runtimeInfoProvider = c.Resolve<IRuntimeInfoProvider>();
-                        IEnvironmentProvider dockerEnvironmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, moduleStateStore, restartPolicyManager);
+                        IEnvironmentProvider dockerEnvironmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, moduleStateStore, restartPolicyManager, tokenSource.Token);
                         return dockerEnvironmentProvider;
                     })
                 .As<Task<IEnvironmentProvider>>()

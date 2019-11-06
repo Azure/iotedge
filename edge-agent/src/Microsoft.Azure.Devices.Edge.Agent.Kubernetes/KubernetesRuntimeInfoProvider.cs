@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
+    using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.IO;
@@ -53,9 +54,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 sinceSeconds: since.Map(sec => (int?)sec).OrDefault(),
                 cancellationToken: cancellationToken);
 
-        public Task<SystemInfo> GetSystemInfo()
-        {
-            return this.moduleManager.GetSystemInfoAsync();
-        }
+        public Task<SystemInfo> GetSystemInfo(CancellationToken cancellationToken) => this.moduleManager.GetSystemInfoAsync(cancellationToken);
     }
 }
