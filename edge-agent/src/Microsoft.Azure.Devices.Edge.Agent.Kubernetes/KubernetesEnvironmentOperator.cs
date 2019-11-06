@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 return;
             }
 
-            Events.PodStatus(type, pod.Metadata.Name);
+            Events.PodStatus(type, pod);
             switch (type)
             {
                 case WatchEventType.Added:
@@ -121,9 +121,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             Log.LogError((int)EventIds.WatchFailed, ex, "Exception caught in Pod Watch task.");
         }
 
-        public static void PodStatus(WatchEventType type, string name)
+        public static void PodStatus(WatchEventType type, V1Pod pod)
         {
-            Log.LogDebug((int)EventIds.PodStatus, $"Pod '{name}', status'{type}'");
+            Log.LogDebug((int)EventIds.PodStatus, $"Pod '{pod.Metadata.Name}', status'{type}'");
         }
 
         public static void PodStatusRemoveError(V1Pod pod)

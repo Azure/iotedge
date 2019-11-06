@@ -98,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
             modules.Should().BeEmpty();
         }
 
-        [Fact(Skip = "Reveals Bug 5576942")]
+        [Fact]
         public async Task UpdatesModuleRuntimeInfoWhenModuleDeploymentUpdated()
         {
             var tokenSource = new CancellationTokenSource(DefaultTimeout * 3);

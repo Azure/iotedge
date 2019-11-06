@@ -33,16 +33,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public void CreateOrUpdateAddPodInfo(V1Pod pod)
         {
-            string podName = pod.Metadata.Name;
             string moduleName = pod.Metadata.Labels[Constants.K8sEdgeModuleLabel];
-            var newPair = new KeyValuePair<string, ModuleRuntimeInfo>(podName, pod.ConvertToRuntime(moduleName));
+            var newPair = new KeyValuePair<string, ModuleRuntimeInfo>(pod.Metadata.Name, pod.ConvertToRuntime(moduleName));
 
             this.moduleRuntimeInfo.AddOrUpdate(
                 moduleName,
                 ImmutableList.Create(newPair),
                 (_, existing) =>
                 {
-                    return existing.FirstOption(pair => pair.Key == podName)
+                    return existing.FirstOption(pair => pair.Key == pod.Metadata.Name)
                         .Map(pair => existing.Replace(pair, newPair))
                         .GetOrElse(() => existing.Add(newPair));
                 });
@@ -50,26 +49,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public bool RemovePodInfo(V1Pod pod)
         {
-            var podName = pod.Metadata.Name;
             var moduleName = pod.Metadata.Labels[Constants.K8sEdgeModuleLabel];
             if (this.moduleRuntimeInfo.TryGetValue(moduleName, out var existing))
             {
-                Option<ImmutableList<KeyValuePair<string, ModuleRuntimeInfo>>> updatedList = existing.FirstOption(pair => pair.Key == podName)
-                    .Map(pair => existing.Remove(pair));
-
-                updatedList.ForEach(list =>
-                {
-                    if (!list.IsEmpty)
-                    {
-                        this.moduleRuntimeInfo.TryUpdate(moduleName, list, existing);
-                    }
-                    else
-                    {
-                        this.moduleRuntimeInfo.TryRemove(moduleName, out _);
-                    }
-                });
-
-                return updatedList.HasValue;
+                return existing
+                    .FirstOption(pair => pair.Key == pod.Metadata.Name)
+                    .Map(
+                        pair =>
+                        {
+                            ImmutableList<KeyValuePair<string, ModuleRuntimeInfo>> list = existing.Remove(pair);
+                            return !list.IsEmpty
+                                ? this.moduleRuntimeInfo.TryUpdate(moduleName, list, existing)
+                                : this.moduleRuntimeInfo.Remove(moduleName, out _);
+                        })
+                    .OrDefault();
             }
 
             return false;
