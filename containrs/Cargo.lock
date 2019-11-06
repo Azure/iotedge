@@ -865,6 +865,14 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "oci-common"
+version = "0.1.0"
+dependencies = [
+ "serde 1.0.101 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.41 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "oci-digest"
 version = "0.1.0"
 dependencies = [
@@ -886,6 +894,7 @@ dependencies = [
 name = "oci-image"
 version = "0.1.0"
 dependencies = [
+ "oci-common 0.1.0",
  "oci-digest 0.1.0",
  "oci-runtime 0.1.0",
  "serde 1.0.101 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -895,6 +904,7 @@ dependencies = [
 name = "oci-runtime"
 version = "0.1.0"
 dependencies = [
+ "oci-common 0.1.0",
  "serde 1.0.101 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.41 (registry+https://github.com/rust-lang/crates.io-index)",
 ]

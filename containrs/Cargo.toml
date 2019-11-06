@@ -4,6 +4,7 @@ members = [
     "containrs-cli",
     "docker-reference",
     "docker-scope",
+    "oci-common",
     "oci-digest",
     "oci-distribution",
     "oci-image",
