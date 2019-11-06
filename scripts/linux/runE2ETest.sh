@@ -418,10 +418,11 @@ function process_args() {
     [[ -z "$CONTAINER_REGISTRY_PASSWORD" ]] && { print_error 'Container registry password is required'; exit 1; }
     [[ -z "$IOTHUB_CONNECTION_STRING" ]] && { print_error 'IoT hub connection string is required'; exit 1; }
     [[ -z "$EVENTHUB_CONNECTION_STRING" ]] && { print_error 'Event hub connection string is required'; exit 1; }
-    [[ -z "$ANALYZER_LA_ENABLED_STRING" ]] && { print_error 'Analyzer Log Analytic Enable is required'; exit 1; }
-    [[ -z "$ANALYZER_LA_WORKSPACE_ID" ]] && { print_error 'Analyzer Log Analytic Workspace ID is required'; exit 1; }
-    [[ -z "$ANALYZER_LA_SHARED_KEY" ]] && { print_error 'Analyzer Log Analytic Shared Key is required'; exit 1; }
-    [[ -z "$ANALYZER_LA_LOGTYPE" ]] && { print_error 'Analyzer Log Analytic Log Type is required'; exit 1; }
+    [[ -z "$ANALYZER_LA_ENABLED_STRING" ]] && { ANALYZER_LA_ENABLED_STRING="false"; }
+    [[ "$ANALYZER_LA_ENABLED_STRING" == true ]] && \
+    {  [[ -z "$ANALYZER_LA_WORKSPACE_ID" ]] && { print_error 'Analyzer Log Analytic Workspace ID is required'; exit 1; }; \
+       [[ -z "$ANALYZER_LA_SHARED_KEY" ]] && { print_error 'Analyzer Log Analytic Shared Key is required'; exit 1; }; \
+       [[ -z "$ANALYZER_LA_LOGTYPE" ]] && { print_error 'Analyzer Log Analytic Log Type is required'; exit 1; }; }
 
     echo 'Required parameters are provided'
 }
@@ -989,6 +990,11 @@ function usage() {
     echo ' -installRootCACertPath          Optional path to root CA certificate to be used for certificate generation'
     echo ' -installRootCAKeyPath           Optional path to root CA certificate private key to be used for certificate generation'
     echo ' -installRootCAKeyPassword       Optional password to access the root CA certificate private key to be used for certificate generation'
+    echo ' -eventHubConsumerGroupId        Optional Event Hub Consumer Group ID for the Message Analyzer module.'
+    echo ' -analyzerLaEnabled              Optional Log Analytics enable string for the Message Analyzer module.'
+    echo ' -analyzerLaWorkspaceId          Optional Log Analytics workspace ID for the Message Analyzer module.'
+    echo ' -analyzerLaSharedKey            Optional Log Analytics shared key for the Message Analyzer module.'
+    echo ' -analyzerLaLogType              Optional Log Analytics log type for the Message Analyzer module.'
     exit 1;
 }
 

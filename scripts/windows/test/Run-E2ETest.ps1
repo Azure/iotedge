@@ -267,17 +267,14 @@ Param (
     [ValidateSet("true", "false")]
     [string] $MqttSettingsEnabled = "true",
 
-    [ValidateNotNullOrEmpty()]
-    [string] $AnalyzerLaEnabled = $(Throw "Analyzer Log Analytic enable string is required"),
+    [ValidateSet("true", "false")]
+    [string] $AnalyzerLaEnabled = "false",
 
-    [ValidateNotNullOrEmpty()]
-    [string] $AnalyzerLaWorkspaceId = $(Throw "Analyzer Log Analytic WorkspaceId string is required"),
+    [string] $AnalyzerLaWorkspaceId = $null,
 
-    [ValidateNotNullOrEmpty()]
-    [string] $AnalyzerLaSharedKey = $(Throw "Analyzer Log Analytic shared key string is required"),
+    [string] $AnalyzerLaSharedKey = $null,
 
-    [ValidateNotNullOrEmpty()]
-    [string] $AnalyzerLaLogType = $(Throw "Analyzer Log Analytic log type string is required"),
+    [string] $AnalyzerLaLogType = $null,
 
     [switch] $BypassEdgeInstallation
 )
