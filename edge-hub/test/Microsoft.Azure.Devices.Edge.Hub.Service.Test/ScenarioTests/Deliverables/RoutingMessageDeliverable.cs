@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 
             public string GetDeliverableId(Message message) => message.SystemProperties[Core.SystemProperties.EdgeMessageId];
             public string GetDeliverableId(Core.IMessage message) => message.SystemProperties[Core.SystemProperties.EdgeMessageId];
-            public Task SendDeliverable(Router media, Message message) => media.RouteAsync(message);
+            public Task SendDeliverable(Router medium, Message message) => medium.RouteAsync(message);
         }
 
         public static RoutingMessageDeliverable Create() => new RoutingMessageDeliverable();

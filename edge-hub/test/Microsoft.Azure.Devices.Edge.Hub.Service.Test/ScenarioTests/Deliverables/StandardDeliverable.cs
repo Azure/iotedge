@@ -6,72 +6,72 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
     using System.Threading;
     using System.Threading.Tasks;
 
-    public interface IDeliveryStrategy<TSend, TRcv, TMedia>
+    public interface IDeliveryStrategy<TSend, TRcv, TMedium>
     {
         IDeliverableGeneratingStrategy<TSend> DefaultDeliverableGeneratingStrategy { get; }
 
         string GetDeliverableId(TSend deliverable);
         string GetDeliverableId(TRcv deliverable);
 
-        Task SendDeliverable(TMedia media, TSend deliverable);
+        Task SendDeliverable(TMedium medium, TSend deliverable);
     }
 
-    public class StandardDeliverable<TSend, TRcv, TMedia>
+    public class StandardDeliverable<TSend, TRcv, TMedium>
     {
         private object lockObject = new object();
 
         private ITimingStrategy timingStrategy = new LinearTimingStrategy();
         private IDeliveryVolumeStrategy deliveryVolumeStrategy = ConstantSizeVolumeStrategy.Create().WithPackSize(100);
 
-        private IDeliveryStrategy<TSend, TRcv, TMedia> deliveryStrategy;
+        private IDeliveryStrategy<TSend, TRcv, TMedium> deliveryStrategy;
         private IDeliverableGeneratingStrategy<TSend> deliverableGeneratingStrategy;
 
         private List<TSend> sentJournal = new List<TSend>();
         private List<TRcv> deliveryJournal = new List<TRcv>();
         private HashSet<string> pendingDeliverables = new HashSet<string>();
 
-        public static StandardDeliverable<TSend, TRcv, TMedia> Create(IDeliveryStrategy<TSend, TRcv, TMedia> deliveryStrategy) => new StandardDeliverable<TSend, TRcv, TMedia>(deliveryStrategy);
+        public static StandardDeliverable<TSend, TRcv, TMedium> Create(IDeliveryStrategy<TSend, TRcv, TMedium> deliveryStrategy) => new StandardDeliverable<TSend, TRcv, TMedium>(deliveryStrategy);
 
-        public StandardDeliverable(IDeliveryStrategy<TSend, TRcv, TMedia> deliveryStrategy)
+        public StandardDeliverable(IDeliveryStrategy<TSend, TRcv, TMedium> deliveryStrategy)
         {
             this.deliveryStrategy = deliveryStrategy;
             this.deliverableGeneratingStrategy = deliveryStrategy.DefaultDeliverableGeneratingStrategy;
         }
 
-        public StandardDeliverable<TSend, TRcv, TMedia> WithVolumeStrategy(IDeliveryVolumeStrategy deliveryVolumeStrategy)
+        public StandardDeliverable<TSend, TRcv, TMedium> WithVolumeStrategy(IDeliveryVolumeStrategy deliveryVolumeStrategy)
         {
             this.deliveryVolumeStrategy = deliveryVolumeStrategy;
             return this;
         }
 
-        public StandardDeliverable<TSend, TRcv, TMedia> WithVolumeStrategy<T>(Func<T, T> strategyDecorator)
+        public StandardDeliverable<TSend, TRcv, TMedium> WithVolumeStrategy<T>(Func<T, T> strategyDecorator)
             where T : IDeliveryVolumeStrategy, new()
         {
             this.deliveryVolumeStrategy = strategyDecorator(new T());
             return this;
         }
 
-        public StandardDeliverable<TSend, TRcv, TMedia> WithPackSize(int packSize)
+        public StandardDeliverable<TSend, TRcv, TMedium> WithPackSize(int packSize)
         {
             this.deliveryVolumeStrategy = ConstantSizeVolumeStrategy.Create().WithPackSize(packSize);
             return this;
         }
 
-        public StandardDeliverable<TSend, TRcv, TMedia> WithTimingStrategy<T>()
+        public StandardDeliverable<TSend, TRcv, TMedium> WithTimingStrategy<T>()
             where T : ITimingStrategy, new()
         {
             this.timingStrategy = new T();
             return this;
         }
 
-        public StandardDeliverable<TSend, TRcv, TMedia> WithTimingStrategy<T>(Func<T, T> strategyDecorator)
+        public StandardDeliverable<TSend, TRcv, TMedium> WithTimingStrategy<T>(Func<T, T> strategyDecorator)
             where T : ITimingStrategy, new()
         {
             this.timingStrategy = strategyDecorator(new T());
             return this;
         }
 
-        public StandardDeliverable<TSend, TRcv, TMedia> WithDeliverableGeneratingStrategy<T>(Func<T, T> strategyDecorator)
+        public StandardDeliverable<TSend, TRcv, TMedium> WithDeliverableGeneratingStrategy<T>(Func<T, T> strategyDecorator)
             where T : IDeliverableGeneratingStrategy<TSend>, new()
         {
             this.deliverableGeneratingStrategy = strategyDecorator(new T());
@@ -112,7 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
         public IReadOnlyList<TSend> SentJournal => this.sentJournal;
         public IReadOnlyList<TRcv> DeliveryJournal => this.deliveryJournal;
 
-        public async Task StartDeliveringAsync(TMedia device)
+        public async Task StartDeliveringAsync(TMedium device)
         {
             while (this.deliveryVolumeStrategy.TakeOneIfAny())
             {

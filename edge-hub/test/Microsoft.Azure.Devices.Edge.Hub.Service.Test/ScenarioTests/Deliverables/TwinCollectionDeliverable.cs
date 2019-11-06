@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Test.ScenarioTests
 
             public string GetDeliverableId(TwinCollection deliverable) => deliverable["counter"].ToString();
             public string GetDeliverableId(Core.IMessage deliverable) => this.messageConverter.FromMessage(deliverable)["counter"].ToString();
-            public Task SendDeliverable(Func<TwinCollection, Task> media, TwinCollection deliverable) => media(deliverable);
+            public Task SendDeliverable(Func<TwinCollection, Task> medium, TwinCollection deliverable) => medium(deliverable);
         }
 
         public static TwinCollectionDeliverable Create() => new TwinCollectionDeliverable();
