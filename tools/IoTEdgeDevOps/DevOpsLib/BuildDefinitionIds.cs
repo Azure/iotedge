@@ -11,5 +11,16 @@ namespace DevOpsLib
         public const int EndToEndTest = 87020;
         public const int ImageRelease = 31987;
         public const int LibiohsmCI = 39853;
+
+        public static int[] MasterBranchReporting =>
+            new[]
+            {
+                CI,
+                EdgeletCI,
+                LibiohsmCI,
+                BuildImages,
+                EdgeletPackages,
+                EndToEndTest
+            };
     }
 }

@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace IoTEdgeDashboard.Controllers
 {
+    using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Linq;
     using System.Threading.Tasks;
     using DevOpsLib;
     using DevOpsLib.VstsModels;
@@ -18,18 +20,26 @@ namespace IoTEdgeDashboard.Controllers
             this._appConfig = appConfigAccessor.Value;
         }
 
-        public async Task<IActionResult> Index([FromQuery(Name = "branch")] string branch = "master")
+        public async Task<IActionResult> Index()
         {
+            string masterBranch = "refs/heads/master";
             var buildManagement = new BuildManagement(new DevOpsAccessSetting(this._appConfig.PersonalAccessToken));
-            VstsBuild ciBuild = await buildManagement.GetLatestBuildAsync(BuildDefinitionIds.CI, branch).ConfigureAwait(false);
+            var builds = await buildManagement.GetLatestBuildsAsync(BuildDefinitionIds.MasterBranchReporting, masterBranch).ConfigureAwait(false);
 
             return this.View(
                 new DashboardViewModel
                 {
-                    CIBuild = ciBuild
+                    MasterBranch = new MasterBranch {
+                        CIBuild = builds[BuildDefinitionIds.CI],
+                        EdgeletCIBuild = builds[BuildDefinitionIds.EdgeletCI],
+                        EdgeletPackagesBuild = builds[BuildDefinitionIds.EdgeletPackages],
+                        EndToEndTestBuild = builds[BuildDefinitionIds.EndToEndTest],
+                        ImagesBuild = builds[BuildDefinitionIds.BuildImages],
+                        LibiohsmCIBuild = builds[BuildDefinitionIds.LibiohsmCI]
+                    }
                 });
         }
-
+        
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {
