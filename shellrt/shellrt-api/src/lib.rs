@@ -20,8 +20,7 @@ where
 {
     pub version: String,
     #[serde(flatten)]
-    #[serde(serialize_with = "crate::util::ser_api_result")]
-    #[serde(deserialize_with = "crate::util::des_api_result")]
+    #[serde(with = "crate::util::api_result")]
     pub response: Result<Response, Error>,
 }
 

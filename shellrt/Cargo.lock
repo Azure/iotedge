@@ -1024,6 +1024,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "oci-common"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "oci-digest"
 version = "0.1.0"
 dependencies = [
@@ -1045,8 +1053,19 @@ dependencies = [
 name = "oci-image"
 version = "0.1.0"
 dependencies = [
+ "oci-common",
  "oci-digest",
+ "oci-runtime",
  "serde",
+]
+
+[[package]]
+name = "oci-runtime"
+version = "0.1.0"
+dependencies = [
+ "oci-common",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

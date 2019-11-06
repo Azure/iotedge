@@ -3,7 +3,7 @@ use serde::{Deserializer, Serializer};
 
 /// Custom `deserialize_with` function to parse top-level API JSON with a
 /// "status" field as a std::Result.
-pub fn des_api_result<'de, T, E, D>(des: D) -> Result<Result<T, E>, D::Error>
+pub fn deserialize<'de, T, E, D>(des: D) -> Result<Result<T, E>, D::Error>
 where
     D: Deserializer<'de>,
     T: Deserialize<'de>,
@@ -24,7 +24,7 @@ where
 
 /// Custom `serialize_with` function to attach
 /// `#[serde(tag = "status", rename_all = "snake_case")]` to std::Result.
-pub fn ser_api_result<S, T, E>(v: &Result<T, E>, ser: S) -> Result<S::Ok, S::Error>
+pub fn serialize<S, T, E>(v: &Result<T, E>, ser: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
     T: Serialize,

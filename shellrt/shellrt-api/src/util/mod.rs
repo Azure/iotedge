@@ -1,3 +1,1 @@
-mod api_result_serde;
-
-pub use api_result_serde::*;
+pub mod api_result;
