@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::{media_type, Annotations, Descriptor, SchemaVersion};
+use super::{media_type, Annotations, Descriptor, SchemaVersion2};
 use crate::MediaType;
 
 /// Index references manifests for various platforms.
@@ -14,7 +14,7 @@ pub struct Index {
     /// will not change. This field MAY be removed in a future version of the
     /// specification.
     #[serde(rename = "schemaVersion")]
-    pub schema_version: SchemaVersion,
+    pub schema_version: SchemaVersion2,
 
     /// Manifests references platform specific manifests.
     #[serde(rename = "manifests")]

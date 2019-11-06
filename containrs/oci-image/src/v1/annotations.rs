@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 /// A JSON field that contains arbitrary metadata.
 ///
 /// It conforms to the following rules:
@@ -21,7 +19,7 @@ use std::collections::HashMap;
 ///   an empty map.
 /// - Consumers MUST NOT generate an error if they encounter an unknown
 ///   annotation key.
-pub type Annotations = HashMap<String, String>;
+pub type Annotations = oci_common::types::Annotations;
 
 pub mod key {
     /// The date and time on which the image was built (date-time string as

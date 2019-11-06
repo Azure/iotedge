@@ -1,6 +1,6 @@
-use std::collections::HashMap;
-
 use serde::{Deserialize, Serialize};
+
+use oci_common::types::Annotations;
 
 /// Types used by [Spec]`.linux`
 pub mod linux;
@@ -40,7 +40,7 @@ pub struct Spec {
     pub hooks: Option<Hooks>,
     /// Annotations contains arbitrary metadata for the container.
     #[serde(rename = "annotations", skip_serializing_if = "Option::is_none")]
-    pub annotations: Option<HashMap<String, String>>,
+    pub annotations: Option<Annotations>,
 
     /// Linux is platform-specific configuration for Linux based containers.
     #[serde(rename = "linux", skip_serializing_if = "Option::is_none")]
@@ -53,8 +53,10 @@ pub struct Spec {
     pub windows: Option<Windows>,
 }
 
-impl Default for Spec {
-    fn default() -> Spec {
+impl Spec {
+    /// Create a new [Mount] with all Optional fields set to None, and version
+    /// set to `super::VERSION`
+    pub fn new_base() -> Spec {
         Spec {
             version: super::VERSION.to_string(),
             process: None,
@@ -98,6 +100,18 @@ pub struct Mount {
     /// Options are fstab style mount options.
     #[serde(rename = "options", skip_serializing_if = "Option::is_none")]
     pub options: Option<Vec<String>>,
+}
+
+impl Mount {
+    /// Create a new [Mount] with all Optional fields set to None
+    pub fn new_base(destination: String) -> Mount {
+        Mount {
+            destination,
+            type_: None,
+            options: None,
+            source: None,
+        }
+    }
 }
 
 /// Hooks for container setup and teardown

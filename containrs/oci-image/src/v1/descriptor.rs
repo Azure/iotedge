@@ -49,17 +49,12 @@ pub struct Descriptor {
     pub platform: Option<Platform>,
 
     /// This property is RESERVED for future versions of the specification.
-    #[serde(
-        rename = "data",
-        skip_serializing,
-        default,
-        deserialize_with = "crate::de_reserved_field"
-    )]
-    pub _data: Option<String>,
+    #[serde(rename = "data", default)]
+    pub data: Option<String>,
 }
 
 impl Descriptor {
-    /// Create a new Descriptor by specifying only the strictly requires fields.
+    /// Create a new [Descriptor] with all Optional fields set to None
     pub fn new_base(media_type: String, digest: Digest, size: i64) -> Descriptor {
         Descriptor {
             media_type,
@@ -68,7 +63,7 @@ impl Descriptor {
             urls: None,
             annotations: None,
             platform: None,
-            _data: None,
+            data: None,
         }
     }
 
@@ -146,11 +141,6 @@ pub struct Platform {
     pub variant: Option<String>,
 
     /// This property is RESERVED for future versions of the specification.
-    #[serde(
-        rename = "features",
-        skip_serializing,
-        default,
-        deserialize_with = "crate::de_reserved_field"
-    )]
-    pub _features: Option<Vec<String>>,
+    #[serde(rename = "features", default)]
+    pub features: Option<Vec<String>>,
 }

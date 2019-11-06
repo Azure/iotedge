@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
-use serde::{de, Deserializer};
 use serde::{Deserialize, Serialize};
 
+use oci_common::fixed_newtype;
+use oci_common::types::EnvVar;
 use oci_digest::Digest;
 
 use super::{media_type, Annotations};
@@ -69,10 +70,19 @@ impl MediaType for Image {
 
 /// ImageConfig defines the execution parameters which should be used as a base
 /// when running a container using an image.
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct ImageConfig {
-    /// User defines the username or UID which the process in the container
-    /// should run as.
+    /// The username or UID which is a platform-specific structure that allows
+    /// specific control over which user the process run as. This acts as a
+    /// default value to use when the value is not specified when creating a
+    /// container.
+    ///
+    /// For Linux based systems, all of the following are valid:
+    /// `user`, `uid`, `user:group`, `uid:gid`, `uid:group`, `user:gid`.
+    ///
+    /// If group/gid is not specified, the default group and supplementary
+    /// groups of the given user/uid in /etc/passwd from the container are
+    /// applied.
     #[serde(rename = "User", skip_serializing_if = "Option::is_none")]
     pub user: Option<String>,
 
@@ -90,7 +100,7 @@ pub struct ImageConfig {
     /// Entries are in the format of VARNAME=VARVALUE. These values act as
     /// defaults and are merged with any specified when creating a container.
     #[serde(rename = "Env", skip_serializing_if = "Option::is_none")]
-    pub env: Option<Vec<String>>,
+    pub env: Option<Vec<EnvVar>>,
 
     /// Entrypoint defines a list of arguments to use as the command to execute
     /// when the container starts.
@@ -134,26 +144,13 @@ pub struct RootFS {
     /// Type is the type of the rootfs.
     ///
     /// MUST be set to layers.
-    #[serde(rename = "type", deserialize_with = "validate_rootfs_type_is_layers")]
-    pub type_: String,
+    #[serde(rename = "type")]
+    pub type_: RootfsType,
 
     /// DiffIDs is an array of layer content hashes (DiffIDs), in order from
     /// bottom-most to top-most.
     #[serde(rename = "diff_ids")]
     pub diff_ids: Vec<Digest>,
-}
-
-fn validate_rootfs_type_is_layers<'de, D>(des: D) -> Result<String, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let s = String::deserialize(des)?;
-    match s.as_str() {
-        "layers" => Ok(s),
-        _ => Err(de::Error::custom(
-            "v1::Image must have .rootfs.rootfs_type = \"layers\"",
-        )),
-    }
 }
 
 /// History describes the history of a layer.
@@ -181,4 +178,10 @@ pub struct History {
     /// diff.
     #[serde(rename = "empty_layer", skip_serializing_if = "Option::is_none")]
     pub empty_layer: Option<bool>,
+}
+
+fixed_newtype! {
+    /// Wrapper around a String whose value is guaranteed to be "layers"
+    pub struct RootfsType(String) == "layers";
+    else "v1::Image must have .rootfs.rootfs_type = \"layers\"";
 }

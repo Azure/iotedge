@@ -5,6 +5,7 @@ authors = ["Azure IoT Edge Devs"]
 edition = "2018"
 
 [dependencies]
+oci-common = { path = "../oci-common" }
 oci-digest = { path = "../oci-digest" }
 oci-runtime = { path = "../oci-runtime" }
 

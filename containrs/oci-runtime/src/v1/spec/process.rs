@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use oci_common::types::EnvVar;
+
 /// Process contains information to start a specific application inside the
 /// container.
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
@@ -18,7 +20,7 @@ pub struct Process {
     pub args: Vec<String>,
     /// Env populates the process environment for the process.
     #[serde(rename = "env", skip_serializing_if = "Option::is_none")]
-    pub env: Option<Vec<String>>,
+    pub env: Option<Vec<EnvVar>>,
     /// Cwd is the current working directory for the process and must be
     /// relative to the container's root.
     #[serde(rename = "cwd")]
@@ -43,6 +45,26 @@ pub struct Process {
     /// run as.
     #[serde(rename = "selinuxLabel", skip_serializing_if = "Option::is_none")]
     pub selinux_label: Option<String>,
+}
+
+impl Process {
+    /// Create a new [Process] with all Optional fields set to None
+    pub fn new_base(cwd: String, user: User) -> Process {
+        Process {
+            user,
+            cwd,
+            terminal: None,
+            console_size: None,
+            args: Vec::new(),
+            env: None,
+            capabilities: None,
+            rlimits: None,
+            no_new_privileges: None,
+            apparmor_profile: None,
+            oom_score_adj: None,
+            selinux_label: None,
+        }
+    }
 }
 
 /// LinuxCapabilities specifies the whitelist of capabilities that are kept for

@@ -1,3 +1,5 @@
+// TODO: Replace &str with https://crates.io/crates/mime
+
 /// specifies the media type for a content descriptor.
 pub const DESCRIPTOR: &str = "application/vnd.oci.descriptor.v1+json";
 

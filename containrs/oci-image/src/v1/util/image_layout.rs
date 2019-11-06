@@ -66,7 +66,7 @@ impl ImageLayoutBuilder {
 
         // add the various descriptors referenced in the manifest
         // (and the manifest itself) as required blobs
-        blob_descriptors.push(manifest_descriptor.clone());
+        blob_descriptors.push(manifest_descriptor);
         blob_descriptors.push(manifest.config.clone());
         for descriptor in &manifest.layers {
             blob_descriptors.push(descriptor.clone());

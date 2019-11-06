@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::{media_type, Annotations, Descriptor, SchemaVersion};
+use super::{media_type, Annotations, Descriptor, SchemaVersion2};
 use crate::MediaType;
 
 /// Manifest provides `application/vnd.oci.image.manifest.v1+json` mediatype
@@ -13,7 +13,7 @@ pub struct Manifest {
     /// will not change. This field MAY be removed in a future version of the
     /// specification.
     #[serde(rename = "schemaVersion")]
-    pub schema_version: SchemaVersion,
+    pub schema_version: SchemaVersion2,
 
     /// This property is reserved for use, to maintain compatibility. When used,
     /// this field contains the media type of this document, which differs from
