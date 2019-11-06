@@ -19,7 +19,7 @@ namespace MessagesAnalyzer
 
         static async Task Main(string[] args)
         {
-            Log.LogInformation($"Starting analyzer for deviceId: {Settings.Current.DeviceId}, exclude-modules: {string.Join(", ", Settings.Current.ExcludedModuleIds.ToArray())}");
+            Log.LogInformation($"Starting analyzer for [deviceId: {Settings.Current.DeviceId}] with [consumerGroupId: {Settings.Current.ConsumerGroupId}], exclude-modules: {string.Join(", ", Settings.Current.ExcludedModuleIds.ToArray())}");
 
             await ReceiveMessages();
 
@@ -46,7 +46,7 @@ namespace MessagesAnalyzer
                 EventHubClient.CreateFromConnectionString(builder.ToString());
 
             PartitionReceiver eventHubReceiver = eventHubClient.CreateReceiver(
-                "$Default",
+                Settings.Current.ConsumerGroupId,
                 EventHubPartitionKeyResolver.ResolveToPartition(Settings.Current.DeviceId, (await eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
                 EventPosition.FromEnqueuedTime(DateTime.UtcNow));
 
