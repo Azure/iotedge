@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
                         Context.Current.DeleteList.TryAdd(device.Id, device);
 
-                        await this.ManuallyProvisionEdgeAsync(device, startTime, token);
+                        await this.ManuallyProvisionEdgeSasAsync(device, startTime, token);
                     }
                 },
                 "Completed edge manual provisioning with SAS token");

@@ -37,11 +37,22 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             this.config.ReplaceOrAdd("provisioning.scope_id", idScope);
         }
 
-        public void SetDeviceConnectionString(string value)
+        public void SetDeviceConnectionString(string connectionString)
         {
             this.config.RemoveIfExists("provisioning");
             this.config.ReplaceOrAdd("provisioning.source", "manual");
-            this.config.ReplaceOrAdd("provisioning.device_connection_string", value);
+            this.config.ReplaceOrAdd("provisioning.device_connection_string", connectionString);
+        }
+
+        public void SetDeviceManualX509(string hubhostname, string deviceId, string identityCertPath, string identity_pk_path)
+        {
+            this.config.RemoveIfExists("provisioning");
+            this.config.ReplaceOrAdd("provisioning.source", "manual");
+            this.config.ReplaceOrAdd("provisioning.authentication.method", "x509");
+            this.config.ReplaceOrAdd("provisioning.authentication.iothub_hostname", hubhostname);
+            this.config.ReplaceOrAdd("provisioning.authentication.device_id", deviceId);
+            this.config.ReplaceOrAdd("provisioning.authentication.identity_cert", identityCertPath);
+            this.config.ReplaceOrAdd("provisioning.authentication.identity_pk", identity_pk_path);
         }
 
         public void SetDpsSymmetricKey(string idScope, string registrationId, string deviceKey)

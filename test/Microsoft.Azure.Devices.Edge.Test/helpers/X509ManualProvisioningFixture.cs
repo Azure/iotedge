@@ -2,9 +2,11 @@
 namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 {
     using System;
+    using System.Security.Cryptography.X509Certificates;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
+    using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using NUnit.Framework;
 
     public class X509ManualProvisioningFixture : ManualProvisioningFixture
@@ -23,7 +25,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         CancellationToken token = cts.Token;
                         DateTime startTime = DateTime.Now;
 
-                        this.Thumbprint = this.CreateSelfSignedCertificateThumbprint();
+                        IdCertificates certs;
+                        (this.Thumbprint, certs) = await this.CreateDeviceIdCertAsync(Context.Current.DeviceId);
 
                         EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
                         Context.Current.DeviceId + "-x509",
@@ -36,19 +39,37 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
                         this.Device = device;
 
-                        await this.ManuallyProvisionEdgeAsync(device, startTime, token);
+                        await this.ManuallyProvisionEdgeX509Async(device, certs.CertificatePath, certs.KeyPath, startTime, token);
                     }
                 },
                 "Completed edge manual provisioning with self-signed certificate");
         }
 
-        private X509Thumbprint CreateSelfSignedCertificateThumbprint()
+        private async Task<(X509Thumbprint, IdCertificates)> CreateDeviceIdCertAsync(string deviceId)
         {
-            return new X509Thumbprint()
+            (string, string, string) rootCa =
+            Context.Current.RootCaKeys.Expect(() => new InvalidOperationException("Missing root CA keys"));
+            string caCertScriptPath =
+                        Context.Current.CaCertScriptPath.Expect(() => new InvalidOperationException("Missing CA cert script path"));
+            string idScope = Context.Current.DpsIdScope.Expect(() => new InvalidOperationException("Missing DPS ID scope"));
+
+            CancellationToken token = this.TestToken;
+
+            CertificateAuthority ca = await CertificateAuthority.CreateAsync(
+                deviceId,
+                rootCa,
+                caCertScriptPath,
+                token);
+
+            var identityCerts = await ca.GenerateIdentityCertificatesAsync(deviceId, token);
+
+            X509Certificate2 deviceCert = new X509Certificate2(identityCerts.CertificatePath);
+
+            return (new X509Thumbprint()
             {
-                PrimaryThumbprint = "9991572f0a02bdc7c89fc032b95d79aca18ef7a3",
-                SecondaryThumbprint = "9991572f0a02bdc7c89fc032b95d79aca18ef7a4"
-            };
+                PrimaryThumbprint = "9991572f0a02bdc7c89fc032b95d79aca18ef7a3"
+            },
+            identityCerts);
         }
     }
 }

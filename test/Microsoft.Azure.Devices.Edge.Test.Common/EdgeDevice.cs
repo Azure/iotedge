@@ -28,6 +28,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public string Id => this.device.Id;
 
+        public string HubHostname => this.iotHub.Hostname;
+
         public static Task<EdgeDevice> CreateIdentityAsync(
             string deviceId,
             IotHub iotHub,

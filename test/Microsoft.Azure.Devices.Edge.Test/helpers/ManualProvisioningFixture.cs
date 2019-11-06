@@ -6,6 +6,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
 
+    // NUnit's [Timeout] attribute isn't supported in .NET Standard
+    // and even if it were, it doesn't run the teardown method when
+    // a test times out. We need teardown to run, to remove the
+    // device registration from IoT Hub and stop the daemon. So
+    // we have our own timeout mechanism.
     public class ManualProvisioningFixture : BaseFixture
     {
         protected readonly IEdgeDaemon daemon;
@@ -29,13 +34,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 this.iotHub);
         }
 
-        public async Task ManuallyProvisionEdgeAsync(EdgeDevice device, DateTime startTime, CancellationToken token)
+        public async Task ManuallyProvisionEdgeSasAsync(EdgeDevice device, DateTime startTime, CancellationToken token)
         {
-            // NUnit's [Timeout] attribute isn't supported in .NET Standard
-            // and even if it were, it doesn't run the teardown method when
-            // a test times out. We need teardown to run, to remove the
-            // device registration from IoT Hub and stop the daemon. So
-            // we have our own timeout mechanism.
             IotHubConnectionStringBuilder builder =
                 IotHubConnectionStringBuilder.Create(device.ConnectionString);
 
@@ -50,6 +50,27 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 },
                 token);
 
+            await this.WaitForConfiguredStatusAsync(device, startTime, token);
+        }
+
+        public async Task ManuallyProvisionEdgeX509Async(EdgeDevice device, string certPath, string keyPath, DateTime startTime, CancellationToken token)
+        {
+            await this.daemon.ConfigureAsync(
+                config =>
+                {
+                    config.SetDeviceManualX509(device.HubHostname, device.Id, certPath, keyPath);
+                    config.Update();
+                    return Task.FromResult((
+                        "with connection string for device '{Identity}'",
+                        new object[] { device.Id }));
+                },
+                token);
+
+            await this.WaitForConfiguredStatusAsync(device, startTime, token);
+        }
+
+        private async Task WaitForConfiguredStatusAsync(EdgeDevice device, DateTime startTime, CancellationToken token)
+        {
             try
             {
                 await this.daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
