@@ -89,7 +89,6 @@ namespace Microsoft.Azure.Devices.Routing.Core
             if (baseDetails == Option.None<SendFailureDetails>())
                 return true;
 
-
             // We are using OrDefault() here only because the above statements check for null. This will not introduce null.
             // at this point something has happened before, as well as now. Pick the more significant
             var baseUnwrapped = baseDetails.OrDefault();
