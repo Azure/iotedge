@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
             return (new X509Thumbprint()
             {
-                PrimaryThumbprint = "9991572f0a02bdc7c89fc032b95d79aca18ef7a3"
+                PrimaryThumbprint = deviceCert.Thumbprint
             },
             identityCerts);
         }
