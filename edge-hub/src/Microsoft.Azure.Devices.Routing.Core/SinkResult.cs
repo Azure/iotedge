@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
 
         private static bool IsMoreSignificant(Option<SendFailureDetails> baseDetails, Option<SendFailureDetails> currentDetails)
         {
-            // WARNING: null checks prevent precense of none from subsequent OrDefault() calls
+            // WARNING: null checks prevent presense of none from subsequent OrDefault() calls
             // whatever happend before, if no details now, that cannot be more significant
             if (currentDetails == Option.None<SendFailureDetails>())
                 return false;
