@@ -176,7 +176,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         iothubHostname = configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
                         deviceId = configuration.GetValue<string>(Constants.DeviceIdVariableName);
                         string proxyImage = configuration.GetValue<string>(K8sConstants.ProxyImageEnvKey);
-                        Option<string> proxyImagePullSecretName = configuration.GetValue<Option<string>>(K8sConstants.ProxyImagePullSecretNameEnvKey);
+                        Option<string> proxyImagePullSecretName = Option.Maybe(configuration.GetValue<string>(K8sConstants.ProxyImagePullSecretNameEnvKey));
                         string proxyConfigPath = configuration.GetValue<string>(K8sConstants.ProxyConfigPathEnvKey);
                         string proxyConfigVolumeName = configuration.GetValue<string>(K8sConstants.ProxyConfigVolumeEnvKey);
                         string proxyConfigMapName = configuration.GetValue<string>(K8sConstants.ProxyConfigMapNameEnvKey);
