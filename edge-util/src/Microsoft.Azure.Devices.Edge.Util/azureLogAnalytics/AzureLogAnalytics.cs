@@ -18,8 +18,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
 
     public sealed class AzureLogAnalytics
     {
-        static AzureLogAnalytics instance = null;
         static readonly ILogger Log = Logger.Factory.CreateLogger<AzureLogAnalytics>();
+        static AzureLogAnalytics instance = null;
         public string WorkspaceId { get; }
         public string SharedKey { get; }
         public string ApiVersion { get; }
@@ -30,27 +30,26 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
             this.ApiVersion = apiVersion;
         }
 
-        public static AzureLogAnalytics getInstance()
+        public static AzureLogAnalytics GetInstance()
         {
             Preconditions.CheckNotNull(instance);
             return instance;
         }
 
-        public static AzureLogAnalytics initInstance(string workspaceId, string sharedKey)
+        public static AzureLogAnalytics InitInstance(string workspaceId, string sharedKey)
         {
-            if(instance == null)
+            if (instance == null)
             {
                 instance = new AzureLogAnalytics(workspaceId, sharedKey);
             }
+
             return instance;
         }
 
         public async void PostAsync(string content, string LogType)
         {
-            //string dateString = DateTime.UtcNow.ToString("r");
-            Uri RequestUri = new Uri($"https://{this.WorkspaceId}.ods.opinsights.azure.com/api/logs?api-version={this.ApiVersion}");
-            DateTime dateTime = DateTime.UtcNow;
-            string dateString = dateTime.ToString("r");
+            string dateString = DateTime.UtcNow.ToString("r");
+            Uri requestUri = new Uri($"https://{this.WorkspaceId}.ods.opinsights.azure.com/api/logs?api-version={this.ApiVersion}");
             string signature = this.GetSignature("POST", content.Length, "application/json", dateString, "/api/logs");
 
             var client = new HttpClient();
@@ -62,16 +61,16 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
             var contentMsg = new StringContent(content, Encoding.UTF8);
             contentMsg.Headers.ContentType = new MediaTypeHeaderValue("application/json");
             Log.LogDebug(
-                client.DefaultRequestHeaders.ToString() + 
-                contentMsg.Headers + 
+                client.DefaultRequestHeaders.ToString() +
+                contentMsg.Headers +
                 contentMsg.ReadAsStringAsync().Result);
 
-            var response = await client.PostAsync(RequestUri, contentMsg).ConfigureAwait(false);
+            var response = await client.PostAsync(requestUri, contentMsg).ConfigureAwait(false);
             var responseMsg = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             Log.LogDebug(
-                ((int)response.StatusCode).ToString() + " " 
-                + response.ReasonPhrase + " " 
-                + responseMsg);
+                ((int)response.StatusCode).ToString() + " " +
+                response.ReasonPhrase + " " +
+                responseMsg);
         }
 
         private string GetSignature(string method, int contentLength, string contentType, string date, string resource)

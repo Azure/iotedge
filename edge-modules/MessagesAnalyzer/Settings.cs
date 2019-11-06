@@ -49,13 +49,15 @@ namespace MessagesAnalyzer
 
         Settings(string eventHubCs, string consumerGroupId, string deviceId, IList<string> excludedModuleIds, string webhostPort, double tolerance, string logAnalyticsEnabled, string logAnalyticsWorkspaceIdName, string logAnalyticsSharedKeyName, string logAnalyticsLogTypeName)
         {
+            Boolean enaVal;
             this.EventHubConnectionString = eventHubCs;
             this.ConsumerGroupId = consumerGroupId;
             this.ExcludedModuleIds = excludedModuleIds;
             this.DeviceId = deviceId;
             this.WebhostPort = webhostPort;
             this.ToleranceInMilliseconds = tolerance;
-            this.LogAnalyticEnabled = Convert.ToBoolean(logAnalyticsEnabled);
+            Boolean.TryParse(logAnalyticsEnabled, out enaVal);
+            this.LogAnalyticEnabled = enaVal;
             this.LogAnalyticWorkspaceId = logAnalyticsWorkspaceIdName;
             this.LogAnalyticSharedKey = logAnalyticsSharedKeyName;
             this.LogAnalyticLogType = logAnalyticsLogTypeName;
