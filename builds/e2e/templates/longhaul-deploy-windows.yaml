@@ -12,6 +12,8 @@ parameters:
   snitch.storage.account: ''
   snitch.storage.masterKey: ''
   loadGen.message.frequency: ''
+  longHaul.desiredModulesToRestartCSV: ''
+  longHaul.restartIntervalInMins: ''
   analyzer.consumerGroupId: ''
   analyzer.loganalyticenabled: ''
   analyzer.loganalyticworkspaceid: ''
@@ -55,6 +57,8 @@ steps:
           -SnitchAlertUrl "${{ parameters['snitch.alert.url'] }}" `
           -LoadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" `
           -EventHubConsumerGroupId "${{ parameters['analyzer.consumerGroupId'] }}" `
+          -DesiredModulesToRestartCSV "${{ parameters['longHaul.desiredModulesToRestartCSV'] }}" `
+          -RestartIntervalInMins "${{ parameters['longHaul.restartIntervalInMins'] }}" `
           -AnalyzerLaEnabled "${{ parameters['analyzer.loganalyticenabled'] }}" `
           -AnalyzerLaWorkspaceId "${{ parameters['analyzer.loganalyticworkspaceid'] }}" `
           -AnalyzerLaSharedKey "${{ parameters['analyzer.loganalyticsharedkey'] }}" `

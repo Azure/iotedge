@@ -62,6 +62,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning
 
         public abstract Task<SystemInfo> GetSystemInfoAsync();
 
+        public abstract Task<SystemInfo> GetSystemInfoAsync(CancellationToken cancellationToken);
+
         public abstract Task<IEnumerable<ModuleRuntimeInfo>> GetModules<T>(CancellationToken cancellationToken);
 
         public abstract Task StartModuleAsync(string name);

@@ -160,7 +160,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 
                 var dockerCommandFactory = new DockerCommandFactory(client, loggingConfig, configSource.Object, new CombinedDockerConfigProvider(Enumerable.Empty<AuthConfig>()));
                 IRuntimeInfoProvider runtimeInfoProvider = await RuntimeInfoProvider.CreateAsync(client);
-                IEnvironmentProvider environmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, restartStateStore, restartManager);
+                IEnvironmentProvider environmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, restartStateStore, restartManager, CancellationToken.None);
 
                 var logFactoryMock = new Mock<ILoggerFactory>();
                 var logMock = new Mock<ILogger<LoggingCommandFactory>>();

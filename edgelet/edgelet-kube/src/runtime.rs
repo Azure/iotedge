@@ -2,12 +2,10 @@
 
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::convert::TryFrom;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use failure::Fail;
-use futures::future::Either;
 use futures::prelude::*;
 use futures::{future, stream, Async, Future, Stream};
 use hyper::client::HttpConnector;
@@ -24,10 +22,10 @@ use edgelet_docker::DockerConfig;
 use kube_client::{get_config, Client as KubeClient, HttpClient, TokenSource, ValueToken};
 use provisioning::ProvisioningResult;
 
-use crate::convert::{pod_to_module, NamedSecret};
+use crate::convert::pod_to_module;
 use crate::error::{Error, ErrorKind};
 use crate::module::{authenticate, create_module, init_trust_bundle, KubeModule};
-use crate::registry::ImagePullSecret;
+use crate::registry::create_image_pull_secrets;
 use crate::settings::Settings;
 
 pub struct KubeModuleRuntime<T, S> {
@@ -86,72 +84,7 @@ where
     type Config = DockerConfig;
 
     fn pull(&self, config: &Self::Config) -> Self::PullFuture {
-        let image_pull_secret = config
-            .auth()
-            .and_then(|auth| ImagePullSecret::from_auth(auth));
-
-        // Find and generate image pull secrets.
-        if let Some(image_pull_secret) = image_pull_secret {
-            // Have authorization for this module spec, create this if it doesn't exist.
-            let fut = NamedSecret::try_from((self.settings().namespace(), image_pull_secret))
-                .map(|pull_secret| {
-                    let client_copy = self.client.clone();
-                    let namespace_copy = self.settings().namespace().to_owned();
-
-                    self.client
-                        .lock()
-                        .expect("Unexpected lock error")
-                        .borrow_mut()
-                        .list_secrets(self.settings().namespace(), Some(pull_secret.name()))
-                        .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
-                        .and_then(move |secrets| {
-                            if let Some(current_secret) = secrets.items.into_iter().find(|secret| {
-                                secret.metadata.as_ref().map_or(false, |meta| {
-                                    meta.name
-                                        .as_ref()
-                                        .map_or(false, |n| n == pull_secret.name())
-                                })
-                            }) {
-                                if current_secret == *pull_secret.secret() {
-                                    Either::A(Either::A(future::ok(())))
-                                } else {
-                                    let f = client_copy
-                                        .lock()
-                                        .expect("Unexpected lock error")
-                                        .borrow_mut()
-                                        .replace_secret(
-                                            namespace_copy.as_str(),
-                                            pull_secret.name(),
-                                            pull_secret.secret(),
-                                        )
-                                        .map_err(|err| {
-                                            Error::from(err.context(ErrorKind::KubeClient))
-                                        })
-                                        .map(|_| ());
-
-                                    Either::A(Either::B(f))
-                                }
-                            } else {
-                                let f = client_copy
-                                    .lock()
-                                    .expect("Unexpected lock error")
-                                    .borrow_mut()
-                                    .create_secret(namespace_copy.as_str(), pull_secret.secret())
-                                    .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
-                                    .map(|_| ());
-
-                                Either::B(f)
-                            }
-                        })
-                })
-                .into_future()
-                .flatten()
-                .map_err(|err| Error::from(err.context(ErrorKind::RegistryOperation)));
-
-            Box::new(fut)
-        } else {
-            Box::new(future::ok(()))
-        }
+        Box::new(create_image_pull_secrets(self, &config))
     }
 
     fn remove(&self, _: &str) -> Self::RemoveFuture {

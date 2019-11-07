@@ -13,6 +13,8 @@ parameters:
   snitch.storage.masterKey: ''
   loadGen.message.frequency: ''
   loadGen.transportType: 'mqtt'
+  longHaul.desiredModulesToRestartCSV: ''
+  longHaul.restartIntervalInMins: ''
   analyzer.consumerGroupId: ''
   analyzer.loganalyticenabled: ''
   analyzer.loganalyticworkspaceid: ''
@@ -27,7 +29,7 @@ steps:
       TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['edgelet.artifact.name'] }}"
       CleanTargetFolder: true
   - task: CopyFiles@2
-    displayName: 'Copy Images artifact'
+    displayName: 'Copy Images Artifact'
     inputs:
       SourceFolder: "$(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}"
       TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
@@ -43,6 +45,7 @@ steps:
         chmod +x $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh
         sudo $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh \
           -testDir "$(Agent.HomeDirectory)/.." -releaseLabel "${{ parameters['release.label'] }}" \
+          -releaseLabel "${{ parameters['release.label'] }}" \
           -artifactImageBuildNumber "$BuildNumber" \
           -testName "$testName" \
           -containerRegistry "${{ parameters['container.registry'] }}" \
@@ -56,6 +59,8 @@ steps:
           -snitchAlertUrl "${{ parameters['snitch.alert.url'] }}" \
           -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" \
           -eventHubConsumerGroupId "${{ parameters['analyzer.consumerGroupId'] }}" \
+          -desiredModulesToRestartCSV "${{ parameters['longHaul.desiredModulesToRestartCSV'] }}" \
+          -restartIntervalInMins "${{ parameters['longHaul.restartIntervalInMins'] }}" \
           -analyzerLaEnabled "${{ parameters['analyzer.loganalyticenabled'] }}" \
           -analyzerLaWorkspaceId "${{ parameters['analyzer.loganalyticworkspaceid'] }}" \
           -analyzerLaSharedKey "${{ parameters['analyzer.loganalyticsharedkey'] }}" \
