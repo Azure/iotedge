@@ -20,7 +20,6 @@ parameters:
   loadGen4.transportType: 'Mqtt_Tcp_Only'
   analyzer.consumerGroupId: ''
 
-
 steps:
   - task: CopyFiles@2
     displayName: 'Copy Edgelet Artifact'

@@ -92,7 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             return this.client.Containers.GetContainerLogsAsync(module, containerLogsParameters, cancellationToken);
         }
 
-        public Task<SystemInfo> GetSystemInfo() => Task.FromResult(new SystemInfo(this.operatingSystemType, this.architecture, this.version));
+        public Task<SystemInfo> GetSystemInfo(CancellationToken token) => Task.FromResult(new SystemInfo(this.operatingSystemType, this.architecture, this.version));
 
         internal static ModuleRuntimeInfo InspectResponseToModule(ContainerInspectResponse inspectResponse)
         {
