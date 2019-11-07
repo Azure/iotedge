@@ -20,9 +20,9 @@ parameters:
   loadGen4.transportType: 'Mqtt_WebSocket_Only'
   analyzer.consumerGroupId: ''
   analyzer.logAnalytic.enabled: ''
-  analyzer.logAnalytic.workspaceid: ''
-  analyzer.logAnalytic.sharedkey: ''
-  analyzer.logAnalytic.logtype: ''
+  analyzer.logAnalytic.workspaceId: ''
+  analyzer.logAnalytic.sharedKey: ''
+  analyzer.logAnalytic.logType: ''
 
 steps:
   - task: CopyFiles@2
@@ -71,9 +71,9 @@ steps:
           -snitchTestDurationInSecs "$(($(snitcher.test.duration.in.mins)*60))" \
           -eventHubConsumerGroupId "${{ parameters['analyzer.consumerGroupId'] }}" \
           -analyzerLaEnabled "${{ parameters['analyzer.logAnalytic.enabled'] }}" \
-          -analyzerLaWorkspaceId "${{ parameters['analyzer.logAnalytic.workspaceid'] }}" \
-          -analyzerLaSharedKey "${{ parameters['analyzer.logAnalytic.sharedkey'] }}" \
-          -analyzerLaLogType "${{ parameters['analyzer.logAnalytic.logtype'] }}" \
+          -analyzerLaWorkspaceId "${{ parameters['analyzer.logAnalytic.workspaceId'] }}" \
+          -analyzerLaSharedKey "${{ parameters['analyzer.logAnalytic.sharedKey'] }}" \
+          -analyzerLaLogType "${{ parameters['analyzer.logAnalytic.logType'] }}" \
           -cleanAll
         #Remove all pending jobs
         atrm $(atq | cut -f1)

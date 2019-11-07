@@ -16,9 +16,9 @@ parameters:
   longHaul.restartIntervalInMins: ''
   analyzer.consumerGroupId: ''
   analyzer.logAnalytic.enabled: ''
-  analyzer.logAnalytic.workspaceid: ''
-  analyzer.logAnalytic.sharedkey: ''
-  analyzer.logAnalytic.logtype: ''
+  analyzer.logAnalytic.workspaceId: ''
+  analyzer.logAnalytic.sharedKey: ''
+  analyzer.logAnalytic.logType: ''
 
 steps:
   - task: CopyFiles@2
@@ -60,7 +60,7 @@ steps:
           -DesiredModulesToRestartCSV "${{ parameters['longHaul.desiredModulesToRestartCSV'] }}" `
           -RestartIntervalInMins "${{ parameters['longHaul.restartIntervalInMins'] }}" `
           -AnalyzerLaEnabled "${{ parameters['analyzer.logAnalytic.enabled'] }}" `
-          -AnalyzerLaWorkspaceId "${{ parameters['analyzer.logAnalytic.workspaceid'] }}" `
-          -AnalyzerLaSharedKey "${{ parameters['analyzer.logAnalytic.sharedkey'] }}" `
-          -AnalyzerLaLogType "${{ parameters['analyzer.logAnalytic.logtype'] }}" 
+          -AnalyzerLaWorkspaceId "${{ parameters['analyzer.logAnalytic.workspaceId'] }}" `
+          -AnalyzerLaSharedKey "${{ parameters['analyzer.logAnalytic.sharedKey'] }}" `
+          -AnalyzerLaLogType "${{ parameters['analyzer.logAnalytic.logType'] }}" 
       workingDirectory: "$(Agent.HomeDirectory)/.."

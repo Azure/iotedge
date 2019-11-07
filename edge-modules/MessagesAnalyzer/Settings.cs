@@ -47,17 +47,17 @@ namespace MessagesAnalyzer
                     configuration.GetValue<string>(LogAnalyticLogTypeName));
             });
 
-        Settings(string eventHubCs, string consumerGroupId, string deviceId, IList<string> excludedModuleIds, string webhostPort, double tolerance, string logAnalyticsEnabled, string logAnalyticsWorkspaceIdName, string logAnalyticsSharedKeyName, string logAnalyticsLogTypeName)
+        Settings(string eventHubCs, string consumerGroupId, string deviceId, IList<string> excludedModuleIds, string webhostPort, double tolerance, string logAnalyticEnabledText, string logAnalyticsWorkspaceIdName, string logAnalyticsSharedKeyName, string logAnalyticsLogTypeName)
         {
-            Boolean enaVal;
+            bool logAnalyticEnabled;
             this.EventHubConnectionString = eventHubCs;
             this.ConsumerGroupId = consumerGroupId;
             this.ExcludedModuleIds = excludedModuleIds;
             this.DeviceId = deviceId;
             this.WebhostPort = webhostPort;
             this.ToleranceInMilliseconds = tolerance;
-            Boolean.TryParse(logAnalyticsEnabled, out enaVal);
-            this.LogAnalyticEnabled = enaVal;
+            Boolean.TryParse(logAnalyticEnabledText, out logAnalyticEnabled);
+            this.LogAnalyticEnabled = logAnalyticEnabled;
             this.LogAnalyticWorkspaceId = logAnalyticsWorkspaceIdName;
             this.LogAnalyticSharedKey = logAnalyticsSharedKeyName;
             this.LogAnalyticLogType = logAnalyticsLogTypeName;

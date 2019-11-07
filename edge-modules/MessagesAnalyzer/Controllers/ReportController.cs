@@ -14,11 +14,10 @@ namespace MessagesAnalyzer.Controllers
         public ActionResult<string> Get()
         {
             string resultJson = Reporter.GetReceivedMessagesReport(Settings.Current.ToleranceInMilliseconds).ToString();
-            AzureLogAnalytics logAnalytics = null;
 
             if (Settings.Current.LogAnalyticEnabled)
             {
-                logAnalytics = AzureLogAnalytics.InitInstance(
+                AzureLogAnalytics logAnalytics = AzureLogAnalytics.InitInstance(
                     Settings.Current.LogAnalyticWorkspaceId,
                     Settings.Current.LogAnalyticSharedKey );
 

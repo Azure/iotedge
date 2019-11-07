@@ -14,7 +14,7 @@ variables:
   #container.registry: ''
   #snitch.storage.account: ''
   #analyzer.logAnalytic.enabled  
-  #analyzer.logAnalytic.logtype
+  #analyzer.logAnalytic.logType
   # Variables settable at queue time
   #edgelet.package.branchName
   #images.branchName
@@ -95,9 +95,9 @@ jobs:
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           analyzer.consumerGroupId: 'longhaul_linux_amd64'
           analyzer.logAnalytic.enabled: '$(analyzer.logAnalytic.enabled)'
-          analyzer.logAnalytic.workspaceid: '$(kvLogAnalyticWorkspaceId)'
-          analyzer.logAnalytic.sharedkey: '$(kvLogAnalyticSharedKey)'
-          analyzer.logAnalytic.logtype: '$(analyzer.logAnalytic.logtype)'
+          analyzer.logAnalytic.workspaceId: '$(kvLogAnalyticWorkspaceId)'
+          analyzer.logAnalytic.sharedKey: '$(kvLogAnalyticSharedKey)'
+          analyzer.logAnalytic.logType: '$(analyzer.logAnalytic.logType)'
 
 ################################################################################
   - job: linux_arm32v7_moby
@@ -167,9 +167,9 @@ jobs:
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           analyzer.consumerGroupId: 'longhaul_linux_arm32v7'
           analyzer.logAnalytic.enabled: '$(analyzer.logAnalytic.enabled)'
-          analyzer.logAnalytic.workspaceid: '$(kvLogAnalyticWorkspaceId)'
-          analyzer.logAnalytic.sharedkey: '$(kvLogAnalyticSharedKey)'
-          analyzer.logAnalytic.logtype: '$(analyzer.logAnalytic.logtype)'
+          analyzer.logAnalytic.workspaceId: '$(kvLogAnalyticWorkspaceId)'
+          analyzer.logAnalytic.sharedKey: '$(kvLogAnalyticSharedKey)'
+          analyzer.logAnalytic.logType: '$(analyzer.logAnalytic.logType)'
 
 ################################################################################
   - job: linux_arm64v8_docker
@@ -239,9 +239,9 @@ jobs:
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           analyzer.consumerGroupId: 'longhaul_linux_arm64v8'
           analyzer.logAnalytic.enabled: '$(analyzer.logAnalytic.enabled)'
-          analyzer.logAnalytic.workspaceid: '$(kvLogAnalyticWorkspaceId)'
-          analyzer.logAnalytic.sharedkey: '$(kvLogAnalyticSharedKey)'
-          analyzer.logAnalytic.logtype: '$(analyzer.logAnalytic.logtype)'
+          analyzer.logAnalytic.workspaceId: '$(kvLogAnalyticWorkspaceId)'
+          analyzer.logAnalytic.sharedKey: '$(kvLogAnalyticSharedKey)'
+          analyzer.logAnalytic.logType: '$(analyzer.logAnalytic.logType)'
           
 ################################################################################
   - job: windows_amd64_moby
@@ -313,9 +313,9 @@ jobs:
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           analyzer.consumerGroupId: 'longhaul_windows_amd64'
           analyzer.logAnalytic.enabled: '$(analyzer.logAnalytic.enabled)'
-          analyzer.logAnalytic.workspaceid: '$(kvLogAnalyticWorkspaceId)'
-          analyzer.logAnalytic.sharedkey: '$(kvLogAnalyticSharedKey)'
-          analyzer.logAnalytic.logtype: '$(analyzer.logAnalytic.logtype)'
+          analyzer.logAnalytic.workspaceId: '$(kvLogAnalyticWorkspaceId)'
+          analyzer.logAnalytic.sharedKey: '$(kvLogAnalyticSharedKey)'
+          analyzer.logAnalytic.logType: '$(analyzer.logAnalytic.logType)'
 
 ################################################################################
   - job: windows_servercore_amd64_moby
@@ -387,9 +387,9 @@ jobs:
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           analyzer.consumerGroupId: 'longhaul_windows_servercore_amd64'
           analyzer.logAnalytic.enabled: '$(analyzer.logAnalytic.enabled)'
-          analyzer.logAnalytic.workspaceid: '$(kvLogAnalyticWorkspaceId)'
-          analyzer.logAnalytic.sharedkey: '$(kvLogAnalyticSharedKey)'
-          analyzer.logAnalytic.logtype: '$(analyzer.logAnalytic.logtype)'
+          analyzer.logAnalytic.workspaceId: '$(kvLogAnalyticWorkspaceId)'
+          analyzer.logAnalytic.sharedKey: '$(kvLogAnalyticSharedKey)'
+          analyzer.logAnalytic.logType: '$(analyzer.logAnalytic.logType)'
 
 ################################################################################
   - job: iotuap_amd64_moby
@@ -460,6 +460,6 @@ jobs:
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           analyzer.consumerGroupId: 'longhaul_iotuap_amd64'
           analyzer.logAnalytic.enabled: '$(analyzer.logAnalytic.enabled)'
-          analyzer.logAnalytic.workspaceid: '$(kvLogAnalyticWorkspaceId)'
-          analyzer.logAnalytic.sharedkey: '$(kvLogAnalyticSharedKey)'
-          analyzer.logAnalytic.logtype: '$(analyzer.logAnalytic.logtype)'
+          analyzer.logAnalytic.workspaceId: '$(kvLogAnalyticWorkspaceId)'
+          analyzer.logAnalytic.sharedKey: '$(kvLogAnalyticSharedKey)'
+          analyzer.logAnalytic.logType: '$(analyzer.logAnalytic.logType)'

@@ -23,8 +23,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
         public string WorkspaceId { get; }
         public string SharedKey { get; }
         public string ApiVersion { get; }
-        AzureLogAnalytics(string workspaceId, string sharedKey, string apiVersion = "2016-04-01")
+        AzureLogAnalytics(string workspaceId, string sharedKey)
         {
+            const string apiVersion = "2016-04-01";
+
+            Preconditions.CheckNotNull(workspaceId, "Log Analytic workspace ID cannot be empty.");
+            Preconditions.CheckNotNull(sharedKey, "Log Analytic shared key cannot be empty.");
+
             this.WorkspaceId = workspaceId;
             this.SharedKey = sharedKey;
             this.ApiVersion = apiVersion;
@@ -48,29 +53,37 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
 
         public async void PostAsync(string content, string LogType)
         {
-            string dateString = DateTime.UtcNow.ToString("r");
-            Uri requestUri = new Uri($"https://{this.WorkspaceId}.ods.opinsights.azure.com/api/logs?api-version={this.ApiVersion}");
-            string signature = this.GetSignature("POST", content.Length, "application/json", dateString, "/api/logs");
+            try
+            {
+                string dateString = DateTime.UtcNow.ToString("r");
+                Uri requestUri = new Uri($"https://{this.WorkspaceId}.ods.opinsights.azure.com/api/logs?api-version={this.ApiVersion}");
+                string signature = this.GetSignature("POST", content.Length, "application/json", dateString, "/api/logs");
 
-            var client = new HttpClient();
-            client.DefaultRequestHeaders.Add("Authorization", signature);
-            client.DefaultRequestHeaders.Add("Accept", "application/json");
-            client.DefaultRequestHeaders.Add("Log-Type", LogType);
-            client.DefaultRequestHeaders.Add("x-ms-date", dateString);
+                var client = new HttpClient();
+                client.DefaultRequestHeaders.Add("Authorization", signature);
+                client.DefaultRequestHeaders.Add("Accept", "application/json");
+                client.DefaultRequestHeaders.Add("Log-Type", LogType);
+                client.DefaultRequestHeaders.Add("x-ms-date", dateString);
 
-            var contentMsg = new StringContent(content, Encoding.UTF8);
-            contentMsg.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-            Log.LogDebug(
-                client.DefaultRequestHeaders.ToString() +
-                contentMsg.Headers +
-                contentMsg.ReadAsStringAsync().Result);
+                var contentMsg = new StringContent(content, Encoding.UTF8);
+                contentMsg.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+                Log.LogDebug(
+                    client.DefaultRequestHeaders.ToString() +
+                    contentMsg.Headers +
+                    contentMsg.ReadAsStringAsync().Result);
 
-            var response = await client.PostAsync(requestUri, contentMsg).ConfigureAwait(false);
-            var responseMsg = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            Log.LogDebug(
-                ((int)response.StatusCode).ToString() + " " +
-                response.ReasonPhrase + " " +
-                responseMsg);
+                var response = await client.PostAsync(requestUri, contentMsg).ConfigureAwait(false);
+                var responseMsg = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                Log.LogDebug(
+                    ((int)response.StatusCode).ToString() + " " +
+                    response.ReasonPhrase + " " +
+                    responseMsg);
+            }
+            catch (Exception e)
+            {
+                Log.LogDebug(e.Message);
+                Log.LogError(e.Message);
+            }
         }
 
         private string GetSignature(string method, int contentLength, string contentType, string date, string resource)
