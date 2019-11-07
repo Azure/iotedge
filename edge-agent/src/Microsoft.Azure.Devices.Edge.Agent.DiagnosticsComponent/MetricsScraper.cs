@@ -28,6 +28,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
             this.endpoints = new Lazy<IDictionary<string, string>>(() => endpoints.ToDictionary(e => e, this.GetUriWithIpAddress));
         }
 
+        public async Task<IDictionary<string, string>> ScrapeAsync(CancellationToken cancellationToken)
+        {
+            var metrics = new Dictionary<string, string>();
+            foreach (KeyValuePair<string, string> endpoint in this.endpoints.Value)
+            {
+                Log.LogInformation($"Scraping endpoint {endpoint.Key}");
+                string metricsData = await this.ScrapeEndpoint(endpoint.Value, cancellationToken);
+                metrics.Add(endpoint.Key, metricsData);
+            }
+
+            return metrics;
+        }
+
+        public void Dispose()
+        {
+            this.httpClient.Dispose();
+        }
+
         string GetUriWithIpAddress(string endpoint)
         {
             Log.LogInformation($"Getting uri with Ip for {endpoint}");
@@ -48,25 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
             return endpointWithIp;
         }
 
-        public void Dispose()
-        {
-            this.httpClient.Dispose();
-        }
-
-        public async Task<IDictionary<string, string>> ScrapeAsync(CancellationToken cancellationToken)
-        {
-            var metrics = new Dictionary<string, string>();
-            foreach (KeyValuePair<string, string> endpoint in this.endpoints.Value)
-            {
-                Log.LogInformation($"Scraping endpoint {endpoint.Key}");
-                string metricsData = await this.ScrapeEndpoint(endpoint.Value, cancellationToken);
-                metrics.Add(endpoint.Key, metricsData);
-            }
-
-            return metrics;
-        }
-
-        private async Task<string> ScrapeEndpoint(string endpoint, CancellationToken cancellationToken)
+        async Task<string> ScrapeEndpoint(string endpoint, CancellationToken cancellationToken)
         {
             try
             {
@@ -78,14 +78,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
                 else
                 {
                     Log.LogInformation($"Error connecting to {endpoint}\nResult error code {result.StatusCode}");
-                    throw new InvalidOperationException($"Error connecting to {endpoint}");
                 }
             }
             catch (Exception e)
             {
                 Log.LogInformation($"Error scraping endpoint {endpoint} - {e.Message}");
-                throw;
             }
+
+            return string.Empty;
         }
     }
 }

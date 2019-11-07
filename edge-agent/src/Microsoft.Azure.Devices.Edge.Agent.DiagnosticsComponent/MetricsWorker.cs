@@ -22,6 +22,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
         static readonly ILogger Log = Logger.Factory.CreateLogger<MetricsScraper>();
 
         DateTime lastUploadTime = DateTime.MinValue;
+
+        // This acts as a local buffer. It stores the previous value of every metric.
+        // If the new value for that metric is unchanged, it doesn't write the duplicate value to disk.
         Dictionary<int, Metric> metrics = new Dictionary<int, Metric>();
 
         PeriodicTask scrape;
@@ -55,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
                     foreach (Metric scrapedMetric in scrapedMetrics)
                     {
                         // Get the previous scrape for this metric
-                        if (this.metrics.TryGetValue(scrapedMetric.GetValuelessHash(), out Metric oldMetric))
+                        if (this.metrics.TryGetValue(scrapedMetric.HashNameAndTag(), out Metric oldMetric))
                         {
                             // If the metric is unchanged, do nothing
                             if (oldMetric.Value.Equals(scrapedMetric.Value))
@@ -68,7 +71,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
                         }
 
                         // if new metric or metric changed, save to local buffer
-                        this.metrics[scrapedMetric.GetValuelessHash()] = scrapedMetric;
+                        this.metrics[scrapedMetric.HashNameAndTag()] = scrapedMetric;
                     }
                 }
 
@@ -96,6 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
 
         IEnumerable<Metric> GetMetricsToUpload(DateTime lastUploadTime)
         {
+            // Get all metrics that have been stored since the last upload
             foreach (KeyValuePair<DateTime, Func<string>> data in this.storage.GetData(lastUploadTime))
             {
                 var fileMetrics = Newtonsoft.Json.JsonConvert.DeserializeObject<Metric[]>(data.Value()) ?? Enumerable.Empty<Metric>();
@@ -105,6 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
                 }
             }
 
+            // Get all metrics stored in the local buffer.
             foreach (Metric metric in this.metrics.Values)
             {
                 yield return metric;

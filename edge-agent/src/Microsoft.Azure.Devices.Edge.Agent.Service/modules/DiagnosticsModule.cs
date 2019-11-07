@@ -10,11 +10,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent;
     using Microsoft.Extensions.Logging;
 
-    public class MetricsCollectorModule : Module
+    public class DiagnosticsModule : Module
     {
         string storagePath;
 
-        public MetricsCollectorModule(string storagePath)
+        public DiagnosticsModule(string storagePath)
         {
             this.storagePath = Path.Combine("metrics", storagePath);
         }

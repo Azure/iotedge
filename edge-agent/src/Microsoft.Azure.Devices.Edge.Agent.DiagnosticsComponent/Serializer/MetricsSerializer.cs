@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     {
         public static IEnumerable<byte> MetricsToBytes(IEnumerable<Metric> metrics)
         {
-            return metrics.GroupBy(m => m.GetValuelessHash()).SelectMany(x => MetricGroupsToBytes(
+            return metrics.GroupBy(m => m.HashNameAndTag()).SelectMany(x => MetricGroupsToBytes(
                 x.First().Name,
                 x.First().Tags,
                 x.Select(m => new RawMetricValue

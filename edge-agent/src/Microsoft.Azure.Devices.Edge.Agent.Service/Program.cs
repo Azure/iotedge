@@ -135,7 +135,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 int idleTimeoutSecs = configuration.GetValue(Constants.IdleTimeoutSecs, 300);
                 TimeSpan idleTimeout = TimeSpan.FromSeconds(idleTimeoutSecs);
                 experimentalFeatures = ExperimentalFeatures.Create(configuration.GetSection("experimentalFeatures"), logger);
-                metricsConfig = new MetricsConfig(experimentalFeatures.EnableMetrics, MetricsListenerConfig.Create(configuration));
                 string iothubHostname;
                 string deviceId;
 
@@ -250,10 +249,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         throw new InvalidOperationException($"ConfigSource '{configSourceConfig}' not supported.");
                 }
 
-                builder.RegisterModule(new MetricsCollectorModule(storagePath));
-                builder.RegisterInstance(metricsConfig.Enabled
-                                 ? new MetricsProvider("edgeagent", iothubHostname, deviceId)
-                                 : new NullMetricsProvider() as IMetricsProvider);
+                metricsConfig = new MetricsConfig(experimentalFeatures.EnableMetrics, MetricsListenerConfig.Create(configuration));
+                builder.RegisterModule(new MetricsModule(metricsConfig, iothubHostname, deviceId));
+                builder.RegisterModule(new DiagnosticsModule(storagePath));
 
                 container = builder.Build();
             }
@@ -264,27 +262,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
 
             // Initialize metrics
-            var metricsLifetimes = new List<IDisposable>();
-            if (metricsConfig.Enabled)
-            {
-                var metricsListener = new MetricsListener(metricsConfig.ListenerConfig, container.Resolve<IMetricsProvider>());
-                metricsListener.Start(logger);
-                metricsLifetimes.Add(metricsListener);
-            }
-
-            Dictionary<Type, string> recognizedExceptions = new Dictionary<Type, string>
-            {
-                // TODO: Decide what exceptions to recognize and ignore
-                { typeof(Newtonsoft.Json.JsonSerializationException), "json_serialization" },
-                { typeof(ArgumentException), "argument" },
-                { typeof(Rest.HttpOperationException), "http" },
-            };
-            HashSet<Type> ignoredExceptions = new HashSet<Type>
-            {
-                typeof(TaskCanceledException),
-                typeof(OperationCanceledException),
-            };
-            metricsLifetimes.Add(new ExceptionCounter(recognizedExceptions, ignoredExceptions, container.Resolve<IMetricsProvider>()));
+            container.Resolve<IMetricsListener>().Start(logger);
+            container.Resolve<ExceptionCounter>();
 
             // Initialize metric uploading
             if (experimentalFeatures.EnableMetricsUpload)
@@ -356,7 +335,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                     returnCode = 1;
                 }
 
-                metricsLifetimes.ForEach(m => m.Dispose());
                 // Attempt to report shutdown of Agent
                 await Cleanup(agentOption, logger);
                 await CloseDbStoreProviderAsync(container);
