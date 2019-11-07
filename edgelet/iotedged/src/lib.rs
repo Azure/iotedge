@@ -253,7 +253,7 @@ where
     }
 
     // Allowing cognitive complexity errors for now. TODO: Refactor method later.
-    #[allow(clippy::cognitive_complexity)]
+    #[allow(clippy::cognitive_complexity, clippy::too_many_lines)]
     pub fn run_until<F, G>(self, make_shutdown_signal: G) -> Result<(), Error>
     where
         F: Future<Item = (), Error = ()> + Send + 'static,
@@ -742,6 +742,7 @@ where
     Ok(())
 }
 
+#[allow(clippy::too_many_lines)]
 fn set_iot_edge_env_vars<S>(
     settings: &S,
     provisioning_result: &Option<ProvisioningResult>,
@@ -1390,7 +1391,7 @@ where
     Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
 fn start_api<HC, K, F, C, W, M>(
     settings: &M::Settings,
     hyper_client: HC,

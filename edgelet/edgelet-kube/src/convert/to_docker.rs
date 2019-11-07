@@ -33,7 +33,7 @@ pub fn pod_to_module(pod: &api_core::Pod) -> Option<Result<KubeModule>> {
                     meta.annotations.as_ref().and_then(|annotations| {
                         annotations
                             .get(EDGE_ORIGINAL_MODULEID)
-                            .and_then(|module_id| Some((module, module_id)))
+                            .map(|module_id| (module, module_id))
                     })
                 })
         })

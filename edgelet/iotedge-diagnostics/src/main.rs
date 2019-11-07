@@ -18,6 +18,7 @@ use hyperlocal::{UnixConnector, Uri as UnixUri};
 #[cfg(windows)]
 use hyperlocal_windows::{UnixConnector, Uri as UnixUri};
 
+#[allow(clippy::too_many_lines)]
 fn main() -> Result<(), Error> {
     let app = app_from_crate!()
         .setting(clap::AppSettings::SubcommandRequiredElseHelp)

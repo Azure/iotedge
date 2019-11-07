@@ -452,6 +452,7 @@ where
         Box::new(r)
     }
 
+    #[allow(clippy::too_many_lines)]
     pub fn register(
         &self,
     ) -> Box<dyn Future<Item = (String, String, Option<String>), Error = Error> + Send> {
