@@ -9,13 +9,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     /// <summary>
     /// Stores metrics for later upload.
     /// </summary>
-    public interface IMetricsFileStorage
+    public interface IMetricsStorage
     {
         /// <summary>
         /// Adds the string to its storage. The current date will be recorded with it.
         /// </summary>
         /// <param name="data">data to store.</param>
-        void AddScrapeResult(string data);
+        void WriteData(string data);
 
         /// <summary>
         /// Retrieves all stored data.

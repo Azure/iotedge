@@ -14,15 +14,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public class Scraper : IMetricsScraper, IDisposable
+    public class MetricsScraper : IMetricsScraper, IDisposable
     {
         const string UrlPattern = @"[^/:]+://(?<host>[^/:]+)(:[^:]+)?$";
         static readonly Regex UrlRegex = new Regex(UrlPattern, RegexOptions.Compiled);
         readonly HttpClient httpClient;
         readonly Lazy<IDictionary<string, string>> endpoints;
-        static readonly ILogger Log = Logger.Factory.CreateLogger<Scraper>();
+        static readonly ILogger Log = Logger.Factory.CreateLogger<MetricsScraper>();
 
-        public Scraper(IList<string> endpoints)
+        public MetricsScraper(IList<string> endpoints)
         {
             this.httpClient = new HttpClient();
             this.endpoints = new Lazy<IDictionary<string, string>>(() => endpoints.ToDictionary(e => e, this.GetUriWithIpAddress));

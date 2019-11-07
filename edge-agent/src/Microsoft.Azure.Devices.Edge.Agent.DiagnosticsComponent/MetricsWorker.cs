@@ -15,11 +15,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     public class MetricsWorker : IDisposable
     {
         readonly IMetricsScraper scraper;
-        readonly IMetricsFileStorage storage;
+        readonly IMetricsStorage storage;
         readonly IMetricsUpload uploader;
         readonly ISystemTime systemTime;
         readonly AsyncLock scrapeUploadLock = new AsyncLock();
-        static readonly ILogger Log = Logger.Factory.CreateLogger<Scraper>();
+        static readonly ILogger Log = Logger.Factory.CreateLogger<MetricsScraper>();
 
         DateTime lastUploadTime = DateTime.MinValue;
         Dictionary<int, Metric> metrics = new Dictionary<int, Metric>();
@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
         PeriodicTask scrape;
         PeriodicTask upload;
 
-        public MetricsWorker(IMetricsScraper scraper, IMetricsFileStorage storage, IMetricsUpload uploader, ISystemTime systemTime = null)
+        public MetricsWorker(IMetricsScraper scraper, IMetricsStorage storage, IMetricsUpload uploader, ISystemTime systemTime = null)
         {
             this.scraper = scraper;
             this.storage = storage;
@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
 
                 foreach (var moduleResult in await this.scraper.ScrapeAsync(cancellationToken))
                 {
-                    IEnumerable<Metric> scrapedMetrics = MetricsParser.ParseMetrics(this.systemTime.UtcNow, moduleResult.Value);
+                    IEnumerable<Metric> scrapedMetrics = PrometheousMetricsParser.ParseMetrics(this.systemTime.UtcNow, moduleResult.Value);
 
                     foreach (Metric scrapedMetric in scrapedMetrics)
                     {
@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
                 if (metricsToPersist.Count != 0)
                 {
                     Log.LogInformation("Storing Metrics");
-                    this.storage.AddScrapeResult(Newtonsoft.Json.JsonConvert.SerializeObject(metricsToPersist));
+                    this.storage.WriteData(Newtonsoft.Json.JsonConvert.SerializeObject(metricsToPersist));
                     Log.LogInformation("Stored Metrics");
                 }
             }

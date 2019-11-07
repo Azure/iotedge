@@ -9,14 +9,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     using System.Text.RegularExpressions;
     using Newtonsoft.Json;
 
-    public static class MetricsParser
+    public static class PrometheousMetricsParser
     {
+        // Extracts data from prometheous format. Read about prometheous format here:
+        // https://prometheus.io/docs/concepts/data_model/
         const string PrometheusMetricSchema = @"^(?<metricname>[^#\{\}]+)(\{((?<tagname>[^="",]+)=(\""(?<tagvalue>[^="",]+)\"")(,(?<tagname>[^="",]+)=(\""(?<tagvalue>[^="",]+)\""))*)\})?\s(?<metricvalue>.+)$";
         static readonly Regex PrometheusSchemaRegex = new Regex(PrometheusMetricSchema, RegexOptions.Compiled);
 
-        public static IList<Metric> ParseMetrics(DateTime timeGeneratedUtc, string prometheusMessage)
+        public static IEnumerable<Metric> ParseMetrics(DateTime timeGeneratedUtc, string prometheusMessage)
         {
-            var metricsDataList = new List<Metric>();
             using (StringReader sr = new StringReader(prometheusMessage))
             {
                 string line;
@@ -70,19 +71,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
 
                         if (double.TryParse(metricValue, out double value))
                         {
-                            var metricsData = new Metric(
+                            yield return new Metric(
                                 timeGeneratedUtc,
                                 metricName,
                                 value,
                                 JsonConvert.SerializeObject(tags));
-
-                            metricsDataList.Add(metricsData);
                         }
                     }
                 }
             }
-
-            return metricsDataList;
         }
     }
 }

@@ -22,13 +22,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
         protected override void Load(ContainerBuilder builder)
         {
             // IScraper
-            builder.Register(c => new Scraper(new string[] { "http://edgeHub:9600/metrics", "http://edgeAgent:9600/metrics" }))
+            builder.Register(c => new MetricsScraper(new string[] { "http://edgeHub:9600/metrics", "http://edgeAgent:9600/metrics" }))
                 .As<IMetricsScraper>()
                 .SingleInstance();
 
             // IFileStorage
             builder.Register(c => new MetricsFileStorage(this.storagePath))
-                .As<IMetricsFileStorage>()
+                .As<IMetricsStorage>()
                 .SingleInstance();
 
             // IMetricsUpload

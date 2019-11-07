@@ -28,9 +28,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
             var scraper = new Mock<IMetricsScraper>();
             scraper.Setup(s => s.ScrapeAsync(CancellationToken.None)).ReturnsAsync(() => new Dictionary<string, string> { { "edgeAgent", this.PrometheousMetrics(modules) } });
 
-            var storage = new Mock<IMetricsFileStorage>();
+            var storage = new Mock<IMetricsStorage>();
             string storedValue = string.Empty;
-            storage.Setup(s => s.AddScrapeResult(It.IsAny<string>())).Callback((Action<string>)(data => storedValue = data));
+            storage.Setup(s => s.WriteData(It.IsAny<string>())).Callback((Action<string>)(data => storedValue = data));
 
             var uploader = new Mock<IMetricsUpload>();
 
@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
             /* Setup mocks */
             var scraper = new Mock<IMetricsScraper>();
 
-            var storage = new Mock<IMetricsFileStorage>();
+            var storage = new Mock<IMetricsStorage>();
             storage.Setup(s => s.GetData(It.IsAny<DateTime>())).Returns(new Dictionary<DateTime, Func<string>>
             {
                 { DateTime.UtcNow, () => string.Empty }
@@ -112,7 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
             /* Setup mocks */
             var scraper = new Mock<IMetricsScraper>();
 
-            var storage = new Mock<IMetricsFileStorage>();
+            var storage = new Mock<IMetricsStorage>();
             storage.Setup(s => s.GetData(It.IsAny<DateTime>())).Returns(new Dictionary<DateTime, Func<string>>
             {
                 { DateTime.UtcNow, () => Newtonsoft.Json.JsonConvert.SerializeObject(metrics) }
@@ -152,7 +152,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
             /* Setup mocks */
             var scraper = new Mock<IMetricsScraper>();
 
-            var storage = new Mock<IMetricsFileStorage>();
+            var storage = new Mock<IMetricsStorage>();
             storage.Setup(s => s.GetData(It.IsAny<DateTime>())).Returns(data);
 
             var uploader = new Mock<IMetricsUpload>();
@@ -271,7 +271,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
                 return new Dictionary<string, string> { { "edgeAgent", string.Empty } };
             });
 
-            var storage = new Mock<IMetricsFileStorage>();
+            var storage = new Mock<IMetricsStorage>();
 
             var uploader = new Mock<IMetricsUpload>();
             uploader.Setup(u => u.UploadAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Returns(async () => await uploadTaskSource.Task);

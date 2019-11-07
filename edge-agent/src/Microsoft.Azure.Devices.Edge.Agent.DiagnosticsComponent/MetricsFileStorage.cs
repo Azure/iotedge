@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     using System.Threading;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class MetricsFileStorage : IMetricsFileStorage
+    public class MetricsFileStorage : IMetricsStorage
     {
         readonly ISystemTime systemTime;
 
@@ -19,11 +19,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
 
         public MetricsFileStorage(string directory, ISystemTime systemTime = null)
         {
-            this.directory = directory;
+            this.directory = Preconditions.CheckNotNull(directory, nameof(directory));
             this.systemTime = systemTime ?? SystemTime.Instance;
         }
 
-        public void AddScrapeResult(string data)
+        public void WriteData(string data)
         {
             Directory.CreateDirectory(this.directory);
             string file = Path.Combine(this.directory, this.systemTime.UtcNow.Ticks.ToString());
@@ -53,16 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
                 .Where(inTimeRange)
                 .ToDictionary(
                     ticks => new DateTime(ticks),
-                    ticks => (Func<string>)(() =>
-                    {
-                        string file = Path.Combine(this.directory, ticks.ToString());
-                        if (File.Exists(file))
-                        {
-                            return File.ReadAllText(file);
-                        }
-
-                        return string.Empty;
-                    }));
+                    this.GetFileFunc);
         }
 
         public void RemoveOldEntries(DateTime keepAfter)
@@ -73,6 +64,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
             .Select(timestamp => Path.Combine(this.directory, timestamp.Ticks.ToString()))
             .ToList()
             .ForEach(File.Delete);
+        }
+
+        private Func<string> GetFileFunc(long ticks)
+        {
+            string file = Path.Combine(this.directory, ticks.ToString());
+            if (File.Exists(file))
+            {
+                return () => File.ReadAllText(file);
+            }
+
+            return () => string.Empty;
         }
     }
 }

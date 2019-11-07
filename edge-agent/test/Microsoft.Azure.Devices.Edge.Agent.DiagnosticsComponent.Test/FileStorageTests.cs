@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
             string directory = this.tempDirectory.GetTempDir();
             MetricsFileStorage storage = new MetricsFileStorage(directory, this.systemTime);
 
-            storage.AddScrapeResult(string.Join(", ", Enumerable.Range(0, 10)));
+            storage.WriteData(string.Join(", ", Enumerable.Range(0, 10)));
 
             Assert.NotEmpty(Directory.GetFiles(directory));
         }
@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
             MetricsFileStorage storage = new MetricsFileStorage(this.tempDirectory.GetTempDir(), this.systemTime);
 
             string testData = string.Join(", ", Enumerable.Range(0, 10));
-            storage.AddScrapeResult(testData);
+            storage.WriteData(testData);
 
             IDictionary<DateTime, Func<string>> actual = storage.GetData();
             Assert.Single(actual);
@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
         {
             MetricsFileStorage storage = new MetricsFileStorage(this.tempDirectory.GetTempDir(), this.systemTime);
 
-            storage.AddScrapeResult("data1");
+            storage.WriteData("data1");
 
             IDictionary<DateTime, Func<string>> actual = storage.GetData();
             Assert.Single(actual);
@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
 
             DateTime break1 = this.fakeTime.AddMinutes(5);
             this.fakeTime = this.fakeTime.AddMinutes(10);
-            storage.AddScrapeResult("data2");
+            storage.WriteData("data2");
 
             actual = storage.GetData();
             Assert.Equal(2, actual.Count);
@@ -72,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
 
             DateTime break2 = this.fakeTime.AddMinutes(5);
             this.fakeTime = this.fakeTime.AddMinutes(10);
-            storage.AddScrapeResult("data3");
+            storage.WriteData("data3");
 
             actual = storage.GetData();
             Assert.Equal(3, actual.Count);
@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
         {
             MetricsFileStorage storage = new MetricsFileStorage(this.tempDirectory.GetTempDir(), this.systemTime);
 
-            storage.AddScrapeResult("data1");
+            storage.WriteData("data1");
 
             IDictionary<DateTime, Func<string>> actual = storage.GetData();
             Assert.Single(actual);
@@ -94,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
 
             DateTime break1 = this.fakeTime.AddMinutes(5);
             this.fakeTime = this.fakeTime.AddMinutes(10);
-            storage.AddScrapeResult("data2");
+            storage.WriteData("data2");
 
             actual = storage.GetData();
             Assert.Equal(2, actual.Count);
@@ -104,11 +104,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
 
             DateTime break2 = this.fakeTime.AddMinutes(5);
             this.fakeTime = this.fakeTime.AddMinutes(10);
-            storage.AddScrapeResult("data3");
+            storage.WriteData("data3");
             this.fakeTime = this.fakeTime.AddMinutes(10);
-            storage.AddScrapeResult("data4");
+            storage.WriteData("data4");
             this.fakeTime = this.fakeTime.AddMinutes(10);
-            storage.AddScrapeResult("data5");
+            storage.WriteData("data5");
             this.fakeTime = this.fakeTime.AddMinutes(10);
 
             actual = storage.GetData();
