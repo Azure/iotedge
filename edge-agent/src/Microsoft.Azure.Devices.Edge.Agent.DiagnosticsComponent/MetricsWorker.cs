@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
 
     public class MetricsWorker : IDisposable
@@ -46,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
 
         async Task Scrape(CancellationToken cancellationToken)
         {
-            using (await this.scrapeUploadLock.GetLock(cancellationToken))
+            using (await this.scrapeUploadLock.LockAsync(cancellationToken))
             {
                 Log.LogInformation("Scraping Metrics");
                 List<Metric> metricsToPersist = new List<Metric>();
@@ -88,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
 
         async Task Upload(CancellationToken cancellationToken)
         {
-            using (await this.scrapeUploadLock.GetLock(cancellationToken))
+            using (await this.scrapeUploadLock.LockAsync(cancellationToken))
             {
                 Log.LogInformation("Uploading Metrics");
                 await this.uploader.UploadAsync(this.GetMetricsToUpload(this.lastUploadTime), cancellationToken);
@@ -123,34 +124,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
         {
             this.scrape?.Dispose();
             this.upload?.Dispose();
-        }
-    }
-
-    /// <summary>
-    /// Used to ensure upload and scrape don't run simultaneously.
-    /// </summary>
-    class AsyncLock
-    {
-        public class OwnedLock : IDisposable
-        {
-            SemaphoreSlim semaphore;
-            internal OwnedLock(SemaphoreSlim semaphore)
-            {
-                this.semaphore = semaphore;
-            }
-
-            public void Dispose()
-            {
-                this.semaphore.Release();
-            }
-        }
-
-        SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
-
-        public async Task<OwnedLock> GetLock(CancellationToken cancellationToken)
-        {
-            await this.semaphore.WaitAsync(cancellationToken);
-            return new OwnedLock(this.semaphore);
         }
     }
 }
