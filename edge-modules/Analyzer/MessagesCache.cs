@@ -35,6 +35,7 @@ namespace Analyzer
         public void AddStatus(ResponseStatus responseStatus, ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> cache)
         {
             ConcurrentDictionary<string, Tuple<int, DateTime>> batch = cache.GetOrAdd(responseStatus.ModuleId, key => new ConcurrentDictionary<string, Tuple<int, DateTime>>());
+
             // TODO: thread safe
             batch.AddOrUpdate(
                 responseStatus.StatusCode,

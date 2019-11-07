@@ -22,8 +22,8 @@ namespace Analyzer
         {
             Logger.LogInformation($"Starting analyzer for [deviceId: {Settings.Current.DeviceId}] with [consumerGroupId: {Settings.Current.ConsumerGroupId}], exclude-modules: {string.Join(", ", Settings.Current.ExcludedModuleIds.ToArray())}");
 
-            DateTime lastReceivedMessage = await LoadFromStorage();
-            await ReceiveMessages(lastReceivedMessage);
+            DateTime lastReceivedMessageTime = await LoadStartupTimeFromStorage();
+            await ReceiveMessages(lastReceivedMessageTime);
 
             var cts = new CancellationTokenSource();
             AssemblyLoadContext.Default.Unloading += (ctx) => cts.Cancel();
@@ -34,7 +34,7 @@ namespace Analyzer
             await CreateWebHostBuilder(args).Build().RunAsync(cts.Token);
         }
 
-        static async Task<DateTime> LoadFromStorage()
+        static async Task<DateTime> LoadStartupTimeFromStorage()
         {
             DateTime lastReceivedAt = DateTime.MinValue;
             await MessagesCacheWithStorage.Instance.Init(Settings.Current.StoragePath, Settings.Current.OptimizeForPerformance);
