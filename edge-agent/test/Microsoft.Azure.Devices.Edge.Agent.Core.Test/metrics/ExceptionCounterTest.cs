@@ -32,8 +32,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                 { typeof(TestException1), "test1" },
                 { typeof(TestException2), "test2" },
             };
-            using (new ExceptionCounter(recognizedExceptions, new HashSet<Type>(), provider))
+            using (var counter = new ExceptionCounter(recognizedExceptions, new HashSet<Type>(), provider))
             {
+                counter.Start();
                 /* test */
                 Assert.Equal(expected, result);
 
@@ -78,8 +79,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                 typeof(TaskCanceledException),
                 typeof(OperationCanceledException),
             };
-            using (new ExceptionCounter(recognizedExceptions, ignoredExceptions, provider))
+            using (var counter = new ExceptionCounter(recognizedExceptions, ignoredExceptions, provider))
             {
+                counter.Start();
+
                 /* test */
                 Assert.Equal(expected, result);
 
@@ -107,8 +110,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                 { typeof(TestException1), "test1" },
                 { typeof(TestException2), "test2" },
             };
-            using (new ExceptionCounter(recognizedExceptions, new HashSet<Type>(), provider))
+            using (var counter = new ExceptionCounter(recognizedExceptions, new HashSet<Type>(), provider))
             {
+                counter.Start();
+
                 /* test */
                 await Task.Run(() => { this.ThrowAndCatch(new TestException2()); });
                 Assert.Equal(1, result["test2"]);
@@ -133,8 +138,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             /* setup */
             (Dictionary<string, long> result, IMetricsProvider provider) = this.MockCounter();
             Dictionary<string, long> expected = new Dictionary<string, long>();
-            using (new ExceptionCounter(new Dictionary<Type, string>(), new HashSet<Type>(), provider))
+            using (var counter = new ExceptionCounter(new Dictionary<Type, string>(), new HashSet<Type>(), provider))
             {
+                counter.Start();
+
                 this.ThrowAndCatch(new Exception());
                 expected["other"] = 1;
                 Assert.Equal(expected, result);
