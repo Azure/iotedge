@@ -25,7 +25,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                 "exceptions_total",
                 "The number of exceptions thrown of the given type",
                 new List<string> { "exception_name" }));
+        }
 
+        public void Start()
+        {
             AppDomain.CurrentDomain.FirstChanceException += this.OnException;
         }
 

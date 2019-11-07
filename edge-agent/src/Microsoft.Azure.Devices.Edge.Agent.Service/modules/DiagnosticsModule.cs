@@ -12,11 +12,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
     public class DiagnosticsModule : Module
     {
-        string storagePath;
+        DiagnosticConfig diagnosticConfig;
 
-        public DiagnosticsModule(string storagePath)
+        public DiagnosticsModule(DiagnosticConfig diagnosticConfig)
         {
-            this.storagePath = Path.Combine("metrics", storagePath);
+            this.diagnosticConfig = diagnosticConfig;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 .SingleInstance();
 
             // IFileStorage
-            builder.Register(c => new MetricsFileStorage(this.storagePath))
+            builder.Register(c => new MetricsFileStorage(this.diagnosticConfig.MetricsStoragePath))
                 .As<IMetricsStorage>()
                 .SingleInstance();
 

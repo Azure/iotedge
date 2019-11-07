@@ -26,15 +26,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
         protected override void Load(ContainerBuilder builder)
         {
-            builder.Register(c => this.metricsConfig.Enabled
-                                 ? new MetricsProvider("edgeagent", this.iothubHostname, this.deviceId)
-                                 : new NullMetricsProvider() as IMetricsProvider)
+            builder.Register(c => new MetricsProvider("edgeagent", this.iothubHostname, this.deviceId))
                 .As<IMetricsProvider>()
                 .SingleInstance();
 
-            builder.Register(c => this.metricsConfig.Enabled
-                                 ? new Util.Metrics.Prometheus.Net.MetricsListener(this.metricsConfig.ListenerConfig, c.Resolve<IMetricsProvider>())
-                                 : new NullMetricsListener() as IMetricsListener)
+            builder.Register(c => new Util.Metrics.Prometheus.Net.MetricsListener(this.metricsConfig.ListenerConfig, c.Resolve<IMetricsProvider>()))
                 .As<IMetricsListener>()
                 .SingleInstance();
 
@@ -52,6 +48,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             };
             builder.Register(c => new ExceptionCounter(recognizedExceptions, ignoredExceptions, c.Resolve<IMetricsProvider>()))
                 .SingleInstance();
+
+            base.Load(builder);
         }
     }
 }

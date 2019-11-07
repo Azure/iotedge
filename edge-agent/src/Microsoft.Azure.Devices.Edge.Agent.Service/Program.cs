@@ -91,6 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             int configRefreshFrequencySecs;
             ExperimentalFeatures experimentalFeatures;
             MetricsConfig metricsConfig;
+            DiagnosticConfig diagnosticConfig;
 
             try
             {
@@ -251,7 +252,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
                 metricsConfig = new MetricsConfig(experimentalFeatures.EnableMetrics, MetricsListenerConfig.Create(configuration));
                 builder.RegisterModule(new MetricsModule(metricsConfig, iothubHostname, deviceId));
-                builder.RegisterModule(new DiagnosticsModule(storagePath));
+
+                diagnosticConfig = new DiagnosticConfig(experimentalFeatures.EnableMetricsUpload, storagePath, configuration);
+                builder.RegisterModule(new DiagnosticsModule(diagnosticConfig));
 
                 container = builder.Build();
             }
@@ -262,17 +265,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
 
             // Initialize metrics
-            container.Resolve<IMetricsListener>().Start(logger);
-            container.Resolve<ExceptionCounter>();
+            if (metricsConfig.Enabled)
+            {
+                container.Resolve<IMetricsListener>().Start(logger);
+                container.Resolve<ExceptionCounter>().Start();
+            }
 
             // Initialize metric uploading
-            if (experimentalFeatures.EnableMetricsUpload)
+            if (diagnosticConfig.Enabled)
             {
                 MetricsWorker worker = container.Resolve<MetricsWorker>();
-                TimeSpan scrapeInterval = configuration.GetValue<TimeSpan>("metric_scrape_interval");
-                TimeSpan uploadInterval = configuration.GetValue<TimeSpan>("metric_upload_interval");
-                Console.WriteLine($"Scraping frequency: {scrapeInterval}\nUpload Frequency: {uploadInterval}");
-                worker.Start(scrapeInterval, uploadInterval);
+                worker.Start(diagnosticConfig.ScrapeInterval, diagnosticConfig.UploadInterval);
+                Console.WriteLine($"Scraping frequency: {diagnosticConfig.ScrapeInterval}\nUpload Frequency: {diagnosticConfig.UploadInterval}");
             }
 
             // TODO move this code to Agent
