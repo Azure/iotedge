@@ -10,17 +10,17 @@ namespace MessagesAnalyzer
     using Microsoft.AspNetCore;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.Azure.Devices.Common;
-    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.EventHubs;
     using Microsoft.Extensions.Logging;
 
     class Program
     {
-        static readonly ILogger Log = Logger.Factory.CreateLogger<Program>();
+        static readonly ILogger Logger = ModuleUtil.CreateLogger("Analyzer");
 
         static async Task Main(string[] args)
         {
-            Log.LogInformation($"Starting analyzer for [deviceId: {Settings.Current.DeviceId}] with [consumerGroupId: {Settings.Current.ConsumerGroupId}], exclude-modules: {string.Join(", ", Settings.Current.ExcludedModuleIds.ToArray())}");
+            Logger.LogInformation($"Starting analyzer for [deviceId: {Settings.Current.DeviceId}] with [consumerGroupId: {Settings.Current.ConsumerGroupId}], exclude-modules: {string.Join(", ", Settings.Current.ExcludedModuleIds.ToArray())}");
 
             DateTime lastReceivedMessage = await LoadFromStorage();
             await ReceiveMessages(lastReceivedMessage);
@@ -61,7 +61,7 @@ namespace MessagesAnalyzer
         static async Task ReceiveMessages(DateTime lastReceivedMesssage)
         {
             var builder = new EventHubsConnectionStringBuilder(Settings.Current.EventHubConnectionString);
-            Log.LogInformation($"Receiving events from device '{Settings.Current.DeviceId}' on Event Hub '{builder.EntityPath}'");
+            Logger.LogInformation($"Receiving events from device '{Settings.Current.DeviceId}' on Event Hub '{builder.EntityPath}'");
 
             EventHubClient eventHubClient =
                 EventHubClient.CreateFromConnectionString(builder.ToString());

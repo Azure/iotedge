@@ -52,7 +52,7 @@ namespace MessagesAnalyzer
             this.AddMessageDetails(batchMessages, messageDetails);
         }
 
-        public IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> GetDmSnapshot()
+        public IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> GetDirectMethodsSnapshot()
         {
             return this.GetSnapshotHelper(this.dm);
         }

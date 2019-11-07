@@ -4,7 +4,7 @@ namespace MessagesAnalyzer
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.EventHubs;
     using Microsoft.Extensions.Logging;
 
@@ -15,7 +15,7 @@ namespace MessagesAnalyzer
         const string SequenceNumberPropertyName = "sequenceNumber";
         const string EnqueuedTimePropertyName = "iothub-enqueuedtime";
         const string BatchIdPropertyName = "batchId";
-        static readonly ILogger Log = Logger.Factory.CreateLogger<PartitionReceiveHandler>();
+        static readonly ILogger Logger = ModuleUtil.CreateLogger("Analyzer");
         readonly string deviceId;
         readonly IList<string> excludedModulesIds;
 
@@ -51,12 +51,12 @@ namespace MessagesAnalyzer
                             }
                             else
                             {
-                                Log.LogError($"Message for module [{modId}] and device [{this.deviceId}] contains invalid sequence number [{sequence}].");
+                                Logger.LogError($"Message for module [{modId}] and device [{this.deviceId}] contains invalid sequence number [{sequence}].");
                             }
                         }
                         else
                         {
-                            Log.LogDebug($"Message for module [{modId}] and device [{this.deviceId}] doesn't contain batch id and sequence number.");
+                            Logger.LogDebug($"Message for module [{modId}] and device [{this.deviceId}] doesn't contain batch id and sequence number.");
                         }
                     }
                 }
@@ -75,12 +75,12 @@ namespace MessagesAnalyzer
                 }
                 else
                 {
-                    Log.LogError($"Message for module [{moduleId}] and device [{deviceId}] enqueued time [{enqueued}] cannot be parsed.");
+                    Logger.LogError($"Message for module [{moduleId}] and device [{deviceId}] enqueued time [{enqueued}] cannot be parsed.");
                 }
             }
             else
             {
-                Log.LogError($"Message for module [{moduleId}] and device [{deviceId}] doesn't contain {EnqueuedTimePropertyName} property.");
+                Logger.LogError($"Message for module [{moduleId}] and device [{deviceId}] doesn't contain {EnqueuedTimePropertyName} property.");
             }
 
             return enqueuedtime;
@@ -88,7 +88,7 @@ namespace MessagesAnalyzer
 
         public Task ProcessErrorAsync(Exception error)
         {
-            Log.LogError(error.ToString());
+            Logger.LogError(error.ToString());
             return Task.CompletedTask;
         }
     }

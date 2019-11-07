@@ -71,7 +71,7 @@ definitions:
           type: "array"
           items:
             $ref: "#/definitions/MessagesReport"
-      dmReport:
+      directMethodsReport:
           type: "array"
           items:
             $ref: "#/definitions/ResponseOrientedReport"
@@ -96,8 +96,8 @@ definitions:
       missedMessages:
         type: "array"
         items:
-          $ref: "#/definitions/MissingMessage"
-  MissingMessage:
+          $ref: "#/definitions/MissingMessagesReport"
+  MissingMessagesReport:
     type: "object"
     properties:
       MissedMessagesCount:

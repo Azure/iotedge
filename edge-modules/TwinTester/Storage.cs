@@ -4,20 +4,19 @@ namespace TwinTester
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Storage.RocksDb;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using Newtonsoft.Json;
 
     public class Storage
     {
         const string DesiredPropertyUpdatePartitionKey = "DesiredPropertyUpdateCache";
         const string DesiredPropertyReceivedPartitionKey = "DesiredPropertyReceivedCache";
         const string ReportedPropertyUpdatePartitionKey = "ReportedPropertyUpdateCache";
-        static readonly ILogger Log = Logger.Factory.CreateLogger<Storage>();
+        static readonly ILogger Logger = ModuleUtil.CreateLogger("TwinTester");
         IEntityStore<string, DateTime> desiredPropertyUpdateCache;
         IEntityStore<string, DateTime> desiredPropertyReceivedCache;
         IEntityStore<string, DateTime> reportedPropertyUpdateCache;
@@ -37,7 +36,7 @@ namespace TwinTester
             }
             catch (Exception ex) when (!ExceptionEx.IsFatal(ex))
             {
-                Log.LogError(ex, "Error creating RocksDB store. Falling back to in-memory store.");
+                Logger.LogError(ex, "Error creating RocksDB store. Falling back to in-memory store.");
                 storeProvider = new StoreProvider(new InMemoryDbStoreProvider());
             }
 

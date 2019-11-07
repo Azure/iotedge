@@ -4,38 +4,40 @@ namespace MessagesAnalyzer
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Extensions.Logging;
 
     class Reporter
     {
-        static readonly ILogger Log = Logger.Factory.CreateLogger<Reporter>();
+        static readonly ILogger Logger = ModuleUtil.CreateLogger("Analyzer");
 
         public static DeviceAnalysis GetDeviceReport(double toleranceInMilliseconds)
         {
-            return new DeviceAnalysis(GetReceivedMessagesReport(toleranceInMilliseconds), GetDmReport(), GetTwinsReport());
+            return new DeviceAnalysis(GetReceivedMessagesReport(toleranceInMilliseconds), GetDirectMethodsReport(), GetTwinsReport());
         }
 
-        static IList<ResponseOrientedReport> GetDmReport()
+        static IList<ResponseOrientedReport> GetDirectMethodsReport()
         {
-            IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> dms = MessagesCache.Instance.GetDmSnapshot();
-            return GetReportHelper(dms, "direct method");
+            IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> dms = MessagesCache.Instance.GetDirectMethodsSnapshot();
+            string description = "Report for direct methods";
+            return GetReportHelper(dms, description);
         }
 
         static IList<ResponseOrientedReport> GetTwinsReport()
         {
             IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> twins = MessagesCache.Instance.GetTwinsSnapshot();
-            return GetReportHelper(twins, "update/get twin");
+            string description = "Report for twins";
+            return GetReportHelper(twins, description);
         }
 
-        static IList<ResponseOrientedReport> GetReportHelper(IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> cache, string reportIdentifier)
+        static IList<ResponseOrientedReport> GetReportHelper(IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> cache, string reportDescription)
         {
             IList<ResponseOrientedReport> report = new List<ResponseOrientedReport>();
 
             foreach (KeyValuePair<string, IDictionary<string, Tuple<int, DateTime>>> obj in cache)
             {
                 // TODO: specify report type in logs through enum of response oriented report types
-                Log.LogInformation($"Report for {reportIdentifier} {obj.Key}");
+                Logger.LogInformation($"{reportDescription} {obj.Key}");
                 report.Add(new ResponseOrientedReport(obj.Key, obj.Value));
             }
 
@@ -58,7 +60,7 @@ namespace MessagesAnalyzer
 
         static ModuleMessagesReport GetReceivedMessagesReport(string moduleId, double toleranceInMilliseconds, IList<SortedSet<MessageDetails>> batchesSnapshot, DateTime endDateTime)
         {
-            Log.LogInformation($"Messages report for {moduleId}");
+            Logger.LogInformation($"Messages report for {moduleId}");
 
             long missingCounter = 0;
             long totalMessagesCounter = 0;
@@ -81,13 +83,13 @@ namespace MessagesAnalyzer
                     // ignore messages enqued after endTime
                     if (DateTime.Compare(endDateTime, msg.EnqueuedDateTime) < 0)
                     {
-                        Log.LogDebug($"Ignore message for {moduleId} enqued at {msg.EnqueuedDateTime} because is after {endDateTime}");
+                        Logger.LogDebug($"Ignore message for {moduleId} enqued at {msg.EnqueuedDateTime} because is after {endDateTime}");
                         break;
                     }
 
                     if (msg.SequenceNumber - 1 != prevSequenceNumber)
                     {
-                        Log.LogInformation($"Missing messages for {moduleId} from {prevSequenceNumber} to {msg.SequenceNumber} exclusive.");
+                        Logger.LogInformation($"Missing messages for {moduleId} from {prevSequenceNumber} to {msg.SequenceNumber} exclusive.");
                         long currentMissing = msg.SequenceNumber - prevSequenceNumber - 1;
                         missingCounter += currentMissing;
                         missedMessages.Add(new MissedMessagesDetails(currentMissing, prevEnquedDateTime, msg.EnqueuedDateTime));
@@ -103,7 +105,7 @@ namespace MessagesAnalyzer
             // check if last message is older
             if (DateTime.Compare(lastMessageDateTime.AddMilliseconds(toleranceInMilliseconds), endDateTime) < 0)
             {
-                Log.LogInformation($"Module {moduleId}: last message datetime={lastMessageDateTime} and end datetime={endDateTime}");
+                Logger.LogInformation($"Module {moduleId}: last message datetime={lastMessageDateTime} and end datetime={endDateTime}");
                 return new ModuleMessagesReport(moduleId, StatusCode.OldMessages, totalMessagesCounter, $"Missing messages: {missingCounter}. No messages received for the past {toleranceInMilliseconds} milliseconds.", lastMessageDateTime, missedMessages);
             }
 
