@@ -75,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         MemoryUsageStatus GetMemoryUsageStatus()
         {
             long memoryUsageBytes = this.GetTotalMemoryUsage();
-            double usagePercentage = (double)memoryUsageBytes * 100 / this.maxSize;
+            double usagePercentage = (this.maxSize <= 1) ? 100 : (double)memoryUsageBytes * 100 / this.maxSize;
             Events.MemoryUsageStats(memoryUsageBytes, usagePercentage, this.maxSize);
 
             MemoryUsageStatus memoryUsageStatus = GetMemoryUsageStatus(usagePercentage);

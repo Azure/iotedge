@@ -8,17 +8,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
 
     public class StoreAndForwardConfiguration : IEquatable<StoreAndForwardConfiguration>
     {
-        [JsonConstructor]
         public StoreAndForwardConfiguration(int timeToLiveSecs)
-            : this(timeToLiveSecs, Option.None<StoreLimits>())
+            : this(timeToLiveSecs, null)
         {
         }
 
-        public StoreAndForwardConfiguration(int timeToLiveSecs, Option<StoreLimits> storeLimits)
+        [JsonConstructor]
+        public StoreAndForwardConfiguration(int timeToLiveSecs, StoreLimits storeLimits)
         {
             this.TimeToLiveSecs = timeToLiveSecs;
             this.TimeToLive = timeToLiveSecs < 0 ? TimeSpan.MaxValue : TimeSpan.FromSeconds(timeToLiveSecs);
-            this.StoreLimits = storeLimits;
+            this.StoreLimits = Option.Maybe(storeLimits);
         }
 
         [JsonProperty(PropertyName = "timeToLiveSecs")]
