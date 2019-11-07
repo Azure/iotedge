@@ -105,7 +105,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             var backupFolder = Option.None<string>();
 
             string storageFolder = string.Empty;
-            var storeLimits = Option.None<StoreLimits>();
+            StoreLimits storeLimits = null;
 
             if (!int.TryParse(this.configuration["TimeToLiveSecs"], out int timeToLiveSecs))
             {
@@ -114,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
             if (long.TryParse(this.configuration["MaxStorageBytes"], out long maxStorageBytes))
             {
-                storeLimits = Option.Some(new StoreLimits(maxStorageBytes));
+                storeLimits = new StoreLimits(maxStorageBytes);
             }
 
             var storeAndForwardConfiguration = new StoreAndForwardConfiguration(timeToLiveSecs, storeLimits);

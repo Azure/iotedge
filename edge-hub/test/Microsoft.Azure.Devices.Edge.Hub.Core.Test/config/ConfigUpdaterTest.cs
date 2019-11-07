@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
 
             var routes3 = Routes.Take(2)
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
-            var storeAndForwardConfiguration3 = new StoreAndForwardConfiguration(7200, Option.None<StoreLimits>());
+            var storeAndForwardConfiguration3 = new StoreAndForwardConfiguration(7200);
             var edgeHubConfig3 = new EdgeHubConfig("1.0", routes3, storeAndForwardConfiguration3);
 
             var routes4 = Routes.Skip(2)
@@ -78,17 +78,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config.Test
 
             var routes6 = Routes
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
-            var storeAndForwardConfiguration6 = new StoreAndForwardConfiguration(3600, Option.None<StoreLimits>());
+            var storeAndForwardConfiguration6 = new StoreAndForwardConfiguration(3600);
             var edgeHubConfig6 = new EdgeHubConfig("1.0", routes6, storeAndForwardConfiguration6);
 
             var routes7 = Routes
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
-            var storeAndForwardConfiguration7 = new StoreAndForwardConfiguration(3600, Option.Some(new StoreLimits(10L)));
+            var storeAndForwardConfiguration7 = new StoreAndForwardConfiguration(3600, new StoreLimits(10L));
             var edgeHubConfig7 = new EdgeHubConfig("1.0", routes7, storeAndForwardConfiguration7);
 
             var routes8 = Routes
                 .ToDictionary(r => r.Key, r => new RouteConfig(r.Key, r.Value, routeFactory.Create(r.Value)));
-            var storeAndForwardConfiguration8 = new StoreAndForwardConfiguration(3600, Option.Some(new StoreLimits(20L)));
+            var storeAndForwardConfiguration8 = new StoreAndForwardConfiguration(3600, new StoreLimits(20L));
             var edgeHubConfig8 = new EdgeHubConfig("1.0", routes8, storeAndForwardConfiguration8);
 
             var configProvider = new Mock<IConfigSource>();

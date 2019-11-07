@@ -54,9 +54,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Config
 
             StoreLimits s1 = new StoreLimits(100L);
             StoreLimits s2 = new StoreLimits(200L);
-            var storeAndForwardConfig4 = new StoreAndForwardConfiguration(3600, Option.Some(s1));
-            var storeAndForwardConfig5 = new StoreAndForwardConfiguration(3600, Option.Some(s2));
-            var storeAndForwardConfig6 = new StoreAndForwardConfiguration(3600, Option.None<StoreLimits>());
+            var storeAndForwardConfig4 = new StoreAndForwardConfiguration(3600, s1);
+            var storeAndForwardConfig5 = new StoreAndForwardConfiguration(3600, s2);
+            var storeAndForwardConfig6 = new StoreAndForwardConfiguration(3600);
 
             string version = "1.0";
 

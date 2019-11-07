@@ -34,20 +34,22 @@ namespace Microsoft.Azure.Devices.Edge.Storage
 
         public void SetMaxSizeBytes(Option<long> maxSizeBytes)
         {
-            this.maxSize = maxSizeBytes.Match(
-                s =>
+            if (maxSizeBytes.HasValue)
+            {
+                this.isEnabled = true;
+                maxSizeBytes.ForEach(x =>
                 {
-                    this.isEnabled = true;
-                    Events.SetMaxMemorySpaceUsage(s);
-                    return s;
-                },
-                () =>
-                {
-                    this.isEnabled = false;
-                    this.memoryUsageStatus = MemoryUsageStatus.Unknown;
-                    Events.Disabled();
-                    return long.MaxValue;
+                    this.maxSize = x;
+                    Events.SetMaxMemorySpaceUsage(x);
                 });
+            }
+            else
+            {
+                this.isEnabled = false;
+                this.memoryUsageStatus = MemoryUsageStatus.Unknown;
+                Events.Disabled();
+                this.maxSize = long.MaxValue;
+            }
         }
 
         public Func<long> GetTotalMemoryUsage
