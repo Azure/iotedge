@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Storage;
@@ -34,9 +35,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         public static async Task<DockerEnvironmentProvider> CreateAsync(
             IRuntimeInfoProvider runtimeInfoProvider,
             IEntityStore<string, ModuleState> store,
-            IRestartPolicyManager restartPolicyManager)
+            IRestartPolicyManager restartPolicyManager,
+            CancellationToken token)
         {
-            SystemInfo systemInfo = await Preconditions.CheckNotNull(runtimeInfoProvider, nameof(runtimeInfoProvider)).GetSystemInfo();
+            SystemInfo systemInfo = await Preconditions.CheckNotNull(runtimeInfoProvider, nameof(runtimeInfoProvider)).GetSystemInfo(token);
             return new DockerEnvironmentProvider(
                 runtimeInfoProvider,
                 store,
