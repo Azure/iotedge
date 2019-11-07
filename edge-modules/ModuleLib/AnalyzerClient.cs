@@ -10,7 +10,7 @@
 #pragma warning disable 1573 // Disable "CS1573 Parameter '...' has no matching param tag in the XML comment for ...
 #pragma warning disable 1591 // Disable "CS1591 Missing XML comment for publicly visible type or member ..."
 
-namespace Microsoft.Azure.Devices.Edge.ModuleUtil
+namespace ModuleUtil
 {
     using System = global::System;
     
@@ -363,8 +363,8 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
         [Newtonsoft.Json.JsonProperty("messagesReport", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public System.Collections.Generic.ICollection<MessagesReport> MessagesReport { get; set; }
     
-        [Newtonsoft.Json.JsonProperty("dmReport", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-        public System.Collections.Generic.ICollection<ResponseOrientedReport> DmReport { get; set; }
+        [Newtonsoft.Json.JsonProperty("directMethodsReport", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public System.Collections.Generic.ICollection<ResponseOrientedReport> DirectMethodsReport { get; set; }
     
         [Newtonsoft.Json.JsonProperty("twinsReport", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public System.Collections.Generic.ICollection<ResponseOrientedReport> TwinsReport { get; set; }
@@ -391,13 +391,13 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
         public System.DateTimeOffset? LastMessageReceivedAt { get; set; }
     
         [Newtonsoft.Json.JsonProperty("missedMessages", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-        public System.Collections.Generic.ICollection<MissingMessage> MissedMessages { get; set; }
+        public System.Collections.Generic.ICollection<MissingMessagesReport> MissedMessages { get; set; }
     
     
     }
     
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "10.0.27.0 (Newtonsoft.Json v11.0.0.0)")]
-    public partial class MissingMessage 
+    public partial class MissingMessagesReport 
     {
         [Newtonsoft.Json.JsonProperty("MissedMessagesCount", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
         public double? MissedMessagesCount { get; set; }
