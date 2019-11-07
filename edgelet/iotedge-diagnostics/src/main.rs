@@ -2,7 +2,7 @@
 
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-#![allow(clippy::use_self)]
+#![allow(clippy::use_self, clippy::too_many_lines)]
 
 #[macro_use]
 extern crate clap;
@@ -18,6 +18,7 @@ use hyperlocal::{UnixConnector, Uri as UnixUri};
 #[cfg(windows)]
 use hyperlocal_windows::{UnixConnector, Uri as UnixUri};
 
+#[allow(clippy::too_many_lines)]
 fn main() -> Result<(), Error> {
     let app = app_from_crate!()
         .setting(clap::AppSettings::SubcommandRequiredElseHelp)

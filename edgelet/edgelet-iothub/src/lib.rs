@@ -2,7 +2,11 @@
 
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-#![allow(clippy::module_name_repetitions, clippy::use_self)]
+#![allow(
+    clippy::module_name_repetitions,
+    clippy::use_self,
+    clippy::too_many_lines
+)]
 
 mod error;
 
@@ -597,6 +601,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::too_many_lines)]
     fn list_succeeds() {
         let m1pkey = "m1pkey";
         let m1skey = "m1skey";

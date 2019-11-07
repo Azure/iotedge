@@ -203,6 +203,7 @@ pub enum ExternalProvisioningErrorReason {
 }
 
 impl fmt::Display for InitializeErrorReason {
+    #[allow(clippy::too_many_lines)]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             InitializeErrorReason::CertificateSettings => {
