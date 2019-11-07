@@ -74,8 +74,7 @@ where
     let mut add_annotation_with_precedence = |annotation: &str, base: Option<&String>| {
         if let Some(x) = (img_config.labels)
             .as_ref()
-            .map(|l| l.get(annotation))
-            .flatten()
+            .and_then(|l| l.get(annotation))
             .or(base)
         {
             rt_spec
