@@ -20,10 +20,10 @@ parameters:
   loadGen3.transportType: 'Mqtt_Tcp_Only'
   loadGen4.transportType: 'Mqtt_Tcp_Only'
   analyzer.consumerGroupId: ''
-  analyzer.loganalyticenabled: ''
-  analyzer.loganalyticworkspaceid: ''
-  analyzer.loganalyticsharedkey: ''
-  analyzer.loganalyticlogtype: ''
+  analyzer.logAnalytic.enabled: ''
+  analyzer.logAnalytic.workspaceid: ''
+  analyzer.logAnalytic.sharedkey: ''
+  analyzer.logAnalytic.logtype: ''
 
 steps:
   - task: CopyFiles@2
@@ -112,9 +112,9 @@ steps:
           -MqttSettingsEnabled "${{ parameters['mqtt.settings.enabled'] }}" `
           -LoadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" `
           -EventHubConsumerGroupId "${{ parameters['analyzer.consumerGroupId'] }}" `
-          -AnalyzerLaEnabled "${{ parameters['analyzer.loganalyticenabled'] }}" `
-          -AnalyzerLaWorkspaceId "${{ parameters['analyzer.loganalyticworkspaceid'] }}" `
-          -AnalyzerLaSharedKey "${{ parameters['analyzer.loganalyticsharedkey'] }}" `
-          -AnalyzerLaLogType "${{ parameters['analyzer.loganalyticlogtype'] }}" `
+          -AnalyzerLaEnabled "${{ parameters['analyzer.logAnalytic.enabled'] }}" `
+          -AnalyzerLaWorkspaceId "${{ parameters['analyzer.logAnalytic.workspaceid'] }}" `
+          -AnalyzerLaSharedKey "${{ parameters['analyzer.logAnalytic.sharedkey'] }}" `
+          -AnalyzerLaLogType "${{ parameters['analyzer.logAnalytic.logtype'] }}" `
           -BypassEdgeInstallation
       CommunicationProtocol: Http

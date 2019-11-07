@@ -15,10 +15,10 @@ parameters:
   longHaul.desiredModulesToRestartCSV: ''
   longHaul.restartIntervalInMins: ''
   analyzer.consumerGroupId: ''
-  analyzer.loganalyticenabled: ''
-  analyzer.loganalyticworkspaceid: ''
-  analyzer.loganalyticsharedkey: ''
-  analyzer.loganalyticlogtype: ''
+  analyzer.logAnalytic.enabled: ''
+  analyzer.logAnalytic.workspaceid: ''
+  analyzer.logAnalytic.sharedkey: ''
+  analyzer.logAnalytic.logtype: ''
 
 steps:
   - task: CopyFiles@2
@@ -59,8 +59,8 @@ steps:
           -EventHubConsumerGroupId "${{ parameters['analyzer.consumerGroupId'] }}" `
           -DesiredModulesToRestartCSV "${{ parameters['longHaul.desiredModulesToRestartCSV'] }}" `
           -RestartIntervalInMins "${{ parameters['longHaul.restartIntervalInMins'] }}" `
-          -AnalyzerLaEnabled "${{ parameters['analyzer.loganalyticenabled'] }}" `
-          -AnalyzerLaWorkspaceId "${{ parameters['analyzer.loganalyticworkspaceid'] }}" `
-          -AnalyzerLaSharedKey "${{ parameters['analyzer.loganalyticsharedkey'] }}" `
-          -AnalyzerLaLogType "${{ parameters['analyzer.loganalyticlogtype'] }}" 
+          -AnalyzerLaEnabled "${{ parameters['analyzer.logAnalytic.enabled'] }}" `
+          -AnalyzerLaWorkspaceId "${{ parameters['analyzer.logAnalytic.workspaceid'] }}" `
+          -AnalyzerLaSharedKey "${{ parameters['analyzer.logAnalytic.sharedkey'] }}" `
+          -AnalyzerLaLogType "${{ parameters['analyzer.logAnalytic.logtype'] }}" 
       workingDirectory: "$(Agent.HomeDirectory)/.."
