@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace MessagesAnalyzer.Controllers
+namespace Analyzer.Controllers
 {
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Mvc;

@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace MessagesAnalyzer
+namespace Analyzer
 {
     using System;
     using Newtonsoft.Json;
