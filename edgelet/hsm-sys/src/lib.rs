@@ -12,6 +12,7 @@
 #![allow(
     clippy::doc_markdown, // bindgen-generated docs
     clippy::use_self, // bindgen-generated signatures
+    clippy::too_many_lines,
 )]
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals)]
 

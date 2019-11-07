@@ -7,7 +7,8 @@
     clippy::module_name_repetitions,
     clippy::similar_names,
     clippy::shadow_unrelated,
-    clippy::use_self
+    clippy::use_self,
+    clippy::too_many_lines
 )]
 
 use hsm_sys::*;

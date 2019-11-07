@@ -603,6 +603,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::too_many_lines)]
     fn list_succeeds() {
         let m1pkey = "m1pkey";
         let m1skey = "m1skey";
