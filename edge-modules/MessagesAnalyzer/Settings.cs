@@ -17,14 +17,11 @@ namespace MessagesAnalyzer
         const string DefaultConsumerGroupId = "$Default";
         const string DefaultWebhostPort = "5001";
         const double DefaultToleranceInMilliseconds = 1000 * 60;
-<<<<<<< HEAD
         const string LogAnalyticEnabledName = "LogAnalyticEnabled";
         const string LogAnalyticWorkspaceIdName = "LogAnalyticWorkspaceId";
         const string LogAnalyticSharedKeyName = "LogAnalyticSharedKey";
         const string LogAnalyticLogTypeName = "LogAnalyticLogType";
-=======
         static readonly string DefaultDeviceId = Environment.GetEnvironmentVariable("IOTEDGE_DEVICEID");
->>>>>>> 061ee1da1a0c2da104401dc9f5e3b91b71c9ab78
 
         static readonly Lazy<Settings> Setting = new Lazy<Settings>(
             () =>
