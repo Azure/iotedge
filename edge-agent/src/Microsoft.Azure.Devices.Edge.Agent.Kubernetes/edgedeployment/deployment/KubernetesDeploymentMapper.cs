@@ -310,12 +310,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             // Volume name will be customer defined name or modulename + mount.source
             if (this.persistentVolumeName.HasValue)
             {
-                volumeName = this.persistentVolumeName.OrDefault();
+                string volumeNameTmp = this.persistentVolumeName.OrDefault();
+                if (volumeNameTmp != volumeName)
+                {
+                    // PV name has to be the same as the mount name. This is K8s requirement
+                    throw new InvalidModuleException(string.Format("The volume mount name: {0} should be the same as the PV volume name {1}", volumeName, volumeNameTmp));
+                }
+
                 return new V1Volume(volumeName, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(pvcName, mount.ReadOnly));
             }
             else if (this.storageClassName.HasValue)
             {
-                return new V1Volume(pvcName, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(pvcName, mount.ReadOnly));
+                return new V1Volume(volumeName, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(pvcName, mount.ReadOnly));
             }
             else
             {

@@ -62,7 +62,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
             {
                 persistentVolumeClaimSpec.VolumeName = this.persistentVolumeName.OrDefault();
             }
-            else if (this.storageClassName.HasValue)
+
+            // In k8s, customers can specify both storageclass and pv. We want to make sure that's covered
+            if (this.storageClassName.HasValue)
             {
                 persistentVolumeClaimSpec.StorageClassName = this.storageClassName.OrDefault();
             }
