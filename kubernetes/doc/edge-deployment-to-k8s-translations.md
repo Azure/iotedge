@@ -3,18 +3,18 @@
 Azure IoT Edge on Kubernetes project will take an existing Azure IoT Edge application that is 
 running on a single device and install that application into a Kubernetes cluster.  The expectation 
 is that these applications will "just work," regardless of where it is installed.  In order to do 
-that, the Edge on K8s project has to transform the edge deployment into Kubernetes objects which 
-will provide the framework for modules to communicate with other modules.
+that, Edge on K8s has to transform the edge deployment into Kubernetes objects which 
+will support module-module communication. 
 
-Existing Edge Deployments running on a single device specifies module setting via the [Docker 
+Existing Edge Deployments running on a single device specify module setting via the [Docker 
 ContainerCreate structure](https://docs.docker.com/engine/api/v1.40/#operation/ContainerCreate). 
-This means Edge on K8s will have to make decisions about how to provide the module framework based 
+This means Edge on K8s will need to translate Edge device and module configuration based 
 on these settings. This document will describe which values are used from the module specification 
 and how they are transformed into Kubernetes objects.
 
 The application will create Deployments, Services, ImagePullSecrets, PersistentVolumeClaims, and 
 ServiceAccounts to establish this framework.
-Each will be described in detail in subsequent sections.
+The Edge Docker to K8s object mappings will be described in detail in subsequent sections.
 
 ## Deployment
 
