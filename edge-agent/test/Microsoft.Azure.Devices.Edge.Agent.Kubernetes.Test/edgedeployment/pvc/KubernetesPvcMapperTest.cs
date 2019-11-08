@@ -244,7 +244,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
             var aVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == "module1-a-volume");
             Assert.True(aVolumeClaim.Metadata.Labels.SequenceEqual(DefaultLabels));
             Assert.Equal("ReadOnlyMany", aVolumeClaim.Spec.AccessModes[0]);
-            Assert.Null(aVolumeClaim.Spec.StorageClassName);
+            Assert.Equal("storageclass", aVolumeClaim.Spec.StorageClassName);
             Assert.Equal("a-volume", aVolumeClaim.Spec.VolumeName);
             Assert.Equal(resourceQuantity, aVolumeClaim.Spec.Resources.Requests["storage"]);
         }
