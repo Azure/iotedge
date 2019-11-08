@@ -5,8 +5,8 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::module_name_repetitions,
-    clippy::use_self,
-    clippy::too_many_lines
+    clippy::too_many_lines,
+    clippy::use_self
 )]
 
 pub mod error;

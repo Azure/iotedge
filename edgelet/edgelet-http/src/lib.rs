@@ -7,8 +7,8 @@
     clippy::module_name_repetitions,
     clippy::pub_enum_variant_names,
     clippy::similar_names,
-    clippy::use_self,
-    clippy::too_many_lines
+    clippy::too_many_lines,
+    clippy::use_self
 )]
 
 use std::fmt;
