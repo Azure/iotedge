@@ -29,7 +29,6 @@ namespace Analyzer
 
         public async Task ProcessEventsAsync(IEnumerable<EventData> events)
         {
-            Console.WriteLine("PROCESSINGEVENTS");
             if (events != null)
             {
                 foreach (EventData eventData in events)
@@ -47,9 +46,6 @@ namespace Analyzer
                         {
                             if (long.TryParse(sequence.ToString(), out long sequenceNumber))
                             {
-                                Console.WriteLine("ADDING MESSAGE TO STORAGE");
-                                Console.WriteLine(devId.ToString());
-                                Console.WriteLine(modId.ToString());
                                 DateTime enqueuedtime = GetEnqueuedTime(devId.ToString(), modId.ToString(), eventData);
                                 await MessagesCacheWithStorage.Instance.AddMessage(new MessageDetails(modId.ToString(), batchId.ToString(), sequenceNumber, enqueuedtime));
                             }
