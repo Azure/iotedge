@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "containerd-grpc",
+    "cri-grpc",
     "shellrt-containerd",
     "shellrt-driver",
     "shellrt-api",
