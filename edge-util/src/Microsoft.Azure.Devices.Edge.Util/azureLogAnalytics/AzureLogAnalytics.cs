@@ -45,6 +45,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
         {
             Preconditions.CheckNotNull(workspaceId, "Log Analytic workspace ID cannot be empty.");
             Preconditions.CheckNotNull(sharedKey, "Log Analytic shared key cannot be empty.");
+            Preconditions.CheckNotNull(sharedKey, "Log Analytic content cannot be empty.");
+            Preconditions.CheckNotNull(sharedKey, "Log Analytic log type cannot be empty.");
 
             const string apiVersion = "2016-04-01";
 
