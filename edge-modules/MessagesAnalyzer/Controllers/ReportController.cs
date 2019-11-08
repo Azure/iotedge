@@ -20,7 +20,8 @@ namespace MessagesAnalyzer.Controllers
                 AzureLogAnalytics logAnalytics = AzureLogAnalytics.InitInstance();
 
                 // Upload the data to Log Analytics
-                logAnalytics.PostAsync(Settings.Current.LogAnalyticWorkspaceId,
+                logAnalytics.PostAsync(
+                    Settings.Current.LogAnalyticWorkspaceId,
                     Settings.Current.LogAnalyticSharedKey,
                     resultJson,
                     Settings.Current.LogAnalyticLogType);

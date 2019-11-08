@@ -56,7 +56,7 @@ namespace MessagesAnalyzer
             this.DeviceId = deviceId;
             this.WebhostPort = webhostPort;
             this.ToleranceInMilliseconds = tolerance;
-            Boolean.TryParse(logAnalyticEnabledText, out logAnalyticEnabled);
+            bool.TryParse(logAnalyticEnabledText, out logAnalyticEnabled);
             this.LogAnalyticEnabled = logAnalyticEnabled;
             this.LogAnalyticWorkspaceId = logAnalyticsWorkspaceIdName;
             this.LogAnalyticSharedKey = logAnalyticsSharedKeyName;
