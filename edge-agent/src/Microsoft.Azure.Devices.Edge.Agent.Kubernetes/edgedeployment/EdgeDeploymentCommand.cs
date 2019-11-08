@@ -174,7 +174,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 activeDeployment = Option.None<EdgeDeploymentDefinition>();
             }
 
-            var metadata = new V1ObjectMeta(name: this.resourceName, namespaceProperty: this.deviceNamespace);
+            var ownerReferences = new List<V1OwnerReference>
+            {
+                new V1OwnerReference(
+                    apiVersion: this.moduleOwner.ApiVersion,
+                    kind: this.moduleOwner.Kind,
+                    name: this.moduleOwner.Name,
+                    uid: this.moduleOwner.Uid)
+            };
+
+            var metadata = new V1ObjectMeta(name: this.resourceName, namespaceProperty: this.deviceNamespace, ownerReferences: ownerReferences);
 
             // need resourceVersion for Replace.
             activeDeployment.ForEach(deployment => metadata.ResourceVersion = deployment.Metadata.ResourceVersion);
