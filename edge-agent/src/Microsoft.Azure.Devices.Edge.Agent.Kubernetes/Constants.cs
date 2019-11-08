@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public const string PersistentVolumeClaimDefaultSizeInMbKey = "PersistentVolumeClaimDefaultSizeInMb";
 
-        public const string EdgeK8sObjectOwnerApiVersion = "EdgeK8sObjectOwnerApiVersion";
+        public const string EdgeK8sObjectOwnerApiVersionKey = "EdgeK8sObjectOwnerApiVersion";
 
         public const string EdgeK8sObjectOwnerKind = "EdgeK8sObjectOwnerKind";
 
