@@ -988,9 +988,9 @@ function usage() {
     echo ' -installRootCAKeyPassword         Optional password to access the root CA certificate private key to be used for certificate generation'
     echo ' -desiredModulesToRestartCSV       Optional CSV string of module names for long haul specifying what modules to restart. If specified, then "restartIntervalInMins" must be specified as well.'
     echo ' -restartIntervalInMins            Optional value for long haul specifying how often a random module will restart. If specified, then "desiredModulesToRestartCSV" must be specified as well.'
-    echo ' -twinUpdateCharCount              Specifies the char count (i.e. size) of each twin update.'
-    echo ' -twinUpdateFrequency              Frequency to make twin updates. This should be specified in DateTime format.'
-    echo ' -twinUpdateFailureThreshold       Specifies the longest period of time a twin update can take before being marked as a failure. This should be specified in DateTime format.'
+    echo ' -twinUpdateCharCount              Specifies the char count (i.e. size) of each twin update. Default is 1 for long haul and 100 for stress test.'
+    echo ' -twinUpdateFrequency              Frequency to make twin updates. This should be specified in DateTime format. Default is 00:00:15 for long haul and 00:00:05 for stress test.'
+    echo ' -twinUpdateFailureThreshold       Specifies the longest period of time a twin update can take before being marked as a failure. This should be specified in DateTime format. Default is 00:01:00'
     exit 1;
 }
 
@@ -1004,7 +1004,6 @@ TRANSPORT_TYPE_1="${TRANSPORT_TYPE_1:-amqp}"
 TRANSPORT_TYPE_2="${TRANSPORT_TYPE_2:-amqp}"
 TRANSPORT_TYPE_3="${TRANSPORT_TYPE_3:-mqtt}"
 TRANSPORT_TYPE_4="${TRANSPORT_TYPE_4:-mqtt}"
-TWIN_UPDATE_FREQUENCY="${TWIN_UPDATE_FREQUENCY:-1}"
 TWIN_UPDATE_FAILURE_THRESHOLD="${TWIN_UPDATE_FAILURE_THRESHOLD:-00:01:00}"
 if [[ "${TEST_NAME,,}" == "longhaul" ]]; then
     DESIRED_MODULES_TO_RESTART_CSV="${DESIRED_MODULES_TO_RESTART_CSV:-,}"
@@ -1013,12 +1012,14 @@ if [[ "${TEST_NAME,,}" == "longhaul" ]]; then
     SNITCH_REPORTING_INTERVAL_IN_SECS="${SNITCH_REPORTING_INTERVAL_IN_SECS:-86400}"
     SNITCH_TEST_DURATION_IN_SECS="${SNITCH_TEST_DURATION_IN_SECS:-604800}"
     TWIN_UPDATE_CHAR_COUNT="${TWIN_UPDATE_CHAR_COUNT:-1}"
+    TWIN_UPDATE_FREQUENCY="${TWIN_UPDATE_FREQUENCY:-00:00:15}"
 fi
 if [[ "${TEST_NAME,,}" == "stress" ]]; then
     LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:00.03}"
     SNITCH_REPORTING_INTERVAL_IN_SECS="${SNITCH_REPORTING_INTERVAL_IN_SECS:-1700000}"
     SNITCH_TEST_DURATION_IN_SECS="${SNITCH_TEST_DURATION_IN_SECS:-14400}"
     TWIN_UPDATE_CHAR_COUNT="${TWIN_UPDATE_CHAR_COUNT:-100}"
+    TWIN_UPDATE_FREQUENCY="${TWIN_UPDATE_FREQUENCY:-00:00:05}"
 fi
 if [ "$AMQP_SETTINGS_ENABLED" != "false" ]; then
     AMQP_SETTINGS_ENABLED="true"

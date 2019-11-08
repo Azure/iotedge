@@ -101,6 +101,15 @@
     .PARAMETER DpsMasterSymmetricKey
         DPS master symmetric key. Required only when using DPS symmetric key to provision the Edge device.
 
+    .PARAMETER TwinUpdateCharCount
+        Specifies the char count (i.e. size) of each twin update. Default is 1 for long haul and 100 for stress test.
+
+    .PARAMETER TwinUpdateFrequency
+        Frequency to make twin updates. This should be specified in DateTime format. Default is 00:00:15 for long haul and 00:00:05 for stress test.
+
+    .PARAMETER TwinUpdateFailureThreshold
+        Specifies the longest period of time a twin update can take before being marked as a failure. This should be specified in DateTime format. Default is 00:01:00
+
     .EXAMPLE
         .\Run-E2ETest.ps1
             -E2ETestFolder "C:\Data\e2etests"
