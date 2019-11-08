@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace TwinTester // TODO: module util move
+namespace Microsoft.Azure.Devices.Edge.ModuleUtil
 {
     using System;
     using System.Collections.Generic;
