@@ -433,10 +433,8 @@ pub trait ModuleRuntime: Sized {
     type CreateFuture: Future<Item = (), Error = Self::Error> + Send;
     type GetFuture: Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send;
     type ListFuture: Future<Item = Vec<Self::Module>, Error = Self::Error> + Send;
-    type ListWithDetailsStream: Stream<
-            Item = (Self::Module, ModuleRuntimeState),
-            Error = Self::Error,
-        > + Send;
+    type ListWithDetailsStream: Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error>
+        + Send;
     type LogsFuture: Future<Item = Self::Logs, Error = Self::Error> + Send;
     type RemoveFuture: Future<Item = (), Error = Self::Error> + Send;
     type RestartFuture: Future<Item = (), Error = Self::Error> + Send;
