@@ -14,7 +14,8 @@ use kube_client::TokenSource;
 use crate::constants::EDGE_EDGE_AGENT_NAME;
 use crate::convert::{spec_to_deployment, spec_to_role_binding, spec_to_service_account};
 use crate::error::Error;
-use crate::{ErrorKind, KubeModuleRuntime};
+use crate::{ErrorKind, KubeModuleOwner, KubeModuleRuntime};
+use std::convert::TryFrom;
 
 pub fn create_module<T, S>(
     runtime: &KubeModuleRuntime<T, S>,
@@ -29,18 +30,37 @@ where
     S::Error: Fail,
     S::Future: Send,
 {
+    let runtime_for_owner = runtime.clone();
+
     let runtime_for_sa = runtime.clone();
     let module_for_sa = module.clone();
+
+    let runtime_for_rb = runtime.clone();
+    let module_for_rb = module.clone();
 
     let runtime_for_deployment = runtime.clone();
     let module_for_deployment = module.clone();
 
     let module_name = module.name().to_string();
+    let iotedged_module_name = "iotedged";
 
-    create_or_update_service_account(&runtime, &module)
-        .and_then(move |_| create_or_update_role_binding(&runtime_for_sa, &module_for_sa))
-        .and_then(move |_| {
-            create_or_update_deployment(&runtime_for_deployment, &module_for_deployment)
+    get_module_owner(&runtime_for_owner, &iotedged_module_name)
+        .and_then(move |module_owner| {
+            let module_owner1 = module_owner.clone();
+            let module_owner2 = module_owner.clone();
+            let module_owner3 = module_owner.clone();
+
+            create_or_update_service_account(&runtime_for_sa, &module_for_sa, &module_owner1)
+                .and_then(move |_| {
+                    create_or_update_role_binding(&runtime_for_rb, &module_for_rb, &module_owner2)
+                })
+                .and_then(move |_| {
+                    create_or_update_deployment(
+                        &runtime_for_deployment,
+                        &module_for_deployment,
+                        &module_owner3,
+                    )
+                })
         })
         .map_err(|err| {
             Error::from(
@@ -51,9 +71,51 @@ where
         })
 }
 
+fn get_module_owner<T, S>(
+    runtime: &KubeModuleRuntime<T, S>,
+    module_name: &str,
+) -> impl Future<Item = KubeModuleOwner, Error = Error>
+where
+    T: TokenSource + Send + 'static,
+    S: Service + Send + 'static,
+    S::ReqBody: From<Vec<u8>>,
+    S::ResBody: Stream,
+    Body: From<S::ResBody>,
+    S::Error: Fail,
+    S::Future: Send,
+{
+    let module_name = module_name.to_string();
+    runtime
+        .client()
+        .lock()
+        .expect("Unexpected lock error")
+        .borrow_mut()
+        .list_deployments(
+            runtime.settings().namespace(),
+            Some(&module_name),
+            Some(&runtime.settings().device_hub_selector()),
+        )
+        .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
+        .map(move |deployments| {
+            deployments
+                .items
+                .into_iter()
+                .find(|deployment| {
+                    deployment.metadata.as_ref().map_or(false, |meta| {
+                        meta.name.as_ref().map_or(false, |n| *n == module_name)
+                    })
+                })
+                .ok_or(Error::from(ErrorKind::MissingMetadata))
+                .and_then(|this_deployment| KubeModuleOwner::try_from(this_deployment))
+        })
+        .into_future()
+        .flatten()
+}
+
 fn create_or_update_service_account<T, S>(
     runtime: &KubeModuleRuntime<T, S>,
     module: &ModuleSpec<DockerConfig>,
+    module_owner: &KubeModuleOwner,
 ) -> impl Future<Item = (), Error = Error>
 where
     T: TokenSource + Send + 'static,
@@ -64,7 +126,7 @@ where
     S::Error: Fail,
     S::Future: Send,
 {
-    spec_to_service_account(runtime.settings(), module)
+    spec_to_service_account(runtime.settings(), module, module_owner)
         .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
         .map(|(name, new_service_account)| {
             let client_copy = runtime.client().clone();
@@ -126,6 +188,7 @@ where
 fn create_or_update_role_binding<T, S>(
     runtime: &KubeModuleRuntime<T, S>,
     module: &ModuleSpec<DockerConfig>,
+    module_owner: &KubeModuleOwner,
 ) -> impl Future<Item = (), Error = Error>
 where
     T: TokenSource + Send + 'static,
@@ -136,7 +199,7 @@ where
     S::Error: Fail,
     S::Future: Send,
 {
-    spec_to_role_binding(runtime.settings(), module)
+    spec_to_role_binding(runtime.settings(), module, module_owner)
         .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
         .map(|(name, new_role_binding)| {
             // create new role only for edge agent
@@ -166,6 +229,7 @@ where
 fn create_or_update_deployment<T, S>(
     runtime: &KubeModuleRuntime<T, S>,
     module: &ModuleSpec<DockerConfig>,
+    module_owner: &KubeModuleOwner,
 ) -> impl Future<Item = (), Error = Error>
 where
     T: TokenSource + Send + 'static,
@@ -176,7 +240,7 @@ where
     S::Error: Fail,
     S::Future: Send,
 {
-    spec_to_deployment(runtime.settings(), module)
+    spec_to_deployment(runtime.settings(), module, module_owner)
         .map_err(|err| Error::from(err.context(ErrorKind::KubeClient)))
         .map(|(name, new_deployment)| {
             let client_copy = runtime.client().clone();
@@ -252,7 +316,9 @@ mod tests {
         create_or_update_service_account,
     };
     use crate::module::create_module;
-    use crate::tests::{create_runtime, make_settings, not_found_handler, response};
+    use crate::tests::{
+        create_module_owner, create_runtime, make_settings, not_found_handler, response,
+    };
 
     #[test]
     fn it_creates_new_deployment_if_does_not_exist() {
@@ -267,8 +333,9 @@ mod tests {
         let service = service_fn(handler);
         let runtime = create_runtime(settings, service);
         let module = create_module_spec("edgeagent");
+        let module_owner = create_module_owner();
 
-        let task = create_or_update_deployment(&runtime, &module);
+        let task = create_or_update_deployment(&runtime, &module, &module_owner);
 
         let mut runtime = Runtime::new().unwrap();
         runtime.block_on(task).unwrap();
@@ -287,8 +354,9 @@ mod tests {
         let service = service_fn(handler);
         let runtime = create_runtime(settings, service);
         let module = create_module_spec("edgeagent");
+        let module_owner = create_module_owner();
 
-        let task = create_or_update_deployment(&runtime, &module);
+        let task = create_or_update_deployment(&runtime, &module, &module_owner);
 
         let mut runtime = Runtime::new().unwrap();
         runtime.block_on(task).unwrap();
@@ -306,8 +374,9 @@ mod tests {
         let service = service_fn(handler);
         let runtime = create_runtime(settings, service);
         let module = create_module_spec("edgeagent");
+        let module_owner = create_module_owner();
 
-        let task = create_or_update_role_binding(&runtime, &module);
+        let task = create_or_update_role_binding(&runtime, &module, &module_owner);
 
         let mut runtime = Runtime::new().unwrap();
         runtime.block_on(task).unwrap();
@@ -323,8 +392,9 @@ mod tests {
         let service = service_fn(handler);
         let runtime = create_runtime(settings, service);
         let module = create_module_spec("temp-sensor");
+        let module_owner = create_module_owner();
 
-        let task = create_or_update_role_binding(&runtime, &module);
+        let task = create_or_update_role_binding(&runtime, &module, &module_owner);
 
         let mut runtime = Runtime::new().unwrap();
         runtime.block_on(task).unwrap();
@@ -343,8 +413,9 @@ mod tests {
         let service = service_fn(handler);
         let runtime = create_runtime(settings, service);
         let module = create_module_spec("edgeagent");
+        let module_owner = create_module_owner();
 
-        let task = create_or_update_service_account(&runtime, &module);
+        let task = create_or_update_service_account(&runtime, &module, &module_owner);
 
         let mut runtime = Runtime::new().unwrap();
         runtime.block_on(task).unwrap();
@@ -363,8 +434,9 @@ mod tests {
         let service = service_fn(handler);
         let runtime = create_runtime(settings, service);
         let module = create_module_spec("edgeagent");
+        let module_owner = create_module_owner();
 
-        let task = create_or_update_service_account(&runtime, &module);
+        let task = create_or_update_service_account(&runtime, &module, &module_owner);
 
         let mut runtime = Runtime::new().unwrap();
         runtime.block_on(task).unwrap();
@@ -399,7 +471,15 @@ mod tests {
                 json!({
                     "kind": "DeploymentList",
                     "apiVersion": "apps/v1",
-                    "items": []
+                    "items": [
+                        {
+                            "metadata": {
+                                "name": "iotedged",
+                                "namespace": "my-namespace",
+                                "uid":"75d1a6a6-6bc9-4e80-906b-73fec80020ec",
+                            }
+                        }
+                    ]
                 })
                 .to_string()
             })

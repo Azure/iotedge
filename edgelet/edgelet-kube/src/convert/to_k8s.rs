@@ -19,6 +19,7 @@ use crate::convert::{sanitize_dns_domain, sanitize_dns_value};
 use crate::error::{ErrorKind, Result};
 use crate::registry::ImagePullSecret;
 use crate::settings::Settings;
+use crate::KubeModuleOwner;
 
 /// Converts Docker `ModuleSpec` to K8s `PodSpec`
 fn spec_to_podspec(
@@ -26,6 +27,7 @@ fn spec_to_podspec(
     spec: &ModuleSpec<DockerConfig>,
     module_label_value: String,
     module_image: String,
+    module_owner: &KubeModuleOwner,
 ) -> Result<api_core::PodSpec> {
     // privileged container
     let security = spec
@@ -78,6 +80,14 @@ fn spec_to_podspec(
             PROXY_TRUST_BUNDLE_PATH_KEY,
             settings.proxy_trust_bundle_path(),
         ));
+
+        env_vars.push(env(
+            EDGE_OBJECT_OWNER_API_VERSION,
+            module_owner.api_version(),
+        ));
+        env_vars.push(env(EDGE_OBJECT_OWNER_KIND, module_owner.kind()));
+        env_vars.push(env(EDGE_OBJECT_OWNER_NAME, module_owner.name()));
+        env_vars.push(env(EDGE_OBJECT_OWNER_UID, module_owner.uid()));
     }
 
     // Bind/volume mounts
@@ -285,6 +295,7 @@ fn env<V: Into<String>>(key: &str, value: V) -> api_core::EnvVar {
 pub fn spec_to_deployment(
     settings: &Settings,
     spec: &ModuleSpec<DockerConfig>,
+    module_owner: &KubeModuleOwner,
 ) -> Result<(String, api_apps::Deployment)> {
     // Set some values...
     let module_label_value = sanitize_dns_value(spec.name())?;
@@ -318,11 +329,20 @@ pub fn spec_to_deployment(
     annotations.insert(EDGE_ORIGINAL_MODULEID.to_string(), spec.name().to_string());
 
     // Assemble everything
+    let owner_reference = api_meta::OwnerReference {
+        api_version: module_owner.api_version().to_string(),
+        name: module_owner.name().to_string(),
+        kind: module_owner.kind().to_string(),
+        uid: module_owner.uid().to_string(),
+        ..api_meta::OwnerReference::default()
+    };
+    let owner_vec = vec![owner_reference];
     let deployment = api_apps::Deployment {
         metadata: Some(api_meta::ObjectMeta {
             name: Some(deployment_name.clone()),
             namespace: Some(settings.namespace().to_string()),
             labels: Some(deployment_labels),
+            owner_references: Some(owner_vec),
             ..api_meta::ObjectMeta::default()
         }),
         spec: Some(api_apps::DeploymentSpec {
@@ -342,6 +362,7 @@ pub fn spec_to_deployment(
                     spec,
                     module_label_value,
                     module_image,
+                    module_owner,
                 )?),
             },
             ..api_apps::DeploymentSpec::default()
@@ -355,6 +376,7 @@ pub fn spec_to_deployment(
 pub fn spec_to_service_account(
     settings: &Settings,
     spec: &ModuleSpec<DockerConfig>,
+    module_owner: &KubeModuleOwner,
 ) -> Result<(String, api_core::ServiceAccount)> {
     let module_label_value = sanitize_dns_value(spec.name())?;
     let device_label_value =
@@ -377,12 +399,22 @@ pub fn spec_to_service_account(
     let mut annotations = BTreeMap::new();
     annotations.insert(EDGE_ORIGINAL_MODULEID.to_string(), spec.name().to_string());
 
+    let owner_reference = api_meta::OwnerReference {
+        api_version: module_owner.api_version().to_string(),
+        name: module_owner.name().to_string(),
+        kind: module_owner.kind().to_string(),
+        uid: module_owner.uid().to_string(),
+        ..api_meta::OwnerReference::default()
+    };
+    let owner_vec = vec![owner_reference];
+
     let service_account = api_core::ServiceAccount {
         metadata: Some(api_meta::ObjectMeta {
             name: Some(service_account_name.clone()),
             namespace: Some(settings.namespace().to_string()),
             labels: Some(labels),
             annotations: Some(annotations),
+            owner_references: Some(owner_vec),
             ..api_meta::ObjectMeta::default()
         }),
         ..api_core::ServiceAccount::default()
@@ -395,6 +427,7 @@ pub fn spec_to_service_account(
 pub fn spec_to_role_binding(
     settings: &Settings,
     spec: &ModuleSpec<DockerConfig>,
+    module_owner: &KubeModuleOwner,
 ) -> Result<(String, api_rbac::RoleBinding)> {
     let module_label_value = sanitize_dns_value(spec.name())?;
     let device_label_value =
@@ -417,12 +450,22 @@ pub fn spec_to_role_binding(
     let mut annotations = BTreeMap::new();
     annotations.insert(EDGE_ORIGINAL_MODULEID.to_string(), spec.name().to_string());
 
+    let owner_reference = api_meta::OwnerReference {
+        api_version: module_owner.api_version().to_string(),
+        name: module_owner.name().to_string(),
+        kind: module_owner.kind().to_string(),
+        uid: module_owner.uid().to_string(),
+        ..api_meta::OwnerReference::default()
+    };
+    let owner_vec = vec![owner_reference];
+
     let role_binding = api_rbac::RoleBinding {
         metadata: Some(api_meta::ObjectMeta {
             name: Some(role_binding_name.clone()),
             namespace: Some(settings.namespace().to_string()),
             labels: Some(labels),
             annotations: Some(annotations),
+            owner_references: Some(owner_vec),
             ..api_meta::ObjectMeta::default()
         }),
         role_ref: api_rbac::RoleRef {
@@ -501,7 +544,10 @@ mod tests {
         spec_to_deployment, spec_to_role_binding, spec_to_service_account,
         trust_bundle_to_config_map,
     };
-    use crate::tests::{make_settings, PROXY_CONFIG_MAP_NAME, PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME};
+    use crate::tests::{
+        create_module_owner, make_settings, PROXY_CONFIG_MAP_NAME,
+        PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME,
+    };
     use crate::ErrorKind;
 
     fn create_module_spec() -> ModuleSpec<DockerConfig> {
@@ -578,8 +624,10 @@ mod tests {
     #[test]
     fn deployment_success() {
         let module_config = create_module_spec();
+        let module_owner = create_module_owner();
 
-        let (name, deployment) = spec_to_deployment(&make_settings(None), &module_config).unwrap();
+        let (name, deployment) =
+            spec_to_deployment(&make_settings(None), &module_config, &module_owner).unwrap();
         assert_eq!(name, "edgeagent");
         validate_deployment_metadata(
             "edgeagent",
@@ -625,7 +673,7 @@ mod tests {
     }
 
     fn validate_container_env(env: &[api_core::EnvVar]) {
-        assert_eq!(env.len(), 11);
+        assert_eq!(env.len(), 15);
         assert!(env.contains(&super::env("a", "b")));
         assert!(env.contains(&super::env("C", "D")));
         assert!(env.contains(&super::env(NAMESPACE_KEY, "default")));
@@ -651,14 +699,19 @@ mod tests {
             &PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME_KEY,
             PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME,
         )));
+        assert!(env.contains(&super::env(&EDGE_OBJECT_OWNER_API_VERSION, "v1",)));
+        assert!(env.contains(&super::env(&EDGE_OBJECT_OWNER_KIND, "Deployment",)));
+        assert!(env.contains(&super::env(&EDGE_OBJECT_OWNER_NAME, "iotedged",)));
+        assert!(env.contains(&super::env(&EDGE_OBJECT_OWNER_UID, "123",)));
     }
 
     #[test]
     fn module_to_service_account() {
         let module = create_module_spec();
+        let module_owner = create_module_owner();
 
         let (name, service_account) =
-            spec_to_service_account(&make_settings(None), &module).unwrap();
+            spec_to_service_account(&make_settings(None), &module, &module_owner).unwrap();
         assert_eq!(name, "edgeagent");
 
         assert!(service_account.metadata.is_some());
@@ -685,8 +738,10 @@ mod tests {
     #[test]
     fn module_to_role_binding() {
         let module = create_module_spec();
+        let module_owner = create_module_owner();
 
-        let (name, role_binding) = spec_to_role_binding(&make_settings(None), &module).unwrap();
+        let (name, role_binding) =
+            spec_to_role_binding(&make_settings(None), &module, &module_owner).unwrap();
         assert_eq!(name, "edgeagent");
         assert!(role_binding.metadata.is_some());
         if let Some(metadata) = role_binding.metadata {

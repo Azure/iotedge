@@ -41,3 +41,11 @@ pub mod env {
 
     pub const EDGE_NETWORK_ID_KEY: &str = "NetworkId";
 }
+
+pub const EDGE_OBJECT_OWNER_API_VERSION: &str = "EdgeK8sObjectOwnerApiVersion";
+
+pub const EDGE_OBJECT_OWNER_KIND: &str = "EdgeK8sObjectOwnerKind";
+
+pub const EDGE_OBJECT_OWNER_NAME: &str = "EdgeK8sObjectOwnerName";
+
+pub const EDGE_OBJECT_OWNER_UID: &str = "EdgeK8sObjectOwnerUid";

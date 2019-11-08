@@ -66,6 +66,9 @@ pub enum ErrorKind {
 
     #[fail(display = "An error occurred obtaining the client identity certificate")]
     IdentityCertificate,
+
+    #[fail(display = "Kubernetes object metadata is missing")]
+    MissingMetadata,
 }
 
 #[derive(Clone, Debug, PartialEq)]
