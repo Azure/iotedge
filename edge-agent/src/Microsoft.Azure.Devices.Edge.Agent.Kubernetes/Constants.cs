@@ -49,6 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public const string ProxyImageEnvKey = "ProxyImage";
 
+        public const string ProxyImagePullSecretNameEnvKey = "ProxyImagePullSecretName";
+
         public const string ProxyConfigPathEnvKey = "ProxyConfigPath";
 
         public const string ProxyConfigVolumeEnvKey = "ProxyConfigVolume";
