@@ -2,7 +2,7 @@
 
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-#![allow(clippy::similar_names, clippy::too_many_lines)]
+#![allow(clippy::too_many_lines, clippy::similar_names)]
 
 use std::borrow::Cow;
 use std::convert::TryInto;
@@ -37,7 +37,6 @@ fn main() {
     }
 }
 
-#[allow(clippy::too_many_lines)]
 fn run() -> Result<(), Error> {
     let (default_mgmt_uri, default_config_path, default_container_engine_config_path) =
         if cfg!(windows) {
