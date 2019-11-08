@@ -10,7 +10,7 @@ namespace Analyzer
     {
         const string ExcludeModulesIdsPropertyName = "ExcludeModules:Ids";
         const string EventHubConnectionStringPropertyValue = "eventHubConnectionString";
-        const string DeviceIdPropertyName = "DeviceId";
+        const string DeviceIdPropertyName = "IOTEDGE_DEVICEID";
         const string ConsumerGroupIdPropertyName = "ConsumerGroupId";
         const string WebhostPortPropertyName = "WebhostPort";
         const string ToleranceInMillisecondsPropertyName = "ToleranceInMilliseconds";
@@ -20,7 +20,7 @@ namespace Analyzer
         const string DefaultWebhostPort = "5001";
         const double DefaultToleranceInMilliseconds = 1000 * 60;
         const string DefaultStoragePath = "";
-        static readonly string DefaultDeviceId = Environment.GetEnvironmentVariable("IOTEDGE_DEVICEID");
+        static readonly string DefaultDeviceId = "Device1";
 
         static readonly Lazy<Settings> Setting = new Lazy<Settings>(
             () =>
