@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.DeviceManager;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -48,6 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
         public Task UpdateAndStartModuleAsync(ModuleSpec moduleSpec) => this.inner.UpdateAndStartModuleAsync(moduleSpec);
 
         public Task<SystemInfo> GetSystemInfoAsync() => this.inner.GetSystemInfoAsync();
+
+        public Task<SystemResources> GetSystemResourcesAsync() => this.inner.GetSystemResourcesAsync();
 
         public Task<IEnumerable<ModuleRuntimeInfo>> GetModules<T>(CancellationToken token) => this.inner.GetModules<T>(token);
 

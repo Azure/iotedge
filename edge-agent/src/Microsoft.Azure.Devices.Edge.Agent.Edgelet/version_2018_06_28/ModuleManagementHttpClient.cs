@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2018_06_28
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2018_06_28.GeneratedCode;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -187,9 +188,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2018_06_28
             return Task.CompletedTask;
         }
 
-        public override Task<Version_2019_11_05.GeneratedCode.SystemResources> GetSystemResourcesAsync()
+        public override Task<SystemResources> GetSystemResourcesAsync()
         {
-            return Task.FromResult<Version_2019_11_05.GeneratedCode.SystemResources>(null);
+            return Task.FromResult<SystemResources>(null);
         }
 
         protected override void HandleException(Exception exception, string operation)

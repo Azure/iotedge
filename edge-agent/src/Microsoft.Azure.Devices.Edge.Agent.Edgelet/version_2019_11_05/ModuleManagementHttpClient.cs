@@ -16,9 +16,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_11_05
     using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Newtonsoft.Json.Linq;
+    using Disk = Microsoft.Azure.Devices.Edge.Agent.Core.Metrics.Disk;
     using Identity = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.Identity;
     using ModuleSpec = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.ModuleSpec;
     using SystemInfo = Microsoft.Azure.Devices.Edge.Agent.Core.SystemInfo;
+    using SystemResources = Microsoft.Azure.Devices.Edge.Agent.Core.Metrics.SystemResources;
 
     class ModuleManagementHttpClient : ModuleManagementHttpClientVersioned
     {
@@ -137,7 +139,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_11_05
                 GeneratedCode.SystemResources systemResources = await this.Execute(
                     () => edgeletHttpClient.GetSystemResourcesAsync(this.Version.Name),
                     "Getting System Info");
-                return systemResources;
+
+                return new SystemResources(systemResources.Used_ram, systemResources.Total_ram, systemResources.Disk.Select(d => new Disk(d.Name, d.Available_space, d.Total_space, d.File_system, d.File_type)).ToArray());
             }
         }
 
