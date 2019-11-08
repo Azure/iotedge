@@ -41,12 +41,12 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
             return instance;
         }
 
-        public async void PostAsync(string workspaceId, string sharedKey, string content, string LogType)
+        public async void PostAsync(string workspaceId, string sharedKey, string content, string logType)
         {
             Preconditions.CheckNotNull(workspaceId, "Log Analytic workspace ID cannot be empty.");
             Preconditions.CheckNotNull(sharedKey, "Log Analytic shared key cannot be empty.");
-            Preconditions.CheckNotNull(sharedKey, "Log Analytic content cannot be empty.");
-            Preconditions.CheckNotNull(sharedKey, "Log Analytic log type cannot be empty.");
+            Preconditions.CheckNotNull(content, "Log Analytic content cannot be empty.");
+            Preconditions.CheckNotNull(logType, "Log Analytic log type cannot be empty.");
 
             const string apiVersion = "2016-04-01";
 
@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
                 var client = new HttpClient();
                 client.DefaultRequestHeaders.Add("Authorization", signature);
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
-                client.DefaultRequestHeaders.Add("Log-Type", LogType);
+                client.DefaultRequestHeaders.Add("Log-Type", logType);
                 client.DefaultRequestHeaders.Add("x-ms-date", dateString);
 
                 var contentMsg = new StringContent(content, Encoding.UTF8);
