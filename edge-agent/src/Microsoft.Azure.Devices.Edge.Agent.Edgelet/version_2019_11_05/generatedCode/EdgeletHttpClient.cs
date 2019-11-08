@@ -1687,10 +1687,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_11_05.Generate
         public System.Collections.Generic.ICollection<Disk> Disk { get; set; } = new System.Collections.ObjectModel.Collection<Disk>();
 
         [Newtonsoft.Json.JsonProperty("used_ram", Required = Newtonsoft.Json.Required.Always)]
-        public double Used_ram { get; set; }
+        public long Used_ram { get; set; }
 
         [Newtonsoft.Json.JsonProperty("total_ram", Required = Newtonsoft.Json.Required.Always)]
-        public double Total_ram { get; set; }
+        public long Total_ram { get; set; }
 
 
     }
@@ -1702,10 +1702,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_11_05.Generate
         public string Name { get; set; }
 
         [Newtonsoft.Json.JsonProperty("available_space", Required = Newtonsoft.Json.Required.Always)]
-        public double Available_space { get; set; }
+        public long Available_space { get; set; }
 
         [Newtonsoft.Json.JsonProperty("total_space", Required = Newtonsoft.Json.Required.Always)]
-        public double Total_space { get; set; }
+        public long Total_space { get; set; }
 
         [Newtonsoft.Json.JsonProperty("file_system", Required = Newtonsoft.Json.Required.Always)]
         public string File_system { get; set; }
