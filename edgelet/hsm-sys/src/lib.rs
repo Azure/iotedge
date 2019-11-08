@@ -555,7 +555,6 @@ impl Default for HSM_CLIENT_TPM_INTERFACE_TAG {
 }
 
 #[test]
-#[allow(clippy::too_many_lines)]
 fn bindgen_test_layout_HSM_CLIENT_TPM_INTERFACE_TAG() {
     assert_eq!(
         ::std::mem::size_of::<HSM_CLIENT_TPM_INTERFACE_TAG>(),
@@ -704,7 +703,6 @@ impl Default for HSM_CLIENT_X509_INTERFACE_TAG {
 }
 
 #[test]
-#[allow(clippy::too_many_lines)]
 fn bindgen_test_layout_HSM_CLIENT_X509_INTERFACE_TAG() {
     assert_eq!(
         ::std::mem::size_of::<HSM_CLIENT_X509_INTERFACE_TAG>(),

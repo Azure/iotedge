@@ -287,7 +287,7 @@ pub trait HyperExt {
 }
 
 // This variable is used on Unix but not Windows
-#[allow(unused_variables, clippy::too_many_lines)]
+#[allow(unused_variables)]
 impl HyperExt for Http {
     fn bind_url<C, S>(
         &self,
