@@ -37,11 +37,6 @@ namespace DevOpsLib
                     jsonPath = resolver.GetResolvedPropertyName(jsonPath);
                 }
 
-                if (!Regex.IsMatch(jsonPath, @"^[a-zA-Z0-9_.-]+$"))
-                {
-                    throw new InvalidOperationException($"JProperties of JsonPathConverter can have only letters, numbers, underscores, dots and dash but name was ${jsonPath}."); // Array operations not permitted
-                }
-
                 JToken token = jo.SelectToken(jsonPath);
 
                 if (token != null && token.Type != JTokenType.Null)
