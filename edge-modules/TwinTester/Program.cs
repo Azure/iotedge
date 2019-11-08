@@ -219,6 +219,7 @@ namespace TwinTester
             try
             {
                 receivedTwin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
+                currentTwinETag = receivedTwin.ETag;
             }
             catch (Exception e)
             {
