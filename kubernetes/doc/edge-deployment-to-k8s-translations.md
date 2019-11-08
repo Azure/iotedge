@@ -1,30 +1,44 @@
 # Conversion of Edge Deployment ModuleSpec to Kubernetes Deployments.
 
-Azure IoT Edge on Kubernetes project will take an existing Azure IoT Edge application that is 
-running on a single device and install that application into a Kubernetes cluster.  The expectation 
-is that these applications will "just work," regardless of where it is installed.  In order to do 
-that, Edge on K8s has to transform the edge deployment into Kubernetes objects which 
-will support module-module communication. 
+Azure IoT Edge was originally designed for running on a standalone system. Now with Edge on 
+Kubernetes, Azure IoT Edge supports deployments of IoT Edge devices on a Kubernetes cluster. 
+The expectation is that these edge deployments running on a single node will "just work" 
+when installed in a Kubernetes cluster.  In order to do that, Edge on K8s has to transform the edge 
+deployment into Kubernetes objects which will support module-module communication. 
 
-Existing Edge Deployments running on a single device specify module setting via the [Docker 
+Existing edge deployments running on a single system specify some module settings via the [Docker 
 ContainerCreate structure](https://docs.docker.com/engine/api/v1.40/#operation/ContainerCreate). 
-This means Edge on K8s will need to translate Edge device and module configuration based 
+This means Edge on K8s will need to translate IoT Edge device and module configuration based 
 on these settings. This document will describe which values are used from the module specification 
 and how they are transformed into Kubernetes objects.
 
-The application will create Deployments, Services, ImagePullSecrets, PersistentVolumeClaims, and 
-ServiceAccounts to establish this framework.
+Edge on K8s will create Namespaces, Deployments, Services, ImagePullSecrets, 
+PersistentVolumeClaims, and ServiceAccounts to establish this framework.
 The Edge Docker to K8s object mappings will be described in detail in subsequent sections.
 
-## Deployment
+## Namespaces
 
-Each Edge Module will create one Deployment. 
+Edge on K8s is intended to be installed in a namespace - the `default` namespace is not recommended. 
+The Azure IoT Edge runtime will be installed in that namespace, and there is a 1 to 1 relationship 
+between that namespace and the edge device. Two device may not be installed in the same namespace, 
+but there may be multiple namespaces in the cluster running Edge on K8s. At installation, if the 
+namespace doesn't exist, it will be created. All objects created by Edge on K8s will be 
+namespaced.
 
-There will be a default label set used throughout the deployment. Three labels assigned to every 
-object, all values will be sanitized to be a K8S label value:
+## Common labels
+
+There will be a default label set used on most created objects in Edge on K8s deployment. Three 
+labels are put into object metadata:
 - **net.azure-devices.edge.module** = module name
 - **net.azure-devices.edge.deviceid** = device id
 - **net.azure-devices.edge.hub** = associated IoT Hub name.
+
+All values will be sanitized to be a K8S label value.  For example, "edgeHub" will be transformed 
+to "edgehub".
+
+## Deployment
+
+Each Edge Module will create one Deployment. This will run the module's specified container image.
 
 ### metadata
 
