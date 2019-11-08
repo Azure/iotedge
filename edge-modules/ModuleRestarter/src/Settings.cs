@@ -35,8 +35,8 @@ namespace ModuleRestarter
             string desiredModulesToRestartCSV,
             int restartIntervalInMins)
         {
-            this.ServiceClientConnectionString = Preconditions.CheckNonWhiteSpace(serviceClientConnectionString, "ServiceClientConnectionString");
-            this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, "DeviceId");
+            this.ServiceClientConnectionString = Preconditions.CheckNonWhiteSpace(serviceClientConnectionString, nameof(serviceClientConnectionString));
+            this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.RestartIntervalInMins = Preconditions.CheckRange(restartIntervalInMins, 0);
 
             // mitigate unintended repeated commas
