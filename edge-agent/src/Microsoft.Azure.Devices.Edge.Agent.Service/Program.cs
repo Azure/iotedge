@@ -227,10 +227,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                             closeOnIdleTimeout,
                             idleTimeout,
                             kubernetesExperimentalFeatures,
-                            edgeK8sObjectOwnerApiVersion,
-                            edgeK8sObjectOwnerKind,
-                            edgeK8sObjectOwnerName,
-                            edgeK8sObjectOwnerUid));
+                            new KubernetesModuleOwner(
+                                edgeK8sObjectOwnerApiVersion,
+                                edgeK8sObjectOwnerKind,
+                                edgeK8sObjectOwnerName,
+                                edgeK8sObjectOwnerUid)));
 
                         break;
 

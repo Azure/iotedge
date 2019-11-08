@@ -69,8 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service
                         apiVersion: module.Owner.ApiVersion,
                         kind: module.Owner.Kind,
                         name: module.Owner.Name,
-                        uid: module.Owner.Uid,
-                        blockOwnerDeletion: true)
+                        uid: module.Owner.Uid)
                 };
 
                 var objectMeta = new V1ObjectMeta(annotations: annotations, labels: labels, name: name, ownerReferences: ownerReferences);

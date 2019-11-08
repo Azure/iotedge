@@ -22,8 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.ServiceAc
                     apiVersion: module.Owner.ApiVersion,
                     kind: module.Owner.Kind,
                     name: module.Owner.Name,
-                    uid: module.Owner.Uid,
-                    blockOwnerDeletion: true)
+                    uid: module.Owner.Uid)
             };
             var metadata = new V1ObjectMeta(annotations, name: name, labels: labels, ownerReferences: ownerReferences);
             return new V1ServiceAccount(metadata: metadata);

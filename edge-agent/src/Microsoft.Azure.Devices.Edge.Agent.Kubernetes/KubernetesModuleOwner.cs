@@ -18,10 +18,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         [JsonProperty(PropertyName = "apiVersion")]
         public string ApiVersion { get; }
+
         [JsonProperty(PropertyName = "kind")]
         public string Kind { get; }
+
         [JsonProperty(PropertyName = "name")]
         public string Name { get; }
+
         [JsonProperty(PropertyName = "uid")]
         public string Uid { get; }
     }

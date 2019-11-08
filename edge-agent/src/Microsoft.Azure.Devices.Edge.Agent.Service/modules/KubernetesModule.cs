@@ -59,10 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan idleTimeout;
         readonly KubernetesExperimentalFeatures experimentalFeatures;
-        readonly string edgeK8sObjectOwnerApiVersion;
-        readonly string edgeK8sObjectOwnerKind;
-        readonly string edgeK8sObjectOwnerName;
-        readonly string edgeK8sObjectOwnerUid;
+        readonly KubernetesModuleOwner moduleOwner;
 
         public KubernetesModule(
             string iotHubHostname,
@@ -92,10 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout,
             KubernetesExperimentalFeatures experimentalFeatures,
-            string edgeK8sObjectOwnerApiVersion,
-            string edgeK8sObjectOwnerKind,
-            string edgeK8sObjectOwnerName,
-            string edgeK8sObjectOwnerUid)
+            KubernetesModuleOwner moduleOwner)
         {
             this.resourceName = new ResourceName(iotHubHostname, deviceId);
             this.edgeDeviceHostName = Preconditions.CheckNonWhiteSpace(edgeDeviceHostName, nameof(edgeDeviceHostName));
@@ -123,10 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.idleTimeout = idleTimeout;
             this.experimentalFeatures = experimentalFeatures;
-            this.edgeK8sObjectOwnerApiVersion = edgeK8sObjectOwnerApiVersion;
-            this.edgeK8sObjectOwnerKind = edgeK8sObjectOwnerKind;
-            this.edgeK8sObjectOwnerName = edgeK8sObjectOwnerName;
-            this.edgeK8sObjectOwnerUid = edgeK8sObjectOwnerUid;
+            this.moduleOwner = moduleOwner;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -217,11 +208,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                                     c.Resolve<IKubernetes>(),
                                     commandFactory,
                                     configProvider,
-                                    new KubernetesModuleOwner(
-                                        this.edgeK8sObjectOwnerApiVersion,
-                                        this.edgeK8sObjectOwnerKind,
-                                        this.edgeK8sObjectOwnerName,
-                                        this.edgeK8sObjectOwnerUid));
+                                    this.moduleOwner);
                         return planner;
                     })
                 .As<Task<IPlanner>>()

@@ -87,8 +87,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                         apiVersion: this.moduleOwner.ApiVersion,
                         kind: this.moduleOwner.Kind,
                         name: this.moduleOwner.Name,
-                        uid: this.moduleOwner.Uid,
-                        blockOwnerDeletion: true)
+                        uid: this.moduleOwner.Uid)
                 };
                 var secretMeta = new V1ObjectMeta(name: imagePullSecret.Name, namespaceProperty: this.deviceNamespace, ownerReferences: ownerReferences);
                 var secretData = new Dictionary<string, byte[]> { [Constants.K8sPullSecretData] = Encoding.UTF8.GetBytes(imagePullSecret.GenerateSecret()) };
