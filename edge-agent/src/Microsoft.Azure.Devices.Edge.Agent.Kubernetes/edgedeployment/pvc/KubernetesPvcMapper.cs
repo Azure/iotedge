@@ -43,8 +43,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
 
         V1PersistentVolumeClaim ExtractPvc(KubernetesModule module, Mount mount, IDictionary<string, string> labels)
         {
-            string volumeName = KubernetesModule.PvcName(module, mount);
+            string volumeName = KubeUtils.SanitizeK8sValue(mount.Source);
+            string pvcName = KubernetesModule.PvcName(module, mount);
             bool readOnly = mount.ReadOnly;
+
             var persistentVolumeClaimSpec = new V1PersistentVolumeClaimSpec()
             {
                 // What happens if the PV access mode is not compatible with the access we're requesting?
@@ -57,17 +59,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
                 },
             };
 
-            // prefer persistent volume name to storage class name, if both are set.
-            if (this.persistentVolumeName.HasValue)
-            {
-                persistentVolumeClaimSpec.VolumeName = this.persistentVolumeName.OrDefault();
-            }
-            else if (this.storageClassName.HasValue)
+            // It is expected to specify the volume name for the mount to be used
+            persistentVolumeClaimSpec.VolumeName = volumeName;
+
+            if (this.storageClassName.HasValue)
             {
                 persistentVolumeClaimSpec.StorageClassName = this.storageClassName.OrDefault();
             }
 
-            return new V1PersistentVolumeClaim(metadata: new V1ObjectMeta(name: volumeName, labels: labels), spec: persistentVolumeClaimSpec);
+            return new V1PersistentVolumeClaim(metadata: new V1ObjectMeta(name: pvcName, labels: labels), spec: persistentVolumeClaimSpec);
         }
 
         public void UpdatePersistentVolumeClaim(V1PersistentVolumeClaim to, V1PersistentVolumeClaim from)

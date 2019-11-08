@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
     using Serilog.Events;
+    using Serilog.Sinks.SystemConsole.Themes;
     using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
     using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
     using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
@@ -322,12 +323,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             // Volume name will be customer defined name or modulename + mount.source
             if (this.persistentVolumeName.HasValue)
             {
-                volumeName = this.persistentVolumeName.OrDefault();
+                var volumeNameTmp = this.persistentVolumeName.OrDefault();
+
+                if (volumeNameTmp != volumeName)
+                {
+                    throw new InvalidModuleException(string.Format("The mount name {0} has to be the same as the PV name {1}", volumeName, volumeNameTmp));
+                }
+
                 return new V1Volume(volumeName, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(pvcName, mount.ReadOnly));
             }
             else if (this.storageClassName.HasValue)
             {
-                return new V1Volume(pvcName, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(pvcName, mount.ReadOnly));
+                return new V1Volume(volumeName, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(pvcName, mount.ReadOnly));
             }
             else
             {
