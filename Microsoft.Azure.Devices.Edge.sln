@@ -154,7 +154,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edg
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "load-gen", "edge-modules\load-gen\load-gen.csproj", "{54771470-860C-4853-9318-6DB4EA76B595}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MessagesAnalyzer", "edge-modules\MessagesAnalyzer\MessagesAnalyzer.csproj", "{047DC795-A159-4BFF-AC0F-4DCE51A79C2C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Analyzer", "edge-modules\Analyzer\Analyzer.csproj", "{047DC795-A159-4BFF-AC0F-4DCE51A79C2C}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LeafDevice", "smoke\LeafDevice\LeafDevice.csproj", "{C5CBC493-96A4-4628-A952-8C7B9EEF1441}"
 EndProject
