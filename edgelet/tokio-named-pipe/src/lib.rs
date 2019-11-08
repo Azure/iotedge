@@ -3,7 +3,7 @@
 #![cfg(windows)]
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-#![allow(clippy::use_self)]
+#![allow(clippy::too_many_lines, clippy::use_self)]
 
 use std::convert::AsRef;
 use std::fs::OpenOptions;
