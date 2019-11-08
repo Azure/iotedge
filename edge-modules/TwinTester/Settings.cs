@@ -4,6 +4,7 @@ namespace TwinTester
     using System;
     using System.IO;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Converters;
@@ -30,8 +31,8 @@ namespace TwinTester
                     configuration.GetValue<TimeSpan>("TwinUpdateFailureThreshold", TimeSpan.FromMinutes(1)), // TODO: tune
                     configuration.GetValue<TransportType>("TransportType", TransportType.Amqp_Tcp_Only),
                     configuration.GetValue<string>("AnalyzerUrl", "http://analyzer:15000"),
-                    configuration.GetValue<string>("ServiceClientConnectionString", string.Empty),
-                    configuration.GetValue<string>("StoragePath", string.Empty),
+                    configuration.GetValue<string>("ServiceClientConnectionString"),
+                    configuration.GetValue<string>("StoragePath"),
                     configuration.GetValue<bool>("StorageOptimizeForPerformance", true));
             });
 
@@ -48,16 +49,16 @@ namespace TwinTester
             string storagePath,
             bool storageOptimizeForPerformance)
         {
-            this.DeviceId = deviceId;
-            this.ModuleId = moduleId;
-            this.TwinUpdateCharCount = twinUpdateCharCount;
-            this.TwinUpdateFrequency = twinUpdateFrequency;
-            this.TwinUpdateFailureThreshold = twinUpdateFailureThreshold;
-            this.TransportType = transportType;
-            this.AnalyzerUrl = analyzerUrl;
-            this.ServiceClientConnectionString = serviceClientConnectionString;
-            this.StoragePath = storagePath;
-            this.StorageOptimizeForPerformance = storageOptimizeForPerformance;
+            this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
+            this.TwinUpdateCharCount = Preconditions.CheckRange(twinUpdateCharCount, 0);
+            this.TwinUpdateFrequency = Preconditions.CheckIsDefined(twinUpdateFrequency);
+            this.TwinUpdateFailureThreshold = Preconditions.CheckIsDefined(twinUpdateFailureThreshold);
+            this.TransportType = Preconditions.CheckIsDefined(transportType);
+            this.AnalyzerUrl = Preconditions.CheckNonWhiteSpace(analyzerUrl, nameof(analyzerUrl));
+            this.ServiceClientConnectionString = Preconditions.CheckNonWhiteSpace(serviceClientConnectionString, nameof(serviceClientConnectionString));
+            this.StoragePath = Preconditions.CheckNonWhiteSpace(storagePath, nameof(storagePath));
+            this.StorageOptimizeForPerformance = Preconditions.CheckIsDefined(storageOptimizeForPerformance);
         }
 
         public static Settings Current => DefaultSettings.Value;
