@@ -41,11 +41,11 @@ namespace MessagesAnalyzer
 
         Settings(string eventHubConnectionString, string consumerGroupId, string deviceId, IList<string> excludedModuleIds, string webhostPort, double tolerance)
         {
-            this.EventHubConnectionString = Preconditions.CheckNonWhiteSpace(eventHubConnectionString, "eventHubConnectionString");
-            this.ConsumerGroupId = Preconditions.CheckNonWhiteSpace(consumerGroupId, "consumerGroupId");
+            this.EventHubConnectionString = Preconditions.CheckNonWhiteSpace(eventHubConnectionString, nameof(eventHubConnectionString));
+            this.ConsumerGroupId = Preconditions.CheckNonWhiteSpace(consumerGroupId, nameof(consumerGroupId));
             this.ExcludedModuleIds = excludedModuleIds;
-            this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, "deviceId");
-            this.WebhostPort = Preconditions.CheckNonWhiteSpace(webhostPort, "webhostPort");
+            this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            this.WebhostPort = Preconditions.CheckNonWhiteSpace(webhostPort, nameof(webhostPort));
             this.ToleranceInMilliseconds = Preconditions.CheckRange(tolerance, 0);
         }
 
