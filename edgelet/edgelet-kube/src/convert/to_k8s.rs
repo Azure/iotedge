@@ -56,19 +56,24 @@ fn spec_to_podspec(
         })
         .collect();
 
+    let proxy_pull_secret = settings
+        .proxy()
+        .auth()
+        .and_then(|auth| ImagePullSecret::from_auth(auth).and_then(|secret| secret.name()));
+
     if EDGE_EDGE_AGENT_NAME == module_label_value {
         env_vars.push(env(EDGE_NETWORK_ID_KEY, ""));
         env_vars.push(env(NAMESPACE_KEY, settings.namespace()));
-        env_vars.push(env(PROXY_IMAGE_KEY, settings.proxy_image()));
+        env_vars.push(env(PROXY_IMAGE_KEY, settings.proxy().image()));
         env_vars.push(env(PROXY_CONFIG_VOLUME_KEY, PROXY_CONFIG_VOLUME_NAME));
         env_vars.push(env(
             PROXY_CONFIG_MAP_NAME_KEY,
-            settings.proxy_config_map_name(),
+            settings.proxy().config_map_name(),
         ));
-        env_vars.push(env(PROXY_CONFIG_PATH_KEY, settings.proxy_config_path()));
+        env_vars.push(env(PROXY_CONFIG_PATH_KEY, settings.proxy().config_path()));
         env_vars.push(env(
             PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME_KEY,
-            settings.proxy_trust_bundle_config_map_name(),
+            settings.proxy().trust_bundle_config_map_name(),
         ));
         env_vars.push(env(
             PROXY_TRUST_BUNDLE_VOLUME_KEY,
@@ -76,14 +81,18 @@ fn spec_to_podspec(
         ));
         env_vars.push(env(
             PROXY_TRUST_BUNDLE_PATH_KEY,
-            settings.proxy_trust_bundle_path(),
+            settings.proxy().trust_bundle_path(),
         ));
+
+        if let Some(proxy_pull_secret) = &proxy_pull_secret {
+            env_vars.push(env(PROXY_IMAGE_PULL_SECRET_NAME_KEY, proxy_pull_secret))
+        }
     }
 
     // Bind/volume mounts
     // ConfigMap volume name is fixed: "config-volume"
     let proxy_config_volume_source = api_core::ConfigMapVolumeSource {
-        name: Some(settings.proxy_config_map_name().to_string()),
+        name: Some(settings.proxy().config_map_name().to_string()),
         ..api_core::ConfigMapVolumeSource::default()
     };
     // Volume entry for proxy's config map
@@ -95,7 +104,7 @@ fn spec_to_podspec(
 
     // trust bundle ConfigMap volume name is fixed: "trust-bundle-volume"
     let trust_bundle_config_volume_source = api_core::ConfigMapVolumeSource {
-        name: Some(settings.proxy_trust_bundle_config_map_name().to_string()),
+        name: Some(settings.proxy().trust_bundle_config_map_name().to_string()),
         ..api_core::ConfigMapVolumeSource::default()
     };
     // Volume entry for proxy's trust bundle config map
@@ -109,7 +118,7 @@ fn spec_to_podspec(
 
     // Where to mount proxy config map
     let proxy_volume_mount = api_core::VolumeMount {
-        mount_path: settings.proxy_config_path().to_string(),
+        mount_path: settings.proxy().config_path().to_string(),
         name: PROXY_CONFIG_VOLUME_NAME.to_string(),
         read_only: Some(true),
         ..api_core::VolumeMount::default()
@@ -117,7 +126,7 @@ fn spec_to_podspec(
 
     // Where to mount proxy trust bundle config map
     let trust_bundle_volume_mount = api_core::VolumeMount {
-        mount_path: settings.proxy_trust_bundle_path().to_string(),
+        mount_path: settings.proxy().trust_bundle_path().to_string(),
         name: PROXY_TRUST_BUNDLE_VOLUME_NAME.to_string(),
         read_only: Some(true),
         ..api_core::VolumeMount::default()
@@ -233,16 +242,16 @@ fn spec_to_podspec(
         }
     };
 
-    //pull secrets
-    let image_pull_secrets = spec
+    let module_pull_secret = spec
         .config()
         .auth()
-        .and_then(|auth| ImagePullSecret::from_auth(&auth))
-        .map(|image_pull_secret| {
-            vec![api_core::LocalObjectReference {
-                name: image_pull_secret.name(),
-            }]
-        });
+        .and_then(|auth| ImagePullSecret::from_auth(&auth).and_then(|secret| secret.name()));
+
+    //pull secrets
+    let image_pull_secrets = vec![proxy_pull_secret, module_pull_secret]
+        .into_iter()
+        .filter_map(|name| name.map(|name| api_core::LocalObjectReference { name: Some(name) }))
+        .collect::<Vec<_>>();
 
     Ok(api_core::PodSpec {
         containers: vec![
@@ -251,7 +260,7 @@ fn spec_to_podspec(
                 name: module_label_value.clone(),
                 env: Some(env_vars.clone()),
                 image: Some(module_image),
-                image_pull_policy: Some(settings.image_pull_policy().to_string()),
+                image_pull_policy: Some(settings.proxy().image_pull_policy().to_string()), //todo user edgeagent imagepullpolicy instead
                 security_context: security,
                 volume_mounts: Some(volume_mounts),
                 ..api_core::Container::default()
@@ -260,13 +269,17 @@ fn spec_to_podspec(
             api_core::Container {
                 name: PROXY_CONTAINER_NAME.to_string(),
                 env: Some(env_vars),
-                image: Some(settings.proxy_image().to_string()),
-                image_pull_policy: Some(settings.image_pull_policy().to_string()),
+                image: Some(settings.proxy().image().to_string()),
+                image_pull_policy: Some(settings.proxy().image_pull_policy().to_string()),
                 volume_mounts: Some(proxy_volume_mounts),
                 ..api_core::Container::default()
             },
         ],
-        image_pull_secrets,
+        image_pull_secrets: if image_pull_secrets.is_empty() {
+            None
+        } else {
+            Some(image_pull_secrets)
+        },
         service_account_name: Some(module_label_value),
         volumes: Some(volumes),
         ..api_core::PodSpec::default()
@@ -464,7 +477,7 @@ pub fn trust_bundle_to_config_map(
 
     let mut data = BTreeMap::new();
     data.insert(PROXY_TRUST_BUNDLE_FILENAME.to_string(), cert.to_string());
-    let config_map_name = settings.proxy_trust_bundle_config_map_name().to_string();
+    let config_map_name = settings.proxy().trust_bundle_config_map_name().to_string();
 
     let config_map = api_core::ConfigMap {
         metadata: Some(api_meta::ObjectMeta {
@@ -618,6 +631,13 @@ mod tests {
                 }
                 assert_eq!(podspec.service_account_name.as_ref().unwrap(), "edgeagent");
                 assert!(podspec.image_pull_secrets.is_some());
+                if let Some(image_pull_secrets) = &podspec.image_pull_secrets {
+                    assert_eq!(image_pull_secrets.len(), 1);
+                    assert_eq!(
+                        image_pull_secrets[0].name,
+                        Some("username-registry".to_string())
+                    );
+                }
                 // 4 bind mounts, 2 volume mounts, 1 proxy configmap, 1 trust bundle configmap
                 assert_eq!(podspec.volumes.as_ref().map(Vec::len).unwrap(), 8);
             }

@@ -36,6 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly ResourceName resourceName;
         readonly string edgeDeviceHostName;
         readonly string proxyImage;
+        readonly Option<string> proxyImagePullSecretName;
         readonly string proxyConfigPath;
         readonly string proxyConfigVolumeName;
         readonly string proxyConfigMapName;
@@ -62,9 +63,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         public KubernetesModule(
             string iotHubHostname,
             string deviceId,
-            string networkId,
             string edgeDeviceHostName,
             string proxyImage,
+            Option<string> proxyImagePullSecretName,
             string proxyConfigPath,
             string proxyConfigVolumeName,
             string proxyConfigMapName,
@@ -91,6 +92,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.resourceName = new ResourceName(iotHubHostname, deviceId);
             this.edgeDeviceHostName = Preconditions.CheckNonWhiteSpace(edgeDeviceHostName, nameof(edgeDeviceHostName));
             this.proxyImage = Preconditions.CheckNonWhiteSpace(proxyImage, nameof(proxyImage));
+            this.proxyImagePullSecretName = proxyImagePullSecretName;
             this.proxyConfigPath = Preconditions.CheckNonWhiteSpace(proxyConfigPath, nameof(proxyConfigPath));
             this.proxyConfigVolumeName = Preconditions.CheckNonWhiteSpace(proxyConfigVolumeName, nameof(proxyConfigVolumeName));
             this.proxyConfigMapName = Preconditions.CheckNonWhiteSpace(proxyConfigMapName, nameof(proxyConfigMapName));
@@ -215,6 +217,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             this.deviceNamespace,
                             this.edgeDeviceHostName,
                             this.proxyImage,
+                            this.proxyImagePullSecretName,
                             this.proxyConfigPath,
                             this.proxyConfigVolumeName,
                             this.proxyConfigMapName,
