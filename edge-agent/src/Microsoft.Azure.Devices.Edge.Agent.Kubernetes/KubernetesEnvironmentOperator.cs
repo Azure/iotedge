@@ -75,24 +75,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         void HandlePodChangedAsync(WatchEventType type, V1Pod pod)
         {
             // if the pod doesn't have the module label set then we are not interested in it
-            if (!pod.Metadata.Labels.TryGetValue(Constants.K8sEdgeModuleLabel, out string podName))
+            if (!pod.Metadata.Labels.ContainsKey(Constants.K8sEdgeModuleLabel))
             {
                 return;
             }
 
-            Events.PodStatus(type, podName);
+            Events.PodStatus(type, pod);
             switch (type)
             {
                 case WatchEventType.Added:
                 case WatchEventType.Modified:
                 case WatchEventType.Error:
-                    this.moduleStatusSource.CreateOrUpdateAddPodInfo(podName, pod);
+                    this.moduleStatusSource.CreateOrUpdateAddPodInfo(pod);
                     break;
 
                 case WatchEventType.Deleted:
-                    if (!this.moduleStatusSource.RemovePodInfo(podName))
+                    if (!this.moduleStatusSource.RemovePodInfo(pod))
                     {
-                        Events.PodStatusRemoveError(podName);
+                        Events.PodStatusRemoveError(pod);
                     }
 
                     break;
@@ -121,14 +121,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             Log.LogError((int)EventIds.WatchFailed, ex, "Exception caught in Pod Watch task.");
         }
 
-        public static void PodStatus(WatchEventType type, string name)
+        public static void PodStatus(WatchEventType type, V1Pod pod)
         {
-            Log.LogDebug((int)EventIds.PodStatus, $"Pod '{name}', status'{type}'");
+            Log.LogDebug((int)EventIds.PodStatus, $"Pod '{pod.Metadata.Name}', status'{type}'");
         }
 
-        public static void PodStatusRemoveError(string name)
+        public static void PodStatusRemoveError(V1Pod pod)
         {
-            Log.LogWarning((int)EventIds.PodStatusRemoveError, $"Notified of pod {name} deleted, but not removed from our pod list");
+            Log.LogWarning((int)EventIds.PodStatusRemoveError, $"Notified of pod {pod.Metadata.Name} deleted, but not removed from our pod list");
         }
 
         public static void PodWatchClosed()
