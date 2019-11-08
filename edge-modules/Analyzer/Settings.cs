@@ -20,7 +20,6 @@ namespace Analyzer
         const string DefaultWebhostPort = "5001";
         const double DefaultToleranceInMilliseconds = 1000 * 60;
         const string DefaultStoragePath = "";
-        static readonly string DefaultDeviceId = "Device1";
 
         static readonly Lazy<Settings> Setting = new Lazy<Settings>(
             () =>
@@ -36,7 +35,7 @@ namespace Analyzer
                 return new Settings(
                     configuration.GetValue<string>(EventHubConnectionStringPropertyValue),
                     configuration.GetValue(ConsumerGroupIdPropertyName, DefaultConsumerGroupId),
-                    configuration.GetValue(DeviceIdPropertyName, DefaultDeviceId),
+                    configuration.GetValue(DeviceIdPropertyName, string.Empty),
                     excludedModules,
                     configuration.GetValue(WebhostPortPropertyName, DefaultWebhostPort),
                     configuration.GetValue(ToleranceInMillisecondsPropertyName, DefaultToleranceInMilliseconds),
