@@ -5,7 +5,7 @@
 #![allow(
     clippy::module_name_repetitions,
     clippy::type_complexity,
-    clippy::use_self, 
+    clippy::use_self,
     clippy::too_many_lines
 )]
 
