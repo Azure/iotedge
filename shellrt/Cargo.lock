@@ -1764,6 +1764,7 @@ dependencies = [
  "bytes",
  "containerd-grpc",
  "containrs",
+ "cri-grpc",
  "failure",
  "futures-preview",
  "lazy_static",

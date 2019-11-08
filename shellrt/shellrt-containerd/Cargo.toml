@@ -7,6 +7,7 @@ edition = "2018"
 [dependencies]
 containerd-grpc = { path = "../containerd-grpc" }
 containrs = { path = "../../containrs/containrs" }
+cri-grpc = { path = "../cri-grpc" }
 
 shellrt-api = { path = "../shellrt-api" }
 

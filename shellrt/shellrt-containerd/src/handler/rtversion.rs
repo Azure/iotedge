@@ -17,9 +17,8 @@ impl RuntimeVersionHandler {
             .await
             .context(ErrorKind::GrpcConnect)?;
 
-        let grpc_req = tonic::Request::new(());
         let grpc_res = client
-            .version(grpc_req)
+            .version(())
             .await
             .context(ErrorKind::GrpcUnexpectedErr)?
             .into_inner();

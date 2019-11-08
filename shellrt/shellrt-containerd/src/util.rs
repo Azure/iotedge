@@ -3,9 +3,8 @@ use tonic::metadata::AsciiMetadataValue;
 use tonic::Request;
 
 lazy_static! {
-    // XXX: shellrt-containerd should have it's own namespace!
-    //      using default makes it easier to validate beahvior with `ctr`
-    static ref NAMESPACE: AsciiMetadataValue = "default".parse().unwrap();
+    // HACK: containerd hardcodes cri namespace to "k8s.io," so we have to match it
+    static ref NAMESPACE: AsciiMetadataValue = "k8s.io".parse().unwrap();
 }
 
 /// Extension trait to easily create new containerd namespaced tonic requests
