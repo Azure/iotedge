@@ -7,7 +7,8 @@
     clippy::module_name_repetitions,
     clippy::use_self,
     // clippy want the "IoT" of "IoT Hub" in a code fence
-    clippy::doc_markdown
+    clippy::doc_markdown,
+    clippy::too_many_lines
 )]
 
 mod error;
