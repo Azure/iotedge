@@ -697,7 +697,6 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::too_many_lines)]
     fn cert_props_get_set() {
         let handle = unsafe { cert_properties_create() };
         assert_eq!(false, handle.is_null());

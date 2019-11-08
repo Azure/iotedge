@@ -7,7 +7,8 @@
     clippy::module_name_repetitions,
     clippy::pub_enum_variant_names,
     clippy::similar_names,
-    clippy::use_self
+    clippy::use_self, 
+    clippy::too_many_lines
 )]
 
 use std::fmt;
@@ -297,7 +298,6 @@ pub trait HyperExt {
 
 // This variable is used on Unix but not Windows
 #[allow(unused_variables)]
-#[allow(clippy::too_many_lines)]
 impl HyperExt for Http {
     fn bind_url<C, S>(
         &self,

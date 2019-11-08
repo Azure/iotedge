@@ -7,6 +7,7 @@
     clippy::module_name_repetitions,
     clippy::shadow_unrelated,
     clippy::use_self,
+    clippy::too_many_lines
 )]
 
 mod api;

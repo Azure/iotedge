@@ -222,7 +222,6 @@ impl Default for HSM_CLIENT_CRYPTO_INTERFACE {
 }
 
 #[test]
-#[allow(clippy::too_many_lines)]
 fn bindgen_test_layout_HSM_CLIENT_CRYPTO_INTERFACE() {
     assert_eq!(
         ::std::mem::size_of::<HSM_CLIENT_CRYPTO_INTERFACE>(),

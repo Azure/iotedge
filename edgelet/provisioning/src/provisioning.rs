@@ -284,7 +284,6 @@ where
 {
     type Hsm = U;
 
-    #[allow(clippy::too_many_lines)]
     fn provision(
         &self,
         key_activator: Self::Hsm,

@@ -86,7 +86,6 @@ pub enum CheckResult {
 }
 
 impl Check {
-    #[allow(clippy::too_many_lines)]
     pub fn new(
         config_file: PathBuf,
         container_engine_config_path: PathBuf,
@@ -306,7 +305,6 @@ impl Check {
         Ok(())
     }
 
-    #[allow(clippy::too_many_lines)]
     fn execute_inner(&mut self) -> Result<(), Error> {
         let mut checks: BTreeMap<&str, CheckOutputSerializable> = Default::default();
         let mut check_data = Check::checks();

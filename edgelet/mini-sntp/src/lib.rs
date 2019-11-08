@@ -3,7 +3,8 @@
 #![allow(
     clippy::doc_markdown,
     clippy::module_name_repetitions,
-    clippy::use_self
+    clippy::use_self,
+    clippy::too_many_lines
 )]
 
 use std::net::{SocketAddr, ToSocketAddrs, UdpSocket};
