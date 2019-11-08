@@ -58,8 +58,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
                     Requests = new Dictionary<string, ResourceQuantity>() { { "storage", new ResourceQuantity($"{this.persistentVolumeClaimSizeMb}Mi") } }
                 },
             };
+            if (this.persistentVolumeName.HasValue)
+            {
+                string volumeNameTmp = this.persistentVolumeName.OrDefault();
+                if (volumeNameTmp != volumeName)
+                {
+                    throw new InvalidModuleException(string.Format("The mount name {0} has to be the same as the PV name {1}", volumeName, volumeNameTmp));
+                }
+            }
 
-            // It is expected to specify the volume name for the mount to be used
             persistentVolumeClaimSpec.VolumeName = volumeName;
 
             if (this.storageClassName.HasValue)
