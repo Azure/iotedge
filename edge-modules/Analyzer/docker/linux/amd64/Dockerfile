@@ -3,7 +3,7 @@ FROM mcr.microsoft.com/dotnet/core/runtime:${base_tag}
 
 ARG EXE_DIR=.
 
-ENV MODULE_NAME "MessagesAnalyzer.dll"
+ENV MODULE_NAME "Analyzer.dll"
 
 WORKDIR /app
 
