@@ -1,5 +1,5 @@
 {
-  "DeviceId": "device1",
+  "DeviceId": "",
   "ExcludeModules": {
     "Ids": [
       "$edgeAgent",

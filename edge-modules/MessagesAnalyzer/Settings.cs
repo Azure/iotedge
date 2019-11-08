@@ -10,14 +10,13 @@ namespace MessagesAnalyzer
     {
         const string ExcludeModulesIdsPropertyName = "ExcludeModules:Ids";
         const string EventHubConnectionStringPropertyValue = "eventHubConnectionString";
-        const string DeviceIdPropertyName = "DeviceId";
+        const string DeviceIdPropertyName = "IOTEDGE_DEVICEID";
         const string ConsumerGroupIdPropertyName = "ConsumerGroupId";
         const string WebhostPortPropertyName = "WebhostPort";
         const string ToleranceInMillisecondsPropertyName = "ToleranceInMilliseconds";
         const string DefaultConsumerGroupId = "$Default";
         const string DefaultWebhostPort = "5001";
         const double DefaultToleranceInMilliseconds = 1000 * 60;
-        static readonly string DefaultDeviceId = Environment.GetEnvironmentVariable("IOTEDGE_DEVICEID");
 
         static readonly Lazy<Settings> Setting = new Lazy<Settings>(
             () =>
@@ -33,7 +32,7 @@ namespace MessagesAnalyzer
                 return new Settings(
                     configuration.GetValue<string>(EventHubConnectionStringPropertyValue),
                     configuration.GetValue(ConsumerGroupIdPropertyName, DefaultConsumerGroupId),
-                    configuration.GetValue(DeviceIdPropertyName, DefaultDeviceId),
+                    configuration.GetValue(DeviceIdPropertyName, string.Empty),
                     excludedModules,
                     configuration.GetValue(WebhostPortPropertyName, DefaultWebhostPort),
                     configuration.GetValue(ToleranceInMillisecondsPropertyName, DefaultToleranceInMilliseconds));
