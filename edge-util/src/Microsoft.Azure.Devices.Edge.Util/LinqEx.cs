@@ -76,6 +76,27 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 num += 1;
             }
         }
+
+        /// <summary>
+        /// Converts an IEnumerable<typeparamref name="TSource"/> into an IEnumerable<typeparamref name="TResult"/>, only including the value
+        /// if the first element in the selector result tuple is true.
+        /// </summary>
+        /// <typeparam name="TSource"></typeparam>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="source"></param>
+        /// <param name="selector"></param>
+        /// <returns></returns>
+        public static IEnumerable<TResult> SelectWhere<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, (bool, TResult)> selector)
+        {
+            foreach (TSource s in source)
+            {
+                (bool include, TResult result) = selector(s);
+                if (include)
+                {
+                    yield return result;
+                }
+            }
+        }
     }
 
     class StringKeyComparer : IEqualityComparer<string>
