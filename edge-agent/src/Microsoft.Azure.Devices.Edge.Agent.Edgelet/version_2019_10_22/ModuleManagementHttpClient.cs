@@ -195,6 +195,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_10_22
             }
         }
 
+        public override Task<Version_2019_11_05.GeneratedCode.SystemResources> GetSystemResourcesAsync()
+        {
+            return Task.FromResult<Version_2019_11_05.GeneratedCode.SystemResources>(null);
+        }
+
         protected override void HandleException(Exception exception, string operation)
         {
             switch (exception)
