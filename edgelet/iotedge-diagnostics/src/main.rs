@@ -2,8 +2,7 @@
 
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-#![allow(clippy::use_self)]
-
+#![allow(clippy::too_many_lines, clippy::use_self)]
 #[macro_use]
 extern crate clap;
 
@@ -17,7 +16,6 @@ use edgelet_core::UrlExt;
 use hyperlocal::{UnixConnector, Uri as UnixUri};
 #[cfg(windows)]
 use hyperlocal_windows::{UnixConnector, Uri as UnixUri};
-
 fn main() -> Result<(), Error> {
     let app = app_from_crate!()
         .setting(clap::AppSettings::SubcommandRequiredElseHelp)

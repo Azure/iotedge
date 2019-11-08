@@ -22,6 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
         readonly string deviceNamespace;
         readonly string edgeHostname;
         readonly string proxyImage;
+        readonly Option<string> proxyImagePullSecretName;
         readonly string proxyConfigPath;
         readonly string proxyConfigVolumeName;
         readonly string proxyConfigMapName;
@@ -38,6 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             string deviceNamespace,
             string edgeHostname,
             string proxyImage,
+            Option<string> proxyImagePullSecretName,
             string proxyConfigPath,
             string proxyConfigVolumeName,
             string proxyConfigMapName,
@@ -53,6 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             this.deviceNamespace = deviceNamespace;
             this.edgeHostname = edgeHostname;
             this.proxyImage = proxyImage;
+            this.proxyImagePullSecretName = proxyImagePullSecretName;
             this.proxyConfigPath = proxyConfigPath;
             this.proxyConfigVolumeName = proxyConfigVolumeName;
             this.proxyConfigMapName = proxyConfigMapName;
@@ -104,20 +107,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             var (proxyContainer, proxyVolumes) = this.PrepareProxyContainer(module);
             var (moduleContainer, moduleVolumes) = this.PrepareModuleContainer(name, identity, module);
 
-            Option<List<V1LocalObjectReference>> imageSecret = module.Config.AuthConfig
-                .Map(auth => new List<V1LocalObjectReference> { new V1LocalObjectReference(auth.Name) });
+            var imagePullSecrets = new List<Option<string>> { this.proxyImagePullSecretName, module.Config.AuthConfig.Map(auth => auth.Name) }
+                .FilterMap()
+                .Distinct()
+                .Select(pullSecretName => new V1LocalObjectReference(pullSecretName))
+                .ToList();
 
-            Option<IDictionary<string, string>> nodeSelector = Option.Maybe(module.Config.CreateOptions).FlatMap(options => options.NodeSelector);
-
-            var modulePodSpec = new V1PodSpec(
-                containers: new List<V1Container> { proxyContainer, moduleContainer },
-                volumes: proxyVolumes.Concat(moduleVolumes).ToList(),
-                imagePullSecrets: imageSecret.OrDefault(),
-                serviceAccountName: name,
-                nodeSelector: nodeSelector.OrDefault());
-
-            var objectMeta = new V1ObjectMeta(name: name, labels: labels, annotations: annotations);
-            return new V1PodTemplateSpec(objectMeta, modulePodSpec);
+            return new V1PodTemplateSpec
+            {
+                Metadata = new V1ObjectMeta
+                {
+                    Name = name,
+                    Labels = labels,
+                    Annotations = annotations
+                },
+                Spec = new V1PodSpec
+                {
+                    Containers = new List<V1Container> { proxyContainer, moduleContainer },
+                    Volumes = proxyVolumes.Concat(moduleVolumes).ToList(),
+                    ImagePullSecrets = imagePullSecrets.Any() ? imagePullSecrets : null,
+                    ServiceAccountName = name,
+                    NodeSelector = module.Config.CreateOptions.NodeSelector.OrDefault()
+                }
+            };
         }
 
         (V1Container, IReadOnlyList<V1Volume>) PrepareModuleContainer(string name, IModuleIdentity identity, KubernetesModule module)

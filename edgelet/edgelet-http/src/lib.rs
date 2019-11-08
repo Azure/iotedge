@@ -7,6 +7,7 @@
     clippy::module_name_repetitions,
     clippy::pub_enum_variant_names,
     clippy::similar_names,
+    clippy::too_many_lines,
     clippy::use_self
 )]
 
