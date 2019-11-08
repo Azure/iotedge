@@ -34,15 +34,17 @@ namespace Analyzer
 
         public void AddStatus(ResponseStatus responseStatus, ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> cache)
         {
-            ConcurrentDictionary<string, Tuple<int, DateTime>> batch = cache.GetOrAdd(responseStatus.ModuleId, key => new ConcurrentDictionary<string, Tuple<int, DateTime>>());
+            lock (cache)
+            {
+                ConcurrentDictionary<string, Tuple<int, DateTime>> batch = cache.GetOrAdd(responseStatus.ModuleId, key => new ConcurrentDictionary<string, Tuple<int, DateTime>>());
 
-            // TODO: thread safe
-            batch.AddOrUpdate(
-                responseStatus.StatusCode,
-                new Tuple<int, DateTime>(1, responseStatus.EnqueuedDateTime),
-                (key, value) => new Tuple<int, DateTime>(
-                    value.Item1 + 1,
-                    responseStatus.EnqueuedDateTime > value.Item2 ? responseStatus.EnqueuedDateTime : value.Item2));
+                batch.AddOrUpdate(
+                    responseStatus.StatusCode,
+                    new Tuple<int, DateTime>(1, responseStatus.EnqueuedDateTime),
+                    (key, value) => new Tuple<int, DateTime>(
+                        value.Item1 + 1,
+                        responseStatus.EnqueuedDateTime > value.Item2 ? responseStatus.EnqueuedDateTime : value.Item2));
+            }
         }
 
         public void AddMessage(MessageDetails messageDetails)
