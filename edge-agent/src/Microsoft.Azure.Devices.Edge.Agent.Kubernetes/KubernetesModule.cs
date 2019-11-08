@@ -39,7 +39,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             ConfigurationInfo configurationInfo,
             IDictionary<string, EnvVal> env,
             KubernetesConfig settings,
-            ImagePullPolicy imagePullPolicy)
+            ImagePullPolicy imagePullPolicy,
+            KubernetesModuleOwner owner = null)
         {
             this.Name = name;
             this.Version = version;
@@ -50,6 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.Env = env?.ToImmutableDictionary() ?? ImmutableDictionary<string, EnvVal>.Empty;
             this.Config = settings;
             this.ImagePullPolicy = imagePullPolicy;
+            this.Owner = owner;
         }
 
         [JsonProperty(PropertyName = "name")]
