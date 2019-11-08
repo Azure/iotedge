@@ -20,19 +20,9 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
     {
         static readonly ILogger Log = Logger.Factory.CreateLogger<AzureLogAnalytics>();
         static AzureLogAnalytics instance = null;
-        public string WorkspaceId { get; }
-        public string SharedKey { get; }
-        public string ApiVersion { get; }
-        AzureLogAnalytics(string workspaceId, string sharedKey)
+
+        AzureLogAnalytics()
         {
-            const string apiVersion = "2016-04-01";
-
-            Preconditions.CheckNotNull(workspaceId, "Log Analytic workspace ID cannot be empty.");
-            Preconditions.CheckNotNull(sharedKey, "Log Analytic shared key cannot be empty.");
-
-            this.WorkspaceId = workspaceId;
-            this.SharedKey = sharedKey;
-            this.ApiVersion = apiVersion;
         }
 
         public static AzureLogAnalytics GetInstance()
@@ -41,23 +31,28 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
             return instance;
         }
 
-        public static AzureLogAnalytics InitInstance(string workspaceId, string sharedKey)
+        public static AzureLogAnalytics InitInstance()
         {
             if (instance == null)
             {
-                instance = new AzureLogAnalytics(workspaceId, sharedKey);
+                instance = new AzureLogAnalytics();
             }
 
             return instance;
         }
 
-        public async void PostAsync(string content, string LogType)
+        public async void PostAsync(string workspaceId, string sharedKey, string content, string LogType)
         {
+            Preconditions.CheckNotNull(workspaceId, "Log Analytic workspace ID cannot be empty.");
+            Preconditions.CheckNotNull(sharedKey, "Log Analytic shared key cannot be empty.");
+
+            const string apiVersion = "2016-04-01";
+
             try
             {
                 string dateString = DateTime.UtcNow.ToString("r");
-                Uri requestUri = new Uri($"https://{this.WorkspaceId}.ods.opinsights.azure.com/api/logs?api-version={this.ApiVersion}");
-                string signature = this.GetSignature("POST", content.Length, "application/json", dateString, "/api/logs");
+                Uri requestUri = new Uri($"https://{workspaceId}.ods.opinsights.azure.com/api/logs?api-version={apiVersion}");
+                string signature = this.GetSignature("POST", content.Length, "application/json", dateString, "/api/logs", workspaceId, sharedKey);
 
                 var client = new HttpClient();
                 client.DefaultRequestHeaders.Add("Authorization", signature);
@@ -86,13 +81,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
             }
         }
 
-        private string GetSignature(string method, int contentLength, string contentType, string date, string resource)
+        private string GetSignature(string method, int contentLength, string contentType, string date, string resource, string workspaceId, string sharedKey)
         {
             string message = $"{method}\n{contentLength}\n{contentType}\nx-ms-date:{date}\n{resource}";
             byte[] bytes = Encoding.UTF8.GetBytes(message);
-            using (HMACSHA256 encryptor = new HMACSHA256(Convert.FromBase64String(this.SharedKey)))
+            using (HMACSHA256 encryptor = new HMACSHA256(Convert.FromBase64String(sharedKey)))
             {
-                return $"SharedKey {this.WorkspaceId}:{Convert.ToBase64String(encryptor.ComputeHash(bytes))}";
+                return $"SharedKey {workspaceId}:{Convert.ToBase64String(encryptor.ComputeHash(bytes))}";
             }
         }
     }

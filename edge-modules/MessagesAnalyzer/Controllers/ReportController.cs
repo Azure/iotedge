@@ -17,12 +17,13 @@ namespace MessagesAnalyzer.Controllers
 
             if (Settings.Current.LogAnalyticEnabled)
             {
-                AzureLogAnalytics logAnalytics = AzureLogAnalytics.InitInstance(
-                    Settings.Current.LogAnalyticWorkspaceId,
-                    Settings.Current.LogAnalyticSharedKey );
+                AzureLogAnalytics logAnalytics = AzureLogAnalytics.InitInstance();
 
                 // Upload the data to Log Analytics
-                logAnalytics.PostAsync(resultJson, Settings.Current.LogAnalyticLogType);
+                logAnalytics.PostAsync(Settings.Current.LogAnalyticWorkspaceId,
+                    Settings.Current.LogAnalyticSharedKey,
+                    resultJson,
+                    Settings.Current.LogAnalyticLogType);
             }
 
             return resultJson;
