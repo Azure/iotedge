@@ -12,6 +12,8 @@ namespace DevOpsLib
 
     public class BuildManagement
     {
+        public static readonly Dictionary<int, string> DefinitionIdToDisplayNameMapping = new Dictionary<int, string>();
+
         const string LatestBuildPathSegmentFormat = "{0}/{1}/_apis/build/builds";
 
         readonly DevOpsAccessSetting accessSetting;
@@ -21,7 +23,7 @@ namespace DevOpsLib
             this.accessSetting = accessSetting;
         }
 
-        public async Task<IDictionary<int, VstsBuild>> GetLatestBuildsAsync(int[] buildDefinitionIds, string branchName)
+        public async Task<IList<VstsBuild>> GetLatestBuildsAsync(HashSet<BuildDefinitionId> buildDefinitionIds, string branchName)
         {
             ValidationUtil.ThrowIfNulOrEmptySet(buildDefinitionIds, nameof(buildDefinitionIds));
             ValidationUtil.ThrowIfNullOrWhiteSpace(branchName, nameof(branchName));
@@ -29,7 +31,7 @@ namespace DevOpsLib
             string requestPath = string.Format(LatestBuildPathSegmentFormat, this.accessSetting.Organization, this.accessSetting.Project);
             IFlurlRequest latestBuildRequest = DevOpsAccessSetting.BaseUrl
                 .AppendPathSegment(requestPath)
-                .SetQueryParam("definitions", string.Join(",", buildDefinitionIds))
+                .SetQueryParam("definitions", string.Join(",", buildDefinitionIds.Select(b => b.IdString())))
                 .SetQueryParam("queryOrder", "finishTimeDescending")
                 .SetQueryParam("maxBuildsPerDefinition", "1")
                 .SetQueryParam("api-version", "5.1")
@@ -41,13 +43,11 @@ namespace DevOpsLib
 
             if (!result.ContainsKey("count") || (int)result["count"] <= 0)
             {
-                return buildDefinitionIds.ToDictionary(i => i, i => VstsBuild.GetBuildWithNoResult(i, branchName));
+                return buildDefinitionIds.Select(i => VstsBuild.GetBuildWithNoResult(i, branchName)).ToList();
             }
 
-            Dictionary<string, VstsBuild> latestBuilds = (JsonConvert.DeserializeObject<VstsBuild[]>(result["value"].ToString())).ToDictionary(b => b.DefinitionId, b => b);
-            return buildDefinitionIds.ToDictionary(
-                i => i,
-                i => latestBuilds.ContainsKey(i.ToString()) ? latestBuilds[i.ToString()] : VstsBuild.GetBuildWithNoResult(i, branchName));
+            Dictionary<BuildDefinitionId, VstsBuild> latestBuilds = JsonConvert.DeserializeObject<VstsBuild[]>(result["value"].ToString()).ToDictionary(b => b.DefinitionId, b => b);
+            return buildDefinitionIds.Select(i => latestBuilds.ContainsKey(i) ? latestBuilds[i] : VstsBuild.GetBuildWithNoResult(i, branchName)).ToList();
         }
     }
 }

@@ -24,19 +24,12 @@ namespace IoTEdgeDashboard.Controllers
         {
             string masterBranch = "refs/heads/master";
             var buildManagement = new BuildManagement(new DevOpsAccessSetting(this._appConfig.PersonalAccessToken));
-            var builds = await buildManagement.GetLatestBuildsAsync(BuildDefinitionIds.MasterBranchReporting, masterBranch).ConfigureAwait(false);
+            IList<VstsBuild> builds = await buildManagement.GetLatestBuildsAsync(BuildDefinitionExtension.MasterBranchReporting, masterBranch).ConfigureAwait(false);
 
             return this.View(
                 new DashboardViewModel
                 {
-                    MasterBranch = new MasterBranch {
-                        CIBuild = builds[BuildDefinitionIds.CI],
-                        EdgeletCIBuild = builds[BuildDefinitionIds.EdgeletCI],
-                        EdgeletPackagesBuild = builds[BuildDefinitionIds.EdgeletPackages],
-                        EndToEndTestBuild = builds[BuildDefinitionIds.EndToEndTest],
-                        ImagesBuild = builds[BuildDefinitionIds.BuildImages],
-                        LibiohsmCIBuild = builds[BuildDefinitionIds.LibiohsmCI]
-                    }
+                    MasterBranch = new MasterBranch { Builds = builds }
                 });
         }
         

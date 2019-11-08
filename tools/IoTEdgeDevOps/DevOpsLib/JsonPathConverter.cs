@@ -4,8 +4,10 @@ namespace DevOpsLib
     using System;
     using System.Linq;
     using System.Reflection;
+    using System.Text.RegularExpressions;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
+    using Newtonsoft.Json.Serialization;
 
     class JsonPathConverter : JsonConverter
     {
@@ -28,6 +30,18 @@ namespace DevOpsLib
                     .FirstOrDefault();
 
                 string jsonPath = (att != null ? att.PropertyName : prop.Name);
+
+                if (serializer.ContractResolver is DefaultContractResolver)
+                {
+                    var resolver = (DefaultContractResolver) serializer.ContractResolver;
+                    jsonPath = resolver.GetResolvedPropertyName(jsonPath);
+                }
+
+                if (!Regex.IsMatch(jsonPath, @"^[a-zA-Z0-9_.-]+$"))
+                {
+                    throw new InvalidOperationException($"JProperties of JsonPathConverter can have only letters, numbers, underscores, dots and dash but name was ${jsonPath}."); // Array operations not permitted
+                }
+
                 JToken token = jo.SelectToken(jsonPath);
 
                 if (token != null && token.Type != JTokenType.Null)
