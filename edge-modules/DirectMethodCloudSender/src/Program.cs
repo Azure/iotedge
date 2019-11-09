@@ -34,7 +34,7 @@ namespace DirectMethodCloudSender
                 .AddEnvironmentVariables()
                 .Build();
 
-            string serviceClientConnectionString = Preconditions.CheckNonWhiteSpace(configuration.GetValue<string>("ServiceClientConnectionString"), "ServiceClientConnectionString");
+            string serviceClientConnectionString = Preconditions.CheckNonWhiteSpace(configuration.GetValue<string>("ServiceClientConnectionString"), nameof(serviceClientConnectionString));
             // Get device id of this device, exposed as a system variable by the iot edge runtime
             string targetDeviceId = configuration.GetValue<string>("IOTEDGE_DEVICEID");
             string targetModuleId = configuration.GetValue("TargetModuleId", "DirectMethodReceiver");

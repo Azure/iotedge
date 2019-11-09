@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.IO;
     using System.Linq;
     using System.Threading;
@@ -20,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     {
         readonly string deviceNamespace;
         readonly IKubernetes client;
-        readonly ConcurrentDictionary<string, ModuleRuntimeInfo> moduleRuntimeInfo;
+        readonly ConcurrentDictionary<string, ImmutableList<KeyValuePair<string, ModuleRuntimeInfo>>> moduleRuntimeInfo;
         readonly IModuleManager moduleManager;
 
         public KubernetesRuntimeInfoProvider(string deviceNamespace, IKubernetes client, IModuleManager moduleManager)
@@ -28,22 +29,53 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.deviceNamespace = Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace));
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.moduleManager = Preconditions.CheckNotNull(moduleManager, nameof(moduleManager));
-            this.moduleRuntimeInfo = new ConcurrentDictionary<string, ModuleRuntimeInfo>();
+            this.moduleRuntimeInfo = new ConcurrentDictionary<string, ImmutableList<KeyValuePair<string, ModuleRuntimeInfo>>>();
         }
 
-        public void CreateOrUpdateAddPodInfo(string podName, V1Pod pod)
+        public void CreateOrUpdateAddPodInfo(V1Pod pod)
         {
-            ModuleRuntimeInfo runtimeInfo = pod.ConvertToRuntime(podName);
-            this.moduleRuntimeInfo.AddOrUpdate(podName, runtimeInfo, (_, existing) => runtimeInfo);
+            string moduleName = pod.Metadata.Labels[Constants.K8sEdgeModuleLabel];
+            var newPair = new KeyValuePair<string, ModuleRuntimeInfo>(pod.Metadata.Name, pod.ConvertToRuntime(moduleName));
+
+            this.moduleRuntimeInfo.AddOrUpdate(
+                moduleName,
+                ImmutableList.Create(newPair),
+                (_, existing) =>
+                {
+                    return existing.FirstOption(pair => pair.Key == pod.Metadata.Name)
+                        .Map(pair => existing.Replace(pair, newPair))
+                        .GetOrElse(() => existing.Add(newPair));
+                });
         }
 
-        public bool RemovePodInfo(string podName)
+        public bool RemovePodInfo(V1Pod pod)
         {
-            return this.moduleRuntimeInfo.TryRemove(podName, out _);
+            var moduleName = pod.Metadata.Labels[Constants.K8sEdgeModuleLabel];
+            if (this.moduleRuntimeInfo.TryGetValue(moduleName, out var existing))
+            {
+                return existing
+                    .FirstOption(pair => pair.Key == pod.Metadata.Name)
+                    .Map(
+                        pair =>
+                        {
+                            ImmutableList<KeyValuePair<string, ModuleRuntimeInfo>> list = existing.Remove(pair);
+                            return !list.IsEmpty
+                                ? this.moduleRuntimeInfo.TryUpdate(moduleName, list, existing)
+                                : this.moduleRuntimeInfo.Remove(moduleName, out _);
+                        })
+                    .OrDefault();
+            }
+
+            return false;
         }
 
-        public async Task<IEnumerable<ModuleRuntimeInfo>> GetModules(CancellationToken cancellationToken) =>
-            await Task.FromResult(this.moduleRuntimeInfo.Select(kvp => kvp.Value).ToList());
+        public async Task<IEnumerable<ModuleRuntimeInfo>> GetModules(CancellationToken cancellationToken)
+        {
+            IEnumerable<ModuleRuntimeInfo> moduleRuntimeInfoList = this.moduleRuntimeInfo.Values
+                .Select(list => list.Last().Value)
+                .ToList();
+            return await Task.FromResult(moduleRuntimeInfoList);
+        }
 
         public async Task<Stream> GetModuleLogs(string module, bool follow, Option<int> tail, Option<int> since, CancellationToken cancellationToken) =>
             await this.client.ReadNamespacedPodLogAsync(
