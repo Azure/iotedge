@@ -2,6 +2,7 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 {
+    using Microsoft.Azure.Devices.Edge.Util;
     using System;
     using System.Collections.Generic;
     using System.Text;
@@ -10,9 +11,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
     {
         public SystemResources(long usedRam, long totalRam, Disk[] disks)
         {
-            this.UsedRam = usedRam;
-            this.TotalRam = totalRam;
-            this.Disks = disks;
+            this.UsedRam = Preconditions.CheckNotNull(usedRam, nameof(usedRam));
+            this.TotalRam = Preconditions.CheckNotNull(totalRam, nameof(totalRam));
+            this.Disks = Preconditions.CheckNotNull(disks, nameof(disks));
         }
 
         public long UsedRam { get; }
@@ -26,11 +27,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
     {
         public Disk(string name, long availableSpace, long totalSpace, string fileSystem, string fileType)
         {
-            this.Name = name;
-            this.AvailableSpace = availableSpace;
-            this.TotalSpace = totalSpace;
-            this.FileSystem = fileSystem;
-            this.FileType = fileType;
+            this.Name = Preconditions.CheckNotNull(name, nameof(name));
+            this.AvailableSpace = Preconditions.CheckNotNull(availableSpace, nameof(availableSpace));
+            this.TotalSpace = Preconditions.CheckNotNull(totalSpace, nameof(totalSpace));
+            this.FileSystem = Preconditions.CheckNotNull(fileSystem, nameof(fileSystem));
+            this.FileType = Preconditions.CheckNotNull(fileType, nameof(fileType));
         }
 
         public string Name { get; }

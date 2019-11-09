@@ -7,24 +7,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Extensions.Logging;
 
     public class SystemResourcesMetrics : IDisposable
     {
+        Func<Task<SystemResources>> getSystemResources;
+        PeriodicTask updateResources;
+        string apiVersion;
+
         IMetricsHistogram usedSpace;
         IMetricsGauge totalSpace;
-
         IMetricsHistogram usedMemory;
         IMetricsGauge totalMemory;
 
-        Func<Task<SystemResources>> getSystemResources;
-        PeriodicTask updateResources;
-
-        public SystemResourcesMetrics(IMetricsProvider metricsProvider, Func<Task<SystemResources>> getSystemResources)
+        public SystemResourcesMetrics(IMetricsProvider metricsProvider, Func<Task<SystemResources>> getSystemResources, string apiVersion)
         {
             Preconditions.CheckNotNull(metricsProvider, nameof(metricsProvider));
             this.getSystemResources = Preconditions.CheckNotNull(getSystemResources, nameof(getSystemResources));
+            this.apiVersion = Preconditions.CheckNotNull(apiVersion, nameof(apiVersion));
 
             this.usedSpace = Preconditions.CheckNotNull(metricsProvider.CreateHistogram(
                 "available_disk_space_bytes",
@@ -49,7 +51,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
         public void Start(ILogger logger)
         {
-            this.updateResources = new PeriodicTask(this.Update, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(30), logger, "Get system resources");
+            if (ApiVersion.ParseVersion(apiVersion).Value >= ApiVersion.Version20191105.Value)
+            {
+                this.updateResources = new PeriodicTask(this.Update, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(30), logger, "Get system resources");
+            }
+            else
+            {
+                logger.LogInformation($"Skipping host metrics. Management api version too low: {this.apiVersion}");
+            }
         }
 
         public void Dispose()
@@ -60,6 +69,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
         async Task Update()
         {
             SystemResources systemResources = await this.getSystemResources();
+            Console.WriteLine(systemResources);
+            Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(systemResources));
+            Console.WriteLine(this.usedMemory);
 
             this.usedMemory.Update(systemResources.UsedRam, new string[] { });
             this.totalMemory.Set(systemResources.TotalRam, new string[] { });

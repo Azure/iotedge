@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Edge.Util.Metrics.NullMetrics;
     using Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net;
@@ -17,12 +18,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
         MetricsConfig metricsConfig;
         string iothubHostname;
         string deviceId;
+        string apiVersion;
 
-        public MetricsModule(MetricsConfig metricsConfig, string iothubHostname, string deviceId)
+        public MetricsModule(MetricsConfig metricsConfig, string iothubHostname, string deviceId, string apiVersion)
         {
-            this.metricsConfig = metricsConfig;
-            this.iothubHostname = iothubHostname;
-            this.deviceId = deviceId;
+            this.metricsConfig = Preconditions.CheckNotNull(metricsConfig, nameof(metricsConfig));
+            this.iothubHostname = Preconditions.CheckNotNull(iothubHostname, nameof(iothubHostname));
+            this.deviceId = Preconditions.CheckNotNull(deviceId, nameof(deviceId));
+            this.apiVersion = Preconditions.CheckNotNull(apiVersion, nameof(apiVersion));
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -50,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             builder.Register(c => new ExceptionCounter(recognizedExceptions, ignoredExceptions, c.Resolve<IMetricsProvider>()))
                 .SingleInstance();
 
-            builder.Register(c => new SystemResourcesMetrics(c.Resolve<IMetricsProvider>(), c.Resolve<IModuleManager>().GetSystemResourcesAsync))
+            builder.Register(c => new SystemResourcesMetrics(c.Resolve<IMetricsProvider>(), c.Resolve<IModuleManager>().GetSystemResourcesAsync, this.apiVersion))
                 .SingleInstance();
 
             base.Load(builder);
