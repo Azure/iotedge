@@ -19,6 +19,7 @@ namespace TwinTester
         static string currentTwinETag = string.Empty;
         static long desiredPropertyUpdateCounter = 0;
         static long reportedPropertyUpdateCounter = 0;
+        static DateTime lastTimeOffline = DateTime.MinValue;
 
         static async Task Main()
         {
@@ -123,7 +124,8 @@ namespace TwinTester
 
         static bool IsPastFailureThreshold(DateTime twinUpdateTime)
         {
-            return twinUpdateTime + Settings.Current.TwinUpdateFailureThreshold > DateTime.UtcNow;
+            DateTime comparisonPoint = new DateTime(Math.Max(twinUpdateTime.Ticks, lastTimeOffline.Ticks));
+            return comparisonPoint + Settings.Current.TwinUpdateFailureThreshold > DateTime.UtcNow;
         }
 
         static async Task CallAnalyzerToReportStatus(AnalyzerClient analyzerClient, string moduleId, string status, string responseJson)
@@ -224,6 +226,7 @@ namespace TwinTester
             catch (Exception e)
             {
                 Logger.LogInformation($"Failed call to registry manager get twin: {e}");
+                lastTimeOffline = DateTime.UtcNow;
                 return;
             }
 
@@ -321,7 +324,6 @@ namespace TwinTester
             }
         }
 
-        // TODO: document somewhere that this method could fail due to too short interval of twin updates not giving edgehub enough time
         static async Task PerformTwinTestsAsync(RegistryManager registryManager, ModuleClient moduleClient, AnalyzerClient analyzerClient, Storage storage)
         {
             await ValidateDesiredPropertyUpdates(registryManager, moduleClient, analyzerClient, storage);

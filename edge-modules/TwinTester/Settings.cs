@@ -52,13 +52,13 @@ namespace TwinTester
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.TwinUpdateCharCount = Preconditions.CheckRange(twinUpdateCharCount, 0);
-            this.TwinUpdateFrequency = Preconditions.CheckIsDefined(twinUpdateFrequency);
-            this.TwinUpdateFailureThreshold = Preconditions.CheckIsDefined(twinUpdateFailureThreshold);
-            this.TransportType = Preconditions.CheckIsDefined(transportType);
+            this.TwinUpdateFrequency = Preconditions.CheckNotNull(twinUpdateFrequency);
+            this.TwinUpdateFailureThreshold = Preconditions.CheckNotNull(twinUpdateFailureThreshold);
+            this.TransportType = Preconditions.CheckNotNull(transportType);
             this.AnalyzerUrl = Preconditions.CheckNonWhiteSpace(analyzerUrl, nameof(analyzerUrl));
             this.ServiceClientConnectionString = Preconditions.CheckNonWhiteSpace(serviceClientConnectionString, nameof(serviceClientConnectionString));
-            this.StoragePath = Preconditions.CheckNonWhiteSpace(storagePath, nameof(storagePath));
-            this.StorageOptimizeForPerformance = Preconditions.CheckIsDefined(storageOptimizeForPerformance);
+            this.StoragePath = storagePath;
+            this.StorageOptimizeForPerformance = Preconditions.CheckNotNull(storageOptimizeForPerformance);
         }
 
         public static Settings Current => DefaultSettings.Value;
