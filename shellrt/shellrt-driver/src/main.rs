@@ -8,7 +8,7 @@ use tokio::prelude::*;
 
 use shellrt_api::v0::{
     client::{Input, Output},
-    request, response, VERSION,
+    request, VERSION,
 };
 
 use docker_reference::Reference;
@@ -58,7 +58,7 @@ async fn true_main() -> Result<(), failure::Error> {
                 .takes_value(true),
         )
         .subcommand(
-            SubCommand::with_name("pull")
+            SubCommand::with_name("img_pull")
                 .about("Pull an image using the specified docker-style reference")
                 .arg(
                     Arg::with_name("image")
@@ -68,7 +68,7 @@ async fn true_main() -> Result<(), failure::Error> {
                 ),
         )
         .subcommand(
-            SubCommand::with_name("remove")
+            SubCommand::with_name("img_remove")
                 .about("Remove an image using the specified docker-style reference")
                 .arg(
                     Arg::with_name("image")
@@ -77,8 +77,10 @@ async fn true_main() -> Result<(), failure::Error> {
                         .index(1),
                 ),
         )
+        // TODO: fill in `shellrt-driver create` CLI arguments!
+        .subcommand(SubCommand::with_name("create").about("Create a new module"))
         .subcommand(
-            SubCommand::with_name("rtversion").about("Retrieve the runtime's version information"),
+            SubCommand::with_name("version").about("Retrieve the runtime's version information"),
         )
         .get_matches();
 
@@ -106,15 +108,15 @@ async fn true_main() -> Result<(), failure::Error> {
     };
 
     match app_m.subcommand() {
-        ("pull", Some(sub_m)) => {
+        ("img_pull", Some(sub_m)) => {
             let image = sub_m
                 .value_of("image")
                 .expect("image should be a required argument");
 
             let image = Reference::parse(image, default_registry, docker_compat)?;
 
-            let res: response::Pull = plugin
-                .send(request::Pull {
+            let res = plugin
+                .send(request::ImgPull {
                     image: image.to_string(),
                     credentials,
                 })
@@ -123,15 +125,15 @@ async fn true_main() -> Result<(), failure::Error> {
             println!("the image was pulled successfully");
             debug!("{:#?}", res);
         }
-        ("remove", Some(sub_m)) => {
+        ("img_remove", Some(sub_m)) => {
             let image = sub_m
                 .value_of("image")
                 .expect("image should be a required argument");
 
             let image = Reference::parse(image, default_registry, docker_compat)?;
 
-            let res: response::Remove = plugin
-                .send(request::Remove {
+            let res = plugin
+                .send(request::ImgRemove {
                     image: image.to_string(),
                 })
                 .await?;
@@ -139,8 +141,14 @@ async fn true_main() -> Result<(), failure::Error> {
             println!("the image was removed successfully");
             debug!("{:#?}", res);
         }
-        ("rtversion", Some(_sub_m)) => {
-            let res: response::RuntimeVersion = plugin.send(request::RuntimeVersion {}).await?;
+        ("create", Some(_sub_m)) => {
+            let res = plugin.send(request::Create {}).await?;
+
+            println!("the module was created successfully");
+            debug!("{:#?}", res);
+        }
+        ("version", Some(_sub_m)) => {
+            let res = plugin.send(request::Version {}).await?;
 
             println!("{}", res.info);
             debug!("{:#?}", res);
@@ -159,9 +167,8 @@ impl Plugin {
     /// Send a Request to the plugin, blocking until the plugin returns some
     /// Output. Fails if output is malformed, there is a version mismatch, or
     /// the operation failed with an error.
-    async fn send<Request, Response>(&self, request: Request) -> Result<Response, failure::Error>
+    async fn send<Request>(&self, request: Request) -> Result<Request::Response, failure::Error>
     where
-        Response: shellrt_api::v0::ResMarker,
         Request: shellrt_api::v0::ReqMarker,
     {
         let mut child = Command::new(&self.bin)
@@ -186,7 +193,7 @@ impl Plugin {
 
         debug!("output payload: {}", String::from_utf8_lossy(&output));
 
-        let output: Output<Response> = serde_json::from_slice(&output)?;
+        let output: Output<Request::Response> = serde_json::from_slice(&output)?;
 
         // TODO: use semver for more lenient version compatibility
         if output.version() != VERSION {

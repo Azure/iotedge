@@ -3,16 +3,16 @@ use shellrt_api::v0::{request, response};
 
 use crate::error::*;
 
-pub struct RuntimeVersionHandler {
+pub struct VersionHandler {
     grpc_uri: String,
 }
 
-impl RuntimeVersionHandler {
-    pub fn new(grpc_uri: String) -> RuntimeVersionHandler {
-        RuntimeVersionHandler { grpc_uri }
+impl VersionHandler {
+    pub fn new(grpc_uri: String) -> VersionHandler {
+        VersionHandler { grpc_uri }
     }
 
-    pub async fn handle(self, _req: request::RuntimeVersion) -> Result<response::RuntimeVersion> {
+    pub async fn handle(self, _req: request::Version) -> Result<response::Version> {
         let mut client = VersionClient::connect(self.grpc_uri)
             .await
             .context(ErrorKind::GrpcConnect)?;
@@ -23,7 +23,7 @@ impl RuntimeVersionHandler {
             .context(ErrorKind::GrpcUnexpectedErr)?
             .into_inner();
 
-        let res = response::RuntimeVersion {
+        let res = response::Version {
             info: format!(
                 "shellrt-containerd {}\ncontainerd {} rev {}",
                 env!("CARGO_PKG_VERSION"),

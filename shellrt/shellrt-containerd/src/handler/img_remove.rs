@@ -3,16 +3,16 @@ use shellrt_api::v0::{request, response};
 
 use crate::error::*;
 
-pub struct RemoveHandler {
+pub struct ImgRemoveHandler {
     grpc_uri: String,
 }
 
-impl RemoveHandler {
-    pub fn new(grpc_uri: String) -> RemoveHandler {
-        RemoveHandler { grpc_uri }
+impl ImgRemoveHandler {
+    pub fn new(grpc_uri: String) -> ImgRemoveHandler {
+        ImgRemoveHandler { grpc_uri }
     }
 
-    pub async fn handle(self, req: request::Remove) -> Result<response::Remove> {
+    pub async fn handle(self, req: request::ImgRemove) -> Result<response::ImgRemove> {
         let mut client = ImageServiceClient::connect(self.grpc_uri)
             .await
             .context(ErrorKind::GrpcConnect)?;
@@ -26,6 +26,6 @@ impl RemoveHandler {
             .await
             .context(ErrorKind::GrpcUnexpectedErr)?;
 
-        Ok(response::Remove {})
+        Ok(response::ImgRemove {})
     }
 }

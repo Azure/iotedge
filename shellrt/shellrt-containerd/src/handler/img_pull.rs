@@ -21,17 +21,17 @@ use shellrt_api::v0::{request, response};
 use crate::error::*;
 use crate::util::*;
 
-pub struct PullHandler {
+pub struct ImgPullHandler {
     grpc_uri: String,
 }
 
-impl PullHandler {
-    pub fn new(grpc_uri: String) -> PullHandler {
-        PullHandler { grpc_uri }
+impl ImgPullHandler {
+    pub fn new(grpc_uri: String) -> ImgPullHandler {
+        ImgPullHandler { grpc_uri }
     }
 
-    pub async fn handle(self, req: request::Pull) -> Result<response::Pull> {
-        let request::Pull { image, credentials } = req;
+    pub async fn handle(self, req: request::ImgPull) -> Result<response::ImgPull> {
+        let request::ImgPull { image, credentials } = req;
 
         // parse image reference
         // TODO?: specify default registry and docker compat via config
@@ -146,7 +146,7 @@ impl PullHandler {
 
         register_image_with_containerd(&image, &manifest_descriptor, images_client).await?;
 
-        Ok(response::Pull {})
+        Ok(response::ImgPull {})
     }
 }
 

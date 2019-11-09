@@ -10,9 +10,20 @@ use shellrt_api::v0::{
 };
 
 mod error;
-mod handler;
 mod sock_to_tcp_proxy;
 mod util;
+
+mod handler {
+    mod create;
+    mod img_pull;
+    mod img_remove;
+    mod version;
+
+    pub use create::CreateHandler as Create;
+    pub use img_pull::ImgPullHandler as ImgPull;
+    pub use img_remove::ImgRemoveHandler as ImgRemove;
+    pub use version::VersionHandler as Version;
+}
 
 use error::*;
 
@@ -67,11 +78,16 @@ async fn handle_input(grpc_uri: String) -> Result<Response> {
 
     // TODO?: use a macro for these match statement
     let res = match input.into_inner() {
-        Request::Pull(req) => Response::Pull(handler::Pull::new(grpc_uri).handle(req).await?),
-        Request::Remove(req) => Response::Remove(handler::Remove::new(grpc_uri).handle(req).await?),
-        Request::RuntimeVersion(req) => {
-            Response::RuntimeVersion(handler::RuntimeVersion::new(grpc_uri).handle(req).await?)
+        Request::ImgPull(req) => {
+            Response::ImgPull(handler::ImgPull::new(grpc_uri).handle(req).await?)
         }
+        Request::ImgRemove(req) => {
+            Response::ImgRemove(handler::ImgRemove::new(grpc_uri).handle(req).await?)
+        }
+        Request::Version(req) => {
+            Response::Version(handler::Version::new(grpc_uri).handle(req).await?)
+        }
+        Request::Create(req) => Response::Create(handler::Create::new(grpc_uri).handle(req).await?),
         _ => return Err(ErrorKind::UnimplementedReq.into()),
     };
 
