@@ -73,6 +73,18 @@ namespace TwinTester
             }
         }
 
+        static int GetNewPropertyCounter(TwinCollection properties)
+        {
+            int maxPropertyId = -1;
+            foreach (dynamic twinUpdate in properties)
+            {
+                KeyValuePair<string, object> pair = (KeyValuePair<string, object>)twinUpdate;
+                maxPropertyId = Math.Max(int.Parse(pair.Key), maxPropertyId);
+            }
+
+            return maxPropertyId + 1;
+        }
+
         static async Task<string> InitializeModuleTwin(RegistryManager registryManager, ModuleClient moduleClient, Storage storage)
         {
             int waitPeriodInMs = 1000 * 5;
@@ -81,12 +93,12 @@ namespace TwinTester
                 try
                 {
                     int storageCount = (await storage.GetAllDesiredPropertiesReceived()).Count + (await storage.GetAllDesiredPropertiesUpdated()).Count + (await storage.GetAllReportedPropertiesUpdated()).Count;
+                    Twin originalTwin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
                     if (storageCount == 0)
                     {
                         Logger.LogInformation("No existing storage detected. Initializing new module twin for fresh run.");
 
                         // reset desired properties
-                        Twin originalTwin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
                         Twin desiredPropertyResetTwin = await registryManager.ReplaceTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId, new Twin(), originalTwin.ETag);
 
                         // reset reported properties
@@ -94,6 +106,12 @@ namespace TwinTester
                         await moduleClient.UpdateReportedPropertiesAsync(eraseReportedProperties);
 
                         await Task.Delay(waitPeriodInMs);
+                    }
+                    else
+                    {
+                        Logger.LogInformation("Existing storage detected. Initializing reported / desired property update counters.");
+                        desiredPropertyUpdateCounter = GetNewPropertyCounter(originalTwin.Properties.Desired);
+                        reportedPropertyUpdateCounter = GetNewPropertyCounter(originalTwin.Properties.Reported);
                     }
 
                     Twin initializedTwin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
@@ -163,16 +181,6 @@ namespace TwinTester
                 bool hasModuleReceivedCallback = desiredPropertiesReceived.ContainsKey(desiredPropertyUpdate.Key);
                 if (doesTwinHaveUpdate && hasModuleReceivedCallback)
                 {
-                    try
-                    {
-                        await storage.RemoveDesiredPropertyUpdate(desiredPropertyUpdate.Key);
-                    }
-                    catch (Exception e)
-                    {
-                        Logger.LogError($"Failed to remove validated reported property id {desiredPropertyUpdate.Key} from storage: {e}");
-                        continue;
-                    }
-
                     string successStatus = $"{(int)StatusCode.Success}: Successfully sent/received desired property update";
 
                     await CallAnalyzerToReportStatus(analyzerClient, Settings.Current.ModuleId, successStatus, string.Empty);
@@ -200,6 +208,15 @@ namespace TwinTester
                     await CallAnalyzerToReportStatus(analyzerClient, Settings.Current.ModuleId, failureStatus, string.Empty);
 
                     propertiesToRemoveFromTwin.Add(desiredPropertyUpdate.Key, null); // erase twin property by assigning null
+                }
+
+                try
+                {
+                    await storage.RemoveDesiredPropertyUpdate(desiredPropertyUpdate.Key);
+                }
+                catch (Exception e)
+                {
+                    Logger.LogError($"Failed to remove validated reported property id {desiredPropertyUpdate.Key} from storage: {e}");
                 }
             }
 
