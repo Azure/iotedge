@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
         public Option<List<V1PersistentVolumeClaim>> CreatePersistentVolumeClaims(KubernetesModule module, IDictionary<string, string> labels) =>
             module.Config.CreateOptions.HostConfig
                 .FlatMap(hostConfig => Option.Maybe(hostConfig.Mounts))
-                .Map(mounts => mounts.Where(this.ShouldCreatePvc).Select(mount => this.ExtractPvc(mount, labels)).ToList())
+                .Map(mounts => mounts.Where(this.ShouldCreatePvc).Select(mount => this.ExtractPvc(module, mount, labels)).ToList())
                 .Filter(mounts => mounts.Any());
 
         bool ShouldCreatePvc(Mount mount)
@@ -41,9 +41,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
             return this.storageClassName.HasValue || this.persistentVolumeName.HasValue;
         }
 
-        V1PersistentVolumeClaim ExtractPvc(Mount mount, IDictionary<string, string> labels)
+        V1PersistentVolumeClaim ExtractPvc(KubernetesModule module, Mount mount, IDictionary<string, string> labels)
         {
-            string name = KubeUtils.SanitizeK8sValue(mount.Source);
+            string volumeName = KubernetesModule.PvcName(module, mount);
             bool readOnly = mount.ReadOnly;
             var persistentVolumeClaimSpec = new V1PersistentVolumeClaimSpec()
             {
@@ -56,17 +56,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
                     Requests = new Dictionary<string, ResourceQuantity>() { { "storage", new ResourceQuantity($"{this.persistentVolumeClaimSizeMb}Mi") } }
                 },
             };
+
             // prefer persistent volume name to storage class name, if both are set.
             if (this.persistentVolumeName.HasValue)
             {
-                this.persistentVolumeName.ForEach(volumeName => persistentVolumeClaimSpec.VolumeName = volumeName);
+                persistentVolumeClaimSpec.VolumeName = this.persistentVolumeName.OrDefault();
             }
             else if (this.storageClassName.HasValue)
             {
-                this.storageClassName.ForEach(storageClass => persistentVolumeClaimSpec.StorageClassName = storageClass);
+                persistentVolumeClaimSpec.StorageClassName = this.storageClassName.OrDefault();
             }
 
-            return new V1PersistentVolumeClaim(metadata: new V1ObjectMeta(name: name, labels: labels), spec: persistentVolumeClaimSpec);
+            return new V1PersistentVolumeClaim(metadata: new V1ObjectMeta(name: volumeName, labels: labels), spec: persistentVolumeClaimSpec);
         }
 
         public void UpdatePersistentVolumeClaim(V1PersistentVolumeClaim to, V1PersistentVolumeClaim from)

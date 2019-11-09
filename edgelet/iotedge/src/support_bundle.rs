@@ -4,7 +4,7 @@ use std::env;
 use std::error::Error as StdError;
 use std::ffi::OsString;
 use std::fs::File;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command as ShellCommand;
 
 use chrono::{DateTime, Local, NaiveDateTime, Utc};
@@ -31,7 +31,7 @@ pub struct SupportBundle<M> {
 struct BundleState<M> {
     runtime: M,
     log_options: LogOptions,
-    location: OsString,
+    location: PathBuf,
     include_ms_only: bool,
     verbose: bool,
     iothub_hostname: Option<String>,
@@ -57,7 +57,11 @@ where
             .map(|state| {
                 println!(
                     "Created support bundle at {}",
-                    state.location.to_string_lossy()
+                    state
+                        .location
+                        .canonicalize()
+                        .unwrap_or_else(|_| state.location)
+                        .to_string_lossy()
                 )
             });
 
@@ -90,16 +94,17 @@ where
     fn make_state(self) -> Result<BundleState<M>, Error> {
         let file_options =
             zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+        let location = PathBuf::from(&self.location);
 
         let zip_writer = zip::ZipWriter::new(
-            File::create(Path::new(&self.location))
+            File::create(&location)
                 .map_err(|err| Error::from(err.context(ErrorKind::SupportBundle)))?,
         );
 
         Ok(BundleState {
             runtime: self.runtime,
             log_options: self.log_options,
-            location: self.location,
+            location,
             include_ms_only: self.include_ms_only,
             verbose: self.verbose,
             iothub_hostname: self.iothub_hostname,

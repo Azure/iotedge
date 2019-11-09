@@ -5,8 +5,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
     public interface IRuntimeInfoSource
     {
-        void CreateOrUpdateAddPodInfo(string podName, V1Pod pod);
+        void CreateOrUpdateAddPodInfo(V1Pod pod);
 
-        bool RemovePodInfo(string podName);
+        bool RemovePodInfo(V1Pod pod);
     }
 }

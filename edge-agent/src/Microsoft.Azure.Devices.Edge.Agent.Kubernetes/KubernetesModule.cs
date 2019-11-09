@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
@@ -81,6 +82,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public virtual bool Equals(IModule other) => this.Equals(other as KubernetesModule);
 
         public bool Equals(IModule<KubernetesConfig> other) => this.Equals(other as KubernetesModule);
+
+        public static string PvcName(KubernetesModule module, Mount mount)
+        {
+            return KubeUtils.SanitizeK8sValue($"{module.Name}-{mount.Source}");
+        }
 
         public bool Equals(KubernetesModule other)
         {

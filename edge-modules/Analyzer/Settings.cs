@@ -4,6 +4,7 @@ namespace Analyzer
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
 
     class Settings
@@ -34,25 +35,21 @@ namespace Analyzer
 
                 return new Settings(
                     configuration.GetValue<string>(EventHubConnectionStringPropertyValue),
-                    configuration.GetValue(ConsumerGroupIdPropertyName, DefaultConsumerGroupId),
-                    configuration.GetValue(DeviceIdPropertyName, string.Empty),
+                    configuration.GetValue<string>(ConsumerGroupIdPropertyName, DefaultConsumerGroupId),
+                    configuration.GetValue<string>(DeviceIdPropertyName),
                     excludedModules,
-                    configuration.GetValue(WebhostPortPropertyName, DefaultWebhostPort),
-                    configuration.GetValue(ToleranceInMillisecondsPropertyName, DefaultToleranceInMilliseconds),
-                    configuration.GetValue(StoragePathPropertyName, DefaultStoragePath),
-                    configuration.GetValue(OptimizeForPerformancePropertyName, true));
+                    configuration.GetValue<string>(WebhostPortPropertyName, DefaultWebhostPort),
+                    configuration.GetValue<double>(ToleranceInMillisecondsPropertyName, DefaultToleranceInMilliseconds));
             });
 
-        Settings(string eventHubCs, string consumerGroupId, string deviceId, IList<string> excludedModuleIds, string webhostPort, double tolerance, string storagePath, bool optimizeForPerformance)
+        Settings(string eventHubConnectionString, string consumerGroupId, string deviceId, IList<string> excludedModuleIds, string webhostPort, double tolerance)
         {
-            this.EventHubConnectionString = eventHubCs;
-            this.ConsumerGroupId = consumerGroupId;
+            this.EventHubConnectionString = Preconditions.CheckNonWhiteSpace(eventHubConnectionString, nameof(eventHubConnectionString));
+            this.ConsumerGroupId = Preconditions.CheckNonWhiteSpace(consumerGroupId, nameof(consumerGroupId));
             this.ExcludedModuleIds = excludedModuleIds;
-            this.DeviceId = deviceId;
-            this.WebhostPort = webhostPort;
-            this.ToleranceInMilliseconds = tolerance;
-            this.StoragePath = storagePath;
-            this.OptimizeForPerformance = optimizeForPerformance;
+            this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            this.WebhostPort = Preconditions.CheckNonWhiteSpace(webhostPort, nameof(webhostPort));
+            this.ToleranceInMilliseconds = Preconditions.CheckRange(tolerance, 0);
         }
 
         public static Settings Current => Setting.Value;

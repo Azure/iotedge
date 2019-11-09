@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 RuntimeInfoProvider runtimeInfoProvider = await RuntimeInfoProvider.CreateAsync(Client);
 
                 // Act
-                SystemInfo recivedSystemInfo = await runtimeInfoProvider.GetSystemInfo();
+                SystemInfo recivedSystemInfo = await runtimeInfoProvider.GetSystemInfo(CancellationToken.None);
 
                 // Assert
                 Assert.Equal(systemInfo.OSType, recivedSystemInfo.OperatingSystemType);
@@ -249,7 +249,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
             // Act
             var runtimeInfoProvider = await RuntimeInfoProvider.CreateAsync(dockerClient);
-            SystemInfo systemInfo = await runtimeInfoProvider.GetSystemInfo();
+            SystemInfo systemInfo = await runtimeInfoProvider.GetSystemInfo(CancellationToken.None);
 
             // Assert
             Assert.NotNull(systemInfo);
