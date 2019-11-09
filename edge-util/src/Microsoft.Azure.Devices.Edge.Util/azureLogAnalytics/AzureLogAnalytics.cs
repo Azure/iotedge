@@ -19,26 +19,24 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
     public sealed class AzureLogAnalytics
     {
         static readonly ILogger Log = Logger.Factory.CreateLogger<AzureLogAnalytics>();
-        static AzureLogAnalytics instance = null;
+        static readonly AzureLogAnalytics instance = new AzureLogAnalytics();
+
+        // Explicit static constructor to tell C# compiler
+        // not to mark type as beforefieldinit
+        static AzureLogAnalytics()
+        {
+        }
 
         AzureLogAnalytics()
         {
         }
 
-        public static AzureLogAnalytics GetInstance()
+        public static AzureLogAnalytics Instance
         {
-            Preconditions.CheckNotNull(instance);
-            return instance;
-        }
-
-        public static AzureLogAnalytics InitInstance()
-        {
-            if (instance == null)
+            get
             {
-                instance = new AzureLogAnalytics();
+                return instance;
             }
-
-            return instance;
         }
 
         public async void PostAsync(string workspaceId, string sharedKey, string content, string logType)
@@ -78,7 +76,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
             }
             catch (Exception e)
             {
-                Log.LogDebug(e.Message);
                 Log.LogError(e.Message);
             }
         }
