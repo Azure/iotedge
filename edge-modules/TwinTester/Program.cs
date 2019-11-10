@@ -2,16 +2,13 @@
 namespace TwinTester
 {
     using System;
-    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
-    using Newtonsoft.Json;
 
     class Program
     {
@@ -23,9 +20,6 @@ namespace TwinTester
 
             try
             {
-                Storage storage = new Storage();
-                storage.Init(Settings.Current.StoragePath, new SystemEnvironment(), Settings.Current.StorageOptimizeForPerformance);
-
                 RegistryManager registryManager = RegistryManager.CreateFromConnectionString(Settings.Current.ServiceClientConnectionString);
 
                 ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
@@ -36,6 +30,9 @@ namespace TwinTester
 
                 AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = Settings.Current.AnalyzerUrl };
 
+                Storage storage = new Storage();
+                storage.Init(Settings.Current.StoragePath, new SystemEnvironment(), Settings.Current.StorageOptimizeForPerformance);
+
                 TwinOperator twinOperator = new TwinOperator(registryManager, moduleClient, analyzerClient, storage);
 
                 using (var timers = new Timers())
@@ -44,7 +41,13 @@ namespace TwinTester
                     timers.Add(
                         Settings.Current.TwinUpdateFrequency,
                         Settings.Current.JitterFactor,
-                        () => PerformTwinTestsAsync(twinOperator));
+                        () => PerformTwinUpdates(twinOperator));
+
+                    TimeSpan validationInterval = new TimeSpan(Settings.Current.TwinUpdateFailureThreshold.Ticks / 3);
+                    timers.Add(
+                        validationInterval,
+                        0,
+                        () => PerformTwinValidation(twinOperator));
                     timers.Start();
                     Logger.LogInformation("TwinTester starting twin tests.");
 
@@ -67,13 +70,16 @@ namespace TwinTester
             }
         }
 
-        // TODO: split timers
-        static async Task PerformTwinTestsAsync(TwinOperator twinOperator)
+        static async Task PerformTwinUpdates(TwinOperator twinOperator)
+        {
+            await twinOperator.PerformDesiredPropertyUpdate();
+            await twinOperator.PerformReportedPropertyUpdate();
+        }
+
+        static async Task PerformTwinValidation(TwinOperator twinOperator)
         {
             await twinOperator.ValidateDesiredPropertyUpdates();
             await twinOperator.ValidateReportedPropertyUpdates();
-            await twinOperator.PerformDesiredPropertyUpdate();
-            await twinOperator.PerformReportedPropertyUpdate();
         }
     }
 }
