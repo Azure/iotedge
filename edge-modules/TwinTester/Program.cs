@@ -16,10 +16,6 @@ namespace TwinTester
     class Program
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("TwinTester");
-        static string currentTwinETag = string.Empty;
-        static long desiredPropertyUpdateCounter = 0;
-        static long reportedPropertyUpdateCounter = 0;
-        static DateTime lastTimeOffline = DateTime.MinValue;
 
         static async Task Main()
         {

@@ -29,7 +29,7 @@ namespace TwinTester
             this.analyzerClient = analyzerClient;
             this.storage = storage;
             this.twinState = this.InitializeModuleTwin().Result;
-            this.moduleClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertyUpdateAsync, storage);
+            this.moduleClient.SetDesiredPropertyUpdateCallbackAsync(this.OnDesiredPropertyUpdateAsync, storage);
         }
 
         // TODO: get from storage instead
@@ -64,8 +64,9 @@ namespace TwinTester
             {
                 try
                 {
-                    int storageCount = (await this.storage.GetAllDesiredPropertiesReceived()).Count + (await this.storage.GetAllDesiredPropertiesUpdated()).Count + (await this.storage.GetAllReportedPropertiesUpdated()).Count;
+                    TwinState initializedState;
                     Twin twin = await this.registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
+                    int storageCount = (await this.storage.GetAllDesiredPropertiesReceived()).Count + (await this.storage.GetAllDesiredPropertiesUpdated()).Count + (await this.storage.GetAllReportedPropertiesUpdated()).Count;
                     if (storageCount == 0)
                     {
                         Logger.LogInformation("No existing storage detected. Initializing new module twin for fresh run.");
@@ -79,14 +80,16 @@ namespace TwinTester
 
                         await Task.Delay(waitPeriodInMs);
                         twin = await this.registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
+                        initializedState = new TwinState(0, 0, twin.ETag, DateTime.MinValue);
                     }
                     else
                     {
                         Logger.LogInformation("Existing storage detected. Initializing reported / desired property update counters.");
+                        initializedState = new TwinState(this.GetNewPropertyCounter(twin.Properties.Desired), this.GetNewPropertyCounter(twin.Properties.Desired), twin.ETag, DateTime.MinValue);
                     }
 
                     Logger.LogInformation($"Start state of module twin: {JsonConvert.SerializeObject(twin, Formatting.Indented)}");
-                    return new TwinState(this.GetNewPropertyCounter(twin.Properties.Desired), this.GetNewPropertyCounter(twin.Properties.Desired), twin.ETag, DateTime.MinValue);
+                    return initializedState;
                 }
                 catch (Exception e)
                 {
@@ -135,51 +138,54 @@ namespace TwinTester
             {
                 bool doesTwinHaveUpdate = propertyUpdatesFromTwin.Contains(desiredPropertyUpdate.Key);
                 bool hasModuleReceivedCallback = desiredPropertiesReceived.ContainsKey(desiredPropertyUpdate.Key);
+                string status;
                 if (doesTwinHaveUpdate && hasModuleReceivedCallback)
                 {
-                    string successStatus = $"{(int)StatusCode.Success}: Successfully sent/received desired property update";
-
-                    await this.CallAnalyzerToReportStatus(Settings.Current.ModuleId, successStatus, string.Empty);
-                    Logger.LogInformation(successStatus + $" {desiredPropertyUpdate.Key}");
-
-                    propertiesToRemoveFromTwin.Add(desiredPropertyUpdate.Key, null); // erase twin property by assigning null
-
-                    try
-                    {
-                        await this.storage.RemoveDesiredPropertyUpdate(desiredPropertyUpdate.Key);
-                    }
-                    catch (Exception e)
-                    {
-                        Logger.LogError($"Failed to remove validated reported property id {desiredPropertyUpdate.Key} from storage: {e}");
-                    }
+                    status = $"{(int)StatusCode.Success}: Successfully sent/received desired property update";
+                    Logger.LogInformation(status + $" {desiredPropertyUpdate.Key}");
                 }
                 else if (this.IsPastFailureThreshold(desiredPropertyUpdate.Value))
                 {
-                    string failureStatus;
                     if (doesTwinHaveUpdate && !hasModuleReceivedCallback)
                     {
-                        failureStatus = $"{(int)StatusCode.DesiredPropertyUpdateNoCallbackReceived}: Failure receiving desired property update in callback";
+                        status = $"{(int)StatusCode.DesiredPropertyUpdateNoCallbackReceived}: Failure receiving desired property update in callback";
                     }
                     else if (!doesTwinHaveUpdate && hasModuleReceivedCallback)
                     {
-                        failureStatus = $"{(int)StatusCode.DesiredPropertyUpdateNotInEdgeTwin}: Failure receiving desired property update in twin";
+                        status = $"{(int)StatusCode.DesiredPropertyUpdateNotInEdgeTwin}: Failure receiving desired property update in twin";
                     }
                     else
                     {
-                        failureStatus = $"{(int)StatusCode.DesiredPropertyUpdateTotalFailure}: Failure receiving desired property update in both twin and callback";
+                        status = $"{(int)StatusCode.DesiredPropertyUpdateTotalFailure}: Failure receiving desired property update in both twin and callback";
                     }
 
-                    Logger.LogError(failureStatus + $" for update #{desiredPropertyUpdate.Key}");
-                    await this.CallAnalyzerToReportStatus(Settings.Current.ModuleId, failureStatus, string.Empty);
-
-                    propertiesToRemoveFromTwin.Add(desiredPropertyUpdate.Key, null); // erase twin property by assigning null
+                    Logger.LogError(status + $" for update #{desiredPropertyUpdate.Key}");
                 }
+                else
+                {
+                    continue;
+                }
+
+                await this.CallAnalyzerToReportStatus(Settings.Current.ModuleId, status, string.Empty);
+                propertiesToRemoveFromTwin.Add(desiredPropertyUpdate.Key, null); // will later be serialized as a twin update
+            }
+
+            foreach (KeyValuePair<string, string> pair in propertiesToRemoveFromTwin)
+            {
+                    try
+                    {
+                        await this.storage.RemoveDesiredPropertyUpdate(pair.Key);
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.LogError($"Failed to remove validated reported property id {pair.Key} from storage: {e}");
+                    }
             }
 
             try
             {
                 string patch = $"{{ properties: {{ desired: {JsonConvert.SerializeObject(propertiesToRemoveFromTwin)} }}";
-                Twin newTwin = await this.registryManager.UpdateTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId, patch, twinState.TwinETag);
+                Twin newTwin = await this.registryManager.UpdateTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId, patch, this.twinState.TwinETag);
                 this.twinState.TwinETag = newTwin.ETag;
             }
             catch (Exception e)
@@ -205,8 +211,10 @@ namespace TwinTester
 
             TwinCollection propertyUpdatesFromTwin = receivedTwin.Properties.Reported;
             Dictionary<string, DateTime> reportedPropertiesUpdated = await this.storage.GetAllReportedPropertiesUpdated();
+            TwinCollection propertiesToRemoveFromTwin = new TwinCollection();
             foreach (KeyValuePair<string, DateTime> reportedPropertyUpdate in reportedPropertiesUpdated)
             {
+                string status;
                 if (propertyUpdatesFromTwin.Contains(reportedPropertyUpdate.Key))
                 {
                     try
@@ -219,26 +227,43 @@ namespace TwinTester
                         continue;
                     }
 
-                    string successStatus = $"{(int)StatusCode.Success}: Successfully sent/received reported property update";
-                    Logger.LogInformation(successStatus + $" {reportedPropertyUpdate.Key}");
-                    await this.CallAnalyzerToReportStatus(Settings.Current.ModuleId, successStatus, string.Empty);
+                    status = $"{(int)StatusCode.Success}: Successfully sent/received reported property update";
+                    Logger.LogInformation(status + $" {reportedPropertyUpdate.Key}");
                 }
-                else if (IsPastFailureThreshold(reportedPropertyUpdate.Value))
+                else if (this.IsPastFailureThreshold(reportedPropertyUpdate.Value))
                 {
-                    string failureStatus = $"{(int)StatusCode.ReportedPropertyUpdateNotInCloudTwin}: Failure receiving reported property update";
-                    Logger.LogError(failureStatus + $"for reported property update {reportedPropertyUpdate.Key}");
-                    await this.CallAnalyzerToReportStatus(Settings.Current.ModuleId, failureStatus, string.Empty);
+                    status = $"{(int)StatusCode.ReportedPropertyUpdateNotInCloudTwin}: Failure receiving reported property update";
+                    Logger.LogError(status + $"for reported property update {reportedPropertyUpdate.Key}");
+                }
+                else
+                {
+                    continue;
+                }
+
+                propertiesToRemoveFromTwin[reportedPropertyUpdate.Key] = null; // will later be serialized as a twin update
+                await this.CallAnalyzerToReportStatus(Settings.Current.ModuleId, status, string.Empty);
+            }
+
+            foreach (dynamic pair in propertiesToRemoveFromTwin)
+            {
+                KeyValuePair<string, object> property = (KeyValuePair<string, object>)pair;
+                try
+                {
+                    await this.storage.RemoveReportedPropertyUpdate(property.Key);
+                }
+                catch (Exception e)
+                {
+                    Logger.LogError($"Failed to remove validated reported property id {property.Key} from storage: {e}");
                 }
             }
 
-            TwinCollection eraseReportedProperties = this.GetReportedPropertiesResetTwin(receivedTwin);
             try
             {
-                await this.moduleClient.UpdateReportedPropertiesAsync(eraseReportedProperties);
+                await this.moduleClient.UpdateReportedPropertiesAsync(propertiesToRemoveFromTwin);
             }
             catch (Exception e)
             {
-                Logger.LogInformation($"Failed call to post-update twin reset: {e}");
+                Logger.LogInformation($"Failed call to twin property reset: {e}");
             }
         }
 
@@ -259,7 +284,7 @@ namespace TwinTester
 
             try
             {
-                await this.storage.AddDesiredPropertyUpdate(twinState.DesiredPropertyUpdateCounter.ToString());
+                await this.storage.AddDesiredPropertyUpdate(this.twinState.DesiredPropertyUpdateCounter.ToString());
                 this.twinState.DesiredPropertyUpdateCounter += 1;
             }
             catch (Exception e)
@@ -272,7 +297,7 @@ namespace TwinTester
         {
             string reportedPropertyUpdate = new string('1', Settings.Current.TwinUpdateCharCount); // dummy twin update needs to be any number
             var twin = new TwinCollection();
-            twin[twinState.ReportedPropertyUpdateCounter.ToString()] = reportedPropertyUpdate;
+            twin[this.twinState.ReportedPropertyUpdateCounter.ToString()] = reportedPropertyUpdate;
             try
             {
                 await this.moduleClient.UpdateReportedPropertiesAsync(twin);
@@ -287,7 +312,7 @@ namespace TwinTester
 
             try
             {
-                await this.storage.AddReportedPropertyUpdate(twinState.ReportedPropertyUpdateCounter.ToString());
+                await this.storage.AddReportedPropertyUpdate(this.twinState.ReportedPropertyUpdateCounter.ToString());
                 this.twinState.ReportedPropertyUpdateCounter += 1;
             }
             catch (Exception e)
