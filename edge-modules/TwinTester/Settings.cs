@@ -27,8 +27,8 @@ namespace TwinTester
                     configuration.GetValue<string>("IOTEDGE_MODULEID", string.Empty),
                     configuration.GetValue<double>("JitterFactor", .5),
                     configuration.GetValue<int>("TwinUpdateCharCount", 1),
-                    configuration.GetValue<TimeSpan>("TwinUpdateFrequency", TimeSpan.FromMilliseconds(500)),
-                    configuration.GetValue<TimeSpan>("TwinUpdateFailureThreshold", TimeSpan.FromMinutes(1)), // TODO: tune
+                    configuration.GetValue<TimeSpan>("TwinUpdateFrequency", TimeSpan.FromSeconds(10)),
+                    configuration.GetValue<TimeSpan>("TwinUpdateFailureThreshold", TimeSpan.FromMinutes(1)),
                     configuration.GetValue<TransportType>("TransportType", TransportType.Amqp_Tcp_Only),
                     configuration.GetValue<string>("AnalyzerUrl", "http://analyzer:15000"),
                     configuration.GetValue<string>("ServiceClientConnectionString"),

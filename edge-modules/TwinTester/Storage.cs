@@ -26,7 +26,7 @@ namespace TwinTester
             StoreProvider storeProvider;
             try
             {
-                var partitionsList = new List<string> { "desiredPropertyUpdated", "desiredPropertyReceived", "reportedPropertyUpdated" }; // TODO: what is this used for
+                var partitionsList = new List<string> { "desiredPropertyUpdated", "desiredPropertyReceived", "reportedPropertyUpdated" };
                 IDbStoreProvider dbStoreprovider = DbStoreProvider.Create(
                     new RocksDbOptionsProvider(systemEnvironment, optimizeForPerformance),
                     this.GetStoragePath(storagePath),

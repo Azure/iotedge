@@ -36,7 +36,6 @@ namespace Analyzer
 
             foreach (KeyValuePair<string, IDictionary<string, Tuple<int, DateTime>>> obj in cache)
             {
-                // TODO: specify report type in logs through enum of response oriented report types
                 Logger.LogInformation($"{reportDescription} {obj.Key}");
                 report.Add(new ResponseOrientedReport(obj.Key, obj.Value));
             }
