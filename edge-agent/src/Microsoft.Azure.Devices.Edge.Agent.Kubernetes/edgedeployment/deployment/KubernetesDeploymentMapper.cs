@@ -332,14 +332,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
 
                 return new V1Volume(volumeName, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(pvcName, mount.ReadOnly));
             }
-            else if (this.storageClassName.HasValue)
+
+            if (this.storageClassName.HasValue)
             {
                 return new V1Volume(volumeName, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(pvcName, mount.ReadOnly));
             }
-            else
-            {
-                return new V1Volume(volumeName, emptyDir: new V1EmptyDirVolumeSource());
-            }
+
+            return new V1Volume(volumeName, emptyDir: new V1EmptyDirVolumeSource());
         }
     }
 }

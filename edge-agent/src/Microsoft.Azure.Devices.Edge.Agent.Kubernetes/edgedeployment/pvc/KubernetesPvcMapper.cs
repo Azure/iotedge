@@ -65,9 +65,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
                 {
                     throw new InvalidModuleException(string.Format("The mount name {0} has to be the same as the PV name {1}", volumeName, volumeNameTmp));
                 }
-            }
 
-            persistentVolumeClaimSpec.VolumeName = volumeName;
+                persistentVolumeClaimSpec.VolumeName = volumeName;
+            }
 
             if (this.storageClassName.HasValue)
             {
