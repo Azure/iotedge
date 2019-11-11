@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
         public void Start(ILogger logger)
         {
-            if (ApiVersion.ParseVersion(apiVersion).Value >= ApiVersion.Version20191105.Value)
+            if (ApiVersion.ParseVersion(this.apiVersion).Value >= ApiVersion.Version20191105.Value)
             {
                 this.updateResources = new PeriodicTask(this.Update, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(30), logger, "Get system resources");
             }

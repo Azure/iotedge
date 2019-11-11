@@ -23,11 +23,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test
             // Arrange
             var systemInfoSample = new SystemInfo("linux", "x86", "1");
 
-            var moduleManager = Mock.Of<IModuleManager>(m => m.GetSystemInfoAsync() == Task.FromResult(systemInfoSample));
+            var moduleManager = Mock.Of<IModuleManager>(m => m.GetSystemInfoAsync(CancellationToken.None) == Task.FromResult(systemInfoSample));
             IRuntimeInfoProvider runtimeInfoProvider = new RuntimeInfoProvider<TestConfig>(moduleManager);
 
             // Act
-            SystemInfo systemInfo = await runtimeInfoProvider.GetSystemInfo();
+            SystemInfo systemInfo = await runtimeInfoProvider.GetSystemInfo(CancellationToken.None);
 
             // Assert
             Assert.NotNull(systemInfo);

@@ -172,8 +172,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
                         iothubHostname = configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
                         deviceId = configuration.GetValue<string>(Constants.DeviceIdVariableName);
-                        string networkId = configuration.GetValue<string>(Constants.NetworkIdKey);
                         string proxyImage = configuration.GetValue<string>(K8sConstants.ProxyImageEnvKey);
+                        Option<string> proxyImagePullSecretName = Option.Maybe(configuration.GetValue<string>(K8sConstants.ProxyImagePullSecretNameEnvKey));
                         string proxyConfigPath = configuration.GetValue<string>(K8sConstants.ProxyConfigPathEnvKey);
                         string proxyConfigVolumeName = configuration.GetValue<string>(K8sConstants.ProxyConfigVolumeEnvKey);
                         string proxyConfigMapName = configuration.GetValue<string>(K8sConstants.ProxyConfigMapNameEnvKey);
@@ -192,9 +192,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         builder.RegisterModule(new KubernetesModule(
                             iothubHostname,
                             deviceId,
-                            networkId,
                             edgeDeviceHostName,
                             proxyImage,
+                            proxyImagePullSecretName,
                             proxyConfigPath,
                             proxyConfigVolumeName,
                             proxyConfigMapName,

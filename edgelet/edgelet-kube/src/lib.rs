@@ -72,13 +72,16 @@ mod tests {
             "namespace": "default",
             "iot_hub_hostname": "iotHub",
             "device_id": "device1",
-            "proxy_image": "proxy:latest",
-            "proxy_config_path": "/etc/traefik",
-            "proxy_config_map_name": PROXY_CONFIG_MAP_NAME,
-            "proxy_trust_bundle_path": "/etc/trust-bundle",
-            "proxy_trust_bundle_config_map_name": PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME,
-            "image_pull_policy": "IfNotPresent",
             "device_hub_selector": "",
+            "proxy": {
+               "image": "proxy:latest",
+               "image_pull_policy": "IfNotPresent",
+               "auth": {},
+               "config_path": "/etc/traefik",
+               "config_map_name": PROXY_CONFIG_MAP_NAME,
+               "trust_bundle_path": "/etc/trust-bundle",
+               "trust_bundle_config_map_name": PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME,
+            },
         });
 
         if let Some(merge_json) = merge_json {

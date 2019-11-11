@@ -119,13 +119,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_11_05
             }
         }
 
-        public override async Task<SystemInfo> GetSystemInfoAsync()
+        public override async Task<SystemInfo> GetSystemInfoAsync(CancellationToken cancellationToken)
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
             {
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
                 GeneratedCode.SystemInfo systemInfo = await this.Execute(
-                    () => edgeletHttpClient.GetSystemInfoAsync(this.Version.Name),
+                    () => edgeletHttpClient.GetSystemInfoAsync(this.Version.Name, cancellationToken),
                     "Getting System Info");
                 return new SystemInfo(systemInfo.OsType, systemInfo.Architecture, systemInfo.Version);
             }

@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
 
         public Task UpdateAndStartModuleAsync(ModuleSpec moduleSpec) => this.inner.UpdateAndStartModuleAsync(moduleSpec);
 
-        public Task<SystemInfo> GetSystemInfoAsync() => this.inner.GetSystemInfoAsync();
+        public Task<SystemInfo> GetSystemInfoAsync(CancellationToken cancellationToken) => this.inner.GetSystemInfoAsync(cancellationToken);
 
         public Task<SystemResources> GetSystemResourcesAsync() => this.inner.GetSystemResourcesAsync();
 

@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
 
         public Task UpdateAndStartModuleAsync(ModuleSpec moduleSpec) => throw new NotImplementedException();
 
-        public Task<SystemInfo> GetSystemInfoAsync() => Task.FromResult(new SystemInfo("kubernetes", "amd64", "v1"));
+        public Task<SystemInfo> GetSystemInfoAsync(CancellationToken token) => Task.FromResult(new SystemInfo("kubernetes", "amd64", "v1"));
 
         public Task<SystemResources> GetSystemResourcesAsync() => throw new NotImplementedException();
 

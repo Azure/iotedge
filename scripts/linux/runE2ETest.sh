@@ -171,6 +171,10 @@ function prepare_test_from_artifacts() {
                 local escapedSnitchAlertUrl
                 local escapedBuildId
                 sed -i -e "s@<Analyzer.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.LogAnalyticEnabled>@$ANALYZER_LA_ENABLED_STRING@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.LogAnalyticWorkspaceId>@$ANALYZER_LA_WORKSPACE_ID@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.LogAnalyticSharedKey>@$ANALYZER_LA_SHARED_KEY@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.LogAnalyticLogType>@$ANALYZER_LA_LOGTYPE@g" "$deployment_working_file"
                 sed -i -e "s@<Analyzer.ConsumerGroupId>@$EVENT_HUB_CONSUMER_GROUP_ID@g" "$deployment_working_file"
                 sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
                 escapedSnitchAlertUrl="${SNITCH_ALERT_URL//&/\\&}"
@@ -359,6 +363,18 @@ function process_args() {
         elif [ $saveNextArg -eq 31 ]; then
             RESTART_INTERVAL_IN_MINS="$arg"
             saveNextArg=0;
+        elif [ $saveNextArg -eq 32 ]; then
+            ANALYZER_LA_ENABLED_STRING="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 33 ]; then
+            ANALYZER_LA_WORKSPACE_ID="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 34 ]; then
+            ANALYZER_LA_SHARED_KEY="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 35 ]; then
+            ANALYZER_LA_LOGTYPE="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -393,6 +409,10 @@ function process_args() {
                 '-eventHubConsumerGroupId' ) saveNextArg=29;;
                 '-desiredModulesToRestartCSV' ) saveNextArg=30;;
                 '-restartIntervalInMins' ) saveNextArg=31;;
+                '-analyzerLaEnabled' ) saveNextArg=32;;
+                '-analyzerLaWorkspaceId' ) saveNextArg=33;;
+                '-analyzerLaSharedKey' ) saveNextArg=34;;
+                '-analyzerLaLogType' ) saveNextArg=35;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -407,6 +427,11 @@ function process_args() {
     [[ -z "$CONTAINER_REGISTRY_PASSWORD" ]] && { print_error 'Container registry password is required'; exit 1; }
     [[ -z "$IOTHUB_CONNECTION_STRING" ]] && { print_error 'IoT hub connection string is required'; exit 1; }
     [[ -z "$EVENTHUB_CONNECTION_STRING" ]] && { print_error 'Event hub connection string is required'; exit 1; }
+    [[ -z "$ANALYZER_LA_ENABLED_STRING" ]] && { ANALYZER_LA_ENABLED_STRING="false"; }
+    [[ "$ANALYZER_LA_ENABLED_STRING" == true ]] && \
+    {  [[ -z "$ANALYZER_LA_WORKSPACE_ID" ]] && { print_error 'Analyzer Log Analytic Workspace ID is required'; exit 1; }; \
+       [[ -z "$ANALYZER_LA_SHARED_KEY" ]] && { print_error 'Analyzer Log Analytic Shared Key is required'; exit 1; }; \
+       [[ -z "$ANALYZER_LA_LOGTYPE" ]] && { print_error 'Analyzer Log Analytic Log Type is required'; exit 1; }; }
 
     echo 'Required parameters are provided'
 }
@@ -936,43 +961,47 @@ function usage() {
     echo "$SCRIPT_NAME [options]"
     echo ''
     echo 'options'
-    echo ' -testDir                          Path of E2E test directory which contains artifacts and certs folders; defaul to current directory.'
-    echo ' -releaseLabel                     Release label can be uniquely identify the build (e.g <ReleaseName>-<ReleaseAttempt>); which is used as part of Edge device name.'
-    echo ' -testName                         Name of E2E test to be run.'
-    echo "                                   Values are 'All', 'DirectMethodAmqp', 'DirectMethodAmqpMqtt', 'DirectMethodAmqpWs', 'DirectMethodMqtt', 'DirectMethodMqttAmqp', "
-    echo "                                   'DirectMethodMqttWs', 'LongHaul', 'QuickstartCerts', 'Stress', 'TempFilter', 'TempFilterFunctions', 'TempSensor'"
-    echo "                                   'DpsSymmetricKeyProvisioning', 'DpsTpmProvisioning', 'DpsX509Provisioning'"
-    echo "                                   'LongHaul', 'QuickstartCerts', 'Stress', 'TempFilter', 'TempFilterFunctions', 'TempSensor'"
-    echo "                                   Note: 'All' option doesn't include long hual and stress test."
-    echo ' -artifactImageBuildNumber         Artifact image build number is used to construct path of docker images, pulling from docker registry. E.g. 20190101.1.'
-    echo " -containerRegistry                Host address of container registry."
-    echo " -containerRegistryUsername        Username of container registry."
-    echo ' -containerRegistryPassword        Password of given username for container registory.'
-    echo ' -iotHubConnectionString           IoT hub connection string for creating edge device.'
-    echo ' -eventHubConnectionString         Event hub connection string for receive D2C messages.'
-    echo ' -eventHubConsumerGroup            An existing consumer group id for D2C messages.'
-    echo ' -loadGenMessageFrequency          Frequency to send messages in LoadGen module for long haul and stress test. Default is 00.00.01 for long haul and 00:00:00.03 for stress test.'
-    echo ' -snitchAlertUrl                   Alert Url pointing to Azure Logic App for email preparation and sending for long haul and stress test.'
-    echo ' -snitchBuildNumber                Build number for snitcher docker image for long haul and stress test. Default is 1.1.'
-    echo ' -snitchReportingIntervalInSecs    Reporting frequency in seconds to send status email for long hual and stress test. Default is 86400 (1 day) for long haul and 1700000 for stress test.'
-    echo ' -snitchStorageAccount             Azure blob Sstorage account for store logs used in status email for long haul and stress test.'
-    echo ' -snitchStorageMasterKey           Master key of snitch storage account for long haul and stress test.'
-    echo ' -snitchTestDurationInSecs         Test duration in seconds for long haul and stress test.'
-    echo ' -loadGen1TransportType            Transport type for LoadGen1 for stress test. Default is amqp.'
-    echo ' -loadGen2TransportType            Transport type for LoadGen2 for stress test. Default is amqp.'
-    echo ' -loadGen3TransportType            Transport type for LoadGen3 for stress test. Default is mqtt.'
-    echo ' -loadGen4TransportType            Transport type for LoadGen4 for stress test. Default is mqtt.'
-    echo ' -amqpSettingsEnabled              Enable amqp protocol head in Edge Hub.'
-    echo ' -mqttSettingsEnabled              Enable mqtt protocol head in Edge Hub.'
-    echo ' -longHaulProtocolHead             Specify which protocol head is used to run long haul test for ARM32v7 device. Valid values are amqp (default) and mqtt.'
-    echo ' -dpsScopeId                       DPS scope id. Required only when using DPS to provision the device.'
-    echo ' -dpsMasterSymmetricKey            DPS master symmetric key. Required only when using DPS symmetric key to provision the Edge device.'
-    echo ' -certScriptDir                    Optional path to certificate generation script dir'
-    echo ' -installRootCACertPath            Optional path to root CA certificate to be used for certificate generation'
-    echo ' -installRootCAKeyPath             Optional path to root CA certificate private key to be used for certificate generation'
-    echo ' -installRootCAKeyPassword         Optional password to access the root CA certificate private key to be used for certificate generation'
-    echo ' -desiredModulesToRestartCSV       Optional CSV string of module names for long haul specifying what modules to restart. If specified, then "restartIntervalInMins" must be specified as well.'
-    echo ' -restartIntervalInMins            Optional value for long haul specifying how often a random module will restart. If specified, then "desiredModulesToRestartCSV" must be specified as well.'
+    echo ' -testDir                        Path of E2E test directory which contains artifacts and certs folders; defaul to current directory.'
+    echo ' -releaseLabel                   Release label can be uniquely identify the build (e.g <ReleaseName>-<ReleaseAttempt>); which is used as part of Edge device name.'
+    echo ' -testName                       Name of E2E test to be run.'
+    echo "                                 Values are 'All', 'DirectMethodAmqp', 'DirectMethodAmqpMqtt', 'DirectMethodAmqpWs', 'DirectMethodMqtt', 'DirectMethodMqttAmqp', "
+    echo "                                 'DirectMethodMqttWs', 'LongHaul', 'QuickstartCerts', 'Stress', 'TempFilter', 'TempFilterFunctions', 'TempSensor'"
+    echo "                                 'DpsSymmetricKeyProvisioning', 'DpsTpmProvisioning', 'DpsX509Provisioning'"
+    echo "                                 'LongHaul', 'QuickstartCerts', 'Stress', 'TempFilter', 'TempFilterFunctions', 'TempSensor'"
+    echo "                                 Note: 'All' option doesn't include long hual and stress test."
+    echo ' -artifactImageBuildNumber       Artifact image build number is used to construct path of docker images, pulling from docker registry. E.g. 20190101.1.'
+    echo " -containerRegistry              Host address of container registry."
+    echo " -containerRegistryUsername      Username of container registry."
+    echo ' -containerRegistryPassword      Password of given username for container registory.'
+    echo ' -iotHubConnectionString         IoT hub connection string for creating edge device.'
+    echo ' -eventHubConnectionString       Event hub connection string for receive D2C messages.'
+    echo ' -eventHubConsumerGroup          An existing consumer group id for D2C messages.'
+    echo ' -loadGenMessageFrequency        Frequency to send messages in LoadGen module for long haul and stress test. Default is 00.00.01 for long haul and 00:00:00.03 for stress test.'
+    echo ' -snitchAlertUrl                 Alert Url pointing to Azure Logic App for email preparation and sending for long haul and stress test.'
+    echo ' -snitchBuildNumber              Build number for snitcher docker image for long haul and stress test. Default is 1.1.'
+    echo ' -snitchReportingIntervalInSecs  Reporting frequency in seconds to send status email for long hual and stress test. Default is 86400 (1 day) for long haul and 1700000 for stress test.'
+    echo ' -snitchStorageAccount           Azure blob Sstorage account for store logs used in status email for long haul and stress test.'
+    echo ' -snitchStorageMasterKey         Master key of snitch storage account for long haul and stress test.'
+    echo ' -snitchTestDurationInSecs       Test duration in seconds for long haul and stress test.'
+    echo ' -loadGen1TransportType          Transport type for LoadGen1 for stress test. Default is amqp.'
+    echo ' -loadGen2TransportType          Transport type for LoadGen2 for stress test. Default is amqp.'
+    echo ' -loadGen3TransportType          Transport type for LoadGen3 for stress test. Default is mqtt.'
+    echo ' -loadGen4TransportType          Transport type for LoadGen4 for stress test. Default is mqtt.'
+    echo ' -amqpSettingsEnabled            Enable amqp protocol head in Edge Hub.'
+    echo ' -mqttSettingsEnabled            Enable mqtt protocol head in Edge Hub.'
+    echo ' -dpsScopeId                     DPS scope id. Required only when using DPS to provision the device.'
+    echo ' -dpsMasterSymmetricKey          DPS master symmetric key. Required only when using DPS symmetric key to provision the Edge device.'
+    echo ' -certScriptDir                  Optional path to certificate generation script dir'
+    echo ' -installRootCACertPath          Optional path to root CA certificate to be used for certificate generation'
+    echo ' -installRootCAKeyPath           Optional path to root CA certificate private key to be used for certificate generation'
+    echo ' -installRootCAKeyPassword       Optional password to access the root CA certificate private key to be used for certificate generation'
+    echo ' -eventHubConsumerGroupId        Optional Event Hub Consumer Group ID for the Message Analyzer module.'
+    echo ' -desiredModulesToRestartCSV     Optional CSV string of module names for long haul specifying what modules to restart. If specified, then "restartIntervalInMins" must be specified as well.'
+    echo ' -restartIntervalInMins          Optional value for long haul specifying how often a random module will restart. If specified, then "desiredModulesToRestartCSV" must be specified as well.'
+    echo ' -analyzerLaEnabled              Optional Log Analytics enable string for the Message Analyzer module. If analyzerLaEnabled is set to enable (true), the rest of Log Analytics parameters must be provided.'
+    echo ' -analyzerLaWorkspaceId          Optional Log Analytics workspace ID for the Message Analyzer module.'
+    echo ' -analyzerLaSharedKey            Optional Log Analytics shared key for the Message Analyzer module.'
+    echo ' -analyzerLaLogType              Optional Log Analytics log type for the Message Analyzer module.'
     exit 1;
 }
 
