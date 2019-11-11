@@ -139,7 +139,7 @@ namespace TwinTester
                 string status;
                 if (doesTwinHaveUpdate && hasModuleReceivedCallback)
                 {
-                    status = $"{(int)StatusCode.Success}: Successfully sent/received desired property update";
+                    status = $"{(int)StatusCode.Success}: Successfully validated desired property update";
                     Logger.LogInformation(status + $" {desiredPropertyUpdate.Key}");
                 }
                 else if (this.IsPastFailureThreshold(desiredPropertyUpdate.Value))
@@ -225,7 +225,7 @@ namespace TwinTester
                         continue;
                     }
 
-                    status = $"{(int)StatusCode.Success}: Successfully sent/received reported property update";
+                    status = $"{(int)StatusCode.Success}: Successfully validated reported property update";
                     Logger.LogInformation(status + $" {reportedPropertyUpdate.Key}");
                 }
                 else if (this.IsPastFailureThreshold(reportedPropertyUpdate.Value))
