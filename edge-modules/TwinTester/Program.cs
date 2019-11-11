@@ -41,13 +41,13 @@ namespace TwinTester
                     timers.Add(
                         Settings.Current.TwinUpdateFrequency,
                         Settings.Current.JitterFactor,
-                        () => PerformTwinUpdates(twinOperator));
+                        () => twinOperator.PerformUpdates());
 
                     TimeSpan validationInterval = new TimeSpan(Settings.Current.TwinUpdateFailureThreshold.Ticks / 4);
                     timers.Add(
                         validationInterval,
                         0,
-                        () => PerformTwinValidation(twinOperator));
+                        () => twinOperator.PerformValidation());
                     timers.Start();
                     Logger.LogInformation("TwinTester starting twin tests.");
 
@@ -67,24 +67,6 @@ namespace TwinTester
             catch (Exception ex)
             {
                 Logger.LogError($"Error occurred during twin test setup.\r\n{ex}");
-            }
-        }
-
-        static async Task PerformTwinUpdates(TwinOperator twinOperator)
-        {
-            lock (twinOperator)
-            {
-                twinOperator.PerformDesiredPropertyUpdate().Wait();
-                twinOperator.PerformReportedPropertyUpdate().Wait();
-            }
-        }
-
-        static async Task PerformTwinValidation(TwinOperator twinOperator)
-        {
-            lock (twinOperator)
-            {
-                twinOperator.ValidateDesiredPropertyUpdates().Wait();
-                twinOperator.ValidateReportedPropertyUpdates().Wait();
             }
         }
     }

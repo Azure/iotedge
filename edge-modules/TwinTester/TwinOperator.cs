@@ -14,6 +14,7 @@ namespace TwinTester
     public class TwinOperator
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("TwinTester");
+        private readonly object operationLock = new Object();
         private RegistryManager registryManager;
         private ModuleClient moduleClient;
         private AnalyzerClient analyzerClient;
@@ -53,7 +54,7 @@ namespace TwinTester
             return eraseReportedProperties;
         }
 
-        public async Task<TwinState> InitializeModuleTwin()
+        private async Task<TwinState> InitializeModuleTwin()
         {
             while (true)
             {
@@ -96,13 +97,13 @@ namespace TwinTester
             }
         }
 
-        public bool IsPastFailureThreshold(DateTime twinUpdateTime)
+        private bool IsPastFailureThreshold(DateTime twinUpdateTime)
         {
             DateTime comparisonPoint = new DateTime(Math.Max(twinUpdateTime.Ticks, this.twinState.LastTimeOffline.Ticks));
             return DateTime.UtcNow - comparisonPoint > Settings.Current.TwinUpdateFailureThreshold;
         }
 
-        public async Task CallAnalyzerToReportStatus(string moduleId, string status, string responseJson)
+        private async Task CallAnalyzerToReportStatus(string moduleId, string status, string responseJson)
         {
             try
             {
@@ -114,7 +115,7 @@ namespace TwinTester
             }
         }
 
-        public async Task ValidateDesiredPropertyUpdates()
+        private async Task ValidateDesiredPropertyUpdates()
         {
             Twin receivedTwin;
             try
@@ -191,7 +192,7 @@ namespace TwinTester
             }
         }
 
-        public async Task ValidateReportedPropertyUpdates()
+        private async Task ValidateReportedPropertyUpdates()
         {
             Twin receivedTwin;
             try
@@ -264,7 +265,7 @@ namespace TwinTester
             }
         }
 
-        public async Task PerformDesiredPropertyUpdate()
+        private async Task PerformDesiredPropertyUpdate()
         {
             try
             {
@@ -290,7 +291,7 @@ namespace TwinTester
             }
         }
 
-        public async Task PerformReportedPropertyUpdate()
+        private async Task PerformReportedPropertyUpdate()
         {
             string reportedPropertyUpdate = new string('1', Settings.Current.TwinUpdateCharCount); // dummy twin update needs to be any number
             var twin = new TwinCollection();
@@ -316,6 +317,24 @@ namespace TwinTester
             {
                 Logger.LogError($"Failed adding reported property update to storage: {e}");
                 return;
+            }
+        }
+
+        public async Task PerformUpdates()
+        {
+            lock (this.operationLock)
+            {
+                this.PerformDesiredPropertyUpdate().Wait();
+                this.PerformReportedPropertyUpdate().Wait();
+            }
+        }
+
+        public async Task PerformValidation()
+        {
+            lock (this.operationLock)
+            {
+                this.ValidateDesiredPropertyUpdates().Wait();
+                this.ValidateReportedPropertyUpdates().Wait();
             }
         }
 
