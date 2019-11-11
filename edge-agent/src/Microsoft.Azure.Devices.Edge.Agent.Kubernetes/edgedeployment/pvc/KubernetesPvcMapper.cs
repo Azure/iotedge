@@ -43,8 +43,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
 
         V1PersistentVolumeClaim ExtractPvc(KubernetesModule module, Mount mount, IDictionary<string, string> labels)
         {
-            string volumeName = KubernetesModule.PvcName(module, mount);
+            string volumeName = KubeUtils.SanitizeK8sValue(mount.Source);
+            string pvcName = KubernetesModule.PvcName(module, mount);
             bool readOnly = mount.ReadOnly;
+
             var persistentVolumeClaimSpec = new V1PersistentVolumeClaimSpec()
             {
                 // What happens if the PV access mode is not compatible with the access we're requesting?
@@ -56,18 +58,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
                     Requests = new Dictionary<string, ResourceQuantity>() { { "storage", new ResourceQuantity($"{this.persistentVolumeClaimSizeMb}Mi") } }
                 },
             };
-
-            // prefer persistent volume name to storage class name, if both are set.
             if (this.persistentVolumeName.HasValue)
             {
-                persistentVolumeClaimSpec.VolumeName = this.persistentVolumeName.OrDefault();
+                string pvName = this.persistentVolumeName.OrDefault();
+                if (pvName != volumeName)
+                {
+                    throw new InvalidModuleException(string.Format("The mount name {0} has to be the same as the PV name {1}", volumeName, pvName));
+                }
+
+                persistentVolumeClaimSpec.VolumeName = volumeName;
             }
-            else if (this.storageClassName.HasValue)
+
+            if (this.storageClassName.HasValue)
             {
                 persistentVolumeClaimSpec.StorageClassName = this.storageClassName.OrDefault();
             }
 
-            return new V1PersistentVolumeClaim(metadata: new V1ObjectMeta(name: volumeName, labels: labels), spec: persistentVolumeClaimSpec);
+            return new V1PersistentVolumeClaim(metadata: new V1ObjectMeta(name: pvcName, labels: labels), spec: persistentVolumeClaimSpec);
         }
 
         public void UpdatePersistentVolumeClaim(V1PersistentVolumeClaim to, V1PersistentVolumeClaim from)
