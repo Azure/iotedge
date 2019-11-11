@@ -170,6 +170,10 @@ function prepare_test_from_artifacts() {
                 local escapedSnitchAlertUrl
                 local escapedBuildId
                 sed -i -e "s@<Analyzer.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.LogAnalyticEnabled>@$ANALYZER_LA_ENABLED_STRING@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.LogAnalyticWorkspaceId>@$ANALYZER_LA_WORKSPACE_ID@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.LogAnalyticSharedKey>@$ANALYZER_LA_SHARED_KEY@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.LogAnalyticLogType>@$ANALYZER_LA_LOGTYPE@g" "$deployment_working_file"
                 sed -i -e "s@<Analyzer.ConsumerGroupId>@$EVENT_HUB_CONSUMER_GROUP_ID@g" "$deployment_working_file"
                 sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
                 escapedSnitchAlertUrl="${SNITCH_ALERT_URL//&/\\&}"
@@ -363,12 +367,24 @@ function process_args() {
             RESTART_INTERVAL_IN_MINS="$arg"
             saveNextArg=0;
         elif [ $saveNextArg -eq 32 ]; then
+            ANALYZER_LA_ENABLED_STRING="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 33 ]; then
+            ANALYZER_LA_WORKSPACE_ID="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 34 ]; then
+            ANALYZER_LA_SHARED_KEY="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 35 ]; then
+            ANALYZER_LA_LOGTYPE="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 36 ]; then
             TWIN_UPDATE_CHAR_COUNT="$arg"
             saveNextArg=0;
-        elif [ $saveNextArg -eq 33 ]; then
+        elif [ $saveNextArg -eq 37 ]; then
             TWIN_UPDATE_FREQUENCY="$arg"
             saveNextArg=0;
-        elif [ $saveNextArg -eq 34 ]; then
+        elif [ $saveNextArg -eq 38 ]; then
             TWIN_UPDATE_FAILURE_THRESHOLD="$arg"
             saveNextArg=0;
         else
@@ -405,9 +421,13 @@ function process_args() {
                 '-eventHubConsumerGroupId' ) saveNextArg=29;;
                 '-desiredModulesToRestartCSV' ) saveNextArg=30;;
                 '-restartIntervalInMins' ) saveNextArg=31;;
-                '-twinUpdateCharCount' ) saveNextArg=32;;
-                '-twinUpdateFrequency' ) saveNextArg=33;;
-                '-twinUpdateFailureThreshold' ) saveNextArg=34;;
+                '-analyzerLaEnabled' ) saveNextArg=32;;
+                '-analyzerLaWorkspaceId' ) saveNextArg=33;;
+                '-analyzerLaSharedKey' ) saveNextArg=34;;
+                '-analyzerLaLogType' ) saveNextArg=35;;
+                '-twinUpdateCharCount' ) saveNextArg=36;;
+                '-twinUpdateFrequency' ) saveNextArg=37;;
+                '-twinUpdateFailureThreshold' ) saveNextArg=38;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -422,6 +442,11 @@ function process_args() {
     [[ -z "$CONTAINER_REGISTRY_PASSWORD" ]] && { print_error 'Container registry password is required'; exit 1; }
     [[ -z "$IOTHUB_CONNECTION_STRING" ]] && { print_error 'IoT hub connection string is required'; exit 1; }
     [[ -z "$EVENTHUB_CONNECTION_STRING" ]] && { print_error 'Event hub connection string is required'; exit 1; }
+    [[ -z "$ANALYZER_LA_ENABLED_STRING" ]] && { ANALYZER_LA_ENABLED_STRING="false"; }
+    [[ "$ANALYZER_LA_ENABLED_STRING" == true ]] && \
+    {  [[ -z "$ANALYZER_LA_WORKSPACE_ID" ]] && { print_error 'Analyzer Log Analytic Workspace ID is required'; exit 1; }; \
+       [[ -z "$ANALYZER_LA_SHARED_KEY" ]] && { print_error 'Analyzer Log Analytic Shared Key is required'; exit 1; }; \
+       [[ -z "$ANALYZER_LA_LOGTYPE" ]] && { print_error 'Analyzer Log Analytic Log Type is required'; exit 1; }; }
 
     echo 'Required parameters are provided'
 }
@@ -988,6 +1013,10 @@ function usage() {
     echo ' -installRootCAKeyPassword         Optional password to access the root CA certificate private key to be used for certificate generation'
     echo ' -desiredModulesToRestartCSV       Optional CSV string of module names for long haul specifying what modules to restart. If specified, then "restartIntervalInMins" must be specified as well.'
     echo ' -restartIntervalInMins            Optional value for long haul specifying how often a random module will restart. If specified, then "desiredModulesToRestartCSV" must be specified as well.'
+    echo ' -analyzerLaEnabled                Optional Log Analytics enable string for the Message Analyzer module. If analyzerLaEnabled is set to enable (true), the rest of Log Analytics parameters must be provided.'
+    echo ' -analyzerLaWorkspaceId            Optional Log Analytics workspace ID for the Message Analyzer module.'
+    echo ' -analyzerLaSharedKey              Optional Log Analytics shared key for the Message Analyzer module.'
+    echo ' -analyzerLaLogType                Optional Log Analytics log type for the Message Analyzer module.'
     echo ' -twinUpdateCharCount              Specifies the char count (i.e. size) of each twin update. Default is 1 for long haul and 100 for stress test.'
     echo ' -twinUpdateFrequency              Frequency to make twin updates. This should be specified in DateTime format. Default is 00:00:15 for long haul and 00:00:05 for stress test.'
     echo ' -twinUpdateFailureThreshold       Specifies the longest period of time a twin update can take before being marked as a failure. This should be specified in DateTime format. Default is 00:01:00'

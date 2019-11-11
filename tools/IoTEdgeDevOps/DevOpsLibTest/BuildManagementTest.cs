@@ -2,11 +2,14 @@
 namespace DevOpsLibTest
 {
     using System;
+    using System.Collections.Generic;
     using System.Globalization;
+    using System.Linq;
     using System.Net.Http;
     using System.Threading.Tasks;
     using DevOpsLib;
     using DevOpsLib.VstsModels;
+    using Flurl;
     using Flurl.Http.Testing;
     using NUnit.Framework;
 
@@ -32,69 +35,159 @@ namespace DevOpsLibTest
         }
 
         [Test]
-        public async Task TestGetLatestBuildAsync()
+        public async Task TestGetLatestBuildsAsyncWithNoDefinitionId()
         {
-            this.httpTest.RespondWithJson(
-                new
-                {
-                    buildNumber = "20191019.2",
-                    _links = new
-                    {
-                        web = new {
-                            href = "https://dev.azure.com/msazure/b32aa71e-8ed2-41b2-9d77-5bc261222004/_build/results?buildId=25980152"
-                        }
-                    },
-                    status = "completed",
-                    result = "succeeded",
-                    queueTime = "2019-10-19T16:57:09.3224324Z",
-                    startTime = "2019-10-19T16:58:37.7494889Z",
-                    finishTime = "2019-10-19T17:42:44.0001429Z"
-                });
+            ArgumentException ex = Assert.ThrowsAsync<ArgumentException>(
+                async () => { await this.buildManagement.GetLatestBuildsAsync(new HashSet<BuildDefinitionId>(), "anybranch").ConfigureAwait(false); });
 
-            VstsBuild latestBuild = await this.buildManagement.GetLatestBuildAsync(BuildDefinitionIds.CI, "master").ConfigureAwait(false);
-
-            this.httpTest.ShouldHaveCalled($"https://dev.azure.com/{DevOpsAccessSetting.AzureOrganization}/{DevOpsAccessSetting.AzureProject}/_apis/build/latest/{BuildDefinitionIds.CI}?api-version=5.1-preview.1&branchName=master")
-                .WithVerb(HttpMethod.Get)
-                .WithBasicAuth(string.Empty, PersonalAccessToken)
-                .Times(1);
-
-            Assert.NotNull(latestBuild);
-            Assert.AreEqual("20191019.2", latestBuild.BuildNumber);
-            Assert.AreEqual("https://dev.azure.com/msazure/b32aa71e-8ed2-41b2-9d77-5bc261222004/_build/results?buildId=25980152", latestBuild.WebUri.AbsoluteUri);
-            Assert.AreEqual(VstsBuildStatus.Completed, latestBuild.Status);
-            Assert.AreEqual(VstsBuildResult.Succeeded, latestBuild.Result);
-            Assert.AreEqual("10/19/2019 16:57:09", latestBuild.QueueTime.ToString(CultureInfo.InvariantCulture));
-            Assert.AreEqual("10/19/2019 16:58:37", latestBuild.StartTime.ToString(CultureInfo.InvariantCulture));
-            Assert.AreEqual("10/19/2019 17:42:44", latestBuild.FinishTime.ToString(CultureInfo.InvariantCulture));
+            Assert.True(ex.Message.StartsWith("Cannot be null or empty collection."));
+            Assert.That(ex.ParamName, Is.EqualTo("buildDefinitionIds"));
         }
 
         [Test]
-        public async Task TestGetLatestBuildAsyncWithNoBuild()
+        public async Task TestGetLatestBuildsAsyncWithEmptyBranchName()
+        {
+            ArgumentException ex = Assert.ThrowsAsync<ArgumentException>(
+                async () => { await this.buildManagement.GetLatestBuildsAsync(BuildDefinitionExtension.MasterBranchReporting, " ").ConfigureAwait(false); });
+
+            Assert.True(ex.Message.StartsWith("Cannot be null or white space."));
+            Assert.That(ex.ParamName, Is.EqualTo("branchName"));
+        }
+
+        [Test]
+        public async Task TestGetLatestBuildsAsyncWithBuildResults()
         {
             this.httpTest.RespondWithJson(
                 new
                 {
-                    message = "No completed builds were found for pipeline 31845.",
-                    typeName = "Microsoft.TeamFoundation.Build.WebApi.BuildNotFoundException, Microsoft.TeamFoundation.Build2.WebApi",
-                    typeKey = "BuildNotFoundException",
-                    errorCode = 0,
-                    eventId = 3000
+                    count = 2,
+                    value = new object[]
+                    {
+                        new
+                        {
+                            definition = new
+                            {
+                                id = BuildDefinitionId.BuildImages
+                            },
+                            buildNumber = "20191031.6",
+                            _links = new
+                            {
+                                sourceVersionDisplayUri = new
+                                {
+                                    href = "https://dev.azure.com/msazure/b3jdur1e-8e232-41b2-9d23-5bc261fd2ou4/_apis/build/builds/26326316/sources"
+                                },
+                                web = new
+                                {
+                                    href = "https://dev.azure.com/msazure/b3jdur1e-8e232-41b2-9d23-5bc261fd2ou4/_build/results?buildId=26326316"
+                                }
+                            },
+                            sourceBranch = "refs/heads/master",
+                            status = "completed",
+                            result = "failed",
+                            queueTime = "2019-10-31T23:24:00.6625531Z",
+                            startTime = "2019-10-31T23:40:05.7369767Z",
+                            finishTime = "2019-11-01T00:09:00.3460115Z"
+                        },
+                        new
+                        {
+                            definition = new
+                            {
+                                id = BuildDefinitionId.CI
+                            },
+                            buildNumber = "20191030.2",
+                            _links = new
+                            {
+                                sourceVersionDisplayUri = new
+                                {
+                                    href = "https://dev.azure.com/msazure/b3jdur1e-8e232-41b2-9d23-5bc261fd2ou4/_apis/build/builds/25980152/sources"
+                                },
+                                web = new
+                                {
+                                    href = "https://dev.azure.com/msazure/b3jdur1e-8e232-41b2-9d23-5bc261fd2ou4/_build/results?buildId=25980152"
+                                }
+                            },
+                            sourceBranch = "refs/heads/master",
+                            status = "inProgress",
+                            queueTime = "2019-10-31T23:24:04.4525827Z",
+                            startTime = "2019-10-31T23:24:20.6743184Z"
+                        }
+                    }
                 });
 
-            VstsBuild latestBuild = await this.buildManagement.GetLatestBuildAsync(BuildDefinitionIds.CI, "master").ConfigureAwait(false);
+            string branch = "refs/heads/master";
+            IList<VstsBuild> latestBuilds = await this.buildManagement.GetLatestBuildsAsync(
+                new HashSet<BuildDefinitionId> { BuildDefinitionId.BuildImages, BuildDefinitionId.CI, BuildDefinitionId.EdgeletCI },
+                branch).ConfigureAwait(false);
 
-            this.httpTest.ShouldHaveCalled($"https://dev.azure.com/{DevOpsAccessSetting.AzureOrganization}/{DevOpsAccessSetting.AzureProject}/_apis/build/latest/{BuildDefinitionIds.CI}?api-version=5.1-preview.1&branchName=master")
+            string definitionIdsDelimitedValues = Url.Encode(string.Join(",", new[] { BuildDefinitionId.BuildImages.IdString(), BuildDefinitionId.CI.IdString(), BuildDefinitionId.EdgeletCI.IdString() }));
+            string requestUri = $"https://dev.azure.com/{DevOpsAccessSetting.AzureOrganization}/{DevOpsAccessSetting.AzureProject}/_apis/build/builds?definitions={definitionIdsDelimitedValues}&queryOrder=finishTimeDescending&maxBuildsPerDefinition=1&api-version=5.1&branchName={Url.Encode(branch)}";
+            this.httpTest.ShouldHaveCalled(requestUri)
                 .WithVerb(HttpMethod.Get)
                 .WithBasicAuth(string.Empty, PersonalAccessToken)
                 .Times(1);
 
-            Assert.NotNull(latestBuild);
-            Assert.IsNull(latestBuild.BuildNumber);
-            Assert.AreEqual(VstsBuildStatus.None, latestBuild.Status);
-            Assert.AreEqual(VstsBuildResult.None, latestBuild.Result);
-            Assert.AreEqual("01/01/0001 00:00:00", latestBuild.QueueTime.ToString(CultureInfo.InvariantCulture));
-            Assert.AreEqual("01/01/0001 00:00:00", latestBuild.StartTime.ToString(CultureInfo.InvariantCulture));
-            Assert.AreEqual("01/01/0001 00:00:00", latestBuild.FinishTime.ToString(CultureInfo.InvariantCulture));
+            Assert.AreEqual(latestBuilds.Count, 3);
+
+            var ciBuild = latestBuilds.First(b => b.DefinitionId == BuildDefinitionId.CI);
+            Assert.AreEqual("20191030.2", ciBuild.BuildNumber);
+            Assert.AreEqual("https://dev.azure.com/msazure/b3jdur1e-8e232-41b2-9d23-5bc261fd2ou4/_apis/build/builds/25980152/sources", ciBuild.SourceVersionDisplayUri.AbsoluteUri);
+            Assert.AreEqual("https://dev.azure.com/msazure/b3jdur1e-8e232-41b2-9d23-5bc261fd2ou4/_build/results?buildId=25980152", ciBuild.WebUri.AbsoluteUri);
+            Assert.AreEqual(VstsBuildStatus.InProgress, ciBuild.Status);
+            Assert.AreEqual(VstsBuildResult.None, ciBuild.Result);
+            Assert.AreEqual("10/31/2019 23:24:04", ciBuild.QueueTime.ToString(CultureInfo.InvariantCulture));
+            Assert.AreEqual("10/31/2019 23:24:20", ciBuild.StartTime.ToString(CultureInfo.InvariantCulture));
+            Assert.AreEqual(DateTime.MinValue, ciBuild.FinishTime);
+
+            var imagesBuild = latestBuilds.First(b => b.DefinitionId == BuildDefinitionId.BuildImages);
+            Assert.AreEqual("20191031.6", imagesBuild.BuildNumber);
+            Assert.AreEqual("https://dev.azure.com/msazure/b3jdur1e-8e232-41b2-9d23-5bc261fd2ou4/_apis/build/builds/26326316/sources", imagesBuild.SourceVersionDisplayUri.AbsoluteUri);
+            Assert.AreEqual("https://dev.azure.com/msazure/b3jdur1e-8e232-41b2-9d23-5bc261fd2ou4/_build/results?buildId=26326316", imagesBuild.WebUri.AbsoluteUri);
+            Assert.AreEqual(VstsBuildStatus.Completed, imagesBuild.Status);
+            Assert.AreEqual(VstsBuildResult.Failed, imagesBuild.Result);
+            Assert.AreEqual("10/31/2019 23:24:00", imagesBuild.QueueTime.ToString(CultureInfo.InvariantCulture));
+            Assert.AreEqual("10/31/2019 23:40:05", imagesBuild.StartTime.ToString(CultureInfo.InvariantCulture));
+            Assert.AreEqual("11/01/2019 00:09:00", imagesBuild.FinishTime.ToString(CultureInfo.InvariantCulture));
+
+            VerifyEmptyBuildResult(latestBuilds.First(b => b.DefinitionId == BuildDefinitionId.EdgeletCI));
+        }
+
+        [Test]
+        public async Task TestGetLatestBuildsAsyncWithNoBuild()
+        {
+            this.httpTest.RespondWithJson(
+                new
+                {
+                    count = 0,
+                    value = new object[] { }
+                });
+
+            string branch = "refs/heads/master";
+            IList<VstsBuild> latestBuilds = await this.buildManagement.GetLatestBuildsAsync(
+                new HashSet<BuildDefinitionId> { BuildDefinitionId.BuildImages, BuildDefinitionId.CI },
+                branch).ConfigureAwait(false);
+
+            string definitionIdsDelimitedValues = Url.Encode(string.Join(",", new[] { BuildDefinitionId.BuildImages.IdString(), BuildDefinitionId.CI.IdString() }));
+            string requestUri = $"https://dev.azure.com/{DevOpsAccessSetting.AzureOrganization}/{DevOpsAccessSetting.AzureProject}/_apis/build/builds?definitions={definitionIdsDelimitedValues}&queryOrder=finishTimeDescending&maxBuildsPerDefinition=1&api-version=5.1&branchName={Url.Encode(branch)}";
+            this.httpTest.ShouldHaveCalled(requestUri)
+                .WithVerb(HttpMethod.Get)
+                .WithBasicAuth(string.Empty, PersonalAccessToken)
+                .Times(1);
+
+            Assert.AreEqual(latestBuilds.Count, 2);
+            VerifyEmptyBuildResult(latestBuilds.First(b => b.DefinitionId == BuildDefinitionId.BuildImages));
+            VerifyEmptyBuildResult(latestBuilds.First(b => b.DefinitionId == BuildDefinitionId.CI));
+        }
+
+        static void VerifyEmptyBuildResult(VstsBuild build)
+        {
+            Assert.AreEqual(string.Empty, build.BuildNumber);
+            Assert.AreEqual("https://dev.azure.com/msazure/One/_build", build.WebUri.AbsoluteUri);
+            Assert.AreEqual("https://dev.azure.com/msazure/One/_build", build.WebUri.AbsoluteUri);
+            Assert.AreEqual(VstsBuildStatus.None, build.Status);
+            Assert.AreEqual(VstsBuildResult.None, build.Result);
+            Assert.AreEqual(DateTime.MinValue, build.QueueTime);
+            Assert.AreEqual(DateTime.MinValue, build.StartTime);
+            Assert.AreEqual(DateTime.MinValue, build.FinishTime);
         }
     }
 }

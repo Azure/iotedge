@@ -21,6 +21,10 @@ namespace Analyzer
         const string DefaultWebhostPort = "5001";
         const double DefaultToleranceInMilliseconds = 1000 * 60;
         const string DefaultStoragePath = "";
+        const string LogAnalyticEnabledName = "LogAnalyticEnabled";
+        const string LogAnalyticWorkspaceIdName = "LogAnalyticWorkspaceId";
+        const string LogAnalyticSharedKeyName = "LogAnalyticSharedKey";
+        const string LogAnalyticLogTypeName = "LogAnalyticLogType";
 
         static readonly Lazy<Settings> Setting = new Lazy<Settings>(
             () =>
@@ -35,14 +39,20 @@ namespace Analyzer
 
                 return new Settings(
                     configuration.GetValue<string>(EventHubConnectionStringPropertyValue),
-                    configuration.GetValue<string>(ConsumerGroupIdPropertyName, DefaultConsumerGroupId),
+                    configuration.GetValue(ConsumerGroupIdPropertyName, DefaultConsumerGroupId),
                     configuration.GetValue<string>(DeviceIdPropertyName),
                     excludedModules,
-                    configuration.GetValue<string>(WebhostPortPropertyName, DefaultWebhostPort),
-                    configuration.GetValue<double>(ToleranceInMillisecondsPropertyName, DefaultToleranceInMilliseconds));
+                    configuration.GetValue(WebhostPortPropertyName, DefaultWebhostPort),
+                    configuration.GetValue(ToleranceInMillisecondsPropertyName, DefaultToleranceInMilliseconds),
+                    configuration.GetValue<string>(StoragePathPropertyName, DefaultStoragePath),
+                    configuration.GetValue<bool>("StorageOptimizeForPerformance", true),
+                    configuration.GetValue<bool>(LogAnalyticEnabledName),
+                    configuration.GetValue<string>(LogAnalyticWorkspaceIdName),
+                    configuration.GetValue<string>(LogAnalyticSharedKeyName),
+                    configuration.GetValue<string>(LogAnalyticLogTypeName));
             });
 
-        Settings(string eventHubConnectionString, string consumerGroupId, string deviceId, IList<string> excludedModuleIds, string webhostPort, double tolerance)
+        Settings(string eventHubConnectionString, string consumerGroupId, string deviceId, IList<string> excludedModuleIds, string webhostPort, double tolerance, string storagePath, bool storageOptimizeForPerformance, bool logAnalyticEnabled, string logAnalyticsWorkspaceIdName, string logAnalyticsSharedKeyName, string logAnalyticsLogTypeName)
         {
             this.EventHubConnectionString = Preconditions.CheckNonWhiteSpace(eventHubConnectionString, nameof(eventHubConnectionString));
             this.ConsumerGroupId = Preconditions.CheckNonWhiteSpace(consumerGroupId, nameof(consumerGroupId));
@@ -50,6 +60,12 @@ namespace Analyzer
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.WebhostPort = Preconditions.CheckNonWhiteSpace(webhostPort, nameof(webhostPort));
             this.ToleranceInMilliseconds = Preconditions.CheckRange(tolerance, 0);
+            this.StoragePath = storagePath;
+            this.OptimizeForPerformance = Preconditions.CheckNotNull(storageOptimizeForPerformance);
+            this.LogAnalyticEnabled = Preconditions.CheckNotNull(logAnalyticEnabled);
+            this.LogAnalyticWorkspaceId = Preconditions.CheckNonWhiteSpace(logAnalyticsWorkspaceIdName, nameof(logAnalyticsWorkspaceIdName));
+            this.LogAnalyticSharedKey = Preconditions.CheckNonWhiteSpace(logAnalyticsSharedKeyName, nameof(logAnalyticsSharedKeyName));
+            this.LogAnalyticLogType = Preconditions.CheckNonWhiteSpace(logAnalyticsLogTypeName, nameof(LogAnalyticLogTypeName));
         }
 
         public static Settings Current => Setting.Value;
@@ -66,8 +82,16 @@ namespace Analyzer
 
         public double ToleranceInMilliseconds { get; }
 
-        public string StoragePath { get; set; }
+        public string StoragePath { get; }
 
-        public bool OptimizeForPerformance { get; set; }
+        public bool OptimizeForPerformance { get; }
+
+        public bool LogAnalyticEnabled { get; }
+
+        public string LogAnalyticWorkspaceId { get; }
+
+        public string LogAnalyticSharedKey { get; }
+
+        public string LogAnalyticLogType { get; }
     }
 }
