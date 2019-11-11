@@ -23,11 +23,22 @@ namespace DevOpsLib
             this.accessSetting = accessSetting;
         }
 
+        /// <summary>
+        /// This method is used to get latest build result of given build definition Ids and branch name.
+        /// The results should always contain same number of vsts build entity of given build definitions.
+        /// If result is not found for a build definition Id, it will return vsts build entity with no result.
+        /// Note: no validation of build definition ids is taken.
+        /// Reference: https://docs.microsoft.com/en-us/rest/api/azure/devops/wit/work%20items/list?view=azure-devops-rest-5.1
+        /// </summary>
+        /// <param name="buildDefinitionIds">build definition Ids</param>
+        /// <param name="branchName">github repository branch name</param>
+        /// <returns>List of vsts build entities</returns>
         public async Task<IList<VstsBuild>> GetLatestBuildsAsync(HashSet<BuildDefinitionId> buildDefinitionIds, string branchName)
         {
             ValidationUtil.ThrowIfNulOrEmptySet(buildDefinitionIds, nameof(buildDefinitionIds));
             ValidationUtil.ThrowIfNullOrWhiteSpace(branchName, nameof(branchName));
 
+            // TODO: need to think about how to handle unexpected exception during REST API call
             string requestPath = string.Format(LatestBuildPathSegmentFormat, this.accessSetting.Organization, this.accessSetting.Project);
             IFlurlRequest latestBuildRequest = DevOpsAccessSetting.BaseUrl
                 .AppendPathSegment(requestPath)
