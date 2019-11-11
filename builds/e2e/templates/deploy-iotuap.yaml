@@ -19,6 +19,11 @@ parameters:
   loadGen2.transportType: 'Amqp_Tcp_Only'
   loadGen3.transportType: 'Mqtt_Tcp_Only'
   loadGen4.transportType: 'Mqtt_Tcp_Only'
+  analyzer.consumerGroupId: ''
+  analyzer.logAnalytic.enabled: ''
+  analyzer.logAnalytic.workspaceId: ''
+  analyzer.logAnalytic.sharedKey: ''
+  analyzer.logAnalytic.logType: ''
 
 steps:
   - task: CopyFiles@2
@@ -85,5 +90,31 @@ steps:
           SchTasks.exe /Create /RU "SYSTEM" /SC ONCE /TN “StopStressTest” /TR "net stop iotedge" /SD $ScheduleDate /ST $ScheduleTime /F
         }
         $ArtifactInfo=convertfrom-stringdata (get-content C:\Data\e2etests\artifacts\${{ parameters['images.artifact.name'] }}\artifactInfo.txt -raw)
-        C:\Data\e2etests\artifacts\${{ parameters['images.artifact.name'] }}\scripts\windows\test\Run-E2ETest.ps1 -E2ETestFolder "C:\Data\e2etests" -ReleaseLabel "${{ parameters['release.label'] }}" -ArtifactImageBuildNumber "$($ArtifactInfo.BuildNumber)" -TestName "${{ parameters['testName'] }}" -ContainerRegistry "${{ parameters['container.registry'] }}" -ContainerRegistryUsername "${{ parameters['container.registry.username'] }}" -ContainerRegistryPassword "${{ parameters['container.registry.password'] }}" -IoTHubConnectionString "${{ parameters['iotHub.connectionString'] }}" -EventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" -SnitchBuildNumber "${{ parameters['snitch.build.number'] }}" -SnitchStorageAccount "${{ parameters['snitch.storage.account'] }}" -SnitchStorageMasterKey "${{ parameters['snitch.storage.masterKey'] }}" -SnitchAlertUrl "${{ parameters['snitch.alert.url'] }}" -LoadGen1TransportType "${{ parameters['loadGen1.transportType'] }}" -LoadGen2TransportType "${{ parameters['loadGen2.transportType'] }}" -LoadGen3TransportType "${{ parameters['loadGen3.transportType'] }}" -LoadGen4TransportType "${{ parameters['loadGen4.transportType'] }}" -AmqpSettingsEnabled "${{ parameters['amqp.settings.enabled'] }}" -MqttSettingsEnabled "${{ parameters['mqtt.settings.enabled'] }}" -LoadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" -BypassEdgeInstallation
+        C:\Data\e2etests\artifacts\${{ parameters['images.artifact.name'] }}\scripts\windows\test\Run-E2ETest.ps1 `
+          -E2ETestFolder "C:\Data\e2etests" `
+          -ReleaseLabel "${{ parameters['release.label'] }}" `
+          -ArtifactImageBuildNumber "$($ArtifactInfo.BuildNumber)" `
+          -TestName "${{ parameters['testName'] }}" `
+          -ContainerRegistry "${{ parameters['container.registry'] }}" `
+          -ContainerRegistryUsername "${{ parameters['container.registry.username'] }}" `
+          -ContainerRegistryPassword "${{ parameters['container.registry.password'] }}" `
+          -IoTHubConnectionString "${{ parameters['iotHub.connectionString'] }}" `
+          -EventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" `
+          -SnitchBuildNumber "${{ parameters['snitch.build.number'] }}" `
+          -SnitchStorageAccount "${{ parameters['snitch.storage.account'] }}" `
+          -SnitchStorageMasterKey "${{ parameters['snitch.storage.masterKey'] }}" `
+          -SnitchAlertUrl "${{ parameters['snitch.alert.url'] }}" `
+          -LoadGen1TransportType "${{ parameters['loadGen1.transportType'] }}" `
+          -LoadGen2TransportType "${{ parameters['loadGen2.transportType'] }}" `
+          -LoadGen3TransportType "${{ parameters['loadGen3.transportType'] }}" `
+          -LoadGen4TransportType "${{ parameters['loadGen4.transportType'] }}" `
+          -AmqpSettingsEnabled "${{ parameters['amqp.settings.enabled'] }}" `
+          -MqttSettingsEnabled "${{ parameters['mqtt.settings.enabled'] }}" `
+          -LoadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" `
+          -EventHubConsumerGroupId "${{ parameters['analyzer.consumerGroupId'] }}" `
+          -AnalyzerLaEnabled "${{ parameters['analyzer.logAnalytic.enabled'] }}" `
+          -AnalyzerLaWorkspaceId "${{ parameters['analyzer.logAnalytic.workspaceId'] }}" `
+          -AnalyzerLaSharedKey "${{ parameters['analyzer.logAnalytic.sharedKey'] }}" `
+          -AnalyzerLaLogType "${{ parameters['analyzer.logAnalytic.logType'] }}" `
+          -BypassEdgeInstallation
       CommunicationProtocol: Http
