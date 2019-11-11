@@ -322,17 +322,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             // Volume name will be customer defined name or modulename + mount.source
             if (this.persistentVolumeName.HasValue)
             {
-                volumeName = this.persistentVolumeName.OrDefault();
+                var volumeNameTmp = this.persistentVolumeName.OrDefault();
+
+                if (volumeNameTmp != volumeName)
+                {
+                    throw new InvalidModuleException(string.Format("The mount name {0} has to be the same as the PV name {1}", volumeName, volumeNameTmp));
+                }
+
                 return new V1Volume(volumeName, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(pvcName, mount.ReadOnly));
             }
-            else if (this.storageClassName.HasValue)
+
+            if (this.storageClassName.HasValue)
             {
-                return new V1Volume(pvcName, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(pvcName, mount.ReadOnly));
+                return new V1Volume(volumeName, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(pvcName, mount.ReadOnly));
             }
-            else
-            {
-                return new V1Volume(volumeName, emptyDir: new V1EmptyDirVolumeSource());
-            }
+
+            return new V1Volume(volumeName, emptyDir: new V1EmptyDirVolumeSource());
         }
     }
 }

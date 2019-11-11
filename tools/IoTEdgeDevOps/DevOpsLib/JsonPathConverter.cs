@@ -4,9 +4,15 @@ namespace DevOpsLib
     using System;
     using System.Linq;
     using System.Reflection;
+    using System.Text.RegularExpressions;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
+    using Newtonsoft.Json.Serialization;
 
+    /// <summary>
+    /// This class is used to allow mapping property based on JsonPath defined in JsonProperty attribute for Json deserialization.
+    /// Reference from https://stackoverflow.com/questions/33088462/can-i-specify-a-path-in-an-attribute-to-map-a-property-in-my-class-to-a-child-pr
+    /// </summary>
     class JsonPathConverter : JsonConverter
     {
         public override bool CanWrite => false;
@@ -28,6 +34,13 @@ namespace DevOpsLib
                     .FirstOrDefault();
 
                 string jsonPath = (att != null ? att.PropertyName : prop.Name);
+
+                if (serializer.ContractResolver is DefaultContractResolver)
+                {
+                    var resolver = (DefaultContractResolver) serializer.ContractResolver;
+                    jsonPath = resolver.GetResolvedPropertyName(jsonPath);
+                }
+
                 JToken token = jo.SelectToken(jsonPath);
 
                 if (token != null && token.Type != JTokenType.Null)
