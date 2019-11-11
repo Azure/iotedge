@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
     using System.Runtime.InteropServices;
     using System.Text;
@@ -62,6 +63,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
             var reconstructedValues = RawMetricValue.BytesToRawValues(data, 0, testValues.Length).ToArray();
 
             TestUtilities.ReflectionEqualEnumerable(testValues, reconstructedValues);
+        }
+
+        [Fact]
+        public void InvalidDataThrows()
+        {
+            // Gibberish
+            byte[] randData = new byte[300];
+            this.rand.NextBytes(randData);
+            Assert.Throws<InvalidDataException>(() => RawMetric.BytesToMetrics(randData).ToArray());
+
+            // Overflow
+            var overflowData = BitConverter.GetBytes(int.MaxValue).Concat(randData);
+            Assert.Throws<InvalidDataException>(() => RawMetric.BytesToMetrics(randData).ToArray());
         }
 
         IEnumerable<Metric> GenerateSeries(string name, string tags, int n = 10)

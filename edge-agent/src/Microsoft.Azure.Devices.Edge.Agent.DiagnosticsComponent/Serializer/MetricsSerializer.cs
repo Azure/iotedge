@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     using System;
     using System.Collections.Generic;
     using System.Drawing;
+    using System.IO;
     using System.Linq;
     using System.Text;
 
@@ -27,10 +28,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
             int stop = startIndex + length * Size;
             while (startIndex < stop)
             {
-                long ticks = BitConverter.ToInt64(bytes, startIndex);
-                startIndex += sizeof(long);
-                double value = BitConverter.ToDouble(bytes, startIndex);
-                startIndex += sizeof(double);
+                long ticks;
+                double value;
+                try
+                {
+                    ticks = BitConverter.ToInt64(bytes, startIndex);
+                    startIndex += sizeof(long);
+                    value = BitConverter.ToDouble(bytes, startIndex);
+                    startIndex += sizeof(double);
+                }
+                catch (Exception e) when (e is ArgumentException || e is ArgumentOutOfRangeException)
+                {
+                    throw new InvalidDataException("Error decoding metrics", e);
+                }
 
                 yield return new RawMetricValue
                 {
@@ -79,20 +89,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
             int index = 0;
             while (index < bytes.Length)
             {
-                int nameLength = BitConverter.ToInt32(bytes, index);
-                index += sizeof(int);
-                string name = Encoding.UTF8.GetString(bytes, index, nameLength);
-                index += nameLength;
+                string name, tags;
+                IEnumerable<RawMetricValue> rawValues;
+                try
+                {
+                    int nameLength = BitConverter.ToInt32(bytes, index);
+                    index = checked(index + sizeof(int));
+                    name = Encoding.UTF8.GetString(bytes, index, nameLength);
+                    index = checked(index + nameLength);
 
-                int tagsLength = BitConverter.ToInt32(bytes, index);
-                index += sizeof(int);
-                string tags = Encoding.UTF8.GetString(bytes, index, tagsLength);
-                index += tagsLength;
+                    int tagsLength = BitConverter.ToInt32(bytes, index);
+                    index = checked(index + sizeof(int));
+                    tags = Encoding.UTF8.GetString(bytes, index, tagsLength);
+                    index = checked(index + tagsLength);
 
-                int valuesLength = BitConverter.ToInt32(bytes, index);
-                index += sizeof(int);
-                IEnumerable<RawMetricValue> rawValues = RawMetricValue.BytesToRawValues(bytes, index, valuesLength);
-                index += valuesLength * RawMetricValue.Size;
+                    int valuesLength = BitConverter.ToInt32(bytes, index);
+                    index = checked(index + sizeof(int));
+
+                    int oldIndex = index;
+                    index = checked(index + valuesLength * RawMetricValue.Size);
+                    rawValues = RawMetricValue.BytesToRawValues(bytes, oldIndex, valuesLength);
+                }
+                catch (Exception e) when (e is OverflowException || e is ArgumentException || e is ArgumentOutOfRangeException)
+                {
+                    throw new InvalidDataException("Error decoding metrics", e);
+                }
 
                 foreach (RawMetricValue rawValue in rawValues)
                 {
