@@ -43,7 +43,7 @@ namespace TwinTester
                         Settings.Current.JitterFactor,
                         () => PerformTwinUpdates(twinOperator));
 
-                    TimeSpan validationInterval = new TimeSpan(Settings.Current.TwinUpdateFailureThreshold.Ticks / 3);
+                    TimeSpan validationInterval = new TimeSpan(Settings.Current.TwinUpdateFailureThreshold.Ticks / 4);
                     timers.Add(
                         validationInterval,
                         0,
