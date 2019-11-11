@@ -273,6 +273,7 @@ namespace TwinTester
                 string patch = string.Format("{{ properties: {{ desired: {{ {0}: {1}}} }} }}", this.twinState.DesiredPropertyUpdateCounter, desiredPropertyUpdate);
                 Twin newTwin = await this.registryManager.UpdateTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId, patch, this.twinState.TwinETag);
                 this.twinState.TwinETag = newTwin.ETag;
+                Logger.LogInformation($"Made desired property update {this.twinState.DesiredPropertyUpdateCounter}");
             }
             catch (Exception e)
             {
@@ -299,6 +300,7 @@ namespace TwinTester
             try
             {
                 await this.moduleClient.UpdateReportedPropertiesAsync(twin);
+                Logger.LogInformation($"Made reported property update {this.twinState.ReportedPropertyUpdateCounter}");
             }
             catch (Exception e)
             {
