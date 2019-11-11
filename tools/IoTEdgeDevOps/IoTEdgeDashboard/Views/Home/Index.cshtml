@@ -1,19 +1,55 @@
-﻿@model DashboardViewModel
+﻿@using System.Reflection.Metadata.Ecma335
+@using System.Text
+@using DevOpsLib
+@using DevOpsLib.VstsModels
+@model DashboardViewModel
 @{
     ViewData["Title"] = "IoT Edge Dashboard";
 }
 
-<div class="text-center">
-    <h1 class="display-4">IoT Edge Dashboard</h1>
+<div class="container">
+    <div class="row">
+        @{
 
-    <table>
-        <tr>
-            <td>
-                <b>CI build</b><br />
-                @Model.CIBuild.Result<br/>
-                @Model.CIBuild.Status<br/>
-                @Model.CIBuild.BuildNumber<br/>
-            </td>
-        </tr>
-    </table>
+            string GetBuildCssClass(VstsBuild build)
+            {
+                if (build.Result == VstsBuildResult.Failed)
+                {
+                    return "bg-danger";
+                }
+
+                if (build.Result == VstsBuildResult.Succeeded)
+                {
+                    return "bg-success";
+                }
+
+                return "bg-warning";
+            }
+
+            var statusToCssClassMapping = new Dictionary<VstsBuildStatus, string> {
+                { VstsBuildStatus.Cancelling, "bg-warning" },
+                { VstsBuildStatus.Completed, "bg-warning" },
+                { VstsBuildStatus.InProgress, "bg-warning" },
+                { VstsBuildStatus.None, "bg-warning" },
+                { VstsBuildStatus.NotStarted, "bg-warning" },
+                { VstsBuildStatus.Postponed, "bg-warning" },
+            };
+
+            foreach (VstsBuild build in Model.MasterBranch.Builds)
+            {
+                <div class="col-sm-3">
+                    <div class="card mb-3">
+                        <div class="card-header @GetBuildCssClass(build)"></div>
+                        <div class="card-body">
+                            <h5 class="card-title">@build.DefinitionId.DisplayName()</h5>
+                            <p class="card-text">
+                                <a href="@build.WebUri" target="_blank">@build.BuildNumber</a><br />
+                                Finished at @build.FinishTime
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
 </div>
