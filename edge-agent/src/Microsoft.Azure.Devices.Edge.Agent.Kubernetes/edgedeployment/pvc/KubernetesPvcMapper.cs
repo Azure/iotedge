@@ -60,10 +60,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
             };
             if (this.persistentVolumeName.HasValue)
             {
-                string volumeNameTmp = this.persistentVolumeName.OrDefault();
-                if (volumeNameTmp != volumeName)
+                string pvName = this.persistentVolumeName.OrDefault();
+                if (pvName != volumeName)
                 {
-                    throw new InvalidModuleException(string.Format("The mount name {0} has to be the same as the PV name {1}", volumeName, volumeNameTmp));
+                    throw new InvalidModuleException(string.Format("The mount name {0} has to be the same as the PV name {1}", volumeName, pvName));
                 }
 
                 persistentVolumeClaimSpec.VolumeName = volumeName;

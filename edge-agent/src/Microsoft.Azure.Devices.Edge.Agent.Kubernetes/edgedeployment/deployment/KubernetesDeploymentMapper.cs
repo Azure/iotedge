@@ -11,7 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
     using Serilog.Events;
-    using Serilog.Sinks.SystemConsole.Themes;
     using AgentDocker = Microsoft.Azure.Devices.Edge.Agent.Docker;
     using CoreConstants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
     using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
