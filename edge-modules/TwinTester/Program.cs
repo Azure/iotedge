@@ -72,14 +72,20 @@ namespace TwinTester
 
         static async Task PerformTwinUpdates(TwinOperator twinOperator)
         {
-            await twinOperator.PerformDesiredPropertyUpdate();
-            await twinOperator.PerformReportedPropertyUpdate();
+            lock (twinOperator)
+            {
+                twinOperator.PerformDesiredPropertyUpdate().Wait();
+                twinOperator.PerformReportedPropertyUpdate().Wait();
+            }
         }
 
         static async Task PerformTwinValidation(TwinOperator twinOperator)
         {
-            await twinOperator.ValidateDesiredPropertyUpdates();
-            await twinOperator.ValidateReportedPropertyUpdates();
+            lock (twinOperator)
+            {
+                twinOperator.ValidateDesiredPropertyUpdates().Wait();
+                twinOperator.ValidateReportedPropertyUpdates().Wait();
+            }
         }
     }
 }

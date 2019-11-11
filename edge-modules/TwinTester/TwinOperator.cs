@@ -30,14 +30,12 @@ namespace TwinTester
             this.moduleClient.SetDesiredPropertyUpdateCallbackAsync(this.OnDesiredPropertyUpdateAsync, storage);
         }
 
-        // TODO: get from storage instead
-        private int GetNewPropertyCounter(TwinCollection properties)
+        private int GetNewPropertyCounter(Dictionary<string, DateTime> properties)
         {
             int maxPropertyId = -1;
-            foreach (dynamic twinUpdate in properties)
+            foreach (KeyValuePair<string, DateTime> propertyUpdate in properties)
             {
-                KeyValuePair<string, object> pair = (KeyValuePair<string, object>)twinUpdate;
-                maxPropertyId = Math.Max(int.Parse(pair.Key), maxPropertyId);
+                maxPropertyId = Math.Max(int.Parse(propertyUpdate.Key), maxPropertyId);
             }
 
             return maxPropertyId + 1;
@@ -57,7 +55,6 @@ namespace TwinTester
 
         public async Task<TwinState> InitializeModuleTwin()
         {
-            int waitPeriodInMs = 1000 * 5;
             while (true)
             {
                 try
@@ -76,14 +73,16 @@ namespace TwinTester
                         TwinCollection eraseReportedProperties = this.GetReportedPropertiesResetTwin(desiredPropertyResetTwin);
                         await this.moduleClient.UpdateReportedPropertiesAsync(eraseReportedProperties);
 
-                        await Task.Delay(waitPeriodInMs);
+                        await Task.Delay(1000 * 10); // give ample time for registered properties reset to reach cloud
                         twin = await this.registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
                         initializedState = new TwinState(0, 0, twin.ETag, DateTime.MinValue);
                     }
                     else
                     {
                         Logger.LogInformation("Existing storage detected. Initializing reported / desired property update counters.");
-                        initializedState = new TwinState(this.GetNewPropertyCounter(twin.Properties.Desired), this.GetNewPropertyCounter(twin.Properties.Desired), twin.ETag, DateTime.MinValue);
+                        Dictionary<string, DateTime> desiredProperties = await this.storage.GetAllDesiredPropertiesUpdated();
+                        Dictionary<string, DateTime> reportedProperties = await this.storage.GetAllReportedPropertiesUpdated();
+                        initializedState = new TwinState(this.GetNewPropertyCounter(desiredProperties), this.GetNewPropertyCounter(reportedProperties), twin.ETag, DateTime.MinValue);
                     }
 
                     Logger.LogInformation($"Start state of module twin: {JsonConvert.SerializeObject(twin, Formatting.Indented)}");
@@ -92,7 +91,7 @@ namespace TwinTester
                 catch (Exception e)
                 {
                     Logger.LogInformation($"Retrying failed twin initialization: {e}");
-                    await Task.Delay(waitPeriodInMs);
+                    await Task.Delay(Settings.Current.TwinUpdateFrequency);
                 }
             }
         }
@@ -100,7 +99,7 @@ namespace TwinTester
         public bool IsPastFailureThreshold(DateTime twinUpdateTime)
         {
             DateTime comparisonPoint = new DateTime(Math.Max(twinUpdateTime.Ticks, this.twinState.LastTimeOffline.Ticks));
-            return comparisonPoint + Settings.Current.TwinUpdateFailureThreshold > DateTime.UtcNow;
+            return DateTime.UtcNow - comparisonPoint > Settings.Current.TwinUpdateFailureThreshold;
         }
 
         public async Task CallAnalyzerToReportStatus(string moduleId, string status, string responseJson)
@@ -231,7 +230,7 @@ namespace TwinTester
                 else if (this.IsPastFailureThreshold(reportedPropertyUpdate.Value))
                 {
                     status = $"{(int)StatusCode.ReportedPropertyUpdateNotInCloudTwin}: Failure receiving reported property update";
-                    Logger.LogError(status + $"for reported property update {reportedPropertyUpdate.Key}");
+                    Logger.LogError(status + $" for reported property update {reportedPropertyUpdate.Key}");
                 }
                 else
                 {
