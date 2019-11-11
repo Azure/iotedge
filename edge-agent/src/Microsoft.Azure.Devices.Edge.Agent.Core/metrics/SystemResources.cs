@@ -3,9 +3,6 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 {
     using Microsoft.Azure.Devices.Edge.Util;
-    using System;
-    using System.Collections.Generic;
-    using System.Text;
 
     public class SystemResources
     {

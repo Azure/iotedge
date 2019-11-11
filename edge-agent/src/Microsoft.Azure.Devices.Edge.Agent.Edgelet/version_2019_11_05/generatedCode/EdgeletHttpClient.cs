@@ -1683,8 +1683,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_11_05.Generate
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "10.0.27.0 (Newtonsoft.Json v11.0.0.0)")]
     public partial class SystemResources
     {
-        [Newtonsoft.Json.JsonProperty("disk", Required = Newtonsoft.Json.Required.Always)]
-        public System.Collections.Generic.ICollection<Disk> Disk { get; set; } = new System.Collections.ObjectModel.Collection<Disk>();
+        [Newtonsoft.Json.JsonProperty("disks", Required = Newtonsoft.Json.Required.Always)]
+        public System.Collections.Generic.ICollection<Disk> Disks { get; set; } = new System.Collections.ObjectModel.Collection<Disk>();
 
         [Newtonsoft.Json.JsonProperty("used_ram", Required = Newtonsoft.Json.Required.Always)]
         public long Used_ram { get; set; }

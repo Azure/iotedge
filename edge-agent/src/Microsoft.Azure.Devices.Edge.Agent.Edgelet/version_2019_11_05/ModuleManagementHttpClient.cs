@@ -140,7 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_11_05
                     () => edgeletHttpClient.GetSystemResourcesAsync(this.Version.Name),
                     "Getting System Info");
 
-                return new SystemResources(systemResources.Used_ram, systemResources.Total_ram, systemResources.Disk.Select(d => new Disk(d.Name, d.Available_space, d.Total_space, d.File_system, d.File_type)).ToArray());
+                return new SystemResources(systemResources.Used_ram, systemResources.Total_ram, systemResources.Disks.Select(d => new Disk(d.Name, d.Available_space, d.Total_space, d.File_system, d.File_type)).ToArray());
             }
         }
 

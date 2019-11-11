@@ -617,7 +617,7 @@ definitions:
   SystemResources:
     type: object
     properties:
-      disk:
+      disks:
         type: array
         items:
           $ref: '#/definitions/Disk'
