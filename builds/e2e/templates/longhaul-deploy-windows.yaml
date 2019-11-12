@@ -65,7 +65,7 @@ steps:
           -AnalyzerLaEnabled "${{ parameters['analyzer.logAnalytic.enabled'] }}" `
           -AnalyzerLaWorkspaceId "${{ parameters['analyzer.logAnalytic.workspaceId'] }}" `
           -AnalyzerLaSharedKey "${{ parameters['analyzer.logAnalytic.sharedKey'] }}" `
-          -AnalyzerLaLogType "${{ parameters['analyzer.logAnalytic.logType'] }}" 
+          -AnalyzerLaLogType "${{ parameters['analyzer.logAnalytic.logType'] }}" `
           -TwinUpdateCharCount "${{ parameters['twinTester.twinUpdateCharCount'] }}" `
           -TwinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" `
           -TwinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}"

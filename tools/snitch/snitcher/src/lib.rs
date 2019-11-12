@@ -122,7 +122,7 @@ pub fn do_report(settings: Settings) -> impl Future<Item = (), Error = Error> + 
     // collect report from analyzer module
     let get_analysis = {
         let report = report.clone();
-        fetch_message_analysis(&settings).map(move |analysis| {
+        fetch_device_analysis(&settings).map(move |analysis| {
             info!("Got message analysis from analyzer");
 
             if let Some(analysis) = analysis {
@@ -295,7 +295,7 @@ pub fn get_module_logs(
         .collect()
 }
 
-pub fn fetch_message_analysis(
+pub fn fetch_device_analysis(
     settings: &Settings,
 ) -> impl Future<Item = Option<DeviceAnalysis>, Error = Error> + Send {
     info!("Fetching analysis from analyzer module");

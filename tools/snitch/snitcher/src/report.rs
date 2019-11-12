@@ -22,9 +22,9 @@ pub struct Interval {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceAnalysis {
-    messages_report: Vec<MessageAnalysis>,
     dm_report: Vec<ResponseAnalysis>,
-    twins_report: Vec<ResponseAnalysis>
+    twins_report: Vec<ResponseAnalysis>,
+    messages_report: Vec<MessageAnalysis>
 }
 
 #[derive(Debug, Serialize, Deserialize)]
