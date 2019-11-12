@@ -18,10 +18,10 @@ namespace MessagesAnalyzer
         const string DefaultConsumerGroupId = "$Default";
         const string DefaultWebhostPort = "5001";
         const double DefaultToleranceInMilliseconds = 1000 * 60;
-        const string LogAnalyticEnabledName = "LogAnalyticEnabled";
-        const string LogAnalyticWorkspaceIdName = "LogAnalyticWorkspaceId";
-        const string LogAnalyticSharedKeyName = "LogAnalyticSharedKey";
-        const string LogAnalyticLogTypeName = "LogAnalyticLogType";
+        const string LogAnalyticsEnabledName = "LogAnalyticsEnabled";
+        const string LogAnalyticsWorkspaceIdName = "LogAnalyticsWorkspaceId";
+        const string LogAnalyticsSecretName = "LogAnalyticsSecret";
+        const string LogAnalyticsLogTypeName = "LogAnalyticsLogType";
 
         static readonly Lazy<Settings> Setting = new Lazy<Settings>(
             () =>
@@ -41,10 +41,10 @@ namespace MessagesAnalyzer
                     excludedModules,
                     configuration.GetValue(WebhostPortPropertyName, DefaultWebhostPort),
                     configuration.GetValue(ToleranceInMillisecondsPropertyName, DefaultToleranceInMilliseconds),
-                    configuration.GetValue<string>(LogAnalyticEnabledName),
-                    configuration.GetValue<string>(LogAnalyticWorkspaceIdName),
-                    configuration.GetValue<string>(LogAnalyticSharedKeyName),
-                    configuration.GetValue<string>(LogAnalyticLogTypeName));
+                    configuration.GetValue<string>(LogAnalyticsEnabledName),
+                    configuration.GetValue<string>(LogAnalyticsWorkspaceIdName),
+                    configuration.GetValue<string>(LogAnalyticsSecretName),
+                    configuration.GetValue<string>(LogAnalyticsLogTypeName));
             });
 
         Settings(string eventHubConnectionString, string consumerGroupId, string deviceId, IList<string> excludedModuleIds, string webhostPort, double tolerance, string logAnalyticEnabledText, string logAnalyticsWorkspaceIdName, string logAnalyticsSharedKeyName, string logAnalyticsLogTypeName)
@@ -57,10 +57,10 @@ namespace MessagesAnalyzer
             this.WebhostPort = Preconditions.CheckNonWhiteSpace(webhostPort, nameof(webhostPort));
             this.ToleranceInMilliseconds = Preconditions.CheckRange(tolerance, 0);
             bool.TryParse(logAnalyticEnabledText, out logAnalyticEnabled);
-            this.LogAnalyticEnabled = logAnalyticEnabled;
-            this.LogAnalyticWorkspaceId = logAnalyticsWorkspaceIdName;
-            this.LogAnalyticSharedKey = logAnalyticsSharedKeyName;
-            this.LogAnalyticLogType = logAnalyticsLogTypeName;
+            this.LogAnalyticsEnabled = logAnalyticEnabled;
+            this.LogAnalyticsWorkspaceId = logAnalyticsWorkspaceIdName;
+            this.LogAnalyticsSharedKey = logAnalyticsSharedKeyName;
+            this.LogAnalyticsLogType = logAnalyticsLogTypeName;
         }
 
         public static Settings Current => Setting.Value;
@@ -77,12 +77,12 @@ namespace MessagesAnalyzer
 
         public double ToleranceInMilliseconds { get; }
 
-        public bool LogAnalyticEnabled { get; }
+        public bool LogAnalyticsEnabled { get; }
 
-        public string LogAnalyticWorkspaceId { get; }
+        public string LogAnalyticsWorkspaceId { get; }
 
-        public string LogAnalyticSharedKey { get; }
+        public string LogAnalyticsSharedKey { get; }
 
-        public string LogAnalyticLogType { get; }
+        public string LogAnalyticsLogType { get; }
     }
 }
