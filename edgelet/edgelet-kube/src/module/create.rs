@@ -20,7 +20,7 @@ use std::sync::Arc;
 
 pub fn create_module<T, S>(
     runtime: &KubeModuleRuntime<T, S>,
-    module: &ModuleSpec<DockerConfig>,
+    module: ModuleSpec<DockerConfig>,
 ) -> impl Future<Item = (), Error = Error>
 where
     T: TokenSource + Send + 'static,
@@ -31,41 +31,31 @@ where
     S::Error: Fail,
     S::Future: Send,
 {
-    let runtime_for_owner = runtime.clone();
-
-    let runtime_for_sa = runtime.clone();
-    let module_for_sa = module.clone();
-
-    let runtime_for_rb = runtime.clone();
-    let module_for_rb = module.clone();
-
-    let runtime_for_deployment = runtime.clone();
-    let module_for_deployment = module.clone();
-
+    let runtime = Arc::new(runtime.clone());
+    let module = Arc::new(module);
     let module_name = module.name().to_string();
 
-    get_module_owner(&runtime_for_owner, "iotedged")
-        .and_then(move |module_owner| {
-            let owner = Arc::new(module_owner);
-            let module_sa = owner.clone();
-            let module_rb = owner.clone();
-            let module_dep = owner.clone();
+    get_module_owner(&runtime.clone(), "iotedged")
+        .and_then({
+            let runtime = runtime.clone();
+            let module = module.clone();
+            move |module_owner| {
+                let owner = Arc::new(module_owner);
 
-            create_or_update_service_account(&runtime_for_sa, &module_for_sa, module_sa.as_ref())
-                .and_then(move |_| {
-                    create_or_update_role_binding(
-                        &runtime_for_rb,
-                        &module_for_rb,
-                        module_rb.as_ref(),
-                    )
-                })
-                .and_then(move |_| {
-                    create_or_update_deployment(
-                        &runtime_for_deployment,
-                        &module_for_deployment,
-                        module_dep.as_ref(),
-                    )
-                })
+                create_or_update_service_account(&runtime, &module, &owner)
+                    .and_then({
+                        let runtime = runtime.clone();
+                        let module = module.clone();
+                        let owner = owner.clone();
+                        move |_| create_or_update_role_binding(&runtime, &module, &owner)
+                    })
+                    .and_then({
+                        let runtime = runtime.clone();
+                        let module = module.clone();
+                        let owner = owner.clone();
+                        move |_| create_or_update_deployment(&runtime, &module, &owner)
+                    })
+            }
         })
         .map_err(|err| {
             Error::from(
@@ -469,7 +459,7 @@ mod tests {
         let runtime = create_runtime(settings, service);
         let module = create_module_spec("edgeagent");
 
-        let task = create_module(&runtime, &module);
+        let task = create_module(&runtime, module);
 
         let mut runtime = Runtime::new().unwrap();
         runtime.block_on(task).unwrap();
@@ -488,7 +478,7 @@ mod tests {
         let runtime = create_runtime(settings, service);
         let module = create_module_spec("edgeagent");
 
-        let task = create_module(&runtime, &module);
+        let task = create_module(&runtime, module);
         let mut runtime = Runtime::new().unwrap();
         let err = runtime.block_on(task).unwrap_err();
         assert_eq!(
