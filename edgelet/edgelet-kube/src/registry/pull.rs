@@ -64,7 +64,7 @@ where
 
     let named_secrets: Vec<_> = image_pull_secrets
         .into_iter()
-        .map(|secret| NamedSecret::try_from((runtime.settings().namespace().to_string(), secret)))
+        .map(|secret| NamedSecret::try_from((runtime.settings().namespace().into(), secret)))
         .collect();
 
     runtime
