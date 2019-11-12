@@ -69,19 +69,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
         {
             try
             {
-                var result = await this.httpClient.GetAsync(endpoint, cancellationToken);
+                HttpResponseMessage result = await this.httpClient.GetAsync(endpoint, cancellationToken);
                 if (result.IsSuccessStatusCode)
                 {
                     return await result.Content.ReadAsStringAsync();
                 }
                 else
                 {
-                    Log.LogInformation($"Error connecting to {endpoint}\nResult error code {result.StatusCode}");
+                    Log.LogInformation($"Error connecting to {endpoint} with result error code {result.StatusCode}");
                 }
             }
             catch (Exception e)
             {
-                Log.LogInformation($"Error scraping endpoint {endpoint} - {e.Message}");
+                Log.LogInformation($"Error scraping endpoint {endpoint} - {e}");
             }
 
             return string.Empty;

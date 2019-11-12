@@ -53,28 +53,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
                 .Where(inTimeRange)
                 .ToDictionary(
                     ticks => new DateTime(ticks),
-                    this.GetFileFunc);
+                    ticks => (Func<string>)(() => this.GetFile(ticks)));
         }
 
         public void RemoveOldEntries(DateTime keepAfter)
         {
             this.GetData()
             .Select(d => d.Key)
-            .Where(timestamp => timestamp < keepAfter)
+            .Where(timestamp => timestamp <= keepAfter)
             .Select(timestamp => Path.Combine(this.directory, timestamp.Ticks.ToString()))
             .ToList()
             .ForEach(File.Delete);
         }
 
-        private Func<string> GetFileFunc(long ticks)
+        private string GetFile(long ticks)
         {
             string file = Path.Combine(this.directory, ticks.ToString());
             if (File.Exists(file))
             {
-                return () => File.ReadAllText(file);
+                return File.ReadAllText(file);
             }
 
-            return () => string.Empty;
+            return string.Empty;
         }
     }
 }
