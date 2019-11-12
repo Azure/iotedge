@@ -250,7 +250,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
                     case "local":
                         string localConfigFilePath = GetLocalConfigFilePath(configuration, logger);
-                        builder.RegisterModule(new FileConfigSourceModule(localConfigFilePath, configuration, versionInfo));
+                        builder.RegisterModule(new FileConfigSourceModule(localConfigFilePath, configuration));
                         break;
 
                     default:
