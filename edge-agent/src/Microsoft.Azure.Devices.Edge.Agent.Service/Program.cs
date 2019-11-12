@@ -245,8 +245,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                                 TimeSpan.FromSeconds(configRefreshFrequencySecs),
                                 enableStreams,
                                 TimeSpan.FromSeconds(requestTimeoutSecs),
-                                experimentalFeatures,
-                                upstreamProtocol));
+                                experimentalFeatures));
                         break;
 
                     case "local":
