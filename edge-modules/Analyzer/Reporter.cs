@@ -18,14 +18,14 @@ namespace Analyzer
 
         static IList<ResponseOrientedReport> GetDirectMethodsReport()
         {
-            IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> dms = MessagesCache.Instance.GetDirectMethodsSnapshot();
+            IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> dms = Cache.Instance.GetDirectMethodsSnapshot();
             string description = "Report for direct methods";
             return GetReportHelper(dms, description);
         }
 
         static IList<ResponseOrientedReport> GetTwinsReport()
         {
-            IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> twins = MessagesCache.Instance.GetTwinsSnapshot();
+            IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> twins = Cache.Instance.GetTwinsSnapshot();
             string description = "Report for twins";
             return GetReportHelper(twins, description);
         }
@@ -46,7 +46,7 @@ namespace Analyzer
         static IList<ModuleMessagesReport> GetReceivedMessagesReport(double toleranceInMilliseconds)
         {
             DateTime enDateTime = DateTime.UtcNow;
-            IDictionary<string, IList<SortedSet<MessageDetails>>> messages = MessagesCache.Instance.GetMessagesSnapshot();
+            IDictionary<string, IList<SortedSet<MessageDetails>>> messages = Cache.Instance.GetMessagesSnapshot();
             IList<ModuleMessagesReport> report = new List<ModuleMessagesReport>();
 
             foreach (KeyValuePair<string, IList<SortedSet<MessageDetails>>> moduleMessages in messages)

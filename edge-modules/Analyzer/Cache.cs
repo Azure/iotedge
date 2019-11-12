@@ -6,7 +6,7 @@ namespace Analyzer
     using System.Collections.Generic;
     using System.Linq;
 
-    class MessagesCache
+    class Cache
     {
         // maps batchId with moduleId, there can be multiple batches for a module
         readonly ConcurrentDictionary<string, string> batches = new ConcurrentDictionary<string, string>();
@@ -16,11 +16,11 @@ namespace Analyzer
         readonly ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> twins = new ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>>();
         readonly IComparer<MessageDetails> comparer = new EventDataComparer();
 
-        MessagesCache()
+        Cache()
         {
         }
 
-        public static MessagesCache Instance { get; } = new MessagesCache();
+        public static Cache Instance { get; } = new Cache();
 
         public void AddDirectMethodStatus(ResponseStatus directMethodStatus)
         {

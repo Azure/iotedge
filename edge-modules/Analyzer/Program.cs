@@ -38,7 +38,7 @@ namespace Analyzer
         {
             DateTime lastReceivedAt = DateTime.MinValue;
             await CacheWithStorage.Instance.Init(Settings.Current.StoragePath, Settings.Current.OptimizeForPerformance);
-            var messagesSnapShot = MessagesCache.Instance.GetMessagesSnapshot();
+            var messagesSnapShot = Cache.Instance.GetMessagesSnapshot();
             foreach (KeyValuePair<string, IList<SortedSet<MessageDetails>>> moduleMesssages in messagesSnapShot)
             {
                 foreach (var moduleMesssage in moduleMesssages.Value)
