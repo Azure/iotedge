@@ -186,6 +186,48 @@
               "image": "<Container_Registry>/microsoft/azureiotedge-analyzer:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"15000/tcp\":[{\"HostPort\":\"15000\"}]}}}"
             }
+          },
+          "logspout": {
+            "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-logspout-loganalytics:<Build.BuildNumber>-linux-<Architecture>",
+                "createOptions": "{\"Cmd\":[\"loganalytics:\/\/\"],\"HostConfig\":{\"Binds\":[\"\/var\/run\/docker.sock:\/var\/run\/docker.sock\"]}}"
+            },
+            "type": "docker",
+            "version": "1.0",
+            "env": {
+                "BACKLOG": {
+                    "value": "false"
+                },
+                "LOGSPOUT": {
+                    "value": "ignore"
+                },
+                "LOGANALYTICS_WORKSPACE_ID": {
+                    "value": "<>"
+                },
+                "LOGANALYTICS_WORKSPACE_SECRET": {
+                    "value": "<>"
+                }
+            },
+            "status": "running",
+            "restartPolicy": "always"
+        },
+        "metricsCollector": {
+            "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
+                "createOptions": ""
+            },
+            "type": "docker",
+            "version": "1.0",
+            "env": {
+                "AzMonWorkspaceId": {
+                    "value": "<>"
+                },
+                "AzMonWorkspaceKey": {
+                    "value": "<>"
+                }
+            },
+            "status": "running",
+            "restartPolicy": "always"
           }
         }
       }
