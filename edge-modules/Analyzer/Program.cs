@@ -37,7 +37,7 @@ namespace Analyzer
         static async Task<DateTime> LoadStartupTimeFromStorage()
         {
             DateTime lastReceivedAt = DateTime.MinValue;
-            await MessagesCacheWithStorage.Instance.Init(Settings.Current.StoragePath, Settings.Current.OptimizeForPerformance);
+            await CacheWithStorage.Instance.Init(Settings.Current.StoragePath, Settings.Current.OptimizeForPerformance);
             var messagesSnapShot = MessagesCache.Instance.GetMessagesSnapshot();
             foreach (KeyValuePair<string, IList<SortedSet<MessageDetails>>> moduleMesssages in messagesSnapShot)
             {

@@ -12,7 +12,7 @@ namespace Analyzer.Controllers
         [HttpPost]
         public async Task<ActionResult<bool>> Post(ResponseStatus methodCallStatus)
         {
-            await MessagesCacheWithStorage.Instance.AddDirectMethod(methodCallStatus);
+            await CacheWithStorage.Instance.AddDirectMethod(methodCallStatus);
             return true;
         }
     }

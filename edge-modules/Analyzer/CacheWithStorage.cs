@@ -4,13 +4,13 @@ namespace Analyzer
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class MessagesCacheWithStorage
+    public class CacheWithStorage
     {
         Storage storage;
 
-        public static MessagesCacheWithStorage Instance { get; } = new MessagesCacheWithStorage();
+        public static CacheWithStorage Instance { get; } = new CacheWithStorage();
 
-        MessagesCacheWithStorage()
+        CacheWithStorage()
         {
         }
 
@@ -18,8 +18,9 @@ namespace Analyzer
         {
             this.storage = new Storage();
             await this.storage.Init(storagePath, new SystemEnvironment(), optimizeForPerformance);
-            await this.storage.ProcessAllMessages(details => MessagesCache.Instance.AddMessage(details));
-            await this.storage.ProcessAllDirectMethods(dm => MessagesCache.Instance.AddDirectMethodStatus(dm));
+            await this.storage.ProcessAllMessages(message => MessagesCache.Instance.AddMessage(message));
+            await this.storage.ProcessAllDirectMethods(directMethodStatus => MessagesCache.Instance.AddDirectMethodStatus(directMethodStatus));
+            await this.storage.ProcessAllTwins(twinStatus => MessagesCache.Instance.AddDirectMethodStatus(twinStatus));
         }
 
         public async Task AddMessage(MessageDetails msg)
