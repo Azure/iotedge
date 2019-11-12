@@ -19,10 +19,10 @@ parameters:
   loadGen3.transportType: 'Mqtt_Tcp_Only'
   loadGen4.transportType: 'Mqtt_Tcp_Only'
   analyzer.consumerGroupId: ''
-  analyzer.logAnalytic.enabled: ''
-  analyzer.logAnalytic.workspaceId: ''
-  analyzer.logAnalytic.sharedKey: ''
-  analyzer.logAnalytic.logType: ''
+  analyzer.logAnalytics.enabled: ''
+  analyzer.logAnalytics.logType: ''
+  logAnalytics.workspaceId: ''
+  logAnalytics.secret: ''
 
 steps:
   - task: CopyFiles@2
@@ -67,10 +67,10 @@ steps:
           -MqttSettingsEnabled "${{ parameters['mqtt.settings.enabled'] }}" `
           -LoadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" `
           -EventHubConsumerGroupId "${{ parameters['analyzer.consumerGroupId'] }}" `
-          -AnalyzerLaEnabled "${{ parameters['analyzer.logAnalytic.enabled'] }}" `
-          -AnalyzerLaWorkspaceId "${{ parameters['analyzer.logAnalytic.workspaceId'] }}" `
-          -AnalyzerLaSharedKey "${{ parameters['analyzer.logAnalytic.sharedKey'] }}" `
-          -AnalyzerLaLogType "${{ parameters['analyzer.logAnalytic.logType'] }}" 
+          -LogAnalyticsEnabled "${{ parameters['analyzer.logAnalytics.enabled'] }}" `
+          -LogAnalyticsLogType "${{ parameters['analyzer.logAnalytics.logType'] }}" `
+          -LogAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" `
+          -LogAnalyticsSecret "${{ parameters['logAnalytics.secret'] }}"
         # schedule a task to stop iotedge service (terminate the test) in 4:30h
         $ScheduleDatetime = [DateTime]::Now.AddMinutes(270)
         $ScheduleDate=$ScheduleDatetime.ToString("MM/dd/yyyy")

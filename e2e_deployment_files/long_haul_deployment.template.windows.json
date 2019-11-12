@@ -203,16 +203,16 @@
                 "value": "<Analyzer.ConsumerGroupId>"
               },
               "LogAnalyticEnabled": {
-                "value": "<Analyzer.LogAnalyticEnabled>"
+                "value": "<Analyzer.LogAnalyticsEnabled>"
               },
               "LogAnalyticWorkspaceId": {
-                "value": "<Analyzer.LogAnalyticWorkspaceId>"
+                "value": "<LogAnalyticsWorkspaceId>"
               },
               "LogAnalyticSharedKey": {
-                "value": "<Analyzer.LogAnalyticSharedKey>"
+                "value": "<LogAnalyticsSecret>"
               },
               "LogAnalyticLogType": {
-                "value": "<Analyzer.LogAnalyticLogType>"
+                "value": "<Analyzer.LogAnalyticsLogType>"
               }
             },
             "settings": {

@@ -19,10 +19,10 @@ parameters:
   loadGen3.transportType: 'Mqtt_Tcp_Only'
   loadGen4.transportType: 'Mqtt_WebSocket_Only'
   analyzer.consumerGroupId: ''
-  analyzer.logAnalytic.enabled: ''
-  analyzer.logAnalytic.workspaceId: ''
-  analyzer.logAnalytic.sharedKey: ''
-  analyzer.logAnalytic.logType: ''
+  analyzer.logAnalytics.enabled: ''
+  analyzer.logAnalytics.logType: ''
+  logAnalytics.workspaceId: ''
+  logAnalytics.secret: ''
 
 steps:
   - task: CopyFiles@2
@@ -70,10 +70,10 @@ steps:
           -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" \
           -snitchTestDurationInSecs "$(($(snitcher.test.duration.in.mins)*60))" \
           -eventHubConsumerGroupId "${{ parameters['analyzer.consumerGroupId'] }}" \
-          -analyzerLaEnabled "${{ parameters['analyzer.logAnalytic.enabled'] }}" \
-          -analyzerLaWorkspaceId "${{ parameters['analyzer.logAnalytic.workspaceId'] }}" \
-          -analyzerLaSharedKey "${{ parameters['analyzer.logAnalytic.sharedKey'] }}" \
-          -analyzerLaLogType "${{ parameters['analyzer.logAnalytic.logType'] }}" \
+          -logAnalyticsEnabled "${{ parameters['analyzer.logAnalytics.enabled'] }}" \
+          -logAnalyticsLogType "${{ parameters['analyzer.logAnalytics.logType'] }}" \
+          -logAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" \
+          -logAnalyticsSecret "${{ parameters['logAnalytics.secret'] }}" \
           -cleanAll
         #Remove all pending jobs
         atrm $(atq | cut -f1)
