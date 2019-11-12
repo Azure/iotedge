@@ -35,6 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly bool enableStreams;
         readonly TimeSpan requestTimeout;
         readonly ExperimentalFeatures experimentalFeatures;
+        readonly Option<UpstreamProtocol> upstreamProtocol;
 
         public TwinConfigSourceModule(
             string iotHubHostname,
@@ -45,13 +46,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             TimeSpan configRefreshFrequency,
             bool enableStreams,
             TimeSpan requestTimeout,
-            ExperimentalFeatures experimentalFeatures)
+            ExperimentalFeatures experimentalFeatures,
+            Option<UpstreamProtocol> upstreamProtocol)
         {
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostname, nameof(iotHubHostname));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.backupConfigFilePath = Preconditions.CheckNonWhiteSpace(backupConfigFilePath, nameof(backupConfigFilePath));
             this.configuration = Preconditions.CheckNotNull(config, nameof(config));
             this.versionInfo = Preconditions.CheckNotNull(versionInfo, nameof(versionInfo));
+            this.upstreamProtocol = Preconditions.CheckNotNull(upstreamProtocol, nameof(upstreamProtocol));
             this.configRefreshFrequency = configRefreshFrequency;
             this.enableStreams = enableStreams;
             this.requestTimeout = requestTimeout;

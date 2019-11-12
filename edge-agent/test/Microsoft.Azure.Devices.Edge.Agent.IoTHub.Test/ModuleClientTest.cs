@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             bool closeOnIdleTimeout = true;
 
             // Act
-            var moduleClient = new ModuleClient(sdkModuleClient.Object, idleTimeout, closeOnIdleTimeout);
+            var moduleClient = new ModuleClient(sdkModuleClient.Object, idleTimeout, closeOnIdleTimeout, Core.UpstreamProtocol.Amqp);
 
             // Assert
             Assert.True(moduleClient.IsActive);
@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             bool closeOnIdleTimeout = true;
 
             // Act
-            var moduleClient = new ModuleClient(sdkModuleClient.Object, idleTimeout, closeOnIdleTimeout);
+            var moduleClient = new ModuleClient(sdkModuleClient.Object, idleTimeout, closeOnIdleTimeout, Core.UpstreamProtocol.Amqp);
             Assert.True(moduleClient.IsActive);
 
             // Assert
@@ -90,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             bool closeOnIdleTimeout = false;
 
             // Act
-            var moduleClient = new ModuleClient(sdkModuleClient.Object, idleTimeout, closeOnIdleTimeout);
+            var moduleClient = new ModuleClient(sdkModuleClient.Object, idleTimeout, closeOnIdleTimeout, Core.UpstreamProtocol.Amqp);
             Assert.True(moduleClient.IsActive);
             await Assert.ThrowsAsync(exception, () => moduleClient.SetDefaultMethodHandlerAsync(testMethodCallback));
 
