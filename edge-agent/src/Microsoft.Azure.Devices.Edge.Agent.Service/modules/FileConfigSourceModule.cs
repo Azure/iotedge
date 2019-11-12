@@ -9,7 +9,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
     using Microsoft.Azure.Devices.Edge.Agent.Core.DeviceManager;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.Reporters;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
@@ -71,13 +70,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 })
                 .As<IEdgeAgentConnection>()
                 .SingleInstance();
-
-            // IReporter
-            // TODO: When using a file backed config source we need to figure out
-            // how reporting will work.
-            //builder.Register(c => NullReporter.Instance as IReporter)
-            //    .As<IReporter>()
-            //    .SingleInstance();
 
             // IReporter
             builder.Register(
