@@ -91,16 +91,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
 
             var selector = new V1LabelSelector(matchLabels: labels);
             var deploymentSpec = new V1DeploymentSpec(replicas: 1, selector: selector, template: podSpec);
-            var ownerReferences = new List<V1OwnerReference>
-            {
-                new V1OwnerReference(
-                    apiVersion: module.Owner.ApiVersion,
-                    kind: module.Owner.Kind,
-                    name: module.Owner.Name,
-                    uid: module.Owner.Uid)
-            };
 
-            var deploymentMeta = new V1ObjectMeta(name: name, labels: labels, annotations: new Dictionary<string, string>(), ownerReferences: ownerReferences);
+            var deploymentMeta = new V1ObjectMeta(
+                name: name,
+                labels: labels,
+                annotations: new Dictionary<string, string>(),
+                ownerReferences: EdgeDeploymentUtils.KubeModuleOwnerToOwnerReferences(module.Owner));
             return new V1Deployment(metadata: deploymentMeta, spec: deploymentSpec);
         }
 

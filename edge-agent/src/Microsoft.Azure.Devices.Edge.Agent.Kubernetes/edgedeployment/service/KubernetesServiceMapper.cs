@@ -63,16 +63,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service
             {
                 // Selector: by module name and device name, also how we will label this puppy.
                 string name = identity.DeploymentName();
-                var ownerReferences = new List<V1OwnerReference>
-                {
-                    new V1OwnerReference(
-                        apiVersion: module.Owner.ApiVersion,
-                        kind: module.Owner.Kind,
-                        name: module.Owner.Name,
-                        uid: module.Owner.Uid)
-                };
-
-                var objectMeta = new V1ObjectMeta(annotations: annotations, labels: labels, name: name, ownerReferences: ownerReferences);
+                var serviceMeta = new V1ObjectMeta(
+                    name: name,
+                    labels: labels,
+                    annotations: annotations,
+                    ownerReferences: EdgeDeploymentUtils.KubeModuleOwnerToOwnerReferences(module.Owner));
 
                 // How we manage this service is dependent on the port mappings user asks for.
                 // If the user tells us to only use ClusterIP ports, we will always set the type to ClusterIP.
@@ -84,7 +79,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service
                     ? PortMapServiceType.ClusterIP
                     : this.defaultMapServiceType;
 
-                return Option.Some(new V1Service(metadata: objectMeta, spec: new V1ServiceSpec(type: serviceType.ToString(), ports: servicePorts.Values.ToList(), selector: labels)));
+                return Option.Some(new V1Service(metadata: serviceMeta, spec: new V1ServiceSpec(type: serviceType.ToString(), ports: servicePorts.Values.ToList(), selector: labels)));
             }
 
             return Option.None<V1Service>();

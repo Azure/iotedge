@@ -81,15 +81,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         {
             foreach (var imagePullSecret in imagePullSecrets)
             {
-                var ownerReferences = new List<V1OwnerReference>
-                {
-                    new V1OwnerReference(
-                        apiVersion: this.moduleOwner.ApiVersion,
-                        kind: this.moduleOwner.Kind,
-                        name: this.moduleOwner.Name,
-                        uid: this.moduleOwner.Uid)
-                };
-                var secretMeta = new V1ObjectMeta(name: imagePullSecret.Name, namespaceProperty: this.deviceNamespace, ownerReferences: ownerReferences);
+                var secretMeta = new V1ObjectMeta(
+                    name: imagePullSecret.Name,
+                    namespaceProperty: this.deviceNamespace,
+                    ownerReferences: EdgeDeploymentUtils.KubeModuleOwnerToOwnerReferences(this.moduleOwner));
                 var secretData = new Dictionary<string, byte[]> { [Constants.K8sPullSecretData] = Encoding.UTF8.GetBytes(imagePullSecret.GenerateSecret()) };
                 var newSecret = new V1Secret("v1", secretData, type: Constants.K8sPullSecretType, kind: "Secret", metadata: secretMeta);
                 Option<V1Secret> currentSecret;
@@ -174,16 +169,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 activeDeployment = Option.None<EdgeDeploymentDefinition>();
             }
 
-            var ownerReferences = new List<V1OwnerReference>
-            {
-                new V1OwnerReference(
-                    apiVersion: this.moduleOwner.ApiVersion,
-                    kind: this.moduleOwner.Kind,
-                    name: this.moduleOwner.Name,
-                    uid: this.moduleOwner.Uid)
-            };
-
-            var metadata = new V1ObjectMeta(name: this.resourceName, namespaceProperty: this.deviceNamespace, ownerReferences: ownerReferences);
+            var metadata = new V1ObjectMeta(
+                name: this.resourceName,
+                namespaceProperty: this.deviceNamespace,
+                ownerReferences: EdgeDeploymentUtils.KubeModuleOwnerToOwnerReferences(this.moduleOwner));
 
             // need resourceVersion for Replace.
             activeDeployment.ForEach(deployment => metadata.ResourceVersion = deployment.Metadata.ResourceVersion);

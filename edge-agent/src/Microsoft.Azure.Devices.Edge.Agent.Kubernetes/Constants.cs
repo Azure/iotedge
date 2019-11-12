@@ -71,10 +71,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public const string EdgeK8sObjectOwnerApiVersionKey = "EdgeK8sObjectOwnerApiVersion";
 
-        public const string EdgeK8sObjectOwnerKind = "EdgeK8sObjectOwnerKind";
+        public const string EdgeK8sObjectOwnerKindKey = "EdgeK8sObjectOwnerKind";
 
-        public const string EdgeK8sObjectOwnerName = "EdgeK8sObjectOwnerName";
+        public const string EdgeK8sObjectOwnerNameKey = "EdgeK8sObjectOwnerName";
 
-        public const string EdgeK8sObjectOwnerUid = "EdgeK8sObjectOwnerUid";
+        public const string EdgeK8sObjectOwnerUidKey = "EdgeK8sObjectOwnerUid";
     }
 }

@@ -67,16 +67,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
                 persistentVolumeClaimSpec.StorageClassName = this.storageClassName.OrDefault();
             }
 
-            var ownerReferences = new List<V1OwnerReference>
-            {
-                new V1OwnerReference(
-                    apiVersion: module.Owner.ApiVersion,
-                    kind: module.Owner.Kind,
-                    name: module.Owner.Name,
-                    uid: module.Owner.Uid,
-                    blockOwnerDeletion: true)
-            };
-            return new V1PersistentVolumeClaim(metadata: new V1ObjectMeta(name: volumeName, labels: labels, ownerReferences: ownerReferences), spec: persistentVolumeClaimSpec);
+            var pvcMeta = new V1ObjectMeta(
+                name: volumeName,
+                labels: labels,
+                ownerReferences: EdgeDeploymentUtils.KubeModuleOwnerToOwnerReferences(module.Owner));
+
+            return new V1PersistentVolumeClaim(metadata: pvcMeta, spec: persistentVolumeClaimSpec);
         }
 
         public void UpdatePersistentVolumeClaim(V1PersistentVolumeClaim to, V1PersistentVolumeClaim from)

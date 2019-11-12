@@ -16,15 +16,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.ServiceAc
                 [KubernetesConstants.K8sEdgeOriginalModuleId] = ModuleIdentityHelper.GetModuleName(identity.ModuleId)
             };
 
-            var ownerReferences = new List<V1OwnerReference>
-            {
-                new V1OwnerReference(
-                    apiVersion: module.Owner.ApiVersion,
-                    kind: module.Owner.Kind,
-                    name: module.Owner.Name,
-                    uid: module.Owner.Uid)
-            };
-            var metadata = new V1ObjectMeta(annotations, name: name, labels: labels, ownerReferences: ownerReferences);
+            var metadata = new V1ObjectMeta(
+                annotations,
+                name: name,
+                labels: labels,
+                ownerReferences: EdgeDeploymentUtils.KubeModuleOwnerToOwnerReferences(module.Owner));
             return new V1ServiceAccount(metadata: metadata);
         }
 

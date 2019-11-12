@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             IDictionary<string, EnvVal> env,
             KubernetesConfig settings,
             ImagePullPolicy imagePullPolicy,
-            KubernetesModuleOwner owner = null)
+            KubernetesModuleOwner owner)
         {
             this.Name = name;
             this.Version = version;
