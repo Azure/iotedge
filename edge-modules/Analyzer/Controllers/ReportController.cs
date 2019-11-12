@@ -16,7 +16,7 @@ namespace Analyzer.Controllers
             DeviceAnalysis deviceAnalysis = Reporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
             if (Settings.Current.LogAnalyticEnabled)
             {
-                PublishToLogAnalytics(deviceAnalysis);
+                this.PublishToLogAnalytics(deviceAnalysis);
             }
 
             return deviceAnalysis.ToString();
@@ -29,7 +29,7 @@ namespace Analyzer.Controllers
             DeviceAnalysis deviceAnalysis = Reporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
             if (Settings.Current.LogAnalyticEnabled)
             {
-                PublishToLogAnalytics(deviceAnalysis);
+                this.PublishToLogAnalytics(deviceAnalysis);
             }
 
             string messagesJson = deviceAnalysis.MessagesReport.ToString();
