@@ -32,8 +32,7 @@ namespace Analyzer.Controllers
                 this.PublishToLogAnalytics(deviceAnalysis);
             }
 
-            string messagesJson = deviceAnalysis.MessagesReport.ToString();
-            return deviceAnalysis.ToString();
+            return deviceAnalysis.MessagesReport.ToString();
         }
 
         private void PublishToLogAnalytics(DeviceAnalysis deviceAnalysis)
@@ -46,7 +45,7 @@ namespace Analyzer.Controllers
             string sharedKey = Settings.Current.LogAnalyticSharedKey;
             string logType = Settings.Current.LogAnalyticLogType;
 
-            // Upload the data to Log Analytics
+            // Upload the data to Log Analytics for our dashboards
             AzureLogAnalytics.Instance.PostAsync(
                 workspaceId,
                 sharedKey,
