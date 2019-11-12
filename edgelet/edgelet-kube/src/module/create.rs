@@ -16,6 +16,7 @@ use crate::convert::{spec_to_deployment, spec_to_role_binding, spec_to_service_a
 use crate::error::{Error, MissingMetadataReason};
 use crate::{ErrorKind, KubeModuleOwner, KubeModuleRuntime};
 use std::convert::TryFrom;
+use std::sync::Arc;
 
 pub fn create_module<T, S>(
     runtime: &KubeModuleRuntime<T, S>,
@@ -45,19 +46,24 @@ where
 
     get_module_owner(&runtime_for_owner, "iotedged")
         .and_then(move |module_owner| {
-            let module_owner1 = module_owner.clone();
-            let module_owner2 = module_owner.clone();
-            let module_owner3 = module_owner.clone();
+            let owner = Arc::new(module_owner);
+            let module_sa = owner.clone();
+            let module_rb = owner.clone();
+            let module_dep = owner.clone();
 
-            create_or_update_service_account(&runtime_for_sa, &module_for_sa, &module_owner1)
+            create_or_update_service_account(&runtime_for_sa, &module_for_sa, module_sa.as_ref())
                 .and_then(move |_| {
-                    create_or_update_role_binding(&runtime_for_rb, &module_for_rb, &module_owner2)
+                    create_or_update_role_binding(
+                        &runtime_for_rb,
+                        &module_for_rb,
+                        module_rb.as_ref(),
+                    )
                 })
                 .and_then(move |_| {
                     create_or_update_deployment(
                         &runtime_for_deployment,
                         &module_for_deployment,
-                        &module_owner3,
+                        module_dep.as_ref(),
                     )
                 })
         })
