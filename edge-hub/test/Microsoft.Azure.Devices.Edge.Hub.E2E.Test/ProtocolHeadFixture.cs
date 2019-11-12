@@ -33,12 +33,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             {
                 this.StartProtocolHead().Wait();
             }
+
+            this.IsClosed = false;
         }
 
         ~ProtocolHeadFixture()
         {
             this.Dispose(false);
         }
+
+        public bool IsClosed { get; private set; }
 
         // Device SDK caches the AmqpTransportSettings that are set the first time and ignores
         // all the settings used thereafter from that process. So set up a dummy connection using the test
@@ -121,6 +125,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 IDbStoreProvider dbStoreProvider = await container.Resolve<Task<IDbStoreProvider>>();
                 await dbStoreProvider.CloseAsync();
             }
+
+            this.IsClosed = true;
         }
     }
 }

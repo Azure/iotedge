@@ -13,6 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
+    using Newtonsoft.Json.Linq;
     using Xunit;
     using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
@@ -149,7 +150,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
             var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
             var mapper = CreateMapper(storageClassName: null);
-
             var deployment = mapper.CreateDeployment(identity, module, labels);
             var pod = deployment.Spec.Template;
 
@@ -162,6 +162,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         }
 
         [Fact]
+        public void InvalidPvcMappingForVolumeNameVolume()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "ModuleId", Mock.Of<ICredentials>());
+            var labels = new Dictionary<string, string>();
+            var hostConfig = VolumeMountHostConfig;
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(labels: labels, hostConfig: hostConfig), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
+            var mapper = CreateMapper("elephant", null);
+
+            Assert.Throws<InvalidModuleException>(() => mapper.CreateDeployment(identity, module, labels));
+        }
+
+        [Fact]
         public void PvcMappingForVolumeNameVolume()
         {
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "ModuleId", Mock.Of<ICredentials>());
@@ -170,13 +184,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var config = new KubernetesConfig("image", CreatePodParameters.Create(labels: labels, hostConfig: hostConfig), Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
             var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
-            var mapper = CreateMapper(persistentVolumeName: "elephant");
+            var mapper = CreateMapper("a-volume", null);
 
             var deployment = mapper.CreateDeployment(identity, module, labels);
+
             var pod = deployment.Spec.Template;
 
             Assert.True(pod != null);
-            var podVolume = pod.Spec.Volumes.Single(v => v.Name == "elephant");
+            var podVolume = pod.Spec.Volumes.Single(v => v.Name == "a-volume");
             Assert.NotNull(podVolume.PersistentVolumeClaim);
 
             Assert.Equal("module1-a-volume", podVolume.PersistentVolumeClaim.ClaimName);
@@ -201,7 +216,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var pod = deployment.Spec.Template;
 
             Assert.True(pod != null);
-            var podVolume = pod.Spec.Volumes.Single(v => v.Name == "module1-a-volume");
+            var podVolume = pod.Spec.Volumes.Single(v => v.Name == "a-volume");
             Assert.NotNull(podVolume.PersistentVolumeClaim);
             Assert.Equal("module1-a-volume", podVolume.PersistentVolumeClaim.ClaimName);
             Assert.True(podVolume.PersistentVolumeClaim.ReadOnlyProperty);
@@ -225,13 +240,64 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var pod = deployment.Spec.Template;
 
             Assert.True(pod != null);
-            var podVolume = pod.Spec.Volumes.Single(v => v.Name == "module1-a-volume");
+            var podVolume = pod.Spec.Volumes.Single(v => v.Name == "a-volume");
             Assert.NotNull(podVolume.PersistentVolumeClaim);
             Assert.Equal("module1-a-volume", podVolume.PersistentVolumeClaim.ClaimName);
             Assert.True(podVolume.PersistentVolumeClaim.ReadOnlyProperty);
             var podVolumeMount = pod.Spec.Containers.Single(p => p.Name != "proxy").VolumeMounts.Single(vm => vm.Name == "a-volume");
             Assert.Equal("/tmp/volume", podVolumeMount.MountPath);
             Assert.True(podVolumeMount.ReadOnlyProperty);
+        }
+
+        [Fact]
+        public void PvcMappingForPVVolumeExtended()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "ModuleId", Mock.Of<ICredentials>());
+            var labels = new Dictionary<string, string>();
+            var hostConfig = VolumeMountHostConfig;
+
+            var experimental = new Dictionary<string, JToken>
+            {
+                ["k8s-experimental"] = JToken.Parse(
+                   @"{ 
+                        ""volumes"": [
+                          {
+                            ""volume"": {
+                              ""name"": ""module-config"",
+                            },
+                         
+                          ""volumeMounts"": [
+                            {
+                              ""name"": ""module-config"",
+                              ""mountPath"": ""/etc/module"",
+                              ""mountPropagation"": ""None"",
+                              ""readOnly"": ""true"",
+                              ""subPath"": """" 
+                            }
+                          ]
+                        }  
+                    ]}")
+            };
+
+            var parameters = KubernetesExperimentalCreatePodParameters.Parse(experimental).OrDefault();
+
+            var volumes = new[]
+            {
+                parameters.Volumes.OrDefault().Single(),
+            };
+
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(volumes: volumes, hostConfig: hostConfig), Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
+            var mapper = CreateMapper();
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+            var pod = deployment.Spec.Template;
+
+            Assert.True(pod != null);
+            var podVolume = pod.Spec.Volumes.Single(v => v.Name == "module-config");
+            var podVolumeMount = pod.Spec.Containers.Single(p => p.Name != "proxy").VolumeMounts.Single(vm => vm.Name == "module-config");
+            Assert.Equal("/etc/module", podVolumeMount.MountPath);
         }
 
         [Fact]
