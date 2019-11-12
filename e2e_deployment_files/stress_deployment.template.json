@@ -173,10 +173,10 @@
                 "value": "<Analyzer.LogAnalyticEnabled>"
               },
               "LogAnalyticWorkspaceId": {
-                "value": "<Analyzer.LogAnalyticWorkspaceId>"
+                "value": "<LogAnalyticsWorkspaceId>"
               },
               "LogAnalyticSharedKey": {
-                "value": "<Analyzer.LogAnalyticSharedKey>"
+                "value": "<LogAnalyticsSecret>"
               },
               "LogAnalyticLogType": {
                 "value": "<Analyzer.LogAnalyticLogType>"
@@ -202,10 +202,10 @@
                     "value": "ignore"
                 },
                 "LOGANALYTICS_WORKSPACE_ID": {
-                    "value": "<>"
+                    "value": "<LogAnalyticsWorkspaceId>"
                 },
                 "LOGANALYTICS_WORKSPACE_SECRET": {
-                    "value": "<>"
+                    "value": "<LogAnalyticsSecret>"
                 }
             },
             "status": "running",
@@ -220,10 +220,10 @@
             "version": "1.0",
             "env": {
                 "AzMonWorkspaceId": {
-                    "value": "<>"
+                    "value": "<LogAnalyticsWorkspaceId>"
                 },
                 "AzMonWorkspaceKey": {
-                    "value": "<>"
+                    "value": "<LogAnalyticsSecret>"
                 }
             },
             "status": "running",
@@ -243,6 +243,17 @@
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 86400
+        }
+      }
+    },
+    "metricsCollector": {
+      "properties.desired": {
+        "schemaVersion": "1.0",
+        "scrapeFrequencySecs": "<LogAnalyticsScrapeFrequency>",
+        "metricsFormat": "Json",
+        "syncTarget": "AzureLogAnalytics",
+        "endpoints": {
+            "edgeHub": "http://edgeHub:9600/metrics"
         }
       }
     }

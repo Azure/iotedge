@@ -176,10 +176,10 @@
                 "value": "<Analyzer.LogAnalyticEnabled>"
               },
               "LogAnalyticWorkspaceId": {
-                "value": "<Analyzer.LogAnalyticWorkspaceId>"
+                "value": "<LogAnalyticsWorkspaceId>"
               },
               "LogAnalyticSharedKey": {
-                "value": "<Analyzer.LogAnalyticSharedKey>"
+                "value": "<LogAnalyticsSharedKey>"
               },
               "LogAnalyticLogType": {
                 "value": "<Analyzer.LogAnalyticLogType>"
@@ -189,6 +189,48 @@
               "image": "<Container_Registry>/microsoft/azureiotedge-analyzer:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"15000/tcp\":[{\"HostPort\":\"15000\"}]}}}"
             }
+          },
+          "logspout": {
+            "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-logspout-loganalytics:<Build.BuildNumber>-windows-<Architecture>",
+                "createOptions": "{\"Cmd\":[\"loganalytics:\/\/\"],\"HostConfig\":{\"Binds\":[\"\/var\/run\/docker.sock:\/var\/run\/docker.sock\"]}}"
+            },
+            "type": "docker",
+            "version": "1.0",
+            "env": {
+                "BACKLOG": {
+                    "value": "false"
+                },
+                "LOGSPOUT": {
+                    "value": "ignore"
+                },
+                "LOGANALYTICS_WORKSPACE_ID": {
+                    "value": "<LogAnalyticsWorkspaceId>"
+                },
+                "LOGANALYTICS_WORKSPACE_SECRET": {
+                    "value": "<LogAnalyticsSecret>"
+                }
+            },
+            "status": "running",
+            "restartPolicy": "always"
+        },
+        "metricsCollector": {
+            "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-windows-<Architecture>",
+                "createOptions": ""
+            },
+            "type": "docker",
+            "version": "1.0",
+            "env": {
+                "AzMonWorkspaceId": {
+                    "value": "<LogAnalyticsWorkspaceId>"
+                },
+                "AzMonWorkspaceKey": {
+                    "value": "<LogAnalyticsSecret>"
+                }
+            },
+            "status": "running",
+            "restartPolicy": "always"
           }
         }
       }
@@ -204,6 +246,17 @@
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 86400
+        }
+      }
+    },
+    "metricsCollector": {
+      "properties.desired": {
+        "schemaVersion": "1.0",
+        "scrapeFrequencySecs": "<LogAnalyticsScrapeFrequency>",
+        "metricsFormat": "Json",
+        "syncTarget": "AzureLogAnalytics",
+        "endpoints": {
+            "edgeHub": "http://edgeHub:9600/metrics"
         }
       }
     }
