@@ -18,9 +18,9 @@ namespace Analyzer
         {
             this.storage = new Storage();
             await this.storage.Init(storagePath, new SystemEnvironment(), optimizeForPerformance);
-            await this.storage.ProcessAllMessages(message => MessagesCache.Instance.AddMessage(message));
-            await this.storage.ProcessAllDirectMethods(directMethodStatus => MessagesCache.Instance.AddDirectMethodStatus(directMethodStatus));
-            await this.storage.ProcessAllTwins(twinStatus => MessagesCache.Instance.AddDirectMethodStatus(twinStatus));
+            await this.storage.ProcessAllMessages(message => Cache.Instance.AddMessage(message));
+            await this.storage.ProcessAllDirectMethods(directMethodStatus => Cache.Instance.AddDirectMethodStatus(directMethodStatus));
+            await this.storage.ProcessAllTwins(twinStatus => Cache.Instance.AddTwinStatus(twinStatus));
         }
 
         public async Task AddMessage(MessageDetails msg)
@@ -28,7 +28,7 @@ namespace Analyzer
             bool added = await this.storage.AddMessage(msg);
             if (added)
             {
-                MessagesCache.Instance.AddMessage(msg);
+                Cache.Instance.AddMessage(msg);
             }
         }
 
@@ -37,7 +37,7 @@ namespace Analyzer
             bool added = await this.storage.AddDirectMethod(dmStatus);
             if (added)
             {
-                MessagesCache.Instance.AddDirectMethodStatus(dmStatus);
+                Cache.Instance.AddDirectMethodStatus(dmStatus);
             }
         }
 
@@ -46,7 +46,7 @@ namespace Analyzer
             bool added = await this.storage.AddTwin(twinStatus);
             if (added)
             {
-                MessagesCache.Instance.AddTwinStatus(twinStatus);
+                Cache.Instance.AddTwinStatus(twinStatus);
             }
         }
     }

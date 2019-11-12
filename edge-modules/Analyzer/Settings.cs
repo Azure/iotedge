@@ -46,7 +46,7 @@ namespace Analyzer
                     configuration.GetValue(ToleranceInMillisecondsPropertyName, DefaultToleranceInMilliseconds),
                     configuration.GetValue<string>(StoragePathPropertyName, DefaultStoragePath),
                     configuration.GetValue<bool>("StorageOptimizeForPerformance", true),
-                    configuration.GetValue<bool>(LogAnalyticEnabledName),
+                    configuration.GetValue<bool>(LogAnalyticEnabledName, false),
                     configuration.GetValue<string>(LogAnalyticWorkspaceIdName),
                     configuration.GetValue<string>(LogAnalyticSharedKeyName),
                     configuration.GetValue<string>(LogAnalyticLogTypeName));
@@ -63,9 +63,9 @@ namespace Analyzer
             this.StoragePath = storagePath;
             this.OptimizeForPerformance = Preconditions.CheckNotNull(storageOptimizeForPerformance);
             this.LogAnalyticEnabled = Preconditions.CheckNotNull(logAnalyticEnabled);
-            this.LogAnalyticWorkspaceId = Preconditions.CheckNonWhiteSpace(logAnalyticsWorkspaceIdName, nameof(logAnalyticsWorkspaceIdName));
-            this.LogAnalyticSharedKey = Preconditions.CheckNonWhiteSpace(logAnalyticsSharedKeyName, nameof(logAnalyticsSharedKeyName));
-            this.LogAnalyticLogType = Preconditions.CheckNonWhiteSpace(logAnalyticsLogTypeName, nameof(LogAnalyticLogTypeName));
+            this.LogAnalyticWorkspaceId = logAnalyticsWorkspaceIdName;
+            this.LogAnalyticSharedKey = logAnalyticsSharedKeyName;
+            this.LogAnalyticLogType = logAnalyticsLogTypeName;
         }
 
         public static Settings Current => Setting.Value;
