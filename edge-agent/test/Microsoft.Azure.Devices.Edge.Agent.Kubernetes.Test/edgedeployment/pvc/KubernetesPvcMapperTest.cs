@@ -273,16 +273,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
             Assert.Equal(1, aVolumeClaim.Metadata.OwnerReferences.Count);
             Assert.Equal(V1Deployment.KubeKind, aVolumeClaim.Metadata.OwnerReferences[0].Kind);
             Assert.Equal(EdgeletModuleOwner.Name, aVolumeClaim.Metadata.OwnerReferences[0].Name);
-
-            var bVolumeClaim = pvcList.Single(pvc => pvc.Metadata.Name == module.Name + "-b-volume");
-            Assert.True(bVolumeClaim.Metadata.Labels.SequenceEqual(DefaultLabels));
-            Assert.Equal("ReadWriteMany", bVolumeClaim.Spec.AccessModes[0]);
-            Assert.Null(bVolumeClaim.Spec.StorageClassName);
-            Assert.Equal("a-pvc-name", bVolumeClaim.Spec.VolumeName);
-            Assert.Equal(resourceQuantity, bVolumeClaim.Spec.Resources.Requests["storage"]);
-            Assert.Equal(1, bVolumeClaim.Metadata.OwnerReferences.Count);
-            Assert.Equal(V1Deployment.KubeKind, bVolumeClaim.Metadata.OwnerReferences[0].Kind);
-            Assert.Equal(EdgeletModuleOwner.Name, bVolumeClaim.Metadata.OwnerReferences[0].Name);
         }
     }
 }
