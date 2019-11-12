@@ -20,25 +20,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
         static readonly Regex UrlRegex = new Regex(UrlPattern, RegexOptions.Compiled);
         readonly HttpClient httpClient;
         readonly Lazy<IDictionary<string, string>> endpoints;
+        readonly ISystemTime systemTime;
         static readonly ILogger Log = Logger.Factory.CreateLogger<MetricsScraper>();
 
-        public MetricsScraper(IList<string> endpoints)
+        public MetricsScraper(IList<string> endpoints, ISystemTime systemTime = null)
         {
             this.httpClient = new HttpClient();
             this.endpoints = new Lazy<IDictionary<string, string>>(() => endpoints.ToDictionary(e => e, this.GetUriWithIpAddress));
+            this.systemTime = systemTime ?? SystemTime.Instance;
         }
 
-        public async Task<IDictionary<string, string>> ScrapeAsync(CancellationToken cancellationToken)
+        public Task<IEnumerable<Metric>> ScrapeAsync(CancellationToken cancellationToken)
         {
-            var metrics = new Dictionary<string, string>();
-            foreach (KeyValuePair<string, string> endpoint in this.endpoints.Value)
+            return this.endpoints.Value.SelectManyAsync(async endpoint =>
             {
                 Log.LogInformation($"Scraping endpoint {endpoint.Key}");
                 string metricsData = await this.ScrapeEndpoint(endpoint.Value, cancellationToken);
-                metrics.Add(endpoint.Key, metricsData);
-            }
-
-            return metrics;
+                return PrometheusMetricsParser.ParseMetrics(this.systemTime.UtcNow, metricsData);
+            });
         }
 
         public void Dispose()

@@ -33,16 +33,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
 
         public MetricsWorker(IMetricsScraper scraper, IMetricsStorage storage, IMetricsUpload uploader, ISystemTime systemTime = null)
         {
-            this.scraper = scraper;
-            this.storage = storage;
-            this.uploader = uploader;
+            this.scraper = Preconditions.CheckNotNull(scraper, nameof(scraper));
+            this.storage = Preconditions.CheckNotNull(storage, nameof(storage));
+            this.uploader = Preconditions.CheckNotNull(uploader, nameof(uploader));
             this.systemTime = systemTime ?? SystemTime.Instance;
         }
 
         public void Start(TimeSpan scrapingInterval, TimeSpan uploadInterval)
         {
-            this.scrape = new PeriodicTask(this.Scrape, scrapingInterval, scrapingInterval, Log, "Scrape");
-            this.upload = new PeriodicTask(this.Upload, uploadInterval, uploadInterval, Log, "Scrape");
+            this.scrape = new PeriodicTask(this.Scrape, scrapingInterval, scrapingInterval, Log, "Metrics Scrape");
+            this.upload = new PeriodicTask(this.Upload, uploadInterval, uploadInterval, Log, "Metrics Upload");
         }
 
         async Task Scrape(CancellationToken cancellationToken)
@@ -51,29 +51,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
             {
                 Log.LogInformation("Scraping Metrics");
                 List<Metric> metricsToPersist = new List<Metric>();
-
-                foreach (var moduleResult in await this.scraper.ScrapeAsync(cancellationToken))
+                foreach (var scrapedMetric in await this.scraper.ScrapeAsync(cancellationToken))
                 {
-                    IEnumerable<Metric> scrapedMetrics = PrometheousMetricsParser.ParseMetrics(this.systemTime.UtcNow, moduleResult.Value);
-
-                    foreach (Metric scrapedMetric in scrapedMetrics)
+                    // Get the previous scrape for this metric
+                    if (this.metrics.TryGetValue(scrapedMetric.GetMetricKey(), out Metric oldMetric))
                     {
-                        // Get the previous scrape for this metric
-                        if (this.metrics.TryGetValue(scrapedMetric.HashNameAndTag(), out Metric oldMetric))
+                        // If the metric is unchanged, do nothing
+                        if (oldMetric.Value.Equals(scrapedMetric.Value))
                         {
-                            // If the metric is unchanged, do nothing
-                            if (oldMetric.Value.Equals(scrapedMetric.Value))
-                            {
-                                continue;
-                            }
-
-                            // if the metric has changed, write the previous metric to disk
-                            metricsToPersist.Add(oldMetric);
+                            continue;
                         }
 
-                        // if new metric or metric changed, save to local buffer
-                        this.metrics[scrapedMetric.HashNameAndTag()] = scrapedMetric;
+                        // if the metric has changed, write the previous metric to disk
+                        metricsToPersist.Add(oldMetric);
                     }
+
+                    // if new metric or metric changed, save to local buffer
+                    this.metrics[scrapedMetric.GetMetricKey()] = scrapedMetric;
                 }
 
                 Log.LogInformation("Scraped Metrics");

@@ -80,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
 
         IEnumerable<Metric> GenerateSeries(string name, string tags, int n = 10)
         {
-            var time = new DateTime(1000000 * this.rand.Next(1000));
+            var time = new DateTime(1000000 * this.rand.Next(1000), DateTimeKind.Utc);
             return Enumerable.Range(1, n).Select(i => new Metric(
                 time.AddDays(i + 1.25 * this.rand.NextDouble()),
                 name,

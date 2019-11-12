@@ -10,17 +10,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
 
     public class DiagnosticConfig
     {
-        public bool Enabled;
-        public string MetricsStoragePath;
-        public TimeSpan ScrapeInterval;
-        public TimeSpan UploadInterval;
+        public readonly bool Enabled;
+        public readonly string MetricsStoragePath;
+        public readonly TimeSpan ScrapeInterval;
+        public readonly TimeSpan UploadInterval;
 
         public DiagnosticConfig(bool enabled, string storagePath, IConfiguration configuration)
         {
             this.Enabled = enabled;
-            this.MetricsStoragePath = Path.Combine("metrics", storagePath);
-            this.ScrapeInterval = configuration.GetValue<TimeSpan>("metric_scrape_interval");
-            this.UploadInterval = configuration.GetValue<TimeSpan>("metric_upload_interval");
+            this.MetricsStoragePath = Path.Combine(storagePath, "metrics");
+            this.ScrapeInterval = configuration.GetValue("MetricScrapeInterval", TimeSpan.FromHours(1));
+            this.UploadInterval = configuration.GetValue("MetricUploadInterval", TimeSpan.FromDays(1));
         }
     }
 }

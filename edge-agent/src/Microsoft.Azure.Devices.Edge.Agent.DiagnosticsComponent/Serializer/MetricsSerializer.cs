@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
 
                 yield return new RawMetricValue
                 {
-                    TimeGeneratedUtc = new DateTime(ticks),
+                    TimeGeneratedUtc = new DateTime(ticks, DateTimeKind.Utc),
                     Value = value
                 };
             }
@@ -58,7 +58,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     {
         public static IEnumerable<byte> MetricsToBytes(IEnumerable<Metric> metrics)
         {
-            return metrics.GroupBy(m => m.HashNameAndTag()).SelectMany(x => MetricGroupsToBytes(
+            return metrics.GroupBy(m => m.GetMetricKey()).SelectMany(x => MetricGroupsToBytes(
                 x.First().Name,
                 x.First().Tags,
                 x.Select(m => new RawMetricValue

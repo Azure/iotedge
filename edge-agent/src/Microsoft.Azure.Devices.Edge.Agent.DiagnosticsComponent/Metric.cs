@@ -16,7 +16,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
 
         public Metric(DateTime timeGeneratedUtc, string name, double value, string tags)
         {
-            this.TimeGeneratedUtc = Preconditions.CheckNotNull(timeGeneratedUtc, nameof(timeGeneratedUtc));
+            Preconditions.CheckArgument(timeGeneratedUtc.Kind == DateTimeKind.Utc);
+            this.TimeGeneratedUtc = timeGeneratedUtc;
             this.Name = Preconditions.CheckNotNull(name, nameof(name));
             this.Value = value;
             this.Tags = Preconditions.CheckNotNull(tags, nameof(tags));
@@ -26,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
         /// This combines the hashes of name and tags to make it easy to group all metrics.
         /// </summary>
         /// <returns>Hash of name and tags.</returns>
-        public int HashNameAndTag()
+        public int GetMetricKey()
         {
             // TODO: replace with "return HashCode.Combine(Name.GetHashCode(), Tags.GetHashCode());"
             // when upgraded to .net standard 2.1: https://docs.microsoft.com/en-us/dotnet/api/system.hashcode.combine?view=netstandard-2.1

@@ -10,6 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
 
     public interface IMetricsScraper
     {
-        Task<IDictionary<string, string>> ScrapeAsync(CancellationToken cancellationToken);
+        Task<IEnumerable<Metric>> ScrapeAsync(CancellationToken cancellationToken);
     }
 }

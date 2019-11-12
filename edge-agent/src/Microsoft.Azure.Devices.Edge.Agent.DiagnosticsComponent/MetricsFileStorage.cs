@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
 
         public MetricsFileStorage(string directory, ISystemTime systemTime = null)
         {
-            this.directory = Preconditions.CheckNotNull(directory, nameof(directory));
+            this.directory = Preconditions.CheckNonWhiteSpace(directory, nameof(directory));
             this.systemTime = systemTime ?? SystemTime.Instance;
         }
 

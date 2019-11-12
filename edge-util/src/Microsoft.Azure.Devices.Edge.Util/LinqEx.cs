@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading.Tasks;
 
     public static class LinqEx
     {
@@ -96,6 +97,11 @@ namespace Microsoft.Azure.Devices.Edge.Util
                     yield return result;
                 }
             }
+        }
+
+        public static async Task<IEnumerable<T1>> SelectManyAsync<T, T1>(this IEnumerable<T> source, Func<T, Task<IEnumerable<T1>>> selector)
+        {
+            return (await Task.WhenAll(source.Select(selector))).SelectMany(s => s);
         }
     }
 

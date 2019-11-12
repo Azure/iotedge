@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     using System.Text.RegularExpressions;
     using Newtonsoft.Json;
 
-    public static class PrometheousMetricsParser
+    public static class PrometheusMetricsParser
     {
         // Extracts data from prometheous format. Read about prometheous format here:
         // https://prometheus.io/docs/concepts/data_model/

@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
 
             /* Setup mocks */
             var scraper = new Mock<IMetricsScraper>();
-            scraper.Setup(s => s.ScrapeAsync(CancellationToken.None)).ReturnsAsync(() => new Dictionary<string, string> { { "edgeAgent", this.PrometheousMetrics(modules) } });
+            scraper.Setup(s => s.ScrapeAsync(CancellationToken.None)).ReturnsAsync(() => this.PrometheousMetrics(modules));
 
             var storage = new Mock<IMetricsStorage>();
             string storedValue = string.Empty;
@@ -107,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
         public async Task UploadContent()
         {
             /* test data */
-            var metrics = Enumerable.Range(1, 10).Select(i => new Metric(DateTime.Now, "test_metric", 3, $"tag_{i}")).ToList();
+            var metrics = Enumerable.Range(1, 10).Select(i => new Metric(DateTime.UtcNow, "test_metric", 3, $"tag_{i}")).ToList();
 
             /* Setup mocks */
             var scraper = new Mock<IMetricsScraper>();
@@ -144,10 +144,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
             string Metrics()
             {
                 metricsCalls++;
-                return Newtonsoft.Json.JsonConvert.SerializeObject(Enumerable.Range(1, 10).Select(i => new Metric(DateTime.Now, "1", 3, $"{i}")));
+                return Newtonsoft.Json.JsonConvert.SerializeObject(Enumerable.Range(1, 10).Select(i => new Metric(DateTime.UtcNow, "1", 3, $"{i}")));
             }
 
-            Dictionary<DateTime, Func<string>> data = Enumerable.Range(1, 10).ToDictionary(i => new DateTime(i * 100000000), _ => (Func<string>)Metrics);
+            Dictionary<DateTime, Func<string>> data = Enumerable.Range(1, 10).ToDictionary(i => new DateTime(i * 100000000, DateTimeKind.Utc), _ => (Func<string>)Metrics);
 
             /* Setup mocks */
             var scraper = new Mock<IMetricsScraper>();
@@ -184,14 +184,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
         {
             /* Setup mocks */
             var systemTime = new Mock<ISystemTime>();
-            DateTime fakeTime = new DateTime(100000000);
+            DateTime fakeTime = new DateTime(100000000, DateTimeKind.Utc);
             systemTime.Setup(x => x.UtcNow).Returns(() => fakeTime);
 
             CancellationToken ct = CancellationToken.None;
 
             var scraper = new Mock<IMetricsScraper>();
-            string scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 1.0)));
-            scraper.Setup(s => s.ScrapeAsync(ct)).ReturnsAsync(() => new Dictionary<string, string> { { "edgeAgent", scrapeResults } });
+            var scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 1.0)));
+            scraper.Setup(s => s.ScrapeAsync(ct)).ReturnsAsync(() => scrapeResults);
 
             var storage = new MetricsFileStorage(this.tempDirectory.GetTempDir(), systemTime.Object);
 
@@ -268,7 +268,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
             scraper.Setup(s => s.ScrapeAsync(CancellationToken.None)).Returns(async () =>
             {
                 await scrapeTaskSource.Task;
-                return new Dictionary<string, string> { { "edgeAgent", string.Empty } };
+                return this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 1.0)).ToArray());
             });
 
             var storage = new Mock<IMetricsStorage>();
@@ -326,16 +326,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
             await Task.WhenAll(scrapeTask, uploadTask);
         }
 
-        private string PrometheousMetrics(IEnumerable<(string name, double value)> modules)
+        private IEnumerable<Metric> PrometheousMetrics(IEnumerable<(string name, double value)> modules)
         {
-            var dataPoints = string.Join("\n", modules.Select(module => $@"
+            string dataPoints = string.Join("\n", modules.Select(module => $@"
 edgeagent_module_start_total{{iothub=""lefitche-hub-3.azure-devices.net"",edge_device=""device4"",instance_number=""1"",module_name=""{module.name}"",module_version=""1.0""}} {module.value}
 "));
-            return $@"
+            string metricsString = $@"
 # HELP edgeagent_module_start_total Start command sent to module
 # TYPE edgeagent_module_start_total counter
 {dataPoints}
 ";
+
+            return PrometheusMetricsParser.ParseMetrics(DateTime.UtcNow, metricsString);
         }
 
         public void Dispose()
