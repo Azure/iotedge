@@ -11,40 +11,59 @@ namespace Analyzer.Controllers
     {
         // GET api/report
         [HttpGet]
-        public ActionResult<string> Get()
+        public ActionResult<string> GetReport()
         {
             DeviceAnalysis deviceAnalysis = Reporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
+            if (Settings.Current.LogAnalyticEnabled)
+            {
+                PublishToLogAnalytics(deviceAnalysis);
+            }
+
+            return deviceAnalysis.ToString();
+        }
+
+        // GET api/report/messages (exposed for backwards compatibility for snitcher)
+        [HttpGet("/messages")]
+        public ActionResult<string> GetMessages()
+        {
+            DeviceAnalysis deviceAnalysis = Reporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
+            if (Settings.Current.LogAnalyticEnabled)
+            {
+                PublishToLogAnalytics(deviceAnalysis);
+            }
+
+            string messagesJson = deviceAnalysis.MessagesReport.ToString();
+            return deviceAnalysis.ToString();
+        }
+
+        private void PublishToLogAnalytics(DeviceAnalysis deviceAnalysis)
+        {
             string messagesJson = deviceAnalysis.MessagesReport.ToString();
             string twinsJson = deviceAnalysis.TwinsReport.ToString();
             string directMethodsJson = deviceAnalysis.DmReport.ToString();
 
-            if (Settings.Current.LogAnalyticEnabled)
-            {
-                string workspaceId = Settings.Current.LogAnalyticWorkspaceId;
-                string sharedKey = Settings.Current.LogAnalyticSharedKey;
-                string logType = Settings.Current.LogAnalyticLogType;
+            string workspaceId = Settings.Current.LogAnalyticWorkspaceId;
+            string sharedKey = Settings.Current.LogAnalyticSharedKey;
+            string logType = Settings.Current.LogAnalyticLogType;
 
-                // Upload the data to Log Analytics
-                AzureLogAnalytics.Instance.PostAsync(
-                    workspaceId,
-                    sharedKey,
-                    messagesJson,
-                    logType);
+            // Upload the data to Log Analytics
+            AzureLogAnalytics.Instance.PostAsync(
+                workspaceId,
+                sharedKey,
+                messagesJson,
+                logType);
 
-                AzureLogAnalytics.Instance.PostAsync(
-                    workspaceId,
-                    sharedKey,
-                    twinsJson,
-                    logType);
+            AzureLogAnalytics.Instance.PostAsync(
+                workspaceId,
+                sharedKey,
+                twinsJson,
+                logType);
 
-                AzureLogAnalytics.Instance.PostAsync(
-                    workspaceId,
-                    sharedKey,
-                    directMethodsJson,
-                    logType);
-            }
-
-            return deviceAnalysis.ToString();
+            AzureLogAnalytics.Instance.PostAsync(
+                workspaceId,
+                sharedKey,
+                directMethodsJson,
+                logType);
         }
     }
 }
