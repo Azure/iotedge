@@ -87,13 +87,13 @@ fn spec_to_podspec(
         ));
 
         env_vars.push(env(
-            EDGE_OBJECT_OWNER_API_VERSION,
+            EDGE_OBJECT_OWNER_API_VERSION_KEY,
             module_owner.api_version(),
         ));
-        env_vars.push(env(EDGE_OBJECT_OWNER_KIND, module_owner.kind()));
-        env_vars.push(env(EDGE_OBJECT_OWNER_NAME, module_owner.name()));
-        env_vars.push(env(EDGE_OBJECT_OWNER_UID, module_owner.uid()));
-        
+        env_vars.push(env(EDGE_OBJECT_OWNER_KIND_KEY, module_owner.kind()));
+        env_vars.push(env(EDGE_OBJECT_OWNER_NAME_KEY, module_owner.name()));
+        env_vars.push(env(EDGE_OBJECT_OWNER_UID_KEY, module_owner.uid()));
+
         if let Some(proxy_pull_secret) = &proxy_pull_secret {
             env_vars.push(env(PROXY_IMAGE_PULL_SECRET_NAME_KEY, proxy_pull_secret))
         }
@@ -304,6 +304,16 @@ fn env<V: Into<String>>(key: &str, value: V) -> api_core::EnvVar {
     }
 }
 
+fn owner_references(module_owner: &KubeModuleOwner) -> Vec<api_meta::OwnerReference> {
+    vec![api_meta::OwnerReference {
+        api_version: module_owner.api_version().to_string(),
+        name: module_owner.name().to_string(),
+        kind: module_owner.kind().to_string(),
+        uid: module_owner.uid().to_string(),
+        ..api_meta::OwnerReference::default()
+    }]
+}
+
 /// Converts Docker Module Spec into a K8S Deployment.
 pub fn spec_to_deployment(
     settings: &Settings,
@@ -342,20 +352,12 @@ pub fn spec_to_deployment(
     annotations.insert(EDGE_ORIGINAL_MODULEID.to_string(), spec.name().to_string());
 
     // Assemble everything
-    let owner_reference = api_meta::OwnerReference {
-        api_version: module_owner.api_version().to_string(),
-        name: module_owner.name().to_string(),
-        kind: module_owner.kind().to_string(),
-        uid: module_owner.uid().to_string(),
-        ..api_meta::OwnerReference::default()
-    };
-    let owner_vec = vec![owner_reference];
     let deployment = api_apps::Deployment {
         metadata: Some(api_meta::ObjectMeta {
             name: Some(deployment_name.clone()),
             namespace: Some(settings.namespace().to_string()),
             labels: Some(deployment_labels),
-            owner_references: Some(owner_vec),
+            owner_references: Some(owner_references(module_owner)),
             ..api_meta::ObjectMeta::default()
         }),
         spec: Some(api_apps::DeploymentSpec {
@@ -412,22 +414,13 @@ pub fn spec_to_service_account(
     let mut annotations = BTreeMap::new();
     annotations.insert(EDGE_ORIGINAL_MODULEID.to_string(), spec.name().to_string());
 
-    let owner_reference = api_meta::OwnerReference {
-        api_version: module_owner.api_version().to_string(),
-        name: module_owner.name().to_string(),
-        kind: module_owner.kind().to_string(),
-        uid: module_owner.uid().to_string(),
-        ..api_meta::OwnerReference::default()
-    };
-    let owner_vec = vec![owner_reference];
-
     let service_account = api_core::ServiceAccount {
         metadata: Some(api_meta::ObjectMeta {
             name: Some(service_account_name.clone()),
             namespace: Some(settings.namespace().to_string()),
             labels: Some(labels),
             annotations: Some(annotations),
-            owner_references: Some(owner_vec),
+            owner_references: Some(owner_references(module_owner)),
             ..api_meta::ObjectMeta::default()
         }),
         ..api_core::ServiceAccount::default()
@@ -463,22 +456,13 @@ pub fn spec_to_role_binding(
     let mut annotations = BTreeMap::new();
     annotations.insert(EDGE_ORIGINAL_MODULEID.to_string(), spec.name().to_string());
 
-    let owner_reference = api_meta::OwnerReference {
-        api_version: module_owner.api_version().to_string(),
-        name: module_owner.name().to_string(),
-        kind: module_owner.kind().to_string(),
-        uid: module_owner.uid().to_string(),
-        ..api_meta::OwnerReference::default()
-    };
-    let owner_vec = vec![owner_reference];
-
     let role_binding = api_rbac::RoleBinding {
         metadata: Some(api_meta::ObjectMeta {
             name: Some(role_binding_name.clone()),
             namespace: Some(settings.namespace().to_string()),
             labels: Some(labels),
             annotations: Some(annotations),
-            owner_references: Some(owner_vec),
+            owner_references: Some(owner_references(module_owner)),
             ..api_meta::ObjectMeta::default()
         }),
         role_ref: api_rbac::RoleRef {
@@ -719,10 +703,10 @@ mod tests {
             &PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME_KEY,
             PROXY_TRUST_BUNDLE_CONFIG_MAP_NAME,
         )));
-        assert!(env.contains(&super::env(&EDGE_OBJECT_OWNER_API_VERSION, "v1",)));
-        assert!(env.contains(&super::env(&EDGE_OBJECT_OWNER_KIND, "Deployment",)));
-        assert!(env.contains(&super::env(&EDGE_OBJECT_OWNER_NAME, "iotedged",)));
-        assert!(env.contains(&super::env(&EDGE_OBJECT_OWNER_UID, "123",)));
+        assert!(env.contains(&super::env(&EDGE_OBJECT_OWNER_API_VERSION_KEY, "v1",)));
+        assert!(env.contains(&super::env(&EDGE_OBJECT_OWNER_KIND_KEY, "Deployment",)));
+        assert!(env.contains(&super::env(&EDGE_OBJECT_OWNER_NAME_KEY, "iotedged",)));
+        assert!(env.contains(&super::env(&EDGE_OBJECT_OWNER_UID_KEY, "123",)));
     }
 
     #[test]

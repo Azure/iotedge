@@ -22,6 +22,7 @@ pub use module::KubeModule;
 pub use runtime::KubeModuleRuntime;
 pub use settings::Settings;
 
+use crate::error::MissingMetadataReason;
 use k8s_openapi::api::apps::v1 as api_apps;
 use k8s_openapi::Resource;
 use std::convert::TryFrom;
@@ -70,20 +71,22 @@ impl TryFrom<Deployment> for KubeModuleOwner {
         let metadata = deployment
             .metadata
             .as_ref()
-            .ok_or(ErrorKind::MissingMetadata)?;
+            .ok_or(ErrorKind::MissingMetadata(
+                MissingMetadataReason::DeploymentMetadata,
+            ))?;
         Ok(Self {
             name: metadata
                 .name
                 .as_ref()
-                .map(|name| name.to_string())
-                .ok_or(ErrorKind::MissingMetadata)?,
+                .map(String::to_string)
+                .ok_or(ErrorKind::MissingMetadata(MissingMetadataReason::Name))?,
             api_version: Deployment::api_version().to_string(),
             kind: Deployment::kind().to_string(),
             uid: metadata
                 .uid
                 .as_ref()
-                .map(|uid| uid.to_string())
-                .ok_or(ErrorKind::MissingMetadata)?,
+                .map(String::to_string)
+                .ok_or(ErrorKind::MissingMetadata(MissingMetadataReason::Uid))?,
         })
     }
 }

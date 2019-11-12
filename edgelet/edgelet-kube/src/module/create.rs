@@ -13,7 +13,7 @@ use kube_client::TokenSource;
 
 use crate::constants::EDGE_EDGE_AGENT_NAME;
 use crate::convert::{spec_to_deployment, spec_to_role_binding, spec_to_service_account};
-use crate::error::Error;
+use crate::error::{Error, MissingMetadataReason};
 use crate::{ErrorKind, KubeModuleOwner, KubeModuleRuntime};
 use std::convert::TryFrom;
 
@@ -42,9 +42,8 @@ where
     let module_for_deployment = module.clone();
 
     let module_name = module.name().to_string();
-    let iotedged_module_name = "iotedged";
 
-    get_module_owner(&runtime_for_owner, &iotedged_module_name)
+    get_module_owner(&runtime_for_owner, "iotedged")
         .and_then(move |module_owner| {
             let module_owner1 = module_owner.clone();
             let module_owner2 = module_owner.clone();
@@ -105,8 +104,12 @@ where
                         meta.name.as_ref().map_or(false, |n| *n == module_name)
                     })
                 })
-                .ok_or(Error::from(ErrorKind::MissingMetadata))
-                .and_then(|this_deployment| KubeModuleOwner::try_from(this_deployment))
+                .ok_or_else(|| {
+                    Error::from(ErrorKind::MissingMetadata(
+                        MissingMetadataReason::Deployment,
+                    ))
+                })
+                .and_then(KubeModuleOwner::try_from)
         })
         .into_future()
         .flatten()

@@ -68,7 +68,7 @@ pub enum ErrorKind {
     IdentityCertificate,
 
     #[fail(display = "Kubernetes object metadata is missing")]
-    MissingMetadata,
+    MissingMetadata(MissingMetadataReason),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -88,6 +88,25 @@ impl Display for PullImageErrorReason {
             Self::AuthUser => write!(f, "Auth user name not present"),
             Self::AuthPassword => write!(f, "Auth password not present"),
             Self::Json => write!(f, "Json convert error"),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum MissingMetadataReason {
+    Deployment,
+    DeploymentMetadata,
+    Name,
+    Uid,
+}
+
+impl Display for MissingMetadataReason {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Deployment => write!(f, "Deployment is missing"),
+            Self::DeploymentMetadata => write!(f, "Deployment metadata is missing"),
+            Self::Name => write!(f, "Object metadata name not present"),
+            Self::Uid => write!(f, "Object metadata Uid not present"),
         }
     }
 }
