@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
     using System.IO;
     using System.Linq;
     using System.Runtime.CompilerServices;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Extensions.Logging;
@@ -14,14 +15,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
     public interface IAvailabilityMetric
     {
         void ComputeAvailability(ModuleSet desired, ModuleSet current);
+        void OnCleanShutdown();
     }
 
-    public class AvailabilityMetrics : IAvailabilityMetric
+    public class AvailabilityMetrics : IAvailabilityMetric, IDisposable
     {
         readonly IMetricsGauge running;
         readonly IMetricsGauge expectedRunning;
         readonly ISystemTime time;
         readonly ILogger log = Logger.Factory.CreateLogger<Availability>();
+
+        // This allows edgeAgent to track its own avaliability. If edgeAgent shutsdown unexpectedly, it can look at the last checkpoint time to determine its previous avaliability.
+        readonly TimeSpan checkpointFrequency = TimeSpan.FromMinutes(5);
+        readonly PeriodicTask checkpoint;
 
         readonly List<Availability> availabilities;
         readonly Lazy<Availability> edgeAgent;
@@ -41,6 +47,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             this.time = time;
             this.availabilities = new List<Availability>();
             this.edgeAgent = new Lazy<Availability>(() => new Availability("edgeAgent", this.CalculateEdgeAgentDowntime(), this.time));
+
+            this.checkpoint = new PeriodicTask(this.NoteCurrentTime, this.checkpointFrequency, this.checkpointFrequency, this.log, "Checkpoint Availability");
         }
 
         public void ComputeAvailability(ModuleSet desired, ModuleSet current)
@@ -94,16 +102,32 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             }
         }
 
-        TimeSpan CalculateEdgeAgentDowntime()
+        public void Dispose()
         {
-            AppDomain.CurrentDomain.ProcessExit += this.NoteCurrentTime;
+            this.checkpoint.Dispose();
+        }
+
+        public void OnCleanShutdown()
+        {
             try
             {
-                if (File.Exists("shutdown_time"))
+                File.Delete("shutdown_time");
+            }
+            catch (Exception ex)
+            {
+                this.log.LogError($"Could not delete checkpoint file:\n{ex}");
+            }
+        }
+
+        TimeSpan CalculateEdgeAgentDowntime()
+        {
+            try
+            {
+                if (File.Exists("avaliability_checkpoint"))
                 {
-                    // TODO: get iotedged uptime. if < a couple minutes, assume intentional shutdown and return 0.
                     long ticks = long.Parse(File.ReadAllText("shutdown_time"));
-                    return this.time.UtcNow - new DateTime(ticks);
+                    DateTime checkpointTime = new DateTime(ticks);
+                    return this.time.UtcNow - checkpointTime;
                 }
             }
             catch (Exception ex)
@@ -114,16 +138,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             return TimeSpan.Zero;
         }
 
-        void NoteCurrentTime(object sender, EventArgs e)
+        Task NoteCurrentTime()
         {
-            try
-            {
-                File.WriteAllText("shutdown_time", this.time.UtcNow.Ticks.ToString());
-            }
-            catch (Exception ex)
-            {
-                this.log.LogError($"Could not save shutdown time:\n{ex}");
-            }
+            File.WriteAllText("avaliability_checkpoint", this.time.UtcNow.Ticks.ToString());
+            return Task.CompletedTask;
         }
     }
 }
