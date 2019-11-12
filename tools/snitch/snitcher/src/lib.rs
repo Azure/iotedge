@@ -34,7 +34,7 @@ use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Client as HyperClient, Method, Request};
 use hyper_tls::HttpsConnector;
 use log::{debug, error, info};
-use report::{DeviceAnalysis, Report};
+use report::{MessageAnalysis, Report};
 use serde_json::Value as JsonValue;
 use settings::Settings;
 use tokio::timer::{Delay, Interval};
@@ -122,17 +122,17 @@ pub fn do_report(settings: Settings) -> impl Future<Item = (), Error = Error> + 
     // collect report from analyzer module
     let get_analysis = {
         let report = report.clone();
-        fetch_device_analysis(&settings).map(move |analysis| {
+        fetch_message_analysis(&settings).map(move |analysis| {
             info!("Got message analysis from analyzer");
 
             if let Some(analysis) = analysis {
-                report.lock().unwrap().set_device_analysis(analysis);
+                report.lock().unwrap().set_message_analysis(analysis);
             }
         })
     };
 
     // wait for all the bits to get done and then build report and alert
-    let all_futures: Vec<Box<dyn Future<Item = (), Error = Error> + Send>> =
+    let all_futures: Vec<Box<Future<Item = (), Error = Error> + Send>> =
         vec![Box::new(add_log_files), Box::new(get_analysis)];
     let report_copy = report.clone();
     future::join_all(all_futures)
@@ -295,16 +295,16 @@ pub fn get_module_logs(
         .collect()
 }
 
-pub fn fetch_device_analysis(
+pub fn fetch_message_analysis(
     settings: &Settings,
-) -> impl Future<Item = Option<DeviceAnalysis>, Error = Error> + Send {
+) -> impl Future<Item = Option<Vec<MessageAnalysis>>, Error = Error> + Send {
     info!("Fetching analysis from analyzer module");
 
     client::Client::new(
         HyperClientService::new(HyperClient::new()),
         settings.analyzer_url().clone(),
     )
-    .request::<(), DeviceAnalysis>(
+    .request::<(), Vec<MessageAnalysis>>(
         Method::GET,
         settings.analyzer_url().path(),
         None,

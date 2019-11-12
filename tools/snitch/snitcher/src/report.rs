@@ -21,14 +21,6 @@ pub struct Interval {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct DeviceAnalysis {
-    dm_report: Vec<ResponseAnalysis>,
-    twins_report: Vec<ResponseAnalysis>,
-    messages_report: Vec<MessageAnalysis>
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct MessageAnalysis {
     module_id: String,
     status_code: u16,
@@ -38,21 +30,6 @@ pub struct MessageAnalysis {
     missed_messages: Vec<Interval>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ResponseAnalysis {
-    module_id: String,
-    status_codes: Vec<ResponseStatusCode>
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ResponseStatusCode {
-    status_code: String,
-    count: u64,
-    last_received_at: DateTime<Utc>
-}
-
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Report {
@@ -60,7 +37,7 @@ pub struct Report {
     #[serde(skip)]
     files: Vec<(String, Bytes)>,
     notes: Vec<String>,
-    device_analysis: Option<DeviceAnalysis>,
+    message_analysis: Option<Vec<MessageAnalysis>>,
     attachments: HashMap<String, String>,
 }
 
@@ -70,7 +47,7 @@ impl Report {
             id,
             files: vec![],
             notes: vec![],
-            device_analysis: None,
+            message_analysis: None,
             attachments: HashMap::new(),
         }
     }
@@ -79,8 +56,8 @@ impl Report {
         &self.id
     }
 
-    pub fn set_device_analysis(&mut self, analysis: DeviceAnalysis) {
-        self.device_analysis = Some(analysis);
+    pub fn set_message_analysis(&mut self, analysis: Vec<MessageAnalysis>) {
+        self.message_analysis = Some(analysis);
     }
 
     pub fn add_file(&mut self, name: &str, data: &[u8]) -> &Self {
