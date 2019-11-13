@@ -17,15 +17,15 @@ mod registry;
 mod runtime;
 mod settings;
 
-pub use error::{Error, ErrorKind, Result};
+use std::convert::TryFrom;
+
+pub use error::{Error, ErrorKind, MissingMetadataReason, Result};
 pub use module::KubeModule;
 pub use runtime::KubeModuleRuntime;
 pub use settings::Settings;
 
-use crate::error::MissingMetadataReason;
 use k8s_openapi::api::apps::v1 as api_apps;
 use k8s_openapi::Resource;
-use std::convert::TryFrom;
 
 type Deployment = api_apps::Deployment;
 

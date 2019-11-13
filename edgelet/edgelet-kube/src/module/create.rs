@@ -1,5 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+use std::convert::TryFrom;
+use std::sync::Arc;
+
 use failure::Fail;
 use futures::future::Either;
 use futures::prelude::*;
@@ -15,8 +18,6 @@ use crate::constants::EDGE_EDGE_AGENT_NAME;
 use crate::convert::{spec_to_deployment, spec_to_role_binding, spec_to_service_account};
 use crate::error::{Error, MissingMetadataReason};
 use crate::{ErrorKind, KubeModuleOwner, KubeModuleRuntime};
-use std::convert::TryFrom;
-use std::sync::Arc;
 
 pub fn create_module<T, S>(
     runtime: &KubeModuleRuntime<T, S>,
