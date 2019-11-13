@@ -137,18 +137,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
         {
             /* setup */
             (Dictionary<string, long> result, IMetricsProvider provider) = this.MockCounter();
-            Dictionary<string, long> expected = new Dictionary<string, long>();
-            using (var counter = new ExceptionCounter(new Dictionary<Type, string>(), new HashSet<Type>(), provider))
+            Dictionary<Type, string> recognizedExceptions = new Dictionary<Type, string>
+            {
+                { typeof(TestException1), "test1" },
+                { typeof(TestException2), "test2" },
+            };
+            using (var counter = new ExceptionCounter(recognizedExceptions, new HashSet<Type>(), provider))
             {
                 counter.Start();
 
-                this.ThrowAndCatch(new Exception());
-                expected["other"] = 1;
-                Assert.Equal(expected, result);
+                this.ThrowAndCatch(new TestException1());
+                Assert.Equal(1, result["test1"]);
             }
 
             this.ThrowAndCatch(new Exception());
-            Assert.Equal(expected, result);
+            Assert.Equal(1, result["test1"]);
         }
 
         (Dictionary<string, long> result, IMetricsProvider provider) MockCounter()
