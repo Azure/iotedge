@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.ServiceAc
                 annotations,
                 name: name,
                 labels: labels,
-                ownerReferences: EdgeDeploymentUtils.KubeModuleOwnerToOwnerReferences(module.Owner));
+                ownerReferences: module.Owner.ToOwnerReferences());
             return new V1ServiceAccount(metadata: metadata);
         }
 

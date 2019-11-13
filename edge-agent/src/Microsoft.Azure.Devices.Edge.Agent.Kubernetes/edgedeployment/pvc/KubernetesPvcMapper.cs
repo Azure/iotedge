@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
             var pvcMeta = new V1ObjectMeta(
                 name: pvcName,
                 labels: labels,
-                ownerReferences: EdgeDeploymentUtils.KubeModuleOwnerToOwnerReferences(module.Owner));
+                ownerReferences: module.Owner.ToOwnerReferences());
 
             return new V1PersistentVolumeClaim(metadata: pvcMeta, spec: persistentVolumeClaimSpec);
         }

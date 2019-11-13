@@ -84,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 var secretMeta = new V1ObjectMeta(
                     name: imagePullSecret.Name,
                     namespaceProperty: this.deviceNamespace,
-                    ownerReferences: EdgeDeploymentUtils.KubeModuleOwnerToOwnerReferences(this.moduleOwner));
+                    ownerReferences: this.moduleOwner.ToOwnerReferences());
                 var secretData = new Dictionary<string, byte[]> { [Constants.K8sPullSecretData] = Encoding.UTF8.GetBytes(imagePullSecret.GenerateSecret()) };
                 var newSecret = new V1Secret("v1", secretData, type: Constants.K8sPullSecretType, kind: "Secret", metadata: secretMeta);
                 Option<V1Secret> currentSecret;
@@ -172,7 +172,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             var metadata = new V1ObjectMeta(
                 name: this.resourceName,
                 namespaceProperty: this.deviceNamespace,
-                ownerReferences: EdgeDeploymentUtils.KubeModuleOwnerToOwnerReferences(this.moduleOwner));
+                ownerReferences: this.moduleOwner.ToOwnerReferences());
 
             // need resourceVersion for Replace.
             activeDeployment.ForEach(deployment => metadata.ResourceVersion = deployment.Metadata.ResourceVersion);

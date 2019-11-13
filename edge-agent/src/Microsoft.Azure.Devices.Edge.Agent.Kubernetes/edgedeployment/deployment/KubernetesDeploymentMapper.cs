@@ -96,7 +96,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                 name: name,
                 labels: labels,
                 annotations: new Dictionary<string, string>(),
-                ownerReferences: EdgeDeploymentUtils.KubeModuleOwnerToOwnerReferences(module.Owner));
+                ownerReferences: module.Owner.ToOwnerReferences());
             return new V1Deployment(metadata: deploymentMeta, spec: deploymentSpec);
         }
 

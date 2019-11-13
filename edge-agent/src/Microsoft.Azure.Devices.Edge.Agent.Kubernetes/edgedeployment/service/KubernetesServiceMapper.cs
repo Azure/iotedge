@@ -67,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service
                     name: name,
                     labels: labels,
                     annotations: annotations,
-                    ownerReferences: EdgeDeploymentUtils.KubeModuleOwnerToOwnerReferences(module.Owner));
+                    ownerReferences: module.Owner.ToOwnerReferences());
 
                 // How we manage this service is dependent on the port mappings user asks for.
                 // If the user tells us to only use ClusterIP ports, we will always set the type to ClusterIP.
