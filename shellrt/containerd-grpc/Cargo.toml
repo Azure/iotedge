@@ -10,17 +10,17 @@ futures-preview = "0.3.0-alpha.19"
 log = "0.4"
 prost = "0.5"
 prost-derive = "0.5"
-prost-types = "0.5.0"
+prost-types = "0.5"
 tokio = "0.2.0-alpha.6"
 
 [dependencies.tonic]
-version = "0.1.0-alpha.5"
+version = "0.1.0-alpha.6"
 # default-features = false
 # features = ["codegen"]
 
 [build-dependencies]
 
 [build-dependencies.tonic-build]
-version = "0.1.0-alpha.5"
+version = "0.1.0-alpha.6"
 # default-features = false
 # features = ["rustfmt"]
