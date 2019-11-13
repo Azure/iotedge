@@ -24,8 +24,7 @@ namespace DemoApp
                 var unmatchedAgents = agentMatrix.GetUnmatchedAgents();
 
                 var buildManagement = new BuildManagement(devOpsAccessSetting);
-                var result1 = await buildManagement.GetLatestBuildAsync(BuildDefinitionIds.CI, "master").ConfigureAwait(false);
-                var result2 = await buildManagement.GetLatestBuildAsync(BuildDefinitionIds.CI, "release/1.0.9").ConfigureAwait(false);
+                var result = await buildManagement.GetLatestBuildsAsync(BuildDefinitionExtension.MasterBranchReporting, "refs/heads/master").ConfigureAwait(false);
             }
             catch (Exception e)
             {

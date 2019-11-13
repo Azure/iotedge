@@ -154,7 +154,7 @@ where
     type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
 
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
-        Box::new(create_module(self, &module))
+        Box::new(create_module(self, module))
     }
 
     fn get(&self, _id: &str) -> Self::GetFuture {

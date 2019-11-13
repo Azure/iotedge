@@ -48,7 +48,7 @@ where
 
 fn create_or_update_image_pull_secrets<T, S>(
     runtime: &KubeModuleRuntime<T, S>,
-    image_pull_secrets: Vec<ImagePullSecret<'_>>,
+    image_pull_secrets: impl IntoIterator<Item = ImagePullSecret>,
 ) -> impl Future<Item = (), Error = Error> + 'static
 where
     T: TokenSource + Send + 'static,
@@ -64,7 +64,7 @@ where
 
     let named_secrets: Vec<_> = image_pull_secrets
         .into_iter()
-        .map(|secret| NamedSecret::try_from((runtime.settings().namespace(), secret)))
+        .map(|secret| NamedSecret::try_from((runtime.settings().namespace().into(), secret)))
         .collect();
 
     runtime

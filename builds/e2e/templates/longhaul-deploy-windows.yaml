@@ -15,6 +15,10 @@ parameters:
   longHaul.desiredModulesToRestartCSV: ''
   longHaul.restartIntervalInMins: ''
   analyzer.consumerGroupId: ''
+  analyzer.logAnalytic.enabled: ''
+  analyzer.logAnalytic.workspaceId: ''
+  analyzer.logAnalytic.sharedKey: ''
+  analyzer.logAnalytic.logType: ''
 
 steps:
   - task: CopyFiles@2
@@ -37,5 +41,26 @@ steps:
         #Requires -RunAsAdministrator
         $testName="LongHaul"
         $ArtifactInfo=convertfrom-stringdata (get-content $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt -raw)
-        $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/windows/test/Run-E2ETest.ps1 -E2ETestFolder "$(Agent.HomeDirectory)/.." -ReleaseLabel "${{ parameters['release.label'] }}" -ArtifactImageBuildNumber "$($ArtifactInfo.BuildNumber)" -TestName "$testName" -ContainerRegistry "${{ parameters['container.registry'] }}" -ContainerRegistryUsername "${{ parameters['container.registry.username'] }}" -ContainerRegistryPassword "${{ parameters['container.registry.password'] }}" -IoTHubConnectionString "${{ parameters['iotHub.connectionString'] }}" -EventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" -SnitchBuildNumber "${{ parameters['snitch.build.number'] }}" -SnitchStorageAccount "${{ parameters['snitch.storage.account'] }}" -SnitchStorageMasterKey "${{ parameters['snitch.storage.masterKey'] }}" -SnitchAlertUrl "${{ parameters['snitch.alert.url'] }}" -LoadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" -DesiredModulesToRestartCSV "${{ parameters['longHaul.desiredModulesToRestartCSV'] }}" -RestartIntervalInMins "${{ parameters['longHaul.restartIntervalInMins'] }}" -EventHubConsumerGroupId "${{ parameters['analyzer.consumerGroupId'] }}"
+        $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/windows/test/Run-E2ETest.ps1 `
+          -E2ETestFolder "$(Agent.HomeDirectory)/.." `
+          -ReleaseLabel "${{ parameters['release.label'] }}" `
+          -ArtifactImageBuildNumber "$($ArtifactInfo.BuildNumber)" `
+          -TestName "$testName" `
+          -ContainerRegistry "${{ parameters['container.registry'] }}" `
+          -ContainerRegistryUsername "${{ parameters['container.registry.username'] }}" `
+          -ContainerRegistryPassword "${{ parameters['container.registry.password'] }}" `
+          -IoTHubConnectionString "${{ parameters['iotHub.connectionString'] }}" `
+          -EventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" `
+          -SnitchBuildNumber "${{ parameters['snitch.build.number'] }}" `
+          -SnitchStorageAccount "${{ parameters['snitch.storage.account'] }}" `
+          -SnitchStorageMasterKey "${{ parameters['snitch.storage.masterKey'] }}" `
+          -SnitchAlertUrl "${{ parameters['snitch.alert.url'] }}" `
+          -LoadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" `
+          -EventHubConsumerGroupId "${{ parameters['analyzer.consumerGroupId'] }}" `
+          -DesiredModulesToRestartCSV "${{ parameters['longHaul.desiredModulesToRestartCSV'] }}" `
+          -RestartIntervalInMins "${{ parameters['longHaul.restartIntervalInMins'] }}" `
+          -AnalyzerLaEnabled "${{ parameters['analyzer.logAnalytic.enabled'] }}" `
+          -AnalyzerLaWorkspaceId "${{ parameters['analyzer.logAnalytic.workspaceId'] }}" `
+          -AnalyzerLaSharedKey "${{ parameters['analyzer.logAnalytic.sharedKey'] }}" `
+          -AnalyzerLaLogType "${{ parameters['analyzer.logAnalytic.logType'] }}" 
       workingDirectory: "$(Agent.HomeDirectory)/.."

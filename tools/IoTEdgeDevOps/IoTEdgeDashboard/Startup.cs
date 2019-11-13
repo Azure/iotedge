@@ -57,7 +57,7 @@ namespace IoTEdgeDashboard
                 {
                     routes.MapRoute(
                         name: "default",
-                        template: "{controller=Agent}/{action=Index}/{id?}");
+                        template: "{controller=Home}/{action=Index}");
                 });
         }
     }

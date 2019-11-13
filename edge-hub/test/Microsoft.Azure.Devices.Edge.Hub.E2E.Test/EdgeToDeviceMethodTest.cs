@@ -15,11 +15,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
     [Integration]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
-    public class EdgeToDeviceMethodTest : EdgeHubTestWithLogger
+    public class EdgeToDeviceMethodTest : IDisposable
     {
-        public EdgeToDeviceMethodTest(EdgeHubFixture edgeHubFixture, ITestOutputHelper testOutputHelper)
-            : base(new EdgeHubTest(edgeHubFixture), testOutputHelper)
+        TestConsoleLogger logger;
+
+        public EdgeToDeviceMethodTest(ITestOutputHelper testOutputHelper)
         {
+            this.logger = new TestConsoleLogger(testOutputHelper);
+        }
+
+        public void Dispose()
+        {
+            this.logger.Dispose();
         }
 
         [Theory]
