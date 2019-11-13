@@ -2,7 +2,7 @@
 iotedged:
   image:
     repository: azureiotedge/iotedged
-    tag: 0.1.0-alpha
+    tag: 0.1.0-beta1
     pullPolicy: Always
   service:
     name: iotedged
@@ -43,7 +43,7 @@ iotedged:
 iotedgedProxy:
   image:
     repository: azureiotedge/azureiotedge-proxy
-    tag: 0.1.0-alpha
+    tag: 0.1.0-beta1
     pullPolicy: Always
 
 # Edge Agent image configuration
@@ -51,7 +51,7 @@ edgeAgent:
   containerName: edgeagent
   image:
     repository: azureiotedge/azureiotedge-agent
-    tag: 0.1.0-alpha
+    tag: 0.1.0-beta1
     pullPolicy: Always
   hostname: "localhost"
   env:
@@ -91,13 +91,13 @@ edgeAgent:
     # Set this to true if you wish to turn on experimental features support. Please see 
     # https://github.com/Azure/iotedge/blob/master/kubernetes/doc/create-options.md to
     # find more information about experimental create options feature.
-    # enableExperimentalFeatures: true
+    enableExperimentalFeatures: true
     
     # Create options extensions for Kubernetes
     # The feature allows the user to extend a module's create options with some Kubernetes primitives. 
     # To activate this experimental feature, both "enableExperimentalFeatures" and "enableK8sExtensions" 
     # must be set to "true".
-    # enableK8sExtensions: true
+    enableK8sExtensions: true
 
 # Optional registry credentials for module images
 # registryCredentials:
