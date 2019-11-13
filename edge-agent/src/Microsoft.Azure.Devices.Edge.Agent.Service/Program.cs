@@ -342,7 +342,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 // Attempt to report shutdown of Agent
                 await Cleanup(agentOption, logger);
                 await CloseDbStoreProviderAsync(container);
-                container.Resolve<IAvailabilityMetric>().OnCleanShutdown();
+
+                if (metricsConfig.Enabled && returnCode == 0)
+                {
+                    container.Resolve<IAvailabilityMetric>().IndicateCleanShutdown();
+                }
+
                 completed.Set();
             }
 

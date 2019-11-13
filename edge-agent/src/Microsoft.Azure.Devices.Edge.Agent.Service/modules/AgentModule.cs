@@ -259,7 +259,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .SingleInstance();
 
             // IAvailabilityMetric
-            builder.Register(c => new AvailabilityMetrics(c.Resolve<IMetricsProvider>(), SystemTime.Instance))
+            builder.Register(c => new AvailabilityMetrics(c.Resolve<IMetricsProvider>()))
                 .As<IAvailabilityMetric>()
                 .SingleInstance();
 

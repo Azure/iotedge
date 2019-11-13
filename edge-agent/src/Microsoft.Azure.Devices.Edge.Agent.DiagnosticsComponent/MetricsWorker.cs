@@ -51,8 +51,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
             {
                 Log.LogInformation("Scraping Metrics");
                 List<Metric> metricsToPersist = new List<Metric>();
+                int numScrapedMetrics = 0;
                 foreach (var scrapedMetric in await this.scraper.ScrapeAsync(cancellationToken))
                 {
+                    numScrapedMetrics++;
                     // Get the previous scrape for this metric
                     if (this.metrics.TryGetValue(scrapedMetric.GetMetricKey(), out Metric oldMetric))
                     {
@@ -70,7 +72,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
                     this.metrics[scrapedMetric.GetMetricKey()] = scrapedMetric;
                 }
 
-                Log.LogInformation("Scraped Metrics");
+                Log.LogInformation($"Scraped {numScrapedMetrics} Metrics");
 
                 if (metricsToPersist.Count != 0)
                 {
@@ -87,8 +89,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
             {
                 Log.LogInformation("Uploading Metrics");
                 await this.uploader.UploadAsync(this.GetMetricsToUpload(this.lastUploadTime), cancellationToken);
-                this.lastUploadTime = this.systemTime.UtcNow;
                 Log.LogInformation("Uploaded Metrics");
+
+                this.storage.RemoveOldEntries(this.lastUploadTime);
+                this.metrics.Clear();
+                this.lastUploadTime = this.systemTime.UtcNow;
             }
         }
 
@@ -109,9 +114,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
             {
                 yield return metric;
             }
-
-            this.storage.RemoveOldEntries(lastUploadTime);
-            this.metrics.Clear();
         }
 
         public void Dispose()

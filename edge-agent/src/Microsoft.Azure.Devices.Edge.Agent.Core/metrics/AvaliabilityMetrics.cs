@@ -15,11 +15,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
     public interface IAvailabilityMetric
     {
         void ComputeAvailability(ModuleSet desired, ModuleSet current);
-        void OnCleanShutdown();
+        void IndicateCleanShutdown();
     }
 
     public class AvailabilityMetrics : IAvailabilityMetric, IDisposable
     {
+
         readonly IMetricsGauge running;
         readonly IMetricsGauge expectedRunning;
         readonly ISystemTime time;
@@ -28,12 +29,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
         // This allows edgeAgent to track its own avaliability. If edgeAgent shutsdown unexpectedly, it can look at the last checkpoint time to determine its previous avaliability.
         readonly TimeSpan checkpointFrequency = TimeSpan.FromMinutes(5);
         readonly PeriodicTask checkpoint;
+        readonly string checkpointFile = "avaliability_checkpoint";
 
         readonly List<Availability> availabilities;
         readonly Lazy<Availability> edgeAgent;
 
-        public AvailabilityMetrics(IMetricsProvider metricsProvider, ISystemTime time)
+        public AvailabilityMetrics(IMetricsProvider metricsProvider, ISystemTime time = null)
         {
+            this.time = time ?? SystemTime.Instance;
+            this.availabilities = new List<Availability>();
+            this.edgeAgent = new Lazy<Availability>(() => new Availability("edgeAgent", this.CalculateEdgeAgentDowntime(), this.time));
+
             this.running = metricsProvider.CreateGauge(
                 "total_time_running_correctly_seconds",
                 "The amount of time the module was specified in the deployment and was in the running state",
@@ -43,10 +49,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                 "total_time_expected_running_seconds",
                 "The amount of time the module was specified in the deployment",
                 new List<string> { "module_name" });
-
-            this.time = time;
-            this.availabilities = new List<Availability>();
-            this.edgeAgent = new Lazy<Availability>(() => new Availability("edgeAgent", this.CalculateEdgeAgentDowntime(), this.time));
 
             this.checkpoint = new PeriodicTask(this.NoteCurrentTime, this.checkpointFrequency, this.checkpointFrequency, this.log, "Checkpoint Availability");
         }
@@ -107,11 +109,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             this.checkpoint.Dispose();
         }
 
-        public void OnCleanShutdown()
+        /*
+         * The Logic below handles edgeAgent's own avaliability. It keeps a checkpoint file containint the current timestamp
+         *  that it updates every 5 minutes. On a clean shutdown, it deletes this file to indicate it shouldn't be running. If agent crashes
+         *  or returns a non-zero code, it leaves the file. On startup, if the file exists, agent knows it shutdown incorrectly \
+         *  and can calculate its downtime using the timestamp in the file.
+         */
+        public void IndicateCleanShutdown()
         {
             try
             {
-                File.Delete("shutdown_time");
+                File.Delete(this.checkpointFile);
             }
             catch (Exception ex)
             {
@@ -123,9 +131,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
         {
             try
             {
-                if (File.Exists("avaliability_checkpoint"))
+                if (File.Exists(this.checkpointFile))
                 {
-                    long ticks = long.Parse(File.ReadAllText("shutdown_time"));
+                    long ticks = long.Parse(File.ReadAllText(this.checkpointFile));
                     DateTime checkpointTime = new DateTime(ticks);
                     return this.time.UtcNow - checkpointTime;
                 }
@@ -140,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
         Task NoteCurrentTime()
         {
-            File.WriteAllText("avaliability_checkpoint", this.time.UtcNow.Ticks.ToString());
+            File.WriteAllText(this.checkpointFile, this.time.UtcNow.Ticks.ToString());
             return Task.CompletedTask;
         }
     }
