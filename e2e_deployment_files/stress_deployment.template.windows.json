@@ -179,7 +179,7 @@
                 "value": "<LogAnalyticsWorkspaceId>"
               },
               "LogAnalyticSharedKey": {
-                "value": "<LogAnalyticsSharedKey>"
+                "value": "<LogAnalyticsSecret>"
               },
               "LogAnalyticLogType": {
                 "value": "<Analyzer.LogAnalyticsLogType>"
