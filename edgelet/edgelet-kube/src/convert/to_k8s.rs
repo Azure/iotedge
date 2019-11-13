@@ -281,6 +281,11 @@ fn spec_to_podspec(
             Some(image_pull_secrets)
         },
         service_account_name: Some(module_label_value),
+        security_context: Some(api_core::PodSecurityContext {
+            run_as_non_root: Some(true),
+            run_as_user: Some(1000),
+            ..api_core::PodSecurityContext::default()
+        }),
         volumes: Some(volumes),
         ..api_core::PodSpec::default()
     })
@@ -630,6 +635,11 @@ mod tests {
                     assert_eq!(proxy.image_pull_policy.as_ref().unwrap(), "IfNotPresent");
                 }
                 assert_eq!(podspec.service_account_name.as_ref().unwrap(), "edgeagent");
+                assert!(podspec.security_context.is_some());
+                if let Some(security_context) = &podspec.security_context {
+                    assert_eq!(security_context.run_as_non_root, Some(true));
+                    assert_eq!(security_context.run_as_user, Some(1000));
+                }
                 assert!(podspec.image_pull_secrets.is_some());
                 if let Some(image_pull_secrets) = &podspec.image_pull_secrets {
                     assert_eq!(image_pull_secrets.len(), 1);
