@@ -12,45 +12,45 @@ use serde_json;
 use crate::error::{ErrorKind, PullImageErrorReason, Result};
 
 #[derive(Debug, PartialEq, Default)]
-pub struct ImagePullSecret<'a> {
-    registry: Option<&'a str>,
-    username: Option<&'a str>,
-    password: Option<&'a str>,
+pub struct ImagePullSecret {
+    registry: Option<String>,
+    username: Option<String>,
+    password: Option<String>,
 }
 
-impl<'a> ImagePullSecret<'a> {
-    pub fn from_auth(auth: &'a AuthConfig) -> Option<Self> {
+impl ImagePullSecret {
+    pub fn from_auth(auth: &AuthConfig) -> Option<Self> {
         if let (None, None, None) = (auth.serveraddress(), auth.username(), auth.password()) {
             None
         } else {
             Some(Self {
-                registry: auth.serveraddress(),
-                username: auth.username(),
-                password: auth.password(),
+                registry: auth.serveraddress().map(Into::into),
+                username: auth.username().map(Into::into),
+                password: auth.password().map(Into::into),
             })
         }
     }
 
     #[cfg(test)]
-    pub fn with_registry(mut self, registry: &'a str) -> Self {
-        self.registry = Some(registry);
+    pub fn with_registry(mut self, registry: impl Into<String>) -> Self {
+        self.registry = Some(registry.into());
         self
     }
 
     #[cfg(test)]
-    pub fn with_username(mut self, username: &'a str) -> Self {
-        self.username = Some(username);
+    pub fn with_username(mut self, username: impl Into<String>) -> Self {
+        self.username = Some(username.into());
         self
     }
 
     #[cfg(test)]
-    pub fn with_password(mut self, password: &'a str) -> Self {
-        self.password = Some(password);
+    pub fn with_password(mut self, password: impl Into<String>) -> Self {
+        self.password = Some(password.into());
         self
     }
 
     pub fn name(&self) -> Option<String> {
-        match (self.username, self.registry) {
+        match (&self.username, &self.registry) {
             (Some(user), Some(registry)) => Some(format!(
                 "{}-{}",
                 user.to_lowercase(),
@@ -63,14 +63,17 @@ impl<'a> ImagePullSecret<'a> {
     pub fn data(&self) -> Result<ByteString> {
         let registry = self
             .registry
+            .as_ref()
             .ok_or_else(|| ErrorKind::PullImage(PullImageErrorReason::AuthServerAddress))?;
 
         let user = self
             .username
+            .as_ref()
             .ok_or_else(|| ErrorKind::PullImage(PullImageErrorReason::AuthUser))?;
 
         let password = self
             .password
+            .as_ref()
             .ok_or_else(|| ErrorKind::PullImage(PullImageErrorReason::AuthPassword))?;
 
         let mut auths = BTreeMap::new();
