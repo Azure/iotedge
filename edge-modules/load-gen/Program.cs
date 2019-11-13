@@ -78,7 +78,7 @@ namespace LoadGen
                     // build message
                     var messageBody = new { data = data.Data };
                     var message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)));
-                    messageId += 1;
+                    Interlocked.Increment(ref messageId);
                     message.Properties.Add("sequenceNumber", messageId.ToString());
                     message.Properties.Add("batchId", batchId.ToString());
 
