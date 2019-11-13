@@ -22,7 +22,7 @@ parameters:
   analyzer.logAnalytics.enabled: ''
   analyzer.logAnalytics.logType: ''
   logAnalytics.workspaceId: ''
-  logAnalytics.secret: ''
+  logAnalytics.sharedKey: ''
 
 steps:
   - task: CopyFiles@2
@@ -73,7 +73,7 @@ steps:
           -logAnalyticsEnabled "${{ parameters['analyzer.logAnalytics.enabled'] }}" \
           -logAnalyticsLogType "${{ parameters['analyzer.logAnalytics.logType'] }}" \
           -logAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" \
-          -logAnalyticsSecret "${{ parameters['logAnalytics.secret'] }}" \
+          -logAnalyticSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" \
           -cleanAll
         #Remove all pending jobs
         atrm $(atq | cut -f1)

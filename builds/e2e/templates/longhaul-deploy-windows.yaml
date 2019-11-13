@@ -18,7 +18,7 @@ parameters:
   analyzer.logAnalytics.enabled: ''
   analyzer.logAnalytics.logType: ''
   logAnalytics.workspaceId: ''
-  logAnalytics.secret: ''
+  logAnalytics.sharedKey: ''
 
 steps:
   - task: CopyFiles@2
@@ -62,5 +62,5 @@ steps:
           -LogAnalyticsEnabled "${{ parameters['analyzer.logAnalytics.enabled'] }}" `
           -LogAnalyticsLogType "${{ parameters['analyzer.logAnalytics.logType'] }}" `
           -LogAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" `
-          -LogAnalyticsSecret "${{ parameters['logAnalytics.secret'] }}"
+          -LogAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}"
       workingDirectory: "$(Agent.HomeDirectory)/.."

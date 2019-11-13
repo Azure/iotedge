@@ -10,6 +10,6 @@
   "EventHubConnectionString": "",
   "LogAnalyticsEnabled" : "false",
   "LogAnalyticsWorkspaceId": "",
-  "LogAnalyticsSecret": "",
+  "LogAnalyticsSharedKey": "",
   "LogAnalyticsLogType": ""
 }

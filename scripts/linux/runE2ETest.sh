@@ -175,7 +175,7 @@ function prepare_test_from_artifacts() {
                 sed -i -e "s@<Analyzer.LogAnalyticsEnabled>@$LOG_ANALYTICS_ENABLED@g" "$deployment_working_file"
                 sed -i -e "s@<Analyzer.LogAnalyticsLogType>@$LOG_ANALYTICS_LOG_TYPE@g" "$deployment_working_file"
                 sed -i -e "s@<LogAnalyticsWorkspaceId>@$LOG_ANALYTICS_WORKSPACE_ID@g" "$deployment_working_file"
-                sed -i -e "s@<LogAnalyticsSecret>@$LOG_ANALYTICS_SECRET@g" "$deployment_working_file"
+                sed -i -e "s@<LogAnalyticsSharedKey>@$LOG_ANALYTICS_SHARED_KEY@g" "$deployment_working_file"
                 sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
                 escapedSnitchAlertUrl="${SNITCH_ALERT_URL//&/\\&}"
                 escapedBuildId="${ARTIFACT_IMAGE_BUILD_NUMBER//./}"
@@ -370,7 +370,7 @@ function process_args() {
             LOG_ANALYTICS_WORKSPACE_ID="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 34 ]; then
-            LOG_ANALYTICS_SECRET="$arg"
+            LOG_ANALYTICS_SHARED_KEY="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 35 ]; then
             LOG_ANALYTICS_LOG_TYPE="$arg"
@@ -411,7 +411,7 @@ function process_args() {
                 '-restartIntervalInMins' ) saveNextArg=31;;
                 '-logAnalyticsEnabled' ) saveNextArg=32;;
                 '-logAnalyticsWorkspaceId' ) saveNextArg=33;;
-                '-logAnalyticsSecret' ) saveNextArg=34;;
+                '-logAnalyticsSharedKey' ) saveNextArg=34;;
                 '-logAnalyticsLogType' ) saveNextArg=35;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
@@ -430,7 +430,7 @@ function process_args() {
     [[ -z "$LOG_ANALYTICS_ENABLED" ]] && { LOG_ANALYTICS_ENABLED="false"; }
     [[ "$LOG_ANALYTICS_ENABLED" == true ]] && \
     {  [[ -z "$LOG_ANALYTICS_WORKSPACE_ID" ]] && { print_error 'Log Analytics Workspace ID is required'; exit 1; }; \
-       [[ -z "$LOG_ANALYTICS_SECRET" ]] && { print_error 'Log Analytics secret is required'; exit 1; }; \
+       [[ -z "$LOG_ANALYTICS_SHARED_KEY" ]] && { print_error 'Log Analytics secret is required'; exit 1; }; \
        [[ -z "$LOG_ANALYTICS_LOG_TYPE" ]] && { print_error 'Log Analytics Log Type is required'; exit 1; }; }
 
     echo 'Required parameters are provided'
@@ -1000,7 +1000,7 @@ function usage() {
     echo ' -restartIntervalInMins          Optional value for long haul specifying how often a random module will restart. If specified, then "desiredModulesToRestartCSV" must be specified as well.'
     echo ' -logAnalyticsEnabled            Optional Log Analytics enable string for the Analyzer module. If logAnalyticsEnabled is set to enable (true), the rest of Log Analytics parameters must be provided.'
     echo ' -logAnalyticsWorkspaceId        Optional Log Analytics workspace ID for metrics collection and reporting.'
-    echo ' -logAnalyticsSecret             Optional Log Analytics secret for metrics collection and reporting.'
+    echo ' -logAnalyticsSharedKey          Optional Log Analytics shared key for metrics collection and reporting.'
     echo ' -logAnalyticsLogType            Optional Log Analytics log type for the Analyzer module.'
     exit 1;
 }

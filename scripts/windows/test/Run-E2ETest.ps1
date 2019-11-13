@@ -107,8 +107,8 @@
     .PARAMETER LogAnalyticsWorkspaceId
         Optional Log Analytics workspace ID for metrics collection and reporting.
 
-    .PARAMETER LogAnalyticsSecret
-        Optional Log Analytics secret for metrics collection and reporting.
+    .PARAMETER LogAnalyticsSharedKey
+        Optional Log Analytics shared key for metrics collection and reporting.
 
     .PARAMETER LogAnalyticsLogType
         Optional Log Analytics log type for the Analyzer module.
@@ -282,7 +282,7 @@ Param (
 
     [string] $LogAnalyticsWorkspaceId = $null,
 
-    [string] $LogAnalyticsSecret = $null,
+    [string] $LogAnalyticsSharedKey = $null,
 
     [string] $LogAnalyticsLogType = $null,
 
@@ -472,7 +472,7 @@ Function PrepareTestFromArtifacts
                 (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.LogAnalyticsEnabled>',$LogAnalyticsEnabled) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.LogAnalyticsLogType>',$LogAnalyticsLogType) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<LogAnalyticsWorkspaceId>',$LogAnalyticsWorkspaceId) | Set-Content $DeploymentWorkingFilePath
-                (Get-Content $DeploymentWorkingFilePath).replace('<LogAnalyticsSecret>',$LogAnalyticsSecret) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<LogAnalyticsSharedKey>',$LogAnalyticsSharedKey) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen.MessageFrequency>',$LoadGenMessageFrequency) | Set-Content $DeploymentWorkingFilePath
                 $escapedBuildId= $ArtifactImageBuildNumber -replace "\.",""
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.AlertUrl>',$SnitchAlertUrl) | Set-Content $DeploymentWorkingFilePath

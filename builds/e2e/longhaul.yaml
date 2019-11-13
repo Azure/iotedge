@@ -97,7 +97,7 @@ jobs:
           analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
           analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
-          logAnalytics.secret: '$(kvLogAnalyticSharedKey)'
+          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
 
 ################################################################################
   - job: linux_arm32v7_moby
@@ -169,7 +169,7 @@ jobs:
           analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
           analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
-          logAnalytics.secret: '$(kvLogAnalyticSharedKey)'
+          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
 
 ################################################################################
   - job: linux_arm64v8_docker
@@ -241,7 +241,7 @@ jobs:
           analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
           analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
-          logAnalytics.secret: '$(kvLogAnalyticSharedKey)'
+          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
           
 ################################################################################
   - job: windows_amd64_moby
@@ -315,7 +315,7 @@ jobs:
           analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
           analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
-          logAnalytics.secret: '$(kvLogAnalyticSharedKey)'
+          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
 
 ################################################################################
   - job: windows_servercore_amd64_moby
@@ -389,7 +389,7 @@ jobs:
           analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
           analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
-          logAnalytics.secret: '$(kvLogAnalyticSharedKey)'
+          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
 
 ################################################################################
   - job: iotuap_amd64_moby
@@ -462,4 +462,4 @@ jobs:
           analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
           analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
-          logAnalytics.secret: '$(kvLogAnalyticSharedKey)'
+          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'

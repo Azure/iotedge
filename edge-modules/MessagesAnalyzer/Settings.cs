@@ -20,7 +20,7 @@ namespace MessagesAnalyzer
         const double DefaultToleranceInMilliseconds = 1000 * 60;
         const string LogAnalyticsEnabledName = "LogAnalyticsEnabled";
         const string LogAnalyticsWorkspaceIdName = "LogAnalyticsWorkspaceId";
-        const string LogAnalyticsSecretName = "LogAnalyticsSecret";
+        const string LogAnalyticsSharedKeyName = "LogAnalyticsSharedKey";
         const string LogAnalyticsLogTypeName = "LogAnalyticsLogType";
 
         static readonly Lazy<Settings> Setting = new Lazy<Settings>(
@@ -43,7 +43,7 @@ namespace MessagesAnalyzer
                     configuration.GetValue(ToleranceInMillisecondsPropertyName, DefaultToleranceInMilliseconds),
                     configuration.GetValue<string>(LogAnalyticsEnabledName),
                     configuration.GetValue<string>(LogAnalyticsWorkspaceIdName),
-                    configuration.GetValue<string>(LogAnalyticsSecretName),
+                    configuration.GetValue<string>(LogAnalyticsSharedKeyName),
                     configuration.GetValue<string>(LogAnalyticsLogTypeName));
             });
 
@@ -59,7 +59,7 @@ namespace MessagesAnalyzer
             bool.TryParse(logAnalyticEnabledText, out logAnalyticEnabled);
             this.LogAnalyticsEnabled = logAnalyticEnabled;
             this.LogAnalyticsWorkspaceId = logAnalyticsWorkspaceIdName;
-            this.LogAnalyticsSecret = logAnalyticsSharedKeyName;
+            this.LogAnalyticsSharedKey = logAnalyticsSharedKeyName;
             this.LogAnalyticsLogType = logAnalyticsLogTypeName;
         }
 
@@ -81,7 +81,7 @@ namespace MessagesAnalyzer
 
         public string LogAnalyticsWorkspaceId { get; }
 
-        public string LogAnalyticsSecret { get; }
+        public string LogAnalyticsSharedKey { get; }
 
         public string LogAnalyticsLogType { get; }
     }
