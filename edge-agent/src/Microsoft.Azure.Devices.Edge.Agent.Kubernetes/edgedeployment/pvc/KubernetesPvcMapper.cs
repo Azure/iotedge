@@ -74,7 +74,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
                 persistentVolumeClaimSpec.StorageClassName = this.storageClassName.OrDefault();
             }
 
-            return new V1PersistentVolumeClaim(metadata: new V1ObjectMeta(name: pvcName, labels: labels), spec: persistentVolumeClaimSpec);
+            var pvcMeta = new V1ObjectMeta(
+                name: pvcName,
+                labels: labels,
+                ownerReferences: module.Owner.ToOwnerReferences());
+
+            return new V1PersistentVolumeClaim(metadata: pvcMeta, spec: persistentVolumeClaimSpec);
         }
 
         public void UpdatePersistentVolumeClaim(V1PersistentVolumeClaim to, V1PersistentVolumeClaim from)
