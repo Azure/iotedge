@@ -59,7 +59,7 @@ namespace MessagesAnalyzer
             bool.TryParse(logAnalyticEnabledText, out logAnalyticEnabled);
             this.LogAnalyticsEnabled = logAnalyticEnabled;
             this.LogAnalyticsWorkspaceId = logAnalyticsWorkspaceIdName;
-            this.LogAnalyticsSharedKey = logAnalyticsSharedKeyName;
+            this.LogAnalyticsSecret = logAnalyticsSharedKeyName;
             this.LogAnalyticsLogType = logAnalyticsLogTypeName;
         }
 
@@ -81,7 +81,7 @@ namespace MessagesAnalyzer
 
         public string LogAnalyticsWorkspaceId { get; }
 
-        public string LogAnalyticsSharedKey { get; }
+        public string LogAnalyticsSecret { get; }
 
         public string LogAnalyticsLogType { get; }
     }
