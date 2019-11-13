@@ -1,28 +1,21 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-extern crate clap;
-extern crate env_logger;
-extern crate failure;
-extern crate edgelet_utils;
-extern crate git2;
-extern crate hex;
-#[macro_use]
-extern crate log;
-
-use clap::{App, Arg};
+#![deny(rust_2018_idioms, warnings)]
+#![deny(clippy::all, clippy::pedantic)]
 
 mod error;
 mod logging;
 mod tree;
-use logging::init_logger;
-use tree::Git2Tree;
 
 use std::env;
 use std::path::Path;
 
+use clap::{App, Arg};
+use log::info;
+
 fn run_check(starting_path: &Path) -> Result<(), error::Error> {
     // Create a submodule tree.
-    let tree = Git2Tree::new(starting_path)?;
+    let tree = tree::Git2Tree::new(starting_path)?;
     let count = tree.count_flagged();
     // display the tree.
     println!("{}", tree);
@@ -33,7 +26,7 @@ fn run_check(starting_path: &Path) -> Result<(), error::Error> {
 }
 
 fn main() {
-    init_logger();
+    logging::init_logger();
     let matches = App::new("Check Submodules")
         .about("Check all submodule reference the same commit")
         .arg(Arg::with_name("path").help("Path to git module"))
