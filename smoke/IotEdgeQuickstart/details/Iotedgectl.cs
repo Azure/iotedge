@@ -100,7 +100,7 @@ namespace IotEdgeQuickstart.Details
                 120);
         }
 
-        public Task Start() => Process.RunAsync("iotedgectl", "start", 300); // 5 min timeout because docker pull can be slow on raspberry pi
+        public Task Start() => Process.RunAsync("iotedgectl", "start", 900); // 5 min timeout because docker pull can be slow on raspberry pi
 
         public Task Stop() => Process.RunAsync("iotedgectl", "stop", 120);
 
