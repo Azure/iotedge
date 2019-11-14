@@ -57,7 +57,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Serv
         {
             var config = new KubernetesConfig("image", podParameters, Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
-            return new KubernetesModule(docker, config);
+            var owner = new KubernetesModuleOwner("v1", "Owner", "an-owner", "a-uid");
+            return new KubernetesModule(docker, config, owner);
         }
 
         [Fact]
@@ -161,7 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Serv
         {
             var dockerLabels = new Dictionary<string, string>
             {
-                ["Label1"] = "Complicated Value that doesn't fit in k8s label",
+                ["Complicated Value that doesn't fit in k8s label name"] = "Complicated Value that doesn't fit in k8s label value",
                 ["Label2"] = "Value2"
             };
             var module = CreateKubernetesModule(CreatePodParameters.Create(exposedPorts: ExposedPorts, hostConfig: HostPorts, labels: dockerLabels));
@@ -170,7 +171,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Serv
 
             Assert.True(result.HasValue);
             var service = result.OrDefault();
-            Assert.Equal("Complicated Value that doesn't fit in k8s label", service.Metadata.Annotations["Label1"]);
+            Assert.Equal("Complicated Value that doesn't fit in k8s label value", service.Metadata.Annotations["ComplicatedValuethatdoesntfitink8slabelname"]);
             Assert.Equal("Value2", service.Metadata.Annotations["Label2"]);
         }
     }
