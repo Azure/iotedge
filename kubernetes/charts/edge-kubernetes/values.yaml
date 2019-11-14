@@ -99,6 +99,11 @@ edgeAgent:
     # must be set to "true".
     enableK8sExtensions: true
 
+    # Configure default pod security context rule. If set true, it will allow kubernetes to run only non-root containers
+    # under the user with uid(1000).
+    # false dy default.
+    # runAsNonRoot: false
+
 # Optional registry credentials for module images
 # registryCredentials:
 #   <SERVER ADDRESS>:

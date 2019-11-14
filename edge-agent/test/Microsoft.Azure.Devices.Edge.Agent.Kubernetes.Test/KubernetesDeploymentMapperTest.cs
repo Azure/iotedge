@@ -8,7 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
-    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deployment;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
@@ -39,8 +38,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 }
             }
         };
-
-        static readonly ResourceName ResourceName = new ResourceName("hostname", "deviceId");
 
         static readonly KubernetesModuleOwner EdgeletModuleOwner = new KubernetesModuleOwner("v1", "Deployment", "iotedged", "123");
 
@@ -138,6 +135,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
             // Validate no image pull secrets for public images
             Assert.Null(pod.Spec.ImagePullSecrets);
+
+            // Validate null pod security context by default
+            Assert.Null(pod.Spec.SecurityContext);
         }
 
         [Fact]
@@ -259,7 +259,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var experimental = new Dictionary<string, JToken>
             {
                 ["k8s-experimental"] = JToken.Parse(
-                   @"{ 
+                    @"{ 
                         ""volumes"": [
                           {
                             ""volume"": {
@@ -503,7 +503,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Assert.Contains(deployment.Spec.Template.Spec.ImagePullSecrets, secret => secret.Name == "user-registry1");
         }
 
-        static KubernetesDeploymentMapper CreateMapper(string persistentVolumeName = "", string storageClassName = "", string proxyImagePullSecretName = null)
+        [Fact]
+        public void RunAsNonRootAndRunAsUser1000SecurityPolicyWhenSettingSet()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.Some(new AuthConfig("user-registry1")));
+            var module = new KubernetesModule("module1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, DefaultConfigurationInfo, EnvVarsDict, config, ImagePullPolicy.OnCreate, EdgeletModuleOwner);
+            var labels = new Dictionary<string, string>();
+            var mapper = CreateMapper(runAsNonRoot: true);
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            Assert.Equal(1, deployment.Spec.Template.Spec.ImagePullSecrets.Count);
+            Assert.Equal(true, deployment.Spec.Template.Spec.SecurityContext.RunAsNonRoot);
+            Assert.Equal(1000, deployment.Spec.Template.Spec.SecurityContext.RunAsUser);
+        }
+
+        static KubernetesDeploymentMapper CreateMapper(string persistentVolumeName = "", string storageClassName = "", string proxyImagePullSecretName = null, bool runAsNonRoot = false)
             => new KubernetesDeploymentMapper(
                 "namespace",
                 "edgehub",
@@ -519,6 +535,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 storageClassName,
                 "apiVersion",
                 new Uri("http://workload"),
-                new Uri("http://management"));
+                new Uri("http://management"),
+                runAsNonRoot);
     }
 }

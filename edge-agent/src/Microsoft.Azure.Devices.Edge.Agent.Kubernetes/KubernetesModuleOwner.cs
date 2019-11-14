@@ -1,19 +1,18 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 {
-    using System;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
-    using Newtonsoft.Json.Serialization;
 
     public class KubernetesModuleOwner
     {
         [JsonConstructor]
         public KubernetesModuleOwner(string apiVersion, string kind, string name, string uid)
         {
-            this.ApiVersion = apiVersion;
-            this.Kind = kind;
-            this.Name = name;
-            this.Uid = uid;
+            this.ApiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
+            this.Kind = Preconditions.CheckNonWhiteSpace(kind, nameof(kind));
+            this.Name = Preconditions.CheckNonWhiteSpace(name, nameof(name));
+            this.Uid = Preconditions.CheckNonWhiteSpace(uid, nameof(uid));
         }
 
         [JsonProperty(PropertyName = "apiVersion")]
