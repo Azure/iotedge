@@ -42,21 +42,20 @@ namespace MessagesAnalyzer
                     configuration.GetValue(WebhostPortPropertyName, DefaultWebhostPort),
                     configuration.GetValue(ToleranceInMillisecondsPropertyName, DefaultToleranceInMilliseconds),
                     configuration.GetValue<string>(LogAnalyticsEnabledName),
-                    configuration.GetValue<string>(LogAnalyticsWorkspaceIdName),
+                    configuration.GetValue<bool>(LogAnalyticsWorkspaceIdName),
                     configuration.GetValue<string>(LogAnalyticsSharedKeyName),
                     configuration.GetValue<string>(LogAnalyticsLogTypeName));
             });
 
-        Settings(string eventHubConnectionString, string consumerGroupId, string deviceId, IList<string> excludedModuleIds, string webhostPort, double tolerance, string logAnalyticEnabledText, string logAnalyticsWorkspaceIdName, string logAnalyticsSharedKeyName, string logAnalyticsLogTypeName)
+        Settings(string eventHubConnectionString, string consumerGroupId, string deviceId, IList<string> excludedModuleIds, string webhostPort, double tolerance, bool logAnalyticsEnabled, string logAnalyticsWorkspaceIdName, string logAnalyticsSharedKeyName, string logAnalyticsLogTypeName)
         {
             bool logAnalyticEnabled;
             this.EventHubConnectionString = Preconditions.CheckNonWhiteSpace(eventHubConnectionString, nameof(eventHubConnectionString));
             this.ConsumerGroupId = Preconditions.CheckNonWhiteSpace(consumerGroupId, nameof(consumerGroupId));
-            this.ExcludedModuleIds = excludedModuleIds;
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            this.ExcludedModuleIds = excludedModuleIds;
             this.WebhostPort = Preconditions.CheckNonWhiteSpace(webhostPort, nameof(webhostPort));
             this.ToleranceInMilliseconds = Preconditions.CheckRange(tolerance, 0);
-            bool.TryParse(logAnalyticEnabledText, out logAnalyticEnabled);
             this.LogAnalyticsEnabled = logAnalyticEnabled;
             this.LogAnalyticsWorkspaceId = logAnalyticsWorkspaceIdName;
             this.LogAnalyticsSharedKey = logAnalyticsSharedKeyName;
