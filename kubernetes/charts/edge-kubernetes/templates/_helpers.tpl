@@ -56,6 +56,9 @@ agent:
     {{- if .Values.edgeAgent.env.enableK8sExtensions }}
     ExperimentalFeatures__EnableK8SExtensions: {{ .Values.edgeAgent.env.enableK8sExtensions | quote }}
     {{- end }}
+    {{- if .Values.edgeAgent.env.runAsNonRoot }}
+    RunAsNonRoot: {{ .Values.edgeAgent.env.runAsNonRoot | quote }}
+    {{- end }}
   {{ else }}
   env: {}
   {{ end }}

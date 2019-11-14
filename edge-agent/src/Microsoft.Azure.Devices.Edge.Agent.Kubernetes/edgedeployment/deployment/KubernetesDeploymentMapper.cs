@@ -34,6 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
         readonly string workloadApiVersion;
         readonly Uri workloadUri;
         readonly Uri managementUri;
+        readonly bool runAsNonRoot;
 
         public KubernetesDeploymentMapper(
             string deviceNamespace,
@@ -50,7 +51,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             string storageClassName,
             string workloadApiVersion,
             Uri workloadUri,
-            Uri managementUri)
+            Uri managementUri,
+            bool runAsNonRoot)
         {
             this.deviceNamespace = deviceNamespace;
             this.edgeHostname = edgeHostname;
@@ -68,6 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             this.workloadApiVersion = workloadApiVersion;
             this.workloadUri = workloadUri;
             this.managementUri = managementUri;
+            this.runAsNonRoot = runAsNonRoot;
         }
 
         public V1Deployment CreateDeployment(IModuleIdentity identity, KubernetesModule module, IDictionary<string, string> labels)
@@ -117,6 +120,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                 .Select(pullSecretName => new V1LocalObjectReference(pullSecretName))
                 .ToList();
 
+            V1PodSecurityContext securityContext = this.runAsNonRoot
+                ? new V1PodSecurityContext { RunAsNonRoot = true, RunAsUser = 1000 }
+                : null;
+
             return new V1PodTemplateSpec
             {
                 Metadata = new V1ObjectMeta
@@ -130,6 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                     Containers = new List<V1Container> { proxyContainer, moduleContainer },
                     Volumes = proxyVolumes.Concat(moduleVolumes).ToList(),
                     ImagePullSecrets = imagePullSecrets.Any() ? imagePullSecrets : null,
+                    SecurityContext = securityContext,
                     ServiceAccountName = name,
                     NodeSelector = module.Config.CreateOptions.NodeSelector.OrDefault()
                 }
@@ -149,14 +157,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             Option<List<V1ContainerPort>> exposedPorts = module.Config.CreateOptions.ExposedPorts
                 .Map(PortExtensions.GetContainerPorts);
 
-            var container = new V1Container(
-                name,
-                env: env,
-                image: module.Config.Image,
-                volumeMounts: volumeMounts,
-                securityContext: securityContext.OrDefault(),
-                ports: exposedPorts.OrDefault(),
-                resources: module.Config.CreateOptions.Resources.OrDefault());
+            var container = new V1Container
+            {
+                Name = name,
+                Env = env,
+                Image = module.Config.Image,
+                VolumeMounts = volumeMounts,
+                SecurityContext = securityContext.OrDefault(),
+                Ports = exposedPorts.OrDefault(),
+                Resources = module.Config.CreateOptions.Resources.OrDefault()
+            };
 
             return (container, volumes);
         }
@@ -194,6 +204,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                 envList.Add(new V1EnvVar(KubernetesConstants.ProxyTrustBundleVolumeEnvKey, this.proxyTrustBundleVolumeName));
                 envList.Add(new V1EnvVar(KubernetesConstants.ProxyTrustBundleConfigMapEnvKey, this.proxyTrustBundleConfigMapName));
                 envList.Add(new V1EnvVar(KubernetesConstants.K8sNamespaceKey, this.deviceNamespace));
+                envList.Add(new V1EnvVar(KubernetesConstants.RunAsNonRootKey));
             }
 
             if (string.Equals(identity.ModuleId, CoreConstants.EdgeAgentModuleIdentityName) ||
@@ -278,21 +289,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
 
             var volumeMounts = new List<V1VolumeMount>
             {
-                new V1VolumeMount(this.proxyConfigPath, this.proxyConfigVolumeName),
-                new V1VolumeMount(this.proxyTrustBundlePath, this.proxyTrustBundleVolumeName)
+                new V1VolumeMount { MountPath = this.proxyConfigPath, Name = this.proxyConfigVolumeName },
+                new V1VolumeMount { MountPath = this.proxyTrustBundlePath, Name = this.proxyTrustBundleVolumeName }
             };
 
             var volumes = new List<V1Volume>
             {
-                new V1Volume(this.proxyConfigVolumeName, configMap: new V1ConfigMapVolumeSource(name: this.proxyConfigMapName)),
-                new V1Volume(this.proxyTrustBundleVolumeName, configMap: new V1ConfigMapVolumeSource(name: this.proxyTrustBundleConfigMapName))
+                new V1Volume { Name = this.proxyConfigVolumeName, ConfigMap = new V1ConfigMapVolumeSource(name: this.proxyConfigMapName) },
+                new V1Volume { Name = this.proxyTrustBundleVolumeName, ConfigMap = new V1ConfigMapVolumeSource(name: this.proxyTrustBundleConfigMapName) }
             };
 
-            var container = new V1Container(
-                "proxy",
-                env: env,
-                image: this.proxyImage,
-                volumeMounts: volumeMounts);
+            var container = new V1Container
+            {
+                Name = "proxy",
+                Env = env,
+                Image = this.proxyImage,
+                VolumeMounts = volumeMounts
+            };
 
             return (container, volumes);
         }
@@ -326,22 +339,34 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             // Volume name will be customer defined name or modulename + mount.source
             if (this.persistentVolumeName.HasValue)
             {
-                var volumeNameTmp = this.persistentVolumeName.OrDefault();
+                string pvName = this.persistentVolumeName.OrDefault();
 
-                if (volumeNameTmp != volumeName)
+                if (pvName != volumeName)
                 {
-                    throw new InvalidModuleException(string.Format("The mount name {0} has to be the same as the PV name {1}", volumeName, volumeNameTmp));
+                    throw new InvalidModuleException(string.Format("The mount name {0} has to be the same as the PV name {1}", volumeName, pvName));
                 }
 
-                return new V1Volume(volumeName, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(pvcName, mount.ReadOnly));
+                return new V1Volume
+                {
+                    Name = volumeName,
+                    PersistentVolumeClaim = new V1PersistentVolumeClaimVolumeSource(pvcName, mount.ReadOnly)
+                };
             }
 
             if (this.storageClassName.HasValue)
             {
-                return new V1Volume(volumeName, persistentVolumeClaim: new V1PersistentVolumeClaimVolumeSource(pvcName, mount.ReadOnly));
+                return new V1Volume
+                {
+                    Name = volumeName,
+                    PersistentVolumeClaim = new V1PersistentVolumeClaimVolumeSource(pvcName, mount.ReadOnly)
+                };
             }
 
-            return new V1Volume(volumeName, emptyDir: new V1EmptyDirVolumeSource());
+            return new V1Volume
+            {
+                Name = volumeName,
+                EmptyDir = new V1EmptyDirVolumeSource()
+            };
         }
     }
 }
