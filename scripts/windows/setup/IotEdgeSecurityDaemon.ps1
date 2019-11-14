@@ -1628,7 +1628,7 @@ function Uninstall-Services([ref] $RestartNeeded, [bool] $LegacyInstaller) {
     if (Get-Service $EdgeServiceName -ErrorAction SilentlyContinue) {
         Set-Service -StartupType Disabled $EdgeServiceName -ErrorAction SilentlyContinue
         Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable cmdErr $EdgeServiceName
-        if ($? -and $LASTEXITCODE -eq 0) {
+        if ($?) {
             Start-Sleep -Seconds 7
             Write-Verbose "Stopped the IoT Edge service $EdgeServiceName"
         }
