@@ -6,10 +6,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using System.IO;
     using System.Net;
     using System.Net.Http;
+    using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
     using k8s;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.DeviceManager;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
@@ -23,15 +25,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Planners;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Extensions.Logging;
     using Microsoft.Rest;
     using Constants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
     public class KubernetesModule : Module
     {
+        static readonly TimeSpan SystemInfoTimeout = TimeSpan.FromSeconds(3);
         readonly ResourceName resourceName;
         readonly string edgeDeviceHostName;
         readonly string proxyImage;
+        readonly Option<string> proxyImagePullSecretName;
         readonly string proxyConfigPath;
         readonly string proxyConfigVolumeName;
         readonly string proxyConfigMapName;
@@ -54,13 +59,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan idleTimeout;
         readonly KubernetesExperimentalFeatures experimentalFeatures;
+        readonly KubernetesModuleOwner moduleOwner;
 
         public KubernetesModule(
             string iotHubHostname,
             string deviceId,
-            string networkId,
             string edgeDeviceHostName,
             string proxyImage,
+            Option<string> proxyImagePullSecretName,
             string proxyConfigPath,
             string proxyConfigVolumeName,
             string proxyConfigMapName,
@@ -82,11 +88,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             Option<IWebProxy> proxy,
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout,
-            KubernetesExperimentalFeatures experimentalFeatures)
+            KubernetesExperimentalFeatures experimentalFeatures,
+            KubernetesModuleOwner moduleOwner)
         {
             this.resourceName = new ResourceName(iotHubHostname, deviceId);
             this.edgeDeviceHostName = Preconditions.CheckNonWhiteSpace(edgeDeviceHostName, nameof(edgeDeviceHostName));
             this.proxyImage = Preconditions.CheckNonWhiteSpace(proxyImage, nameof(proxyImage));
+            this.proxyImagePullSecretName = proxyImagePullSecretName;
             this.proxyConfigPath = Preconditions.CheckNonWhiteSpace(proxyConfigPath, nameof(proxyConfigPath));
             this.proxyConfigVolumeName = Preconditions.CheckNonWhiteSpace(proxyConfigVolumeName, nameof(proxyConfigVolumeName));
             this.proxyConfigMapName = Preconditions.CheckNonWhiteSpace(proxyConfigMapName, nameof(proxyConfigMapName));
@@ -109,6 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.idleTimeout = idleTimeout;
             this.experimentalFeatures = experimentalFeatures;
+            this.moduleOwner = moduleOwner;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -154,6 +163,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(c => new ModuleManagementHttpClient(this.managementUri, this.apiVersion, Core.Constants.EdgeletClientApiVersion))
                 .As<IModuleManager>()
                 .As<IIdentityManager>()
+                .As<IDeviceManager>()
                 .SingleInstance();
 
             // IModuleIdentityLifecycleManager
@@ -176,9 +186,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                     c =>
                     {
+                        var metricsProvider = c.Resolve<IMetricsProvider>();
                         var loggerFactory = c.Resolve<ILoggerFactory>();
-                        var kubernetesCommandFactory = new KubernetesCommandFactory();
-                        ICommandFactory factory = new LoggingCommandFactory(kubernetesCommandFactory, loggerFactory);
+                        ICommandFactory factory = new KubernetesCommandFactory();
+                        factory = new MetricsCommandFactory(factory, metricsProvider);
+                        factory = new LoggingCommandFactory(factory, loggerFactory);
                         return Task.FromResult(factory);
                     })
                 .As<Task<ICommandFactory>>()
@@ -190,7 +202,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     {
                         var configProvider = c.Resolve<ICombinedConfigProvider<CombinedKubernetesConfig>>();
                         ICommandFactory commandFactory = await c.Resolve<Task<ICommandFactory>>();
-                        IPlanner planner = new KubernetesPlanner(this.deviceNamespace, this.resourceName, c.Resolve<IKubernetes>(), commandFactory, configProvider);
+                        IPlanner planner = new KubernetesPlanner(
+                                    this.deviceNamespace,
+                                    this.resourceName,
+                                    c.Resolve<IKubernetes>(),
+                                    commandFactory,
+                                    configProvider,
+                                    this.moduleOwner);
                         return planner;
                     })
                 .As<Task<IPlanner>>()
@@ -208,6 +226,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             this.deviceNamespace,
                             this.edgeDeviceHostName,
                             this.proxyImage,
+                            this.proxyImagePullSecretName,
                             this.proxyConfigPath,
                             this.proxyConfigVolumeName,
                             this.proxyConfigMapName,
@@ -287,10 +306,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             builder.Register(
                     async c =>
                     {
-                        var moduleStateStore = c.Resolve<IEntityStore<string, ModuleState>>();
+                        CancellationTokenSource tokenSource = new CancellationTokenSource(SystemInfoTimeout);
+                        var moduleStateStore = await c.Resolve<Task<IEntityStore<string, ModuleState>>>();
                         var restartPolicyManager = c.Resolve<IRestartPolicyManager>();
                         IRuntimeInfoProvider runtimeInfoProvider = c.Resolve<IRuntimeInfoProvider>();
-                        IEnvironmentProvider dockerEnvironmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, moduleStateStore, restartPolicyManager);
+                        IEnvironmentProvider dockerEnvironmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, moduleStateStore, restartPolicyManager, tokenSource.Token);
                         return dockerEnvironmentProvider;
                     })
                 .As<Task<IEnvironmentProvider>>()

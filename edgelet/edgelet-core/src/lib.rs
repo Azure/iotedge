@@ -2,7 +2,11 @@
 
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-#![allow(clippy::module_name_repetitions, clippy::use_self)]
+#![allow(
+    clippy::module_name_repetitions,
+    clippy::too_many_lines,
+    clippy::use_self
+)]
 
 use std::path::{Path, PathBuf};
 
@@ -42,8 +46,8 @@ pub use module::{
 pub use network::{Ipam, IpamConfig, MobyNetwork, Network};
 pub use settings::{
     AttestationMethod, Certificates, Connect, Dps, External, Listen, Manual, ManualAuthMethod,
-    ManualDeviceConnectionString, ManualX509Auth, Provisioning, RetryLimit, RuntimeSettings,
-    Settings, SymmetricKeyAttestationInfo, TpmAttestationInfo, WatchdogSettings,
+    ManualDeviceConnectionString, ManualX509Auth, Provisioning, ProvisioningType, RetryLimit,
+    RuntimeSettings, Settings, SymmetricKeyAttestationInfo, TpmAttestationInfo, WatchdogSettings,
     X509AttestationInfo,
 };
 pub use workload::WorkloadConfig;

@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     using System.Collections.Generic;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Json;
     using Newtonsoft.Json;
 
     public class EdgeDeploymentDefinition : IEdgeDeploymentDefinition
@@ -21,12 +22,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         [JsonProperty(PropertyName = "spec")]
         public IReadOnlyList<KubernetesModule> Spec { get; }
 
-        public EdgeDeploymentDefinition(string apiVersion, string kind, V1ObjectMeta metadata, IReadOnlyList<KubernetesModule> spec)
+        [JsonProperty(PropertyName = "status")]
+        [JsonConverter(typeof(OptionConverter<EdgeDeploymentStatus>))]
+        public Option<EdgeDeploymentStatus> Status { get; }
+
+        public EdgeDeploymentDefinition(string apiVersion, string kind, V1ObjectMeta metadata, IReadOnlyList<KubernetesModule> spec, EdgeDeploymentStatus status = null)
         {
             this.ApiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
             this.Kind = Preconditions.CheckNonWhiteSpace(kind, nameof(kind));
             this.Metadata = Preconditions.CheckNotNull(metadata, nameof(metadata));
             this.Spec = Preconditions.CheckNotNull(spec, nameof(spec));
+            this.Status = Option.Maybe(status);
         }
     }
 }

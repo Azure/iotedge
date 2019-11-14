@@ -21,6 +21,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             public const string Plural = "edgedeployments";
         }
 
+        public const string CreationString = "net.azure-devices.edge.creationstring";
+
+        public const string DefaultDeletePropagationPolicy = "Background";
+
+        public const PortMapServiceType DefaultPortMapServiceType = PortMapServiceType.ClusterIP;
+
         public const string K8sEdgeModuleLabel = "net.azure-devices.edge.module";
 
         public const string K8sEdgeOriginalModuleId = "net.azure-devices.edge.original-moduleid";
@@ -28,8 +34,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public const string K8sEdgeDeviceLabel = "net.azure-devices.edge.deviceid";
 
         public const string K8sEdgeHubNameLabel = "net.azure-devices.edge.hub";
-
-        public const string CreationString = "net.azure-devices.edge.creationstring";
 
         public const string K8sNameDivider = "-";
 
@@ -43,9 +47,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public const string K8sNamespaceKey = "K8sNamespace";
 
-        public const PortMapServiceType DefaultPortMapServiceType = PortMapServiceType.ClusterIP;
-
         public const string ProxyImageEnvKey = "ProxyImage";
+
+        public const string ProxyImagePullSecretNameEnvKey = "ProxyImagePullSecretName";
 
         public const string ProxyConfigPathEnvKey = "ProxyConfigPath";
 
@@ -64,5 +68,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public const string StorageClassNameKey = "StorageClassName";
 
         public const string PersistentVolumeClaimDefaultSizeInMbKey = "PersistentVolumeClaimDefaultSizeInMb";
+
+        public const string EdgeK8sObjectOwnerApiVersionKey = "EdgeK8sObjectOwnerApiVersion";
+
+        public const string EdgeK8sObjectOwnerKindKey = "EdgeK8sObjectOwnerKind";
+
+        public const string EdgeK8sObjectOwnerNameKey = "EdgeK8sObjectOwnerName";
+
+        public const string EdgeK8sObjectOwnerUidKey = "EdgeK8sObjectOwnerUid";
     }
 }

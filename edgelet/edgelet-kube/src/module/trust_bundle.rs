@@ -186,7 +186,7 @@ mod tests {
 
         let dispatch_table = routes!(
             GET format!("/api/v1/namespaces/{}/configmaps", settings.namespace()) => config_map_list(),
-            PUT format!("/api/v1/namespaces/{}/configmaps/{}", settings.namespace(), settings.proxy_trust_bundle_config_map_name()) => update_config_map(),
+            PUT format!("/api/v1/namespaces/{}/configmaps/{}", settings.namespace(), settings.proxy().trust_bundle_config_map_name()) => update_config_map(),
         );
 
         let handler = make_req_dispatcher(dispatch_table, Box::new(not_found_handler));
