@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service
             Option<List<V1ServicePort>> hostPorts = module.Config.CreateOptions.HostConfig
                 .FlatMap(config => Option.Maybe(config.PortBindings).Map(ports => ports.GetHostPorts()));
 
-            bool onlyExposedPorts = hostPorts.HasValue;
+            bool onlyExposedPorts = !hostPorts.HasValue;
 
             // override exposed ports with host ports
             var servicePorts = new Dictionary<int, V1ServicePort>();
