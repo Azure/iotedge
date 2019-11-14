@@ -1,10 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Service
 {
-    using System;
     using System.Collections.Generic;
-    using System.Security.Authentication.ExtendedProtection;
-    using System.Text;
+    using System.Linq;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
@@ -12,7 +10,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Serv
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Moq;
     using Xunit;
 
     using DockerEmptyStruct = global::Docker.DotNet.Models.EmptyStruct;
@@ -84,15 +81,67 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Serv
         }
 
         [Fact]
+        public void CreateServiceExposedPortsOnlyCreatesExposedPortService()
+        {
+            var module = CreateKubernetesModule(CreatePodParameters.Create(exposedPorts: ExposedPorts));
+            var mapper = new KubernetesServiceMapper(PortMapServiceType.LoadBalancer);
+            Option<V1Service> result = mapper.CreateService(CreateIdentity, module, DefaultLabels);
+            Assert.True(result.HasValue);
+            var service = result.OrDefault();
+            V1ServicePort port80 = service.Spec.Ports.Single(p => p.Port == 80);
+            Assert.Equal("exposedport-80-tcp", port80.Name);
+            Assert.Equal("TCP", port80.Protocol);
+            V1ServicePort port5000 = service.Spec.Ports.Single(p => p.Port == 5000);
+            Assert.Equal("exposedport-5000-udp", port5000.Name);
+            Assert.Equal("UDP", port5000.Protocol);
+        }
+
+        [Fact]
         public void CreateServiceHostPortsCreatesDefaultServiceType()
         {
             var module = CreateKubernetesModule(CreatePodParameters.Create(hostConfig: HostPorts));
             var mapper = new KubernetesServiceMapper(PortMapServiceType.LoadBalancer);
             Option<V1Service> result = mapper.CreateService(CreateIdentity, module, DefaultLabels);
-
             Assert.True(result.HasValue);
             var service = result.OrDefault();
             Assert.Equal(PortMapServiceType.LoadBalancer.ToString(), service.Spec.Type);
+        }
+
+        [Fact]
+        public void CreateServiceHostPortsCreatesHostportService()
+        {
+            var module = CreateKubernetesModule(CreatePodParameters.Create(hostConfig: HostPorts));
+            var mapper = new KubernetesServiceMapper(PortMapServiceType.LoadBalancer);
+            Option<V1Service> result = mapper.CreateService(CreateIdentity, module, DefaultLabels);
+            Assert.True(result.HasValue);
+            var service = result.OrDefault();
+            V1ServicePort port80 = service.Spec.Ports.Single(p => p.Port == 8080);
+            Assert.Equal("hostport-80-tcp", port80.Name);
+            Assert.Equal("TCP", port80.Protocol);
+            Assert.Equal(80, (int)port80.TargetPort);
+            V1ServicePort port5000 = service.Spec.Ports.Single(p => p.Port == 5050);
+            Assert.Equal("hostport-5000-udp", port5000.Name);
+            Assert.Equal("UDP", port5000.Protocol);
+            Assert.Equal(5000, (int)port5000.TargetPort);
+        }
+
+        [Fact]
+        public void CreateServiceExposedAndHostPortsCreatesHostportService()
+        {
+            var module = CreateKubernetesModule(CreatePodParameters.Create(exposedPorts: ExposedPorts, hostConfig: HostPorts));
+            var mapper = new KubernetesServiceMapper(PortMapServiceType.LoadBalancer);
+            Option<V1Service> result = mapper.CreateService(CreateIdentity, module, DefaultLabels);
+            Assert.True(result.HasValue);
+            var service = result.OrDefault();
+            Assert.Equal(PortMapServiceType.LoadBalancer.ToString(), service.Spec.Type);
+            V1ServicePort port80 = service.Spec.Ports.Single(p => p.Port == 8080);
+            Assert.Equal("hostport-80-tcp", port80.Name);
+            Assert.Equal("TCP", port80.Protocol);
+            Assert.Equal(80, (int)port80.TargetPort);
+            V1ServicePort port5000 = service.Spec.Ports.Single(p => p.Port == 5050);
+            Assert.Equal("hostport-5000-udp", port5000.Name);
+            Assert.Equal("UDP", port5000.Protocol);
+            Assert.Equal(5000, (int)port5000.TargetPort);
         }
 
         [Fact]
@@ -105,6 +154,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Serv
             Assert.True(result.HasValue);
             var service = result.OrDefault();
             Assert.Equal("module1", service.Metadata.Name);
+        }
+
+        [Fact]
+        public void ServiceAnnotationsAreLabels()
+        {
+            var dockerLabels = new Dictionary<string, string>
+            {
+                ["Label1"] = "Complicated Value that doesn't fit in k8s label",
+                ["Label2"] = "Value2"
+            };
+            var module = CreateKubernetesModule(CreatePodParameters.Create(exposedPorts: ExposedPorts, hostConfig: HostPorts, labels: dockerLabels));
+            var mapper = new KubernetesServiceMapper(PortMapServiceType.LoadBalancer);
+            Option<V1Service> result = mapper.CreateService(CreateIdentity, module, DefaultLabels);
+
+            Assert.True(result.HasValue);
+            var service = result.OrDefault();
+            Assert.Equal("Complicated Value that doesn't fit in k8s label", service.Metadata.Annotations["Label1"]);
+            Assert.Equal("Value2", service.Metadata.Annotations["Label2"]);
         }
     }
 }
