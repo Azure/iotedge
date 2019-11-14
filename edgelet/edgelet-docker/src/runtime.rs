@@ -1,9 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::collections::HashMap;
-use std::convert::From;
+use std::convert::{From, TryInto};
 use std::ops::Deref;
+use std::process;
 use std::time::Duration;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use base64;
 use failure::{Fail, ResultExt};
@@ -14,16 +16,17 @@ use hyper::{Body, Chunk as HyperChunk, Client, Request};
 use lazy_static::lazy_static;
 use log::{debug, info, Level};
 use serde_json;
-use sysinfo::{DiskExt, SystemExt};
+use sysinfo::*; //{DiskExt, SystemExt, Process};
 use url::Url;
 
 use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig};
 use edgelet_core::{
-    AuthId, Authenticator, GetTrustBundle, Ipam as CoreIpam, LogOptions, MakeModuleRuntime,
-    MobyNetwork, Module, ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, SystemResources, DiskInfo, UrlExt,
+    AuthId, Authenticator, DiskInfo, GetTrustBundle, Ipam as CoreIpam, LogOptions,
+    MakeModuleRuntime, MobyNetwork, Module, ModuleId, ModuleRegistry, ModuleRuntime,
+    ModuleRuntimeState, ModuleSpec, RegistryOperation, RuntimeOperation,
+    SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
 };
 use edgelet_http::{Pid, UrlConnector};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
@@ -596,8 +599,22 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         let mut system = sysinfo::System::new();
 
+        let uptime: u64 = uptime_lib::get()
+            .map(|u| u.num_seconds())
+            .unwrap_or_default()
+            .try_into()
+            .unwrap_or_default();
+
+        let current_time = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        let start_time = system.get_process_list()[&process::id().try_into().unwrap()].start_time();
+
         system.refresh_all();
         SystemResources::new(
+            uptime,
+            current_time - start_time,
             system.get_total_memory(),
             system.get_used_memory(),
             system

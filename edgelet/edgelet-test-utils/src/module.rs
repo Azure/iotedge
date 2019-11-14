@@ -393,6 +393,8 @@ where
 
     fn system_resources(&self) -> SystemResources {
         SystemResources::new(
+            595023,
+            200,
             5000,
             8000,
             vec![DiskInfo::new(
@@ -400,7 +402,7 @@ where
                 10000,
                 20000,
                 "test system".to_owned(),
-                "test type".to_owned()
+                "test type".to_owned(),
             )],
         )
     }

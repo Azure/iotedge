@@ -228,7 +228,7 @@ where
 
     fn system_resources(&self) -> SystemResources {
         // TODO: add support for system resources on k8s
-        SystemResources::new(0, 0, vec![])
+        SystemResources::new(0, 0, 0, 0, vec![])
     }
 
     fn list(&self) -> Self::ListFuture {

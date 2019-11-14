@@ -381,6 +381,9 @@ impl SystemInfo {
 
 #[derive(Debug, serde_derive::Serialize)]
 pub struct SystemResources {
+    host_uptime: u64,
+    process_uptime: u64,
+
     used_ram: u64,
     total_ram: u64,
 
@@ -388,8 +391,17 @@ pub struct SystemResources {
 }
 
 impl SystemResources {
-    pub fn new(used_ram: u64, total_ram: u64, disks: Vec<DiskInfo>) -> Self {
+    pub fn new(
+        host_uptime: u64,
+        process_uptime: u64,
+        used_ram: u64,
+        total_ram: u64,
+        disks: Vec<DiskInfo>,
+    ) -> Self {
         SystemResources {
+            host_uptime,
+            process_uptime,
+
             used_ram,
             total_ram,
             disks,
