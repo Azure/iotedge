@@ -76,5 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         public const string EdgeK8sObjectOwnerNameKey = "EdgeK8sObjectOwnerName";
 
         public const string EdgeK8sObjectOwnerUidKey = "EdgeK8sObjectOwnerUid";
+
+        public const string RunAsNonRootKey = "RunAsNonRoot";
     }
 }
