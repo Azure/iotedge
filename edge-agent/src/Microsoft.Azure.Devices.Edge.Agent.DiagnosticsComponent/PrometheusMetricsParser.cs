@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     using System.IO;
     using System.Linq;
     using System.Text.RegularExpressions;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
     public static class PrometheusMetricsParser
@@ -18,6 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
 
         public static IEnumerable<Metric> ParseMetrics(DateTime timeGeneratedUtc, string prometheusMessage)
         {
+            Preconditions.CheckArgument(timeGeneratedUtc.Kind == DateTimeKind.Utc, $"Metric {nameof(timeGeneratedUtc)} parameter only supports in UTC.");
             using (StringReader sr = new StringReader(prometheusMessage))
             {
                 string line;
@@ -31,52 +33,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
                     Match match = PrometheusSchemaRegex.Match(line.Trim());
                     if (match.Success)
                     {
-                        var metricName = string.Empty;
-                        var metricValue = string.Empty;
-                        var tagNames = new List<string>();
-                        var tagValues = new List<string>();
-
-                        var name = match.Groups["metricname"];
-                        if (name?.Length > 0)
+                        double metricValue;
+                        if (!double.TryParse(match.Groups["metricvalue"]?.Value, out metricValue))
                         {
-                            metricName = name.Value;
+                            continue;
                         }
 
-                        var valueGroup = match.Groups["metricvalue"];
-                        if (valueGroup?.Length > 0)
-                        {
-                            metricValue = valueGroup.Value;
-                        }
-
-                        var tagnames = match.Groups["tagname"];
-                        if (tagnames.Length > 0)
-                        {
-                            for (int i = 0; i < tagnames.Captures.Count; i++)
-                            {
-                                tagNames.Add(tagnames.Captures[i].Value);
-                            }
-                        }
-
-                        var tagvalues = match.Groups["tagvalue"];
-                        if (tagvalues.Length > 0)
-                        {
-                            for (int i = 0; i < tagvalues.Captures.Count; i++)
-                            {
-                                tagValues.Add(tagvalues.Captures[i].Value);
-                            }
-                        }
+                        string metricName = match.Groups["metricname"]?.Value ?? string.Empty;
+                        var tagNames = (match.Groups["tagname"].Captures as IEnumerable<Capture>).Select(c => c.Value);
+                        var tagValues = (match.Groups["tagvalue"].Captures as IEnumerable<Capture>).Select(c => c.Value);
 
                         var tags = tagNames.Zip(tagValues, (k, v) => new { k, v })
                             .ToDictionary(x => x.k, x => x.v);
 
-                        if (double.TryParse(metricValue, out double value))
-                        {
-                            yield return new Metric(
-                                timeGeneratedUtc,
-                                metricName,
-                                value,
-                                JsonConvert.SerializeObject(tags));
-                        }
+                        yield return new Metric(
+                            timeGeneratedUtc,
+                            metricName,
+                            metricValue,
+                            JsonConvert.SerializeObject(tags));
                     }
                 }
             }

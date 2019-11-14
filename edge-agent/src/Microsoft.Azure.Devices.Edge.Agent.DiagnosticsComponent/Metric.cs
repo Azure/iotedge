@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
 
         public Metric(DateTime timeGeneratedUtc, string name, double value, string tags)
         {
-            Preconditions.CheckArgument(timeGeneratedUtc.Kind == DateTimeKind.Utc);
+            Preconditions.CheckArgument(timeGeneratedUtc.Kind == DateTimeKind.Utc, $"Metric {nameof(timeGeneratedUtc)} parameter only supports in UTC.");
             this.TimeGeneratedUtc = timeGeneratedUtc;
             this.Name = Preconditions.CheckNotNull(name, nameof(name));
             this.Value = value;

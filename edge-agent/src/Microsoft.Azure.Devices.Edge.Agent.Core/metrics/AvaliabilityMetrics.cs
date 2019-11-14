@@ -6,21 +6,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
-    using System.Runtime.CompilerServices;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Extensions.Logging;
 
-    public interface IAvailabilityMetric
-    {
-        void ComputeAvailability(ModuleSet desired, ModuleSet current);
-        void IndicateCleanShutdown();
-    }
-
     public class AvailabilityMetrics : IAvailabilityMetric, IDisposable
     {
-
         readonly IMetricsGauge running;
         readonly IMetricsGauge expectedRunning;
         readonly ISystemTime time;
@@ -38,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
         {
             this.time = time ?? SystemTime.Instance;
             this.availabilities = new List<Availability>();
-            this.edgeAgent = new Lazy<Availability>(() => new Availability("edgeAgent", this.CalculateEdgeAgentDowntime(), this.time));
+            this.edgeAgent = new Lazy<Availability>(() => new Availability(Constants.EdgeAgentModuleName, this.CalculateEdgeAgentDowntime(), this.time));
 
             this.running = metricsProvider.CreateGauge(
                 "total_time_running_correctly_seconds",
@@ -55,24 +47,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
         public void ComputeAvailability(ModuleSet desired, ModuleSet current)
         {
+            IEnumerable<IRuntimeModule> modulesToCheck = current.Modules.Values
+                .Where(c => (c is IRuntimeModule) && c.Name != Constants.EdgeAgentModuleName)
+                .Select(c => c as IRuntimeModule);
+
             /* Get all modules that are not running but should be */
-            var down = new HashSet<string>(current.Modules.Values
+            var down = new HashSet<string>(modulesToCheck
                 .Where(c =>
-                    (c is IRuntimeModule) &&
-                    (c as IRuntimeModule).RuntimeStatus != ModuleStatus.Running &&
+                    c.RuntimeStatus != ModuleStatus.Running &&
                     desired.Modules.TryGetValue(c.Name, out var d) &&
                     d.DesiredStatus == ModuleStatus.Running)
                 .Select(c => c.Name));
 
             /* Get all correctly running modules */
-            var up = new HashSet<string>(current.Modules.Values
-                .Where(c => (c is IRuntimeModule) && (c as IRuntimeModule).RuntimeStatus == ModuleStatus.Running)
+            var up = new HashSet<string>(modulesToCheck
+                .Where(c => c.RuntimeStatus == ModuleStatus.Running)
                 .Select(c => c.Name));
 
             /* handle edgeAgent specially */
             this.edgeAgent.Value.AddPoint(true);
-            down.Remove("edgeAgent");
-            up.Remove("edgeAgent");
             this.running.Set(this.edgeAgent.Value.ExpectedTime.TotalSeconds, new[] { this.edgeAgent.Value.Name });
             this.expectedRunning.Set(this.edgeAgent.Value.RunningTime.TotalSeconds, new[] { this.edgeAgent.Value.Name });
 
