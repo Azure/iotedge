@@ -7,9 +7,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     public class StoreLimits : IEquatable<StoreLimits>
     {
         [JsonConstructor]
-        public StoreLimits(long maxSize)
+        public StoreLimits(long maxSizeBytes)
         {
-            this.MaxSizeBytes = maxSize;
+            this.MaxSizeBytes = maxSizeBytes;
         }
 
         [JsonProperty(PropertyName = "maxSizeBytes")]
