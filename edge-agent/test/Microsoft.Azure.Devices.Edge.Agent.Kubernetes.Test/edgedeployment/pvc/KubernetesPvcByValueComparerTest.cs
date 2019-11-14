@@ -173,5 +173,45 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment.Pvc
             };
             Assert.True(comparer.Equals(x, y));
         }
+
+        [Fact]
+        public void IgnoreOtherMetadataTest()
+        {
+            var pvcWithOwnerRefMetadata = new V1PersistentVolumeClaim
+            {
+                Metadata = new V1ObjectMeta(
+                    name: "pvc1",
+                    labels: new Dictionary<string, string>
+                    {
+                        [KubernetesConstants.K8sEdgeDeviceLabel] = KubeUtils.SanitizeLabelValue("device1"),
+                        [KubernetesConstants.K8sEdgeHubNameLabel] = KubeUtils.SanitizeLabelValue("hostname")
+                    },
+                    ownerReferences: new List<V1OwnerReference>
+                    {
+                        new V1OwnerReference("v1", name: "iotedged", kind: "Deployment", uid: "123")
+                    }),
+                Spec = new V1PersistentVolumeClaimSpec
+                {
+                    VolumeName = "steve",
+                    Resources = new V1ResourceRequirements { Requests = new Dictionary<string, ResourceQuantity> { ["storage"] = new ResourceQuantity("10M") } }
+                }
+            };
+            var pvcWithoutOwnerRefMetadata = new V1PersistentVolumeClaim
+            {
+                Metadata = new V1ObjectMeta(
+                    name: "pvc1",
+                    labels: new Dictionary<string, string>
+                    {
+                        [KubernetesConstants.K8sEdgeDeviceLabel] = KubeUtils.SanitizeLabelValue("device1"),
+                        [KubernetesConstants.K8sEdgeHubNameLabel] = KubeUtils.SanitizeLabelValue("hostname")
+                    }),
+                Spec = new V1PersistentVolumeClaimSpec
+                {
+                    VolumeName = "steve",
+                    Resources = new V1ResourceRequirements { Requests = new Dictionary<string, ResourceQuantity> { ["storage"] = new ResourceQuantity("10M") } }
+                }
+            };
+            Assert.False(comparer.Equals(pvcWithOwnerRefMetadata, pvcWithoutOwnerRefMetadata));
+        }
     }
 }

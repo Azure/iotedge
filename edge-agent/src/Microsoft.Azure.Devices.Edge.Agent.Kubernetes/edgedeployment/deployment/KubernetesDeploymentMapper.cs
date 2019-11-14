@@ -92,7 +92,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             var selector = new V1LabelSelector(matchLabels: labels);
             var deploymentSpec = new V1DeploymentSpec(replicas: 1, selector: selector, template: podSpec);
 
-            var deploymentMeta = new V1ObjectMeta(name: name, labels: labels, annotations: new Dictionary<string, string>());
+            var deploymentMeta = new V1ObjectMeta(
+                name: name,
+                labels: labels,
+                annotations: new Dictionary<string, string>(),
+                ownerReferences: module.Owner.ToOwnerReferences());
             return new V1Deployment(metadata: deploymentMeta, spec: deploymentSpec);
         }
 

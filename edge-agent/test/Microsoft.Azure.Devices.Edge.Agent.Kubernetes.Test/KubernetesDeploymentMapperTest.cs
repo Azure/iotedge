@@ -8,12 +8,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deployment;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Newtonsoft.Json.Linq;
     using Xunit;
+    using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
     [Unit]
     public class KubernetesDeploymentMapperTest
@@ -38,6 +40,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             }
         };
 
+        static readonly ResourceName ResourceName = new ResourceName("hostname", "deviceId");
+
+        static readonly KubernetesModuleOwner EdgeletModuleOwner = new KubernetesModuleOwner("v1", "Deployment", "iotedged", "123");
+
         [Fact]
         public void EmptyIsNotAllowedAsPodAnnotation()
         {
@@ -49,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             };
             var config = new KubernetesConfig("image", CreatePodParameters.Create(labels: labels), Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
-            var module = new KubernetesModule(docker, config);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
             var moduleLabels = new Dictionary<string, string>();
             var mapper = CreateMapper();
 
@@ -57,18 +63,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         }
 
         [Fact]
-        public void SimplePodCreationHappyPath()
+        public void SimpleDeploymentCreationHappyPath()
         {
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
             var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
-            var module = new KubernetesModule(docker, config);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
             var labels = new Dictionary<string, string>();
             var mapper = CreateMapper();
 
-            var pod = mapper.CreateDeployment(identity, module, labels);
+            var deployment = mapper.CreateDeployment(identity, module, labels);
 
-            Assert.True(pod != null);
+            Assert.NotNull(deployment);
+            Assert.Equal(1, deployment.Metadata.OwnerReferences.Count);
+            Assert.Equal(V1Deployment.KubeKind, deployment.Metadata.OwnerReferences[0].Kind);
+            Assert.Equal(EdgeletModuleOwner.Name, deployment.Metadata.OwnerReferences[0].Name);
         }
 
         [Fact]
@@ -89,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             };
             var config = new KubernetesConfig("image", CreatePodParameters.Create(labels: labels, hostConfig: hostConfig), Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
-            var module = new KubernetesModule(docker, config);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
             var moduleLabels = new Dictionary<string, string>();
             var mapper = CreateMapper();
 
@@ -139,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var hostConfig = VolumeMountHostConfig;
             var config = new KubernetesConfig("image", CreatePodParameters.Create(labels: labels, hostConfig: hostConfig), Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
-            var module = new KubernetesModule(docker, config);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
             var mapper = CreateMapper(storageClassName: null);
             var deployment = mapper.CreateDeployment(identity, module, labels);
             var pod = deployment.Spec.Template;
@@ -160,7 +169,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var hostConfig = VolumeMountHostConfig;
             var config = new KubernetesConfig("image", CreatePodParameters.Create(labels: labels, hostConfig: hostConfig), Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
-            var module = new KubernetesModule(docker, config);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
             var mapper = CreateMapper("elephant", null);
 
             Assert.Throws<InvalidModuleException>(() => mapper.CreateDeployment(identity, module, labels));
@@ -174,7 +183,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var hostConfig = VolumeMountHostConfig;
             var config = new KubernetesConfig("image", CreatePodParameters.Create(labels: labels, hostConfig: hostConfig), Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
-            var module = new KubernetesModule(docker, config);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
             var mapper = CreateMapper("a-volume", null);
 
             var deployment = mapper.CreateDeployment(identity, module, labels);
@@ -200,8 +209,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var hostConfig = VolumeMountHostConfig;
             var config = new KubernetesConfig("image", CreatePodParameters.Create(labels: labels, hostConfig: hostConfig), Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
-            var module = new KubernetesModule(docker, config);
-            var mapper = CreateMapper(storageClassName: "azureFile");
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
+            var mapper = CreateMapper();
 
             var deployment = mapper.CreateDeployment(identity, module, labels);
             var pod = deployment.Spec.Template;
@@ -224,7 +233,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var hostConfig = VolumeMountHostConfig;
             var config = new KubernetesConfig("image", CreatePodParameters.Create(labels: labels, hostConfig: hostConfig), Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
-            var module = new KubernetesModule(docker, config);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
             var mapper = CreateMapper();
 
             var deployment = mapper.CreateDeployment(identity, module, labels);
@@ -279,7 +288,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
             var config = new KubernetesConfig("image", CreatePodParameters.Create(volumes: volumes, hostConfig: hostConfig), Option.None<AuthConfig>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
-            var module = new KubernetesModule(docker, config);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
             var mapper = CreateMapper();
 
             var deployment = mapper.CreateDeployment(identity, module, labels);
@@ -301,7 +310,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 ["disktype"] = "ssd"
             };
             var config = new KubernetesConfig("image", CreatePodParameters.Create(nodeSelector: nodeSelector), Option.None<AuthConfig>());
-            var module = new KubernetesModule(docker, config);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
             var labels = new Dictionary<string, string>();
             var mapper = CreateMapper();
 
@@ -316,7 +325,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
             var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.None<AuthConfig>());
-            var module = new KubernetesModule(docker, config);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
             var labels = new Dictionary<string, string>();
             var mapper = CreateMapper();
 
@@ -344,7 +353,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                     ["hardware-vendor.example/foo"] = 1
                 });
             var config = new KubernetesConfig("image", CreatePodParameters.Create(resources: resources), Option.None<AuthConfig>());
-            var module = new KubernetesModule(docker, config);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
             var labels = new Dictionary<string, string>();
             var mapper = CreateMapper();
 
@@ -361,7 +370,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
             var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.None<AuthConfig>());
-            var module = new KubernetesModule(docker, config);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
             var labels = new Dictionary<string, string>();
             var mapper = CreateMapper();
 
@@ -383,7 +392,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                     new[] { new V1VolumeMount(name: "additional-volume", mountPath: "/etc") })
             };
             var config = new KubernetesConfig("image", CreatePodParameters.Create(volumes: volumes), Option.None<AuthConfig>());
-            var module = new KubernetesModule(docker, config);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
             var labels = new Dictionary<string, string>();
             var mapper = CreateMapper();
 
@@ -420,7 +429,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             };
             var hostConfig = new HostConfig { Binds = new List<string> { "/home/blah:/home/blah2:ro" } };
             var config = new KubernetesConfig("image", CreatePodParameters.Create(volumes: volumes, hostConfig: hostConfig), Option.None<AuthConfig>());
-            var module = new KubernetesModule(docker, config);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
             var labels = new Dictionary<string, string>();
             var mapper = CreateMapper();
 
@@ -449,7 +458,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
             var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVarsDict);
             var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.None<AuthConfig>());
-            var module = new KubernetesModule(docker, config);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
             var labels = new Dictionary<string, string>();
             var mapper = CreateMapper();
 
@@ -468,7 +477,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         {
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
             var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.Some(new AuthConfig("user-registry1")));
-            var module = new KubernetesModule("module1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, DefaultConfigurationInfo, EnvVarsDict, config, ImagePullPolicy.OnCreate);
+            var module = new KubernetesModule("module1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, DefaultConfigurationInfo, EnvVarsDict, config, ImagePullPolicy.OnCreate, EdgeletModuleOwner);
             var labels = new Dictionary<string, string>();
             var mapper = CreateMapper(proxyImagePullSecretName: "user-registry2");
 
@@ -484,7 +493,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         {
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
             var config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.Some(new AuthConfig("user-registry1")));
-            var module = new KubernetesModule("module1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, DefaultConfigurationInfo, EnvVarsDict, config, ImagePullPolicy.OnCreate);
+            var module = new KubernetesModule("module1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, DefaultConfigurationInfo, EnvVarsDict, config, ImagePullPolicy.OnCreate, EdgeletModuleOwner);
             var labels = new Dictionary<string, string>();
             var mapper = CreateMapper(proxyImagePullSecretName: "user-registry1");
 
