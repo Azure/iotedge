@@ -6,18 +6,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
     public class SystemResources
     {
-        public SystemResources(long usedRam, long totalRam, Disk[] disks)
+        public SystemResources(long hostUptime, long iotEdgedUptime, long usedRam, long totalRam, Disk[] disks, string dockerStats)
         {
+            this.HostUptime = Preconditions.CheckNotNull(hostUptime, nameof(hostUptime));
+            this.IotEdgedUptime = Preconditions.CheckNotNull(iotEdgedUptime, nameof(iotEdgedUptime));
             this.UsedRam = Preconditions.CheckNotNull(usedRam, nameof(usedRam));
             this.TotalRam = Preconditions.CheckNotNull(totalRam, nameof(totalRam));
             this.Disks = Preconditions.CheckNotNull(disks, nameof(disks));
+            this.DockerStats = Preconditions.CheckNotNull(dockerStats, nameof(dockerStats));
         }
+
+        public long HostUptime { get; }
+
+        public long IotEdgedUptime { get; }
 
         public long UsedRam { get; }
 
         public long TotalRam { get; }
 
         public Disk[] Disks { get; }
+
+        public string DockerStats { get; }
     }
 
     public class Disk

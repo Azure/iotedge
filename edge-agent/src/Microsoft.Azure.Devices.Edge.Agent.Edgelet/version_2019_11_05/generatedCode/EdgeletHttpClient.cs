@@ -8,7 +8,9 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_11_05.GeneratedCode
 {
-    #pragma warning disable // Disable all warnings
+    using Newtonsoft.Json;
+    using System;
+#pragma warning disable // Disable all warnings
 
     using System = global::System;
 
@@ -1683,22 +1685,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_11_05.Generate
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "10.0.27.0 (Newtonsoft.Json v11.0.0.0)")]
     public partial class SystemResources
     {
-        [Newtonsoft.Json.JsonProperty("host_uptime", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-        public int? Host_uptime { get; set; }
+        [Newtonsoft.Json.JsonProperty("host_uptime", Required = Newtonsoft.Json.Required.Always)]
+        public long Host_uptime { get; set; }
 
-        [Newtonsoft.Json.JsonProperty("process_uptime", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
-        public int? Process_uptime { get; set; }
+        [Newtonsoft.Json.JsonProperty("process_uptime", Required = Newtonsoft.Json.Required.Always)]
+        public long Process_uptime { get; set; }
 
         [Newtonsoft.Json.JsonProperty("used_ram", Required = Newtonsoft.Json.Required.Always)]
-        public int Used_ram { get; set; }
+        public long Used_ram { get; set; }
 
         [Newtonsoft.Json.JsonProperty("total_ram", Required = Newtonsoft.Json.Required.Always)]
-        public int Total_ram { get; set; }
+        public long Total_ram { get; set; }
 
-        [Newtonsoft.Json.JsonProperty("disks", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        [Newtonsoft.Json.JsonProperty("disks", Required = Newtonsoft.Json.Required.Always)]
         public System.Collections.Generic.ICollection<Disk> Disks { get; set; }
 
-        [Newtonsoft.Json.JsonProperty("docker_stats", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        [Newtonsoft.Json.JsonProperty("docker_stats", Required = Newtonsoft.Json.Required.Always)]
         public string Docker_stats { get; set; }
 
 
@@ -1711,10 +1713,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_11_05.Generate
         public string Name { get; set; }
 
         [Newtonsoft.Json.JsonProperty("available_space", Required = Newtonsoft.Json.Required.Always)]
-        public int Available_space { get; set; }
+        public long Available_space { get; set; }
 
         [Newtonsoft.Json.JsonProperty("total_space", Required = Newtonsoft.Json.Required.Always)]
-        public int Total_space { get; set; }
+        public long Total_space { get; set; }
 
         [Newtonsoft.Json.JsonProperty("file_system", Required = Newtonsoft.Json.Required.Always)]
         public string File_system { get; set; }

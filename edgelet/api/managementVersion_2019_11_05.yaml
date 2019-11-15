@@ -632,9 +632,12 @@ definitions:
       docker_stats:
         type: string
     required:
-      - disk
+      - host_uptime
+      - process_uptime
       - used_ram
       - total_ram
+      - disks
+      - docker_stats
   Disk:
     type: object
     properties:

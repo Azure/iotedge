@@ -17,6 +17,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
         PeriodicTask updateResources;
         string apiVersion;
 
+        IMetricsGauge hostUptime;
+        IMetricsGauge iotedgedUptime;
         IMetricsHistogram usedSpace;
         IMetricsGauge totalSpace;
         IMetricsHistogram usedMemory;
@@ -27,6 +29,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             Preconditions.CheckNotNull(metricsProvider, nameof(metricsProvider));
             this.getSystemResources = Preconditions.CheckNotNull(getSystemResources, nameof(getSystemResources));
             this.apiVersion = Preconditions.CheckNotNull(apiVersion, nameof(apiVersion));
+
+            this.hostUptime = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
+                "host_uptime",
+                "How long the host has been on",
+                new List<string> { }));
+
+            this.iotedgedUptime = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
+                "iotedged_uptime",
+                "How long the host has been on",
+                new List<string> { }));
 
             this.usedSpace = Preconditions.CheckNotNull(metricsProvider.CreateHistogram(
                 "available_disk_space_bytes",
@@ -69,10 +81,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
         async Task Update()
         {
             SystemResources systemResources = await this.getSystemResources();
-            Console.WriteLine(systemResources);
-            Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(systemResources));
-            Console.WriteLine(this.usedMemory);
+            Console.WriteLine($"\n\n\n{systemResources.DockerStats}\n\n\n");
 
+            this.hostUptime.Set(systemResources.HostUptime, new string[] { });
+            this.iotedgedUptime.Set(systemResources.IotEdgedUptime, new string[] { });
             this.usedMemory.Update(systemResources.UsedRam, new string[] { });
             this.totalMemory.Set(systemResources.TotalRam, new string[] { });
 
