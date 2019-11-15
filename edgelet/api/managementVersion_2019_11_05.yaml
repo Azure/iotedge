@@ -617,14 +617,20 @@ definitions:
   SystemResources:
     type: object
     properties:
+      host_uptime:
+        type: integer
+      process_uptime:
+        type: integer
+      used_ram:
+        type: integer
+      total_ram:
+        type: integer
       disks:
         type: array
         items:
           $ref: '#/definitions/Disk'
-      used_ram:
-        type: number
-      total_ram:
-        type: number
+      docker_stats:
+        type: string
     required:
       - disk
       - used_ram
@@ -635,9 +641,9 @@ definitions:
       name:
         type: string
       available_space:
-        type: number
+        type: integer
       total_space:
-        type: number
+        type: integer
       file_system:
         type: string
       file_type:
