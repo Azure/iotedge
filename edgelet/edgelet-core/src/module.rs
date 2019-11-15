@@ -388,6 +388,7 @@ pub struct SystemResources {
     total_ram: u64,
 
     disks: Vec<DiskInfo>,
+    docker_stats: String,
 }
 
 impl SystemResources {
@@ -397,14 +398,15 @@ impl SystemResources {
         used_ram: u64,
         total_ram: u64,
         disks: Vec<DiskInfo>,
+        docker_stats: String,
     ) -> Self {
         SystemResources {
             host_uptime,
             process_uptime,
-
             used_ram,
             total_ram,
             disks,
+            docker_stats,
         }
     }
 }
@@ -490,14 +492,17 @@ pub trait ModuleRuntime: Sized {
     type CreateFuture: Future<Item = (), Error = Self::Error> + Send;
     type GetFuture: Future<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error> + Send;
     type ListFuture: Future<Item = Vec<Self::Module>, Error = Self::Error> + Send;
-    type ListWithDetailsStream: Stream<Item = (Self::Module, ModuleRuntimeState), Error = Self::Error>
-        + Send;
+    type ListWithDetailsStream: Stream<
+            Item = (Self::Module, ModuleRuntimeState),
+            Error = Self::Error,
+        > + Send;
     type LogsFuture: Future<Item = Self::Logs, Error = Self::Error> + Send;
     type RemoveFuture: Future<Item = (), Error = Self::Error> + Send;
     type RestartFuture: Future<Item = (), Error = Self::Error> + Send;
     type StartFuture: Future<Item = (), Error = Self::Error> + Send;
     type StopFuture: Future<Item = (), Error = Self::Error> + Send;
     type SystemInfoFuture: Future<Item = SystemInfo, Error = Self::Error> + Send;
+    type SystemResourcesFuture: Future<Item = SystemResources, Error = Self::Error> + Send;
     type RemoveAllFuture: Future<Item = (), Error = Self::Error> + Send;
 
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture;
@@ -507,7 +512,7 @@ pub trait ModuleRuntime: Sized {
     fn restart(&self, id: &str) -> Self::RestartFuture;
     fn remove(&self, id: &str) -> Self::RemoveFuture;
     fn system_info(&self) -> Self::SystemInfoFuture;
-    fn system_resources(&self) -> SystemResources;
+    fn system_resources(&self) -> Self::SystemResourcesFuture;
     fn list(&self) -> Self::ListFuture;
     fn list_with_details(&self) -> Self::ListWithDetailsStream;
     fn logs(&self, id: &str, options: &LogOptions) -> Self::LogsFuture;
@@ -564,6 +569,7 @@ pub enum RuntimeOperation {
     StartModule(String),
     StopModule(String),
     SystemInfo,
+    SystemResources,
     TopModule(String),
 }
 
@@ -582,6 +588,7 @@ impl fmt::Display for RuntimeOperation {
             RuntimeOperation::StartModule(name) => write!(f, "Could not start module {}", name),
             RuntimeOperation::StopModule(name) => write!(f, "Could not stop module {}", name),
             RuntimeOperation::SystemInfo => write!(f, "Could not query system info"),
+            RuntimeOperation::SystemResources => write!(f, "Could not query system resources"),
             RuntimeOperation::TopModule(name) => write!(f, "Could not top module {}", name),
         }
     }

@@ -309,6 +309,8 @@ impl ModuleRuntime for DockerModuleRuntime {
     type StartFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type StopFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type SystemInfoFuture = Box<dyn Future<Item = CoreSystemInfo, Error = Self::Error> + Send>;
+    type SystemResourcesFuture =
+        Box<dyn Future<Item = SystemResources, Error = Self::Error> + Send>;
     type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
 
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
@@ -594,10 +596,36 @@ impl ModuleRuntime for DockerModuleRuntime {
         )
     }
 
-    fn system_resources(&self) -> SystemResources {
+    fn system_resources(&self) -> Self::SystemResourcesFuture {
         info!("Querying system resources...");
 
+        let client = self.client.clone();
+        let docker_stats = self
+            .list()
+            .and_then(|modules: Vec<Self::Module>| {
+                future::join_all(modules.into_iter().map(move |module| {
+                    client
+                        .container_api()
+                        .container_stats(module.name(), false)
+                        .map_err(|err| {
+                            Error::from_docker_error(
+                                err,
+                                ErrorKind::RuntimeOperation(RuntimeOperation::SystemResources),
+                            )
+                        })
+                }))
+            })
+            .map(|stats| serde_json::Value::Array(stats))
+            .and_then(|stats| {
+                serde_json::to_string(&stats).map_err(|_| {
+                    Error::from(ErrorKind::RuntimeOperation(
+                        RuntimeOperation::SystemResources,
+                    ))
+                })
+            });
+
         let mut system = sysinfo::System::new();
+        system.refresh_all();
 
         let uptime: u64 = uptime_lib::get()
             .map(|u| u.num_seconds())
@@ -611,26 +639,34 @@ impl ModuleRuntime for DockerModuleRuntime {
             .as_secs();
         let start_time = system.get_process_list()[&process::id().try_into().unwrap()].start_time();
 
-        system.refresh_all();
-        SystemResources::new(
-            uptime,
-            current_time - start_time,
-            system.get_total_memory(),
-            system.get_used_memory(),
-            system
-                .get_disks()
-                .iter()
-                .map(|disk| {
-                    DiskInfo::new(
-                        disk.get_name().to_string_lossy().into_owned(),
-                        disk.get_available_space(),
-                        disk.get_total_space(),
-                        String::from_utf8_lossy(disk.get_file_system()).into_owned(),
-                        format!("{:?}", disk.get_type()),
-                    )
-                })
-                .collect(),
-        )
+        let disks = system
+            .get_disks()
+            .iter()
+            .map(|disk| {
+                DiskInfo::new(
+                    disk.get_name().to_string_lossy().into_owned(),
+                    disk.get_available_space(),
+                    disk.get_total_space(),
+                    String::from_utf8_lossy(disk.get_file_system()).into_owned(),
+                    format!("{:?}", disk.get_type()),
+                )
+            })
+            .collect();
+
+        let result = docker_stats.map(move |stats: String| {
+            SystemResources::new(
+                uptime,
+                current_time - start_time,
+                system.get_total_memory(),
+                system.get_used_memory(),
+                disks,
+                stats,
+            )
+        });
+
+        // let test_type: Box<dyn Future<Item = String, Error = Error>> = Box::new(docker_stats);
+
+        Box::new(result)
     }
 
     fn list(&self) -> Self::ListFuture {

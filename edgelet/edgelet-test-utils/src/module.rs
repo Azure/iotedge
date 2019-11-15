@@ -337,6 +337,7 @@ where
     type StartFuture = FutureResult<(), Self::Error>;
     type StopFuture = FutureResult<(), Self::Error>;
     type SystemInfoFuture = FutureResult<SystemInfo, Self::Error>;
+    type SystemResourcesFuture = FutureResult<SystemResources, Self::Error>;
     type RemoveAllFuture = FutureResult<(), Self::Error>;
 
     fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
@@ -391,20 +392,24 @@ where
         }
     }
 
-    fn system_resources(&self) -> SystemResources {
-        SystemResources::new(
-            595023,
-            200,
-            5000,
-            8000,
-            vec![DiskInfo::new(
-                "test disk".to_owned(),
-                10000,
-                20000,
-                "test system".to_owned(),
-                "test type".to_owned(),
-            )],
-        )
+    fn system_resources(&self) -> Self::SystemResourcesFuture {
+        match self.module.as_ref().unwrap() {
+            Ok(_) => future::ok(SystemResources::new(
+                595023,
+                200,
+                5000,
+                8000,
+                vec![DiskInfo::new(
+                    "test disk".to_owned(),
+                    10000,
+                    20000,
+                    "test system".to_owned(),
+                    "test type".to_owned(),
+                )],
+                "fake docker stats".to_owned(),
+            )),
+            Err(ref e) => future::err(e.clone()),
+        }
     }
 
     fn list(&self) -> Self::ListFuture {

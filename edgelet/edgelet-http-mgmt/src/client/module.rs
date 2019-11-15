@@ -164,7 +164,9 @@ impl ModuleRuntime for ModuleClient {
     type StartFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type StopFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type SystemInfoFuture = Box<dyn Future<Item = CoreSystemInfo, Error = Self::Error> + Send>;
+    type SystemResourcesFuture = Box<dyn Future<Item = SystemResources, Error = Self::Error> + Send>;
     type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
+
 
     fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
         unimplemented!()
@@ -251,7 +253,7 @@ impl ModuleRuntime for ModuleClient {
         unimplemented!()
     }
 
-    fn system_resources(&self) -> SystemResources {
+    fn system_resources(&self) -> Self::SystemResourcesFuture {
         unimplemented!()
     }
 

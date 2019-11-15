@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use failure::ResultExt;
-use futures::future::IntoFuture;
 use futures::Future;
 use hyper::header::{CONTENT_LENGTH, CONTENT_TYPE};
 use hyper::{Body, Request, Response, StatusCode};
@@ -38,26 +37,26 @@ where
     ) -> Box<dyn Future<Item = Response<Body>, Error = HttpError> + Send> {
         debug!("Get System Resources");
 
-        let result = get_result(&self.runtime).or_else(|e| Ok(e.into_response()));
-        Box::new(result.into_future())
+        let response = self
+            .runtime
+            .system_resources()
+            .then(|system_resources| -> Result<_, Error> {
+                let system_resources = system_resources
+                    .context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))?;
+
+                let body = serde_json::to_string(&system_resources)
+                    .context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))?;
+
+                let response = Response::builder()
+                    .status(StatusCode::OK)
+                    .header(CONTENT_TYPE, "application/json")
+                    .header(CONTENT_LENGTH, body.len().to_string().as_str())
+                    .body(body.into())
+                    .context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))?;
+                Ok(response)
+            })
+            .or_else(|e| Ok(e.into_response()));
+
+        Box::new(response)
     }
-}
-
-fn get_result<M>(runtime: &M) -> Result<Response<Body>, Error>
-where
-    M: 'static + ModuleRuntime + Send,
-{
-    let body = runtime.system_resources();
-
-    let b: String = serde_json::to_string(&body)
-        .context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))?;
-
-    let response = Response::builder()
-        .status(StatusCode::OK)
-        .header(CONTENT_TYPE, "application/json")
-        .header(CONTENT_LENGTH, b.len().to_string().as_str())
-        .body(b.into())
-        .context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo))?;
-
-    Ok(response)
 }
