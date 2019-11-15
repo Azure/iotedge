@@ -9,8 +9,7 @@ namespace Analyzer.Controllers
     [ApiController]
     public class ReportController : Controller
     {
-        // GET api/report
-        [HttpGet]
+        // GET api/report/all
         [HttpGet("/all")]
         public ActionResult<string> GetReport()
         {
@@ -24,6 +23,7 @@ namespace Analyzer.Controllers
         }
 
         // GET api/report/messages (exposed for backwards compatibility for snitcher)
+        [HttpGet]
         public ActionResult<string> GetMessages()
         {
             DeviceAnalysis deviceAnalysis = Reporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
