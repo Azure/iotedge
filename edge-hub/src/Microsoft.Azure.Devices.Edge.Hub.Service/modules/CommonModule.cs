@@ -150,6 +150,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     .SingleInstance();
             }
 
+            // IStorageSpaceChecker
+            builder.Register(
+                c =>
+                {
+                    IStorageSpaceChecker spaceChecker = !this.usePersistentStorage
+                       ? new MemorySpaceChecker(() => 0L) as IStorageSpaceChecker
+                       : new NullStorageSpaceChecker();
+                    return spaceChecker;
+                })
+                .As<IStorageSpaceChecker>()
+                .SingleInstance();
+
             // IDbStoreProvider
             builder.Register(
                     async c =>
@@ -170,7 +182,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                                 logger.LogInformation($"Created persistent store at {this.storagePath}");
                                 return dbStoreProvider;
                             }
-                            catch (Exception ex) when (!ExceptionEx.IsFatal(ex))
+                            catch (Exception ex) when (!ex.IsFatal())
                             {
                                 logger.LogError(ex, "Error creating RocksDB store. Falling back to in-memory store.");
                                 IDbStoreProvider dbStoreProvider = await this.BuildInMemoryDbStoreProvider(c);
@@ -375,7 +387,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 
         async Task<IDbStoreProvider> BuildInMemoryDbStoreProvider(IComponentContext container)
         {
-            IDbStoreProvider dbStoreProvider = DbStoreProviderFactory.GetInMemoryDbStore();
+            var memorySpaceChecker = container.Resolve<IStorageSpaceChecker>();
+            IDbStoreProvider dbStoreProvider = DbStoreProviderFactory.GetInMemoryDbStore(Option.Some(memorySpaceChecker));
             if (this.useBackupAndRestore)
             {
                 var backupRestore = container.Resolve<IDataBackupRestore>();

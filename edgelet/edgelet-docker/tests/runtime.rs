@@ -2,6 +2,7 @@
 
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
+#![allow(clippy::too_many_lines)]
 
 use std::collections::HashMap;
 use std::str;

@@ -103,10 +103,7 @@ jobs:
 
           echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
           echo "##vso[task.setvariable variable=PACKAGE_OS;]$(os)"
-          echo "##vso[task.setvariable variable=PACKAGE_DOCKER_IMAGE;]$(dockerImage)"
         displayName: Set Version
-      - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
-        displayName: 'Docker Login'
       - script: edgelet/build/linux/package.sh
         displayName: Create libiothsm and iotedged packages
       - task: CopyFiles@2

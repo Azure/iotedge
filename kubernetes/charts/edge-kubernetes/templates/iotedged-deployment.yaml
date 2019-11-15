@@ -63,6 +63,9 @@ spec:
       imagePullSecrets:
         - name: regcreds
       {{ end }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
       volumes:
       - name: config
         secret:

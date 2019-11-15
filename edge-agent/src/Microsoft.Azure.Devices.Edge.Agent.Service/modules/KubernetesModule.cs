@@ -36,6 +36,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly ResourceName resourceName;
         readonly string edgeDeviceHostName;
         readonly string proxyImage;
+        readonly Option<string> proxyImagePullSecretName;
         readonly string proxyConfigPath;
         readonly string proxyConfigVolumeName;
         readonly string proxyConfigMapName;
@@ -58,13 +59,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan idleTimeout;
         readonly KubernetesExperimentalFeatures experimentalFeatures;
+        readonly KubernetesModuleOwner moduleOwner;
+        readonly bool runAsNonRoot;
 
         public KubernetesModule(
             string iotHubHostname,
             string deviceId,
-            string networkId,
             string edgeDeviceHostName,
             string proxyImage,
+            Option<string> proxyImagePullSecretName,
             string proxyConfigPath,
             string proxyConfigVolumeName,
             string proxyConfigMapName,
@@ -86,11 +89,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             Option<IWebProxy> proxy,
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout,
-            KubernetesExperimentalFeatures experimentalFeatures)
+            KubernetesExperimentalFeatures experimentalFeatures,
+            KubernetesModuleOwner moduleOwner,
+            bool runAsNonRoot)
         {
             this.resourceName = new ResourceName(iotHubHostname, deviceId);
             this.edgeDeviceHostName = Preconditions.CheckNonWhiteSpace(edgeDeviceHostName, nameof(edgeDeviceHostName));
             this.proxyImage = Preconditions.CheckNonWhiteSpace(proxyImage, nameof(proxyImage));
+            this.proxyImagePullSecretName = proxyImagePullSecretName;
             this.proxyConfigPath = Preconditions.CheckNonWhiteSpace(proxyConfigPath, nameof(proxyConfigPath));
             this.proxyConfigVolumeName = Preconditions.CheckNonWhiteSpace(proxyConfigVolumeName, nameof(proxyConfigVolumeName));
             this.proxyConfigMapName = Preconditions.CheckNonWhiteSpace(proxyConfigMapName, nameof(proxyConfigMapName));
@@ -113,6 +119,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.idleTimeout = idleTimeout;
             this.experimentalFeatures = experimentalFeatures;
+            this.moduleOwner = moduleOwner;
+            this.runAsNonRoot = runAsNonRoot;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -197,7 +205,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     {
                         var configProvider = c.Resolve<ICombinedConfigProvider<CombinedKubernetesConfig>>();
                         ICommandFactory commandFactory = await c.Resolve<Task<ICommandFactory>>();
-                        IPlanner planner = new KubernetesPlanner(this.deviceNamespace, this.resourceName, c.Resolve<IKubernetes>(), commandFactory, configProvider);
+                        IPlanner planner = new KubernetesPlanner(
+                                    this.deviceNamespace,
+                                    this.resourceName,
+                                    c.Resolve<IKubernetes>(),
+                                    commandFactory,
+                                    configProvider,
+                                    this.moduleOwner);
                         return planner;
                     })
                 .As<Task<IPlanner>>()
@@ -215,6 +229,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             this.deviceNamespace,
                             this.edgeDeviceHostName,
                             this.proxyImage,
+                            this.proxyImagePullSecretName,
                             this.proxyConfigPath,
                             this.proxyConfigVolumeName,
                             this.proxyConfigMapName,
@@ -225,7 +240,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             this.storageClassName,
                             this.apiVersion,
                             this.workloadUri,
-                            this.managementUri))
+                            this.managementUri,
+                            this.runAsNonRoot))
                 .As<IKubernetesDeploymentMapper>();
 
             // KubernetesServiceMapper
