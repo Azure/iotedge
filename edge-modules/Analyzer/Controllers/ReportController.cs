@@ -4,13 +4,14 @@ namespace Analyzer.Controllers
     using System;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics;
+    using Newtonsoft.Json;
 
     [Route("api/[controller]")]
     [ApiController]
     public class ReportController : Controller
     {
         // GET api/report/all
-        [HttpGet("/all")]
+        [HttpGet("all")]
         public ActionResult<string> GetReport()
         {
             DeviceAnalysis deviceAnalysis = Reporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
@@ -32,14 +33,14 @@ namespace Analyzer.Controllers
                 this.PublishToLogAnalytics(deviceAnalysis);
             }
 
-            return deviceAnalysis.MessagesReport.ToString();
+            return JsonConvert.SerializeObject(deviceAnalysis.MessagesReport, Formatting.Indented);
         }
 
         private void PublishToLogAnalytics(DeviceAnalysis deviceAnalysis)
         {
-            string messagesJson = deviceAnalysis.MessagesReport.ToString();
-            string twinsJson = deviceAnalysis.TwinsReport.ToString();
-            string directMethodsJson = deviceAnalysis.DmReport.ToString();
+            string messagesJson = JsonConvert.SerializeObject(deviceAnalysis.MessagesReport, Formatting.Indented);
+            string twinsJson = JsonConvert.SerializeObject(deviceAnalysis.TwinsReport, Formatting.Indented);
+            string directMethodsJson = JsonConvert.SerializeObject(deviceAnalysis.DmReport, Formatting.Indented);
 
             string workspaceId = Settings.Current.LogAnalyticWorkspaceId;
             string sharedKey = Settings.Current.LogAnalyticSharedKey;
