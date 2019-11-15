@@ -59,6 +59,7 @@ edgeAgent:
     # Set this to one of "LoadBalancer", "NodePort", or "ClusterIP" to tell the
     # IoT Edge runtime how you want to expose mapped ports as Services.
     portMappingServiceType: 'ClusterIP'
+    
     # Set the location of the backup configuration file.
     backupConfigFilePath: '/tmp/backup.json'
     
