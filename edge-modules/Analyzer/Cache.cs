@@ -6,21 +6,23 @@ namespace Analyzer
     using System.Collections.Generic;
     using System.Linq;
 
-    class Cache
+    class ReportingCache
     {
         // maps batchId with moduleId, there can be multiple batches for a module
         readonly ConcurrentDictionary<string, string> batches = new ConcurrentDictionary<string, string>();
         // maps batchId with messages
         readonly ConcurrentDictionary<string, IList<MessageDetails>> messages = new ConcurrentDictionary<string, IList<MessageDetails>>();
+        // maps module id with a dictionary of status code counts
         readonly ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> dm = new ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>>();
+        // maps module id with a dictionary of status code counts
         readonly ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> twins = new ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>>();
         readonly IComparer<MessageDetails> comparer = new EventDataComparer();
 
-        Cache()
+        ReportingCache()
         {
         }
 
-        public static Cache Instance { get; } = new Cache();
+        public static ReportingCache Instance { get; } = new ReportingCache();
 
         public void AddDirectMethodStatus(ResponseStatus directMethodStatus)
         {
@@ -34,6 +36,7 @@ namespace Analyzer
 
         public void AddStatus(ResponseStatus responseStatus, ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> cache)
         {
+            // lock needed for update of concurrent dict
             lock (cache)
             {
                 ConcurrentDictionary<string, Tuple<int, DateTime>> batch = cache.GetOrAdd(responseStatus.ModuleId, key => new ConcurrentDictionary<string, Tuple<int, DateTime>>());

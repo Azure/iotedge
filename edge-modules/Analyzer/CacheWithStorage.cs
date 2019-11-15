@@ -4,13 +4,13 @@ namespace Analyzer
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class CacheWithStorage
+    public class ReportingCacheWithStorage
     {
         Storage storage;
 
-        public static CacheWithStorage Instance { get; } = new CacheWithStorage();
+        public static ReportingCacheWithStorage Instance { get; } = new ReportingCacheWithStorage();
 
-        CacheWithStorage()
+        ReportingCacheWithStorage()
         {
         }
 
@@ -18,9 +18,9 @@ namespace Analyzer
         {
             this.storage = new Storage();
             await this.storage.Init(storagePath, new SystemEnvironment(), optimizeForPerformance);
-            await this.storage.ProcessAllMessages(message => Cache.Instance.AddMessage(message));
-            await this.storage.ProcessAllDirectMethods(directMethodStatus => Cache.Instance.AddDirectMethodStatus(directMethodStatus));
-            await this.storage.ProcessAllTwins(twinStatus => Cache.Instance.AddTwinStatus(twinStatus));
+            await this.storage.ProcessAllMessages(message => ReportingCache.Instance.AddMessage(message));
+            await this.storage.ProcessAllDirectMethods(directMethodStatus => ReportingCache.Instance.AddDirectMethodStatus(directMethodStatus));
+            await this.storage.ProcessAllTwins(twinStatus => ReportingCache.Instance.AddTwinStatus(twinStatus));
         }
 
         public async Task AddMessage(MessageDetails msg)
@@ -28,7 +28,7 @@ namespace Analyzer
             bool added = await this.storage.AddMessage(msg);
             if (added)
             {
-                Cache.Instance.AddMessage(msg);
+                ReportingCache.Instance.AddMessage(msg);
             }
         }
 
@@ -37,7 +37,7 @@ namespace Analyzer
             bool added = await this.storage.AddDirectMethod(dmStatus);
             if (added)
             {
-                Cache.Instance.AddDirectMethodStatus(dmStatus);
+                ReportingCache.Instance.AddDirectMethodStatus(dmStatus);
             }
         }
 
@@ -46,7 +46,7 @@ namespace Analyzer
             bool added = await this.storage.AddTwin(twinStatus);
             if (added)
             {
-                Cache.Instance.AddTwinStatus(twinStatus);
+                ReportingCache.Instance.AddTwinStatus(twinStatus);
             }
         }
     }

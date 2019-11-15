@@ -12,7 +12,7 @@ namespace Analyzer.Controllers
         [HttpPost]
         public async Task<ActionResult<bool>> Post(ResponseStatus twinStatus)
         {
-            await CacheWithStorage.Instance.AddTwin(twinStatus);
+            await ReportingCacheWithStorage.Instance.AddTwin(twinStatus);
             return true;
         }
     }
