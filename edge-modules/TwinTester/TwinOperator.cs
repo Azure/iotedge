@@ -322,7 +322,7 @@ namespace TwinTester
             }
         }
 
-        public async Task PerformUpdates()
+        public void PerformUpdates()
         {
             lock (this.operationLock)
             {
@@ -331,7 +331,7 @@ namespace TwinTester
             }
         }
 
-        public async Task PerformValidation()
+        public void PerformValidation()
         {
             lock (this.operationLock)
             {

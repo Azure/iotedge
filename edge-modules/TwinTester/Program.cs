@@ -35,39 +35,41 @@ namespace TwinTester
 
                 TwinOperator twinOperator = new TwinOperator(registryManager, moduleClient, analyzerClient, storage);
 
-                using (var timers = new Timers())
-                {
-                    // setup the twin update timer
-                    timers.Add(
-                        Settings.Current.TwinUpdateFrequency,
-                        Settings.Current.JitterFactor,
-                        () => twinOperator.PerformUpdates());
+                (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
-                    TimeSpan validationInterval = new TimeSpan(Settings.Current.TwinUpdateFailureThreshold.Ticks / 4);
-                    timers.Add(
-                        validationInterval,
-                        0,
-                        () => twinOperator.PerformValidation());
-                    timers.Start();
-                    Logger.LogInformation("TwinTester starting twin tests.");
-
-                    (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
-
-                    await cts.Token.WhenCanceled();
-                    Logger.LogInformation("Stopping timers.");
-                    timers.Stop();
-                    Logger.LogInformation("Closing connection to Edge Hub.");
-                    await moduleClient.CloseAsync();
-
-                    completed.Set();
-                    handler.ForEach(h => GC.KeepAlive(h));
-                    Logger.LogInformation("Twin tests complete. Exiting.");
-                }
+                Task updateLoop = PerformRecurringUpdates(twinOperator, Settings.Current.TwinUpdateFrequency, cts);
+                Task validationLoop = PerformRecurringValidation(twinOperator, Settings.Current.TwinUpdateFailureThreshold, cts);
+                await Task.WhenAll(updateLoop, validationLoop);
+                completed.Set();
+                handler.ForEach(h => GC.KeepAlive(h));
             }
             catch (Exception ex)
             {
                 Logger.LogError($"Error occurred during twin test setup.\r\n{ex}");
             }
+        }
+
+        static async Task PerformRecurringUpdates(TwinOperator twinOperator, TimeSpan twinUpdateFrequency, CancellationTokenSource cts)
+        {
+            while (!cts.Token.IsCancellationRequested)
+            {
+                twinOperator.PerformUpdates();
+                await Task.Delay(twinUpdateFrequency);
+            }
+
+            Logger.LogInformation("PerformRecurringUpdates finished.");
+        }
+
+        static async Task PerformRecurringValidation(TwinOperator twinOperator, TimeSpan twinUpdateFailureThreshold, CancellationTokenSource cts)
+        {
+            TimeSpan validationInterval = new TimeSpan(Settings.Current.TwinUpdateFailureThreshold.Ticks / 4);
+            while (!cts.Token.IsCancellationRequested)
+            {
+                twinOperator.PerformValidation();
+                await Task.Delay(validationInterval);
+            }
+
+            Logger.LogInformation("PerformRecurringValidation finished.");
         }
     }
 }
