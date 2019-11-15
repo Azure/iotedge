@@ -599,21 +599,31 @@ impl ModuleRuntime for DockerModuleRuntime {
     fn system_resources(&self) -> Self::SystemResourcesFuture {
         info!("Querying system resources...");
 
+        use serde_json::json;
+
         let client = self.client.clone();
         let docker_stats = self
             .list()
             .and_then(|modules: Vec<Self::Module>| {
-                future::join_all(modules.into_iter().map(move |module| {
-                    client
-                        .container_api()
-                        .container_stats(module.name(), false)
-                        .map_err(|err| {
-                            Error::from_docker_error(
-                                err,
-                                ErrorKind::RuntimeOperation(RuntimeOperation::SystemResources),
-                            )
-                        })
-                }))
+                future::join_all(
+                    modules
+                        .into_iter()
+                        .map(|module| module.name().to_owned())
+                        .map(move |name| {
+                            client
+                                .container_api()
+                                .container_stats(&name, false)
+                                .map_err(|err| {
+                                    Error::from_docker_error(
+                                        err,
+                                        ErrorKind::RuntimeOperation(
+                                            RuntimeOperation::SystemResources,
+                                        ),
+                                    )
+                                })
+                                .map(move |v: serde_json::Value| json!({ "module": name, "stats":v }))
+                        }),
+                )
             })
             .map(|stats| serde_json::Value::Array(stats))
             .and_then(|stats| {
