@@ -32,6 +32,9 @@ agent:
     {{- if .Values.edgeAgent.env.portMappingServiceType}}
     PortMappingServiceType: {{ .Values.edgeAgent.env.portMappingServiceType | quote }}
     {{- end }}
+    {{- if .Values.edgeAgent.env.backupConfigFilePath}}
+    BackupConfigFilePath: {{ .Values.edgeAgent.env.backupConfigFilePath | quote }}
+    {{- end }}
     {{- if .Values.edgeAgent.env.enableK8sServiceCallTracing}}
     EnableK8sServiceCallTracing: {{ .Values.edgeAgent.env.enableK8sServiceCallTracing | quote }}
     {{- end }}
