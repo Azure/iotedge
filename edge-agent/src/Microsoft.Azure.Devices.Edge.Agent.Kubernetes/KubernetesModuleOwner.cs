@@ -9,10 +9,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         [JsonConstructor]
         public KubernetesModuleOwner(string apiVersion, string kind, string name, string uid)
         {
-            this.ApiVersion = Preconditions.CheckNonWhiteSpace(apiVersion, nameof(apiVersion));
-            this.Kind = Preconditions.CheckNonWhiteSpace(kind, nameof(kind));
-            this.Name = Preconditions.CheckNonWhiteSpace(name, nameof(name));
-            this.Uid = Preconditions.CheckNonWhiteSpace(uid, nameof(uid));
+            this.ApiVersion = apiVersion;
+            this.Kind = kind;
+            this.Name = name;
+            this.Uid = uid;
         }
 
         [JsonProperty(PropertyName = "apiVersion")]
