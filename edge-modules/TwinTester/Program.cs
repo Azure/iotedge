@@ -20,6 +20,8 @@ namespace TwinTester
 
             try
             {
+                (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
+
                 RegistryManager registryManager = RegistryManager.CreateFromConnectionString(Settings.Current.ServiceClientConnectionString);
 
                 ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
@@ -33,13 +35,12 @@ namespace TwinTester
                 Storage storage = new Storage();
                 storage.Init(Settings.Current.StoragePath, new SystemEnvironment(), Settings.Current.StorageOptimizeForPerformance);
 
-                TwinOperator twinOperator = new TwinOperator(registryManager, moduleClient, analyzerClient, storage);
+                TwinOperator twinOperator = new TwinOperator(registryManager, moduleClient, analyzerClient, storage, cts);
 
-                (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
-
-                Task updateLoop = PerformRecurringUpdates(twinOperator, Settings.Current.TwinUpdateFrequency, cts);
-                Task validationLoop = PerformRecurringValidation(twinOperator, Settings.Current.TwinUpdateFailureThreshold, cts);
+                Task updateLoop = PerformRecurringUpdates(twinOperator, Settings.Current.TwinUpdateFrequency);
+                Task validationLoop = PerformRecurringValidation(twinOperator, Settings.Current.TwinUpdateFailureThreshold);
                 await Task.WhenAll(updateLoop, validationLoop);
+
                 completed.Set();
                 handler.ForEach(h => GC.KeepAlive(h));
             }

@@ -3,10 +3,12 @@ namespace TwinTester
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
@@ -21,13 +23,13 @@ namespace TwinTester
         private Storage storage;
         private TwinState twinState;
 
-        public TwinOperator(RegistryManager registryManager, ModuleClient moduleClient, AnalyzerClient analyzerClient, Storage storage)
+        public TwinOperator(RegistryManager registryManager, ModuleClient moduleClient, AnalyzerClient analyzerClient, Storage storage, CancellationTokenSource cts)
         {
             this.registryManager = registryManager;
             this.moduleClient = moduleClient;
             this.analyzerClient = analyzerClient;
             this.storage = storage;
-            this.twinState = this.InitializeModuleTwin().Result;
+            this.twinState = this.InitializeModuleTwin(cts).Result.Expect(throw new Exception("")));
             this.moduleClient.SetDesiredPropertyUpdateCallbackAsync(this.OnDesiredPropertyUpdateAsync, storage);
         }
 
@@ -54,9 +56,9 @@ namespace TwinTester
             return eraseReportedProperties;
         }
 
-        private async Task<TwinState> InitializeModuleTwin()
+        private async Task<Option<TwinState>> InitializeModuleTwin(CancellationTokenSource cts)
         {
-            while (true)
+            while (!cts.Token.IsCancellationRequested)
             {
                 try
                 {
@@ -95,6 +97,8 @@ namespace TwinTester
                     await Task.Delay(Settings.Current.TwinUpdateFrequency);
                 }
             }
+
+            throw new Exception("Task cancelled. Stopping initialization.");
         }
 
         private bool IsPastFailureThreshold(DateTime twinUpdateTime)
