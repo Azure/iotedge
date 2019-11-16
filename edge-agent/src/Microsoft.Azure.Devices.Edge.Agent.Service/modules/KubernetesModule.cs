@@ -59,6 +59,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan idleTimeout;
         readonly KubernetesExperimentalFeatures experimentalFeatures;
+        readonly KubernetesModuleOwner moduleOwner;
+        readonly bool runAsNonRoot;
 
         public KubernetesModule(
             string iotHubHostname,
@@ -87,7 +89,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             Option<IWebProxy> proxy,
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout,
-            KubernetesExperimentalFeatures experimentalFeatures)
+            KubernetesExperimentalFeatures experimentalFeatures,
+            KubernetesModuleOwner moduleOwner,
+            bool runAsNonRoot)
         {
             this.resourceName = new ResourceName(iotHubHostname, deviceId);
             this.edgeDeviceHostName = Preconditions.CheckNonWhiteSpace(edgeDeviceHostName, nameof(edgeDeviceHostName));
@@ -115,6 +119,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             this.closeOnIdleTimeout = closeOnIdleTimeout;
             this.idleTimeout = idleTimeout;
             this.experimentalFeatures = experimentalFeatures;
+            this.moduleOwner = moduleOwner;
+            this.runAsNonRoot = runAsNonRoot;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -199,7 +205,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     {
                         var configProvider = c.Resolve<ICombinedConfigProvider<CombinedKubernetesConfig>>();
                         ICommandFactory commandFactory = await c.Resolve<Task<ICommandFactory>>();
-                        IPlanner planner = new KubernetesPlanner(this.deviceNamespace, this.resourceName, c.Resolve<IKubernetes>(), commandFactory, configProvider);
+                        IPlanner planner = new KubernetesPlanner(
+                                    this.deviceNamespace,
+                                    this.resourceName,
+                                    c.Resolve<IKubernetes>(),
+                                    commandFactory,
+                                    configProvider,
+                                    this.moduleOwner);
                         return planner;
                     })
                 .As<Task<IPlanner>>()
@@ -228,7 +240,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             this.storageClassName,
                             this.apiVersion,
                             this.workloadUri,
-                            this.managementUri))
+                            this.managementUri,
+                            this.runAsNonRoot))
                 .As<IKubernetesDeploymentMapper>();
 
             // KubernetesServiceMapper

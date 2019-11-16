@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
         public const int HttpUdsMessageHandler = EventIdStart;
         public const int EdgeletWorkloadClient = EventIdStart + 100;
         public const int DbStoreProviderWithBackupRestore = EventIdStart + 200;
+        public const int MemorySpaceChecker = EventIdStart + 300;
         const int EventIdStart = 100000;
     }
 }

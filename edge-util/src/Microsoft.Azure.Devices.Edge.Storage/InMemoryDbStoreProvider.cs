@@ -9,11 +9,28 @@ namespace Microsoft.Azure.Devices.Edge.Storage
     {
         const string DefaultPartitionName = "$Default";
         readonly ConcurrentDictionary<string, IDbStore> partitionDbStoreDictionary = new ConcurrentDictionary<string, IDbStore>();
+        readonly Option<IStorageSpaceChecker> memoryStorageSpaceChecker;
+
+        public InMemoryDbStoreProvider()
+            : this(Option.None<IStorageSpaceChecker>())
+        {
+        }
+
+        public InMemoryDbStoreProvider(Option<IStorageSpaceChecker> memoryStorageSpaceChecker)
+        {
+            this.memoryStorageSpaceChecker = memoryStorageSpaceChecker;
+            this.memoryStorageSpaceChecker.ForEach(m => m.SetStorageUsageComputer(this.GetTotalMemoryUsage));
+        }
+
+        static IDbStore BuildInMemoryDbStore(Option<IStorageSpaceChecker> memoryStorageSpaceChecker)
+            => memoryStorageSpaceChecker
+                .Map(d => new StorageSpaceAwareDbStore(new InMemoryDbStore(), d) as IDbStore)
+                .GetOrElse(new InMemoryDbStore() as IDbStore);
 
         public IDbStore GetDbStore(string partitionName)
         {
             Preconditions.CheckNonWhiteSpace(partitionName, nameof(partitionName));
-            IDbStore dbStore = this.partitionDbStoreDictionary.GetOrAdd(partitionName, new InMemoryDbStore());
+            IDbStore dbStore = this.partitionDbStoreDictionary.GetOrAdd(partitionName, BuildInMemoryDbStore(this.memoryStorageSpaceChecker));
             return dbStore;
         }
 
@@ -36,6 +53,20 @@ namespace Microsoft.Azure.Devices.Edge.Storage
         {
             // No-op
             return Task.CompletedTask;
+        }
+
+        long GetTotalMemoryUsage()
+        {
+            long dbSizeInBytes = 0;
+            foreach (var inMemoryDbStore in this.partitionDbStoreDictionary)
+            {
+                if (inMemoryDbStore.Value is ISizedDbStore)
+                {
+                    dbSizeInBytes += ((ISizedDbStore)inMemoryDbStore.Value).DbSizeInBytes;
+                }
+            }
+
+            return dbSizeInBytes;
         }
     }
 }
