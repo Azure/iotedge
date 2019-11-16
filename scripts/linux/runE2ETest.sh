@@ -640,7 +640,7 @@ function run_longhaul_test() {
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --leave-running=All \
         -l "$deployment_working_file" \
-        --runtime-log-level "Info" \
+        --runtime-log-level "Debug" \
         --no-verify && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
@@ -718,7 +718,7 @@ function run_stress_test() {
         -t "$ARTIFACT_IMAGE_BUILD_NUMBER-linux-$image_architecture_label" \
         --leave-running=All \
         -l "$deployment_working_file" \
-        --runtime-log-level "Info" \
+        --runtime-log-level "Debug" \
         --no-verify && ret=$? || ret=$?
 
     local elapsed_seconds=$SECONDS
