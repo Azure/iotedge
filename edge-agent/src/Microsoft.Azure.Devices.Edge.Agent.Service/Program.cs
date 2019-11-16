@@ -195,7 +195,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                             configuration.GetValue<string>(K8sConstants.EdgeK8sObjectOwnerKindKey),
                             configuration.GetValue<string>(K8sConstants.EdgeK8sObjectOwnerNameKey),
                             configuration.GetValue<string>(K8sConstants.EdgeK8sObjectOwnerUidKey));
-                        bool runAsNonRoot = configuration.GetValue<bool>(K8sConstants.RunAsNonRootKey);
+                        bool runAsNonRoot = configuration.GetValueOrDefault<bool>(K8sConstants.RunAsNonRootKey);
 
                         builder.RegisterInstance(metricsConfig.Enabled
                                  ? new MetricsProvider("edgeagent", iothubHostname, deviceId)
