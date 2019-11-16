@@ -327,10 +327,10 @@ fn spec_to_podspec(
         }
     };
     //pull secrets
-    let image_pull_secrets = spec.config().auth().and_then(|auth| {
-        Some(vec![api_core::LocalObjectReference {
+    let image_pull_secrets = spec.config().auth().map(|auth| {
+        vec![api_core::LocalObjectReference {
             name: auth_to_pull_secret_name(auth),
-        }])
+        }]
     });
 
     Ok(api_core::PodSpec {
