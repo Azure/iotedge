@@ -25,9 +25,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly ISdkModuleClient inner;
         readonly ResettableTimer inactivityTimer;
 
-        public ModuleClient(ISdkModuleClient inner, TimeSpan idleTimeout, bool closeOnIdleTimeout)
+        public ModuleClient(ISdkModuleClient inner, TimeSpan idleTimeout, bool closeOnIdleTimeout, UpstreamProtocol protocol)
         {
             this.inner = Preconditions.CheckNotNull(inner, nameof(inner));
+            this.UpstreamProtocol = protocol;
             this.inactivityTimer = new ResettableTimer(this.CloseOnInactivity, idleTimeout, Events.Log, closeOnIdleTimeout);
             this.inactivityTimer.Start();
         }
@@ -35,6 +36,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         public event EventHandler Closed;
 
         public bool IsActive => this.isActive.Get();
+
+        public UpstreamProtocol UpstreamProtocol { get; }
 
         public async Task SetDesiredPropertyUpdateCallbackAsync(DesiredPropertyUpdateCallback onDesiredPropertyChanged)
         {
