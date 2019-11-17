@@ -24,26 +24,26 @@ namespace LoadGen
                 return new Settings(
                     configuration.GetValue("messageFrequency", TimeSpan.FromMilliseconds(20)),
                     configuration.GetValue<double>("jitterFactor", 0.5),
-                    configuration.GetValue("twinUpdateFrequency", TimeSpan.FromMilliseconds(500)),
                     configuration.GetValue<ulong>("messageSizeInBytes", 1024),
                     configuration.GetValue<TransportType>("transportType", TransportType.Amqp_Tcp_Only),
-                    configuration.GetValue<string>("outputName", "output1"));
+                    configuration.GetValue<string>("outputName", "output1"),
+                    configuration.GetValue<string>("analyzerUrl", "http://analyzer:15000"));
             });
 
         Settings(
             TimeSpan messageFrequency,
             double jitterFactor,
-            TimeSpan twinUpdateFrequency,
             ulong messageSizeInBytes,
             TransportType transportType,
-            string outputName)
+            string outputName,
+            string analyzerUrl)
         {
             this.MessageFrequency = messageFrequency;
             this.JitterFactor = jitterFactor;
-            this.TwinUpdateFrequency = twinUpdateFrequency;
             this.MessageSizeInBytes = messageSizeInBytes;
             this.TransportType = transportType;
             this.OutputName = outputName;
+            this.AnalyzerUrl = analyzerUrl;
         }
 
         public static Settings Current => DefaultSettings.Value;
@@ -52,14 +52,14 @@ namespace LoadGen
 
         public double JitterFactor { get; }
 
-        public TimeSpan TwinUpdateFrequency { get; }
-
         public ulong MessageSizeInBytes { get; }
 
         [JsonConverter(typeof(StringEnumConverter))]
         public TransportType TransportType { get; }
 
         public string OutputName { get; }
+
+        public string AnalyzerUrl { get; }
 
         public override string ToString()
         {

@@ -12,7 +12,6 @@ parameters:
   snitch.storage.account: ''
   snitch.storage.masterKey: ''
   loadGen.message.frequency: ''
-  loadGen.transportType: 'mqtt'
   longHaul.desiredModulesToRestartCSV: ''
   longHaul.restartIntervalInMins: ''
   analyzer.consumerGroupId: ''
@@ -20,6 +19,9 @@ parameters:
   analyzer.logAnalytic.workspaceId: ''
   analyzer.logAnalytic.sharedKey: ''
   analyzer.logAnalytic.logType: ''
+  twinTester.twinUpdateCharCount: ''
+  twinTester.twinUpdateFrequency: ''
+  twinTester.twinUpdateFailureThreshold: ''
 
 steps:
   - task: CopyFiles@2
@@ -65,5 +67,8 @@ steps:
           -analyzerLaWorkspaceId "${{ parameters['analyzer.logAnalytic.workspaceId'] }}" \
           -analyzerLaSharedKey "${{ parameters['analyzer.logAnalytic.sharedKey'] }}" \
           -analyzerLaLogType "${{ parameters['analyzer.logAnalytic.logType'] }}" \
+          -twinUpdateCharCount "${{ parameters['twinTester.twinUpdateCharCount'] }}" \
+          -twinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" \
+          -twinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}" \
           -cleanAll
       workingDirectory: "$(Agent.HomeDirectory)/.."

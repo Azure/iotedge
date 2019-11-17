@@ -65,10 +65,10 @@ jobs:
 
       # Messages Analyzer - Not Using Template for ARM64 because we have 2 different .NET Core.
       - task: Bash@3
-        displayName: Build Image - Messages Analyzer - aarch64
+        displayName: Build Image - Analyzer - aarch64
         inputs:
            filePath: scripts/linux/buildImage.sh
-           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-analyzer -n microsoft -P MessagesAnalyzer --target-arch aarch64
+           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-analyzer -n microsoft -P Analyzer --target-arch aarch64
 
       # Functions Sample - Not Using Template for ARM64 because we have 2 different .NET Core.//TODO: Enable this once Functions supports arm64v8. Right now they are not ready.
       #- task: Bash@3
@@ -104,6 +104,13 @@ jobs:
         inputs:
            filePath: scripts/linux/buildImage.sh
            arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-module-restarter -n microsoft -P ModuleRestarter --target-arch aarch64
+
+      # Twin Tester - Not Using Template for ARM64 because we have 2 different .NET Core.
+      - task: Bash@3
+        displayName: Build Image - Twin Tester - aarch64
+        inputs:
+           filePath: scripts/linux/buildImage.sh
+           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-twin-tester -n microsoft -P TwinTester --target-arch aarch64
            
           
 ################################################################################
@@ -169,9 +176,9 @@ jobs:
       # Messages Analyzer
       - template: templates/image-linux.yaml
         parameters:
-          name: Messages Analyzer
+          name: Analyzer
           imageName: azureiotedge-analyzer
-          project: MessagesAnalyzer
+          project: Analyzer
 
       # Functions Sample
       - template: templates/image-linux.yaml
@@ -207,6 +214,13 @@ jobs:
           name: Module Restarter
           imageName: azureiotedge-module-restarter
           project: ModuleRestarter
+
+     # Twin Tester
+      - template: templates/image-linux.yaml
+        parameters:
+          name: TwinTester
+          imageName: azureiotedge-twin-tester
+          project: TwinTester
 
 ################################################################################
 # linux - Rust amd64
@@ -314,9 +328,9 @@ jobs:
       # Messages Analyzer
       - template: templates/image-windows.yaml
         parameters:
-          name: Messages Analyzer
+          name: Analyzer
           imageName: azureiotedge-analyzer
-          project: MessagesAnalyzer
+          project: Analyzer
           
       # Functions Sample
       - template: templates/image-windows.yaml
@@ -353,6 +367,13 @@ jobs:
           name: Module Restarter
           imageName: azureiotedge-module-restarter
           project: ModuleRestarter
+
+     # Twin Tester
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Twin Tester
+          imageName: azureiotedge-twin-tester
+          project: TwinTester
 
       - powershell: docker system prune -a -f
         displayName: Clean Machine

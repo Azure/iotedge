@@ -77,6 +77,60 @@
               "createOptions": ""
             }
           },
+          "twinTester1": {
+            "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
+                "createOptions": ""
+            },
+            "type": "docker",
+            "version": "1.0",
+            "env": {
+                "TransportType": {
+                    "value": "amqp"
+                },
+                "ServiceClientConnectionString": {
+                    "value": "<ServiceClientConnectionString>"
+                },
+                "TwinUpdateCharCount": {
+                    "value": "<TwinUpdateCharCount>"
+                },
+                "TwinUpdateFrequency": {
+                    "value": "<TwinUpdateFrequency>"
+                },
+                "TwinUpdateFailureThreshold": {
+                    "value": "<TwinUpdateFailureThreshold>"
+                }
+            },
+            "status": "running",
+            "restartPolicy": "always"
+          },
+          "twinTester2": {
+            "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
+                "createOptions": ""
+            },
+            "type": "docker",
+            "version": "1.0",
+            "env": {
+                "TransportType": {
+                    "value": "mqtt"
+                },
+                "ServiceClientConnectionString": {
+                    "value": "<ServiceClientConnectionString>"
+                },
+                "TwinUpdateCharCount": {
+                    "value": "<TwinUpdateCharCount>"
+                },
+                "TwinUpdateFrequency": {
+                    "value": "<TwinUpdateFrequency>"
+                },
+                "TwinUpdateFailureThreshold": {
+                    "value": "<TwinUpdateFailureThreshold>"
+                }
+            },
+            "status": "running",
+            "restartPolicy": "always"
+          },
           "tempSensor": {
             "version": "1.0",
             "type": "docker",
