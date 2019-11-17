@@ -25,7 +25,10 @@ namespace Analyzer
         const string LogAnalyticWorkspaceIdName = "LogAnalyticWorkspaceId";
         const string LogAnalyticSharedKeyName = "LogAnalyticSharedKey";
         const string LogAnalyticLogTypeName = "LogAnalyticLogType";
-
+        const string EdgeletBuildIdName = "EDGELET_BUILD_ID";
+        const string EdgeletBuildBranchName = "EDGELET_BUILD_BRANCH";
+        const string ModuleImageBuildIdName = "MODULE_IMAGE_BUILD_ID";
+        const string ModuleImageBuildBranchName = "MODULE_IMAGE_BUILD_BRANCH";
         static readonly Lazy<Settings> Setting = new Lazy<Settings>(
             () =>
             {
@@ -49,10 +52,29 @@ namespace Analyzer
                     configuration.GetValue<bool>(LogAnalyticEnabledName, false),
                     configuration.GetValue<string>(LogAnalyticWorkspaceIdName),
                     configuration.GetValue<string>(LogAnalyticSharedKeyName),
-                    configuration.GetValue<string>(LogAnalyticLogTypeName));
+                    configuration.GetValue<string>(LogAnalyticLogTypeName),
+                    configuration.GetValue<string>(EdgeletBuildIdName),
+                    configuration.GetValue<string>(EdgeletBuildBranchName),
+                    configuration.GetValue<string>(ModuleImageBuildIdName),
+                    configuration.GetValue<string>(ModuleImageBuildBranchName));
             });
 
-        Settings(string eventHubConnectionString, string consumerGroupId, string deviceId, IList<string> excludedModuleIds, string webhostPort, double tolerance, string storagePath, bool storageOptimizeForPerformance, bool logAnalyticEnabled, string logAnalyticsWorkspaceIdName, string logAnalyticsSharedKeyName, string logAnalyticsLogTypeName)
+        Settings(string eventHubConnectionString,
+            string consumerGroupId,
+            string deviceId,
+            IList<string> excludedModuleIds,
+            string webhostPort,
+            double tolerance,
+            string storagePath,
+            bool storageOptimizeForPerformance,
+            bool logAnalyticEnabled,
+            string logAnalyticsWorkspaceIdName,
+            string logAnalyticsSharedKeyName,
+            string logAnalyticsLogTypeName,
+            string EdgeletBuildId,
+            string EdgeletBuildBranch,
+            string ModuleImageBuildId,
+            string ModuleImageBuildBranch)
         {
             this.EventHubConnectionString = Preconditions.CheckNonWhiteSpace(eventHubConnectionString, nameof(eventHubConnectionString));
             this.ConsumerGroupId = Preconditions.CheckNonWhiteSpace(consumerGroupId, nameof(consumerGroupId));
@@ -66,17 +88,30 @@ namespace Analyzer
             this.LogAnalyticWorkspaceId = logAnalyticsWorkspaceIdName;
             this.LogAnalyticSharedKey = logAnalyticsSharedKeyName;
             this.LogAnalyticLogType = logAnalyticsLogTypeName;
+            this.EdgeletBuildId = EdgeletBuildId;
+            this.EdgeletBuildBranch = EdgeletBuildBranch;
+            this.ModuleImageBuildId = ModuleImageBuildId;
+            this.ModuleImageBuildBranch = ModuleImageBuildBranch;
         }
 
         public static Settings Current => Setting.Value;
 
-        public string EventHubConnectionString { get; }
-
         public string ConsumerGroupId { get; }
+
+        public string EdgeletBuildId { get; }
+
+        public string EdgeletBuildBranch { get; }
+
+
+        public string EventHubConnectionString { get; }
 
         public IList<string> ExcludedModuleIds { get; }
 
         public string DeviceId { get; }
+
+        public string ModuleImageBuildId { get; }
+
+        public string ModuleImageBuildBranch { get; }
 
         public string WebhostPort { get; }
 

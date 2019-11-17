@@ -11,6 +11,10 @@ namespace Analyzer
     {
         public string ConsumerGroupId { get; }
         public string DeviceId { get; }
+        public string EdgeletBuildId { get; }
+        public string EdgeletBuildBranch { get; }
+        public string ModuleImageBuildId { get; }
+        public string ModuleImageBuildBranch { get; }
         public string Os { get; }
         public string OsArchitecture { get; }
         public string OsDescription { get; }
@@ -24,6 +28,10 @@ namespace Analyzer
 
             this.ConsumerGroupId = Settings.Current.ConsumerGroupId;
             this.DeviceId = Settings.Current.DeviceId;
+            this.EdgeletBuildId = Settings.Current.EdgeletBuildId;
+            this.EdgeletBuildBranch = Settings.Current.EdgeletBuildBranch;
+            this.ModuleImageBuildId = Settings.Current.ModuleImageBuildId;
+            this.ModuleImageBuildBranch = Settings.Current.ModuleImageBuildBranch;
             this.Os = OsDescriptionTokens[0];
             this.OsArchitecture = System.Runtime.InteropServices.RuntimeInformation.OSArchitecture.ToString();
             this.OsDescription = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
