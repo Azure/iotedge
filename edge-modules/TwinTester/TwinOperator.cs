@@ -14,12 +14,12 @@ namespace TwinTester
     public class TwinOperator
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("TwinTester");
-        private readonly object operationLock = new Object();
-        private RegistryManager registryManager;
-        private ModuleClient moduleClient;
-        private AnalyzerClient analyzerClient;
-        private Storage storage;
-        private TwinState twinState;
+        readonly object operationLock = new Object();
+        readonly RegistryManager registryManager;
+        readonly ModuleClient moduleClient;
+        readonly AnalyzerClient analyzerClient;
+        readonly Storage storage;
+        readonly TwinState twinState;
 
         public TwinOperator(RegistryManager registryManager, ModuleClient moduleClient, AnalyzerClient analyzerClient, Storage storage)
         {
@@ -31,7 +31,7 @@ namespace TwinTester
             this.moduleClient.SetDesiredPropertyUpdateCallbackAsync(this.OnDesiredPropertyUpdateAsync, storage);
         }
 
-        private int GetNewPropertyCounter(Dictionary<string, DateTime> properties)
+        int GetNewPropertyCounter(Dictionary<string, DateTime> properties)
         {
             int maxPropertyId = -1;
             foreach (KeyValuePair<string, DateTime> propertyUpdate in properties)
@@ -42,7 +42,7 @@ namespace TwinTester
             return maxPropertyId + 1;
         }
 
-        private TwinCollection GetReportedPropertiesResetTwin(Twin originalTwin)
+        TwinCollection GetReportedPropertiesResetTwin(Twin originalTwin)
         {
             TwinCollection eraseReportedProperties = new TwinCollection();
             foreach (dynamic twinUpdate in originalTwin.Properties.Reported)
@@ -54,7 +54,7 @@ namespace TwinTester
             return eraseReportedProperties;
         }
 
-        private async Task<TwinState> InitializeModuleTwin()
+        async Task<TwinState> InitializeModuleTwin()
         {
             try
             {
@@ -94,13 +94,13 @@ namespace TwinTester
 
         }
 
-        private bool IsPastFailureThreshold(DateTime twinUpdateTime)
+        bool IsPastFailureThreshold(DateTime twinUpdateTime)
         {
             DateTime comparisonPoint = new DateTime(Math.Max(twinUpdateTime.Ticks, this.twinState.LastTimeOffline.Ticks));
             return DateTime.UtcNow - comparisonPoint > Settings.Current.TwinUpdateFailureThreshold;
         }
 
-        private async Task CallAnalyzerToReportStatus(string moduleId, string status, string responseJson)
+        async Task CallAnalyzerToReportStatus(string moduleId, string status, string responseJson)
         {
             try
             {
@@ -112,7 +112,7 @@ namespace TwinTester
             }
         }
 
-        private async Task ValidateDesiredPropertyUpdates()
+        async Task ValidateDesiredPropertyUpdates()
         {
             Twin receivedTwin;
             try
@@ -189,7 +189,7 @@ namespace TwinTester
             }
         }
 
-        private async Task ValidateReportedPropertyUpdates()
+        async Task ValidateReportedPropertyUpdates()
         {
             Twin receivedTwin;
             try
@@ -262,7 +262,7 @@ namespace TwinTester
             }
         }
 
-        private async Task PerformDesiredPropertyUpdate()
+        async Task PerformDesiredPropertyUpdate()
         {
             try
             {
@@ -289,7 +289,7 @@ namespace TwinTester
             }
         }
 
-        private async Task PerformReportedPropertyUpdate()
+        async Task PerformReportedPropertyUpdate()
         {
             string reportedPropertyUpdate = new string('1', Settings.Current.TwinUpdateCharCount); // dummy twin update needs to be any number
             var twin = new TwinCollection();
@@ -337,7 +337,7 @@ namespace TwinTester
             }
         }
 
-        private async Task OnDesiredPropertyUpdateAsync(TwinCollection desiredProperties, object userContext)
+        async Task OnDesiredPropertyUpdateAsync(TwinCollection desiredProperties, object userContext)
         {
             // TODO: If expected behavior is calling once per desired property update, then we should not be looping
             Storage storage = (Storage)userContext;
