@@ -72,7 +72,7 @@ namespace TwinTester
                     TwinCollection eraseReportedProperties = this.GetReportedPropertiesResetTwin(desiredPropertyResetTwin);
                     await this.moduleClient.UpdateReportedPropertiesAsync(eraseReportedProperties);
 
-                    await Task.Delay(1000 * 10); // give ample time for reported properties reset to reach cloud
+                    await Task.Delay(TimeSpan.FromSeconds(10)); // give ample time for reported properties reset to reach cloud
                     twin = await this.registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
                     initializedState = new TwinState { ReportedPropertyUpdateCounter=0, DesiredPropertyUpdateCounter=0, TwinETag=twin.ETag, LastTimeOffline=DateTime.MinValue};
                 }
