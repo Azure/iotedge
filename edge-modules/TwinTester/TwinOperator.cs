@@ -23,13 +23,13 @@ namespace TwinTester
         private Storage storage;
         private TwinState twinState;
 
-        public TwinOperator(RegistryManager registryManager, ModuleClient moduleClient, AnalyzerClient analyzerClient, Storage storage, CancellationTokenSource cts)
+        public TwinOperator(RegistryManager registryManager, ModuleClient moduleClient, AnalyzerClient analyzerClient, Storage storage)
         {
             this.registryManager = registryManager;
             this.moduleClient = moduleClient;
             this.analyzerClient = analyzerClient;
             this.storage = storage;
-            this.twinState = this.InitializeModuleTwin(cts).Result.Expect(throw new Exception("")));
+            this.twinState = this.InitializeModuleTwin().Result;
             this.moduleClient.SetDesiredPropertyUpdateCallbackAsync(this.OnDesiredPropertyUpdateAsync, storage);
         }
 
@@ -56,49 +56,44 @@ namespace TwinTester
             return eraseReportedProperties;
         }
 
-        private async Task<Option<TwinState>> InitializeModuleTwin(CancellationTokenSource cts)
+        private async Task<TwinState> InitializeModuleTwin()
         {
-            while (!cts.Token.IsCancellationRequested)
+            try
             {
-                try
+                TwinState initializedState;
+                Twin twin = await this.registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
+                int storageCount = (await this.storage.GetAllDesiredPropertiesReceived()).Count + (await this.storage.GetAllDesiredPropertiesUpdated()).Count + (await this.storage.GetAllReportedPropertiesUpdated()).Count;
+                if (storageCount == 0)
                 {
-                    TwinState initializedState;
-                    Twin twin = await this.registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
-                    int storageCount = (await this.storage.GetAllDesiredPropertiesReceived()).Count + (await this.storage.GetAllDesiredPropertiesUpdated()).Count + (await this.storage.GetAllReportedPropertiesUpdated()).Count;
-                    if (storageCount == 0)
-                    {
-                        Logger.LogInformation("No existing storage detected. Initializing new module twin for fresh run.");
+                    Logger.LogInformation("No existing storage detected. Initializing new module twin for fresh run.");
 
-                        // reset desired properties
-                        Twin desiredPropertyResetTwin = await this.registryManager.ReplaceTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId, new Twin(), twin.ETag);
+                    // reset desired properties
+                    Twin desiredPropertyResetTwin = await this.registryManager.ReplaceTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId, new Twin(), twin.ETag);
 
-                        // reset reported properties
-                        TwinCollection eraseReportedProperties = this.GetReportedPropertiesResetTwin(desiredPropertyResetTwin);
-                        await this.moduleClient.UpdateReportedPropertiesAsync(eraseReportedProperties);
+                    // reset reported properties
+                    TwinCollection eraseReportedProperties = this.GetReportedPropertiesResetTwin(desiredPropertyResetTwin);
+                    await this.moduleClient.UpdateReportedPropertiesAsync(eraseReportedProperties);
 
-                        await Task.Delay(1000 * 10); // give ample time for reported properties reset to reach cloud
-                        twin = await this.registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
-                        initializedState = new TwinState(0, 0, twin.ETag, DateTime.MinValue);
-                    }
-                    else
-                    {
-                        Logger.LogInformation("Existing storage detected. Initializing reported / desired property update counters.");
-                        Dictionary<string, DateTime> reportedProperties = await this.storage.GetAllReportedPropertiesUpdated();
-                        Dictionary<string, DateTime> desiredProperties = await this.storage.GetAllDesiredPropertiesUpdated();
-                        initializedState = new TwinState(this.GetNewPropertyCounter(reportedProperties), this.GetNewPropertyCounter(desiredProperties), twin.ETag, DateTime.MinValue);
-                    }
-
-                    Logger.LogInformation($"Start state of module twin: {JsonConvert.SerializeObject(twin, Formatting.Indented)}");
-                    return initializedState;
+                    await Task.Delay(1000 * 10); // give ample time for reported properties reset to reach cloud
+                    twin = await this.registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
+                    initializedState = new TwinState(0, 0, twin.ETag, DateTime.MinValue);
                 }
-                catch (Exception e)
+                else
                 {
-                    Logger.LogInformation($"Retrying failed twin initialization: {e}");
-                    await Task.Delay(Settings.Current.TwinUpdateFrequency);
+                    Logger.LogInformation("Existing storage detected. Initializing reported / desired property update counters.");
+                    Dictionary<string, DateTime> reportedProperties = await this.storage.GetAllReportedPropertiesUpdated();
+                    Dictionary<string, DateTime> desiredProperties = await this.storage.GetAllDesiredPropertiesUpdated();
+                    initializedState = new TwinState(this.GetNewPropertyCounter(reportedProperties), this.GetNewPropertyCounter(desiredProperties), twin.ETag, DateTime.MinValue);
                 }
+
+                Logger.LogInformation($"Start state of module twin: {JsonConvert.SerializeObject(twin, Formatting.Indented)}");
+                return initializedState;
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"Shutting down module. Initialization failure: {e}");
             }
 
-            throw new Exception("Task cancelled. Stopping initialization.");
         }
 
         private bool IsPastFailureThreshold(DateTime twinUpdateTime)
