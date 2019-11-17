@@ -87,8 +87,3 @@ steps:
         echo "Duration in mins to stop iotedge=$durationToStop"
         echo "sudo systemctl stop iotedge" | at now + $durationToStop minutes && atq
       workingDirectory: '$(Agent.HomeDirectory)/..'
-    env:
-      EDGELET_BUILD_ID: $(edgelet.package.build)
-      EDGELET_BUILD_BRANCH: $(edgelet.package.branchName)
-      MODULE_IMAGE_BUILD_ID: $(images.build)
-      MODULE_IMAGE_BUILD_BRANCH: $(images.branchName)
