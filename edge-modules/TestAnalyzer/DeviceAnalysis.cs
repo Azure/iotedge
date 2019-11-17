@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Analyzer
+namespace TestAnalyzer
 {
     using System.Collections.Generic;
     using Newtonsoft.Json;
