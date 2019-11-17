@@ -8,4 +8,4 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
-CMD ["dotnet", "Analyzer.dll"]
+CMD ["dotnet", "TestAnalyzer.dll"]

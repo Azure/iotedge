@@ -3,7 +3,7 @@ FROM edgebuilds.azurecr.io/microsoft/azureiotedge-module-base-rocksdb:${base_tag
 
 ARG EXE_DIR=.
 
-ENV MODULE_NAME "Analyzer.dll"
+ENV MODULE_NAME "TestAnalyzer.dll"
 
 WORKDIR /app
 

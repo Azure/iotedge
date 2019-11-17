@@ -9,7 +9,7 @@ ARG EXE_DIR=.
 RUN apk update && \
     apk add --no-cache snappy libcap
 
-ENV MODULE_NAME "Analyzer.dll"
+ENV MODULE_NAME "TestAnalyzer.dll"
 
 WORKDIR /app
 
