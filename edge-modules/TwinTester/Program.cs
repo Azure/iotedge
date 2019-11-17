@@ -53,7 +53,7 @@ namespace TwinTester
         {
             while (!cts.Token.IsCancellationRequested)
             {
-                twinOperator.PerformUpdates();
+                await twinOperator.PerformUpdates();
                 await Task.Delay(twinUpdateFrequency);
             }
 
@@ -65,7 +65,7 @@ namespace TwinTester
             TimeSpan validationInterval = new TimeSpan(Settings.Current.TwinUpdateFailureThreshold.Ticks / 4);
             while (!cts.Token.IsCancellationRequested)
             {
-                twinOperator.PerformValidation();
+                await twinOperator.PerformValidation();
                 await Task.Delay(validationInterval);
             }
 
