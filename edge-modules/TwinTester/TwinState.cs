@@ -5,17 +5,9 @@ namespace TwinTester
 
     public class TwinState
     {
-        public int ReportedPropertyUpdateCounter;
-        public int DesiredPropertyUpdateCounter;
-        public string TwinETag;
-        public DateTime LastTimeOffline;
-
-        public TwinState(int reportedPropertyUpdateCounter, int desiredPropertyUpdateCounter, string twinETag, DateTime lastTimeOffline)
-        {
-            this.ReportedPropertyUpdateCounter = reportedPropertyUpdateCounter;
-            this.DesiredPropertyUpdateCounter = desiredPropertyUpdateCounter;
-            this.TwinETag = twinETag;
-            this.LastTimeOffline = lastTimeOffline;
-        }
+        public int ReportedPropertyUpdateCounter {get; set;}
+        public int DesiredPropertyUpdateCounter {get; set;}
+        public string TwinETag {get; set;}
+        public DateTime LastTimeOffline {get; set;}
     }
 }

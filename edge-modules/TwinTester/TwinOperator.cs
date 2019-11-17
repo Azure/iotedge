@@ -74,14 +74,14 @@ namespace TwinTester
 
                     await Task.Delay(1000 * 10); // give ample time for reported properties reset to reach cloud
                     twin = await this.registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
-                    initializedState = new TwinState(0, 0, twin.ETag, DateTime.MinValue);
+                    initializedState = new TwinState { ReportedPropertyUpdateCounter=0, DesiredPropertyUpdateCounter=0, TwinETag=twin.ETag, LastTimeOffline=DateTime.MinValue};
                 }
                 else
                 {
                     Logger.LogInformation("Existing storage detected. Initializing reported / desired property update counters.");
                     Dictionary<string, DateTime> reportedProperties = await this.storage.GetAllReportedPropertiesUpdated();
                     Dictionary<string, DateTime> desiredProperties = await this.storage.GetAllDesiredPropertiesUpdated();
-                    initializedState = new TwinState(this.GetNewPropertyCounter(reportedProperties), this.GetNewPropertyCounter(desiredProperties), twin.ETag, DateTime.MinValue);
+                    initializedState = new TwinState { ReportedPropertyUpdateCounter=this.GetNewPropertyCounter(reportedProperties), DesiredPropertyUpdateCounter=this.GetNewPropertyCounter(desiredProperties), TwinETag=twin.ETag, LastTimeOffline=DateTime.MinValue};
                 }
 
                 Logger.LogInformation($"Start state of module twin: {JsonConvert.SerializeObject(twin, Formatting.Indented)}");
