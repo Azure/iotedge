@@ -11,11 +11,11 @@ namespace TestAnalyzer
         // maps batchId with moduleId, there can be multiple batches for a module
         readonly ConcurrentDictionary<string, string> batches = new ConcurrentDictionary<string, string>();
         // maps batchId with messages
-        readonly ConcurrentDictionary<string, IList<MessageDetails>> messages = new ConcurrentDictionary<string, IList<MessageDetails>>();
+        readonly ConcurrentDictionary<string, IList<MessageDetails>> messagesReportCache = new ConcurrentDictionary<string, IList<MessageDetails>>();
         // maps module id with a dictionary of status code counts
-        readonly ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> dm = new ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>>();
+        readonly ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> directMethodsReportCache = new ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>>();
         // maps module id with a dictionary of status code counts
-        readonly ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> twins = new ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>>();
+        readonly ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> twinsReportCache = new ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>>();
         readonly IComparer<MessageDetails> comparer = new EventDataComparer();
 
         ReportingCache()
@@ -26,12 +26,12 @@ namespace TestAnalyzer
 
         public void AddDirectMethodStatus(ResponseStatus directMethodStatus)
         {
-            this.AddStatus(directMethodStatus, this.dm);
+            this.AddStatus(directMethodStatus, this.directMethodsReportCache);
         }
 
         public void AddTwinStatus(ResponseStatus twinStatus)
         {
-            this.AddStatus(twinStatus, this.twins);
+            this.AddStatus(twinStatus, this.twinsReportCache);
         }
 
         public void AddStatus(ResponseStatus responseStatus, ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> cache)
@@ -54,18 +54,18 @@ namespace TestAnalyzer
         {
             this.batches.TryAdd(messageDetails.BatchId, messageDetails.ModuleId);
 
-            IList<MessageDetails> batchMessages = this.messages.GetOrAdd(messageDetails.BatchId, key => new List<MessageDetails>());
+            IList<MessageDetails> batchMessages = this.messagesReportCache.GetOrAdd(messageDetails.BatchId, key => new List<MessageDetails>());
             this.AddMessageDetails(batchMessages, messageDetails);
         }
 
         public IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> GetDirectMethodsSnapshot()
         {
-            return this.GetSnapshotHelper(this.dm);
+            return this.GetSnapshotHelper(this.directMethodsReportCache);
         }
 
         public IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> GetTwinsSnapshot()
         {
-            return this.GetSnapshotHelper(this.twins);
+            return this.GetSnapshotHelper(this.twinsReportCache);
         }
 
         public IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> GetSnapshotHelper(ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> cache)
@@ -78,7 +78,7 @@ namespace TestAnalyzer
             IDictionary<string, IList<SortedSet<MessageDetails>>> snapshotResult = new Dictionary<string, IList<SortedSet<MessageDetails>>>();
 
             IDictionary<string, string> batchesSnapshot = this.batches.ToArray().ToDictionary(p => p.Key, p => p.Value);
-            IDictionary<string, IList<MessageDetails>> messagesSnapshot = this.messages.ToArray().ToDictionary(p => p.Key, p => p.Value);
+            IDictionary<string, IList<MessageDetails>> messagesSnapshot = this.messagesReportCache.ToArray().ToDictionary(p => p.Key, p => p.Value);
 
             foreach (KeyValuePair<string, IList<MessageDetails>> batchMessages in messagesSnapshot)
             {
