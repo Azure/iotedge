@@ -11,6 +11,7 @@ namespace Analyzer
     {
         public ResponseOrientedReport(string moduleId, IDictionary<string, Tuple<int, DateTime>> statusCodes)
         {
+            this.AgentInformation = new TestAgentInformation();
             this.ModuleId = moduleId;
             this.StatusCodes = new List<ResponseStatusReport>();
             foreach (KeyValuePair<string, Tuple<int, DateTime>> status in statusCodes)
@@ -23,6 +24,8 @@ namespace Analyzer
                 });
             }
         }
+
+        public TestAgentInformation AgentInformation { get; }
 
         public string ModuleId { get; }
 

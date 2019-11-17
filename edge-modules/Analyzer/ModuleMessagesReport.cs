@@ -21,6 +21,7 @@ namespace Analyzer
 
         public ModuleMessagesReport(string moduleId, StatusCode statusCode, long receivedMessagesCount, string statusMessage, DateTime lastMessageReceivedAt, IList<MissedMessagesDetails> missedMessages)
         {
+            this.AgentInformation = new TestAgentInformation();
             this.ModuleId = moduleId;
             this.StatusCode = statusCode;
             this.ReceivedMessagesCount = receivedMessagesCount;
@@ -28,6 +29,8 @@ namespace Analyzer
             this.MissedMessages = missedMessages;
             this.LastMessageReceivedAt = lastMessageReceivedAt;
         }
+
+        public TestAgentInformation AgentInformation { get; }
 
         public string ModuleId { get; }
 
