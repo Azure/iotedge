@@ -1,10 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
     <Configurations>Debug;Release;CodeCoverage;CheckInBuild</Configurations>
     <HighEntropyVA>true</HighEntropyVA>
-    <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
 
   <!--
