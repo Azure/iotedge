@@ -20,7 +20,7 @@ namespace DemoApp
                 IList<VstsAgent> agents = await agentManagement.GetAgentsAsync(AgentManagement.IoTEdgeAgentPoolId).ConfigureAwait(false);
 
                 var agentMatrix = new AgentMatrix();
-                agentMatrix.Update(agents.Select(IoTEdgeVstsAgent.Create).ToHashSet());
+                agentMatrix.Update(agents.Select(IoTEdgeAgent.Create).ToHashSet());
                 var unmatchedAgents = agentMatrix.GetUnmatchedAgents();
 
                 var buildManagement = new BuildManagement(devOpsAccessSetting);
