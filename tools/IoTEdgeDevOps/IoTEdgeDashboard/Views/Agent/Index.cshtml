@@ -54,9 +54,9 @@
                     }
                 </td>
                 @foreach (AgentDemandSet column in Model.AgentTable.Columns) {
-                    HashSet<IoTEdgeVstsAgent> agents = Model.AgentTable.Matrix[row][column];
+                    HashSet<IoTEdgeAgent> agents = Model.AgentTable.Matrix[row][column];
                     <td>
-                        @foreach (IoTEdgeVstsAgent agent in agents.OrderBy(a => a.GetAgentGroup())) {
+                        @foreach (IoTEdgeAgent agent in agents.OrderBy(a => a.GetAgentGroup())) {
                             string agentLabel = agent.Name;
                             string group = agent.GetAgentGroup();
                             if (!string.IsNullOrWhiteSpace(group)) {
@@ -95,7 +95,7 @@
             </td>
             <td colspan="@(Model.AgentTable.Columns.Count)">
                 @{
-                    foreach (IoTEdgeVstsAgent agent in Model.ImageBuild.Agents.OrderBy(a => a.Name)) {
+                    foreach (IoTEdgeAgent agent in Model.ImageBuild.Agents.OrderBy(a => a.Name)) {
                         <span class="agent">
                             <span class="@(agent.IsAvailable ? "agent-available" : "agent-unavailable")">&#10625;</span>
                             <a href="@(string.Format(IoTEdgeAgentUrl, agent.Id, IoTEdgeAgentQueueId))">@agent.Name</a>
@@ -110,7 +110,7 @@
                     Other agents
                 </h4>
                 @{
-                    foreach (IoTEdgeVstsAgent agent in Model.UnmatchedAgents.OrderBy(a => a.Name)) {
+                    foreach (IoTEdgeAgent agent in Model.UnmatchedAgents.OrderBy(a => a.Name)) {
                         <span class="agent">
                             <span class="@(agent.IsAvailable ? "agent-available" : "agent-unavailable")">&#10625;</span>
                             <a href="@(string.Format(IoTEdgeAgentUrl, agent.Id, IoTEdgeAgentQueueId))">@agent.Name</a>

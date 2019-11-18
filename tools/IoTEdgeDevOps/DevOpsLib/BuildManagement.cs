@@ -12,8 +12,6 @@ namespace DevOpsLib
 
     public class BuildManagement
     {
-        public static readonly Dictionary<int, string> DefinitionIdToDisplayNameMapping = new Dictionary<int, string>();
-
         const string LatestBuildPathSegmentFormat = "{0}/{1}/_apis/build/builds";
 
         readonly DevOpsAccessSetting accessSetting;

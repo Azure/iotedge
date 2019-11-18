@@ -141,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
-            Func<int, TimeSpan> waitTimeComputer = (numberOfMessages) => TimeSpan.FromMinutes(Math.Ceiling(numberOfMessages / 2000d) + 1);
+            Func<int, TimeSpan> waitTimeComputer = (numberOfMessages) => TimeSpan.FromMinutes(Math.Ceiling(numberOfMessages / 2000d) + 2);
 
             try
             {

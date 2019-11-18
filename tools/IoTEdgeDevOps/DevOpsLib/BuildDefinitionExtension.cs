@@ -21,7 +21,7 @@ namespace DevOpsLib
             Dictionary<BuildDefinitionId, string> buildDefinitionIdToDisplayNameMapping = new Dictionary<BuildDefinitionId, string>
             {
                 { BuildDefinitionId.BuildImages, "Build Images" },
-                { BuildDefinitionId.CI, "Build Images" },
+                { BuildDefinitionId.CI, "CI" },
                 { BuildDefinitionId.EdgeletCI, "Edgelet CI" },
                 { BuildDefinitionId.EdgeletPackages, "Edgelet Packages" },
                 { BuildDefinitionId.EdgeletRelease, "Edgelet Release" },
@@ -34,17 +34,5 @@ namespace DevOpsLib
         }
 
         public static string IdString(this BuildDefinitionId buildDefinitionId) => ((int) buildDefinitionId).ToString();
-    }
-
-    public enum BuildDefinitionId
-    {
-        BuildImages = 55174,
-        CI = 45137,
-        EdgeletCI = 37729,
-        EdgeletPackages = 55463,
-        EdgeletRelease = 31845,
-        EndToEndTest = 87020,
-        ImageRelease = 31987,
-        LibiohsmCI = 39853
     }
 }
