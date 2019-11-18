@@ -51,7 +51,7 @@ namespace DevOpsLib
                 
                 if (AzureActiveDirectory.IsAccessTokenExpired() ||
                     (AzureActiveDirectory.accessToken == null) ||
-                    (AzureActiveDirectory.azureResource.Equals(azureResource, StringComparison.OrdinalIgnoreCase)))
+                    (!AzureActiveDirectory.azureResource.Equals(azureResource, StringComparison.OrdinalIgnoreCase)))
                 {
                     string requestUri = $"https://login.microsoftonline.com/{azureActiveDirTenant}/oauth2/token";
                     const string grantType = "client_credentials";
@@ -74,13 +74,13 @@ namespace DevOpsLib
                     response.EnsureSuccessStatusCode();
                     string responseMsg = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-                    AzureActiveDirectory.azureActiveDirTenant = azureActiveDirTenant;
-                    AzureActiveDirectory.azureActiveDirClientId = azureActiveDirClientId;
-                    AzureActiveDirectory.azureActiveDirClientSecret = azureActiveDirClientSecret;
-                    AzureActiveDirectory.azureResource = azureResource;
-
                     lock (locker)
                     {
+                        AzureActiveDirectory.azureActiveDirTenant = azureActiveDirTenant;
+                        AzureActiveDirectory.azureActiveDirClientId = azureActiveDirClientId;
+                        AzureActiveDirectory.azureActiveDirClientSecret = azureActiveDirClientSecret;
+                        AzureActiveDirectory.azureResource = azureResource;
+
                         var responseJson = JObject.Parse(responseMsg);
                         AzureActiveDirectory.accessTokenExpiration = DateTime.UtcNow.AddSeconds((double)responseJson["expires_on"] - 1);
                         AzureActiveDirectory.accessToken = (string)responseJson["access_token"];

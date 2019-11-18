@@ -7,26 +7,7 @@ namespace DevOpsLib
 
     public sealed class AzureLogAnalytics
     {
-        static readonly AzureLogAnalytics instance = new AzureLogAnalytics();
-        static const string apiVersion = "v1";
-
-        // Explicit static constructor to tell C# compiler
-        // not to mark type as beforefieldinit
-        static AzureLogAnalytics()
-        {
-        }
-
-        AzureLogAnalytics()
-        {
-        }
-
-        public static AzureLogAnalytics Instance
-        {
-            get
-            {
-                return instance;
-            }
-        }
+        const string apiVersion = "v1";
 
         // Use get-request to do a Kusto query
         // API reference: https://dev.loganalytics.io/documentation/Using-the-API/RequestFormat
@@ -38,7 +19,7 @@ namespace DevOpsLib
 
             try
             {
-                string requestUri = $"https://api.loganalytics.io/{AzureLogAnalytics.apiVersion}/workspaces/{logAnalyticsWorkspaceId}/query?query=";
+                string requestUri = $"https://api.loganalytics.io/{apiVersion}/workspaces/{logAnalyticsWorkspaceId}/query?query=";
                 string accessToken = await AzureActiveDirectory.Instance.GetAccessToken();
 
                 var client = new HttpClient();
