@@ -98,7 +98,7 @@ namespace DevOpsLibTest
         }
 
         [Test]
-        public void TestPorperties()
+        public void TestProperties()
         {
             var iotedgeAgent = new IoTEdgeAgent(
                 893,
@@ -123,6 +123,24 @@ namespace DevOpsLibTest
             Assert.Contains(new AgentCapability("Agent.OS", "Linux"), iotedgeAgent.SystemCapabilities);
             Assert.Contains(new AgentCapability("run-long-haul", "true"), iotedgeAgent.UserCapabilities);
             Assert.True(iotedgeAgent.IsAvailable);
+        }
+
+        [Test]
+        public void TestConstructorWithEmptyUserCredential()
+        {
+            var iotedgeAgent = new IoTEdgeAgent(
+                893,
+                "name 123",
+                "version 1.23.3",
+                VstsAgentStatus.Online,
+                true,
+                new HashSet<AgentCapability>()
+                {
+                    new AgentCapability("Agent.OS", "Linux")
+                },
+                null);
+
+            Assert.AreEqual(0, iotedgeAgent.UserCapabilities.Count);
         }
 
         [Test]
@@ -156,15 +174,118 @@ namespace DevOpsLibTest
                 {
                     new AgentCapability("run-long-haul", "true")
                 });
+            var a3 = new IoTEdgeAgent(
+                1002,
+                "name1",
+                "version1",
+                VstsAgentStatus.Online,
+                true,
+                new HashSet<AgentCapability>()
+                {
+                    new AgentCapability("Agent.OS", "Linux")
+                },
+                new HashSet<AgentCapability>()
+                {
+                    new AgentCapability("run-long-haul", "true")
+                });
+            var a4 = new IoTEdgeAgent(
+                1001,
+                "name2",
+                "version1",
+                VstsAgentStatus.Online,
+                true,
+                new HashSet<AgentCapability>()
+                {
+                    new AgentCapability("Agent.OS", "Linux")
+                },
+                new HashSet<AgentCapability>()
+                {
+                    new AgentCapability("run-long-haul", "true")
+                });
+            var a5 = new IoTEdgeAgent(
+                1001,
+                "name1",
+                "version2",
+                VstsAgentStatus.Online,
+                true,
+                new HashSet<AgentCapability>()
+                {
+                    new AgentCapability("Agent.OS", "Linux")
+                },
+                new HashSet<AgentCapability>()
+                {
+                    new AgentCapability("run-long-haul", "true")
+                });
+            var a6 = new IoTEdgeAgent(
+                1001,
+                "name1",
+                "version1",
+                VstsAgentStatus.Offline,
+                true,
+                new HashSet<AgentCapability>()
+                {
+                    new AgentCapability("Agent.OS", "Linux")
+                },
+                new HashSet<AgentCapability>()
+                {
+                    new AgentCapability("run-long-haul", "true")
+                });
+            var a7 = new IoTEdgeAgent(
+                1001,
+                "name1",
+                "version1",
+                VstsAgentStatus.Online,
+                false,
+                new HashSet<AgentCapability>()
+                {
+                    new AgentCapability("Agent.OS", "Linux")
+                },
+                new HashSet<AgentCapability>()
+                {
+                    new AgentCapability("run-long-haul", "true")
+                });
+            var a8 = new IoTEdgeAgent(
+                1001,
+                "name1",
+                "version1",
+                VstsAgentStatus.Online,
+                false,
+                new HashSet<AgentCapability>()
+                {
+                    new AgentCapability("Agent.OS", "Windows")
+                },
+                new HashSet<AgentCapability>()
+                {
+                    new AgentCapability("run-long-haul", "true")
+                });
+            var a9 = new IoTEdgeAgent(
+                1001,
+                "name1",
+                "version1",
+                VstsAgentStatus.Online,
+                false,
+                new HashSet<AgentCapability>()
+                {
+                    new AgentCapability("Agent.OS", "Linux")
+                },
+                new HashSet<AgentCapability>());
 
             Assert.False(a1.Equals(null));
             Assert.True(a1.Equals(a1));
             Assert.True(a1.Equals(a2));
 
-            Assert.False(a1.Equals((object) null));
+            Assert.False(a1.Equals((object)null));
             Assert.True(a1.Equals((object)a1));
-            Assert.True(a1.Equals((object) a2));
+            Assert.True(a1.Equals((object)a2));
             Assert.False(a1.Equals(new object()));
+
+            Assert.False(a1.Equals(a3));
+            Assert.False(a1.Equals(a4));
+            Assert.False(a1.Equals(a5));
+            Assert.False(a1.Equals(a6));
+            Assert.False(a1.Equals(a7));
+            Assert.False(a1.Equals(a8));
+            Assert.False(a1.Equals(a9));
         }
 
         [Test]
@@ -357,6 +478,12 @@ namespace DevOpsLibTest
             Assert.True(agent2.UserCapabilities.Contains(new AgentCapability("UserCap1Key", "UserCap1Value")));
             Assert.True(agent2.UserCapabilities.Contains(new AgentCapability("UserCap2Key", "UserCap2Value")));
             Assert.AreEqual("version99", agent2.Version);
+        }
+
+        [Test]
+        public void TestCreateWithNullValue()
+        {
+            Assert.That(() => IoTEdgeAgent.Create(null), Throws.TypeOf<ArgumentNullException>());
         }
 
         [Test]
