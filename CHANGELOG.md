@@ -1,4 +1,4 @@
-# 1.0.8.4 (2019-11-1)
+# 1.0.8.4 (2019-11-19)
 ## Edge Hub
 ### Bug Fixes
 * Fix Twin property 4K length validation ([c4a97a4](https://github.com/Azure/iotedge/commit/c4a97a40e0b1db1ceb1483baa7dab6b17705467b))
