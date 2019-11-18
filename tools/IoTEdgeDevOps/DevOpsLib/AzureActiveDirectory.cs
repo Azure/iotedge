@@ -5,6 +5,7 @@ namespace DevOpsLib
     using System.Collections.Generic;
     using System.Net.Http;
     using System.Net.Http.Headers;
+    using System.Reflection.Metadata.Ecma335;
     using System.Threading.Tasks;
     using Newtonsoft.Json.Linq;
 
@@ -17,7 +18,8 @@ namespace DevOpsLib
         static string azureActiveDirClientSecret = null;
         static string azureResource = null;
         static string accessToken = null;
-        static DateTime accessTokenExpiration = new DateTime(1970, 01, 01, 0, 0, 0, 0, DateTimeKind.Utc);
+        static DateTime accessTokenExpiration = new DateTime(DateTime.MinValue.Ticks);
+        static readonly object locker = new object();
 
         // Explicit static constructor to tell C# compiler
         // not to mark type as beforefieldinit
@@ -29,13 +31,7 @@ namespace DevOpsLib
         {
         }
 
-        public static AzureActiveDirectory Instance
-        {
-            get
-            {
-                return instance;
-            }
-        }
+        public static AzureActiveDirectory Instance => instance;
 
         // Trigger Azure Active Directory (AAD) for an OAuth2 client credential for an azure resource access.
         // API reference: https://dev.loganalytics.io/documentation/Authorization/OAuth2
@@ -52,9 +48,10 @@ namespace DevOpsLib
 
             try
             {
-                if ((DateTime.Compare(DateTime.UtcNow, AzureActiveDirectory.accessTokenExpiration) >= 0) ||
-                   (AzureActiveDirectory.accessToken == null) ||
-                   (AzureActiveDirectory.azureResource != azureResource))
+                
+                if (AzureActiveDirectory.IsAccessTokenExpired() ||
+                    (AzureActiveDirectory.accessToken == null) ||
+                    (AzureActiveDirectory.azureResource.Equals(azureResource, StringComparison.OrdinalIgnoreCase)))
                 {
                     string requestUri = $"https://login.microsoftonline.com/{azureActiveDirTenant}/oauth2/token";
                     const string grantType = "client_credentials";
@@ -70,21 +67,24 @@ namespace DevOpsLib
 
                     HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, "");
                     // By default, if FormUrlEncodedContent() is used, the "Content-Type" is set to "application/x-www-form-urlencoded"
-                    // request.Content.Headers = new MediaTypeHeaderValue("application/x-www-form-urlencoded");
+                    // which can be explicitly written : request.Content.Headers = new MediaTypeHeaderValue("application/x-www-form-urlencoded");
                     request.Content = new FormUrlEncodedContent(requestBody);
 
-                    var response = await client.SendAsync(request).ConfigureAwait(false);
+                    HttpResponseMessage response = await client.SendAsync(request).ConfigureAwait(false);
                     response.EnsureSuccessStatusCode();
-                    var responseMsg = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    string responseMsg = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
                     AzureActiveDirectory.azureActiveDirTenant = azureActiveDirTenant;
                     AzureActiveDirectory.azureActiveDirClientId = azureActiveDirClientId;
                     AzureActiveDirectory.azureActiveDirClientSecret = azureActiveDirClientSecret;
                     AzureActiveDirectory.azureResource = azureResource;
 
-                    var responseJson = JObject.Parse(responseMsg);
-                    AzureActiveDirectory.accessTokenExpiration = DateTime.UtcNow.AddSeconds((double)responseJson["expires_on"]);
-                    AzureActiveDirectory.accessToken = (string)responseJson["access_token"];
+                    lock (locker)
+                    {
+                        var responseJson = JObject.Parse(responseMsg);
+                        AzureActiveDirectory.accessTokenExpiration = DateTime.UtcNow.AddSeconds((double)responseJson["expires_on"] - 1);
+                        AzureActiveDirectory.accessToken = (string)responseJson["access_token"];
+                    }
                 }
 
                 return AzureActiveDirectory.accessToken;
@@ -108,5 +108,10 @@ namespace DevOpsLib
                 AzureActiveDirectory.azureActiveDirClientId,
                 AzureActiveDirectory.azureActiveDirClientSecret,
                 azureResource);
+
+        static public bool IsAccessTokenExpired()
+        {
+            return DateTime.Compare(DateTime.UtcNow, AzureActiveDirectory.accessTokenExpiration) >= 0;
+        }
     }
 }

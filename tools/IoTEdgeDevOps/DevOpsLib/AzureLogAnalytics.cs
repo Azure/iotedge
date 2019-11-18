@@ -8,7 +8,7 @@ namespace DevOpsLib
     public sealed class AzureLogAnalytics
     {
         static readonly AzureLogAnalytics instance = new AzureLogAnalytics();
-        static readonly string apiVersion = "v1";
+        static const string apiVersion = "v1";
 
         // Explicit static constructor to tell C# compiler
         // not to mark type as beforefieldinit
@@ -34,6 +34,8 @@ namespace DevOpsLib
             string logAnalyticsWorkspaceId,
             string kqlQuery)
         {
+            ValidationUtil.ThrowIfNullOrWhiteSpace(logAnalyticsWorkspaceId, nameof(logAnalyticsWorkspaceId));
+
             try
             {
                 string requestUri = $"https://api.loganalytics.io/{AzureLogAnalytics.apiVersion}/workspaces/{logAnalyticsWorkspaceId}/query?query=";
@@ -42,7 +44,7 @@ namespace DevOpsLib
                 var client = new HttpClient();
                 client.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
 
-                var response = await client.GetAsync(requestUri + kqlQuery).ConfigureAwait(false);
+                var response = await client.GetAsync($"{requestUri}{kqlQuery}").ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
                 var responseMsg = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
