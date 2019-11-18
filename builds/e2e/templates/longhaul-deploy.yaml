@@ -70,5 +70,9 @@ steps:
           -twinUpdateCharCount "${{ parameters['twinTester.twinUpdateCharCount'] }}" \
           -twinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" \
           -twinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}" \
+          -edgeletBuildId "${{ parameters['edgelet.package.build'] }}" \
+          -edgeletBuildBranch "${{ parameters['edgelet.package.branchName'] }}" \
+          -moduleImageBuildId "${{ parameters['images.build'] }}" \
+          -moduleImageBuildBranch "${{ parameters['images.branchName'] }}" \
           -cleanAll
       workingDirectory: "$(Agent.HomeDirectory)/.."

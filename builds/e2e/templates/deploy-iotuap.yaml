@@ -122,5 +122,9 @@ steps:
           -TwinUpdateCharCount "${{ parameters['twinTester.twinUpdateCharCount'] }}" `
           -TwinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" `
           -TwinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}" `
+          -EdgeletBuildId "${{ parameters['edgelet.package.build'] }}" `
+          -EdgeletBuildBranch "${{ parameters['edgelet.package.branchName'] }}" `
+          -ModuleImageBuildId "${{ parameters['images.build'] }}" `
+          -ModuleImageBuildBranch "${{ parameters['images.branchName'] }}" `
           -BypassEdgeInstallation
       CommunicationProtocol: Http

@@ -68,5 +68,9 @@ steps:
           -AnalyzerLaLogType "${{ parameters['analyzer.logAnalytic.logType'] }}" `
           -TwinUpdateCharCount "${{ parameters['twinTester.twinUpdateCharCount'] }}" `
           -TwinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" `
-          -TwinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}"
+          -TwinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}" `
+          -EdgeletBuildId "${{ parameters['edgelet.package.build'] }}" `
+          -EdgeletBuildBranch "${{ parameters['edgelet.package.branchName'] }}" `
+          -ModuleImageBuildId "${{ parameters['images.build'] }}" `
+          -ModuleImageBuildBranch "${{ parameters['images.branchName'] }}"
       workingDirectory: "$(Agent.HomeDirectory)/.."
