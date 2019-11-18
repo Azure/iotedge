@@ -141,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_11_05
                     () => edgeletHttpClient.GetSystemResourcesAsync(this.Version.Name),
                     "Getting System Resources");
 
-                return new SystemResources(systemResources.Host_uptime, systemResources.Process_uptime, systemResources.Used_ram, systemResources.Total_ram, systemResources.Disks.Select(d => new Disk(d.Name, d.Available_space, d.Total_space, d.File_system, d.File_type)).ToArray(), systemResources.Docker_stats);
+                return new SystemResources(systemResources.Host_uptime, systemResources.Process_uptime, systemResources.Used_cpu, systemResources.Used_ram, systemResources.Total_ram, systemResources.Disks.Select(d => new Disk(d.Name, d.Available_space, d.Total_space, d.File_system, d.File_type)).ToArray(), systemResources.Docker_stats);
             }
         }
 

@@ -121,12 +121,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
         async Task Update()
         {
             SystemResources systemResources = await this.getSystemResources();
-            //Console.WriteLine($"\n\n\n{JsonConvert.SerializeObject(systemResources.ModuleStats)}\n\n\n");
 
             this.hostUptime.Set(systemResources.HostUptime, new string[] { });
             this.iotedgedUptime.Set(systemResources.IotEdgedUptime, new string[] { });
-            this.usedMemory.Set(systemResources.UsedRam, new string[] { "host" });
-            this.totalMemory.Set(systemResources.TotalRam, new string[] { "host" });
+
+            var hostTags = new string[] { "host" };
+            // edgelet sets used cpu to -1 on error
+            if (systemResources.UsedCpu > 0)
+            {
+                this.cpuPercentage.Update(systemResources.UsedCpu, hostTags);
+            }
+
+            this.usedMemory.Set(systemResources.UsedRam, hostTags);
+            this.totalMemory.Set(systemResources.TotalRam, hostTags);
 
             foreach (Disk disk in systemResources.Disks)
             {
@@ -142,8 +149,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             foreach (ModuleStats module in systemResources.ModuleStats)
             {
                 var tags = new string[] { module.module };
-                // TODO see about double histograms
-                this.cpuPercentage.Update((long)(this.GetCpuUsage(module) * 10000), tags);
+
+                this.cpuPercentage.Update(GetCpuUsage(module), tags);
                 this.totalMemory.Set(module.stats.memory_stats.limit, tags);
                 this.usedMemory.Set((long)module.stats.memory_stats.usage, tags);
                 this.createdPids.Set(module.stats.pids_stats.current, tags);
@@ -155,7 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             }
         }
 
-        double GetCpuUsage(ModuleStats module)
+        static double GetCpuUsage(ModuleStats module)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
