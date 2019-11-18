@@ -58,13 +58,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
     public class ModuleStats
     {
-        //TODO: change to moduleName
+        // TODO: change to moduleName
         public string module { get; set; }
         public DockerStats stats { get; set; }
     }
 
     public class DockerStats
     {
+        public Dictionary<string, DiskIO[]> blkio_stats { get; set; }
         public DockerCpuStats cpu_stats { get; set; }
         public DockerCpuStats precpu_stats { get; set; }
         public MemoryStats memory_stats { get; set; }
@@ -73,6 +74,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
         public PidsStats pids_stats { get; set; }
         public DateTime preread { get; set; }
         public DateTime read { get; set; }
+    }
+
+    public class DiskIO
+    {
+        public int major { get; set; }
+        public int minor { get; set; }
+        public string op { get; set; }
+        public int value { get; set; }
     }
 
     public class DockerCpuStats

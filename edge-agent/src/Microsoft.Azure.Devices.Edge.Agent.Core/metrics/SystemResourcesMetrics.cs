@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
     using System.Text;
@@ -22,12 +23,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
         IMetricsGauge hostUptime;
         IMetricsGauge iotedgedUptime;
-        IMetricsHistogram usedSpace;
+        IMetricsGauge usedSpace;
         IMetricsGauge totalSpace;
-        IMetricsHistogram usedMemory;
+        IMetricsGauge usedMemory;
         IMetricsGauge totalMemory;
         IMetricsHistogram cpuPercentage;
         IMetricsGauge createdPids;
+        IMetricsGauge networkIn;
+        IMetricsGauge networkOut;
+        IMetricsGauge diskRead;
+        IMetricsGauge diskWrite;
 
         public SystemResourcesMetrics(IMetricsProvider metricsProvider, Func<Task<SystemResources>> getSystemResources, string apiVersion)
         {
@@ -45,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                 "How long the host has been on",
                 new List<string> { }));
 
-            this.usedSpace = Preconditions.CheckNotNull(metricsProvider.CreateHistogram(
+            this.usedSpace = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
                 "available_disk_space_bytes",
                 "Amount of space left on the disk",
                 new List<string> { "disk_name", "disk_filesystem", "disk_filetype" }));
@@ -55,7 +60,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                 "Size of the disk",
                 new List<string> { "disk_name", "disk_filesystem", "disk_filetype" }));
 
-            this.usedMemory = Preconditions.CheckNotNull(metricsProvider.CreateHistogram(
+            this.usedMemory = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
                 "used_memory_bytes",
                 "Amount of RAM used by all processes",
                 new List<string> { "module" }));
@@ -73,6 +78,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             this.createdPids = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
                 "created_pids",
                 "The number of processes or threads the container has created",
+                new List<string> { "module" }));
+
+            this.networkIn = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
+                "total_network_in_bytes",
+                "The amount of bytes recieved from the network",
+                new List<string> { "module" }));
+
+            this.networkOut = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
+                "total_network_out_bytes",
+                "The amount of bytes sent to network",
+                new List<string> { "module" }));
+
+            this.diskRead = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
+                "total_disk_read_bytes",
+                "The amount of bytes read from the disk",
+                new List<string> { "module" }));
+
+            this.diskWrite = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
+                "total_disk_write_bytes",
+                "The amount of bytes written to disk",
                 new List<string> { "module" }));
         }
 
@@ -96,16 +121,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
         async Task Update()
         {
             SystemResources systemResources = await this.getSystemResources();
-            Console.WriteLine($"\n\n\n{JsonConvert.SerializeObject(systemResources.ModuleStats)}\n\n\n");
+            //Console.WriteLine($"\n\n\n{JsonConvert.SerializeObject(systemResources.ModuleStats)}\n\n\n");
 
             this.hostUptime.Set(systemResources.HostUptime, new string[] { });
             this.iotedgedUptime.Set(systemResources.IotEdgedUptime, new string[] { });
-            this.usedMemory.Update(systemResources.UsedRam, new string[] { "host" });
+            this.usedMemory.Set(systemResources.UsedRam, new string[] { "host" });
             this.totalMemory.Set(systemResources.TotalRam, new string[] { "host" });
 
             foreach (Disk disk in systemResources.Disks)
             {
-                this.usedSpace.Update(disk.AvailableSpace, new string[] { disk.Name, disk.FileSystem, disk.FileType });
+                this.usedSpace.Set(disk.AvailableSpace, new string[] { disk.Name, disk.FileSystem, disk.FileType });
                 this.totalSpace.Set(disk.TotalSpace, new string[] { disk.Name, disk.FileSystem, disk.FileType });
             }
 
@@ -120,11 +145,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                 // TODO see about double histograms
                 this.cpuPercentage.Update((long)(this.GetCpuUsage(module) * 10000), tags);
                 this.totalMemory.Set(module.stats.memory_stats.limit, tags);
-                this.usedMemory.Update((long)module.stats.memory_stats.usage, tags);
+                this.usedMemory.Set((long)module.stats.memory_stats.usage, tags);
                 this.createdPids.Set(module.stats.pids_stats.current, tags);
 
-                Console.WriteLine($"{module.module} cpu: {this.GetCpuUsage(module) * 100}.2f %");
-                Console.WriteLine($"{module.module} memory: {module.stats.memory_stats.usage / (double)module.stats.memory_stats.limit}.2f %");
+                this.networkIn.Set(module.stats.networks.Sum(n => n.Value.rx_bytes), tags);
+                this.networkOut.Set(module.stats.networks.Sum(n => n.Value.tx_bytes), tags);
+                this.diskRead.Set(module.stats.blkio_stats.Sum(io => io.Value.Where(d => d.op == "Read").Sum(d => d.value)), tags);
+                this.diskWrite.Set(module.stats.blkio_stats.Sum(io => io.Value.Where(d => d.op == "Write").Sum(d => d.value)), tags);
             }
         }
 
