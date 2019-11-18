@@ -16,6 +16,7 @@ use hyper::{Body, Chunk as HyperChunk, Client, Request};
 use lazy_static::lazy_static;
 use log::{debug, info, Level};
 use serde_json;
+use serde_json::json;
 use sysinfo::*; //{DiskExt, SystemExt, Process};
 use url::Url;
 
@@ -598,8 +599,8 @@ impl ModuleRuntime for DockerModuleRuntime {
 
     fn system_resources(&self) -> Self::SystemResourcesFuture {
         info!("Querying system resources...");
-
-        use serde_json::json;
+        let mut system_info = sysinfo::System::new();
+        system_info.refresh_all();
 
         let client = self.client.clone();
         let docker_stats = self
@@ -634,9 +635,6 @@ impl ModuleRuntime for DockerModuleRuntime {
                 })
             });
 
-        let mut system = sysinfo::System::new();
-        system.refresh_all();
-
         let uptime: u64 = uptime_lib::get()
             .map(|u| u.num_seconds())
             .unwrap_or_default()
@@ -647,9 +645,21 @@ impl ModuleRuntime for DockerModuleRuntime {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs();
-        let start_time = system.get_process_list()[&process::id().try_into().unwrap()].start_time();
+        let start_time =
+            system_info.get_process_list()[&process::id().try_into().unwrap()].start_time();
 
-        let disks = system
+        let used_cpu = system_info
+            .get_processor_list()
+            .iter()
+            .filter(|p| p.get_name() == "Total CPU")
+            .next()
+            .map(|p| p.get_cpu_usage())
+            .unwrap_or_else(|| -1.0);
+
+        let total_memory = system_info.get_total_memory();
+        let used_memory = system_info.get_used_memory();
+
+        let disks = system_info
             .get_disks()
             .iter()
             .map(|disk| {
@@ -667,14 +677,13 @@ impl ModuleRuntime for DockerModuleRuntime {
             SystemResources::new(
                 uptime,
                 current_time - start_time,
-                system.get_total_memory(),
-                system.get_used_memory(),
+                used_cpu.into(),
+                total_memory,
+                used_memory,
                 disks,
                 stats,
             )
         });
-
-        // let test_type: Box<dyn Future<Item = String, Error = Error>> = Box::new(docker_stats);
 
         Box::new(result)
     }

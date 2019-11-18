@@ -619,12 +619,18 @@ definitions:
     properties:
       host_uptime:
         type: integer
+        format: int64
       process_uptime:
         type: integer
+        format: int64
+      used_cpu:
+        type: number
       used_ram:
         type: integer
+        format: int64
       total_ram:
         type: integer
+        format: int64
       disks:
         type: array
         items:
@@ -634,6 +640,7 @@ definitions:
     required:
       - host_uptime
       - process_uptime
+      - used_cpu
       - used_ram
       - total_ram
       - disks
@@ -645,8 +652,10 @@ definitions:
         type: string
       available_space:
         type: integer
+        format: int64
       total_space:
         type: integer
+        format: int64
       file_system:
         type: string
       file_type:

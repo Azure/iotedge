@@ -383,10 +383,9 @@ impl SystemInfo {
 pub struct SystemResources {
     host_uptime: u64,
     process_uptime: u64,
-
+    used_cpu: f64,
     used_ram: u64,
     total_ram: u64,
-
     disks: Vec<DiskInfo>,
     docker_stats: String,
 }
@@ -395,6 +394,7 @@ impl SystemResources {
     pub fn new(
         host_uptime: u64,
         process_uptime: u64,
+        used_cpu: f64,
         used_ram: u64,
         total_ram: u64,
         disks: Vec<DiskInfo>,
@@ -403,6 +403,7 @@ impl SystemResources {
         SystemResources {
             host_uptime,
             process_uptime,
+            used_cpu,
             used_ram,
             total_ram,
             disks,

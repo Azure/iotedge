@@ -1691,6 +1691,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_11_05.Generate
         [Newtonsoft.Json.JsonProperty("process_uptime", Required = Newtonsoft.Json.Required.Always)]
         public long Process_uptime { get; set; }
 
+        [Newtonsoft.Json.JsonProperty("used_cpu", Required = Newtonsoft.Json.Required.Always)]
+        public double Used_cpu { get; set; }
+
         [Newtonsoft.Json.JsonProperty("used_ram", Required = Newtonsoft.Json.Required.Always)]
         public long Used_ram { get; set; }
 
@@ -1698,7 +1701,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_11_05.Generate
         public long Total_ram { get; set; }
 
         [Newtonsoft.Json.JsonProperty("disks", Required = Newtonsoft.Json.Required.Always)]
-        public System.Collections.Generic.ICollection<Disk> Disks { get; set; }
+        public System.Collections.Generic.ICollection<Disk> Disks { get; set; } = new System.Collections.ObjectModel.Collection<Disk>();
 
         [Newtonsoft.Json.JsonProperty("docker_stats", Required = Newtonsoft.Json.Required.Always)]
         public string Docker_stats { get; set; }
