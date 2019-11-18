@@ -64,10 +64,10 @@ namespace DevOpsLibTest
             set.Add(new AgentDemandSet("g2", new HashSet<AgentCapability> { new AgentCapability("c2", "v2") }));
 
             Assert.AreEqual(2, set.Count);
-            Assert.IsTrue(set.Contains(new AgentDemandSet("g1", new HashSet<AgentCapability> { new AgentCapability("c1", "v1") })));
-            Assert.IsTrue(set.Contains(new AgentDemandSet("g2", new HashSet<AgentCapability> { new AgentCapability("c2", "v2") })));
-            Assert.IsFalse(set.Contains(new AgentDemandSet("g2", new HashSet<AgentCapability> { new AgentCapability("cx", "v2") })));
-            Assert.IsFalse(set.Contains(new AgentDemandSet("gx", new HashSet<AgentCapability> { new AgentCapability("c2", "v2") })));
+            Assert.True(set.Contains(new AgentDemandSet("g1", new HashSet<AgentCapability> { new AgentCapability("c1", "v1") })));
+            Assert.True(set.Contains(new AgentDemandSet("g2", new HashSet<AgentCapability> { new AgentCapability("c2", "v2") })));
+            Assert.False(set.Contains(new AgentDemandSet("g2", new HashSet<AgentCapability> { new AgentCapability("cx", "v2") })));
+            Assert.False(set.Contains(new AgentDemandSet("gx", new HashSet<AgentCapability> { new AgentCapability("c2", "v2") })));
         }
 
         [Test]
@@ -76,7 +76,14 @@ namespace DevOpsLibTest
             var g1 = new AgentDemandSet("g1", new HashSet<AgentCapability> { new AgentCapability("c1", "v1") });
             var g2 = new AgentDemandSet("g1", new HashSet<AgentCapability> { new AgentCapability("c1", "v1") });
 
-            Assert.AreEqual(g1, g2);
+            Assert.False(g1.Equals(null));
+            Assert.True(g1.Equals(g1));
+            Assert.True(g1.Equals(g2));
+
+            Assert.False(g1.Equals((object)null));
+            Assert.True(g1.Equals((object) g1));
+            Assert.True(g1.Equals((object) g2));
+            Assert.False(g1.Equals(new object()));
         }
     }
 }
