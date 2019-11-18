@@ -150,6 +150,7 @@ $appProjectList.Add("DirectMethodSender.csproj")
 $appProjectList.Add("DirectMethodReceiver.csproj")
 $appProjectList.Add("DirectMethodCloudSender.csproj")
 $appProjectList.Add("ModuleRestarter.csproj")
+$appProjectList.Add("MetricsCollector.csproj")
 
 # Download latest rocksdb ARM32 library
 $rocksdbARMUri = "https://edgebuild.blob.core.windows.net/rocksdb/rocksdb-arm.dll"

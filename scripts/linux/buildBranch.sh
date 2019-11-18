@@ -252,6 +252,7 @@ publish_app "DirectMethodSender"
 publish_app "DirectMethodReceiver"
 publish_app "DirectMethodCloudSender"
 publish_app "ModuleRestarter"
+publish_app "MetricsCollector"
 
 publish_lib "Microsoft.Azure.WebJobs.Extensions.EdgeHub"
 publish_lib "EdgeHubTriggerCSharp"
