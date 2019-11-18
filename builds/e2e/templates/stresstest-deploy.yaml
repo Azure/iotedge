@@ -73,7 +73,7 @@ steps:
           -logAnalyticsEnabled "${{ parameters['analyzer.logAnalytics.enabled'] }}" \
           -logAnalyticsLogType "${{ parameters['analyzer.logAnalytics.logType'] }}" \
           -logAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" \
-          -logAnalyticSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" \
+          -logAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" \
           -cleanAll
         #Remove all pending jobs
         atrm $(atq | cut -f1)

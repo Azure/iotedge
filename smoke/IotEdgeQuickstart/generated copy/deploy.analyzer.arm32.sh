@@ -1,0 +1,2 @@
+docker build -t edgebuilds.azurecr.io/microsoft/azureiotedge-twin-tester:debug-arm32v7 --file /home/pi/Desktop/TwinTester/docker/linux/arm32v7/Dockerfile /home/pi/Desktop/TwinTester/bin/Debug/netcoreapp2.1/publish
+docker push edgebuilds.azurecr.io/microsoft/azureiotedge-twin-tester:debug-arm32v7
