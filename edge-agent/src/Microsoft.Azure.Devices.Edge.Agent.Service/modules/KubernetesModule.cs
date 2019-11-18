@@ -236,12 +236,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             this.proxyTrustBundlePath,
                             this.proxyTrustBundleVolumeName,
                             this.proxyTrustBundleConfigMapName,
+                            this.defaultMapServiceType,
                             this.persistentVolumeName,
                             this.storageClassName,
+                            this.persistentVolumeClaimSizeMb,
                             this.apiVersion,
                             this.workloadUri,
                             this.managementUri,
-                            this.runAsNonRoot))
+                            this.runAsNonRoot,
+                            this.enableServiceCallTracing,
+                            this.experimentalFeatures.GetEnvVars()))
                 .As<IKubernetesDeploymentMapper>();
 
             // KubernetesServiceMapper
