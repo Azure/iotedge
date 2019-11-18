@@ -46,13 +46,16 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
         public void SetDeviceManualX509(string hubhostname, string deviceId, string identityCertPath, string identity_pk_path)
         {
+            Uri certUri = new Uri(identityCertPath, UriKind.Absolute);
+            Uri pKeyUri = new Uri(identity_pk_path, UriKind.Absolute);
+
             this.config.RemoveIfExists("provisioning");
             this.config.ReplaceOrAdd("provisioning.source", "manual");
             this.config.ReplaceOrAdd("provisioning.authentication.method", "x509");
             this.config.ReplaceOrAdd("provisioning.authentication.iothub_hostname", hubhostname);
             this.config.ReplaceOrAdd("provisioning.authentication.device_id", deviceId);
-            this.config.ReplaceOrAdd("provisioning.authentication.identity_cert", @"file:///" + identityCertPath);
-            this.config.ReplaceOrAdd("provisioning.authentication.identity_pk", @"file:///" + identity_pk_path);
+            this.config.ReplaceOrAdd("provisioning.authentication.identity_cert", certUri.ToString());
+            this.config.ReplaceOrAdd("provisioning.authentication.identity_pk", pKeyUri.ToString());
         }
 
         public void SetDpsSymmetricKey(string idScope, string registrationId, string deviceKey)
