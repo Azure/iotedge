@@ -209,7 +209,7 @@
                 "value": "<LogAnalyticsEnabled>"
               },
               "LogAnalyticSharedKey": {
-                "value": "<LogAnalyticsSecret>"
+                "value": "<LogAnalyticsSharedKey>"
               },
               "LogAnalyticLogType": {
                 "value": "<Analyzer.LogAnalyticLogType>"
@@ -312,30 +312,6 @@
               "image": "<Container_Registry>/microsoft/azureiotedge-module-restarter:<Build.BuildNumber>-windows-<Architecture>"
             }
           },
-          "logspout": {
-            "settings": {
-                "image": "<Container_Registry>/microsoft/azureiotedge-logspout-loganalytics:<Build.BuildNumber>-windows-<Architecture>",
-                "createOptions": "{\"Cmd\":[\"loganalytics:\/\/\"],\"HostConfig\":{\"Binds\":[\"\/var\/run\/docker.sock:\/var\/run\/docker.sock\"]}}"
-            },
-            "type": "docker",
-            "version": "1.0",
-            "env": {
-                "BACKLOG": {
-                    "value": "false"
-                },
-                "LOGSPOUT": {
-                    "value": "ignore"
-                },
-                "LOGANALYTICS_WORKSPACE_ID": {
-                    "value": "<LogAnalyticsWorkspaceId>"
-                },
-                "LOGANALYTICS_WORKSPACE_SECRET": {
-                    "value": "<LogAnalyticsSecret>"
-                }
-            },
-            "status": "running",
-            "restartPolicy": "always"
-        },
         "metricsCollector": {
             "settings": {
                 "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-windows-<Architecture>",
@@ -348,7 +324,7 @@
                     "value": "<LogAnalyticsWorkspaceId>"
                 },
                 "AzMonWorkspaceKey": {
-                    "value": "<LogAnalyticsSecret>"
+                    "value": "<LogAnalyticsSharedKey>"
                 }
             },
             "status": "running",

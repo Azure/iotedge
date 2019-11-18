@@ -171,7 +171,7 @@
               },
               "ConsumerGroupId": {
                 "value": "<Analyzer.ConsumerGroupId>"
-              }, 
+              },
               "LogAnalyticEnabled": {
                 "value": "<Analyzer.LogAnalyticEnabled>"
               },
@@ -190,44 +190,20 @@
               "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"15000/tcp\":[{\"HostPort\":\"15000\"}]}}}"
             }
           },
-          "logspout": {
+          "metricsCollector": {
             "settings": {
-                "image": "<Container_Registry>/microsoft/azureiotedge-logspout-loganalytics:<Build.BuildNumber>-windows-<Architecture>",
-                "createOptions": "{\"Cmd\":[\"loganalytics:\/\/\"],\"HostConfig\":{\"Binds\":[\"\/var\/run\/docker.sock:\/var\/run\/docker.sock\"]}}"
+              "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-windows-<Architecture>",
+              "createOptions": ""
             },
             "type": "docker",
             "version": "1.0",
             "env": {
-                "BACKLOG": {
-                    "value": "false"
-                },
-                "LOGSPOUT": {
-                    "value": "ignore"
-                },
-                "LOGANALYTICS_WORKSPACE_ID": {
-                    "value": "<LogAnalyticsWorkspaceId>"
-                },
-                "LOGANALYTICS_WORKSPACE_SECRET": {
-                    "value": "<LogAnalyticsSecret>"
-                }
-            },
-            "status": "running",
-            "restartPolicy": "always"
-        },
-        "metricsCollector": {
-            "settings": {
-                "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-windows-<Architecture>",
-                "createOptions": ""
-            },
-            "type": "docker",
-            "version": "1.0",
-            "env": {
-                "AzMonWorkspaceId": {
-                    "value": "<LogAnalyticsWorkspaceId>"
-                },
-                "AzMonWorkspaceKey": {
-                    "value": "<LogAnalyticsSecret>"
-                }
+              "AzMonWorkspaceId": {
+                "value": "<LogAnalyticsWorkspaceId>"
+              },
+              "AzMonWorkspaceKey": {
+                "value": "<LogAnalyticsSharedKey>"
+              }
             },
             "status": "running",
             "restartPolicy": "always"
@@ -256,7 +232,7 @@
         "metricsFormat": "Json",
         "syncTarget": "AzureLogAnalytics",
         "endpoints": {
-            "edgeHub": "http://edgeHub:9600/metrics"
+          "edgeHub": "http://edgeHub:9600/metrics"
         }
       }
     }
