@@ -170,6 +170,10 @@ function prepare_test_from_artifacts() {
                 local escapedSnitchAlertUrl
                 local escapedBuildId
                 sed -i -e "s@<Analyzer.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.EdgeletBuildId>@$EDGELET_BUILD_ID@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.EdgeletBuildBranch>@$EDGELET_BUILD_BRANCH@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.ModuleImageBuildId>@$MODULE_IMAGE_BUILD_ID@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.ModuleImageBuildBranch>@$MODULE_IMAGE_BUILD_BRANCH@g" "$deployment_working_file"
                 sed -i -e "s@<Analyzer.LogAnalyticEnabled>@$ANALYZER_LA_ENABLED_STRING@g" "$deployment_working_file"
                 sed -i -e "s@<Analyzer.LogAnalyticWorkspaceId>@$ANALYZER_LA_WORKSPACE_ID@g" "$deployment_working_file"
                 sed -i -e "s@<Analyzer.LogAnalyticSharedKey>@$ANALYZER_LA_SHARED_KEY@g" "$deployment_working_file"
@@ -387,6 +391,18 @@ function process_args() {
         elif [ $saveNextArg -eq 38 ]; then
             TWIN_UPDATE_FAILURE_THRESHOLD="$arg"
             saveNextArg=0;
+        elif [ $saveNextArg -eq 39 ]; then
+            EDGELET_BUILD_ID="$arg"
+            saveNextArg=0;
+        elif [ $saveNextArg -eq 40 ]; then
+            EDGELET_BUILD_BRANCH="$arg"
+            saveNextArg=0;
+        elif [ $saveNextArg -eq 41 ]; then
+            MODULE_IMAGE_BUILD_ID="$arg"
+            saveNextArg=0;
+        elif [ $saveNextArg -eq 42 ]; then
+            MODULE_IMAGE_BUILD_BRANCH="$arg"
+            saveNextArg=0;
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -428,6 +444,10 @@ function process_args() {
                 '-twinUpdateCharCount' ) saveNextArg=36;;
                 '-twinUpdateFrequency' ) saveNextArg=37;;
                 '-twinUpdateFailureThreshold' ) saveNextArg=38;;
+                '-edgeletBuildId' ) saveNextArg=39;;
+                '-edgeletBuildBranch' ) saveNextArg=40;;
+                '-moduleImageBuildId' ) saveNextArg=41;;
+                '-moduleImageBuildBranch' ) saveNextArg=42;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -1020,6 +1040,10 @@ function usage() {
     echo ' -twinUpdateCharCount              Specifies the char count (i.e. size) of each twin update. Default is 1 for long haul and 100 for stress test.'
     echo ' -twinUpdateFrequency              Frequency to make twin updates. This should be specified in DateTime format. Default is 00:00:15 for long haul and 00:00:05 for stress test.'
     echo ' -twinUpdateFailureThreshold       Specifies the longest period of time a twin update can take before being marked as a failure. This should be specified in DateTime format. Default is 00:01:00'
+    echo ' -edgeletBuildId                   Optional Edgelet build ID to be used in Analyzer`s Log Analytic report.'
+    echo ' -edgeletBuildBranch               Optional Edgelet build branch to be used in Analyzer`s Log Analytic report.'
+    echo ' -moduleImageBuildId               Optional module images build ID to be used in Analyzer`s Log Analytic report.'
+    echo ' -moduleImageBuildBranch           Optional module images build branch to be used in Analyzer`s Log Analytic report.'
     exit 1;
 }
 

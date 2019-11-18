@@ -122,6 +122,18 @@
     .PARAMETER TwinUpdateFailureThreshold
         Specifies the longest period of time a twin update can take before being marked as a failure. This should be specified in DateTime format. Default is 00:01:00
 
+    .PARAMETER EdgeletBuildId
+        Optional Edgelet build ID to be used in Analyzer's Log Analytic report.
+
+    .PARAMETER EdgeletBuildBranch
+        Optional Edgelet build branch to be used in Analyzer's Log Analytic report.
+
+    .PARAMETER ModuleImageBuildId
+        Optional module images build ID to be used in Analyzer's Log Analytic report.
+
+    .PARAMETER ModuleImageBuildBranch
+        Optional module images build branch to be used in Analyzer's Log Analytic report.
+
     .EXAMPLE
         .\Run-E2ETest.ps1
             -E2ETestFolder "C:\Data\e2etests"
@@ -243,6 +255,14 @@ Param (
     [string] $EdgeE2ERootCACertRSAFile = $null,
 
     [string] $EdgeE2ERootCAKeyRSAFile = $null,
+    
+    [string] $EdgeletBuildId = $null,
+
+    [string] $EdgeletBuildBranch = $null,
+
+    [string] $ModuleImageBuildId = $null,
+
+    [string] $ModuleImageBuildBranch = $null,
 
     [ValidateNotNullOrEmpty()]
     [string] $EdgeE2ETestRootCAPassword = $null,
@@ -483,6 +503,10 @@ Function PrepareTestFromArtifacts
 
                 (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.EventHubConnectionString>',$EventHubConnectionString) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.ConsumerGroupId>',$EventHubConsumerGroupId) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.EdgeletBuildId>',$EdgeletBuildId) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.EdgeletBuildBranch>',$EdgeletBuildBranch) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.ModuleImageBuildId>',$ModuleImageBuildId) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.ModuleImageBuildBranch>',$ModuleImageBuildBranch) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.LogAnalyticEnabled>',$AnalyzerLaEnabled) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.LogAnalyticWorkspaceId>',$AnalyzerLaWorkspaceId) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.LogAnalyticSharedKey>',$AnalyzerLaSharedKey) | Set-Content $DeploymentWorkingFilePath

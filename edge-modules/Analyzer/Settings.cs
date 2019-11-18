@@ -25,10 +25,10 @@ namespace Analyzer
         const string LogAnalyticWorkspaceIdName = "LogAnalyticWorkspaceId";
         const string LogAnalyticSharedKeyName = "LogAnalyticSharedKey";
         const string LogAnalyticLogTypeName = "LogAnalyticLogType";
-        const string EdgeletBuildIdName = "EDGELET_BUILD_ID";
-        const string EdgeletBuildBranchName = "EDGELET_BUILD_BRANCH";
-        const string ModuleImageBuildIdName = "MODULE_IMAGE_BUILD_ID";
-        const string ModuleImageBuildBranchName = "MODULE_IMAGE_BUILD_BRANCH";
+        const string EdgeletBuildIdName = "EdgeletBuildId";
+        const string EdgeletBuildBranchName = "EdgeletBuildBranch";
+        const string ModuleImageBuildIdName = "ModuleImageBuildId";
+        const string ModuleImageBuildBranchName = "ModuleImageBuildBranch";
         static readonly Lazy<Settings> Setting = new Lazy<Settings>(
             () =>
             {

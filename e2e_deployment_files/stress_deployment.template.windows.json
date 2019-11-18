@@ -292,8 +292,17 @@
               "ConsumerGroupId": {
                 "value": "<Analyzer.ConsumerGroupId>"
               }, 
-              "LogAnalyticEnabled": {
-                "value": "<Analyzer.LogAnalyticEnabled>"
+              "EdgeletBuildId": {
+                "value": "<Analyzer.EdgeletBuildId>"
+              },
+              "EdgeletBuildBranch": {
+                "value": "<Analyzer.EdgeletBuildBranch>"
+              },
+              "ModuleImageBuildId": {
+                "value": "<Analyzer.ModuleImageBuildId>"
+              },
+              "ModuleImageBuildBranch": {
+                "value": "<Analyzer.ModuleImageBuildBranch>"
               },
               "LogAnalyticWorkspaceId": {
                 "value": "<Analyzer.LogAnalyticWorkspaceId>"

@@ -288,7 +288,19 @@
               },
               "ConsumerGroupId": {
                 "value": "<Analyzer.ConsumerGroupId>"
-              }, 
+              },
+              "EdgeletBuildId": {
+                "value": "<Analyzer.EdgeletBuildId>"
+              },
+              "EdgeletBuildBranch": {
+                "value": "<Analyzer.EdgeletBuildBranch>"
+              },
+              "ModuleImageBuildId": {
+                "value": "<Analyzer.ModuleImageBuildId>"
+              },
+              "ModuleImageBuildBranch": {
+                "value": "<Analyzer.ModuleImageBuildBranch>"
+              },
               "LogAnalyticEnabled": {
                 "value": "<Analyzer.LogAnalyticEnabled>"
               },
