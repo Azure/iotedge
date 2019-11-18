@@ -8,6 +8,6 @@ namespace IoTEdgeDashboard.Models
     {
         public AgentDemandSet Group { get; set; }
 
-        public List<IoTEdgeVstsAgent> Agents { get; set; }
+        public List<IoTEdgeAgent> Agents { get; set; }
     }
 }
