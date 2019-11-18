@@ -7,8 +7,7 @@ namespace DevOpsLib
 
     public class AgentMatrix
     {
-        
-
+        //TODO: consider to create OS Platform and architecture enum to replace below values
         readonly IList<AgentDemandSet> rows = new List<AgentDemandSet>()
         {
             new AgentDemandSet(
