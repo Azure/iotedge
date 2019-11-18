@@ -21,11 +21,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         DateTime startTime = DateTime.Now;
 
                         EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
-                        Context.Current.DeviceId,
-                        this.iotHub,
-                        AuthenticationType.Sas,
-                        null,
-                        token);
+                            Context.Current.DeviceId,
+                            this.iotHub,
+                            AuthenticationType.Sas,
+                            null,
+                            token);
 
                         Context.Current.DeleteList.TryAdd(device.Id, device);
 

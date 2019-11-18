@@ -29,11 +29,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         (this.Thumbprint, certs) = await this.CreateDeviceIdCertAsync(Context.Current.DeviceId, token);
 
                         EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
-                        Context.Current.DeviceId + "-x509",
-                        this.iotHub,
-                        AuthenticationType.SelfSigned,
-                        this.Thumbprint,
-                        token);
+                            Context.Current.DeviceId + "-x509",
+                            this.iotHub,
+                            AuthenticationType.SelfSigned,
+                            this.Thumbprint,
+                            token);
 
                         Context.Current.DeleteList.TryAdd(device.Id, device);
 

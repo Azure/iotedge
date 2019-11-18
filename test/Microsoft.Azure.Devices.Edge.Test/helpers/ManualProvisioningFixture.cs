@@ -61,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                     config.SetDeviceManualX509(device.HubHostname, device.Id, certPath, keyPath);
                     config.Update();
                     return Task.FromResult((
-                        "with connection string for device '{Identity}'",
+                        "with x509 certificate for device '{Identity}'",
                         new object[] { device.Id }));
                 },
                 token);
