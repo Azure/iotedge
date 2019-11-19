@@ -140,17 +140,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Logs
                 .Select(b => new ArraySegment<byte>(b.ToArray()));
 
         static Source<ArraySegment<byte>, AkkaNet.NotUsed> NonGroupingGzipMapper(Source<ArraySegment<byte>, AkkaNet.NotUsed> s) =>
-            s.Select(m => new ArraySegment<byte>(Compression.CompressToGzip(m)));
+            s.Select(m => new ArraySegment<byte>(Compression.CompressToGzip(m.ToArray())));
 
         static Source<ArraySegment<byte>, AkkaNet.NotUsed> GroupingGzipMapper(Source<ArraySegment<byte>, AkkaNet.NotUsed> s, LogsOutputGroupingConfig outputGroupingConfig) =>
             s.GroupedWithin(outputGroupingConfig.MaxFrames, outputGroupingConfig.MaxDuration)
-                .Select(
-                    b =>
-                    {
-                        var combinedArray = b.SelectMany(a => a).ToArray();
-                        return new ArraySegment<byte>(combinedArray);
-                    })
-                .Select(m => new ArraySegment<byte>(Compression.CompressToGzip(m)));
+                .Select(b => new ArraySegment<byte>(Compression.CompressToGzip(b.SelectMany(a => a).ToArray())));
 
         class GraphBuilder
         {

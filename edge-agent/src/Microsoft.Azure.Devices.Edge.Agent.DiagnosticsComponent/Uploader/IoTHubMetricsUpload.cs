@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
 {
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
@@ -19,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
 
         public async Task UploadAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
         {
-            IEnumerable<byte> data = RawMetric.MetricsToBytes(metrics);
+            byte[] data = RawMetric.MetricsToBytes(metrics).ToArray();
             byte[] compressedData = Compression.CompressToGzip(data);
 
             // TODO: add check for too big of a message
