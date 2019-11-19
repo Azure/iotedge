@@ -25,16 +25,16 @@ namespace IoTEdgeDashboard.Controllers
             IList<VstsAgent> agents = await agentManagement.GetAgentsAsync(AgentManagement.IoTEdgeAgentPoolId).ConfigureAwait(false);
 
             var agentMatrix = new AgentMatrix();
-            agentMatrix.Update(agents.Select(IoTEdgeVstsAgent.Create).ToHashSet());
+            agentMatrix.Update(agents.Select(IoTEdgeAgent.Create).ToHashSet());
 
             var viewModel = new AgentMatrixViewModel { AgentTable = agentMatrix };
-            List<IoTEdgeVstsAgent> unmatchedAgents = agentMatrix.GetUnmatchedAgents().ToList();
+            List<IoTEdgeAgent> unmatchedAgents = agentMatrix.GetUnmatchedAgents().ToList();
 
             // Image build
             viewModel.ImageBuild = new ImageBuildViewModel
             {
                 Group = new AgentDemandSet("Build Images", new HashSet<AgentCapability> { new AgentCapability("build-Image", "true") }),
-                Agents = new List<IoTEdgeVstsAgent>()
+                Agents = new List<IoTEdgeAgent>()
             };
 
             for (int i = unmatchedAgents.Count - 1; i >= 0; i--)

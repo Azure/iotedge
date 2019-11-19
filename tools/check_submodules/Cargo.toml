@@ -1,7 +1,9 @@
 [package]
 name = "check_submodules"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Azure IoT Edge Devs"]
+edition = "2018"
+
 
 [dependencies]
 clap = "2.32"

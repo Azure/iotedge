@@ -3,4 +3,4 @@ steps:
     displayName: Install .NET Core
     inputs:
       packageType: sdk
-      version: 3.0.100-preview5-011568
+      version: 3.0.100

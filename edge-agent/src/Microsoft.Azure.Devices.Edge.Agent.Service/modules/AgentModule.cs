@@ -297,7 +297,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
 
         async Task<IDbStoreProvider> BuildInMemoryDbStoreProvider(IComponentContext container)
         {
-            IDbStoreProvider dbStoreProvider = DbStoreProviderFactory.GetInMemoryDbStore();
+            IDbStoreProvider dbStoreProvider = DbStoreProviderFactory.GetInMemoryDbStore(Option.None<IStorageSpaceChecker>());
             if (this.useBackupAndRestore)
             {
                 var backupRestore = container.Resolve<IDataBackupRestore>();
