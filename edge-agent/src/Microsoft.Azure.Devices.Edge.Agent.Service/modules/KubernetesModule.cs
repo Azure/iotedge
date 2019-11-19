@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
         readonly bool enableServiceCallTracing;
         readonly string persistentVolumeName;
         readonly string storageClassName;
-        readonly uint persistentVolumeClaimSizeMb;
+        readonly Option<uint> persistentVolumeClaimSizeMb;
         readonly Option<IWebProxy> proxy;
         readonly bool closeOnIdleTimeout;
         readonly TimeSpan idleTimeout;
@@ -85,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
             bool enableServiceCallTracing,
             string persistentVolumeName,
             string storageClassName,
-            uint persistentVolumeClaimSizeMb,
+            Option<uint> persistentVolumeClaimSizeMb,
             Option<IWebProxy> proxy,
             bool closeOnIdleTimeout,
             TimeSpan idleTimeout,
@@ -236,12 +236,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                             this.proxyTrustBundlePath,
                             this.proxyTrustBundleVolumeName,
                             this.proxyTrustBundleConfigMapName,
+                            this.defaultMapServiceType,
                             this.persistentVolumeName,
                             this.storageClassName,
+                            this.persistentVolumeClaimSizeMb,
                             this.apiVersion,
                             this.workloadUri,
                             this.managementUri,
-                            this.runAsNonRoot))
+                            this.runAsNonRoot,
+                            this.enableServiceCallTracing,
+                            this.experimentalFeatures.GetEnvVars()))
                 .As<IKubernetesDeploymentMapper>();
 
             // KubernetesServiceMapper
@@ -249,7 +253,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 .As<IKubernetesServiceMapper>();
 
             // KubernetesPvcMapper
-            builder.Register(c => new KubernetesPvcMapper(this.persistentVolumeName, this.storageClassName, this.persistentVolumeClaimSizeMb))
+            builder.Register(c => new KubernetesPvcMapper(this.persistentVolumeName, this.storageClassName, this.persistentVolumeClaimSizeMb.OrDefault()))
                 .As<IKubernetesPvcMapper>();
 
             // KubernetesServiceAccountProvider
