@@ -12,4 +12,4 @@ COPY $EXE_DIR/ ./
 USER moduleuser
 
 CMD echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]"): Starting Module" && \
-    exec /usr/bin/dotnet Analyzer.dll
+    exec /usr/bin/dotnet TestAnalyzer.dll
