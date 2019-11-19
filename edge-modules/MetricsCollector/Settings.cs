@@ -24,19 +24,19 @@ namespace MetricsCollector
                     configuration.GetValue<string>("MessageIdentifier"),
                     configuration.GetValue<string>("AzMonWorkspaceId"),
                     configuration.GetValue<string>("AzMonWorkspaceKey"),
-                    configuration.GetValue<string>("AzMonCustomLogName", "promMetrics"));
+                    configuration.GetValue<string>("AzMonLogType", "edgeHubMetrics"));
             });
 
         Settings(
             string messageIdentifier,
             string azMonWorkspaceId,
             string azMonWorkspaceKey,
-            string azMonCustomLogName)
+            string azMonLogType)
         {
             this.MessageIdentifier = Preconditions.CheckNonWhiteSpace(messageIdentifier, nameof(messageIdentifier));
             this.AzMonWorkspaceId = Preconditions.CheckNonWhiteSpace(azMonWorkspaceId, nameof(azMonWorkspaceId));
             this.AzMonWorkspaceKey = Preconditions.CheckNonWhiteSpace(azMonWorkspaceKey, nameof(azMonWorkspaceKey));
-            this.AzMonCustomLogName = Preconditions.CheckNonWhiteSpace(azMonCustomLogName, nameof(azMonCustomLogName));
+            this.AzMonLogType = Preconditions.CheckNonWhiteSpace(azMonLogType, nameof(azMonLogType));
         }
 
         public static Settings Current => DefaultSettings.Value;
@@ -48,7 +48,7 @@ namespace MetricsCollector
         [JsonIgnore]
         public string AzMonWorkspaceKey { get; }
 
-        public string AzMonCustomLogName { get; }
+        public string AzMonLogType { get; }
 
         public override string ToString()
         {
