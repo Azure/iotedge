@@ -59,11 +59,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
         public void RemoveOldEntries(DateTime keepAfter)
         {
             this.GetData()
-            .Select(d => d.Key)
-            .Where(timestamp => timestamp <= keepAfter)
-            .Select(timestamp => Path.Combine(this.directory, timestamp.Ticks.ToString()))
-            .ToList()
-            .ForEach(File.Delete);
+                .Select(d => d.Key)
+                .Where(timestamp => timestamp <= keepAfter)
+                .Select(timestamp => Path.Combine(this.directory, timestamp.Ticks.ToString()))
+                .ToList()
+                .ForEach(File.Delete);
         }
 
         private string GetFile(long ticks)

@@ -35,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
         /// </summary>
         /// <param name="start">Only data stored after this value will be returned.</param>
         /// <param name="end">Only data stored before this value will be returned.</param>
-        /// <returns>Key is date stored and value is a function that retuens the stored data.</returns>
+        /// <returns>Dictionary where key is date stored and value is a function that retuens the stored data.</returns>
         IDictionary<DateTime, Func<string>> GetData(DateTime start, DateTime end);
 
         /// <summary>

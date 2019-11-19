@@ -11,13 +11,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
     using Moq;
     using Xunit;
 
-    public class FileStorageTests : IDisposable
+    public class MetricsFileStorageTest : IDisposable
     {
         DateTime fakeTime;
         ISystemTime systemTime;
         TempDirectory tempDirectory = new TempDirectory();
 
-        public FileStorageTests()
+        public MetricsFileStorageTest()
         {
             var systemTime = new Mock<ISystemTime>();
             this.fakeTime = new DateTime(100000000);
