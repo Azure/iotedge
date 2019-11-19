@@ -33,6 +33,7 @@ namespace DevOpsLib
 
         public static AzureActiveDirectory Instance => instance;
 
+        // GetAccessToken(4) is required to be called before invoking GetAccessToken(0), or GetAccessToken(1)
         // Trigger Azure Active Directory (AAD) for an OAuth2 client credential for an azure resource access.
         // API reference: https://dev.loganalytics.io/documentation/Authorization/OAuth2
         public async Task<string> GetAccessToken(
