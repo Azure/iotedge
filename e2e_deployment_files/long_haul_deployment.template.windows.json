@@ -311,7 +311,7 @@
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-module-restarter:<Build.BuildNumber>-windows-<Architecture>"
             }
-          },
+          }
         }
       }
     },
