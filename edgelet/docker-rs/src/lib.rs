@@ -8,7 +8,7 @@
     unused_imports,
     unused_mut
 )]
-#![allow(clippy::all, clippy::pedantic)]
+#![allow(clippy::all, clippy::pedantic, clippy::too_many_lines)]
 
 pub mod apis;
 pub mod models;

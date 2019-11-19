@@ -2,7 +2,11 @@
 
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
-#![allow(clippy::module_name_repetitions, clippy::use_self)]
+#![allow(
+    clippy::module_name_repetitions,
+    clippy::too_many_lines,
+    clippy::use_self
+)]
 
 use std::path::{Path, PathBuf};
 
