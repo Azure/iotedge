@@ -7,31 +7,48 @@ namespace MetricsCollector
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
     internal class Program
     {
-        private static readonly Version ExpectedSchemaVersion = new Version("1.0");
-        private static Timer ScrapingTimer;
+        static readonly Version ExpectedSchemaVersion = new Version("1.0");
+        static Timer ScrapingTimer;
+        static readonly ILogger Logger = ModuleUtil.CreateLogger("MetricsCollector");
 
-        private static void Main(string[] args)
+        public static int Main() => MainAsync().Result;
+
+        private static async Task<int> MainAsync()
         {
-            Init().Wait();
+            Logger.LogInformation($"Starting metrics collector with the following settings:\r\n{Settings.Current}");
+
+            await Init();
+
+            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
             // Wait until the app unloads or is cancelled
-            var cts = new CancellationTokenSource();
             AssemblyLoadContext.Default.Unloading += ctx => cts.Cancel();
             Console.CancelKeyPress += (sender, cpe) => cts.Cancel();
-            WhenCancelled(cts.Token).Wait();
+            await WhenCancelled(cts.Token, completed, handler);
+            Logger.LogInformation("MetricsCollector Main() finished.");
+            return 0;
         }
 
         /// <summary>
         ///     Handles cleanup operations when app is cancelled or unloads
         /// </summary>
-        public static Task WhenCancelled(CancellationToken cancellationToken)
+        public static Task WhenCancelled(CancellationToken cancellationToken, ManualResetEventSlim completed, Option<object> handler)
         {
             var tcs = new TaskCompletionSource<bool>();
-            cancellationToken.Register(s => ((TaskCompletionSource<bool>)s).SetResult(true), tcs);
+            cancellationToken.Register(
+                s => { 
+                    completed.Set();
+                    handler.ForEach(h => GC.KeepAlive(h));
+                    ((TaskCompletionSource<bool>)s).SetResult(true);
+                },
+                tcs);
             return tcs.Task;
         }
 
@@ -47,33 +64,21 @@ namespace MetricsCollector
             // Open a connection to the Edge runtime
             var ioTHubModuleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
             await ioTHubModuleClient.OpenAsync();
-            Console.WriteLine("IoT Hub module client initialized.");
+            Logger.LogInformation("IoT Hub module client initialized.");
 
-            var configuration = await GetConfiguration(ioTHubModuleClient);
-            Console.WriteLine($"Obtained configuration: {configuration}");
+            Configuration configuration = await GetConfiguration(ioTHubModuleClient);
+            Logger.LogInformation($"Obtained configuration: {configuration}");
 
-            var identifier = Environment.GetEnvironmentVariable("MessageIdentifier") ?? "IoTEdgeMetrics";
-            Console.WriteLine($"Using message identifier {identifier}");
-
-            var messageFormatter = new MessageFormatter(configuration.MetricsFormat, identifier);
+            var messageFormatter = new MessageFormatter(configuration.MetricsFormat, Settings.Current.MessageIdentifier);
             var scraper = new Scraper(configuration.Endpoints.Values.ToList());
 
             IMetricsSync metricsSync;
             if (configuration.SyncTarget == SyncTarget.AzureLogAnalytics)
             {
-                string workspaceId = Environment.GetEnvironmentVariable("AzMonWorkspaceId") ??
-                    Environment.GetEnvironmentVariable("azMonWorkspaceId") ?? // Workaround for IoT Edge k8s bug
-                    throw new Exception("AzMonWorkspaceId env var not set!");
-
-                string wKey = Environment.GetEnvironmentVariable("AzMonWorkspaceKey") ??
-                    Environment.GetEnvironmentVariable("azMonWorkspaceKey") ??
-                    throw new Exception("AzMonWorkspaceKey env var not set!");
-
-                string clName = Environment.GetEnvironmentVariable("AzMonCustomLogName") ??
-                    Environment.GetEnvironmentVariable("azMonCustomLogName") ??
-                    "promMetrics";
-
-                metricsSync = new LogAnalyticsMetricsSync(messageFormatter, scraper, new AzureLogAnalytics(workspaceId, wKey, clName));
+                string workspaceId = Settings.Current.AzMonWorkspaceId;
+                string workspaceKey = Settings.Current.AzMonWorkspaceKey;
+                string customLogName = Settings.Current.AzMonCustomLogName;
+                metricsSync = new LogAnalyticsMetricsSync(messageFormatter, scraper, new AzureLogAnalytics(workspaceId, workspaceKey, customLogName));
             }
             else
             {
@@ -93,7 +98,7 @@ namespace MetricsCollector
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Error scraping and syncing metrics to IoTHub - {e}");
+                Logger.LogError($"Error scraping and syncing metrics to IoTHub - {e}");
             }
         }
 
