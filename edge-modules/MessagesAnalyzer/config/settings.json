@@ -8,8 +8,8 @@
   "WebhostPort": "15000",
   "ToleranceInMilliseconds": 10000,
   "EventHubConnectionString": "",
-  "LogAnalyticEnabled" : "false",
-  "LogAnalyticWorkspaceId": "",
-  "LogAnalyticSharedKey": "", 
-  "LogAnalyticLogType": ""
+  "LogAnalyticsEnabled" : "false",
+  "LogAnalyticsWorkspaceId": "",
+  "LogAnalyticsSharedKey": "",
+  "LogAnalyticsLogType": ""
 }
