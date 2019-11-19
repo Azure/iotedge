@@ -187,7 +187,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         bool enableServiceCallTracing = configuration.GetValue<bool>(K8sConstants.EnableK8sServiceCallTracingName);
                         string persistentVolumeName = configuration.GetValue<string>(K8sConstants.PersistentVolumeNameKey);
                         string storageClassName = configuration.GetValue<string>(K8sConstants.StorageClassNameKey);
-                        uint persistentVolumeClaimDefaultSizeMb = configuration.GetValue<uint>(K8sConstants.PersistentVolumeClaimDefaultSizeInMbKey);
+                        Option<uint> persistentVolumeClaimDefaultSizeMb = Option.Maybe(configuration.GetValue<uint?>(K8sConstants.PersistentVolumeClaimDefaultSizeInMbKey));
                         string deviceNamespace = configuration.GetValue<string>(K8sConstants.K8sNamespaceKey);
                         var kubernetesExperimentalFeatures = KubernetesExperimentalFeatures.Create(configuration.GetSection("experimentalFeatures"), logger);
                         var moduleOwner = new KubernetesModuleOwner(
