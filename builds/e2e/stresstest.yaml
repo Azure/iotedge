@@ -83,7 +83,7 @@ jobs:
         parameters:
           release.label: 'st$(agent.group)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
-          edgelet.package.build: '$(edgelet.package.build)'
+          edgelet.package.build: '$(Agent.Name)'
           edgelet.package.branchName: '$(edgelet.package.branchName)'
           images.artifact.name: '$(images.artifact.name.linux)'
           images.build: '$(images.build)'
