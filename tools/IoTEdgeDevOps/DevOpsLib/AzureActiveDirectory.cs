@@ -20,7 +20,8 @@ namespace DevOpsLib
         DateTime accessTokenExpiration = new DateTime(DateTime.MinValue.Ticks);
         readonly object locker = new object();
 
-        public AzureActiveDirectory(string azureActiveDirTenant,
+        public AzureActiveDirectory(
+            string azureActiveDirTenant,
             string azureActiveDirClientId,
             string azureActiveDirClientSecret)
         {
