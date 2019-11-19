@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
         public void RawValuesSerialize()
         {
             var time = DateTime.UtcNow;
-            var testValues = Enumerable.Range(1, 10).Select(i => new RawMetricValue { TimeGeneratedUtc = time.AddHours(i), Value = this.rand.NextDouble() * 200 }).ToArray();
+            var testValues = Enumerable.Range(1, 10).Select(i => new RawMetricValue(time.AddHours(i), this.rand.NextDouble() * 200)).ToArray();
 
             byte[] data = RawMetricValue.RawValuesToBytes(testValues).ToArray();
             var reconstructedValues = RawMetricValue.BytesToRawValues(data, 0, testValues.Length).ToArray();

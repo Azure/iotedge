@@ -4,10 +4,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
 {
     using System;
     using System.Collections.Generic;
-    using System.Drawing;
     using System.IO;
     using System.Linq;
     using System.Text;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     /// <summary>
     /// Provides a way to serialize the datetime and value component of a metric.
@@ -15,8 +15,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     public class RawMetricValue
     {
         public const int Size = sizeof(long) + sizeof(double);
-        public DateTime TimeGeneratedUtc { get; set; }
-        public double Value { get; set; }
+
+        public RawMetricValue(DateTime timeGeneratedUtc, double value)
+        {
+            Preconditions.CheckArgument(timeGeneratedUtc.Kind == DateTimeKind.Utc);
+            this.TimeGeneratedUtc = Preconditions.CheckNotNull(timeGeneratedUtc, nameof(timeGeneratedUtc));
+            this.Value = Preconditions.CheckNotNull(value, nameof(value));
+        }
+
+        public DateTime TimeGeneratedUtc { get; }
+        public double Value { get; }
 
         public static IEnumerable<byte> RawValuesToBytes(IEnumerable<RawMetricValue> rawValues)
         {
@@ -42,11 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
                     throw new InvalidDataException("Error decoding metrics", e);
                 }
 
-                yield return new RawMetricValue
-                {
-                    TimeGeneratedUtc = new DateTime(ticks, DateTimeKind.Utc),
-                    Value = value
-                };
+                yield return new RawMetricValue(new DateTime(ticks, DateTimeKind.Utc), value);
             }
         }
     }
@@ -61,11 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
             return metrics.GroupBy(m => m.GetMetricKey()).SelectMany(x => MetricGroupsToBytes(
                 x.First().Name,
                 x.First().Tags,
-                x.Select(m => new RawMetricValue
-                {
-                    TimeGeneratedUtc = m.TimeGeneratedUtc,
-                    Value = m.Value
-                })));
+                x.Select(m => new RawMetricValue(m.TimeGeneratedUtc, m.Value))));
         }
 
         static IEnumerable<byte> MetricGroupsToBytes(string name, string tags, IEnumerable<RawMetricValue> rawValues)
