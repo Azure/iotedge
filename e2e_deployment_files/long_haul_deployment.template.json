@@ -308,24 +308,6 @@
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-module-restarter:<Build.BuildNumber>-linux-<Architecture>"
             }
-          },
-        "metricsCollector": {
-            "settings": {
-                "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
-                "createOptions": ""
-            },
-            "type": "docker",
-            "version": "1.0",
-            "env": {
-                "AzMonWorkspaceId": {
-                    "value": "<LogAnalyticsWorkspaceId>"
-                },
-                "AzMonWorkspaceKey": {
-                    "value": "<LogAnalyticsSharedKey>"
-                }
-            },
-            "status": "running",
-            "restartPolicy": "always"
           }
         }
       }

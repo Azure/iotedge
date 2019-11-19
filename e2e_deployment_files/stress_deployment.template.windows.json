@@ -189,24 +189,6 @@
               "image": "<Container_Registry>/microsoft/azureiotedge-analyzer:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"15000/tcp\":[{\"HostPort\":\"15000\"}]}}}"
             }
-          },
-          "metricsCollector": {
-            "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-windows-<Architecture>",
-              "createOptions": ""
-            },
-            "type": "docker",
-            "version": "1.0",
-            "env": {
-              "AzMonWorkspaceId": {
-                "value": "<LogAnalyticsWorkspaceId>"
-              },
-              "AzMonWorkspaceKey": {
-                "value": "<LogAnalyticsSharedKey>"
-              }
-            },
-            "status": "running",
-            "restartPolicy": "always"
           }
         }
       }
