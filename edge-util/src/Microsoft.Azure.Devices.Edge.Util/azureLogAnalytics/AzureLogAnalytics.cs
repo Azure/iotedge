@@ -2,14 +2,11 @@
 namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
 {
     using System;
-    using System.IO;
-    using System.Net;
     using System.Net.Http;
     using System.Net.Http.Headers;
     using System.Security.Cryptography;
     using System.Text;
     using Microsoft.Extensions.Logging;
-    using Newtonsoft.Json;
 
     /* Sample code from:
     /* https://github.com/veyalla/MetricsCollector/blob/master/modules/MetricsCollector/AzureLogAnalytics.cs

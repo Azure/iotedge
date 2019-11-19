@@ -78,10 +78,7 @@ namespace MetricsCollector
             IMetricsSync metricsSync;
             if (configuration.SyncTarget == SyncTarget.AzureLogAnalytics)
             {
-                string workspaceId = Settings.Current.AzMonWorkspaceId;
-                string workspaceKey = Settings.Current.AzMonWorkspaceKey;
-                string customLogName = Settings.Current.AzMonCustomLogName;
-                metricsSync = new LogAnalyticsMetricsSync(messageFormatter, scraper, new AzureLogAnalytics(workspaceId, workspaceKey, customLogName));
+                metricsSync = new LogAnalyticsMetricsSync(messageFormatter, scraper);
             }
             else
             {

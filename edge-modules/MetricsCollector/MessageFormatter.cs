@@ -24,9 +24,9 @@ namespace MetricsCollector
             this.identifier = identifier;
         }
 
-        public byte[] BuildJSON(string prometheusMessage)
+        public string BuildJSON(string prometheusMessage)
         {
-            return Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(this.GetMetricsDataList(prometheusMessage)));
+            return JsonConvert.SerializeObject(this.GetMetricsDataList(prometheusMessage));
         }
 
         public IList<Message> Build(string prometheusMessage)

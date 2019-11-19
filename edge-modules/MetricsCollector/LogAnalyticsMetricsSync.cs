@@ -4,18 +4,17 @@ namespace MetricsCollector
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics;
 
     class LogAnalyticsMetricsSync : IMetricsSync
     {
         readonly MessageFormatter messageFormatter;
         readonly Scraper scraper;
-        readonly AzureLogAnalytics logAnalytics;
 
-        public LogAnalyticsMetricsSync(MessageFormatter messageFormatter, Scraper scraper, AzureLogAnalytics logAnalytics)
+        public LogAnalyticsMetricsSync(MessageFormatter messageFormatter, Scraper scraper)
         {
             this.messageFormatter = messageFormatter ?? throw new ArgumentNullException(nameof(messageFormatter));
             this.scraper = scraper ?? throw new ArgumentNullException(nameof(scraper));
-            this.logAnalytics = logAnalytics;
         }
 
         public async Task ScrapeAndSync()
@@ -25,7 +24,10 @@ namespace MetricsCollector
                 IEnumerable<string> scrapedMetrics = await this.scraper.Scrape();
                 foreach (string scrape in scrapedMetrics)
                 {
-                    this.logAnalytics.Post(this.messageFormatter.BuildJSON(scrape));
+                    string workspaceId = Settings.Current.AzMonWorkspaceId;
+                    string workspaceKey = Settings.Current.AzMonWorkspaceKey;
+                    string customLogName = Settings.Current.AzMonCustomLogName;
+                    AzureLogAnalytics.Instance.PostAsync(workspaceId, workspaceKey, this.messageFormatter.BuildJSON(scrape), customLogName);
                 }
 
                 Console.WriteLine($"Sent metrics to LogAnalytics");
