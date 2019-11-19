@@ -20,7 +20,7 @@ namespace TestAnalyzer
 
         static async Task Main(string[] args)
         {
-            Logger.LogInformation($"Starting analyzer for [deviceId: {Settings.Current.DeviceId}] with [consumerGroupId: {Settings.Current.ConsumerGroupId}], exclude-modules: {string.Join(", ", Settings.Current.ExcludedModuleIds.ToArray())}");
+            Logger.LogInformation($"Starting analyzer with the following settings:\r\n{Settings.Current}");
 
             DateTime lastReceivedMessageTime = await LoadStartupTimeFromStorage();
             await ReceiveMessages(lastReceivedMessageTime);

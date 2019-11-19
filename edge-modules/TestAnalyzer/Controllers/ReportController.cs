@@ -14,7 +14,7 @@ namespace TestAnalyzer.Controllers
         public ActionResult<string> GetReport()
         {
             DeviceAnalysis deviceAnalysis = Reporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
-            if (Settings.Current.LogAnalyticEnabled)
+            if (Settings.Current.LogAnalyticsEnabled)
             {
                 this.PublishToLogAnalytics(deviceAnalysis);
             }
@@ -27,7 +27,7 @@ namespace TestAnalyzer.Controllers
         public ActionResult<string> GetMessages()
         {
             DeviceAnalysis deviceAnalysis = Reporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
-            if (Settings.Current.LogAnalyticEnabled)
+            if (Settings.Current.LogAnalyticsEnabled)
             {
                 this.PublishToLogAnalytics(deviceAnalysis);
             }
@@ -41,9 +41,9 @@ namespace TestAnalyzer.Controllers
             string twinsJson = JsonConvert.SerializeObject(deviceAnalysis.TwinsReport, Formatting.Indented);
             string directMethodsJson = JsonConvert.SerializeObject(deviceAnalysis.DmReport, Formatting.Indented);
 
-            string workspaceId = Settings.Current.LogAnalyticWorkspaceId;
-            string sharedKey = Settings.Current.LogAnalyticSharedKey;
-            string logType = Settings.Current.LogAnalyticLogType;
+            string workspaceId = Settings.Current.LogAnalyticsWorkspaceId;
+            string sharedKey = Settings.Current.LogAnalyticsSharedKey;
+            string logType = Settings.Current.LogAnalyticsLogType;
 
             // Upload the data to Log Analytics for our dashboards
             AzureLogAnalytics.Instance.PostAsync(

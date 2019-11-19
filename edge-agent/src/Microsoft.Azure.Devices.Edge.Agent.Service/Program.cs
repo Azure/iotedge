@@ -190,6 +190,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         uint persistentVolumeClaimDefaultSizeMb = configuration.GetValue<uint>(K8sConstants.PersistentVolumeClaimDefaultSizeInMbKey);
                         string deviceNamespace = configuration.GetValue<string>(K8sConstants.K8sNamespaceKey);
                         var kubernetesExperimentalFeatures = KubernetesExperimentalFeatures.Create(configuration.GetSection("experimentalFeatures"), logger);
+                        var moduleOwner = new KubernetesModuleOwner(
+                            configuration.GetValue<string>(K8sConstants.EdgeK8sObjectOwnerApiVersionKey),
+                            configuration.GetValue<string>(K8sConstants.EdgeK8sObjectOwnerKindKey),
+                            configuration.GetValue<string>(K8sConstants.EdgeK8sObjectOwnerNameKey),
+                            configuration.GetValue<string>(K8sConstants.EdgeK8sObjectOwnerUidKey));
+                        bool runAsNonRoot = configuration.GetValue<bool>(K8sConstants.RunAsNonRootKey);
 
                         builder.RegisterInstance(metricsConfig.Enabled
                                  ? new MetricsProvider("edgeagent", iothubHostname, deviceId)
@@ -222,7 +228,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                             proxy,
                             closeOnIdleTimeout,
                             idleTimeout,
-                            kubernetesExperimentalFeatures));
+                            kubernetesExperimentalFeatures,
+                            moduleOwner,
+                            runAsNonRoot));
 
                         break;
 

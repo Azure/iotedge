@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Azure.Devices.Routing.Core;
@@ -15,17 +16,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
         readonly Router router;
         readonly IMessageStore messageStore;
         readonly TimeSpan configUpdateFrequency;
+        readonly IStorageSpaceChecker storageSpaceChecker;
+
         readonly AsyncLock updateLock = new AsyncLock();
 
         Option<PeriodicTask> configUpdater;
         Option<EdgeHubConfig> currentConfig;
         Option<IConfigSource> configProvider;
 
-        public ConfigUpdater(Router router, IMessageStore messageStore, TimeSpan configUpdateFrequency)
+        public ConfigUpdater(Router router, IMessageStore messageStore, TimeSpan configUpdateFrequency, IStorageSpaceChecker storageSpaceChecker)
         {
             this.router = Preconditions.CheckNotNull(router, nameof(router));
             this.messageStore = messageStore;
             this.configUpdateFrequency = configUpdateFrequency;
+            this.storageSpaceChecker = Preconditions.CheckNotNull(storageSpaceChecker, nameof(storageSpaceChecker));
         }
 
         public async Task Init(IConfigSource configProvider)
@@ -129,6 +133,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Config
             if (storeAndForwardConfiguration != null)
             {
                 this.messageStore?.SetTimeToLive(storeAndForwardConfiguration.TimeToLive);
+
+                if (storeAndForwardConfiguration.StoreLimits.HasValue)
+                {
+                    storeAndForwardConfiguration.StoreLimits.ForEach(x => this.storageSpaceChecker.SetMaxSizeBytes(Option.Some(x.MaxSizeBytes)));
+                }
+                else
+                {
+                    this.storageSpaceChecker.SetMaxSizeBytes(Option.None<long>());
+                }
+
                 Events.UpdatedStoreAndForwardConfiguration();
             }
         }

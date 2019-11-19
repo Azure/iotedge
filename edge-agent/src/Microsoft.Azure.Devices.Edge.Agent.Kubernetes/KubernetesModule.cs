@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         static readonly CombinedKubernetesConfigEqualityComparer ConfigComparer = new CombinedKubernetesConfigEqualityComparer();
 
-        public KubernetesModule(IModule module, KubernetesConfig config)
+        public KubernetesModule(IModule module, KubernetesConfig config, KubernetesModuleOwner owner)
         {
             this.Name = module.Name;
             this.Version = module.Version;
@@ -26,6 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.Env = module.Env?.ToImmutableDictionary() ?? ImmutableDictionary<string, EnvVal>.Empty;
             this.ImagePullPolicy = module.ImagePullPolicy;
             this.Config = config;
+            this.Owner = owner;
         }
 
         [JsonConstructor]
@@ -38,7 +39,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             ConfigurationInfo configurationInfo,
             IDictionary<string, EnvVal> env,
             KubernetesConfig settings,
-            ImagePullPolicy imagePullPolicy)
+            ImagePullPolicy imagePullPolicy,
+            KubernetesModuleOwner owner)
         {
             this.Name = name;
             this.Version = version;
@@ -49,6 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.Env = env?.ToImmutableDictionary() ?? ImmutableDictionary<string, EnvVal>.Empty;
             this.Config = settings;
             this.ImagePullPolicy = imagePullPolicy;
+            this.Owner = owner;
         }
 
         [JsonProperty(PropertyName = "name")]
@@ -78,6 +81,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         [JsonProperty(PropertyName = "settings")]
         [JsonConverter(typeof(ObjectToStringConverter<KubernetesConfig>))]
         public KubernetesConfig Config { get; }
+
+        [JsonProperty(PropertyName = "owner")]
+        public KubernetesModuleOwner Owner { get; }
 
         public virtual bool Equals(IModule other) => this.Equals(other as KubernetesModule);
 
