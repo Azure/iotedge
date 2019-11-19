@@ -311,6 +311,24 @@
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-module-restarter:<Build.BuildNumber>-windows-<Architecture>"
             }
+          },
+          "metricsCollector": {
+            "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-windows-<Architecture>",
+                "createOptions": ""
+            },
+            "type": "docker",
+            "version": "1.0",
+            "env": {
+                "AzMonWorkspaceId": {
+                    "value": "<LogAnalyticsWorkspaceId>"
+                },
+                "AzMonWorkspaceKey": {
+                    "value": "<LogAnalyticsSharedKey>"
+                }
+            },
+            "status": "running",
+            "restartPolicy": "always"
           }
         }
       }
@@ -330,6 +348,17 @@
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 86400
+        }
+      }
+    },
+    "metricsCollector": {
+      "properties.desired": {
+        "schemaVersion": "1.0",
+        "scrapeFrequencySecs": "<LogAnalyticsScrapeFrequency>",
+        "metricsFormat": "Json",
+        "syncTarget": "AzureLogAnalytics",
+        "endpoints": {
+            "edgeHub": "http://edgeHub:9600/metrics"
         }
       }
     }
