@@ -351,7 +351,7 @@
     "metricsCollector": {
       "properties.desired": {
         "schemaVersion": "1.0",
-        "scrapeFrequencySecs": "<LogAnalyticsScrapeFrequency>",
+        "scrapeFrequencySecs": "<MetricsCollector.LogAnalyticsScrapeFrequency>",
         "metricsFormat": "Json",
         "syncTarget": "AzureLogAnalytics",
         "endpoints": {
