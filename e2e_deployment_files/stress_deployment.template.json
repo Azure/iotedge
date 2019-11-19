@@ -186,7 +186,7 @@
               "image": "<Container_Registry>/microsoft/azureiotedge-analyzer:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"15000/tcp\":[{\"HostPort\":\"15000\"}]}}}"
             }
-          },
+          }
         }
       }
     },
@@ -201,17 +201,6 @@
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 86400
-        }
-      }
-    },
-    "metricsCollector": {
-      "properties.desired": {
-        "schemaVersion": "1.0",
-        "scrapeFrequencySecs": "<LogAnalyticsScrapeFrequency>",
-        "metricsFormat": "Json",
-        "syncTarget": "AzureLogAnalytics",
-        "endpoints": {
-            "edgeHub": "http://edgeHub:9600/metrics"
         }
       }
     }
