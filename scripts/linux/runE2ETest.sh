@@ -170,12 +170,12 @@ function prepare_test_from_artifacts() {
 
                 local escapedSnitchAlertUrl
                 local escapedBuildId
-                sed -i -e "s@<Analyzer.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
-                sed -i -e "s@<Analyzer.LogAnalyticEnabled>@$ANALYZER_LA_ENABLED_STRING@g" "$deployment_working_file"
-                sed -i -e "s@<Analyzer.LogAnalyticWorkspaceId>@$ANALYZER_LA_WORKSPACE_ID@g" "$deployment_working_file"
-                sed -i -e "s@<Analyzer.LogAnalyticSharedKey>@$ANALYZER_LA_SHARED_KEY@g" "$deployment_working_file"
-                sed -i -e "s@<Analyzer.LogAnalyticLogType>@$ANALYZER_LA_LOGTYPE@g" "$deployment_working_file"
                 sed -i -e "s@<Analyzer.ConsumerGroupId>@$EVENT_HUB_CONSUMER_GROUP_ID@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.LogAnalyticsEnabled>@$LOG_ANALYTICS_ENABLED@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.LogAnalyticsLogType>@$LOG_ANALYTICS_LOG_TYPE@g" "$deployment_working_file"
+                sed -i -e "s@<LogAnalyticsWorkspaceId>@$LOG_ANALYTICS_WORKSPACE_ID@g" "$deployment_working_file"
+                sed -i -e "s@<LogAnalyticsSharedKey>@$LOG_ANALYTICS_SHARED_KEY@g" "$deployment_working_file"
                 sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
                 escapedSnitchAlertUrl="${SNITCH_ALERT_URL//&/\\&}"
                 escapedBuildId="${ARTIFACT_IMAGE_BUILD_NUMBER//./}"
@@ -364,16 +364,16 @@ function process_args() {
             RESTART_INTERVAL_IN_MINS="$arg"
             saveNextArg=0;
         elif [ $saveNextArg -eq 32 ]; then
-            ANALYZER_LA_ENABLED_STRING="$arg"
+            LOG_ANALYTICS_ENABLED="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 33 ]; then
-            ANALYZER_LA_WORKSPACE_ID="$arg"
+            LOG_ANALYTICS_WORKSPACE_ID="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 34 ]; then
-            ANALYZER_LA_SHARED_KEY="$arg"
+            LOG_ANALYTICS_SHARED_KEY="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 35 ]; then
-            ANALYZER_LA_LOGTYPE="$arg"
+            LOG_ANALYTICS_LOG_TYPE="$arg"
             saveNextArg=0
         else
             case "$arg" in
@@ -409,10 +409,10 @@ function process_args() {
                 '-eventHubConsumerGroupId' ) saveNextArg=29;;
                 '-desiredModulesToRestartCSV' ) saveNextArg=30;;
                 '-restartIntervalInMins' ) saveNextArg=31;;
-                '-analyzerLaEnabled' ) saveNextArg=32;;
-                '-analyzerLaWorkspaceId' ) saveNextArg=33;;
-                '-analyzerLaSharedKey' ) saveNextArg=34;;
-                '-analyzerLaLogType' ) saveNextArg=35;;
+                '-logAnalyticsEnabled' ) saveNextArg=32;;
+                '-logAnalyticsWorkspaceId' ) saveNextArg=33;;
+                '-logAnalyticsSharedKey' ) saveNextArg=34;;
+                '-logAnalyticsLogType' ) saveNextArg=35;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -427,11 +427,11 @@ function process_args() {
     [[ -z "$CONTAINER_REGISTRY_PASSWORD" ]] && { print_error 'Container registry password is required'; exit 1; }
     [[ -z "$IOTHUB_CONNECTION_STRING" ]] && { print_error 'IoT hub connection string is required'; exit 1; }
     [[ -z "$EVENTHUB_CONNECTION_STRING" ]] && { print_error 'Event hub connection string is required'; exit 1; }
-    [[ -z "$ANALYZER_LA_ENABLED_STRING" ]] && { ANALYZER_LA_ENABLED_STRING="false"; }
-    [[ "$ANALYZER_LA_ENABLED_STRING" == true ]] && \
-    {  [[ -z "$ANALYZER_LA_WORKSPACE_ID" ]] && { print_error 'Analyzer Log Analytic Workspace ID is required'; exit 1; }; \
-       [[ -z "$ANALYZER_LA_SHARED_KEY" ]] && { print_error 'Analyzer Log Analytic Shared Key is required'; exit 1; }; \
-       [[ -z "$ANALYZER_LA_LOGTYPE" ]] && { print_error 'Analyzer Log Analytic Log Type is required'; exit 1; }; }
+    [[ -z "$LOG_ANALYTICS_ENABLED" ]] && { LOG_ANALYTICS_ENABLED="false"; }
+    [[ "$LOG_ANALYTICS_ENABLED" == true ]] && \
+    {  [[ -z "$LOG_ANALYTICS_WORKSPACE_ID" ]] && { print_error 'Log Analytics Workspace ID is required'; exit 1; }; \
+       [[ -z "$LOG_ANALYTICS_SHARED_KEY" ]] && { print_error 'Log Analytics secret is required'; exit 1; }; \
+       [[ -z "$LOG_ANALYTICS_LOG_TYPE" ]] && { print_error 'Log Analytics Log Type is required'; exit 1; }; }
 
     echo 'Required parameters are provided'
 }
@@ -975,12 +975,11 @@ function usage() {
     echo ' -containerRegistryPassword      Password of given username for container registory.'
     echo ' -iotHubConnectionString         IoT hub connection string for creating edge device.'
     echo ' -eventHubConnectionString       Event hub connection string for receive D2C messages.'
-    echo ' -eventHubConsumerGroup          An existing consumer group id for D2C messages.'
     echo ' -loadGenMessageFrequency        Frequency to send messages in LoadGen module for long haul and stress test. Default is 00.00.01 for long haul and 00:00:00.03 for stress test.'
     echo ' -snitchAlertUrl                 Alert Url pointing to Azure Logic App for email preparation and sending for long haul and stress test.'
     echo ' -snitchBuildNumber              Build number for snitcher docker image for long haul and stress test. Default is 1.1.'
     echo ' -snitchReportingIntervalInSecs  Reporting frequency in seconds to send status email for long hual and stress test. Default is 86400 (1 day) for long haul and 1700000 for stress test.'
-    echo ' -snitchStorageAccount           Azure blob Sstorage account for store logs used in status email for long haul and stress test.'
+    echo ' -snitchStorageAccount           Azure blob Storage account for store logs used in status email for long haul and stress test.'
     echo ' -snitchStorageMasterKey         Master key of snitch storage account for long haul and stress test.'
     echo ' -snitchTestDurationInSecs       Test duration in seconds for long haul and stress test.'
     echo ' -loadGen1TransportType          Transport type for LoadGen1 for stress test. Default is amqp.'
@@ -995,13 +994,13 @@ function usage() {
     echo ' -installRootCACertPath          Optional path to root CA certificate to be used for certificate generation'
     echo ' -installRootCAKeyPath           Optional path to root CA certificate private key to be used for certificate generation'
     echo ' -installRootCAKeyPassword       Optional password to access the root CA certificate private key to be used for certificate generation'
-    echo ' -eventHubConsumerGroupId        Optional Event Hub Consumer Group ID for the Message Analyzer module.'
+    echo ' -eventHubConsumerGroupId        Optional Event Hub Consumer Group ID for the Analyzer module.'
     echo ' -desiredModulesToRestartCSV     Optional CSV string of module names for long haul specifying what modules to restart. If specified, then "restartIntervalInMins" must be specified as well.'
     echo ' -restartIntervalInMins          Optional value for long haul specifying how often a random module will restart. If specified, then "desiredModulesToRestartCSV" must be specified as well.'
-    echo ' -analyzerLaEnabled              Optional Log Analytics enable string for the Message Analyzer module. If analyzerLaEnabled is set to enable (true), the rest of Log Analytics parameters must be provided.'
-    echo ' -analyzerLaWorkspaceId          Optional Log Analytics workspace ID for the Message Analyzer module.'
-    echo ' -analyzerLaSharedKey            Optional Log Analytics shared key for the Message Analyzer module.'
-    echo ' -analyzerLaLogType              Optional Log Analytics log type for the Message Analyzer module.'
+    echo ' -logAnalyticsEnabled            Optional Log Analytics enable string for the Analyzer module. If logAnalyticsEnabled is set to enable (true), the rest of Log Analytics parameters must be provided.'
+    echo ' -logAnalyticsWorkspaceId        Optional Log Analytics workspace ID for metrics collection and reporting.'
+    echo ' -logAnalyticsSharedKey          Optional Log Analytics shared key for metrics collection and reporting.'
+    echo ' -logAnalyticsLogType            Optional Log Analytics log type for the Analyzer module.'
     exit 1;
 }
 
