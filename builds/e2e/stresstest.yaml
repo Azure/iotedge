@@ -26,6 +26,7 @@ variables:
   #run.linux.arm64v8.docker: 'true/false'
   #run.windows.amd64.moby: 'true/false'
   #snitch.build.number: '1.1'
+  #metricsCollector.scrapeFrequency: 'xx:xx:xx.xx'
 
 jobs:
 ################################################################################
@@ -96,6 +97,7 @@ jobs:
           analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          metricsCollector.scrapeFrequency: '$(metricsCollector.scrapeFrequency)'
 
 ################################################################################
   - job: linux_arm32v7_moby
@@ -166,6 +168,7 @@ jobs:
           analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          metricsCollector.scrapeFrequency: '$(metricsCollector.scrapeFrequency)'
 
 ################################################################################
   - job: linux_arm64v8_docker
@@ -236,6 +239,7 @@ jobs:
           analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          metricsCollector.scrapeFrequency: '$(metricsCollector.scrapeFrequency)'
 
 ################################################################################
   - job: windows_amd64_moby
@@ -308,6 +312,7 @@ jobs:
           analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          metricsCollector.scrapeFrequency: '$(metricsCollector.scrapeFrequency)'
 
 ################################################################################
   - job: windows_servercore_amd64_moby
@@ -380,6 +385,7 @@ jobs:
           analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          metricsCollector.scrapeFrequency: '$(metricsCollector.scrapeFrequency)'
 
 ################################################################################
   - job: iotuap_amd64_moby
@@ -451,3 +457,4 @@ jobs:
           analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          metricsCollector.scrapeFrequency: '$(metricsCollector.scrapeFrequency)'
