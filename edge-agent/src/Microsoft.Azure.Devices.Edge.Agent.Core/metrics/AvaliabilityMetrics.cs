@@ -15,12 +15,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
     {
         readonly IMetricsGauge running;
         readonly IMetricsGauge expectedRunning;
-        readonly ISystemTime time;
-        readonly ILogger log = Logger.Factory.CreateLogger<Availability>();
+        readonly ISystemTime systemTime;
+        readonly ILogger log = Logger.Factory.CreateLogger<AvailabilityMetrics>();
 
         // This allows edgeAgent to track its own avaliability. If edgeAgent shutsdown unexpectedly, it can look at the last checkpoint time to determine its previous avaliability.
         readonly TimeSpan checkpointFrequency = TimeSpan.FromMinutes(5);
-        readonly PeriodicTask checkpoint;
+        readonly PeriodicTask updateCheckpointFile;
         readonly string checkpointFile = "avaliability_checkpoint";
 
         readonly List<Availability> availabilities;
@@ -28,10 +28,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
         public AvailabilityMetrics(IMetricsProvider metricsProvider, ISystemTime time = null)
         {
-            this.time = time ?? SystemTime.Instance;
+            this.systemTime = time ?? SystemTime.Instance;
             this.availabilities = new List<Availability>();
-            this.edgeAgent = new Lazy<Availability>(() => new Availability(Constants.EdgeAgentModuleName, this.CalculateEdgeAgentDowntime(), this.time));
+            this.edgeAgent = new Lazy<Availability>(() => new Availability(Constants.EdgeAgentModuleName, this.CalculateEdgeAgentDowntime(), this.systemTime));
 
+            Preconditions.CheckNotNull(metricsProvider, nameof(metricsProvider));
             this.running = metricsProvider.CreateGauge(
                 "total_time_running_correctly_seconds",
                 "The amount of time the module was specified in the deployment and was in the running state",
@@ -42,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                 "The amount of time the module was specified in the deployment",
                 new List<string> { "module_name" });
 
-            this.checkpoint = new PeriodicTask(this.NoteCurrentTime, this.checkpointFrequency, this.checkpointFrequency, this.log, "Checkpoint Availability");
+            this.updateCheckpointFile = new PeriodicTask(this.UpdateCheckpointFile, this.checkpointFrequency, this.checkpointFrequency, this.log, "Checkpoint Availability");
         }
 
         public void ComputeAvailability(ModuleSet desired, ModuleSet current)
@@ -93,17 +94,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             /* Add new modules to track */
             foreach (string module in down.Union(up))
             {
-                this.availabilities.Add(new Availability(module, this.time));
+                this.availabilities.Add(new Availability(module, this.systemTime));
             }
         }
 
         public void Dispose()
         {
-            this.checkpoint.Dispose();
+            this.updateCheckpointFile.Dispose();
         }
 
         /*
-         * The Logic below handles edgeAgent's own avaliability. It keeps a checkpoint file containint the current timestamp
+         * The Logic below handles edgeAgent's own avaliability. It keeps a checkpoint file containing the current timestamp
          *  that it updates every 5 minutes. On a clean shutdown, it deletes this file to indicate it shouldn't be running. If agent crashes
          *  or returns a non-zero code, it leaves the file. On startup, if the file exists, agent knows it shutdown incorrectly \
          *  and can calculate its downtime using the timestamp in the file.
@@ -127,8 +128,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                 if (File.Exists(this.checkpointFile))
                 {
                     long ticks = long.Parse(File.ReadAllText(this.checkpointFile));
-                    DateTime checkpointTime = new DateTime(ticks);
-                    return this.time.UtcNow - checkpointTime;
+                    DateTime checkpointTime = new DateTime(ticks, DateTimeKind.Utc);
+                    return this.systemTime.UtcNow - checkpointTime;
                 }
             }
             catch (Exception ex)
@@ -139,9 +140,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             return TimeSpan.Zero;
         }
 
-        Task NoteCurrentTime()
+        Task UpdateCheckpointFile()
         {
-            File.WriteAllText(this.checkpointFile, this.time.UtcNow.Ticks.ToString());
+            File.WriteAllText(this.checkpointFile, this.systemTime.UtcNow.Ticks.ToString());
             return Task.CompletedTask;
         }
     }

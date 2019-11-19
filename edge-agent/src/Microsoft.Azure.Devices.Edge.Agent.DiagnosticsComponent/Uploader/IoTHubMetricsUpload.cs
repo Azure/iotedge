@@ -23,8 +23,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
             byte[] compressedData = Compression.CompressToGzip(data);
 
             // TODO: add check for too big of a message
-            Message message = new Message(compressedData);
-            await this.moduleClient.SendEventAsync(message);
+            if (compressedData.Length > 0)
+            {
+                Message message = new Message(compressedData);
+                await this.moduleClient.SendEventAsync(message);
+            }
         }
     }
 }
