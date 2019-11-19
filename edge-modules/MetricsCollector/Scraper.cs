@@ -1,3 +1,4 @@
+// Copyright (c) Microsoft. All rights reserved.
 namespace MetricsCollector
 {
     using System;
@@ -51,6 +52,7 @@ namespace MetricsCollector
                 Console.WriteLine($"Got metrics from endpoint {endpoint}");
                 metrics.Add(metricsData);
             }
+
             return metrics;
         }
 

@@ -1,3 +1,4 @@
+// Copyright (c) Microsoft. All rights reserved.
 namespace MetricsCollector
 {
     using System;
@@ -9,14 +10,15 @@ namespace MetricsCollector
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
     internal class Program
     {
         static readonly Version ExpectedSchemaVersion = new Version("1.0");
-        static Timer ScrapingTimer;
         static readonly ILogger Logger = ModuleUtil.CreateLogger("MetricsCollector");
+        static Timer scrapingTimer;
 
         public static int Main() => MainAsync().Result;
 
@@ -41,9 +43,10 @@ namespace MetricsCollector
         /// </summary>
         public static Task WhenCancelled(CancellationToken cancellationToken, ManualResetEventSlim completed, Option<object> handler)
         {
-            var tcs = new TaskCompletionSource<bool>();
+            TaskCompletionSource<bool> tcs = new TaskCompletionSource<bool>();
             cancellationToken.Register(
-                s => { 
+                s =>
+                {
                     completed.Set();
                     handler.ForEach(h => GC.KeepAlive(h));
                     ((TaskCompletionSource<bool>)s).SetResult(true);
@@ -58,19 +61,19 @@ namespace MetricsCollector
         /// </summary>
         private static async Task Init()
         {
-            var mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
+            MqttTransportSettings mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
             ITransportSettings[] settings = { mqttSetting };
 
             // Open a connection to the Edge runtime
-            var ioTHubModuleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
+            ModuleClient ioTHubModuleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
             await ioTHubModuleClient.OpenAsync();
             Logger.LogInformation("IoT Hub module client initialized.");
 
             Configuration configuration = await GetConfiguration(ioTHubModuleClient);
             Logger.LogInformation($"Obtained configuration: {configuration}");
 
-            var messageFormatter = new MessageFormatter(configuration.MetricsFormat, Settings.Current.MessageIdentifier);
-            var scraper = new Scraper(configuration.Endpoints.Values.ToList());
+            MessageFormatter messageFormatter = new MessageFormatter(configuration.MetricsFormat, Settings.Current.MessageIdentifier);
+            Scraper scraper = new Scraper(configuration.Endpoints.Values.ToList());
 
             IMetricsSync metricsSync;
             if (configuration.SyncTarget == SyncTarget.AzureLogAnalytics)
@@ -84,16 +87,16 @@ namespace MetricsCollector
             {
                 metricsSync = new IoTHubMetricsSync(messageFormatter, scraper, ioTHubModuleClient);
             }
-            
-            var scrapingInterval = TimeSpan.FromSeconds(configuration.ScrapeFrequencySecs);
-            ScrapingTimer = new Timer(ScrapeAndSync, metricsSync, scrapingInterval, scrapingInterval);
+
+            TimeSpan scrapingInterval = TimeSpan.FromSeconds(configuration.ScrapeFrequencySecs);
+            scrapingTimer = new Timer(ScrapeAndSync, metricsSync, scrapingInterval, scrapingInterval);
         }
 
         private static async void ScrapeAndSync(object context)
         {
             try
             {
-                var metricsSync = (IMetricsSync)context;
+                IMetricsSync metricsSync = (IMetricsSync)context;
                 await metricsSync.ScrapeAndSync();
             }
             catch (Exception e)
@@ -104,9 +107,9 @@ namespace MetricsCollector
 
         private static async Task<Configuration> GetConfiguration(ModuleClient ioTHubModuleClient)
         {
-            var twin = await ioTHubModuleClient.GetTwinAsync();
-            var desiredPropertiesJson = twin.Properties.Desired.ToJson();
-            var configuration = JsonConvert.DeserializeObject<Configuration>(desiredPropertiesJson);
+            Twin twin = await ioTHubModuleClient.GetTwinAsync();
+            string desiredPropertiesJson = twin.Properties.Desired.ToJson();
+            Configuration configuration = JsonConvert.DeserializeObject<Configuration>(desiredPropertiesJson);
             if (ExpectedSchemaVersion.CompareMajorVersion(configuration.SchemaVersion, "logs upload request schema") !=
                 0)
                 throw new InvalidOperationException($"Payload schema version is not valid - {desiredPropertiesJson}");

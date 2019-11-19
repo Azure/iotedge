@@ -1,4 +1,5 @@
-﻿namespace MetricsCollector
+﻿// Copyright (c) Microsoft. All rights reserved.
+namespace MetricsCollector
 {
     using System.Threading.Tasks;
 

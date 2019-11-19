@@ -1,4 +1,5 @@
-﻿namespace MetricsCollector
+﻿// Copyright (c) Microsoft. All rights reserved.
+namespace MetricsCollector
 {
     using System;
     using System.Collections.Generic;
@@ -22,10 +23,11 @@
             try
             {
                 IEnumerable<string> scrapedMetrics = await this.scraper.Scrape();
-                foreach (var scrape in scrapedMetrics)
+                foreach (string scrape in scrapedMetrics)
                 {
-                    logAnalytics.Post(this.messageFormatter.BuildJSON(scrape));
+                    this.logAnalytics.Post(this.messageFormatter.BuildJSON(scrape));
                 }
+
                 Console.WriteLine($"Sent metrics to LogAnalytics");
             }
             catch (Exception e)

@@ -1,13 +1,14 @@
+// Copyright (c) Microsoft. All rights reserved.
 namespace MetricsCollector
 {
-    using Microsoft.Azure.Devices.Client;
-    using Newtonsoft.Json;
     using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
     using System.Text;
     using System.Text.RegularExpressions;
+    using Microsoft.Azure.Devices.Client;
+    using Newtonsoft.Json;
 
     public class MessageFormatter
     {
@@ -25,22 +26,22 @@ namespace MetricsCollector
 
         public byte[] BuildJSON(string prometheusMessage)
         {
-            return Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(GetMetricsDataList(prometheusMessage)));
+            return Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(this.GetMetricsDataList(prometheusMessage)));
         }
 
         public IList<Message> Build(string prometheusMessage)
         {
             IList<Message> messages = this.format == MetricsFormat.Prometheus
-                ? BuildMessagesInPrometheusFormat(prometheusMessage)
-                : BuildMessagesInJsonFormat(prometheusMessage);
+                ? this.BuildMessagesInPrometheusFormat(prometheusMessage)
+                : this.BuildMessagesInJsonFormat(prometheusMessage);
             return messages;
         }
 
         IList<Message> BuildMessagesInJsonFormat(string prometheusMessage)
         {
-            IList<MetricsData> metricsDataList = GetMetricsDataList(prometheusMessage);
-            var messageBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(metricsDataList));
-            var message = new Message(messageBytes);
+            IList<MetricsData> metricsDataList = this.GetMetricsDataList(prometheusMessage);
+            byte[] messageBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(metricsDataList));
+            Message message = new Message(messageBytes);
             message.Properties[IdentifierPropertyName] = this.identifier;
             message.MessageSchema = this.format.ToString();
             message.ContentEncoding = "UTF-8";
@@ -51,7 +52,7 @@ namespace MetricsCollector
 
         IList<MetricsData> GetMetricsDataList(string prometheusMessage)
         {
-            var metricsDataList = new List<MetricsData>();
+            List<MetricsData> metricsDataList = new List<MetricsData>();
             using (StringReader sr = new StringReader(prometheusMessage))
             {
                 string line;
@@ -65,24 +66,24 @@ namespace MetricsCollector
                     Match match = PrometheusSchemaRegex.Match(line.Trim());
                     if (match.Success)
                     {
-                        var metricName = string.Empty;
-                        var metricValue = string.Empty;
-                        var tagNames = new List<string>();
-                        var tagValues = new List<string>();
+                        string metricName = string.Empty;
+                        string metricValue = string.Empty;
+                        List<string> tagNames = new List<string>();
+                        List<string> tagValues = new List<string>();
 
-                        var name = match.Groups["metricname"];
+                        Group name = match.Groups["metricname"];
                         if (name?.Length > 0)
                         {
                             metricName = name.Value;
                         }
 
-                        var value = match.Groups["metricvalue"];
+                        Group value = match.Groups["metricvalue"];
                         if (value?.Length > 0)
                         {
                             metricValue = value.Value;
                         }
 
-                        var tagnames = match.Groups["tagname"];
+                        Group tagnames = match.Groups["tagname"];
                         if (tagnames.Length > 0)
                         {
                             for (int i = 0; i < tagnames.Captures.Count; i++)
@@ -91,7 +92,7 @@ namespace MetricsCollector
                             }
                         }
 
-                        var tagvalues = match.Groups["tagvalue"];
+                        Group tagvalues = match.Groups["tagvalue"];
                         if (tagvalues.Length > 0)
                         {
                             for (int i = 0; i < tagvalues.Captures.Count; i++)
@@ -100,9 +101,9 @@ namespace MetricsCollector
                             }
                         }
 
-                        var tags = tagNames.Zip(tagValues, (k, v) => new { k, v })
+                        Dictionary<string, string> tags = tagNames.Zip(tagValues, (k, v) => new { k, v })
                             .ToDictionary(x => x.k, x => x.v);
-                        var metricsData = new MetricsData(
+                        MetricsData metricsData = new MetricsData(
                             "prometheus",
                             metricName,
                             metricValue,
@@ -112,12 +113,13 @@ namespace MetricsCollector
                     }
                 }
             }
+
             return metricsDataList;
         }
 
         IList<Message> BuildMessagesInJsonFormat2(string prometheusMessage)
         {
-            var messages = new List<Message>();
+            List<Message> messages = new List<Message>();
             using (StringReader sr = new StringReader(prometheusMessage))
             {
                 string line;
@@ -131,24 +133,24 @@ namespace MetricsCollector
                     Match match = PrometheusSchemaRegex.Match(line.Trim());
                     if (match.Success)
                     {
-                        var metricName = string.Empty;
-                        var metricValue = string.Empty;
-                        var tagNames = new List<string>();
-                        var tagValues = new List<string>();
+                        string metricName = string.Empty;
+                        string metricValue = string.Empty;
+                        List<string> tagNames = new List<string>();
+                        List<string> tagValues = new List<string>();
 
-                        var name = match.Groups["metricname"];
+                        Group name = match.Groups["metricname"];
                         if (name?.Length > 0)
                         {
                             metricName = name.Value;
                         }
 
-                        var value = match.Groups["metricvalue"];
+                        Group value = match.Groups["metricvalue"];
                         if (value?.Length > 0)
                         {
                             metricValue = value.Value;
                         }
 
-                        var tagnames = match.Groups["tagname"];
+                        Group tagnames = match.Groups["tagname"];
                         if (tagnames.Length > 0)
                         {
                             for (int i = 0; i < tagnames.Captures.Count; i++)
@@ -157,7 +159,7 @@ namespace MetricsCollector
                             }
                         }
 
-                        var tagvalues = match.Groups["tagvalue"];
+                        Group tagvalues = match.Groups["tagvalue"];
                         if (tagvalues.Length > 0)
                         {
                             for (int i = 0; i < tagvalues.Captures.Count; i++)
@@ -166,16 +168,16 @@ namespace MetricsCollector
                             }
                         }
 
-                        var tags = tagNames.Zip(tagValues, (k, v) => new { k, v })
+                        Dictionary<string, string> tags = tagNames.Zip(tagValues, (k, v) => new { k, v })
                             .ToDictionary(x => x.k, x => x.v);
-                        var metricsData = new MetricsData(
+                        MetricsData metricsData = new MetricsData(
                             "prometheus",
                             metricName,
                             metricValue,
                             JsonConvert.SerializeObject(tags));
 
-                        var messageBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(metricsData));
-                        var message = new Message(messageBytes);
+                        byte[] messageBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(metricsData));
+                        Message message = new Message(messageBytes);
                         message.Properties[IdentifierPropertyName] = this.identifier;
                         message.MessageSchema = this.format.ToString();
                         message.ContentEncoding = "UTF-8";
@@ -188,11 +190,10 @@ namespace MetricsCollector
             return messages;
         }
 
-
         IList<Message> BuildMessagesInPrometheusFormat(string prometheusMessage)
         {
             byte[] messageBytes = Encoding.UTF8.GetBytes(prometheusMessage);
-            var message = new Message(messageBytes);
+            Message message = new Message(messageBytes);
             message.Properties[IdentifierPropertyName] = this.identifier;
             message.MessageSchema = this.format.ToString();
             return new[] { message };

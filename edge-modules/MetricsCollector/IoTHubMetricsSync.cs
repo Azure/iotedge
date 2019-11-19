@@ -1,4 +1,5 @@
-﻿namespace MetricsCollector
+﻿// Copyright (c) Microsoft. All rights reserved.
+namespace MetricsCollector
 {
     using System;
     using System.Collections.Generic;
@@ -16,7 +17,7 @@
         {
             this.messageFormatter = messageFormatter ?? throw new ArgumentNullException(nameof(messageFormatter));
             this.scraper = scraper ?? throw new ArgumentNullException(nameof(scraper));
-            this.moduleClient = moduleClient; 
+            this.moduleClient = moduleClient;
         }
 
         public async Task ScrapeAndSync()
@@ -34,5 +35,5 @@
                 Console.WriteLine($"Error scraping and syncing metrics - {e}");
             }
         }
-    }    
+    }
 }
