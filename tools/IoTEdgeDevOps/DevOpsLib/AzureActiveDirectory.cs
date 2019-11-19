@@ -11,36 +11,28 @@ namespace DevOpsLib
 
     public sealed class AzureActiveDirectory
     {
-        static readonly AzureActiveDirectory instance = new AzureActiveDirectory();
+        string azureActiveDirTenant = null;
+        string azureActiveDirClientId = null;
+        string azureActiveDirClientSecret = null;
 
-        static string azureActiveDirTenant = null;
-        static string azureActiveDirClientId = null;
-        static string azureActiveDirClientSecret = null;
-        static string azureResource = null;
-        static string accessToken = null;
-        static DateTime accessTokenExpiration = new DateTime(DateTime.MinValue.Ticks);
-        static readonly object locker = new object();
+        string azureResource = null;
+        string accessToken = null;
+        DateTime accessTokenExpiration = new DateTime(DateTime.MinValue.Ticks);
+        readonly object locker = new object();
 
-        // Explicit static constructor to tell C# compiler
-        // not to mark type as beforefieldinit
-        static AzureActiveDirectory()
+        public AzureActiveDirectory(string azureActiveDirTenant,
+            string azureActiveDirClientId,
+            string azureActiveDirClientSecret)
         {
+            this.azureActiveDirTenant = azureActiveDirTenant;
+            this.azureActiveDirClientId = azureActiveDirClientId;
+            this.azureActiveDirClientSecret = azureActiveDirClientSecret;
         }
-
-        AzureActiveDirectory()
-        {
-        }
-
-        public static AzureActiveDirectory Instance => instance;
 
         // GetAccessToken(4) is required to be called before invoking GetAccessToken(0), or GetAccessToken(1)
         // Trigger Azure Active Directory (AAD) for an OAuth2 client credential for an azure resource access.
         // API reference: https://dev.loganalytics.io/documentation/Authorization/OAuth2
-        public async Task<string> GetAccessToken(
-            string azureActiveDirTenant,
-            string azureActiveDirClientId,
-            string azureActiveDirClientSecret,
-            string azureResource)
+        public async Task<string> GetAccessToken(string azureResource)
         {
             ValidationUtil.ThrowIfNullOrWhiteSpace(azureActiveDirTenant, nameof(azureActiveDirTenant));
             ValidationUtil.ThrowIfNullOrWhiteSpace(azureActiveDirClientId, nameof(azureActiveDirClientId));
@@ -50,9 +42,9 @@ namespace DevOpsLib
             try
             {
                 
-                if (AzureActiveDirectory.IsAccessTokenExpired() ||
-                    (AzureActiveDirectory.accessToken == null) ||
-                    (!AzureActiveDirectory.azureResource.Equals(azureResource, StringComparison.OrdinalIgnoreCase)))
+                if (this.IsAccessTokenExpired() ||
+                    (this.accessToken == null) ||
+                    (!this.azureResource.Equals(azureResource, StringComparison.OrdinalIgnoreCase)))
                 {
                     string requestUri = $"https://login.microsoftonline.com/{azureActiveDirTenant}/oauth2/token";
                     const string grantType = "client_credentials";
@@ -77,18 +69,14 @@ namespace DevOpsLib
 
                     lock (locker)
                     {
-                        AzureActiveDirectory.azureActiveDirTenant = azureActiveDirTenant;
-                        AzureActiveDirectory.azureActiveDirClientId = azureActiveDirClientId;
-                        AzureActiveDirectory.azureActiveDirClientSecret = azureActiveDirClientSecret;
-                        AzureActiveDirectory.azureResource = azureResource;
-
                         var responseJson = JObject.Parse(responseMsg);
-                        AzureActiveDirectory.accessTokenExpiration = DateTime.UtcNow.AddSeconds((double)responseJson["expires_on"] - 1);
-                        AzureActiveDirectory.accessToken = (string)responseJson["access_token"];
+                        this.azureResource = azureResource;
+                        this.accessTokenExpiration = DateTime.UtcNow.AddSeconds((double)responseJson["expires_on"] - 1);
+                        this.accessToken = (string)responseJson["access_token"];
                     }
                 }
 
-                return AzureActiveDirectory.accessToken;
+                return this.accessToken;
             }
             catch (Exception e)
             {
@@ -96,23 +84,9 @@ namespace DevOpsLib
             }
         }
 
-        public Task<string> GetAccessToken() =>
-            AzureActiveDirectory.Instance.GetAccessToken(
-                AzureActiveDirectory.azureActiveDirTenant,
-                AzureActiveDirectory.azureActiveDirClientId,
-                AzureActiveDirectory.azureActiveDirClientSecret,
-                AzureActiveDirectory.azureResource);
-
-        public Task<string> GetAccessToken(string azureResource) =>
-            AzureActiveDirectory.Instance.GetAccessToken(
-                AzureActiveDirectory.azureActiveDirTenant,
-                AzureActiveDirectory.azureActiveDirClientId,
-                AzureActiveDirectory.azureActiveDirClientSecret,
-                azureResource);
-
-        static public bool IsAccessTokenExpired()
+        public bool IsAccessTokenExpired()
         {
-            return DateTime.Compare(DateTime.UtcNow, AzureActiveDirectory.accessTokenExpiration) >= 0;
+            return DateTime.Compare(DateTime.UtcNow, this.accessTokenExpiration) >= 0;
         }
     }
 }

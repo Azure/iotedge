@@ -7,11 +7,13 @@ namespace DevOpsLib
 
     public sealed class AzureLogAnalytics
     {
+        public static string AzureResource = "https://api.loganalytics.io";
         const string apiVersion = "v1";
 
         // Use get-request to do a Kusto query
         // API reference: https://dev.loganalytics.io/documentation/Using-the-API/RequestFormat
         public async Task<string> GetKqlQuery(
+            AzureActiveDirectory azureActiveDirectory,
             string logAnalyticsWorkspaceId,
             string kqlQuery)
         {
@@ -20,7 +22,7 @@ namespace DevOpsLib
             try
             {
                 string requestUri = $"https://api.loganalytics.io/{apiVersion}/workspaces/{logAnalyticsWorkspaceId}/query?query=";
-                string accessToken = await AzureActiveDirectory.Instance.GetAccessToken();
+                string accessToken = await azureActiveDirectory.GetAccessToken(AzureLogAnalytics.AzureResource);
 
                 var client = new HttpClient();
                 client.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
