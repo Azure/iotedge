@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
         readonly PortMapServiceType defaultServiceType;
         readonly Option<string> persistentVolumeName;
         readonly Option<string> storageClassName;
-        readonly uint persistentVolumeClaimDefaultSizeMb;
+        readonly Option<uint> persistentVolumeClaimDefaultSizeMb;
         readonly string workloadApiVersion;
         readonly Uri workloadUri;
         readonly Uri managementUri;
@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             PortMapServiceType defaultServiceType,
             string persistentVolumeName,
             string storageClassName,
-            uint persistentVolumeClaimDefaultSizeMb,
+            Option<uint> persistentVolumeClaimDefaultSizeMb,
             string workloadApiVersion,
             Uri workloadUri,
             Uri managementUri,
@@ -209,11 +209,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                 envList.Add(new V1EnvVar(CoreConstants.EdgeletManagementUriVariableName, this.managementUri.ToString()));
                 envList.Add(new V1EnvVar(CoreConstants.NetworkIdKey, "azure-iot-edge"));
                 envList.Add(new V1EnvVar(KubernetesConstants.ProxyImageEnvKey, this.proxyImage));
-                if (this.proxyImagePullSecretName.HasValue)
-                {
-                    envList.Add(new V1EnvVar(KubernetesConstants.ProxyImagePullSecretNameEnvKey, this.proxyImagePullSecretName.OrDefault()));
-                }
-
+                this.proxyImagePullSecretName.ForEach(ips => envList.Add(new V1EnvVar(KubernetesConstants.ProxyImagePullSecretNameEnvKey, ips)));
                 envList.Add(new V1EnvVar(KubernetesConstants.ProxyConfigPathEnvKey, this.proxyConfigPath));
                 envList.Add(new V1EnvVar(KubernetesConstants.ProxyConfigVolumeEnvKey, this.proxyConfigVolumeName));
                 envList.Add(new V1EnvVar(KubernetesConstants.ProxyConfigMapNameEnvKey, this.proxyConfigMapName));
@@ -228,17 +224,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                 envList.Add(new V1EnvVar(KubernetesConstants.EdgeK8sObjectOwnerUidKey, module.Owner.Uid));
                 envList.Add(new V1EnvVar(KubernetesConstants.PortMappingServiceType, this.defaultServiceType.ToString()));
                 envList.Add(new V1EnvVar(KubernetesConstants.EnableK8sServiceCallTracingName, this.enableServiceCallTracing.ToString()));
-                if (this.persistentVolumeName.HasValue)
-                {
-                    envList.Add(new V1EnvVar(KubernetesConstants.PersistentVolumeNameKey, this.persistentVolumeName.OrDefault().ToString()));
-                }
-
-                if (this.storageClassName.HasValue)
-                {
-                    envList.Add(new V1EnvVar(KubernetesConstants.StorageClassNameKey, this.storageClassName.OrDefault().ToString()));
-                }
-
-                envList.Add(new V1EnvVar(KubernetesConstants.PersistentVolumeClaimDefaultSizeInMbKey, this.persistentVolumeClaimDefaultSizeMb.ToString()));
+                this.persistentVolumeName.ForEach(pvName => envList.Add(new V1EnvVar(KubernetesConstants.PersistentVolumeNameKey, pvName)));
+                this.storageClassName.ForEach(scName => envList.Add(new V1EnvVar(KubernetesConstants.StorageClassNameKey, scName)));
+                this.persistentVolumeClaimDefaultSizeMb.ForEach(size => envList.Add(new V1EnvVar(KubernetesConstants.PersistentVolumeClaimDefaultSizeInMbKey, size.ToString())));
                 envList.AddRange(this.experimentalFeatures.Select(env => new V1EnvVar(env.Key, env.Value.ToString())));
             }
 

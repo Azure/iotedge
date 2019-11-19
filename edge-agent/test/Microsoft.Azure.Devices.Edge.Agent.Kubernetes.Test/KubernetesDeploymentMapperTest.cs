@@ -579,7 +579,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 PortMapServiceType.ClusterIP,
                 persistentVolumeName,
                 storageClassName,
-                100,
+                Option.Some<uint>(100),
                 "apiVersion",
                 new Uri("http://workload"),
                 new Uri("http://management"),
