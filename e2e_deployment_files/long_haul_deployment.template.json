@@ -199,17 +199,17 @@
               "ConsumerGroupId": {
                 "value": "<Analyzer.ConsumerGroupId>"
               },
-              "LogAnalyticEnabled": {
-                "value": "<Analyzer.LogAnalyticEnabled>"
+              "LogAnalyticsEnabled": {
+                "value": "<Analyzer.LogAnalyticsEnabled>"
               },
-              "LogAnalyticWorkspaceId": {
-                "value": "<Analyzer.LogAnalyticWorkspaceId>"
+              "LogAnalyticsWorkspaceId": {
+                "value": "<LogAnalyticsWorkspaceId>"
               },
-              "LogAnalyticSharedKey": {
-                "value": "<Analyzer.LogAnalyticSharedKey>"
+              "LogAnalyticsSharedKey": {
+                "value": "<LogAnalyticsSharedKey>"
               },
-              "LogAnalyticLogType": {
-                "value": "<Analyzer.LogAnalyticLogType>"
+              "LogAnalyticsLogType": {
+                "value": "<Analyzer.LogAnalyticsLogType>"
               }
             },
             "settings": {
