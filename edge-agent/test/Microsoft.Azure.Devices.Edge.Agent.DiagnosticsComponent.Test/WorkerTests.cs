@@ -45,31 +45,34 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
             /* test */
             await Scape();
             Assert.Equal(1, scraper.Invocations.Count);
-            Assert.Equal(0, storage.Invocations.Count);
+            Assert.Equal(1, storage.Invocations.Count);
 
+            // duplicates don't get stored
             await Scape();
             Assert.Equal(2, scraper.Invocations.Count);
-            Assert.Equal(0, storage.Invocations.Count);
+            Assert.Equal(1, storage.Invocations.Count);
 
             modules[1].value = 2;
             await Scape();
             Assert.Equal(3, scraper.Invocations.Count);
-            Assert.Equal(1, storage.Invocations.Count);
+            Assert.Equal(2, storage.Invocations.Count);
             Assert.Contains("module_2", storedValue);
             Assert.Contains("1", storedValue);
 
+            // multiple values get stored
             modules[1].value = 3;
             modules[2].value = 3;
             modules[7].value = 3;
             await Scape();
             Assert.Equal(4, scraper.Invocations.Count);
-            Assert.Equal(2, storage.Invocations.Count);
+            Assert.Equal(3, storage.Invocations.Count);
             Assert.Contains("module_2", storedValue);
             Assert.Contains("3", storedValue);
 
+            // multiple duplicates don't get stored
             await Scape();
             Assert.Equal(5, scraper.Invocations.Count);
-            Assert.Equal(2, storage.Invocations.Count);
+            Assert.Equal(3, storage.Invocations.Count);
         }
 
         [Fact]

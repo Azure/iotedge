@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
                 string line;
                 while ((line = sr.ReadLine()?.Trim()) != null)
                 {
-                    if (line[0] == '#')
+                    if (line.Length == 0 || line[0] == '#')
                     {
                         continue;
                     }
