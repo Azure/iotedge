@@ -234,6 +234,25 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
 
         [Fact]
         [Unit]
+        public void TestForEachWithNoneMethod()
+        {
+            int val = 0;
+            Option<int> some = Option.Some(3);
+            Option<int> none = Option.None<int>();
+            some.ForEach(
+            b => { val += b; },
+            () => { val = -1; });
+            Assert.Equal(3, val);
+
+            val = 0;
+            none.ForEach(
+            b => { val += b; },
+            () => { val = -1; });
+            Assert.Equal(-1, val);
+        }
+
+        [Fact]
+        [Unit]
         public async void TestForEachAsync()
         {
             Option<int> some = Option.Some(3);
@@ -258,6 +277,41 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
                     return Task.CompletedTask;
                 });
             Assert.Equal(2, i);
+        }
+
+        [Fact]
+        [Unit]
+        public async void TestForEachWithNoneMethodAsync()
+        {
+            var val = 0;
+            Option<int> some = Option.Some(3);
+            Option<int> none = Option.None<int>();
+            await some.ForEachAsync(
+            b =>
+            {
+                val += b;
+                return Task.CompletedTask;
+            },
+            () =>
+            {
+                val = -2;
+                return Task.CompletedTask;
+            });
+            Assert.Equal(3, val);
+
+            val = 0;
+            await none.ForEachAsync(
+            b =>
+            {
+                val += b;
+                return Task.CompletedTask;
+            },
+            () =>
+            {
+                val = -2;
+                return Task.CompletedTask;
+            });
+            Assert.Equal(-2, val);
         }
 
         [Fact]
@@ -313,36 +367,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             Option<int> intOption = Option.None<int>();
             int newTestNum = intOption.Match(b => b + 1, () => -1);
             Assert.Equal(-1, newTestNum);
-        }
-
-        [Fact]
-        [Unit]
-        public void TestMatchNoReturnFull()
-        {
-            var val = 0;
-            Option<int> intOption = Option.Some(1);
-            intOption.MatchNoReturn(
-            b =>
-            {
-                val = val + b;
-            },
-            () => { });
-            Assert.Equal(1, val);
-        }
-
-        [Fact]
-        [Unit]
-        public void TestMatchNoReturnEmpty()
-        {
-            var val = 0;
-            Option<int> intOption = Option.None<int>();
-            intOption.MatchNoReturn(
-            b =>
-            {
-                val = val + b;
-            },
-            () => { });
-            Assert.Equal(0, val);
         }
     }
 }

@@ -127,19 +127,6 @@ namespace Microsoft.Azure.Devices.Edge.Util
         [Pure]
         public TResult Match<TResult>(Func<T, TResult> some, Func<TResult> none) => this.HasValue ? some(this.Value) : none();
 
-        [Pure]
-        public void MatchNoReturn(Action<T> some, Action none)
-        {
-            if (this.HasValue)
-            {
-                some(this.Value);
-            }
-            else
-            {
-                none();
-            }
-        }
-
         /// <summary>
         /// Conditionally invokes <paramref name="action"/> with the value of this option
         /// object if this option has a value. This method is a no-op if there is no value
@@ -153,7 +140,21 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
+        public void ForEach(Action<T> action, Action none = null)
+        {
+            if (this.HasValue)
+            {
+                action(this.Value);
+            }
+            else
+            {
+                none?.Invoke();
+            }
+        }
+
         public Task ForEachAsync(Func<T, Task> action) => this.HasValue ? action(this.Value) : Task.CompletedTask;
+
+        public Task ForEachAsync(Func<T, Task> action, Func<Task> none = null) => this.HasValue ? action(this.Value) : none?.Invoke();
 
         /// <summary>
         /// If this option has a value then it transforms it into a new option instance by
