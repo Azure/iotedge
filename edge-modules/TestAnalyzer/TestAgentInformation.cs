@@ -11,16 +11,19 @@ namespace Analyzer
     {
         public string ConsumerGroupId { get; }
         public string DeviceId { get; }
-        public string EdgeletBuildId { get; }
-        public string EdgeletBuildBranch { get; }
-        public string ModuleImageBuildId { get; }
-        public string ModuleImageBuildBranch { get; }
         public string Os { get; }
         public string OsArchitecture { get; }
         public string OsDescription { get; }
         public string OsVersion { get; }
         public string ProcessArchitecture { get; }
+        public string Time { get; }
         public string User { get; }
+        public string Version { get; }
+        public string VstsAgentMachineName { get; }
+        public string VstsAgentName { get; }
+        public string VstsBuildId { get; }
+        public string VstsBuildNumber { get; }
+        public string VstsBuildQueueBy { get; }
 
         public TestAgentInformation()
         {
@@ -28,16 +31,19 @@ namespace Analyzer
 
             this.ConsumerGroupId = Settings.Current.ConsumerGroupId;
             this.DeviceId = Settings.Current.DeviceId;
-            this.EdgeletBuildId = Settings.Current.EdgeletBuildId;
-            this.EdgeletBuildBranch = Settings.Current.EdgeletBuildBranch;
-            this.ModuleImageBuildId = Settings.Current.ModuleImageBuildId;
-            this.ModuleImageBuildBranch = Settings.Current.ModuleImageBuildBranch;
             this.Os = OsDescriptionTokens[0];
             this.OsArchitecture = System.Runtime.InteropServices.RuntimeInformation.OSArchitecture.ToString();
             this.OsDescription = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
             this.OsVersion = OsDescriptionTokens[1];
             this.ProcessArchitecture = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString();
+            this.Time = DateTime.UtcNow.ToString();
             this.User = Environment.UserName.ToString();
+            this.Version = "1";
+            this.VstsAgentMachineName = Settings.Current.VstsAgentMachineName;
+            this.VstsAgentName = Settings.Current.VstsAgentName;
+            this.VstsBuildId = Settings.Current.VstsBuildId;
+            this.VstsBuildNumber = Settings.Current.VstsBuildNumber;
+            this.VstsBuildQueueBy = Settings.Current.VstsBuildQueueBy;
         }
 
         public override string ToString()
