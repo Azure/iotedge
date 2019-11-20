@@ -55,10 +55,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                 this.ThrowAndCatch(new TestException2());
                 expected["test2"] = 5;
                 Assert.Equal(expected, result);
-
-                this.ThrowAndCatch(new DivideByZeroException());
-                expected["other"] = 1;
-                Assert.Equal(expected, result);
             }
         }
 
@@ -159,6 +155,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             Dictionary<string, long> result = new Dictionary<string, long>();
             void Increment(long val, string[] tags)
             {
+                if (tags[0] == "other")
+                {
+                    return;
+                }
+
                 if (result.ContainsKey(tags[0]))
                 {
                     result[tags[0]]++;

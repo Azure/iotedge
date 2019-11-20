@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
         IDictionary<DateTime, Func<string>> GetData(DateTime start, DateTime end);
 
         /// <summary>
-        /// Deletes all entries older than keepAfter. Comparison is strictly less than.
+        /// Deletes all entries older than keepAfter. Comparison is less than or equal.
         /// </summary>
         /// <param name="keepAfter">Oldest date to keep data.</param>
         void RemoveOldEntries(DateTime keepAfter);

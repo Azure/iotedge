@@ -7,7 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     using System.Text;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class Metric
+    public sealed class Metric
     {
         public DateTime TimeGeneratedUtc { get; }
         public string Name { get; }

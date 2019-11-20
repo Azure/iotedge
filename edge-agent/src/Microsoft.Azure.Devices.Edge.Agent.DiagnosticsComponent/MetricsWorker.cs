@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
                 Log.LogInformation("Scraping Metrics");
                 List<Metric> metricsToPersist = new List<Metric>();
                 int numScrapedMetrics = 0;
-                foreach (var scrapedMetric in await this.scraper.ScrapeAsync(cancellationToken))
+                foreach (var scrapedMetric in await this.scraper.ScrapeEndpointAsync(cancellationToken))
                 {
                     numScrapedMetrics++;
                     // Get the previous scrape for this metric

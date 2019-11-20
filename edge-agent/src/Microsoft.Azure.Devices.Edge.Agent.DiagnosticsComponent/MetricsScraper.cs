@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public class MetricsScraper : IMetricsScraper, IDisposable
+    public sealed class MetricsScraper : IMetricsScraper, IDisposable
     {
         const string UrlPattern = @"[^/:]+://(?<host>[^/:]+)(:[^:]+)?$";
         static readonly Regex UrlRegex = new Regex(UrlPattern, RegexOptions.Compiled);
@@ -23,14 +23,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
         readonly ISystemTime systemTime;
         static readonly ILogger Log = Logger.Factory.CreateLogger<MetricsScraper>();
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MetricsScraper"/> class.
+        /// </summary>
+        /// <param name="endpoints">List of endpoints to scrape from. Endpoints must expose metrics in the prometheous format.
+        /// Endpoints should be in the form "http://edgeHub:9600/metrics".</param>
+        /// <param name="systemTime">Source for current time.</param>
         public MetricsScraper(IList<string> endpoints, ISystemTime systemTime = null)
         {
+            Preconditions.CheckNotNull(endpoints, nameof(endpoints));
+
             this.httpClient = new HttpClient();
             this.endpoints = new Lazy<IDictionary<string, string>>(() => endpoints.ToDictionary(e => e, this.GetUriWithIpAddress));
             this.systemTime = systemTime ?? SystemTime.Instance;
         }
 
-        public Task<IEnumerable<Metric>> ScrapeAsync(CancellationToken cancellationToken)
+        public Task<IEnumerable<Metric>> ScrapeEndpointAsync(CancellationToken cancellationToken)
         {
             return this.endpoints.Value.SelectManyAsync(async endpoint =>
             {

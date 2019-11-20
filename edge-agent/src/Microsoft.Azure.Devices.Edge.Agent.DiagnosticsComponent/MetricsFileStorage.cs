@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     using System.Threading;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class MetricsFileStorage : IMetricsStorage
+    public sealed class MetricsFileStorage : IMetricsStorage
     {
         readonly ISystemTime systemTime;
 

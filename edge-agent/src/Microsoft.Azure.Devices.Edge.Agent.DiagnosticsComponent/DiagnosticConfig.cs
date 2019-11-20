@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     using System.Text;
     using Microsoft.Extensions.Configuration;
 
-    public class DiagnosticConfig
+    public sealed class DiagnosticConfig
     {
         public readonly bool Enabled;
         public readonly string MetricsStoragePath;
