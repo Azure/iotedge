@@ -42,7 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
                 return methodInfo.Invoke(worker, parameters) as Task;
             }
 
-            /* test */
+            // single value is stored
             await Scape();
             Assert.Equal(1, scraper.Invocations.Count);
             Assert.Equal(1, storage.Invocations.Count);
@@ -196,7 +196,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
             var scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 1.0)));
             scraper.Setup(s => s.ScrapeEndpointAsync(ct)).ReturnsAsync(() => scrapeResults);
 
-            var storage = new MetricsFileStorage(this.tempDirectory.GetTempDir(), systemTime.Object);
+            var storage = new MetricsFileStorage(this.tempDirectory.CreateTempDir(), systemTime.Object);
 
             var uploader = new Mock<IMetricsPublisher>();
             IEnumerable<Metric> uploadedData = Enumerable.Empty<Metric>();

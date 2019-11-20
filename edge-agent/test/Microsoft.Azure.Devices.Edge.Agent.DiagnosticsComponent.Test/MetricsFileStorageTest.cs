@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
         [Fact]
         public void WriteData()
         {
-            string directory = Path.Combine(this.tempDirectory.GetTempDir(), "metricsStore");
+            string directory = Path.Combine(this.tempDirectory.CreateTempDir(), "metricsStore");
             MetricsFileStorage storage = new MetricsFileStorage(directory, this.systemTime);
 
             storage.WriteData(string.Join(", ", Enumerable.Range(0, 10)));
@@ -39,7 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
         [Fact]
         public void GetDataSingleEntry()
         {
-            MetricsFileStorage storage = new MetricsFileStorage(this.tempDirectory.GetTempDir(), this.systemTime);
+            MetricsFileStorage storage = new MetricsFileStorage(this.tempDirectory.CreateTempDir(), this.systemTime);
 
             string testData = string.Join(", ", Enumerable.Range(0, 10));
             storage.WriteData(testData);
@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
         [Fact]
         public void GetDataByTime()
         {
-            MetricsFileStorage storage = new MetricsFileStorage(this.tempDirectory.GetTempDir(), this.systemTime);
+            MetricsFileStorage storage = new MetricsFileStorage(this.tempDirectory.CreateTempDir(), this.systemTime);
 
             // Write fake data
             storage.WriteData("data1");
@@ -91,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
         [Fact]
         public void TestRemoveOldEntries()
         {
-            MetricsFileStorage storage = new MetricsFileStorage(this.tempDirectory.GetTempDir(), this.systemTime);
+            MetricsFileStorage storage = new MetricsFileStorage(this.tempDirectory.CreateTempDir(), this.systemTime);
 
             storage.WriteData("data1");
 

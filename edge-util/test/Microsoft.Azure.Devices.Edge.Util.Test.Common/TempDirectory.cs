@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
     {
         List<string> dirs = new List<string>();
 
-        public string GetTempDir()
+        public string CreateTempDir()
         {
             string newDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(newDir);

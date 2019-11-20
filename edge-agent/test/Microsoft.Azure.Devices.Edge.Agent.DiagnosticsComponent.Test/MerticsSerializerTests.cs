@@ -75,7 +75,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
 
             // Overflow
             var overflowData = BitConverter.GetBytes(int.MaxValue).Concat(randData);
-            Assert.Throws<InvalidDataException>(() => RawMetric.BytesToMetrics(randData).ToArray());
+            var exception = Assert.Throws<InvalidDataException>(() => RawMetric.BytesToMetrics(randData).ToArray());
+            Assert.Throws<ArgumentOutOfRangeException>((Action)(() => throw exception.InnerException));
         }
 
         IEnumerable<Metric> GenerateSeries(string name, string tags, int n = 10)
