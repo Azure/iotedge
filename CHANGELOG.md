@@ -1,3 +1,12 @@
+# 1.0.8.4 (2019-11-19)
+## Edge Hub
+### Bug Fixes
+* Fix Twin property 4K length validation ([c4a97a4](https://github.com/Azure/iotedge/commit/c4a97a40e0b1db1ceb1483baa7dab6b17705467b))
+* Updating Twin update limits to match IoTHub ([0ae34d3](https://github.com/Azure/iotedge/commit/0ae34d3a8b6750e9caae8045b71cd21d2e40e119))
+* Fix iotedge version passed instead of client version ([b0e13d8](https://github.com/Azure/iotedge/commit/b0e13d85035181ec3aafa347a7fd12b086608db1))
+* Update dotnetcore to 2.1.13 ([df015b4](https://github.com/Azure/iotedge/commit/df015b4ea7f0322da6386fac6c5d22ec8b2593ae))
+* Changed CloudEndpoint to fail subsequent batches after a transient error ([d2115b6](https://github.com/Azure/iotedge/commit/d2115b6d017c28dec66ca3b43b2f7712f6278766))
+
 # 1.0.8.3 (2019-10-18)
 ## Edge Hub
 ### Bug Fixes
