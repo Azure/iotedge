@@ -41,7 +41,7 @@ mini-sntp = { path = "../mini-sntp" }
 [target.'cfg(unix)'.dependencies]
 byte-unit = "3.0.3"
 libc = "0.2"
-sysinfo = "0.9.5"
+sysinfo = "0.9.6"
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3", features = ["ntdef", "ntstatus", "winnt", "winsock2"] }
