@@ -20,7 +20,7 @@ namespace TwinTester
         readonly ModuleClient moduleClient;
         readonly AnalyzerClient analyzerClient;
         readonly Storage storage;
-        readonly TwinState twinState;
+        TwinState twinState;
 
         public TwinOperator(RegistryManager registryManager, ModuleClient moduleClient, AnalyzerClient analyzerClient, Storage storage)
         {
@@ -28,7 +28,6 @@ namespace TwinTester
             this.moduleClient = moduleClient;
             this.analyzerClient = analyzerClient;
             this.storage = storage;
-            this.twinState = this.InitializeModuleTwin().Result;
             this.moduleClient.SetDesiredPropertyUpdateCallbackAsync(this.OnDesiredPropertyUpdateAsync, storage);
         }
 
@@ -55,7 +54,7 @@ namespace TwinTester
             return eraseReportedProperties;
         }
 
-        async Task<TwinState> InitializeModuleTwin()
+        public async Task<TwinState> InitializeModuleTwin()
         {
             try
             {
@@ -86,7 +85,8 @@ namespace TwinTester
                 }
 
                 Logger.LogInformation($"Start state of module twin: {JsonConvert.SerializeObject(twin, Formatting.Indented)}");
-                return initializedState;
+                this.twinState = initializedState;
+                return this.twinState;
             }
             catch (Exception e)
             {

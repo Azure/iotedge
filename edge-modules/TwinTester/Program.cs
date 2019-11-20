@@ -35,6 +35,7 @@ namespace TwinTester
                 storage.Init(Settings.Current.StoragePath, new SystemEnvironment(), Settings.Current.StorageOptimizeForPerformance);
 
                 TwinOperator twinOperator = new TwinOperator(registryManager, moduleClient, analyzerClient, storage);
+                await twinOperator.InitializeModuleTwin();
 
                 (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
                 Task updateLoop = PerformRecurringUpdates(twinOperator, Settings.Current.TwinUpdateFrequency, cts);
