@@ -23,7 +23,7 @@ parameters:
   analyzer.logAnalytics.logType: ''
   logAnalytics.workspaceId: ''
   logAnalytics.sharedKey: ''
-  metricsCollector.scrapeFrequency: ''
+  metricsCollector.scrapeFrequencyInSecs: ''
 
 steps:
   - task: CopyFiles@2
@@ -75,7 +75,7 @@ steps:
           -logAnalyticsLogType "${{ parameters['analyzer.logAnalytics.logType'] }}" \
           -logAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" \
           -logAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" \
-          -metricsCollectorScrapeFrequency "${{ parameters['metricsCollector.scrapeFrequency'] }}" \
+          -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
           -cleanAll
         #Remove all pending jobs
         atrm $(atq | cut -f1)

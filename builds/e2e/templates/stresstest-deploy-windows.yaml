@@ -23,7 +23,7 @@ parameters:
   analyzer.logAnalytics.logType: ''
   logAnalytics.workspaceId: ''
   logAnalytics.sharedKey: ''
-  metricsCollector.scrapeFrequency: ''
+  metricsCollector.scrapeFrequencyInSecs: ''
 
 steps:
   - task: CopyFiles@2
@@ -72,7 +72,7 @@ steps:
           -LogAnalyticsLogType "${{ parameters['analyzer.logAnalytics.logType'] }}" `
           -LogAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" `
           -LogAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" `
-          -MetricsCollectorScrapeFrequency "${{ parameters['metricsCollector.scrapeFrequency'] }}"
+          -MetricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}"
         # schedule a task to stop iotedge service (terminate the test) in 4:30h
         $ScheduleDatetime = [DateTime]::Now.AddMinutes(270)
         $ScheduleDate=$ScheduleDatetime.ToString("MM/dd/yyyy")

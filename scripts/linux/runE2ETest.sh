@@ -174,9 +174,10 @@ function prepare_test_from_artifacts() {
                 sed -i -e "s@<Analyzer.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
                 sed -i -e "s@<Analyzer.LogAnalyticsEnabled>@$LOG_ANALYTICS_ENABLED@g" "$deployment_working_file"
                 sed -i -e "s@<Analyzer.LogAnalyticsLogType>@$LOG_ANALYTICS_LOG_TYPE@g" "$deployment_working_file"
-                sed -i -e "s@<LogAnalyticsWorkspaceId>@$LOG_ANALYTICS_WORKSPACE_ID@g" "$deployment_working_file"
-                sed -i -e "s@<LogAnalyticsSharedKey>@$LOG_ANALYTICS_SHARED_KEY@g" "$deployment_working_file"
                 sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
+                sed -i -e "s@<LogAnalyticsSharedKey>@$LOG_ANALYTICS_SHARED_KEY@g" "$deployment_working_file"
+                sed -i -e "s@<LogAnalyticsWorkspaceId>@$LOG_ANALYTICS_WORKSPACE_ID@g" "$deployment_working_file"
+                sed -i -e "s@<MetricsCollector.ScrapeFrequencyInSecs>@$METRICS_SCRAPE_FREQUENCY_IN_SECS@g" "$deployment_working_file"
                 escapedSnitchAlertUrl="${SNITCH_ALERT_URL//&/\\&}"
                 escapedBuildId="${ARTIFACT_IMAGE_BUILD_NUMBER//./}"
                 sed -i -e "s@<Snitch.AlertUrl>@$escapedSnitchAlertUrl@g" "$deployment_working_file"
@@ -375,6 +376,9 @@ function process_args() {
         elif [ $saveNextArg -eq 35 ]; then
             LOG_ANALYTICS_LOG_TYPE="$arg"
             saveNextArg=0
+        elif [ $saveNextArg -eq 36 ]; then
+            METRICS_SCRAPE_FREQUENCY_IN_SECS="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -413,6 +417,7 @@ function process_args() {
                 '-logAnalyticsWorkspaceId' ) saveNextArg=33;;
                 '-logAnalyticsSharedKey' ) saveNextArg=34;;
                 '-logAnalyticsLogType' ) saveNextArg=35;;
+                '-metricsScrapeFrequencyInSecs' ) saveNextArg=36;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -1001,6 +1006,7 @@ function usage() {
     echo ' -logAnalyticsWorkspaceId        Optional Log Analytics workspace ID for metrics collection and reporting.'
     echo ' -logAnalyticsSharedKey          Optional Log Analytics shared key for metrics collection and reporting.'
     echo ' -logAnalyticsLogType            Optional Log Analytics log type for the Analyzer module.'
+    echo ' -metricsScrapeFrequencyInSecs   Optional Log Analytics log type for the Analyzer module.'
     exit 1;
 }
 
@@ -1014,6 +1020,7 @@ LOADGEN1_TRANSPORT_TYPE="${LOADGEN1_TRANSPORT_TYPE:-amqp}"
 LOADGEN2_TRANSPORT_TYPE="${LOADGEN2_TRANSPORT_TYPE:-amqp}"
 LOADGEN3_TRANSPORT_TYPE="${LOADGEN3_TRANSPORT_TYPE:-mqtt}"
 LOADGEN4_TRANSPORT_TYPE="${LOADGEN4_TRANSPORT_TYPE:-mqtt}"
+METRICS_SCRAPE_FREQUENCY_IN_SECS="${METRICS_SCRAPE_FREQUENCY_IN_SECS:-300}"
 if [[ "${TEST_NAME,,}" == "longhaul" ]]; then
     DESIRED_MODULES_TO_RESTART_CSV="${DESIRED_MODULES_TO_RESTART_CSV:-,}"
     LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:01}"
