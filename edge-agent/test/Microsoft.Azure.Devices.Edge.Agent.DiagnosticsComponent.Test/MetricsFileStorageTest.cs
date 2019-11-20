@@ -26,9 +26,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
         }
 
         [Fact]
-        public void Storage()
+        public void WriteData()
         {
-            string directory = this.tempDirectory.GetTempDir();
+            string directory = Path.Combine(this.tempDirectory.GetTempDir(), "metricsStore");
             MetricsFileStorage storage = new MetricsFileStorage(directory, this.systemTime);
 
             storage.WriteData(string.Join(", ", Enumerable.Range(0, 10)));
@@ -54,35 +54,42 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
         {
             MetricsFileStorage storage = new MetricsFileStorage(this.tempDirectory.GetTempDir(), this.systemTime);
 
+            // Write fake data
             storage.WriteData("data1");
-
-            IDictionary<DateTime, Func<string>> actual = storage.GetData();
-            Assert.Single(actual);
-            Assert.Equal("data1", actual.Single().Value());
-
-            DateTime break1 = this.fakeTime.AddMinutes(5);
+            DateTime break12 = this.fakeTime.AddMinutes(5);
             this.fakeTime = this.fakeTime.AddMinutes(10);
             storage.WriteData("data2");
-
-            actual = storage.GetData();
-            Assert.Equal(2, actual.Count);
-            actual = storage.GetData(break1);
-            Assert.Single(actual);
-            Assert.Equal("data2", actual.Single().Value());
-
-            DateTime break2 = this.fakeTime.AddMinutes(5);
+            DateTime break23 = this.fakeTime.AddMinutes(5);
             this.fakeTime = this.fakeTime.AddMinutes(10);
             storage.WriteData("data3");
+            DateTime data3Time = this.fakeTime;
+            this.fakeTime = this.fakeTime.AddMinutes(10);
+            storage.WriteData("data4");
+            DateTime data4Time = this.fakeTime;
 
-            actual = storage.GetData();
-            Assert.Equal(3, actual.Count);
-            actual = storage.GetData(break1, break2);
-            Assert.Single(actual);
-            Assert.Equal("data2", actual.Single().Value());
+            // Gets all data
+            IDictionary<DateTime, Func<string>> actual = storage.GetData();
+            Assert.Equal(new string[] { "data1", "data2", "data3", "data4" }, actual.Select(a => a.Value()).OrderBy(d => d));
+
+            // Gets data newer than a date
+            actual = storage.GetData(break12);
+            Assert.Equal(new string[] { "data2", "data3", "data4" }, actual.Select(a => a.Value()).OrderBy(d => d));
+
+            // Gets data only between a start and end date
+            actual = storage.GetData(break12, break23);
+            Assert.Equal(new string[] { "data2" }, actual.Select(a => a.Value()).OrderBy(d => d));
+
+            // start time is inclusive
+            actual = storage.GetData(data3Time);
+            Assert.Equal(new string[] { "data3", "data4" }, actual.Select(a => a.Value()).OrderBy(d => d));
+
+            // start and end time are inclusive
+            actual = storage.GetData(data3Time, data4Time);
+            Assert.Equal(new string[] { "data3", "data4" }, actual.Select(a => a.Value()).OrderBy(d => d));
         }
 
         [Fact]
-        public void RemoveOld()
+        public void TestRemoveOldEntries()
         {
             MetricsFileStorage storage = new MetricsFileStorage(this.tempDirectory.GetTempDir(), this.systemTime);
 

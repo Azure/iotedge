@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     {
         readonly IMetricsScraper scraper;
         readonly IMetricsStorage storage;
-        readonly IMetricsUpload uploader;
+        readonly IMetricsPublisher uploader;
         readonly ISystemTime systemTime;
         readonly AsyncLock scrapeUploadLock = new AsyncLock();
         static readonly ILogger Log = Logger.Factory.CreateLogger<MetricsScraper>();
@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
         PeriodicTask scrape;
         PeriodicTask upload;
 
-        public MetricsWorker(IMetricsScraper scraper, IMetricsStorage storage, IMetricsUpload uploader, ISystemTime systemTime = null)
+        public MetricsWorker(IMetricsScraper scraper, IMetricsStorage storage, IMetricsPublisher uploader, ISystemTime systemTime = null)
         {
             this.scraper = Preconditions.CheckNotNull(scraper, nameof(scraper));
             this.storage = Preconditions.CheckNotNull(storage, nameof(storage));
@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
                 Log.LogInformation("Scraping Metrics");
                 List<Metric> metricsToPersist = new List<Metric>();
                 int numScrapedMetrics = 0;
-                foreach (var scrapedMetric in await this.scraper.ScrapeEndpointAsync(cancellationToken))
+                foreach (Metric scrapedMetric in await this.scraper.ScrapeEndpointAsync(cancellationToken))
                 {
                     numScrapedMetrics++;
                     // Get the previous scrape for this metric
@@ -63,18 +63,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
                         {
                             continue;
                         }
-
-                        // if the metric has changed, write the previous metric to disk
-                        metricsToPersist.Add(oldMetric);
                     }
 
-                    // if new metric or metric changed, save to local buffer
+                    // if new metric or metric changed, save to local buffer and disk.
+                    metricsToPersist.Add(scrapedMetric);
                     this.metrics[scrapedMetric.GetMetricKey()] = scrapedMetric;
                 }
 
                 Log.LogInformation($"Scraped {numScrapedMetrics} Metrics");
 
-                if (metricsToPersist.Count != 0)
+                if (metricsToPersist.Any())
                 {
                     Log.LogInformation("Storing Metrics");
                     this.storage.WriteData(Newtonsoft.Json.JsonConvert.SerializeObject(metricsToPersist));
@@ -87,13 +85,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
         {
             using (await this.scrapeUploadLock.LockAsync(cancellationToken))
             {
-                Log.LogInformation("Uploading Metrics");
-                await this.uploader.UploadAsync(this.GetMetricsToUpload(this.lastUploadTime), cancellationToken);
-                Log.LogInformation("Uploaded Metrics");
+                Log.LogInformation($"Uploading Metrics. Last upload was at {this.lastUploadTime}");
+                DateTime currentUploadTime = this.systemTime.UtcNow;
+                int numMetricsUploaded = 0;
+                IEnumerable<Metric> metricsToUpload = this.GetMetricsToUpload(this.lastUploadTime).Select(metric =>
+                {
+                    numMetricsUploaded++;
+                    return metric;
+                });
+                await this.uploader.PublishAsync(metricsToUpload, cancellationToken);
+                Log.LogInformation($"Uploaded {numMetricsUploaded} Metrics");
 
-                this.storage.RemoveOldEntries(this.lastUploadTime);
+                this.storage.RemoveOldEntries(currentUploadTime);
                 this.metrics.Clear();
-                this.lastUploadTime = this.systemTime.UtcNow;
+                this.lastUploadTime = currentUploadTime;
             }
         }
 
@@ -107,12 +112,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
                 {
                     yield return metric;
                 }
-            }
-
-            // Get all metrics stored in the local buffer.
-            foreach (Metric metric in this.metrics.Values)
-            {
-                yield return metric;
             }
         }
 

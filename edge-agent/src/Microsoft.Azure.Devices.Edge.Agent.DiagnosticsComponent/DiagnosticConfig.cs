@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     using System.Collections.Generic;
     using System.IO;
     using System.Text;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
 
     public sealed class DiagnosticConfig
@@ -17,8 +18,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
 
         public DiagnosticConfig(bool enabled, string storagePath, IConfiguration configuration)
         {
+            Preconditions.CheckNotNull(configuration, nameof(configuration));
             this.Enabled = enabled;
-            this.MetricsStoragePath = Path.Combine(storagePath, "metrics");
+            this.MetricsStoragePath = Path.Combine(Preconditions.CheckNotNull(storagePath, nameof(storagePath)), "metrics");
             this.ScrapeInterval = configuration.GetValue("MetricScrapeInterval", TimeSpan.FromHours(1));
             this.UploadInterval = configuration.GetValue("MetricUploadInterval", TimeSpan.FromDays(1));
         }

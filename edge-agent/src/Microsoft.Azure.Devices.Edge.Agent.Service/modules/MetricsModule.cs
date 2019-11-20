@@ -6,12 +6,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Autofac;
+    using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
-    using Microsoft.Azure.Devices.Edge.Util.Metrics.NullMetrics;
     using Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net;
 
-    public class MetricsModule : Autofac.Module
+    public sealed class MetricsModule : Module
     {
         MetricsConfig metricsConfig;
         string iothubHostname;
@@ -19,14 +20,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
         public MetricsModule(MetricsConfig metricsConfig, string iothubHostname, string deviceId)
         {
-            this.metricsConfig = metricsConfig;
-            this.iothubHostname = iothubHostname;
-            this.deviceId = deviceId;
+            this.metricsConfig = Preconditions.CheckNotNull(metricsConfig, nameof(metricsConfig));
+            this.iothubHostname = Preconditions.CheckNotNull(iothubHostname, nameof(iothubHostname));
+            this.deviceId = Preconditions.CheckNotNull(deviceId, nameof(deviceId));
         }
 
         protected override void Load(ContainerBuilder builder)
         {
-            builder.Register(c => new MetricsProvider("edgeagent", this.iothubHostname, this.deviceId))
+            builder.Register(c => new MetricsProvider(Constants.EdgeAgentModuleName, this.iothubHostname, this.deviceId))
                 .As<IMetricsProvider>()
                 .SingleInstance();
 

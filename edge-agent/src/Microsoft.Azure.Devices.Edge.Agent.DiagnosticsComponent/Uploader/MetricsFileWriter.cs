@@ -12,9 +12,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     /// <summary>
     /// Writes to a local file instead of uploading.
     /// </summary>
-    public class FileWriter : IMetricsUpload
+    public sealed class MetricsFileWriter : IMetricsPublisher
     {
-        public async Task UploadAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
+        public async Task PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
         {
             using (FileStream file = File.Open(@"/shared/MetricsUpload.txt", FileMode.Append))
             {

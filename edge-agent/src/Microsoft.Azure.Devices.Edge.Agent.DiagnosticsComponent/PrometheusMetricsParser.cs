@@ -23,14 +23,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
             using (StringReader sr = new StringReader(prometheusMessage))
             {
                 string line;
-                while ((line = sr.ReadLine()) != null)
+                while ((line = sr.ReadLine()?.Trim()) != null)
                 {
-                    if (line.Trim().StartsWith("#"))
+                    if (line[0] == '#')
                     {
                         continue;
                     }
 
-                    Match match = PrometheusSchemaRegex.Match(line.Trim());
+                    Match match = PrometheusSchemaRegex.Match(line);
                     if (match.Success)
                     {
                         double metricValue;

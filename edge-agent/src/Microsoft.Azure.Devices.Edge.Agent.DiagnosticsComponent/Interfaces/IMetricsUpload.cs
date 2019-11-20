@@ -7,8 +7,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     using System.Threading;
     using System.Threading.Tasks;
 
-    public interface IMetricsUpload
+    public interface IMetricsPublisher
     {
-        Task UploadAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken);
+        Task PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken);
     }
 }

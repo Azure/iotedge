@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class IoTHubMetricsUpload : IMetricsUpload
+    public sealed class IoTHubMetricsUpload : IMetricsPublisher
     {
         readonly ModuleClient moduleClient;
 
@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
             this.moduleClient = moduleClient;
         }
 
-        public async Task UploadAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
+        public async Task PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
         {
             byte[] data = RawMetric.MetricsToBytes(metrics).ToArray();
             byte[] compressedData = Compression.CompressToGzip(data);

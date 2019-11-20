@@ -14,13 +14,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     /// </summary>
     public class RawMetricValue
     {
-        public const int Size = sizeof(long) + sizeof(double);
+        // The size of the time and value when converted to raw bytes.
+        public const int EncodedSize = sizeof(long) + sizeof(double);
 
         public RawMetricValue(DateTime timeGeneratedUtc, double value)
         {
             Preconditions.CheckArgument(timeGeneratedUtc.Kind == DateTimeKind.Utc);
-            this.TimeGeneratedUtc = Preconditions.CheckNotNull(timeGeneratedUtc, nameof(timeGeneratedUtc));
-            this.Value = Preconditions.CheckNotNull(value, nameof(value));
+            this.TimeGeneratedUtc = timeGeneratedUtc;
+            this.Value = value;
         }
 
         public DateTime TimeGeneratedUtc { get; }
@@ -33,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
 
         public static IEnumerable<RawMetricValue> BytesToRawValues(byte[] bytes, int startIndex = 0, int length = 1)
         {
-            int stop = startIndex + length * Size;
+            int stop = startIndex + length * EncodedSize;
             while (startIndex < stop)
             {
                 long ticks;
@@ -107,7 +108,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
                     index = checked(index + sizeof(int));
 
                     int oldIndex = index;
-                    index = checked(index + valuesLength * RawMetricValue.Size);
+                    index = checked(index + valuesLength * RawMetricValue.EncodedSize);
                     rawValues = RawMetricValue.BytesToRawValues(bytes, oldIndex, valuesLength);
                 }
                 catch (Exception e) when (e is OverflowException || e is ArgumentException || e is ArgumentOutOfRangeException)

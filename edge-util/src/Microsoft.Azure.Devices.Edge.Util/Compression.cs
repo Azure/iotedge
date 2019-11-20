@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Util
 {
-    using System.Collections.Generic;
     using System.IO;
     using System.IO.Compression;
 
@@ -13,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             {
                 using (var gzipStream = new GZipStream(compressedStream, CompressionMode.Compress))
                 {
-                    new MemoryStream(input).CopyTo(gzipStream);
+                    gzipStream.Write(input, 0, input.Length);
                 }
 
                 var compressedBytes = compressedStream.ToArray();

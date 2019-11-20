@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
     using Moq;
     using Xunit;
 
-    public class WorkerTests : IDisposable
+    public class MetricsWorkerTest : IDisposable
     {
         TempDirectory tempDirectory = new TempDirectory();
 
@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
             string storedValue = string.Empty;
             storage.Setup(s => s.WriteData(It.IsAny<string>())).Callback((Action<string>)(data => storedValue = data));
 
-            var uploader = new Mock<IMetricsUpload>();
+            var uploader = new Mock<IMetricsPublisher>();
 
             MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
             MethodInfo methodInfo = typeof(MetricsWorker).GetMethod("Scrape", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -84,9 +84,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
                 { DateTime.UtcNow, () => string.Empty }
             });
 
-            var uploader = new Mock<IMetricsUpload>();
+            var uploader = new Mock<IMetricsPublisher>();
             IEnumerable<Metric> uploadedData = Enumerable.Empty<Metric>();
-            uploader.Setup(u => u.UploadAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Callback((Action<IEnumerable<Metric>, CancellationToken>)((data, __) => uploadedData = data)).Returns(Task.CompletedTask);
+            uploader.Setup(u => u.PublishAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Callback((Action<IEnumerable<Metric>, CancellationToken>)((data, __) => uploadedData = data)).Returns(Task.CompletedTask);
 
             MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
             MethodInfo methodInfo = typeof(MetricsWorker).GetMethod("Upload", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -117,9 +117,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
             {
                 { DateTime.UtcNow, () => Newtonsoft.Json.JsonConvert.SerializeObject(metrics) }
             });
-            var uploader = new Mock<IMetricsUpload>();
+            var uploader = new Mock<IMetricsPublisher>();
             IEnumerable<Metric> uploadedData = Enumerable.Empty<Metric>();
-            uploader.Setup(u => u.UploadAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Callback((Action<IEnumerable<Metric>, CancellationToken>)((d, _) => uploadedData = d)).Returns(Task.CompletedTask);
+            uploader.Setup(u => u.PublishAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Callback((Action<IEnumerable<Metric>, CancellationToken>)((d, _) => uploadedData = d)).Returns(Task.CompletedTask);
 
             MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
             MethodInfo methodInfo = typeof(MetricsWorker).GetMethod("Upload", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -155,9 +155,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
             var storage = new Mock<IMetricsStorage>();
             storage.Setup(s => s.GetData(It.IsAny<DateTime>())).Returns(data);
 
-            var uploader = new Mock<IMetricsUpload>();
+            var uploader = new Mock<IMetricsPublisher>();
             IEnumerable<Metric> uploadedData = Enumerable.Empty<Metric>();
-            uploader.Setup(u => u.UploadAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Callback((Action<IEnumerable<Metric>, CancellationToken>)((d, _) => uploadedData = d)).Returns(Task.CompletedTask);
+            uploader.Setup(u => u.PublishAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Callback((Action<IEnumerable<Metric>, CancellationToken>)((d, _) => uploadedData = d)).Returns(Task.CompletedTask);
 
             MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
             MethodInfo methodInfo = typeof(MetricsWorker).GetMethod("Upload", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -195,9 +195,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
 
             var storage = new MetricsFileStorage(this.tempDirectory.GetTempDir(), systemTime.Object);
 
-            var uploader = new Mock<IMetricsUpload>();
+            var uploader = new Mock<IMetricsPublisher>();
             IEnumerable<Metric> uploadedData = Enumerable.Empty<Metric>();
-            uploader.Setup(u => u.UploadAsync(It.IsAny<IEnumerable<Metric>>(), ct)).Callback((Action<IEnumerable<Metric>, CancellationToken>)((d, _) => uploadedData = d.ToArray())).Returns(Task.CompletedTask);
+            uploader.Setup(u => u.PublishAsync(It.IsAny<IEnumerable<Metric>>(), ct)).Callback((Action<IEnumerable<Metric>, CancellationToken>)((d, _) => uploadedData = d.ToArray())).Returns(Task.CompletedTask);
 
             MetricsWorker worker = new MetricsWorker(scraper.Object, storage, uploader.Object, systemTime.Object);
             MethodInfo methodInfoScrape = typeof(MetricsWorker).GetMethod("Scrape", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -273,8 +273,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
 
             var storage = new Mock<IMetricsStorage>();
 
-            var uploader = new Mock<IMetricsUpload>();
-            uploader.Setup(u => u.UploadAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Returns(async () => await uploadTaskSource.Task);
+            var uploader = new Mock<IMetricsPublisher>();
+            uploader.Setup(u => u.PublishAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Returns(async () => await uploadTaskSource.Task);
 
             MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
             MethodInfo methodInfoScrape = typeof(MetricsWorker).GetMethod("Scrape", BindingFlags.NonPublic | BindingFlags.Instance);

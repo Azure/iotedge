@@ -13,9 +13,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
 
     public sealed class MetricsFileStorage : IMetricsStorage
     {
+        readonly string directory;
         readonly ISystemTime systemTime;
-
-        string directory;
 
         public MetricsFileStorage(string directory, ISystemTime systemTime = null)
         {
