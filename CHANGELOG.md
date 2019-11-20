@@ -1,3 +1,13 @@
+# 1.0.9-rc3 (2019-09-20)
+
+## Edge Hub
+### Bug fixes
+* Update Twin property value validation to apply 4K length limit ([4acce35](https://github.com/Azure/iotedge/commit/4acce3576be89cfc8c929229d6c5c7c6a6b41cc5))
+* Fix "storage directories are mounted from host" checks to account for mounts of parent directories ([4acce35](https://github.com/Azure/iotedge/commit/4acce3576be89cfc8c929229d6c5c7c6a6b41cc5))
+
+## iotedged
+### Bug fixes
+
 # 1.0.9-rc2 (2019-09-03)
 
 ## Edge Hub
