@@ -1006,7 +1006,7 @@ function usage() {
     echo ' -logAnalyticsWorkspaceId        Optional Log Analytics workspace ID for metrics collection and reporting.'
     echo ' -logAnalyticsSharedKey          Optional Log Analytics shared key for metrics collection and reporting.'
     echo ' -logAnalyticsLogType            Optional Log Analytics log type for the Analyzer module.'
-    echo ' -metricsScrapeFrequencyInSecs   Optional Log Analytics log type for the Analyzer module.'
+    echo ' -metricsScrapeFrequencyInSecs   Defines the interval at which the MetricsCollector module will scrape metrics from the exposed edgeHub endpoint.'
     exit 1;
 }
 
