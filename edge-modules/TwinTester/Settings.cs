@@ -25,7 +25,6 @@ namespace TwinTester
                 return new Settings(
                     configuration.GetValue<string>("IOTEDGE_DEVICEID", string.Empty),
                     configuration.GetValue<string>("IOTEDGE_MODULEID", string.Empty),
-                    configuration.GetValue<double>("JitterFactor", 0),
                     configuration.GetValue<int>("TwinUpdateCharCount", 1),
                     configuration.GetValue<TimeSpan>("TwinUpdateFrequency", TimeSpan.FromSeconds(10)),
                     configuration.GetValue<TimeSpan>("TwinUpdateFailureThreshold", TimeSpan.FromMinutes(1)),
@@ -39,7 +38,6 @@ namespace TwinTester
         Settings(
             string deviceId,
             string moduleId,
-            double jitterFactor,
             int twinUpdateCharCount,
             TimeSpan twinUpdateFrequency,
             TimeSpan twinUpdateFailureThreshold,
@@ -65,7 +63,6 @@ namespace TwinTester
 
         public string DeviceId { get; }
         public string ModuleId { get; }
-        public double JitterFactor { get; }
         public int TwinUpdateCharCount { get; }
         public TimeSpan TwinUpdateFrequency { get; }
         public TimeSpan TwinUpdateFailureThreshold { get; }

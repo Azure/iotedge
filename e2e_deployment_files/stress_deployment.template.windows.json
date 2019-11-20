@@ -304,14 +304,17 @@
               "ModuleImageBuildBranch": {
                 "value": "<Analyzer.ModuleImageBuildBranch>"
               },
-              "LogAnalyticWorkspaceId": {
-                "value": "<Analyzer.LogAnalyticWorkspaceId>"
+              "LogAnalyticsEnabled": {
+                "value": "<Analyzer.LogAnalyticsEnabled>"
               },
-              "LogAnalyticSharedKey": {
-                "value": "<Analyzer.LogAnalyticSharedKey>"
+              "LogAnalyticsWorkspaceId": {
+                "value": "<LogAnalyticsWorkspaceId>"
               },
-              "LogAnalyticLogType": {
-                "value": "<Analyzer.LogAnalyticLogType>"
+              "LogAnalyticsSharedKey": {
+                "value": "<LogAnalyticsSharedKey>"
+              },
+              "LogAnalyticsLogType": {
+                "value": "<Analyzer.LogAnalyticsLogType>"
               }
             },
             "settings": {

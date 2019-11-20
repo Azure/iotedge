@@ -204,7 +204,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                 envList.Add(new V1EnvVar(KubernetesConstants.ProxyTrustBundleVolumeEnvKey, this.proxyTrustBundleVolumeName));
                 envList.Add(new V1EnvVar(KubernetesConstants.ProxyTrustBundleConfigMapEnvKey, this.proxyTrustBundleConfigMapName));
                 envList.Add(new V1EnvVar(KubernetesConstants.K8sNamespaceKey, this.deviceNamespace));
-                envList.Add(new V1EnvVar(KubernetesConstants.RunAsNonRootKey));
+                envList.Add(new V1EnvVar(KubernetesConstants.RunAsNonRootKey, this.runAsNonRoot.ToString()));
+                envList.Add(new V1EnvVar(KubernetesConstants.EdgeK8sObjectOwnerApiVersionKey, module.Owner.ApiVersion));
+                envList.Add(new V1EnvVar(KubernetesConstants.EdgeK8sObjectOwnerKindKey, module.Owner.Kind));
+                envList.Add(new V1EnvVar(KubernetesConstants.EdgeK8sObjectOwnerNameKey, module.Owner.Name));
+                envList.Add(new V1EnvVar(KubernetesConstants.EdgeK8sObjectOwnerUidKey, module.Owner.Uid));
             }
 
             if (string.Equals(identity.ModuleId, CoreConstants.EdgeAgentModuleIdentityName) ||
