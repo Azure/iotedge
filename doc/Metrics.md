@@ -69,8 +69,45 @@ added to the deployment with the following parameters:
 After the modules are deployed, Chronograf can be reached at http://localhost:8888. InfluxDb should be configured as a data source for Chronograf. The InfluxDb instance should be reachable at http://influxdb:8086.
 
 ## Example InfluxDb queries
-
-For example InfluxDb queries, please look at https://github.com/Azure/iotedge/blob/master/tools/snitch/snitcher/src/settings.yaml#L16
+```
+influx_queries:
+  db: SELECT non_negative_derivative(sum("value"), 1s) AS "rate_stored"
+    FROM "metricsdatabase"."autogen"."application__endpointmessagestoredcount"
+    WHERE time > now() - 8h AND "EndpointId"='iothub'
+    GROUP BY time(1m) FILL(null)
+  cloud: SELECT non_negative_derivative(sum("value"), 1s) AS "sum_value"
+    FROM "metricsdatabase"."autogen"."application__edgehubtocloudmessagesentcount"
+    WHERE time > now() - 8h
+    GROUP BY time(1m) FILL(null)
+  dbstd: SELECT mean("stddev") AS "mean_stddev"
+    FROM "metricsdatabase"."autogen"."application__endpointmessagestoredlatencyms"
+    WHERE time > now() - 8h AND "EndpointId"='iothub'
+    GROUP BY time(1m) FILL(null)
+  cloudstd: SELECT mean("stddev") AS "mean_stddev"
+    FROM "metricsdatabase"."autogen"."application__edgehubtocloudmessagelatencyms"
+    WHERE time > now() - 8h
+    GROUP BY time(1m) FILL(null)
+  dbmean: SELECT mean("mean") AS "mean_mean"
+    FROM "metricsdatabase"."autogen"."application__endpointmessagestoredlatencyms"
+    WHERE time > now() - 8h AND "EndpointId"='iothub'
+    GROUP BY time(1m) FILL(null)
+  dbmeanentity: SELECT mean("mean") AS "mean_mean"
+    FROM "metricsdatabase"."autogen"."application__messageentitystoreputorupdatelatencyms"
+    WHERE time > now() - 8h AND "EndpointId"='iothub'
+    GROUP BY time(1m) FILL(null)
+  dbmeanseq: SELECT mean("mean") AS "mean_mean"
+    FROM "metricsdatabase"."autogen"."application__sequentialstoreappendlatencyms"
+    WHERE time > now() - 8h AND "EndpointId"='iothub'
+    GROUP BY time(1m) FILL(null)
+  dbgetstd: SELECT mean("stddev") AS "mean_stddev"
+    FROM "metricsdatabase"."autogen"."application__dbgetlatencyms"
+    WHERE time > now() - 8h AND "EndpointId"='all'
+    GROUP BY time(1m) FILL(null)
+  dbputstd: SELECT mean("stddev") AS "mean_stddev"
+    FROM "metricsdatabase"."autogen"."application__dbgetlatencyms"
+    WHERE time > now() - 8h AND "EndpointId"='all'
+    GROUP BY time(1m) FILL(null)
+```
 
 ## Collecting CPU and memory stats from EdgeHub and other containers
 
