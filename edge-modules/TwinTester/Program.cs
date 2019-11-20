@@ -27,6 +27,7 @@ namespace TwinTester
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                     ModuleUtil.DefaultTransientRetryStrategy,
                     Logger);
+                await moduleClient.OpenAsync();
 
                 AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = Settings.Current.AnalyzerUrl };
 
