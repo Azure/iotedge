@@ -15,11 +15,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
 
         public IoTHubMetricsUpload(ModuleClient moduleClient)
         {
-            this.moduleClient = moduleClient;
+            this.moduleClient = Preconditions.CheckNotNull(moduleClient, nameof(moduleClient));
         }
 
         public async Task PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
         {
+            Preconditions.CheckNotNull(metrics, nameof(metrics));
             byte[] data = RawMetric.MetricsToBytes(metrics).ToArray();
             byte[] compressedData = Compression.CompressToGzip(data);
 

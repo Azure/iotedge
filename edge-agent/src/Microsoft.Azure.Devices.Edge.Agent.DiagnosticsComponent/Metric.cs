@@ -7,7 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     using System.Text;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public sealed class Metric
+    public sealed class Metric : IEquatable<Metric>
     {
         public DateTime TimeGeneratedUtc { get; }
         public string Name { get; }
@@ -36,6 +36,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
             hash = hash * 31 + this.Tags.GetHashCode();
 
             return hash;
+        }
+
+        public bool Equals(Metric other)
+        {
+            return this.TimeGeneratedUtc == other.TimeGeneratedUtc &&
+                this.Name == other.Name &&
+                this.Value == other.Value &&
+                this.Tags == other.Tags;
         }
     }
 }

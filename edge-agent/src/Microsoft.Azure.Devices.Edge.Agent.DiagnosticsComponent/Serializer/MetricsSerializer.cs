@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     /// <summary>
     /// Provides a way to serialize the datetime and value component of a metric.
     /// </summary>
-    public class RawMetricValue
+    public class RawMetricValue : IEquatable<RawMetricValue>
     {
         // The size of the time and value when converted to raw bytes.
         public const int EncodedSize = sizeof(long) + sizeof(double);
@@ -53,6 +53,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
 
                 yield return new RawMetricValue(new DateTime(ticks, DateTimeKind.Utc), value);
             }
+        }
+
+        public bool Equals(RawMetricValue other)
+        {
+            return this.TimeGeneratedUtc == other.TimeGeneratedUtc &&
+                this.Value == other.Value;
         }
     }
 

@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
             var reconstructedValues = RawMetric.BytesToMetrics(data).ToArray();
 
             Assert.Single(reconstructedValues);
-            TestUtilities.ReflectionEqual(testMetric, reconstructedValues[0]);
+            Assert.Equal(testMetric, reconstructedValues[0]);
         }
 
         [Fact]
@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
 
             var expected = testMetrics.OrderBy(m => m.Name).ThenBy(m => m.Tags).ThenBy(m => m.TimeGeneratedUtc);
             var actual = reconstructedValues.OrderBy(m => m.Name).ThenBy(m => m.Tags).ThenBy(m => m.TimeGeneratedUtc);
-            TestUtilities.ReflectionEqualEnumerable(expected, actual);
+            Assert.Equal(expected, actual);
         }
 
         [Fact]
@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
 
             var expected = testMetrics.OrderBy(m => m.Name).ThenBy(m => m.Tags).ThenBy(m => m.TimeGeneratedUtc).ToArray();
             var actual = reconstructedValues.OrderBy(m => m.Name).ThenBy(m => m.Tags).ThenBy(m => m.TimeGeneratedUtc).ToArray();
-            TestUtilities.ReflectionEqualEnumerable(expected, actual);
+            Assert.Equal(expected, actual);
         }
 
         [Fact]
@@ -62,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
             byte[] data = RawMetricValue.RawValuesToBytes(testValues).ToArray();
             var reconstructedValues = RawMetricValue.BytesToRawValues(data, 0, testValues.Length).ToArray();
 
-            TestUtilities.ReflectionEqualEnumerable(testValues, reconstructedValues);
+            Assert.Equal(testValues, reconstructedValues);
         }
 
         [Fact]
