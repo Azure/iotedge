@@ -113,6 +113,9 @@
     .PARAMETER LogAnalyticsLogType
         Optional Log Analytics log type for the Analyzer module.
 
+    .PARAMETER LogAnalyticsLogType
+        Defines the interval at which the MetricsCollector module will scrape metrics from the exposed edgeHub endpoint.
+
     .EXAMPLE
         .\Run-E2ETest.ps1
             -E2ETestFolder "C:\Data\e2etests"
@@ -242,6 +245,8 @@ Param (
     [string] $IoTHubConnectionString = $(Throw "IoT hub connection string is required"),
 
     [string] $LoadGenMessageFrequency = $null,
+
+    [string] $MetricsScrapeFrequencyInSecs = $null,
 
     [ValidateScript({($_ -as [System.Uri]).AbsoluteUri -ne $null})]
     [string] $ProxyUri = $null,
@@ -475,6 +480,7 @@ Function PrepareTestFromArtifacts
                 (Get-Content $DeploymentWorkingFilePath).replace('<LogAnalyticsSharedKey>',$LogAnalyticsSharedKey) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen.MessageFrequency>',$LoadGenMessageFrequency) | Set-Content $DeploymentWorkingFilePath
                 $escapedBuildId= $ArtifactImageBuildNumber -replace "\.",""
+                (Get-Content $DeploymentWorkingFilePath).replace('<MetricsCollector.ScrapeFrequencyInSecs>',$MetricsScrapeFrequencyInSecs) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.AlertUrl>',$SnitchAlertUrl) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildNumber>',$SnitchBuildNumber) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildId>',"$ReleaseLabel-$(GetImageArchitectureLabel)-windows-$escapedBuildId") | Set-Content $DeploymentWorkingFilePath
@@ -1524,6 +1530,11 @@ If ([string]::IsNullOrWhiteSpace($EdgeE2ERootCACertRSAFile))
 If ([string]::IsNullOrWhiteSpace($EdgeE2ERootCAKeyRSAFile))
 {
     $EdgeE2ERootCAKeyRSAFile=$DefaultInstalledRSARootCAKey
+}
+
+If ([string]::IsNullOrWhiteSpace($MetricsScrapeFrequencyInSecs))
+{
+    $MetricsScrapeFrequencyInSecs=300;
 }
 
 If ($TestName -eq "LongHaul")
