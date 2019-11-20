@@ -25,10 +25,10 @@ impl NamedSecret {
     }
 }
 
-impl<'a> TryFrom<(&str, ImagePullSecret<'a>)> for NamedSecret {
+impl TryFrom<(String, ImagePullSecret)> for NamedSecret {
     type Error = crate::error::Error;
 
-    fn try_from((namespace, image_pull_secret): (&str, ImagePullSecret<'a>)) -> Result<Self> {
+    fn try_from((namespace, image_pull_secret): (String, ImagePullSecret)) -> Result<Self> {
         let secret_name = image_pull_secret
             .name()
             .ok_or_else(|| ErrorKind::PullImage(PullImageErrorReason::AuthName))?;
@@ -42,7 +42,7 @@ impl<'a> TryFrom<(&str, ImagePullSecret<'a>)> for NamedSecret {
                 data: Some(secret_data),
                 metadata: Some(api_meta::ObjectMeta {
                     name: Some(secret_name.to_string()),
-                    namespace: Some(namespace.to_string()),
+                    namespace: Some(namespace),
                     ..api_meta::ObjectMeta::default()
                 }),
                 type_: Some(PULL_SECRET_DATA_TYPE.to_string()),
@@ -71,7 +71,7 @@ mod tests {
             .with_username("USER")
             .with_password("PASSWORD");
 
-        let pull_secret = NamedSecret::try_from(("namespace", image_pull_secret)).unwrap();
+        let pull_secret = NamedSecret::try_from(("namespace".into(), image_pull_secret)).unwrap();
 
         assert_eq!(pull_secret.name(), "user-registry".to_string());
 
@@ -123,7 +123,7 @@ mod tests {
         ];
 
         for (image_pull_secret, cause) in image_pull_secrets {
-            let err = NamedSecret::try_from(("namespace", image_pull_secret)).unwrap_err();
+            let err = NamedSecret::try_from(("namespace".into(), image_pull_secret)).unwrap_err();
 
             assert_eq!(err.kind(), &cause);
         }

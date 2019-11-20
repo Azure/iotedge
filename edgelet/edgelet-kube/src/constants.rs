@@ -37,7 +37,17 @@ pub mod env {
 
     pub const PROXY_TRUST_BUNDLE_PATH_KEY: &str = "ProxyTrustBundlePath";
 
+    pub const PROXY_IMAGE_PULL_SECRET_NAME_KEY: &str = "ProxyImagePullSecretName";
+
     pub const NAMESPACE_KEY: &str = "K8sNamespace";
 
     pub const EDGE_NETWORK_ID_KEY: &str = "NetworkId";
+
+    pub const EDGE_OBJECT_OWNER_API_VERSION_KEY: &str = "EdgeK8sObjectOwnerApiVersion";
+
+    pub const EDGE_OBJECT_OWNER_KIND_KEY: &str = "EdgeK8sObjectOwnerKind";
+
+    pub const EDGE_OBJECT_OWNER_NAME_KEY: &str = "EdgeK8sObjectOwnerName";
+
+    pub const EDGE_OBJECT_OWNER_UID_KEY: &str = "EdgeK8sObjectOwnerUid";
 }

@@ -35,26 +35,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
             ConfigurationInfo goodInfo = new ConfigurationInfo(string.Empty);
 
-            var m1 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, goodInfo, goodEnv, goodConfig, ImagePullPolicy.OnCreate);
-            var m2 = new KubernetesModule("name2", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, goodInfo, goodEnv, goodConfig, ImagePullPolicy.OnCreate);
+            KubernetesModuleOwner moduleOwner = new KubernetesModuleOwner("v1", "Deployment", "iotedged", "123");
 
-            var m3 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, goodInfo, goodEnv, goodConfig, ImagePullPolicy.OnCreate);
-            var m4 = new KubernetesModule("name1", "v2", "docker", ModuleStatus.Running, RestartPolicy.Always, goodInfo, goodEnv, goodConfig, ImagePullPolicy.OnCreate);
+            var m1 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, goodInfo, goodEnv, goodConfig, ImagePullPolicy.OnCreate, moduleOwner);
+            var m2 = new KubernetesModule("name2", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, goodInfo, goodEnv, goodConfig, ImagePullPolicy.OnCreate, moduleOwner);
 
-            var m5 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, goodInfo, goodEnv, goodConfig, ImagePullPolicy.OnCreate);
-            var m6 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Stopped, RestartPolicy.Always, goodInfo, goodEnv, goodConfig, ImagePullPolicy.OnCreate);
+            var m3 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, goodInfo, goodEnv, goodConfig, ImagePullPolicy.OnCreate, moduleOwner);
+            var m4 = new KubernetesModule("name1", "v2", "docker", ModuleStatus.Running, RestartPolicy.Always, goodInfo, goodEnv, goodConfig, ImagePullPolicy.OnCreate, moduleOwner);
 
-            var m7 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, goodInfo, goodEnv, goodConfig, ImagePullPolicy.OnCreate);
-            var m8 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Never, goodInfo, goodEnv, goodConfig, ImagePullPolicy.OnCreate);
+            var m5 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, goodInfo, goodEnv, goodConfig, ImagePullPolicy.OnCreate, moduleOwner);
+            var m6 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Stopped, RestartPolicy.Always, goodInfo, goodEnv, goodConfig, ImagePullPolicy.OnCreate, moduleOwner);
 
-            var m9 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, goodInfo, goodEnv, imageDifferent, ImagePullPolicy.OnCreate);
-            var m10 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, goodInfo, goodEnv, auth1Config, ImagePullPolicy.OnCreate);
-            var m11 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, goodInfo, goodEnv, auth2Config, ImagePullPolicy.OnCreate);
-            var m12 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, goodInfo, goodEnv, auth3Config, ImagePullPolicy.OnCreate);
-            var m13 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, goodInfo, goodEnv, auth4Config, ImagePullPolicy.OnCreate);
-            var m14 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, goodInfo, goodEnv, createContainerConfigDifferent, ImagePullPolicy.OnCreate);
+            var m7 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, goodInfo, goodEnv, goodConfig, ImagePullPolicy.OnCreate, moduleOwner);
+            var m8 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Never, goodInfo, goodEnv, goodConfig, ImagePullPolicy.OnCreate, moduleOwner);
 
-            var m15 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, goodInfo, newEnv, goodConfig, ImagePullPolicy.OnCreate);
+            var m9 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, goodInfo, goodEnv, imageDifferent, ImagePullPolicy.OnCreate, moduleOwner);
+            var m10 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, goodInfo, goodEnv, auth1Config, ImagePullPolicy.OnCreate, moduleOwner);
+            var m11 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, goodInfo, goodEnv, auth2Config, ImagePullPolicy.OnCreate, moduleOwner);
+            var m12 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, goodInfo, goodEnv, auth3Config, ImagePullPolicy.OnCreate, moduleOwner);
+            var m13 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, goodInfo, goodEnv, auth4Config, ImagePullPolicy.OnCreate, moduleOwner);
+            var m14 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, goodInfo, goodEnv, createContainerConfigDifferent, ImagePullPolicy.OnCreate, moduleOwner);
+
+            var m15 = new KubernetesModule("name1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, goodInfo, newEnv, goodConfig, ImagePullPolicy.OnCreate, moduleOwner);
 
             Assert.NotEqual(m1, m2);
             Assert.NotEqual(m3, m4);

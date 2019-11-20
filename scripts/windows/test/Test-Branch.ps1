@@ -97,7 +97,7 @@ if ($Filter) {
 foreach($testDll in $testProjectDllsRunSerially)
 {
     $testCommand = "$testCommandPrefix $testDll"
-    $testCommand = $testCommand.Replace("result.trx", $testDll.Replace(".dll",".trx"))
+    $testCommand = $testCommand.Replace("result.trx", "$((Get-Item $testDll).Basename).trx")
     Write-Host "Run test command serially: $testCommand"
     Invoke-Expression "$testCommand"
 
@@ -109,6 +109,7 @@ foreach($testDll in $testProjectDllsRunSerially)
 }
 
 $testCommand = $testCommandPrefix + $testProjectsDlls
+$testCommand = $testCommand.Replace("result.trx", "result.$([System.IO.Path]::GetRandomFileName()).trx")
 Write-Host "Run test command: $testCommand"
 Invoke-Expression "$testCommand"
 

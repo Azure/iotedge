@@ -145,7 +145,6 @@ Defaults:
                 }
                 else
                 {
-                    builder.Build();
                     // non certificate flow use SAS tokens
                     LeafDevice testSas = builder.Build();
                     await testSas.RunAsync();
