@@ -19,24 +19,17 @@ namespace DevOpsLib
         {
             ValidationUtil.ThrowIfNullOrWhiteSpace(logAnalyticsWorkspaceId, nameof(logAnalyticsWorkspaceId));
 
-            try
-            {
-                string requestUri = $"https://api.loganalytics.io/{apiVersion}/workspaces/{logAnalyticsWorkspaceId}/query?query=";
-                string accessToken = await azureActiveDirectory.GetAccessToken(AzureLogAnalytics.AzureResource);
+            string requestUri = $"https://api.loganalytics.io/{apiVersion}/workspaces/{logAnalyticsWorkspaceId}/query?query=";
+            string accessToken = await azureActiveDirectory.GetAccessToken(AzureLogAnalytics.AzureResource);
 
-                var client = new HttpClient();
-                client.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
+            var client = new HttpClient();
+            client.DefaultRequestHeaders.Add("Authorization", $"Bearer {accessToken}");
 
-                var response = await client.GetAsync($"{requestUri}{kqlQuery}").ConfigureAwait(false);
-                response.EnsureSuccessStatusCode();
-                var responseMsg = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var response = await client.GetAsync($"{requestUri}{kqlQuery}").ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+            var responseMsg = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-                return responseMsg;
-            }
-            catch (Exception e)
-            {
-                throw e;
-            }
+            return responseMsg;
         }
     }
 }
