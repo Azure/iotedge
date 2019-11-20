@@ -40,10 +40,32 @@ namespace TestAnalyzer
                     configuration.GetValue<string>("LogAnalyticsSharedKey"),
                     configuration.GetValue<string>("LogAnalyticsLogType"),
                     configuration.GetValue<string>("storagePath", DefaultStoragePath),
-                    configuration.GetValue<bool>("StorageOptimizeForPerformance", true));
+                    configuration.GetValue<bool>("StorageOptimizeForPerformance", true),
+                    configuration.GetValue<string>("vstsAgentMachineName"),
+                    configuration.GetValue<string>("vstsAgentName"),
+                    configuration.GetValue<string>("vstsBuildId"),
+                    configuration.GetValue<string>("vstsBuildNumber"),
+                    configuration.GetValue<string>("vstsBuildQueueBy"));
             });
 
-        Settings(string eventHubConnectionString, string consumerGroupId, string deviceId, IList<string> excludedModuleIds, string webhostPort, double tolerance, bool logAnalyticsEnabled, string logAnalyticsWorkspaceIdName, string logAnalyticsSharedKeyName, string logAnalyticsLogTypeName, string storagePath, bool storageOptimizeForPerformance)
+        Settings(
+            string eventHubConnectionString,
+            string consumerGroupId,
+            string deviceId,
+            IList<string> excludedModuleIds,
+            string webhostPort,
+            double tolerance,
+            bool logAnalyticsEnabled,
+            string logAnalyticsWorkspaceIdName,
+            string logAnalyticsSharedKeyName,
+            string logAnalyticsLogTypeName,
+            string storagePath,
+            bool storageOptimizeForPerformance,
+            string vstsAgentMachineName,
+            string vstsAgentName,
+            string vstsBuildId,
+            string vstsBuildNumber,
+            string vstsBuildQueueBy)
         {
             this.EventHubConnectionString = Preconditions.CheckNonWhiteSpace(eventHubConnectionString, nameof(eventHubConnectionString));
             this.ConsumerGroupId = Preconditions.CheckNonWhiteSpace(consumerGroupId, nameof(consumerGroupId));
@@ -57,26 +79,29 @@ namespace TestAnalyzer
             this.LogAnalyticsWorkspaceId = logAnalyticsWorkspaceIdName;
             this.LogAnalyticsSharedKey = logAnalyticsSharedKeyName;
             this.LogAnalyticsLogType = logAnalyticsLogTypeName;
+            this.VstsAgentMachineName = vstsAgentMachineName;
+            this.VstsAgentName = vstsAgentName;
+            this.VstsBuildId = vstsBuildId;
+            this.VstsBuildNumber = vstsBuildNumber;
+            this.VstsBuildQueueBy = vstsBuildQueueBy;
         }
 
         public static Settings Current => Setting.Value;
 
-        [JsonIgnore]
-        public string EventHubConnectionString { get; }
-
         public string ConsumerGroupId { get; }
-
-        public IList<string> ExcludedModuleIds { get; }
 
         public string DeviceId { get; }
 
-        public string WebhostPort { get; }
+        [JsonIgnore]
+        public string EventHubConnectionString { get; }
 
-        public double ToleranceInMilliseconds { get; }
+        public IList<string> ExcludedModuleIds { get; }
+
+        public bool OptimizeForPerformance { get; }
 
         public string StoragePath { get; }
 
-        public bool OptimizeForPerformance { get; }
+        public double ToleranceInMilliseconds { get; }
 
         public bool LogAnalyticsEnabled { get; }
 
@@ -86,6 +111,18 @@ namespace TestAnalyzer
         public string LogAnalyticsSharedKey { get; }
 
         public string LogAnalyticsLogType { get; }
+
+        public string VstsAgentMachineName { get; }
+
+        public string VstsAgentName { get; }
+
+        public string VstsBuildId { get; }
+
+        public string VstsBuildNumber { get; }
+
+        public string VstsBuildQueueBy { get; }
+
+        public string WebhostPort { get; }
 
         public override string ToString()
         {
