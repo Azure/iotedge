@@ -1,12 +1,13 @@
 parameters:
   testName: ''
   release.label: ''
+  agent.machineName: ''
+  agent.name: ''
+  build.buildId: ''
+  build.buildNumber: ''
+  build.queuedBy: ''
   edgelet.artifact.name: ''
-  edgelet.package.build: ''
-  edgelet.package.branchName: ''
   images.artifact.name: ''
-  images.build: ''
-  images.branchName: ''
   container.registry: ''
   container.registry.username: ''
   container.registry.password: ''
@@ -126,9 +127,10 @@ steps:
           -TwinUpdateCharCount "${{ parameters['twinTester.twinUpdateCharCount'] }}" `
           -TwinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" `
           -TwinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}" `
-          -EdgeletBuildId "${{ parameters['edgelet.package.build'] }}" `
-          -EdgeletBuildBranch "${{ parameters['edgelet.package.branchName'] }}" `
-          -ModuleImageBuildId "${{ parameters['images.build'] }}" `
-          -ModuleImageBuildBranch "${{ parameters['images.branchName'] }}" `
+          -VstsAgentMachineName "${{ parameters['agent.machineName'] }}" `
+          -VstsAgentName "${{ parameters['agent.name'] }}" `
+          -VstsBuildId "${{ parameters['build.buildId'] }}" `
+          -VstsBuildNumber "${{ parameters['build.buildNumber'] }}" `
+          -VstsBuildQueueBy "${{ parameters['build.queuedBy'] }}" `
           -BypassEdgeInstallation
       CommunicationProtocol: Http

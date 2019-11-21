@@ -1,11 +1,12 @@
 parameters:
   release.label: ''
+  agent.machineName: ''
+  agent.name: ''
+  build.buildId: ''
+  build.buildNumber: ''
+  build.queuedBy: ''
   edgelet.artifact.name: ''
-  edgelet.package.build: ''
-  edgelet.package.branchName: ''
   images.artifact.name: ''
-  images.build: ''
-  images.branchName: ''
   container.registry: ''
   container.registry.username: ''
   container.registry.password: ''
@@ -74,9 +75,10 @@ steps:
           -twinUpdateCharCount "${{ parameters['twinTester.twinUpdateCharCount'] }}" \
           -twinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" \
           -twinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}" \
-          -edgeletBuildId "${{ parameters['edgelet.package.build'] }}" \
-          -edgeletBuildBranch "${{ parameters['edgelet.package.branchName'] }}" \
-          -moduleImageBuildId "${{ parameters['images.build'] }}" \
-          -moduleImageBuildBranch "${{ parameters['images.branchName'] }}" \
+          -vstsAgentMachineName "${{ parameters['agent.machineName'] }}" \
+          -vstsAgentName "${{ parameters['agent.name'] }}" \
+          -vstsBuildId "${{ parameters['build.buildId'] }}" \
+          -vstsBuildNumber "${{ parameters['build.buildNumber'] }}" \
+          -vstsBuildQueueBy "${{ parameters['build.queuedBy'] }}" \
           -cleanAll
       workingDirectory: "$(Agent.HomeDirectory)/.."
