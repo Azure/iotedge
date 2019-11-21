@@ -113,6 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             }
             catch (HttpOperationException e)
             {
+                Events.DeployModuleException(e);
                 return EdgeDeploymentStatus.Failure(e);
             }
         }
@@ -232,37 +233,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     });
             await Task.WhenAll(updatingTask);
 
-            try
-            {
-                // Remove all PVCs that are not in the desired list, and are labeled (created by Agent)
-                var removingTasks = diff.Removed
-                    .Select(
-                        name =>
-                        {
-                            Events.DeletePvc(name);
-                            return this.client.DeleteNamespacedPersistentVolumeClaimAsync(name, this.deviceNamespace);
-                        });
-                await Task.WhenAll(removingTasks);
+            // Remove all PVCs that are not in the desired list, and are labeled (created by Agent)
+            var removingTasks = diff.Removed
+                .Select(
+                    name =>
+                    {
+                        Events.DeletePvc(name);
+                        return this.client.DeleteNamespacedPersistentVolumeClaimAsync(name, this.deviceNamespace);
+                    });
+            await Task.WhenAll(removingTasks);
 
-                // Create all new desired PVCs.
-                var addingTasks = diff.Added
-                    .Select(
-                        pvc =>
-                        {
-                            Events.CreatePvc(pvc);
-                            return this.client.CreateNamespacedPersistentVolumeClaimAsync(pvc, this.deviceNamespace);
-                        });
-                await Task.WhenAll(addingTasks);
-            }
-            catch (HttpOperationException ex)
-            {
-                // Some PVCs may not allow updates, depending on the PV, the reasons for update,
-                // or the k8s server version.
-                // Also some PVCs may not allow deletion immediately (while pod still exists),
-                // or may require user intervention, like deleting the PV created under a storage class.
-                // Our best option is to log it and wait for a resolution.
-                Events.PvcException(ex);
-            }
+            // Create all new desired PVCs.
+            var addingTasks = diff.Added
+                .Select(
+                    pvc =>
+                    {
+                        Events.CreatePvc(pvc);
+                        return this.client.CreateNamespacedPersistentVolumeClaimAsync(pvc, this.deviceNamespace);
+                    });
+            await Task.WhenAll(addingTasks);
         }
 
         Diff<V1PersistentVolumeClaim> FindPvcDiff(
@@ -369,10 +358,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 CreatePvc,
                 DeletePvc,
                 UpdatePvc,
-                PvcException,
                 CreateServiceAccount,
                 DeleteServiceAccount,
-                UpdateServiceAccount
+                UpdateServiceAccount,
+                DeployModuleException
             }
 
             public static void DeleteService(string name)
@@ -415,9 +404,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 Log.LogInformation((int)EventIds.UpdatePvc, $"Update PVC {pvc.Metadata.Name}");
             }
 
-            public static void PvcException(Exception ex)
+            public static void DeployModuleException(Exception ex)
             {
-                Log.LogWarning((int)EventIds.PvcException, ex, "PVC update or deletion failed. This may reconcile over time or require operator intervention.");
+                Log.LogWarning((int)EventIds.DeployModuleException, ex, "Module deployment failed");
             }
 
             public static void InvalidCreationString(string kind, string name)
