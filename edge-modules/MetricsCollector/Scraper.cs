@@ -14,8 +14,8 @@ namespace MetricsCollector
 
     public class Scraper
     {
-        static readonly ILogger Logger = ModuleUtil.CreateLogger("MetricsCollector");
         const string UrlPattern = @"[^/:]+://(?<host>[^/:]+)(:[^:]+)?$";
+        static readonly ILogger Logger = ModuleUtil.CreateLogger("MetricsCollector");
         static readonly Regex UrlRegex = new Regex(UrlPattern, RegexOptions.Compiled);
         readonly HttpClient httpClient;
         readonly IDictionary<string, string> endpoints = new Dictionary<string, string>();
