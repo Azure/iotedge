@@ -69,8 +69,6 @@ namespace DevOpsLib
 
                     JObject responseJson = JObject.Parse(responseMsg);
                     this.azureResource = azureResource;
-                    // (-1) second on the expiration time to prevent the access token immediately expired
-                    // after this function is returned.
                     this.accessTokenExpiration = epochStart.AddSeconds((double)responseJson["expires_on"]);
                     this.accessToken = (string)responseJson["access_token"];
                 }
@@ -86,7 +84,7 @@ namespace DevOpsLib
         public bool IsAccessTokenExpired()
         {
             // Add 2 seconds as a buffer so the token does not immediately expire after the function checked.
-            return DateTime.Compare(DateTime.UtcNow.AddSeconds(2), this.accessTokenExpiration) >= 0;
+            return DateTime.UtcNow.AddSeconds(2) > this.accessTokenExpiration;
         }
 
         public bool IsAccessTokenNeededAnUpdate(string azureResource)

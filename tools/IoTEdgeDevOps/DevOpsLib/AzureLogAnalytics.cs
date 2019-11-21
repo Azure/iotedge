@@ -17,13 +17,13 @@ namespace DevOpsLib
             string logAnalyticsWorkspaceId,
             string kqlQuery)
         {
-            ValidationUtil.ThrowIfNull(azureActiveDirectory, nameof(azureActiveDirectory));
-            ValidationUtil.ThrowIfNullOrWhiteSpace(logAnalyticsWorkspaceId, nameof(logAnalyticsWorkspaceId));
-
             if (string.IsNullOrWhiteSpace(kqlQuery))
             {
-                return "";
+                return String.Empty;
             }
+
+            ValidationUtil.ThrowIfNull(azureActiveDirectory, nameof(azureActiveDirectory));
+            ValidationUtil.ThrowIfNullOrWhiteSpace(logAnalyticsWorkspaceId, nameof(logAnalyticsWorkspaceId));
 
             string requestUri = $"https://api.loganalytics.io/{apiVersion}/workspaces/{logAnalyticsWorkspaceId}/query?query=";
             string accessToken = await azureActiveDirectory.GetAccessToken(AzureLogAnalytics.AzureResource);
