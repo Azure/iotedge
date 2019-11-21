@@ -8,6 +8,7 @@
 ### Bug fixes
 * Update Twin property value validation to apply 4K property value length limit ([4acce35](https://github.com/Azure/iotedge/commit/4acce3576be89cfc8c929229d6c5c7c6a6b41cc5))
 * Set max rocksdb write-ahead-log size to 512MB ([1853388](https://github.com/Azure/iotedge/commit/18533882b86db081e8370d9f9be5750181d3e930))
+* Fix iotedge version passed instead of client version ([4b335d2](https://github.com/Azure/iotedge/commit/4b335d2336d15f72a1be110f1168d75e69c37c00))
 
 ## Edge Agent
 ### Features
