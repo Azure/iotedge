@@ -86,10 +86,10 @@ namespace MetricsCollector
             }
 
             TimeSpan scrapingInterval = TimeSpan.FromSeconds(configuration.ScrapeFrequencySecs);
-            scrapingTimer = new Timer(ScrapeAndSync, metricsSync, scrapingInterval, scrapingInterval);
+            scrapingTimer = new Timer(ScrapeAndUploadPrometheusMetricsAsync, metricsSync, scrapingInterval, scrapingInterval);
         }
 
-        private static async void ScrapeAndSync(object context)
+        private static async void ScrapeAndUploadPrometheusMetricsAsync(object context)
         {
             try
             {
