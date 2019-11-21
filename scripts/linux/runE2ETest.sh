@@ -173,6 +173,11 @@ function prepare_test_from_artifacts() {
                 sed -i -e "s@<Analyzer.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
                 sed -i -e "s@<Analyzer.LogAnalyticsEnabled>@$LOG_ANALYTICS_ENABLED@g" "$deployment_working_file"
                 sed -i -e "s@<Analyzer.LogAnalyticsLogType>@$LOG_ANALYTICS_LOG_TYPE@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.VstsAgentMachineName>@$VSTS_AGENT_MACHINE_NAME@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.VstsAgentName>@$VSTS_AGENT_NAME@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.VstsBuildId>@$VSTS_BUILD_ID@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.VstsBuildNumber>@$VSTS_BUILD_NUMBER@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.VstsBuildQueueBy>@$VSTS_BUILD_QUEUE_BY@g" "$deployment_working_file"
                 sed -i -e "s@<LogAnalyticsWorkspaceId>@$LOG_ANALYTICS_WORKSPACE_ID@g" "$deployment_working_file"
                 sed -i -e "s@<LogAnalyticsSharedKey>@$LOG_ANALYTICS_SHARED_KEY@g" "$deployment_working_file"
                 sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
@@ -388,16 +393,19 @@ function process_args() {
             TWIN_UPDATE_FAILURE_THRESHOLD="$arg"
             saveNextArg=0;
         elif [ $saveNextArg -eq 39 ]; then
-            EDGELET_BUILD_ID="$arg"
+            VSTS_AGENT_MACHINE_NAME="$arg"
             saveNextArg=0;
         elif [ $saveNextArg -eq 40 ]; then
-            EDGELET_BUILD_BRANCH="$arg"
+            VSTS_AGENT_NAME="$arg"
             saveNextArg=0;
         elif [ $saveNextArg -eq 41 ]; then
-            MODULE_IMAGE_BUILD_ID="$arg"
+            VSTS_BUILD_ID="$arg"
             saveNextArg=0;
         elif [ $saveNextArg -eq 42 ]; then
-            MODULE_IMAGE_BUILD_BRANCH="$arg"
+            VSTS_BUILD_NUMBER="$arg"
+            saveNextArg=0;
+        elif [ $saveNextArg -eq 43 ]; then
+            VSTS_BUILD_QUEUE_BY="$arg"
             saveNextArg=0;
         else
             case "$arg" in
@@ -440,10 +448,11 @@ function process_args() {
                 '-twinUpdateCharCount' ) saveNextArg=36;;
                 '-twinUpdateFrequency' ) saveNextArg=37;;
                 '-twinUpdateFailureThreshold' ) saveNextArg=38;;
-                '-edgeletBuildId' ) saveNextArg=39;;
-                '-edgeletBuildBranch' ) saveNextArg=40;;
-                '-moduleImageBuildId' ) saveNextArg=41;;
-                '-moduleImageBuildBranch' ) saveNextArg=42;;
+                '-vstsAgentMachineName' ) saveNextArg=39;;
+                '-vstsAgentName' ) saveNextArg=40;;
+                '-vstsBuildId' ) saveNextArg=41;;
+                '-vstsBuildNumber' ) saveNextArg=42;;
+                '-vstsBuildQueueBy' ) saveNextArg=43;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -1035,10 +1044,11 @@ function usage() {
     echo ' -twinUpdateCharCount              Specifies the char count (i.e. size) of each twin update. Default is 1 for long haul and 100 for stress test.'
     echo ' -twinUpdateFrequency              Frequency to make twin updates. This should be specified in DateTime format. Default is 00:00:15 for long haul and 00:00:05 for stress test.'
     echo ' -twinUpdateFailureThreshold       Specifies the longest period of time a twin update can take before being marked as a failure. This should be specified in DateTime format. Default is 00:01:00'
-    echo ' -edgeletBuildId                   Optional Edgelet build ID to be used in Analyzer`s Log Analytic report.'
-    echo ' -edgeletBuildBranch               Optional Edgelet build branch to be used in Analyzer`s Log Analytic report.'
-    echo ' -moduleImageBuildId               Optional module images build ID to be used in Analyzer`s Log Analytic report.'
-    echo ' -moduleImageBuildBranch           Optional module images build branch to be used in Analyzer`s Log Analytic report.'
+    echo ' -vstsAgentMachineName             Optional test agent computer name.'
+    echo ' -vstsAgentName                    Optional test agent name that was registered with VSTS agent pool.'
+    echo ' -vstsBuildId                      Optional VSTS unique build id.'
+    echo ' -vstsBuildNumber                  Optional VSTS build number.'
+    echo ' -vstsBuildQueueBy                 Optional string identiy of who issue a VSTS build.'
     exit 1;
 }
 

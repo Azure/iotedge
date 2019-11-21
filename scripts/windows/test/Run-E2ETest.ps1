@@ -122,17 +122,20 @@
     .PARAMETER TwinUpdateFailureThreshold
         Specifies the longest period of time a twin update can take before being marked as a failure. This should be specified in DateTime format. Default is 00:01:00
 
-    .PARAMETER EdgeletBuildId
-        Optional Edgelet build ID to be used in Analyzer's Log Analytic report.
+    .PARAMETER VstsAgentMachineName
+        Optional test agent computer name.
 
-    .PARAMETER EdgeletBuildBranch
-        Optional Edgelet build branch to be used in Analyzer's Log Analytic report.
+    .PARAMETER VstsAgentName
+        Optional test agent name that was registered with VSTS agent pool.
 
-    .PARAMETER ModuleImageBuildId
-        Optional module images build ID to be used in Analyzer's Log Analytic report.
+    .PARAMETER VstsBuildId
+        Optional VSTS unique build id.
 
-    .PARAMETER ModuleImageBuildBranch
-        Optional module images build branch to be used in Analyzer's Log Analytic report.
+    .PARAMETER VstsBuildNumber
+        Optional VSTS build number.
+
+    .PARAMETER VstsBuildQueueBy
+        Optional string identiy of who issue a VSTS build.
 
     .EXAMPLE
         .\Run-E2ETest.ps1
@@ -255,14 +258,6 @@ Param (
     [string] $EdgeE2ERootCACertRSAFile = $null,
 
     [string] $EdgeE2ERootCAKeyRSAFile = $null,
-    
-    [string] $EdgeletBuildId = $null,
-
-    [string] $EdgeletBuildBranch = $null,
-
-    [string] $ModuleImageBuildId = $null,
-
-    [string] $ModuleImageBuildBranch = $null,
 
     [ValidateNotNullOrEmpty()]
     [string] $EdgeE2ETestRootCAPassword = $null,
@@ -320,6 +315,16 @@ Param (
     [string] $TwinUpdateFrequency = "00:00:10",
 
     [string] $TwinUpdateFailureThreshold = "00:01:00",
+
+    [string] $VstsAgentMachineName = $null,
+
+    [string] $VstsAgentName = $null,
+
+    [string] $VstsBuildId = $null,
+
+    [string] $VstsBuildNumber = $null,
+    
+    [string] $VstsBuildQueueBy = $null,
 
     [switch] $BypassEdgeInstallation
 )
@@ -505,6 +510,11 @@ Function PrepareTestFromArtifacts
                 (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.EventHubConnectionString>',$EventHubConnectionString) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.LogAnalyticsEnabled>',$LogAnalyticsEnabled) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.LogAnalyticsLogType>',$LogAnalyticsLogType) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.VstsAgentMachineName>',$VstsAgentMachineName) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.VstsAgentName>',$VstsAgentName) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.VstsBuildId>',$VstsBuildId) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.VstsBuildNumber>',$VstsBuildNumber) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.VstsBuildQueueBy>',$VstsBuildQueueBy) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<LogAnalyticsWorkspaceId>',$LogAnalyticsWorkspaceId) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<LogAnalyticsSharedKey>',$LogAnalyticsSharedKey) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen.MessageFrequency>',$LoadGenMessageFrequency) | Set-Content $DeploymentWorkingFilePath
