@@ -19,6 +19,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
     public class Agent
     {
         const string StoreConfigKey = "CurrentConfig";
+        static readonly ILogger Log = Logger.Factory.CreateLogger<Agent>();
+
         readonly IPlanner planner;
         readonly IPlanRunner planRunner;
         readonly IReporter reporter;
@@ -131,7 +133,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                     else
                     {
                         ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
-                        this.availabilityMetric.ComputeAvailability(desiredModuleSet, current);
+                        _ = Task.Run(() => this.availabilityMetric.ComputeAvailability(desiredModuleSet, current))
+                            .ContinueWith(t => Log.LogError($"ComputeAvailability failed. Reason: {t.Exception}"), TaskContinuationOptions.OnlyOnFaulted);
 
                         // TODO - Update this logic to create identities only when needed, in the Command factory, instead of creating all the identities
                         // up front here. That will allow handling the case when only the state of the system has changed (say one module crashes), and
@@ -325,7 +328,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         static class Events
         {
             const int IdStart = AgentEventIds.Agent;
-            static readonly ILogger Log = Logger.Factory.CreateLogger<Agent>();
 
             enum EventIds
             {
