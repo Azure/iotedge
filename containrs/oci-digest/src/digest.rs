@@ -15,15 +15,20 @@ pub struct Digest {
 }
 
 impl Digest {
+    /// Create a new Digest
+    pub fn new(s: &str) -> Result<Digest, DigestParseError> {
+        s.parse::<Digest>()
+    }
+
     /// Return a new validator for this digest, or None if the algorithm is
-    /// unregistered
+    /// not recognized
     pub fn validator(&self) -> Option<Validator> {
         Validator::new(self)
     }
 
     /// Convenience method to validate a one-off slice of data.
     ///
-    /// Guaranteed to return false if the algorithm is unregistered.
+    /// Guaranteed to return false if the algorithm is not recognized.
     pub fn validate(&self, data: &[u8]) -> bool {
         match self.validator() {
             Some(mut validator) => {
@@ -44,12 +49,12 @@ impl Digest {
         self.string
     }
 
-    /// Reference to the algorithm component of the digest string.
+    /// Returns a reference to the algorithm component of the digest string.
     pub fn algorithm(&self) -> &str {
         &self.string[..self.string.find(':').unwrap()]
     }
 
-    /// Reference to the encoded component of the digest string.
+    /// Returns a reference to the encoded component of the digest string.
     pub fn encoded(&self) -> &str {
         &self.string[(self.string.find(':').unwrap() + 1)..]
     }

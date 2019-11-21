@@ -7,7 +7,7 @@
 //! ```
 //! use docker_reference::{Reference, ReferenceKind};
 //!
-//! let reference = Reference::parse("ubuntu:19.04", "registry-1.docker.io", true).unwrap();
+//! let reference = "ubuntu:19.04".parse::<Reference>().unwrap();
 //! assert_eq!(reference.repo(), "library/ubuntu");
 //! assert_eq!(reference.registry(), "registry-1.docker.io");
 //! assert_eq!(reference.kind(), &ReferenceKind::Tag("19.04".to_string()));
@@ -20,14 +20,14 @@
 //!
 //! // Parse a string into a RawReference
 //! let raw_ref: RawReference = "ubuntu:19.04".parse::<RawReference>().unwrap();
-//! assert_eq!(raw_ref.name, "ubuntu".to_string());
-//! assert_eq!(raw_ref.tag, Some("19.04".to_string()));
-//! assert_eq!(raw_ref.domain, None);
-//! assert_eq!(raw_ref.digest, None);
+//! assert_eq!(raw_ref.path(), "ubuntu".to_string());
+//! assert_eq!(raw_ref.tag(), Some("19.04"));
+//! assert_eq!(raw_ref.domain(), None);
+//! assert_eq!(raw_ref.digest(), None);
 //!
-//! // Canonicalize the RawReference, enabling docker compat
+//! // Canonicalize the RawReference
 //! // (in this case, docker compat will prepend "library/")
-//! let reference = raw_ref.canonicalize("registry-1.docker.io", true);
+//! let reference = raw_ref.canonicalize();
 //! assert_eq!(reference.repo(), "library/ubuntu");
 //! assert_eq!(reference.registry(), "registry-1.docker.io");
 //! assert_eq!(reference.kind(), &ReferenceKind::Tag("19.04".to_string()));
@@ -39,6 +39,8 @@ use pest::Parser;
 use pest_derive::Parser;
 
 use oci_digest::Digest;
+
+const DEFAULT_REGISTRY: &str = "registry-1.docker.io";
 
 #[derive(Parser)]
 #[grammar = "grammar.pest"]
@@ -61,8 +63,8 @@ pub enum ReferenceKind {
 }
 
 impl ReferenceKind {
-    /// Returns a reference to the raw underlying string (unlike Display, which
-    /// includes a ':' or '@' signifying the underlying reference type)
+    /// Returns a reference to the raw underlying string (unlike to_string,
+    /// which has a leading ':' or '@' signifying the underlying reference type)
     pub fn as_str(&self) -> &str {
         match self {
             ReferenceKind::Tag(s) => s.as_str(),
@@ -82,7 +84,10 @@ impl std::fmt::Display for ReferenceKind {
 
 /// A well-formed object reference identifier, with all the information required
 /// to pull an image (i.e: repo, registry, and reference (either a tag or
-/// digest).
+/// digest)).
+///
+/// A [`Reference`] is immutable, but can be converted back into a
+/// [`RawReference`] if modifications are required.
 #[derive(Debug, PartialEq, Eq, Ord, PartialOrd, Hash, Clone)]
 pub struct Reference {
     repo: String,
@@ -97,18 +102,6 @@ impl std::fmt::Display for Reference {
 }
 
 impl Reference {
-    /// Parse a Reference from a given refstr, using the `default_registry` if
-    /// none is found in the string.
-    ///
-    /// Setting `docker_compat` will ensure the Result can communicate with
-    /// dockerhub. See [RawReference::canonicalize] for details on the specific
-    /// transformations.
-    pub fn parse(refstr: &str, default_registry: &str, docker_compat: bool) -> Result<Reference> {
-        Ok(refstr
-            .parse::<RawReference>()?
-            .canonicalize(default_registry, docker_compat))
-    }
-
     /// Return the reference's repo
     pub fn repo(&self) -> &str {
         &self.repo
@@ -123,50 +116,92 @@ impl Reference {
     pub fn kind(&self) -> &ReferenceKind {
         &self.kind
     }
+
+    // Consumes self, returning a [RawReference]
+    pub fn into_raw_reference(self) -> RawReference {
+        self.to_string()
+            .parse::<RawReference>()
+            .expect("somehow constructed an invalid Reference")
+    }
+}
+
+impl FromStr for Reference {
+    type Err = Error;
+
+    /// Parse a raw object reference str into a [Reference], returning
+    /// an Error if the string doesn't conform to the docker reference grammar,
+    /// or violates some non-syntactic rule (e.g: specifies an invalid digest)
+    ///
+    /// For the full grammar, see
+    /// github.com/docker/distribution/reference/reference.go
+    /// or, see the `grammar.pest` file used by this crate.
+    fn from_str(s: &str) -> Result<Reference> {
+        Ok(s.parse::<RawReference>()?.canonicalize())
+    }
 }
 
 /// A raw object reference identifier, which may not have all the information
 /// required to pull an image.
+///
+/// Should be converted into a [Reference] via `canonicalize`
 #[derive(PartialEq, Eq, Debug)]
 pub struct RawReference {
-    pub name: String,
-    pub domain: Option<String>,
-    pub tag: Option<String>,
-    pub digest: Option<Digest>,
+    path: String,
+    domain: Option<String>,
+    tag: Option<String>,
+    digest: Option<Digest>,
 }
 
 impl RawReference {
-    /// Converts the RawReference into a well-formed [Reference] using the given
-    /// default registry if the RawReference is missing it
-    ///
-    /// Setting `docker_compat` to true will prepend `"library/"` to names when
-    /// a custom registry is not specified. i.e: `ubuntu:latest` ->
-    /// `library/ubuntu:latest`
-    pub fn canonicalize(self, default_registry: &str, docker_compat: bool) -> Reference {
+    /// Create a new RawReference from it's constituent parts.
+    pub fn new(
+        path: String,
+        domain: Option<String>,
+        tag: Option<String>,
+        digest: Option<Digest>,
+    ) -> Result<RawReference> {
+        let mut res = RawReference {
+            path,
+            domain: None,
+            tag: None,
+            digest,
+        };
+
+        res.set_domain(domain.as_ref().map(|s| s.as_str()))?;
+        res.set_tag(tag.as_ref().map(|s| s.as_str()))?;
+
+        Ok(res)
+    }
+
+    /// Consumes the RawReference, returning a well-formed [`Reference`],
+    /// canonicalizing it according to docker's canonicalization rules:
+    /// - if no registry domain is specified, "registry-1.docker.io" is used
+    /// - if no tag/digest is specified, the "latest" tag is used
+    /// - if no registry domain is specified and the repo is a single word,
+    ///   "library/" is prepended to the repo ("ubuntu" -> "library/ubuntu")
+    pub fn canonicalize(self) -> Reference {
         let RawReference {
-            mut name,
+            mut path,
             mut domain,
             tag,
             digest,
         } = self;
 
-        // TODO: test this more
-        if docker_compat {
-            match domain {
-                // correct incorrectly parsed docker non-library repo shornames
-                // i.e: `prilik/ubuntu:latest`
-                Some(ref registry_str) => {
-                    if !registry_str.contains('.') && !name.contains('/') {
-                        name = format!("{}/{}", registry_str, name);
-                        domain = None; // fallback to default name
-                    }
+        // TODO: test docker-compat transformations some more
+        match domain {
+            // correct incorrectly parsed docker non-library repo shornames
+            // i.e: `prilik/ubuntu:latest`
+            Some(ref registry_str) => {
+                if !registry_str.contains('.') && !path.contains('/') {
+                    path = format!("{}/{}", registry_str, path);
+                    domain = None; // fallback to default path
                 }
-                // handle unqualified image names
-                // (i.e: `ubuntu:latest` -> `library/ubuntu:latest`)
-                None => {
-                    if !name.contains('/') {
-                        name.insert_str(0, "library/");
-                    }
+            }
+            // handle unqualified image names
+            // (i.e: `ubuntu:latest` -> `library/ubuntu:latest`)
+            None => {
+                if !path.contains('/') {
+                    path.insert_str(0, "library/");
                 }
             }
         }
@@ -179,10 +214,88 @@ impl RawReference {
         };
 
         Reference {
-            repo: name,
-            registry: domain.unwrap_or_else(|| default_registry.to_string()),
+            repo: path,
+            registry: domain.unwrap_or_else(|| DEFAULT_REGISTRY.to_string()),
             kind: reference.unwrap_or_else(|| ReferenceKind::Tag("latest".to_string())),
         }
+    }
+
+    /// Return the raw-reference's path (i.e: repo)
+    pub fn path(&self) -> &str {
+        &self.path
+    }
+
+    /// Return the raw-reference's domain (i.e: registry)
+    pub fn domain(&self) -> Option<&str> {
+        self.domain.as_ref().map(String::as_ref)
+    }
+
+    /// Return the raw-reference's tag (if it exists)
+    pub fn tag(&self) -> Option<&str> {
+        self.tag.as_ref().map(String::as_ref)
+    }
+
+    /// Return the raw-reference's digest (if it exists)
+    pub fn digest(&self) -> Option<&Digest> {
+        self.digest.as_ref()
+    }
+
+    /// Set the raw-reference's path (i.e: repo)
+    pub fn set_path(&mut self, s: impl Into<String>) -> Result<()> {
+        self.path = {
+            let s: String = s.into();
+            let path = PestReferenceParser::parse(Rule::path, &s)
+                .map_err(Error::Parse)?
+                .as_str();
+
+            if path.len() + self.domain.as_ref().map_or(0, |s| s.len() + 1) > 255 {
+                return Err(Error::NameTooLong);
+            }
+
+            s
+        };
+
+        Ok(())
+    }
+
+    /// Set the raw-reference's domain (i.e: registry)
+    pub fn set_domain(&mut self, s: Option<impl Into<String>>) -> Result<()> {
+        self.domain = match s {
+            None => None,
+            Some(s) => {
+                let s: String = s.into();
+                let domain = PestReferenceParser::parse(Rule::domain, &s)
+                    .map_err(Error::Parse)?
+                    .as_str();
+
+                if self.path.len() + domain.len() + 1 > 255 {
+                    return Err(Error::NameTooLong);
+                }
+
+                Some(s)
+            }
+        };
+
+        Ok(())
+    }
+
+    /// Set the raw-reference's tag
+    pub fn set_tag(&mut self, s: Option<impl Into<String>>) -> Result<()> {
+        self.tag = match s {
+            None => None,
+            Some(s) => {
+                let s: String = s.into();
+                let _tag = PestReferenceParser::parse(Rule::tag, &s).map_err(Error::Parse)?;
+                Some(s)
+            }
+        };
+
+        Ok(())
+    }
+
+    /// Set the raw-reference's digest
+    pub fn set_digest(&mut self, d: Option<Digest>) {
+        self.digest = d;
     }
 }
 
@@ -198,7 +311,7 @@ impl FromStr for RawReference {
     fn from_str(refstr: &str) -> Result<RawReference> {
         // TODO: leverage Pest for better error messages
 
-        let mut name_str = None;
+        let mut path_str = None;
         let mut domain_str = None;
         let mut tag_str = None;
         let mut digest_str = None;
@@ -223,7 +336,7 @@ impl FromStr for RawReference {
                         let val = name_p.as_str().to_string();
                         match name_p.as_rule() {
                             Rule::domain => domain_str = Some(val),
-                            Rule::path => name_str = Some(val),
+                            Rule::path => path_str = Some(val),
                             _ => unreachable!(),
                         }
                     }
@@ -234,10 +347,10 @@ impl FromStr for RawReference {
             }
         }
 
-        // ok to unwrap, as a name must be present for the string to parse
-        let name = name_str.unwrap();
+        // ok to unwrap, as a path must be present for the string to parse
+        let path = path_str.unwrap();
 
-        if name.len() + domain_str.as_ref().map_or(0, |s| s.len() + 1) > 255 {
+        if path.len() + domain_str.as_ref().map_or(0, |s| s.len() + 1) > 255 {
             return Err(Error::NameTooLong);
         }
 
@@ -247,7 +360,7 @@ impl FromStr for RawReference {
         }
 
         Ok(RawReference {
-            name,
+            path,
             domain: domain_str,
             tag: tag_str,
             digest,

@@ -65,12 +65,6 @@ async fn true_main() -> Result<(), failure::Error> {
                 .takes_value(true),
         )
         .arg(
-            Arg::with_name("default-registry")
-                .help("Default registry (defaults to \"registry-1.docker.io\")")
-                .long("default-registry")
-                .takes_value(true),
-        )
-        .arg(
             Arg::with_name("username")
                 .help("Username (for use with UserPass Credentials)")
                 .short("u")
@@ -92,17 +86,23 @@ async fn true_main() -> Result<(), failure::Error> {
                     SubCommand::with_name("catalog")
                         .about("Retrieve a sorted list of repositories available in the registry")
                         .arg(
+                            Arg::with_name("registry")
+                                .help("Registry to read catalog from")
+                                .required(true)
+                                .index(1),
+                        )
+                        .arg(
                             Arg::with_name("n")
                                 .help("Paginate results into n-sized chunks")
-                                .index(1),
+                                .index(2),
                         ),
                 )
                 .subcommand(
                     SubCommand::with_name("tags")
                         .about("Retrieve a sorted list of tags under a given repository")
                         .arg(
-                            Arg::with_name("repo")
-                                .help("Repository")
+                            Arg::with_name("image")
+                                .help("An image reference (tag/digest is ignored)")
                                 .required(true)
                                 .index(1),
                         )
@@ -137,8 +137,8 @@ async fn true_main() -> Result<(), failure::Error> {
                     SubCommand::with_name("blob")
                         .about("Retrieve a blob from a given repository")
                         .arg(
-                            Arg::with_name("repo@digest")
-                                .help("A string of form repo@digest (e.g: ubuntu@sha256:...)")
+                            Arg::with_name("image")
+                                .help("Image reference (digest must be set)")
                                 .required(true)
                                 .index(1),
                         )
@@ -193,11 +193,6 @@ async fn true_main() -> Result<(), failure::Error> {
     // TODO: support loading configuration from file
 
     let transport_scheme = app_m.value_of("transport-scheme").unwrap_or("https");
-    let default_registry = app_m
-        .value_of("default-registry")
-        .unwrap_or("registry-1.docker.io");
-    // TODO: this should probably be a more robust check
-    let docker_compat = default_registry.contains("docker");
 
     let username = app_m.value_of("username");
     let password = app_m.value_of("password");
@@ -211,12 +206,16 @@ async fn true_main() -> Result<(), failure::Error> {
         ("raw", Some(app_m)) => {
             match app_m.subcommand() {
                 ("catalog", Some(sub_m)) => {
+                    let registry = sub_m
+                        .value_of("registry")
+                        .expect("registry should be a required argument");
+
                     let init_paginate = match sub_m.value_of("n") {
                         Some(n) => Some(Paginate::new(n.parse()?, "".to_string())),
                         None => None,
                     };
 
-                    let client = Client::new(transport_scheme, default_registry, credentials)?;
+                    let client = Client::new(transport_scheme, registry, credentials)?;
 
                     let mut paginate = init_paginate;
                     loop {
@@ -243,17 +242,19 @@ async fn true_main() -> Result<(), failure::Error> {
                     }
                 }
                 ("tags", Some(sub_m)) => {
-                    let repo = sub_m
-                        .value_of("repo")
-                        .expect("repo should be a required argument");
+                    let image = sub_m
+                        .value_of("image")
+                        .expect("image should be a required argument");
+
+                    let image = image.parse::<Reference>()?;
+                    eprintln!("canonical: {:#?}", image);
+
                     let init_paginate = match sub_m.value_of("n") {
                         Some(n) => Some(Paginate::new(n.parse()?, "".to_string())),
                         None => None,
                     };
 
-                    let image = Reference::parse(repo, default_registry, docker_compat)?;
-
-                    let client = Client::new(transport_scheme, default_registry, credentials)?;
+                    let client = Client::new(transport_scheme, image.registry(), credentials)?;
 
                     let mut paginate = init_paginate;
                     loop {
@@ -278,7 +279,7 @@ async fn true_main() -> Result<(), failure::Error> {
                         .value_of("image")
                         .expect("image should be a required argument");
 
-                    let image = Reference::parse(image, default_registry, docker_compat)?;
+                    let image = image.parse::<Reference>()?;
                     eprintln!("canonical: {:#?}", image);
 
                     let client = Client::new(transport_scheme, image.registry(), credentials)?;
@@ -319,11 +320,11 @@ async fn true_main() -> Result<(), failure::Error> {
                     );
                 }
                 ("blob", Some(sub_m)) => {
-                    let repo_digest = sub_m
-                        .value_of("repo@digest")
-                        .expect("repo@digest should be a required argument");
+                    let image = sub_m
+                        .value_of("image")
+                        .expect("image should be a required argument");
 
-                    let image = Reference::parse(repo_digest, default_registry, docker_compat)?;
+                    let image = image.parse::<Reference>()?;
                     eprintln!("canonical: {:#?}", image);
 
                     let digest = match image.kind() {
@@ -331,7 +332,7 @@ async fn true_main() -> Result<(), failure::Error> {
                         _ => return Err(failure::err_msg("must specify digest")),
                     };
 
-                    let client = Client::new(transport_scheme, default_registry, credentials)?;
+                    let client = Client::new(transport_scheme, image.registry(), credentials)?;
 
                     let progress = ProgressBar::new(0);
                     progress.set_style(PB_STYLE.clone());
@@ -378,7 +379,7 @@ async fn true_main() -> Result<(), failure::Error> {
                 let images = sub_m
                     .values_of("image")
                     .expect("image should be a required argument")
-                    .map(|image| Reference::parse(image, default_registry, docker_compat))
+                    .map(|s| s.parse::<Reference>())
                     .collect::<Result<Vec<_>, _>>()?;
 
                 eprintln!("canonical: {:#?}", images);
@@ -419,7 +420,7 @@ async fn true_main() -> Result<(), failure::Error> {
             }
 
             // parse image reference
-            let image = Reference::parse(image, default_registry, docker_compat)?;
+            let image = image.parse::<Reference>()?;
             eprintln!("canonical: {:#?}", image);
 
             // setup client

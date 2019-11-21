@@ -65,9 +65,9 @@ pub async fn auth_flow(
     parameters.insert("password".to_string(), pass.to_string());
 
     let req = client.post(realm.as_str()).form(&parameters);
-    trace!("Docker auth server req: {:#?}", req);
+    trace!("Oauth2 server req: {:#?}", req);
     let res = req.send().await.context(AuthError::AuthServerNoResponse)?;
-    trace!("Docker auth server res: {:#?}", res);
+    trace!("Oauth2 server res: {:#?}", res);
 
     if !res.status().is_success() {
         match res.status() {

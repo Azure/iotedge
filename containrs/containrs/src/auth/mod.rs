@@ -205,7 +205,7 @@ impl AuthClient {
                 // Associate the auth_headers with whatever scopes they correspond to
                 let mut scope_cache = self.scope_cache.lock().await;
                 for scope in scopes {
-                    if &scope != expected_scope {
+                    if scope.resource() != expected_scope.resource() {
                         scope_cache.insert(scope, auth_headers.clone());
                     } else {
                         *headers = auth_headers.clone()

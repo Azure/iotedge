@@ -13,7 +13,7 @@ pub struct Validator {
 
 impl Validator {
     /// Returns a new Validator.
-    /// If the digest algorithm is unregistered, returns None instead.
+    /// If the digest algorithm is not recognized, returns None instead.
     pub(crate) fn new(digest: &Digest) -> Option<Validator> {
         const EXPECT_VALID: &str = "digest struct should never be backed by a malformed string";
 
