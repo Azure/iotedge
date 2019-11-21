@@ -169,7 +169,7 @@ namespace DevOpsLibTest
                 .WithBasicAuth(string.Empty, PersonalAccessToken)
                 .Times(1);
 
-            Assert.AreEqual( 0, releases.Count);
+            Assert.AreEqual(0, releases.Count);
         }
 
         [Test]
@@ -180,7 +180,7 @@ namespace DevOpsLibTest
                 {
                     unexpected = new { }
                 });
-            
+
             string branch = "refs/heads/master";
             List<IoTEdgeRelease> releases = await this.releaseManagement.GetReleasesAsync(ReleaseDefinitionId.E2ETest, branch).ConfigureAwait(false);
 
@@ -192,6 +192,5 @@ namespace DevOpsLibTest
 
             Assert.AreEqual(0, releases.Count);
         }
-
     }
 }

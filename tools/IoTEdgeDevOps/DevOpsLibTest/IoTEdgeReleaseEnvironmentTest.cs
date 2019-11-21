@@ -6,7 +6,7 @@ namespace DevOpsLibTest
     using DevOpsLib.VstsModels;
     using NUnit.Framework;
 
-    [TestFixture()]
+    [TestFixture]
     public class IoTEdgeReleaseEnvironmentTest
     {
         [Test]
