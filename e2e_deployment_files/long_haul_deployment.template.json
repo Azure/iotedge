@@ -253,18 +253,6 @@
               "ConsumerGroupId": {
                 "value": "<Analyzer.ConsumerGroupId>"
               },
-              "EdgeletBuildId": {
-                "value": "<Analyzer.EdgeletBuildId>"
-              },
-              "EdgeletBuildBranch": {
-                "value": "<Analyzer.EdgeletBuildBranch>"
-              },
-              "ModuleImageBuildId": {
-                "value": "<Analyzer.ModuleImageBuildId>"
-              },
-              "ModuleImageBuildBranch": {
-                "value": "<Analyzer.ModuleImageBuildBranch>"
-              },
               "LogAnalyticEnabled": {
                 "value": "<Analyzer.LogAnalyticEnabled>"
               },
@@ -276,6 +264,21 @@
               },
               "LogAnalyticsLogType": {
                 "value": "<Analyzer.LogAnalyticsLogType>"
+              },
+              "VstsAgentMachineName": {
+                "value": "<Analyzer.VstsAgentMachineName>"
+              },
+              "VstsAgentName": {
+                "value": "<Analyzer.VstsAgentName>"
+              },
+              "VstsBuildId": {
+                "value": "<Analyzer.VstsBuildId>"
+              },
+              "VstsBuildNumber": {
+                "value": "<Analyzer.VstsBuildNumber>"
+              },
+              "VstsBuildQueueBy": {
+                "value": "<Analyzer.VstsBuildQueueBy>"
               }
             },
             "settings": {

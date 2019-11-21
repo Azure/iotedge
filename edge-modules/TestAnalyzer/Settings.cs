@@ -41,11 +41,11 @@ namespace TestAnalyzer
                     configuration.GetValue<string>("LogAnalyticsLogType"),
                     configuration.GetValue<string>("storagePath", DefaultStoragePath),
                     configuration.GetValue<bool>("StorageOptimizeForPerformance", true),
-                    configuration.GetValue<string>("vstsAgentMachineName"),
-                    configuration.GetValue<string>("vstsAgentName"),
-                    configuration.GetValue<string>("vstsBuildId"),
-                    configuration.GetValue<string>("vstsBuildNumber"),
-                    configuration.GetValue<string>("vstsBuildQueueBy"));
+                    configuration.GetValue<string>("VstsAgentMachineName"),
+                    configuration.GetValue<string>("VstsAgentName"),
+                    configuration.GetValue<string>("VstsBuildId"),
+                    configuration.GetValue<string>("VstsBuildNumber"),
+                    configuration.GetValue<string>("VstsBuildQueueBy"));
             });
 
         Settings(
