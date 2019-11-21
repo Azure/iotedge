@@ -26,7 +26,7 @@ namespace MetricsCollector
         {
             Logger.LogInformation($"Starting metrics collector with the following settings:\r\n{Settings.Current}");
 
-            await Init();
+            await InitAsync();
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
@@ -59,7 +59,7 @@ namespace MetricsCollector
         ///     Initializes the ModuleClient and sets up the callback to receive
         ///     messages containing temperature information
         /// </summary>
-        private static async Task Init()
+        private static async Task InitAsync()
         {
             MqttTransportSettings mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
             ITransportSettings[] settings = { mqttSetting };
@@ -69,7 +69,7 @@ namespace MetricsCollector
             await ioTHubModuleClient.OpenAsync();
             Logger.LogInformation("IoT Hub module client initialized.");
 
-            Configuration configuration = await GetConfiguration(ioTHubModuleClient);
+            Configuration configuration = await GetConfigurationAsync(ioTHubModuleClient);
             Logger.LogInformation($"Obtained configuration: {configuration}");
 
             MessageFormatter messageFormatter = new MessageFormatter(configuration.MetricsFormat, Settings.Current.MessageIdentifier);
@@ -102,7 +102,7 @@ namespace MetricsCollector
             }
         }
 
-        private static async Task<Configuration> GetConfiguration(ModuleClient ioTHubModuleClient)
+        private static async Task<Configuration> GetConfigurationAsync(ModuleClient ioTHubModuleClient)
         {
             Twin twin = await ioTHubModuleClient.GetTwinAsync();
             string desiredPropertiesJson = twin.Properties.Desired.ToJson();
