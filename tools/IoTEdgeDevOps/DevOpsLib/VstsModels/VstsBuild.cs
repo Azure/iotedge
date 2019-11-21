@@ -38,7 +38,7 @@ namespace DevOpsLib.VstsModels
         [JsonProperty("finishTime")]
         public DateTime FinishTime { get; set; }
 
-        public static VstsBuild GetBuildWithNoResult(BuildDefinitionId buildDefinitionId, string sourceBranch) =>
+        public static VstsBuild CreateBuildWithNoResult(BuildDefinitionId buildDefinitionId, string sourceBranch) =>
             new VstsBuild
             {
                 DefinitionId = buildDefinitionId,

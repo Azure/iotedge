@@ -14,7 +14,7 @@ namespace DevOpsLibTest
         [Test]
         public void TestConstructorWithInvalidIds([Values(-1, 0)] int id)
         {
-            Assert.That(
+            ArgumentOutOfRangeException ex = Assert.Throws<ArgumentOutOfRangeException>(
                 () =>
                     new IoTEdgeAgent(
                         id,
@@ -29,14 +29,15 @@ namespace DevOpsLibTest
                         new HashSet<AgentCapability>()
                         {
                             new AgentCapability("run-long-haul", "true")
-                        }),
-                Throws.TypeOf<ArgumentOutOfRangeException>());
+                        }));
+            Assert.True(ex.Message.StartsWith("Cannot be less than or equal to zero."));
+            Assert.AreEqual("id", ex.ParamName);
         }
 
         [Test]
         public void TestConstructorWithInvalidNames([Values(null, "")] string name)
         {
-            Assert.That(
+            ArgumentException ex = Assert.Throws<ArgumentException>(
                 () =>
                     new IoTEdgeAgent(
                         893,
@@ -51,14 +52,15 @@ namespace DevOpsLibTest
                         new HashSet<AgentCapability>()
                         {
                             new AgentCapability("run-long-haul", "true")
-                        }),
-                Throws.TypeOf<ArgumentException>());
+                        }));
+            Assert.True(ex.Message.StartsWith("Cannot be null or white space."));
+            Assert.AreEqual(ex.ParamName, "name");
         }
 
         [Test]
         public void TestConstructorWithInvalidVersion([Values(null, "")] string version)
         {
-            Assert.That(
+            ArgumentException ex = Assert.Throws<ArgumentException>(
                 () =>
                     new IoTEdgeAgent(
                         893,
@@ -73,15 +75,15 @@ namespace DevOpsLibTest
                         new HashSet<AgentCapability>()
                         {
                             new AgentCapability("run-long-haul", "true")
-                        }),
-                Throws.TypeOf<ArgumentException>());
+                        }));
+            Assert.True(ex.Message.StartsWith("Cannot be null or white space."));
         }
 
         [Test]
         [TestCaseSource(typeof(IoTEdgeVstsAgentTestData), nameof(IoTEdgeVstsAgentTestData.InvalidSystemCapabilities))]
         public void TestConstructorWithInvalidSystemCapabilities(HashSet<AgentCapability> systemCapabilities)
         {
-            Assert.That(
+            ArgumentException ex = Assert.Throws<ArgumentException>(
                 () =>
                     new IoTEdgeAgent(
                         893,
@@ -93,8 +95,9 @@ namespace DevOpsLibTest
                         new HashSet<AgentCapability>()
                         {
                             new AgentCapability("run-long-haul", "true")
-                        }),
-                Throws.TypeOf<ArgumentException>());
+                        }));
+            Assert.True(ex.Message.StartsWith("Cannot be null or empty collection."));
+            Assert.AreEqual("systemCapabilities", ex.ParamName);
         }
 
         [Test]

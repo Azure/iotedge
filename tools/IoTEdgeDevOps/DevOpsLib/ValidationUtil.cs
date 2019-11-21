@@ -22,6 +22,14 @@ namespace DevOpsLib
                 throw new ArgumentOutOfRangeException(field, "Cannot be less than or equal to zero.");
             }
         }
+        public static void ThrowIfNegative(int value, string field)
+        {
+            if (value < 0)
+            {
+                throw new ArgumentOutOfRangeException(field, "Cannot be negative.");
+            }
+        }
+
 
         public static void ThrowIfNulOrEmptySet<T>(IEnumerable<T> value, string field)
         {
@@ -35,7 +43,7 @@ namespace DevOpsLib
         {
             if (value == null)
             {
-                throw new ArgumentNullException("Cannot be null.", field);
+                throw new ArgumentNullException( field, "Cannot be null.");
             }
         }
     }
