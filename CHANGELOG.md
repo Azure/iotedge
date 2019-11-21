@@ -2,18 +2,21 @@
 
 ## Edge Hub
 ### Features
-* Update Twin property value validation to apply 4K property value length limit ([4acce35](https://github.com/Azure/iotedge/commit/4acce3576be89cfc8c929229d6c5c7c6a6b41cc5))
 * Update Twin max property depth and length limits to match IoTHub ([2d69f78](https://github.com/Azure/iotedge/commit/2d69f7879ee4c90e805f6ae6b0053d5b71b2947c))
-* Update dotnet core version ([6b27f06](https://github.com/Azure/iotedge/commit/6b27f064fcd78374bae8a7f53162130d6eb4916c))
+* Update .NET core version to 2.1.13 ([6b27f06](https://github.com/Azure/iotedge/commit/6b27f064fcd78374bae8a7f53162130d6eb4916c))
 
 ### Bug fixes
+* Update Twin property value validation to apply 4K property value length limit ([4acce35](https://github.com/Azure/iotedge/commit/4acce3576be89cfc8c929229d6c5c7c6a6b41cc5))
 * Set max rocksdb write-ahead-log size to 512MB ([1853388](https://github.com/Azure/iotedge/commit/18533882b86db081e8370d9f9be5750181d3e930))
 
 ## Edge Agent
 ### Features
 * Add iotedge support bundle ([1853388](https://github.com/Azure/iotedge/commit/18533882b86db081e8370d9f9be5750181d3e930))
+* Update .NET core version to 2.1.13 ([6b27f06](https://github.com/Azure/iotedge/commit/6b27f064fcd78374bae8a7f53162130d6eb4916c))
 
 ### Bug fixes
+* Update deployment status to "success" if there is no deployment change ([ee0ce67](https://github.com/Azure/iotedge/commit/ee0ce67eed7a7fd685f8a719054c543bbadd428d)) 
+* Set max rocksdb write-ahead-log size to 512MB ([1853388](https://github.com/Azure/iotedge/commit/18533882b86db081e8370d9f9be5750181d3e930))
 * Fix iotedge version passed instead of client version ([4b335d2](https://github.com/Azure/iotedge/commit/4b335d2336d15f72a1be110f1168d75e69c37c00))
 
 ## iotedged
