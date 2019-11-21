@@ -187,13 +187,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         bool enableServiceCallTracing = configuration.GetValue<bool>(K8sConstants.EnableK8sServiceCallTracingName);
                         string persistentVolumeName = configuration.GetValue<string>(K8sConstants.PersistentVolumeNameKey);
                         string storageClassName = configuration.GetValue<string>(K8sConstants.StorageClassNameKey);
-                        uint persistentVolumeClaimDefaultSizeMb = configuration.GetValue<uint>(K8sConstants.PersistentVolumeClaimDefaultSizeInMbKey);
+                        Option<uint> persistentVolumeClaimDefaultSizeMb = Option.Maybe(configuration.GetValue<uint?>(K8sConstants.PersistentVolumeClaimDefaultSizeInMbKey));
                         string deviceNamespace = configuration.GetValue<string>(K8sConstants.K8sNamespaceKey);
                         var kubernetesExperimentalFeatures = KubernetesExperimentalFeatures.Create(configuration.GetSection("experimentalFeatures"), logger);
-                        string edgeK8sObjectOwnerApiVersion = configuration.GetValue<string>(K8sConstants.EdgeK8sObjectOwnerApiVersionKey);
-                        string edgeK8sObjectOwnerKind = configuration.GetValue<string>(K8sConstants.EdgeK8sObjectOwnerKindKey);
-                        string edgeK8sObjectOwnerName = configuration.GetValue<string>(K8sConstants.EdgeK8sObjectOwnerNameKey);
-                        string edgeK8sObjectOwnerUid = configuration.GetValue<string>(K8sConstants.EdgeK8sObjectOwnerUidKey);
+                        var moduleOwner = new KubernetesModuleOwner(
+                            configuration.GetValue<string>(K8sConstants.EdgeK8sObjectOwnerApiVersionKey),
+                            configuration.GetValue<string>(K8sConstants.EdgeK8sObjectOwnerKindKey),
+                            configuration.GetValue<string>(K8sConstants.EdgeK8sObjectOwnerNameKey),
+                            configuration.GetValue<string>(K8sConstants.EdgeK8sObjectOwnerUidKey));
+                        bool runAsNonRoot = configuration.GetValue<bool>(K8sConstants.RunAsNonRootKey);
 
                         builder.RegisterInstance(metricsConfig.Enabled
                                  ? new MetricsProvider("edgeagent", iothubHostname, deviceId)
@@ -227,11 +229,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                             closeOnIdleTimeout,
                             idleTimeout,
                             kubernetesExperimentalFeatures,
-                            new KubernetesModuleOwner(
-                                edgeK8sObjectOwnerApiVersion,
-                                edgeK8sObjectOwnerKind,
-                                edgeK8sObjectOwnerName,
-                                edgeK8sObjectOwnerUid)));
+                            moduleOwner,
+                            runAsNonRoot));
 
                         break;
 
@@ -259,7 +258,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
                     case "local":
                         string localConfigFilePath = GetLocalConfigFilePath(configuration, logger);
-                        builder.RegisterModule(new FileConfigSourceModule(localConfigFilePath, configuration));
+                        builder.RegisterModule(new FileConfigSourceModule(localConfigFilePath, configuration, versionInfo));
                         break;
 
                     default:

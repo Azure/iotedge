@@ -36,7 +36,7 @@ namespace DevOpsLib
                 return true;
             }
 
-            return !this.capabilities.Except(other.capabilities).Any() && string.Equals(this.name, other.name, StringComparison.OrdinalIgnoreCase);
+            return string.Equals(this.name, other.name, StringComparison.OrdinalIgnoreCase) && this.capabilities.SetEquals(other.capabilities);
         }
 
         public override bool Equals(object obj)
