@@ -33,7 +33,7 @@ namespace MetricsCollector
             // Wait until the app unloads or is cancelled
             AssemblyLoadContext.Default.Unloading += ctx => cts.Cancel();
             Console.CancelKeyPress += (sender, cpe) => cts.Cancel();
-            await WhenCancelled(cts.Token, completed, handler);
+            await WhenCancelled(cts.Token, completed, handler).ConfigureAwait(false);
             Logger.LogInformation("MetricsCollector Main() finished.");
             return 0;
         }
