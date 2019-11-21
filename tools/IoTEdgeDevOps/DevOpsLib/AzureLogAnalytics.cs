@@ -7,7 +7,7 @@ namespace DevOpsLib
 
     public sealed class AzureLogAnalytics
     {
-        public static string AzureResource = "https://api.loganalytics.io";
+        public const string AzureResource = "https://api.loganalytics.io";
         const string apiVersion = "v1";
 
         // Use get-request to do a Kusto query
@@ -17,7 +17,13 @@ namespace DevOpsLib
             string logAnalyticsWorkspaceId,
             string kqlQuery)
         {
+            ValidationUtil.ThrowIfNull(azureActiveDirectory, nameof(azureActiveDirectory));
             ValidationUtil.ThrowIfNullOrWhiteSpace(logAnalyticsWorkspaceId, nameof(logAnalyticsWorkspaceId));
+
+            if (string.IsNullOrWhiteSpace(kqlQuery))
+            {
+                return "";
+            }
 
             string requestUri = $"https://api.loganalytics.io/{apiVersion}/workspaces/{logAnalyticsWorkspaceId}/query?query=";
             string accessToken = await azureActiveDirectory.GetAccessToken(AzureLogAnalytics.AzureResource);
