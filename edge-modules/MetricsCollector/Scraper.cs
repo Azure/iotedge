@@ -8,9 +8,13 @@ namespace MetricsCollector
     using System.Net.Http;
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
 
     public class Scraper
     {
+        static readonly ILogger Logger = ModuleUtil.CreateLogger("MetricsCollector");
         const string UrlPattern = @"[^/:]+://(?<host>[^/:]+)(:[^:]+)?$";
         static readonly Regex UrlRegex = new Regex(UrlPattern, RegexOptions.Compiled);
         readonly HttpClient httpClient;
@@ -24,7 +28,7 @@ namespace MetricsCollector
 
         static string GetUriWithIpAddress(string endpoint)
         {
-            Console.WriteLine($"Getting uri with Ip for {endpoint}");
+            Logger.LogInformation($"Getting uri with Ip for {endpoint}");
             Match match = UrlRegex.Match(endpoint);
             if (!match.Success)
             {
@@ -38,7 +42,7 @@ namespace MetricsCollector
             var builder = new UriBuilder(endpoint);
             builder.Host = ipAddr;
             string endpointWithIp = builder.Uri.ToString();
-            Console.WriteLine($"Endpoint = {endpoint}, IP Addr = {ipAddr}, Endpoint with Ip = {endpointWithIp}");
+            Logger.LogInformation($"Endpoint = {endpoint}, IP Addr = {ipAddr}, Endpoint with Ip = {endpointWithIp}");
             return endpointWithIp;
         }
 
@@ -47,9 +51,9 @@ namespace MetricsCollector
             var metrics = new List<string>();
             foreach (KeyValuePair<string, string> endpoint in this.endpoints)
             {
-                Console.WriteLine($"Scraping endpoint {endpoint.Key}");
+                Logger.LogInformation($"Scraping endpoint {endpoint.Key}");
                 string metricsData = await this.ScrapeEndpoint(endpoint.Value);
-                Console.WriteLine($"Got metrics from endpoint {endpoint}");
+                Logger.LogInformation($"Got metrics from endpoint {endpoint}");
                 metrics.Add(metricsData);
             }
 
@@ -67,13 +71,13 @@ namespace MetricsCollector
                 }
                 else
                 {
-                    Console.WriteLine($"Result error code {result.StatusCode}");
+                    Logger.LogError($"Result error code {result.StatusCode}");
                     throw new InvalidOperationException("Error connecting EdgeHub");
                 }
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Error scraping endpoint {endpoint} - {e.Message}");
+                Logger.LogError($"Error scraping endpoint {endpoint} - {e.Message}");
                 throw;
             }
         }
