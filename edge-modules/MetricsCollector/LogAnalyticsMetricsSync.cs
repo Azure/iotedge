@@ -4,17 +4,21 @@ namespace MetricsCollector
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics;
+    using Microsoft.Extensions.Logging;
 
     class LogAnalyticsMetricsSync : IMetricsSync
     {
+        static readonly ILogger Logger = ModuleUtil.CreateLogger("MetricsCollector");
         readonly MessageFormatter messageFormatter;
         readonly Scraper scraper;
 
         public LogAnalyticsMetricsSync(MessageFormatter messageFormatter, Scraper scraper)
         {
-            this.messageFormatter = messageFormatter ?? throw new ArgumentNullException(nameof(messageFormatter));
-            this.scraper = scraper ?? throw new ArgumentNullException(nameof(scraper));
+            this.messageFormatter = Preconditions.CheckNotNull(messageFormatter);
+            this.scraper = Preconditions.CheckNotNull(scraper);
         }
 
         public async Task ScrapeAndSync()
@@ -30,11 +34,11 @@ namespace MetricsCollector
                     AzureLogAnalytics.Instance.PostAsync(workspaceId, workspaceKey, this.messageFormatter.BuildJSON(scrape), logType);
                 }
 
-                Console.WriteLine($"Sent metrics to LogAnalytics");
+                Logger.LogInformation($"Sent metrics to LogAnalytics");
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Error scraping and syncing metrics - {e}");
+                Logger.LogError($"Error scraping and syncing metrics - {e}");
             }
         }
     }
