@@ -1,7 +1,7 @@
 # Base image for arm32v7 dotnet-runtime container
 FROM mcr.microsoft.com/windows/nanoserver:1809-arm32v7
 
-ENV DOTNET_VERSION 2.1.10
+ENV DOTNET_VERSION 2.1.13
 ENV DOTNET_DOWNLOAD_URL https://dotnetcli.blob.core.windows.net/dotnet/Runtime/$DOTNET_VERSION/dotnet-runtime-${DOTNET_VERSION}-win-arm.zip
  
 RUN curl -SL %DOTNET_DOWNLOAD_URL% --output dotnet.zip \

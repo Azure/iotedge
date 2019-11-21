@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using Microsoft.Azure.Devices.Shared;
     using Moq;
     using Xunit;
+    using TransportType = Microsoft.Azure.Devices.Client.TransportType;
 
     [Unit]
     public class ClientTokenCloudConnectionTest
