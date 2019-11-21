@@ -34,8 +34,8 @@ impl ImgPullHandler {
         let request::ImgPull { image, credentials } = req;
 
         // parse image reference
-        // TODO?: specify default registry and docker compat via config
-        let image = Reference::parse(&image, "registry-1.docker.io", true)
+        let image = image
+            .parse::<Reference>()
             .context(ErrorKind::MalformedReference)?;
 
         // setup containrs client
@@ -89,13 +89,13 @@ impl ImgPullHandler {
                 let image = &image;
                 async move {
                     // If it's already in containerd, no need to download it!
-                    if already_in_containerd(&descriptor.digest, content_client.clone()).await? {
+                    if already_in_containerd(content_client.clone(), &descriptor.digest).await? {
                         return Ok(());
                     }
 
                     // If not, check if the blob happens to be partially downloaded.
                     let partial_offset =
-                        partially_in_containerd(&descriptor.digest, content_client.clone()).await?;
+                        partially_in_containerd(content_client.clone(), &descriptor.digest).await?;
                     // if not, download the entire file (i.e: offset = 0)
                     let offset = partial_offset.unwrap_or(0);
 
@@ -106,14 +106,14 @@ impl ImgPullHandler {
                         .context(ErrorKind::RegistryError)?;
 
                     // stream the blob into containerd
-                    stream_to_containerd(blob, offset, HashMap::new(), content_client.clone()).await
+                    stream_to_containerd(content_client.clone(), blob, offset, HashMap::new()).await
                 }
             })
             .collect::<Vec<_>>();
 
         // Don't forget about the manifest!
         let containerd_manifest_download_fut = async {
-            if already_in_containerd(&manifest_descriptor.digest, content_client.clone()).await? {
+            if already_in_containerd(content_client.clone(), &manifest_descriptor.digest).await? {
                 return Ok(());
             }
 
@@ -133,7 +133,7 @@ impl ImgPullHandler {
                 })
                 .collect();
 
-            stream_to_containerd(blob, 0, labels, content_client.clone()).await
+            stream_to_containerd(content_client.clone(), blob, 0, labels).await
         };
 
         info!("downloading image contents...");
@@ -144,16 +144,16 @@ impl ImgPullHandler {
         .await?;
         info!("image downloaded successfully!");
 
-        register_image_with_containerd(&image, &manifest_descriptor, images_client).await?;
+        register_image_with_containerd(images_client, &image, &manifest_descriptor).await?;
 
         Ok(response::ImgPull {})
     }
 }
 
 /// Check if a blob already exists in containerd's content store
-async fn already_in_containerd(
-    digest: &Digest,
+pub(crate) async fn already_in_containerd(
     mut content_client: ContentClient<tonic::transport::Channel>,
+    digest: &Digest,
 ) -> Result<bool> {
     let req = tonic::Request::new_namespaced(InfoRequest {
         digest: digest.to_string(),
@@ -172,12 +172,9 @@ async fn already_in_containerd(
             // ultimately, we don't actually care about the info, just if it exists or not
             Ok(true)
         }
-        Err(ref e) => match e.code() {
+        Err(e) => match e.code() {
             tonic::Code::NotFound => Ok(false),
-            _ => {
-                res.context(ErrorKind::GrpcUnexpectedErr)?;
-                unreachable!()
-            }
+            _ => Err(e.context(ErrorKind::GrpcUnexpectedErr).into()),
         },
     }
 }
@@ -185,8 +182,8 @@ async fn already_in_containerd(
 /// Check if a blob has been partially downloaded to containerd, returning the
 /// downloaded offset if applicable.
 async fn partially_in_containerd(
-    digest: &Digest,
     mut content_client: ContentClient<tonic::transport::Channel>,
+    digest: &Digest,
 ) -> Result<Option<u64>> {
     let req = tonic::Request::new_namespaced(StatusRequest {
         r#ref: digest.to_string(),
@@ -203,12 +200,9 @@ async fn partially_in_containerd(
                 .expect("containerd grpc api returned null status");
             Some(status.offset as u64)
         }
-        Err(ref e) => match e.code() {
+        Err(e) => match e.code() {
             tonic::Code::NotFound => None,
-            _ => {
-                res.context(ErrorKind::GrpcUnexpectedErr)?;
-                unreachable!()
-            }
+            _ => return Err(e.context(ErrorKind::GrpcUnexpectedErr).into()),
         },
     };
 
@@ -216,10 +210,10 @@ async fn partially_in_containerd(
 }
 
 async fn stream_to_containerd(
+    mut content_client: ContentClient<tonic::transport::Channel>,
     blob: Blob,
     offset: u64,
     labels: HashMap<String, String>,
-    mut content_client: ContentClient<tonic::transport::Channel>,
 ) -> Result<()> {
     // why two digests? combinators.
     let digest = blob.descriptor().digest.clone();
@@ -307,11 +301,8 @@ async fn stream_to_containerd(
                                 return Ok(());
                             }
                         }
-                        Err(ref e) => match e.code() {
-                            _ => {
-                                grpc_res.context(ErrorKind::GrpcUnexpectedErr)?;
-                                unreachable!()
-                            }
+                        Err(e) => match e.code() {
+                            _ => return Err(e.context(ErrorKind::GrpcUnexpectedErr).into()),
                         },
                     },
                     None => return Ok(()),
@@ -322,15 +313,24 @@ async fn stream_to_containerd(
 }
 
 async fn register_image_with_containerd(
+    mut images_client: ImagesClient<tonic::transport::Channel>,
     image: &Reference,
     manifest_descriptor: &Descriptor,
-    mut images_client: ImagesClient<tonic::transport::Channel>,
 ) -> Result<()> {
     let now = std::time::SystemTime::now();
     let image = || {
         let manifest_descriptor = manifest_descriptor.clone();
         Image {
-            name: image.to_string(),
+            name: if image.registry() == "registry-1.docker.io" {
+                // for some reason, containerd-cri tags images downloaded from
+                // "registry-1.docker.io" as being pulled from "docker.io".
+                let mut raw_image = image.clone().into_raw_reference();
+                // cannot panic, since docker.io is a valid domain string
+                raw_image.set_domain(Some("docker.io")).unwrap();
+                raw_image.canonicalize().to_string()
+            } else {
+                image.to_string()
+            },
             labels: HashMap::new(),
             target: Some(GrpcDescriptor {
                 media_type: manifest_descriptor.media_type,
@@ -355,15 +355,12 @@ async fn register_image_with_containerd(
             debug!("{:#?}", res.into_inner());
             return Ok(());
         }
-        Err(ref e) => match e.code() {
+        Err(e) => match e.code() {
             tonic::Code::NotFound => {
                 // that's fine.
                 // if the image doesn't exists, we'll create a new image
             }
-            _ => {
-                res.context(ErrorKind::GrpcUnexpectedErr)?;
-                unreachable!()
-            }
+            _ => return Err(e.context(ErrorKind::GrpcUnexpectedErr).into()),
         },
     }
 

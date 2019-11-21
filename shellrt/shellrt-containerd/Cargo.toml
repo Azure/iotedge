@@ -17,6 +17,7 @@ futures-preview = { version = "0.3.0-alpha.19", features = ["async-await"]}
 lazy_static = "1.4"
 log = "0.4"
 pretty_env_logger = "0.3"
+serde = "1.0"
 serde_json = "1.0"
 tokio = "0.2.0-alpha.6"
 tonic = "0.1.0-alpha.6"

@@ -240,15 +240,16 @@ pub mod v0 {
         | ImgRemove       | "img_remove"        || img_remove  | ImgRemoveRequest       | ImgRemoveResponse       |
         +-----------------+---------------------++-------------+------------------------+-------------------------+
         | Create          | "create"            || create      | CreateRequest          | CreateResponse          |
+        | Remove          | "remove"            || remove      | RemoveRequest          | RemoveResponse          |
+     // | RemoveAll       | "remove_all"        || remove_all  | RemoveAllRequest       | RemoveAllResponse       |
+        | Restart         | "restart"           || restart     | RestartRequest         | RestartResponse         |
+        | Start           | "start"             || start       | StartRequest           | StartResponse           |
+        | Stop            | "stop"              || stop        | StopRequest            | StopResponse            |
+     // +-----------------+---------------------++-------------+------------------------+-------------------------+
      // | Get             | "get"               || get         | GetRequest             | GetResponse             |
      // | List            | "list"              || list        | ListRequest            | ListResponse            |
      // | ListWithDetails | "list_with_details" || listwd      | ListWithDetailsRequest | ListWithDetailsResponse |
      // | Logs            | "logs"              || logs        | LogsRequest            | LogsResponse            |
-     // | Remove          | "remove"            || remove      | RemoveRequest          | RemoveResponse          |
-     // | RemoveAll       | "remove_all"        || remove_all  | RemoveAllRequest       | RemoveAllResponse       |
-     // | Restart         | "restart"           || restart     | RestartRequest         | RestartResponse         |
-     // | Start           | "start"             || start       | StartRequest           | StartResponse           |
-     // | Stop            | "stop"              || stop        | StopRequest            | StopResponse            |
      // | SystemInfo      | "system_info"       || system_info | SystemInfoRequest      | SystemInfoResponse      |
         +-----------------+---------------------++-------------+------------------------+-------------------------+
         | Version         | "version"           || version     | VersionRequest         | VersionResponse         |

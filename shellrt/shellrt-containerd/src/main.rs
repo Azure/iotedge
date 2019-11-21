@@ -13,19 +13,43 @@ mod error;
 mod sock_to_tcp_proxy;
 mod util;
 
-mod handler {
-    mod create;
-    mod img_pull;
-    mod img_remove;
-    mod version;
+use error::*;
 
-    pub use create::CreateHandler as Create;
-    pub use img_pull::ImgPullHandler as ImgPull;
-    pub use img_remove::ImgRemoveHandler as ImgRemove;
-    pub use version::VersionHandler as Version;
+macro_rules! handlers {
+    (
+        + $(-)*      + $(-)*      + $(-)*          +
+        | message    | module     | handler        |
+        + $(-)*      + $(-)*      + $(-)*          +
+      $(| $msg:ident | $mod:ident | $handler:ident |)*
+        + $(-)*      + $(-)*      + $(-)*          +
+    ) => {
+        mod handler {
+            $(mod $mod;)*
+            $(pub use $mod::$handler as $msg;)*
+        }
+
+        async fn handle_message(grpc_uri: String, req: Request) -> Result<Response> {
+            match req {
+                $( Request::$msg(req) => Ok(Response::$msg(handler::$msg::new(grpc_uri).handle(req).await?)), )*
+            }
+        }
+    };
 }
 
-use error::*;
+handlers! {
+    +-----------+------------+------------------+
+    | message   | module     | handler          |
+    +-----------+------------+------------------+
+    | Create    | create     | CreateHandler    |
+    | ImgPull   | img_pull   | ImgPullHandler   |
+    | ImgRemove | img_remove | ImgRemoveHandler |
+    | Remove    | remove     | RemoveHandler    |
+    | Restart   | restart    | RestartHandler   |
+    | Start     | start      | StartHandler     |
+    | Stop      | stop       | StopHandler      |
+    | Version   | version    | VersionHandler   |
+    +-----------+------------+------------------+
+}
 
 #[tokio::main]
 async fn main() {
@@ -56,7 +80,8 @@ async fn main() {
     let grpc_uri = format!("http://localhost:{}", tcp_proxy_port);
 
     // handle incoming input
-    let output = Output::new(handle_input(grpc_uri).await.map_err(Into::into));
+    let res = handle_input(grpc_uri).await;
+    let output = Output::new(res.map_err(Into::into));
 
     info!("{:#?}", output);
 
@@ -77,19 +102,7 @@ async fn handle_input(grpc_uri: String) -> Result<Response> {
     }
 
     // TODO?: use a macro for these match statement
-    let res = match input.into_inner() {
-        Request::ImgPull(req) => {
-            Response::ImgPull(handler::ImgPull::new(grpc_uri).handle(req).await?)
-        }
-        Request::ImgRemove(req) => {
-            Response::ImgRemove(handler::ImgRemove::new(grpc_uri).handle(req).await?)
-        }
-        Request::Version(req) => {
-            Response::Version(handler::Version::new(grpc_uri).handle(req).await?)
-        }
-        Request::Create(req) => Response::Create(handler::Create::new(grpc_uri).handle(req).await?),
-        _ => return Err(ErrorKind::UnimplementedReq.into()),
-    };
+    let res = handle_message(grpc_uri, input.into_inner()).await?;
 
     Ok(res)
 }

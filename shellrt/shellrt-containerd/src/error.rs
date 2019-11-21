@@ -21,9 +21,6 @@ pub enum ErrorKind {
     #[fail(display = "Could not parse request")]
     InvalidRequest,
 
-    #[fail(display = "Unimplemented request kind")]
-    UnimplementedReq,
-
     #[fail(display = "Could not connect to containerd")]
     GrpcConnect,
 
@@ -38,6 +35,15 @@ pub enum ErrorKind {
 
     #[fail(display = "Registry returned a malformed image manifest")]
     MalformedManifest,
+
+    #[fail(display = "Could not parse Create request config")]
+    MalformedCreateConfig,
+
+    #[fail(display = "Missing \"k8s.gcr.io/pause:3.1\" image")]
+    MissingPauseImage,
+
+    #[fail(display = "Specified module does not exist")]
+    ModuleDoesNotExist,
 
     // TODO: this error is too broad. it might be better to map several of the more "informative"
     // containrs errors to specific ErrorKinds / ErrorCodes.
@@ -103,20 +109,9 @@ impl Into<ApiError> for Error {
             // TODO: make the details nicer
             detail: {
                 let err: failure::Error = self.into();
-                let msg = err
-                    .iter_causes()
-                    .map(|cause| format!("\tcaused by: {}", cause))
-                    .map(|cause| {
-                        error!("{}", cause);
-                        cause
-                    })
-                    .collect::<Vec<String>>()
-                    .join("\n");
-                if msg.is_empty() {
-                    None
-                } else {
-                    Some(serde_json::Value::String(msg))
-                }
+                Some(serde_json::json!({
+                    "caused_by": err.iter_causes().map(ToString::to_string).collect::<Vec<_>>()
+                }))
             },
         }
     }

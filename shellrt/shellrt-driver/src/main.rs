@@ -38,12 +38,6 @@ async fn true_main() -> Result<(), failure::Error> {
                 .index(1),
         )
         .arg(
-            Arg::with_name("default-registry")
-                .help("Default registry (defaults to \"registry-1.docker.io\")")
-                .long("default-registry")
-                .takes_value(true),
-        )
-        .arg(
             Arg::with_name("username")
                 .help("Username (for use with UserPass Credentials)")
                 .short("u")
@@ -78,16 +72,64 @@ async fn true_main() -> Result<(), failure::Error> {
                 ),
         )
         // TODO: fill in `shellrt-driver create` CLI arguments!
-        .subcommand(SubCommand::with_name("create").about("Create a new module"))
+        .subcommand(
+            SubCommand::with_name("create")
+                .about("Create a new module for a specific runtime")
+                .setting(AppSettings::SubcommandRequiredElseHelp)
+                .subcommand(
+                    SubCommand::with_name("containerd-cri")
+                        .about("Create a new module using containerd-cri")
+                        .arg(
+                            Arg::with_name("name")
+                                .help("Module name")
+                                .required(true)
+                                .index(1),
+                        )
+                        .arg(
+                            Arg::with_name("image")
+                                .help("Image reference")
+                                .required(true)
+                                .index(2),
+                        ),
+                ),
+        )
+        .subcommand(
+            SubCommand::with_name("remove")
+                .about("Remove a module")
+                .arg(
+                    Arg::with_name("name")
+                        .help("Module name")
+                        .required(true)
+                        .index(1),
+                ),
+        )
+        .subcommand(
+            SubCommand::with_name("start").about("Start a module").arg(
+                Arg::with_name("name")
+                    .help("Module name")
+                    .required(true)
+                    .index(1),
+            ),
+        )
+        .subcommand(
+            SubCommand::with_name("stop")
+                .about("Stop a module")
+                .arg(
+                    Arg::with_name("name")
+                        .help("Module name")
+                        .required(true)
+                        .index(1),
+                )
+                .arg(
+                    Arg::with_name("timeout")
+                        .help("Timeout (in seconds) before the container is forcibly terminated")
+                        .index(2),
+                ),
+        )
         .subcommand(
             SubCommand::with_name("version").about("Retrieve the runtime's version information"),
         )
         .get_matches();
-
-    let default_registry = app_m
-        .value_of("default-registry")
-        .unwrap_or("registry-1.docker.io");
-    let docker_compat = default_registry.contains("docker");
 
     let username = app_m.value_of("username");
     let password = app_m.value_of("password");
@@ -113,7 +155,7 @@ async fn true_main() -> Result<(), failure::Error> {
                 .value_of("image")
                 .expect("image should be a required argument");
 
-            let image = Reference::parse(image, default_registry, docker_compat)?;
+            let image = image.parse::<Reference>()?;
 
             let res = plugin
                 .send(request::ImgPull {
@@ -130,7 +172,7 @@ async fn true_main() -> Result<(), failure::Error> {
                 .value_of("image")
                 .expect("image should be a required argument");
 
-            let image = Reference::parse(image, default_registry, docker_compat)?;
+            let image = image.parse::<Reference>()?;
 
             let res = plugin
                 .send(request::ImgRemove {
@@ -141,10 +183,78 @@ async fn true_main() -> Result<(), failure::Error> {
             println!("the image was removed successfully");
             debug!("{:#?}", res);
         }
-        ("create", Some(_sub_m)) => {
-            let res = plugin.send(request::Create {}).await?;
+        ("create", Some(sub_m)) => {
+            let sub_m = match sub_m.subcommand() {
+                ("containerd-cri", Some(x)) => x,
+                (rt, _) => unimplemented!("create for runtime {} isn't implemented yet", rt),
+            };
+
+            let name = sub_m
+                .value_of("name")
+                .expect("name should be a required argument");
+            let image = sub_m
+                .value_of("image")
+                .expect("image should be a required argument");
+
+            let image = image.parse::<Reference>()?;
+
+            let res = plugin
+                .send(request::Create {
+                    name: name.to_string(),
+                    config_type: "containerd-cri".to_string(),
+                    env: HashMap::new(), // TODO: support passing custom env vars via cli
+                    // TODO: settle on a well-typed spec for containerd-cri Create.config
+                    config: serde_json::json!({
+                        "image": image.to_string()
+                    }),
+                })
+                .await?;
 
             println!("the module was created successfully");
+            debug!("{:#?}", res);
+        }
+        ("remove", Some(sub_m)) => {
+            let name = sub_m
+                .value_of("name")
+                .expect("name should be a required argument");
+
+            let res = plugin
+                .send(request::Remove {
+                    name: name.to_string(),
+                })
+                .await?;
+
+            println!("the module was removed successfully");
+            debug!("{:#?}", res);
+        }
+        ("start", Some(sub_m)) => {
+            let name = sub_m
+                .value_of("name")
+                .expect("name should be a required argument");
+
+            let res = plugin
+                .send(request::Start {
+                    name: name.to_string(),
+                })
+                .await?;
+
+            println!("the module was started successfully");
+            debug!("{:#?}", res);
+        }
+        ("stop", Some(sub_m)) => {
+            let name = sub_m
+                .value_of("name")
+                .expect("name should be a required argument");
+            let timeout = sub_m.value_of("timeout").unwrap_or("0");
+
+            let res = plugin
+                .send(request::Stop {
+                    name: name.to_string(),
+                    timeout: timeout.parse::<i64>()?,
+                })
+                .await?;
+
+            println!("the module was stopped successfully");
             debug!("{:#?}", res);
         }
         ("version", Some(_sub_m)) => {
@@ -202,6 +312,6 @@ impl Plugin {
 
         output
             .into_inner()
-            .map_err(|e| failure::err_msg(format!("API error: {:?}", e)))
+            .map_err(|e| failure::err_msg(format!("API error: {:#?}", e)))
     }
 }

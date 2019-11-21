@@ -22,3 +22,26 @@ impl<T> TonicRequestExt<T> for Request<T> {
         req
     }
 }
+
+use crate::error::*;
+use cri_grpc::{client::RuntimeServiceClient, ListContainersRequest};
+
+pub async fn module_to_container_id(
+    mut cri_client: RuntimeServiceClient<tonic::transport::Channel>,
+    name: &str,
+) -> Result<String> {
+    // get the corresponding container_id
+    let containers = cri_client
+        .list_containers(ListContainersRequest { filter: None })
+        .await
+        .context(ErrorKind::GrpcUnexpectedErr)?
+        .into_inner()
+        .containers;
+    let container = containers
+        .into_iter()
+        .find(|c| c.metadata.as_ref().unwrap().name == name);
+    match container {
+        Some(container) => Ok(container.id),
+        None => Err(ErrorKind::ModuleDoesNotExist.into()),
+    }
+}
