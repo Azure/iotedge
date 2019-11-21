@@ -5,9 +5,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.EdgeHub
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil;
-    using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Logging;
 
     class ModuleClientCache
     {
