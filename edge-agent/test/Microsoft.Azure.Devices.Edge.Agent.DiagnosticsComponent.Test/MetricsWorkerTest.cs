@@ -35,25 +35,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
             var uploader = new Mock<IMetricsPublisher>();
 
             MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
-            MethodInfo methodInfo = typeof(MetricsWorker).GetMethod("Scrape", BindingFlags.NonPublic | BindingFlags.Instance);
-            object[] parameters = { CancellationToken.None };
-            Task Scape()
-            {
-                return methodInfo.Invoke(worker, parameters) as Task;
-            }
 
             // single value is stored
-            await Scape();
+            await worker.Scrape(CancellationToken.None);
             Assert.Equal(1, scraper.Invocations.Count);
             Assert.Equal(1, storage.Invocations.Count);
 
             // duplicates don't get stored
-            await Scape();
+            await worker.Scrape(CancellationToken.None);
             Assert.Equal(2, scraper.Invocations.Count);
             Assert.Equal(1, storage.Invocations.Count);
 
             modules[1].value = 2;
-            await Scape();
+            await worker.Scrape(CancellationToken.None);
             Assert.Equal(3, scraper.Invocations.Count);
             Assert.Equal(2, storage.Invocations.Count);
             Assert.Contains("module_2", storedValue);
@@ -63,14 +57,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
             modules[1].value = 3;
             modules[2].value = 3;
             modules[7].value = 3;
-            await Scape();
+            await worker.Scrape(CancellationToken.None);
             Assert.Equal(4, scraper.Invocations.Count);
             Assert.Equal(3, storage.Invocations.Count);
             Assert.Contains("module_2", storedValue);
             Assert.Contains("3", storedValue);
 
             // multiple duplicates don't get stored
-            await Scape();
+            await worker.Scrape(CancellationToken.None);
             Assert.Equal(5, scraper.Invocations.Count);
             Assert.Equal(3, storage.Invocations.Count);
         }
@@ -92,15 +86,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
             uploader.Setup(u => u.PublishAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Callback((Action<IEnumerable<Metric>, CancellationToken>)((data, __) => uploadedData = data)).Returns(Task.CompletedTask);
 
             MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
-            MethodInfo methodInfo = typeof(MetricsWorker).GetMethod("Upload", BindingFlags.NonPublic | BindingFlags.Instance);
-            object[] parameters = { CancellationToken.None };
-            Task Upload()
-            {
-                return methodInfo.Invoke(worker, parameters) as Task;
-            }
 
             /* test */
-            await Upload();
+            await worker.Upload(CancellationToken.None);
             uploadedData.ToList();
             Assert.Single(storage.Invocations.Where(s => s.Method.Name == "GetData"));
             Assert.Equal(1, uploader.Invocations.Count);
@@ -125,15 +113,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
             uploader.Setup(u => u.PublishAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Callback((Action<IEnumerable<Metric>, CancellationToken>)((d, _) => uploadedData = d)).Returns(Task.CompletedTask);
 
             MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
-            MethodInfo methodInfo = typeof(MetricsWorker).GetMethod("Upload", BindingFlags.NonPublic | BindingFlags.Instance);
-            object[] parameters = { CancellationToken.None };
-            Task Upload()
-            {
-                return methodInfo.Invoke(worker, parameters) as Task;
-            }
 
             /* test */
-            await Upload();
+            await worker.Upload(CancellationToken.None);
             Assert.Equal(metrics.OrderBy(x => x.Tags), uploadedData.OrderBy(x => x.Tags));
             Assert.Single(storage.Invocations.Where(s => s.Method.Name == "GetData"));
             Assert.Equal(1, uploader.Invocations.Count);
@@ -163,15 +145,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
             uploader.Setup(u => u.PublishAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Callback((Action<IEnumerable<Metric>, CancellationToken>)((d, _) => uploadedData = d)).Returns(Task.CompletedTask);
 
             MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
-            MethodInfo methodInfo = typeof(MetricsWorker).GetMethod("Upload", BindingFlags.NonPublic | BindingFlags.Instance);
-            object[] parameters = { CancellationToken.None };
-            Task Upload()
-            {
-                return methodInfo.Invoke(worker, parameters) as Task;
-            }
 
             /* test */
-            await Upload();
+            await worker.Upload(CancellationToken.None);
             int numMetrics = 0;
             foreach (Metric metric in uploadedData)
             {
@@ -203,59 +179,47 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
             uploader.Setup(u => u.PublishAsync(It.IsAny<IEnumerable<Metric>>(), ct)).Callback((Action<IEnumerable<Metric>, CancellationToken>)((d, _) => uploadedData = d.ToArray())).Returns(Task.CompletedTask);
 
             MetricsWorker worker = new MetricsWorker(scraper.Object, storage, uploader.Object, systemTime.Object);
-            MethodInfo methodInfoScrape = typeof(MetricsWorker).GetMethod("Scrape", BindingFlags.NonPublic | BindingFlags.Instance);
-            MethodInfo methodInfoUpload = typeof(MetricsWorker).GetMethod("Upload", BindingFlags.NonPublic | BindingFlags.Instance);
-            object[] parameters = { ct };
-            Task Scape()
-            {
-                return methodInfoScrape.Invoke(worker, parameters) as Task;
-            }
-
-            Task Upload()
-            {
-                return methodInfoUpload.Invoke(worker, parameters) as Task;
-            }
 
             /* test without de-duping */
             scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 1.0)));
-            await Scape();
+            await worker.Scrape(ct);
             fakeTime = fakeTime.AddMinutes(10);
             scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 2.0)));
-            await Scape();
+            await worker.Scrape(ct);
             fakeTime = fakeTime.AddMinutes(1);
-            await Upload();
+            await worker.Upload(ct);
             Assert.Equal(20, uploadedData.Count());
             fakeTime = fakeTime.AddMinutes(1);
-            await Upload();
+            await worker.Upload(ct);
             Assert.Empty(uploadedData);
 
             /* test de-duping */
             fakeTime = fakeTime.AddMinutes(20);
             scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 5.0)));
-            await Scape();
+            await worker.Scrape(ct);
             fakeTime = fakeTime.AddMinutes(10);
-            await Scape();
-            await Upload();
+            await worker.Scrape(ct);
+            await worker.Upload(ct);
             fakeTime = fakeTime.AddMinutes(1);
             Assert.Equal(10, uploadedData.Count());
             fakeTime = fakeTime.AddMinutes(1);
-            await Upload();
+            await worker.Upload(ct);
             Assert.Empty(uploadedData);
 
             /* test mix of de-duping and not */
             fakeTime = fakeTime.AddMinutes(20);
             scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 7.0)));
-            await Scape();
+            await worker.Scrape(ct);
             fakeTime = fakeTime.AddMinutes(10);
             scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", i % 2 == 0 ? 7.0 : 8.0)));
-            await Scape();
+            await worker.Scrape(ct);
             fakeTime = fakeTime.AddMinutes(10);
             scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 7.0)));
-            await Scape();
+            await worker.Scrape(ct);
             fakeTime = fakeTime.AddMinutes(1);
-            await Upload();
+            await worker.Upload(ct);
             Assert.Equal(20, uploadedData.Count());
-            await Upload();
+            await worker.Upload(ct);
             fakeTime = fakeTime.AddMinutes(1);
             Assert.Empty(uploadedData);
         }
@@ -280,23 +244,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
             uploader.Setup(u => u.PublishAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Returns(async () => await uploadTaskSource.Task);
 
             MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
-            MethodInfo methodInfoScrape = typeof(MetricsWorker).GetMethod("Scrape", BindingFlags.NonPublic | BindingFlags.Instance);
-            MethodInfo methodInfoUpload = typeof(MetricsWorker).GetMethod("Upload", BindingFlags.NonPublic | BindingFlags.Instance);
-            object[] parameters = { CancellationToken.None };
-            Task Scape()
-            {
-                return methodInfoScrape.Invoke(worker, parameters) as Task;
-            }
-
-            Task Upload()
-            {
-                return methodInfoUpload.Invoke(worker, parameters) as Task;
-            }
 
             /* test scraper first */
-            var scrapeTask = Scape();
+            var scrapeTask = worker.Scrape(CancellationToken.None);
             await Task.Delay(1);
-            var uploadTask = Upload();
+            var uploadTask = worker.Upload(CancellationToken.None);
             await Task.Delay(1);
 
             uploadTaskSource.SetResult(true);
@@ -313,9 +265,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
             scrapeTaskSource = new TaskCompletionSource<bool>();
             uploadTaskSource = new TaskCompletionSource<bool>();
 
-            uploadTask = Upload();
+            uploadTask = worker.Upload(CancellationToken.None);
             await Task.Delay(1);
-            scrapeTask = Scape();
+            scrapeTask = worker.Scrape(CancellationToken.None);
             await Task.Delay(1);
 
             scrapeTaskSource.SetResult(true);

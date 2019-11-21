@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
+[assembly: System.Runtime.CompilerServices.InternalsVisibleToAttribute("Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test")]
 namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
 {
     using System;
@@ -45,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
             this.upload = new PeriodicTask(this.Upload, uploadInterval, uploadInterval, Log, "Metrics Upload");
         }
 
-        async Task Scrape(CancellationToken cancellationToken)
+        internal async Task Scrape(CancellationToken cancellationToken)
         {
             using (await this.scrapeUploadLock.LockAsync(cancellationToken))
             {
@@ -81,7 +82,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
             }
         }
 
-        async Task Upload(CancellationToken cancellationToken)
+        internal async Task Upload(CancellationToken cancellationToken)
         {
             using (await this.scrapeUploadLock.LockAsync(cancellationToken))
             {
