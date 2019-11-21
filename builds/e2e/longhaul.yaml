@@ -82,13 +82,14 @@ jobs:
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
         parameters:
+          agent.machineName: '$(Agent.MachineName)'
+          agent.name: '$(Agent.Name)'
+          build.buildId: '$(Build.BuildId)'
+          build.buildNumber: '$(Build.BuildNumber)'
+          build.queuedBy: '$(Build.QueuedBy)'
           release.label: 'lh$(agent.group)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
-          edgelet.package.build: '$(edgelet.package.build)'
-          edgelet.package.branchName: '$(edgelet.package.branchName)'
           images.artifact.name: '$(images.artifact.name.linux)'
-          images.build: '$(images.build)'
-          images.branchName: '$(images.branchName)'
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
@@ -109,6 +110,7 @@ jobs:
           twinTester.twinUpdateCharCount: '$(twinTester.twinUpdateCharCount)'
           twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
           twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
+
 
 ################################################################################
   - job: linux_arm32v7_moby
@@ -161,13 +163,14 @@ jobs:
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
         parameters:
+          agent.machineName: '$(Agent.MachineName)'
+          agent.name: '$(Agent.Name)'
+          build.buildId: '$(Build.BuildId)'
+          build.buildNumber: '$(Build.BuildNumber)'
+          build.queuedBy: '$(Build.QueuedBy)'
           release.label: 'lh$(agent.group)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
-          edgelet.package.build: '$(edgelet.package.build)'
-          edgelet.package.branchName: '$(edgelet.package.branchName)'
           images.artifact.name: '$(images.artifact.name.linux)'
-          images.build: '$(images.build)'
-          images.branchName: '$(images.branchName)'
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
@@ -240,13 +243,14 @@ jobs:
       # Deploy long haul
       - template: templates/longhaul-deploy.yaml
         parameters:
+          agent.machineName: '$(Agent.MachineName)'
+          agent.name: '$(Agent.Name)'
+          build.buildId: '$(Build.BuildId)'
+          build.buildNumber: '$(Build.BuildNumber)'
+          build.queuedBy: '$(Build.QueuedBy)'
           release.label: 'lh$(agent.group)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
-          edgelet.package.build: '$(edgelet.package.build)'
-          edgelet.package.branchName: '$(edgelet.package.branchName)'
           images.artifact.name: '$(images.artifact.name.linux)'
-          images.build: '$(images.build)'
-          images.branchName: '$(images.branchName)'
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
@@ -321,13 +325,14 @@ jobs:
       # Deploy long haul
       - template: templates/longhaul-deploy-windows.yaml
         parameters:
+          agent.machineName: '$(Agent.MachineName)'
+          agent.name: '$(Agent.Name)'
+          build.buildId: '$(Build.BuildId)'
+          build.buildNumber: '$(Build.BuildNumber)'
+          build.queuedBy: '$(Build.QueuedBy)'
           release.label: 'winpro-lh$(agent.group)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
-          edgelet.package.build: '$(edgelet.package.build)'
-          edgelet.package.branchName: '$(edgelet.package.branchName)'
           images.artifact.name: '$(images.artifact.name.linux)'
-          images.build: '$(images.build)'
-          images.branchName: '$(images.branchName)'
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
@@ -402,13 +407,14 @@ jobs:
       # Deploy long haul
       - template: templates/longhaul-deploy-windows.yaml
         parameters:
+          agent.machineName: '$(Agent.MachineName)'
+          agent.name: '$(Agent.Name)'
+          build.buildId: '$(Build.BuildId)'
+          build.buildNumber: '$(Build.BuildNumber)'
+          build.queuedBy: '$(Build.QueuedBy)'
           release.label: 'servercore-lh$(agent.group)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
-          edgelet.package.build: '$(edgelet.package.build)'
-          edgelet.package.branchName: '$(edgelet.package.branchName)'
           images.artifact.name: '$(images.artifact.name.linux)'
-          images.build: '$(images.build)'
-          images.branchName: '$(images.branchName)'
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
@@ -481,14 +487,15 @@ jobs:
       # Deploy LongHaul test
       - template: templates/deploy-iotuap.yaml
         parameters:
+          agent.machineName: '$(Agent.MachineName)'
+          agent.name: '$(Agent.Name)'
+          build.buildId: '$(Build.BuildId)'
+          build.buildNumber: '$(Build.BuildNumber)'
+          build.queuedBy: '$(Build.QueuedBy)'
           testName: 'LongHaul'
           release.label: 'iotuap-lh$(agent.group)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
-          edgelet.package.build: '$(edgelet.package.build)'
-          edgelet.package.branchName: '$(edgelet.package.branchName)'
           images.artifact.name: '$(images.artifact.name.linux)'
-          images.build: '$(images.build)'
-          images.branchName: '$(images.branchName)'
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'

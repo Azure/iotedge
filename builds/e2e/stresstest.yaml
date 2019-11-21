@@ -81,13 +81,14 @@ jobs:
       # Deploy stress test
       - template: templates/stresstest-deploy.yaml
         parameters:
+          agent.machineName: '$(Agent.MachineName)'
+          agent.name: '$(Agent.Name)'
+          build.buildId: '$(Build.BuildId)'
+          build.buildNumber: '$(Build.BuildNumber)'
+          build.queuedBy: '$(Build.QueuedBy)'
           release.label: 'st$(agent.group)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
-          edgelet.package.build: '$(Agent.Name)'
-          edgelet.package.branchName: '$(Agent.MachineName)'
           images.artifact.name: '$(images.artifact.name.linux)'
-          images.build: '$(Build.BuildId)'
-          images.branchName: '$(Build.BuildNumber)'
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
@@ -158,13 +159,14 @@ jobs:
       # Deploy stress test
       - template: templates/stresstest-deploy.yaml
         parameters:
+          agent.machineName: '$(Agent.MachineName)'
+          agent.name: '$(Agent.Name)'
+          build.buildId: '$(Build.BuildId)'
+          build.buildNumber: '$(Build.BuildNumber)'
+          build.queuedBy: '$(Build.QueuedBy)'
           release.label: 'st$(agent.group)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
-          edgelet.package.build: '$(edgelet.package.build)'
-          edgelet.package.branchName: '$(edgelet.package.branchName)'
           images.artifact.name: '$(images.artifact.name.linux)'
-          images.build: '$(images.build)'
-          images.branchName: '$(images.branchName)'
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
@@ -235,13 +237,14 @@ jobs:
       # Deploy stress test
       - template: templates/stresstest-deploy.yaml
         parameters:
+          agent.machineName: '$(Agent.MachineName)'
+          agent.name: '$(Agent.Name)'
+          build.buildId: '$(Build.BuildId)'
+          build.buildNumber: '$(Build.BuildNumber)'
+          build.queuedBy: '$(Build.QueuedBy)'
           release.label: 'st$(agent.group)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
-          edgelet.package.build: '$(edgelet.package.build)'
-          edgelet.package.branchName: '$(edgelet.package.branchName)'
           images.artifact.name: '$(images.artifact.name.linux)'
-          images.build: '$(images.build)'
-          images.branchName: '$(images.branchName)'
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
@@ -314,13 +317,14 @@ jobs:
       # Deploy stress test
       - template: templates/stresstest-deploy-windows.yaml
         parameters:
+          agent.machineName: '$(Agent.MachineName)'
+          agent.name: '$(Agent.Name)'
+          build.buildId: '$(Build.BuildId)'
+          build.buildNumber: '$(Build.BuildNumber)'
+          build.queuedBy: '$(Build.QueuedBy)'
           release.label: 'winpro-st$(agent.group)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
-          edgelet.package.build: '$(edgelet.package.build)'
-          edgelet.package.branchName: '$(edgelet.package.branchName)'
           images.artifact.name: '$(images.artifact.name.linux)'
-          images.build: '$(images.build)'
-          images.branchName: '$(images.branchName)'
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
@@ -393,13 +397,14 @@ jobs:
       # Deploy stress test
       - template: templates/stresstest-deploy-windows.yaml
         parameters:
+          agent.machineName: '$(Agent.MachineName)'
+          agent.name: '$(Agent.Name)'
+          build.buildId: '$(Build.BuildId)'
+          build.buildNumber: '$(Build.BuildNumber)'
+          build.queuedBy: '$(Build.QueuedBy)'
           release.label: 'servercore-st$(agent.group)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
-          edgelet.package.build: '$(edgelet.package.build)'
-          edgelet.package.branchName: '$(edgelet.package.branchName)'
           images.artifact.name: '$(images.artifact.name.linux)'
-          images.build: '$(images.build)'
-          images.branchName: '$(images.branchName)'
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
@@ -470,14 +475,15 @@ jobs:
       # Deploy Stress test
       - template: templates/deploy-iotuap.yaml
         parameters:
+          agent.machineName: '$(Agent.MachineName)'
+          agent.name: '$(Agent.Name)'
+          build.buildId: '$(Build.BuildId)'
+          build.buildNumber: '$(Build.BuildNumber)'
+          build.queuedBy: '$(Build.QueuedBy)'
           testName: 'Stress'
           release.label: 'iotuap-st$(agent.group)'
           edgelet.artifact.name: '$(edgelet.artifact.name)'
-          edgelet.package.build: '$(edgelet.package.build)'
-          edgelet.package.branchName: '$(edgelet.package.branchName)'
           images.artifact.name: '$(images.artifact.name.linux)'
-          images.build: '$(images.build)'
-          images.branchName: '$(images.branchName)'
           container.registry: '$(container.registry)'
           container.registry.username: '$(edgebuilds-azurecr-io-username)'
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
