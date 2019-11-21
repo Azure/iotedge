@@ -16,7 +16,7 @@ namespace TestAnalyzer
         public string OsDescription { get; }
         public string OsVersion { get; }
         public string ProcessArchitecture { get; }
-        public string Time { get; }
+        public string TimeTicks { get; }
         public string User { get; }
         public string Version { get; }
         public string VstsAgentMachineName { get; }
@@ -27,16 +27,16 @@ namespace TestAnalyzer
 
         public TestAgentInformation()
         {
-            string[] OsDescriptionTokens = System.Runtime.InteropServices.RuntimeInformation.OSDescription.Split(' ');
+            string[] osDescriptionTokens = System.Runtime.InteropServices.RuntimeInformation.OSDescription.Split(' ');
 
             this.ConsumerGroupId = Settings.Current.ConsumerGroupId;
             this.DeviceId = Settings.Current.DeviceId;
-            this.Os = OsDescriptionTokens[0];
+            this.Os = osDescriptionTokens[0];
             this.OsArchitecture = System.Runtime.InteropServices.RuntimeInformation.OSArchitecture.ToString();
             this.OsDescription = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
-            this.OsVersion = OsDescriptionTokens[1];
+            this.OsVersion = osDescriptionTokens[1];
             this.ProcessArchitecture = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString();
-            this.Time = DateTime.UtcNow.ToString();
+            this.TimeTicks = DateTime.UtcNow.Ticks.ToString();
             this.User = Environment.UserName.ToString();
             this.Version = "1";
             this.VstsAgentMachineName = Settings.Current.VstsAgentMachineName;
