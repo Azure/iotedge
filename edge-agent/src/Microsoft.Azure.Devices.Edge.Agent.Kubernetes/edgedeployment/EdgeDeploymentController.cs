@@ -113,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             }
             catch (HttpOperationException e)
             {
-                Events.DeployModuleException(e);
+                Events.DeployModulesException(e);
                 return EdgeDeploymentStatus.Failure(e);
             }
         }
@@ -361,75 +361,75 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 CreateServiceAccount,
                 DeleteServiceAccount,
                 UpdateServiceAccount,
-                DeployModuleException
+                DeployModulesException
             }
 
-            public static void DeleteService(string name)
+            internal static void DeleteService(string name)
             {
                 Log.LogInformation((int)EventIds.DeleteService, $"Delete service {name}");
             }
 
-            public static void CreateService(V1Service service)
+            internal static void CreateService(V1Service service)
             {
                 Log.LogInformation((int)EventIds.CreateService, $"Create service {service.Metadata.Name}");
             }
 
-            public static void CreateDeployment(V1Deployment deployment)
+            internal static void CreateDeployment(V1Deployment deployment)
             {
                 Log.LogInformation((int)EventIds.CreateDeployment, $"Create deployment {deployment.Metadata.Name}");
             }
 
-            public static void DeleteDeployment(string name)
+            internal static void DeleteDeployment(string name)
             {
                 Log.LogInformation((int)EventIds.DeleteDeployment, $"Delete deployment {name}");
             }
 
-            public static void UpdateDeployment(V1Deployment deployment)
+            internal static void UpdateDeployment(V1Deployment deployment)
             {
                 Log.LogInformation((int)EventIds.UpdateDeployment, $"Update deployment {deployment.Metadata.Name}");
             }
 
-            public static void CreatePvc(V1PersistentVolumeClaim pvc)
+            internal static void CreatePvc(V1PersistentVolumeClaim pvc)
             {
                 Log.LogInformation((int)EventIds.CreatePvc, $"Create PVC {pvc.Metadata.Name}");
             }
 
-            public static void DeletePvc(string name)
+            internal static void DeletePvc(string name)
             {
                 Log.LogInformation((int)EventIds.DeletePvc, $"Delete PVC {name}");
             }
 
-            public static void UpdatePvc(V1PersistentVolumeClaim pvc)
+            internal static void UpdatePvc(V1PersistentVolumeClaim pvc)
             {
                 Log.LogInformation((int)EventIds.UpdatePvc, $"Update PVC {pvc.Metadata.Name}");
             }
 
-            public static void DeployModuleException(Exception ex)
+            internal static void DeployModulesException(Exception ex)
             {
-                Log.LogWarning((int)EventIds.DeployModuleException, ex, "Module deployment failed");
+                Log.LogWarning((int)EventIds.DeployModulesException, ex, "Module deployment failed");
             }
 
-            public static void InvalidCreationString(string kind, string name)
+            internal static void InvalidCreationString(string kind, string name)
             {
                 Log.LogDebug((int)EventIds.InvalidCreationString, $"Expected a valid '{kind}' creation string in k8s Object '{name}'.");
             }
 
-            public static void UpdateService(V1Service service)
+            internal static void UpdateService(V1Service service)
             {
                 Log.LogDebug((int)EventIds.UpdateService, $"Update service object '{service.Metadata.Name}'");
             }
 
-            public static void CreateServiceAccount(V1ServiceAccount serviceAccount)
+            internal static void CreateServiceAccount(V1ServiceAccount serviceAccount)
             {
                 Log.LogDebug((int)EventIds.CreateServiceAccount, $"Create Service Account {serviceAccount.Metadata.Name}");
             }
 
-            public static void DeleteServiceAccount(string name)
+            internal static void DeleteServiceAccount(string name)
             {
                 Log.LogDebug((int)EventIds.DeleteServiceAccount, $"Delete Service Account {name}");
             }
 
-            public static void UpdateServiceAccount(V1ServiceAccount serviceAccount)
+            internal static void UpdateServiceAccount(V1ServiceAccount serviceAccount)
             {
                 Log.LogDebug((int)EventIds.UpdateServiceAccount, $"Update Service Account {serviceAccount.Metadata.Name}");
             }
