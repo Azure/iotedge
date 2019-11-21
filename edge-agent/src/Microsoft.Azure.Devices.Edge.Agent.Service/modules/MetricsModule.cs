@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics.NullMetrics;
     using Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net;
 
     public sealed class MetricsModule : Module
@@ -27,7 +28,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
         protected override void Load(ContainerBuilder builder)
         {
-            builder.Register(c => new MetricsProvider(Constants.EdgeAgentModuleName, this.iothubHostname, this.deviceId))
+            builder.Register(c => this.metricsConfig.Enabled ?
+                                new MetricsProvider(Constants.EdgeAgentModuleName, this.iothubHostname, this.deviceId) :
+                                new NullMetricsProvider() as IMetricsProvider)
                 .As<IMetricsProvider>()
                 .SingleInstance();
 
