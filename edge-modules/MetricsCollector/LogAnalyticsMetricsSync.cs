@@ -5,6 +5,7 @@ namespace MetricsCollector
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics;
     using Microsoft.Extensions.Logging;
 
@@ -16,8 +17,8 @@ namespace MetricsCollector
 
         public LogAnalyticsMetricsSync(MessageFormatter messageFormatter, Scraper scraper)
         {
-            this.messageFormatter = messageFormatter ?? throw new ArgumentNullException(nameof(messageFormatter));
-            this.scraper = scraper ?? throw new ArgumentNullException(nameof(scraper));
+            this.messageFormatter = Preconditions.CheckNotNull(messageFormatter);
+            this.scraper = Preconditions.CheckNotNull(scraper);
         }
 
         public async Task ScrapeAndSync()

@@ -8,6 +8,7 @@ namespace MetricsCollector
     using System.Text;
     using System.Text.RegularExpressions;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
     public class MessageFormatter
@@ -205,10 +206,10 @@ namespace MetricsCollector
         public MetricsData(string ns, string name, string value, string tags)
         {
             this.TimeGeneratedUtc = DateTime.UtcNow;
-            this.Namespace = ns;
-            this.Name = name;
-            this.Value = value;
-            this.Tags = tags;
+            this.Namespace = Preconditions.CheckNotNull(ns);
+            this.Name = Preconditions.CheckNotNull(name);
+            this.Value = Preconditions.CheckNotNull(value);
+            this.Tags = Preconditions.CheckNotNull(tags);
         }
 
         public DateTime TimeGeneratedUtc { get; }

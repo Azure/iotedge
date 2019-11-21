@@ -22,6 +22,7 @@ namespace MetricsCollector
 
         public Scraper(IList<string> endpoints)
         {
+            Preconditions.CheckNotNull(endpoints);
             this.httpClient = new HttpClient();
             this.endpoints = endpoints.ToDictionary(e => e, GetUriWithIpAddress);
         }
