@@ -16,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     {
         public async Task PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
         {
-            using (FileStream file = File.Open(@"/shared/MetricsUpload.txt", FileMode.Append))
+            using (FileStream file = File.Open(@"shared/MetricsUpload.txt", FileMode.Append))
             {
                 Console.WriteLine("Writing to file");
                 byte[] buffer = Encoding.UTF8.GetBytes($"\n\n\nNew Upload: {DateTime.UtcNow}");
