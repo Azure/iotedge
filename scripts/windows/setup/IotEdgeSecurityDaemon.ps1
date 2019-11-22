@@ -322,7 +322,7 @@ function Initialize-IoTEdge {
 
     if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
         Write-HostRed
-        Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. Probably there is an old preview install present and it needs to be uninstalled or the system should be re-imaged.' + $ReinstallMessage)
+        Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. There may be an old preview install present. Please run Uninstall-IoTEdge first or reimage the device. ' + $ReinstallMessage)
         throw
     }
 
@@ -944,7 +944,7 @@ function Install-Packages(
 
         if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
             Write-HostRed
-            Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. Probably there is an old preview install present and it needs to be uninstalled or the system should be re-imaged.' + $ReinstallMessage)
+            Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. There may be an old preview install present. Please run Uninstall-IoTEdge first or reimage the device. ' + $ReinstallMessage)
             throw
         }
 
@@ -958,7 +958,7 @@ function Install-Packages(
         if (Test-EdgeAlreadyInstalled) {
             if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
                 Write-HostRed
-                Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. Probably there is an old preview install present and it needs to be uninstalled or the system should be re-imaged.' + $ReinstallMessage)
+                Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. There may be an old preview install present. Please run Uninstall-IoTEdge first or reimage the device. ' + $ReinstallMessage)
             }
             else {
                 Write-HostRed
@@ -971,7 +971,7 @@ function Install-Packages(
         if (Test-MobyAlreadyInstalled) {
             if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
                 Write-HostRed
-                Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. Probably there is an old preview install present and it needs to be uninstalled or the system should be re-imaged.' + $ReinstallMessage)
+                Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. There may be an old preview install present. Please run Uninstall-IoTEdge first or reimage the device. ' + $ReinstallMessage)
             }
             else {
                 Write-HostRed
@@ -1589,6 +1589,7 @@ function Reset-SystemPath {
 function Test-VcRuntimePresent {
     return Test-Path 'C:\Windows\System32\vcruntime140.dll'
 }
+
 function Get-VcRuntime {
     if (Test-IotCore) {
         Write-HostGreen 'Skipping VC Runtime installation on IoT Core.'
@@ -1644,7 +1645,7 @@ function Uninstall-Services([ref] $RestartNeeded, [bool] $LegacyInstaller) {
             Write-Verbose "Stopped the IoT Edge service $EdgeServiceName"
         }
         else {
-            Write-Verbose "stopping IoT Edge service $EdgeServiceName failed.  exitcode: $LASTEXITCODE error: $cmdErr"
+            Write-Verbose "stopping IoT Edge service $EdgeServiceName failed.  error: $cmdErr"
         }
     }
 
@@ -1654,10 +1655,10 @@ function Uninstall-Services([ref] $RestartNeeded, [bool] $LegacyInstaller) {
         Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable cmdErr $MobyServiceName
         if ($?) {
             Start-Sleep -Seconds 7
-            Write-Verbose "'Stopped the IoT Edge Moby Engine service $MobyServiceName"
+            Write-Verbose "Stopped the IoT Edge Moby Engine service $MobyServiceName"
         }
         else {
-            Write-Verbose "stopping IoT Edge Moby Engine service $MobyServiceName failed.  exitcode: $LASTEXITCODE error: $cmdErr"
+            Write-Verbose "Stopping IoT Edge Moby Engine service $MobyServiceName failed.  error: $cmdErr"
         }
     }
 
@@ -1674,7 +1675,7 @@ function Uninstall-Services([ref] $RestartNeeded, [bool] $LegacyInstaller) {
         }
     }
     else {
-        Write-Verbose "uninstalling iot edge package"
+        Write-Verbose "Uninstalling IoT Edge package."
         Uninstall-Package -Name $EdgePackage -RestartNeeded $RestartNeeded
     }
 }
