@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.DeviceManager;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Serde;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -33,6 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         readonly PeriodicTask refreshTwinTask;
         readonly IModuleConnection moduleConnection;
         readonly bool pullOnReconnect;
+        readonly IDeviceManager deviceManager;
 
         Option<TwinCollection> desiredProperties;
         Option<TwinCollection> reportedProperties;
@@ -41,8 +43,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         public EdgeAgentConnection(
             IModuleClientProvider moduleClientProvider,
             ISerde<DeploymentConfig> desiredPropertiesSerDe,
-            IRequestManager requestManager)
-            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, true, DefaultConfigRefreshFrequency, TransientRetryStrategy)
+            IRequestManager requestManager,
+            IDeviceManager deviceManager)
+            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, true, DefaultConfigRefreshFrequency, TransientRetryStrategy)
         {
         }
 
@@ -50,9 +53,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             IModuleClientProvider moduleClientProvider,
             ISerde<DeploymentConfig> desiredPropertiesSerDe,
             IRequestManager requestManager,
+            IDeviceManager deviceManager,
             bool enableSubscriptions,
             TimeSpan configRefreshFrequency)
-            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, enableSubscriptions, configRefreshFrequency, TransientRetryStrategy)
+            : this(moduleClientProvider, desiredPropertiesSerDe, requestManager, deviceManager, enableSubscriptions, configRefreshFrequency, TransientRetryStrategy)
         {
         }
 
@@ -60,6 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             IModuleClientProvider moduleClientProvider,
             ISerde<DeploymentConfig> desiredPropertiesSerDe,
             IRequestManager requestManager,
+            IDeviceManager deviceManager,
             bool enableSubscriptions,
             TimeSpan refreshConfigFrequency,
             RetryStrategy retryStrategy)
@@ -72,6 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             this.refreshTwinTask = new PeriodicTask(this.ForceRefreshTwin, refreshConfigFrequency, refreshConfigFrequency, Events.Log, "refresh twin config");
             this.initTask = this.ForceRefreshTwin();
             this.pullOnReconnect = enableSubscriptions;
+            this.deviceManager = Preconditions.CheckNotNull(deviceManager, nameof(deviceManager));
             Events.TwinRefreshInit(refreshConfigFrequency);
         }
 
@@ -133,7 +139,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         {
             try
             {
+                UpstreamProtocol protocol =
+                    this.ModuleConnection.GetModuleClient().Map(x => x.UpstreamProtocol).GetOrElse(UpstreamProtocol.Amqp);
                 Events.ConnectionStatusChanged(status, reason);
+
+                // Notify the IoT Edge daemon that a device has been deprovisioned and it should check
+                // if the device has been provisioned to a different IoT hub instead.
+                // When the Amqp or AmqpWs protocol is used, the SDK returns a connection status change reason of
+                // Device_Disabled when a device is either disabled or deleted in IoT hub.
+                // For the Mqtt and MqttWs protocol however, the SDK returns a Bad_Credential status as it's not
+                // possible for IoT hub to distinguish between 'device does not exist', 'device is disabled' and
+                // 'device exists but wrong credentials were supplied' cases.
+                if ((reason == ConnectionStatusChangeReason.Device_Disabled &&
+                    (protocol == UpstreamProtocol.Amqp || protocol == UpstreamProtocol.AmqpWs)) ||
+                    (reason == ConnectionStatusChangeReason.Bad_Credential &&
+                    (protocol == UpstreamProtocol.Mqtt || protocol == UpstreamProtocol.MqttWs)))
+                {
+                    await this.deviceManager.ReprovisionDeviceAsync();
+                }
+
                 if (this.pullOnReconnect && this.initTask.IsCompleted && status == ConnectionStatus.Connected)
                 {
                     using (await this.twinLock.LockAsync())

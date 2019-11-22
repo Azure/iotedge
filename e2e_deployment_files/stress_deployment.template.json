@@ -166,11 +166,20 @@
               "EventHubConnectionString": {
                 "value": "<Analyzer.EventHubConnectionString>"
               },
-              "DeviceId": {
-                "value": "<Analyzer.DeviceID>"
-              },
               "ConsumerGroupId": {
                 "value": "<Analyzer.ConsumerGroupId>"
+              }, 
+              "LogAnalyticsEnabled": {
+                "value": "<Analyzer.LogAnalyticsEnabled>"
+              },
+              "LogAnalyticsWorkspaceId": {
+                "value": "<LogAnalyticsWorkspaceId>"
+              },
+              "LogAnalyticsSharedKey": {
+                "value": "<LogAnalyticsSharedKey>"
+              },
+              "LogAnalyticsLogType": {
+                "value": "<Analyzer.LogAnalyticsLogType>"
               }
             },
             "settings": {

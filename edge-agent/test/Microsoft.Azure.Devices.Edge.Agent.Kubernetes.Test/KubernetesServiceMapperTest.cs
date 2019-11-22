@@ -3,16 +3,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 {
     using System.Collections.Generic;
     using System.Linq;
-    using global::Docker.DotNet.Models;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
     using DockerModels = global::Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
+    using EmptyStruct = global::Docker.DotNet.Models.EmptyStruct;
     using KubernetesConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
     [Unit]
@@ -21,19 +22,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
         static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>();
         static readonly DockerConfig Config1 = new DockerConfig("test-image:1");
+        static readonly ResourceName ResourceName = new ResourceName("hostname", "deviceId");
+        static readonly KubernetesModuleOwner EdgeletModuleOwner = new KubernetesModuleOwner("v1", "Deployment", "iotedged", "123");
 
         [Fact]
         public void EmptyIsNotAllowedAsServiceAnnotation()
         {
-            var config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
-            config.CreateOptions.Labels = new Dictionary<string, string>
-            {
-                // string.Empty is an invalid label name
-                { string.Empty, "test" }
-            };
+            // string.Empty is an invalid label name
+            var labels = new Dictionary<string, string> { { string.Empty, "test" } };
+            var createOptions = CreatePodParameters.Create(labels: labels);
+            var config = new KubernetesConfig("image", createOptions, Option.None<AuthConfig>());
             var moduleId = new ModuleIdentity("hub", "gateway", "deviceId", "moduleid", Mock.Of<ICredentials>());
-            var docker = new DockerModule(moduleId.ModuleId, "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            var module = new KubernetesModule(docker, config);
+            var docker = new DockerModule(moduleId.ModuleId, "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
             var moduleLabels = new Dictionary<string, string>();
             var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
 
@@ -43,10 +44,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void NoPortsExposedMeansNoServiceCreated()
         {
-            var config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
+            var createOptions = CreatePodParameters.Create();
+            var config = new KubernetesConfig("image", createOptions, Option.None<AuthConfig>());
             var moduleId = new ModuleIdentity("hub", "gateway", "deviceId", "moduleid", Mock.Of<ICredentials>());
-            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            var module = new KubernetesModule(docker, config);
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
             var moduleLabels = new Dictionary<string, string>();
 
             var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
@@ -58,15 +60,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void InvalidPortBindingDoesNotCreateAService()
         {
-            var config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
+            // Add invalid port
+            var exposedPorts = new Dictionary<string, EmptyStruct> { { "aa/TCP", default(EmptyStruct) } };
+            var createOptions = CreatePodParameters.Create(exposedPorts: exposedPorts);
+            var config = new KubernetesConfig("image", createOptions, Option.None<AuthConfig>());
             var moduleId = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
-            config.CreateOptions.ExposedPorts = new Dictionary<string, EmptyStruct>
-            {
-                // Add invalid port
-                { "aa/TCP", default(EmptyStruct) }
-            };
-            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            var module = new KubernetesModule(docker, config);
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
             var moduleLabels = new Dictionary<string, string>();
             var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
 
@@ -78,15 +78,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void UnknownProtocolDoesNotCreateService()
         {
-            var config = new CombinedDockerConfig("image", new Docker.Models.CreateContainerParameters(), Option.None<AuthConfig>());
+            // Add unknown protocol
+            var exposedPorts = new Dictionary<string, EmptyStruct> { { "123/XXX", default(EmptyStruct) } };
+            var createOptions = CreatePodParameters.Create(exposedPorts: exposedPorts);
+            var config = new KubernetesConfig("image", createOptions, Option.None<AuthConfig>());
             var moduleId = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
-            config.CreateOptions.ExposedPorts = new Dictionary<string, EmptyStruct>
-            {
-                // Add unknown protocol
-                { "123/XXX", default(EmptyStruct) }
-            };
-            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            var module = new KubernetesModule(docker, config);
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
             var moduleLabels = new Dictionary<string, string>();
             var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
 
@@ -96,23 +94,36 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         }
 
         [Fact]
+        public void SimpleServiceCreationHappyPath()
+        {
+            var exposedPorts = new Dictionary<string, EmptyStruct> { ["10/TCP"] = default(EmptyStruct) };
+            var createOptions = CreatePodParameters.Create(exposedPorts: exposedPorts);
+            var config = new KubernetesConfig("image", createOptions, Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
+            var moduleLabels = new Dictionary<string, string>();
+            var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
+            var moduleId = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
+
+            var service = mapper.CreateService(moduleId, module, moduleLabels).OrDefault();
+
+            Assert.NotNull(service);
+            Assert.Equal(1, service.Metadata.OwnerReferences.Count);
+            Assert.Equal(V1Deployment.KubeKind, service.Metadata.OwnerReferences[0].Kind);
+            Assert.Equal(EdgeletModuleOwner.Name, service.Metadata.OwnerReferences[0].Name);
+            Assert.Equal(1, service.Spec.Ports.Count);
+            Assert.Equal(0, service.Spec.Selector.Count);
+        }
+
+        [Fact]
         public void DockerLabelsConvertedAsAnnotations()
         {
-            var createOptions = new Docker.Models.CreateContainerParameters
-            {
-                // Add a port to be exposed
-                ExposedPorts = new Dictionary<string, EmptyStruct>
-                {
-                    ["10/TCP"] = default(EmptyStruct)
-                },
-                Labels = new Dictionary<string, string>
-                {
-                    ["GPU"] = "Enabled"
-                }
-            };
-            var config = new CombinedDockerConfig("image", createOptions, Option.None<AuthConfig>());
-            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            var module = new KubernetesModule(docker, config);
+            var exposedPorts = new Dictionary<string, EmptyStruct> { ["10/TCP"] = default(EmptyStruct) };
+            var labels = new Dictionary<string, string> { ["GPU"] = "Enabled" };
+            var createOptions = CreatePodParameters.Create(exposedPorts: exposedPorts, labels: labels);
+            var config = new KubernetesConfig("image", createOptions, Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
             var moduleLabels = new Dictionary<string, string>();
             var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
             var moduleId = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
@@ -130,17 +141,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void LabelsConvertedAsLabelsAndSelectors()
         {
-            var createOptions = new Docker.Models.CreateContainerParameters
-            {
-                // Add a port to be exposed
-                ExposedPorts = new Dictionary<string, EmptyStruct>
-                {
-                    ["10/TCP"] = default(EmptyStruct)
-                }
-            };
-            var config = new CombinedDockerConfig("image", createOptions, Option.None<AuthConfig>());
-            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            var module = new KubernetesModule(docker, config);
+            var exposedPorts = new Dictionary<string, EmptyStruct> { ["10/TCP"] = default(EmptyStruct) };
+            var createOptions = CreatePodParameters.Create(exposedPorts: exposedPorts);
+            var config = new KubernetesConfig("image", createOptions, Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
             var moduleLabels = new Dictionary<string, string> { { "Label1", "VaLue1" } };
             var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
             var moduleId = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
@@ -160,65 +165,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void PortBindingsCreatesAServiceWithPorts()
         {
-            var createOptions = new Docker.Models.CreateContainerParameters
+            var hostConfig = new DockerModels.HostConfig
             {
-                // Add a port binding to host
-                HostConfig = new DockerModels.HostConfig
+                PortBindings = new Dictionary<string, IList<DockerModels.PortBinding>>
                 {
-                    PortBindings = new Dictionary<string, IList<DockerModels.PortBinding>>
-                    {
-                        ["10/TCP"] = new List<DockerModels.PortBinding>
-                        {
-                            new DockerModels.PortBinding
-                            {
-                                HostPort = "10"
-                            }
-                        }
-                    }
+                    ["10/TCP"] = new List<DockerModels.PortBinding> { new DockerModels.PortBinding { HostPort = "10" } }
                 }
             };
-            var config = new CombinedDockerConfig("image", createOptions, Option.None<AuthConfig>());
-            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            var module = new KubernetesModule(docker, config);
-            var moduleLabels = new Dictionary<string, string>();
-            var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
-            var moduleId = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
-
-            var service = mapper.CreateService(moduleId, module, moduleLabels).OrDefault();
-
-            Assert.Equal(1, service.Spec.Ports.Count);
-            AssertPort(new V1ServicePort(10, "hostport-10-tcp", null, "TCP", 10), service.Spec.Ports.First());
-            Assert.Equal("ClusterIP", service.Spec.Type);
-        }
-
-        [Fact]
-        public void PortBindingOverrideExposedPort()
-        {
-            var createOptions = new Docker.Models.CreateContainerParameters
-            {
-                // Add a port to be exposed
-                ExposedPorts = new Dictionary<string, EmptyStruct>
-                {
-                    ["10/TCP"] = default(EmptyStruct)
-                },
-                // Add a port binding to host
-                HostConfig = new DockerModels.HostConfig
-                {
-                    PortBindings = new Dictionary<string, IList<DockerModels.PortBinding>>
-                    {
-                        ["10/TCP"] = new List<DockerModels.PortBinding>
-                        {
-                            new DockerModels.PortBinding
-                            {
-                                HostPort = "10"
-                            }
-                        }
-                    }
-                }
-            };
-            var config = new CombinedDockerConfig("image", createOptions, Option.None<AuthConfig>());
-            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            var module = new KubernetesModule(docker, config);
+            var createOptions = CreatePodParameters.Create(hostConfig: hostConfig);
+            var config = new KubernetesConfig("image", createOptions, Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
             var moduleLabels = new Dictionary<string, string>();
             var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
             var moduleId = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
@@ -233,17 +190,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         [Fact]
         public void ExposingPortsCreatesAServiceWithPorts()
         {
-            var createOptions = new Docker.Models.CreateContainerParameters
-            {
-                // Add a port to be exposed
-                ExposedPorts = new Dictionary<string, EmptyStruct>
-                {
-                    ["10/TCP"] = default(EmptyStruct)
-                }
-            };
-            var config = new CombinedDockerConfig("image", createOptions, Option.None<AuthConfig>());
-            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, Core.RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            var module = new KubernetesModule(docker, config);
+            var exposedPorts = new Dictionary<string, EmptyStruct> { ["10/TCP"] = default(EmptyStruct) };
+            var createOptions = CreatePodParameters.Create(exposedPorts: exposedPorts);
+            var config = new KubernetesConfig("image", createOptions, Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
             var moduleLabels = new Dictionary<string, string>();
             var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
             var moduleId = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
@@ -252,6 +203,32 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
             Assert.Equal(1, service.Spec.Ports.Count);
             AssertPort(new V1ServicePort(10, "exposedport-10-tcp", null, "TCP"), service.Spec.Ports.First());
+            Assert.Equal("ClusterIP", service.Spec.Type);
+        }
+
+        [Fact]
+        public void PortBindingOverrideExposedPort()
+        {
+            var exposedPorts = new Dictionary<string, EmptyStruct> { ["10/TCP"] = default(EmptyStruct) };
+            var hostConfig = new DockerModels.HostConfig
+            {
+                PortBindings = new Dictionary<string, IList<DockerModels.PortBinding>>
+                {
+                    ["10/TCP"] = new List<DockerModels.PortBinding> { new DockerModels.PortBinding { HostPort = "10" } }
+                }
+            };
+            var createOptions = CreatePodParameters.Create(exposedPorts: exposedPorts, hostConfig: hostConfig);
+            var config = new KubernetesConfig("image", createOptions, Option.None<AuthConfig>());
+            var docker = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            var module = new KubernetesModule(docker, config, EdgeletModuleOwner);
+            var moduleLabels = new Dictionary<string, string>();
+            var mapper = new KubernetesServiceMapper(PortMapServiceType.ClusterIP);
+            var moduleId = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "moduleid", Mock.Of<ICredentials>());
+
+            var service = mapper.CreateService(moduleId, module, moduleLabels).OrDefault();
+
+            Assert.Equal(1, service.Spec.Ports.Count);
+            AssertPort(new V1ServicePort(10, "hostport-10-tcp", null, "TCP", 10), service.Spec.Ports.First());
             Assert.Equal("ClusterIP", service.Spec.Type);
         }
 

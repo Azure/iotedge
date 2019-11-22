@@ -129,6 +129,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
             }
         }
 
+        public override async Task<SystemInfo> GetSystemInfoAsync(CancellationToken cancellationToken)
+        {
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
+            {
+                var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
+                GeneratedCode.SystemInfo systemInfo = await this.Execute(
+                    () => edgeletHttpClient.GetSystemInfoAsync(this.Version.Name, cancellationToken),
+                    "Getting System Info");
+                return new SystemInfo(systemInfo.OsType, systemInfo.Architecture, systemInfo.Version);
+            }
+        }
+
         public override async Task<IEnumerable<ModuleRuntimeInfo>> GetModules<T>(CancellationToken cancellationToken)
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
@@ -184,6 +196,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
                 var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
                 await this.Execute(() => edgeletHttpClient.PrepareUpdateModuleAsync(this.Version.Name, moduleSpec.Name, MapToModuleSpec(moduleSpec)), $"prepare update for module module {moduleSpec.Name}");
             }
+        }
+
+        public override Task ReprovisionDeviceAsync()
+        {
+            return Task.CompletedTask;
         }
 
         protected override void HandleException(Exception exception, string operation)

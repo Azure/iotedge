@@ -11,7 +11,8 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::doc_markdown, // bindgen-generated docs
-    clippy::use_self, // bindgen-generated signatures
+    clippy::too_many_lines,
+    clippy::use_self // bindgen-generated signatures
 )]
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals)]
 
@@ -47,7 +48,7 @@ fn bindgen_test_supported_hsm_version() {
             .to_string_lossy()
             .into_owned()
     };
-    assert_eq!(String::from("1.0.2"), result);
+    assert_eq!(String::from("1.0.3"), result);
 }
 
 pub type HSM_CLIENT_HANDLE = *mut c_void;
@@ -298,7 +299,7 @@ extern "C" {
     pub fn hsm_client_crypto_interface() -> *const HSM_CLIENT_CRYPTO_INTERFACE;
 }
 extern "C" {
-    pub fn hsm_client_x509_init() -> c_int;
+    pub fn hsm_client_x509_init(auto_generated_cert_lifetime: u64) -> c_int;
 }
 extern "C" {
     pub fn hsm_client_x509_deinit();
@@ -310,7 +311,7 @@ extern "C" {
     pub fn hsm_client_tpm_deinit();
 }
 extern "C" {
-    pub fn hsm_client_crypto_init() -> c_int;
+    pub fn hsm_client_crypto_init(auto_generated_cert_lifetime: u64) -> c_int;
 }
 extern "C" {
     pub fn hsm_client_crypto_deinit();

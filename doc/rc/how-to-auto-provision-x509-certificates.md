@@ -13,8 +13,9 @@ services: iot-edge
 
 # Create and provision an IoT Edge device using X.509 certificates (Preview)
 
-> [!IMPORTANT]
-> The information in this preview article is applicable to installations of IoTEdge [1.0.9-rc2](https://github.com/Azure/azure-iotedge/releases/tag/1.0.9-rc2) or later.
+|Important |
+|--------- |
+|The information in this preview article is applicable to installations of IoTEdge [1.0.9-rc2](https://github.com/Azure/azure-iotedge/releases/tag/1.0.9-rc2) or later. |
 
 Azure IoT Edge devices can be auto-provisioned using the [Device Provisioning Service](https://docs.microsoft.com/azure/iot-dps/index.yml) just like devices that aren't edge-enabled. If you're unfamiliar with the process of auto-provisioning, review the [auto-provisioning concepts](https://docs.microsoft.com/azure/iot-dps/concepts-auto-provisioning) before continuing.
 

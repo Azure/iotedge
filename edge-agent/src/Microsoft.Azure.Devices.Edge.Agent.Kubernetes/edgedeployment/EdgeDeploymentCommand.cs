@@ -11,25 +11,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     using k8s;
     using k8s.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
-    using Newtonsoft.Json.Serialization;
     using Constants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
 
     public class EdgeDeploymentCommand : ICommand
     {
         readonly IKubernetes client;
         readonly IReadOnlyCollection<IModule> modules;
+        readonly ModuleSet currentmodules;
         readonly IRuntimeInfo runtimeInfo;
         readonly Lazy<string> id;
-        readonly ICombinedConfigProvider<CombinedDockerConfig> combinedConfigProvider;
+        readonly ICombinedConfigProvider<CombinedKubernetesConfig> configProvider;
         readonly string deviceNamespace;
         readonly ResourceName resourceName;
         readonly JsonSerializerSettings serializerSettings;
+        readonly KubernetesModuleOwner moduleOwner;
 
         // We use the sum of the IDs of the underlying commands as the id for this group
         // command.
@@ -39,49 +39,62 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             string deviceNamespace,
             ResourceName resourceName,
             IKubernetes client,
-            IEnumerable<IModule> modules,
+            IEnumerable<IModule> desiredmodules,
+            ModuleSet currentmodules,
             IRuntimeInfo runtimeInfo,
-            ICombinedConfigProvider<CombinedDockerConfig> combinedConfigProvider)
+            ICombinedConfigProvider<CombinedKubernetesConfig> configProvider,
+            KubernetesModuleOwner moduleOwner)
         {
             this.deviceNamespace = KubeUtils.SanitizeK8sValue(Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace)));
             this.resourceName = Preconditions.CheckNotNull(resourceName, nameof(resourceName));
             this.client = Preconditions.CheckNotNull(client, nameof(client));
-            this.modules = Preconditions.CheckNotNull(modules, nameof(modules)).ToList();
+            this.modules = Preconditions.CheckNotNull(desiredmodules, nameof(desiredmodules)).ToList();
+            this.currentmodules = Preconditions.CheckNotNull(currentmodules, nameof(currentmodules));
             this.runtimeInfo = Preconditions.CheckNotNull(runtimeInfo, nameof(runtimeInfo));
-            this.combinedConfigProvider = Preconditions.CheckNotNull(combinedConfigProvider, nameof(combinedConfigProvider));
+            this.configProvider = Preconditions.CheckNotNull(configProvider, nameof(configProvider));
             this.id = new Lazy<string>(() => this.modules.Aggregate(string.Empty, (prev, module) => module.Name + prev));
-            this.serializerSettings = new JsonSerializerSettings
-            {
-                ContractResolver = new OverrideJsonIgnoreOfBaseClassContractResolver(
-                    new Dictionary<Type, string[]>
-                    {
-                        [typeof(KubernetesModule)] = new[] { nameof(KubernetesModule.Name) }
-                    })
-                {
-                    // Environment variable (env) property JSON casing should be left alone
-                    NamingStrategy = new CamelCaseNamingStrategy
-                    {
-                        ProcessDictionaryKeys = false
-                    }
-                }
-            };
+            this.serializerSettings = EdgeDeploymentSerialization.SerializerSettings;
+            this.moduleOwner = Preconditions.CheckNotNull(moduleOwner, nameof(moduleOwner));
         }
 
-        async Task UpdateImagePullSecrets(Dictionary<string, ImagePullSecret> imagePullSecrets, CancellationToken token)
+        public async Task ExecuteAsync(CancellationToken token)
         {
-            foreach (KeyValuePair<string, ImagePullSecret> imagePullSecret in imagePullSecrets)
+            await this.ManageImagePullSecrets(token);
+            await this.PushEdgeDeployment(token);
+        }
+
+        async Task ManageImagePullSecrets(CancellationToken token)
+        {
+            // Modules may share an image pull secret, so only pick unique ones to add to the dictionary.
+            List<ImagePullSecret> secrets = this.modules
+                .Select(module => this.configProvider.GetCombinedConfig(module, this.runtimeInfo))
+                .Select(config => config.ImagePullSecret)
+                .FilterMap()
+                .GroupBy(secret => secret.Name)
+                .Select(secretGroup => secretGroup.First())
+                .ToList();
+
+            await this.UpdateImagePullSecrets(secrets, token);
+        }
+
+        async Task UpdateImagePullSecrets(IEnumerable<ImagePullSecret> imagePullSecrets, CancellationToken token)
+        {
+            foreach (var imagePullSecret in imagePullSecrets)
             {
-                var secretData = new Dictionary<string, byte[]> { [Constants.K8sPullSecretData] = Encoding.UTF8.GetBytes(imagePullSecret.Value.GenerateSecret()) };
-                var secretMeta = new V1ObjectMeta(name: imagePullSecret.Key, namespaceProperty: this.deviceNamespace);
+                var secretMeta = new V1ObjectMeta(
+                    name: imagePullSecret.Name,
+                    namespaceProperty: this.deviceNamespace,
+                    ownerReferences: this.moduleOwner.ToOwnerReferences());
+                var secretData = new Dictionary<string, byte[]> { [Constants.K8sPullSecretData] = Encoding.UTF8.GetBytes(imagePullSecret.GenerateSecret()) };
                 var newSecret = new V1Secret("v1", secretData, type: Constants.K8sPullSecretType, kind: "Secret", metadata: secretMeta);
                 Option<V1Secret> currentSecret;
                 try
                 {
-                    currentSecret = Option.Maybe(await this.client.ReadNamespacedSecretAsync(imagePullSecret.Key, this.deviceNamespace, cancellationToken: token));
+                    currentSecret = Option.Maybe(await this.client.ReadNamespacedSecretAsync(imagePullSecret.Name, this.deviceNamespace, cancellationToken: token));
                 }
                 catch (Exception ex) when (!ex.IsFatal())
                 {
-                    Events.FailedToFindSecret(imagePullSecret.Key, ex);
+                    Events.FailedToFindSecret(imagePullSecret.Name, ex);
                     currentSecret = Option.None<V1Secret>();
                 }
 
@@ -98,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
 
                             return await this.client.ReplaceNamespacedSecretAsync(
                                 newSecret,
-                                imagePullSecret.Key,
+                                imagePullSecret.Name,
                                 this.deviceNamespace,
                                 cancellationToken: token);
                         },
@@ -110,28 +123,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 }
                 catch (Exception ex) when (!ex.IsFatal())
                 {
-                    Events.SecretCreateUpdateFailed(imagePullSecret.Key, ex);
+                    Events.SecretCreateUpdateFailed(imagePullSecret.Name, ex);
                 }
             }
         }
 
-        public async Task ExecuteAsync(CancellationToken token)
+        async Task PushEdgeDeployment(CancellationToken token)
         {
-            List<KubernetesModule> modulesList = this.modules.Select(
+            List<KubernetesModule> modulesList = this.modules
+                .Select(
                     module =>
                     {
-                        var config = this.combinedConfigProvider.GetCombinedConfig(module, this.runtimeInfo);
-                        return new KubernetesModule(module, config);
+                        var combinedConfig = this.configProvider.GetCombinedConfig(module, this.runtimeInfo);
+                        // TODO: this is a workaround in preview to keep Agent from updating
+                        var image = combinedConfig.Image;
+                        if (module.Name == Core.Constants.EdgeAgentModuleName &&
+                            this.currentmodules.Modules.TryGetValue(Core.Constants.EdgeAgentModuleName, out IModule edgeAgentCurrentModule))
+                        {
+                            var currentAgent = this.configProvider.GetCombinedConfig(edgeAgentCurrentModule, this.runtimeInfo);
+                            image = currentAgent.Image;
+                        }
+
+                        var authConfig = combinedConfig.ImagePullSecret.Map(secret => new AuthConfig(secret.Name));
+                        return new KubernetesModule(module, new KubernetesConfig(image, combinedConfig.CreateOptions, authConfig), this.moduleOwner);
                     })
                 .ToList();
-
-            // Modules may share an image pull secret, so only pick unique ones to add to the dictionary.
-            Dictionary<string, ImagePullSecret> secrets = modulesList
-                .Select(module => module.Config.AuthConfig.Map(auth => new ImagePullSecret(auth)).OrDefault())
-                .Where(secret => secret != null)
-                .GroupBy(secret => secret.Name)
-                .Select(secretGroup => secretGroup.First())
-                .ToDictionary(secret => secret.Name);
 
             Option<EdgeDeploymentDefinition> activeDeployment;
             try
@@ -153,9 +169,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 activeDeployment = Option.None<EdgeDeploymentDefinition>();
             }
 
-            await this.UpdateImagePullSecrets(secrets, token);
-
-            var metadata = new V1ObjectMeta(name: this.resourceName, namespaceProperty: this.deviceNamespace);
+            var metadata = new V1ObjectMeta(
+                name: this.resourceName,
+                namespaceProperty: this.deviceNamespace,
+                ownerReferences: this.moduleOwner.ToOwnerReferences());
 
             // need resourceVersion for Replace.
             activeDeployment.ForEach(deployment => metadata.ResourceVersion = deployment.Metadata.ResourceVersion);

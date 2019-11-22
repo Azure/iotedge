@@ -57,6 +57,9 @@ pub enum ErrorKind {
     #[fail(display = "Could not prepare update for module {:?}", _0)]
     PrepareUpdateModule(String),
 
+    #[fail(display = "Could not reprovision device")]
+    ReprovisionDevice,
+
     #[fail(display = "{}", _0)]
     RuntimeOperation(RuntimeOperation),
 

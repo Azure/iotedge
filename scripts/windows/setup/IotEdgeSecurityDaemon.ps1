@@ -65,6 +65,23 @@ enum ContainerOs {
     Windows
 }
 
+function New-Sockets([string] $EdgeDataDirectory) {
+    foreach ($name in 'mgmt', 'workload') {
+        # We can't bind socket files directly in Windows, so create a folder
+        # and bind to that. The folder needs to give Modify rights to a
+        # well-known group that will exist in any container so that
+        # non-privileged modules can access it.
+        $path = "$EdgeDataDirectory\$name"
+        New-Item $Path -ItemType Directory -Force | Out-Null
+        $sid = New-Object System.Security.Principal.SecurityIdentifier 'S-1-5-11' # NT AUTHORITY\Authenticated Users
+        $rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule(`
+            $sid, 'Modify', 'ObjectInherit', 'InheritOnly', 'Allow')
+        $acl = Get-Acl -Path $path
+        $acl.AddAccessRule($rule)
+        Set-Acl -Path $path -AclObject $acl
+    }
+}
+
 <#
 .SYNOPSIS
 
@@ -171,6 +188,10 @@ function Initialize-IoTEdge {
         [Parameter(ParameterSetName = 'DpsX509')]
         [Switch] $DpsX509,
 
+        # Specified the daemon will be configured using an external provisioning endpoint.
+        [Parameter(ParameterSetName = 'External')]
+        [Switch] $External,
+
         # The device connection string.
         [Parameter(Mandatory = $true, ParameterSetName = 'ManualConnectionString')]
         [String] $DeviceConnectionString,
@@ -237,6 +258,9 @@ function Initialize-IoTEdge {
         [Parameter(Mandatory = $true, ParameterSetName = 'External')]
         [ValidateNotNullOrEmpty()]
         [String] $ExternalProvisioningEndpoint,
+
+        # Specifies whether dynamic reprovisioning should be enabled or not.
+        [Switch] $DynamicReprovisioning,
 
         # The base OS of all the containers that will be run on this device via the security daemon.
         #
@@ -306,16 +330,24 @@ function Initialize-IoTEdge {
         throw
     }
 
-    Setup-Environment -ContainerOs $ContainerOs -SkipArchCheck -SkipBatteryCheck
+    Setup-Environment -ContainerOs $ContainerOs -SkipBatteryCheck
 
     $configPath = Join-Path -Path $EdgeDataDirectory -ChildPath 'config.yaml'
     if (Test-Path $configPath) {
         Write-HostRed
         Write-HostRed "$configPath already exists."
-        Write-HostRed ('Delete it using "Uninstall-IoTEdge -Force" and then ' +
-            're-run "Deploy-IoTEdge" and "Initialize-IoTEdge"')
+        if (Test-IotCore) {
+            Write-HostRed ('You must reflash the device and then ' +
+                're-run "Deploy-IoTEdge" and "Initialize-IoTEdge"')
+        } else {
+            Write-HostRed ('Delete it using "Uninstall-IoTEdge -Force" and then ' +
+                're-run "Deploy-IoTEdge" and "Initialize-IoTEdge"')
+        }
         throw
     }
+
+    New-Sockets $EdgeDataDirectory
+    Set-SystemPath
 
     # config.yaml
     Write-Host 'Generating config.yaml...'
@@ -408,7 +440,6 @@ function Update-IoTEdge {
         -InvokeWebRequestParameters $InvokeWebRequestParameters `
         -RestartIfNeeded:$RestartIfNeeded `
         -Update `
-        -SkipArchCheck `
         -SkipBatteryCheck
 }
 
@@ -466,9 +497,6 @@ function Deploy-IoTEdge {
         # Restart if needed without prompting.
         [Switch] $RestartIfNeeded,
 
-        # Skip processor architecture check.
-        [Switch] $SkipArchCheck,
-
         # Skip battery check.
         [Switch] $SkipBatteryCheck
     )
@@ -479,7 +507,6 @@ function Deploy-IoTEdge {
         -OfflineInstallationPath $OfflineInstallationPath `
         -InvokeWebRequestParameters $InvokeWebRequestParameters `
         -RestartIfNeeded:$RestartIfNeeded `
-        -SkipArchCheck:$SkipArchCheck `
         -SkipBatteryCheck:$SkipBatteryCheck
 
     Set-SystemPath
@@ -657,6 +684,9 @@ function Install-IoTEdge {
         [ValidateNotNullOrEmpty()]
         [String] $ExternalProvisioningEndpoint,
 
+        # Specifies whether dynamic reprovisioning should be enabled or not.
+        [Switch] $DynamicReprovisioning,
+
         # The base OS of all the containers that will be run on this device via the security daemon.
         #
         # If set to Linux, a separate installation of Docker for Windows is expected.
@@ -692,9 +722,6 @@ function Install-IoTEdge {
         # Restart if needed without prompting.
         [Switch] $RestartIfNeeded,
 
-        # Skip processor architecture check.
-        [Switch] $SkipArchCheck,
-
         # Skip battery check.
         [Switch] $SkipBatteryCheck
     )
@@ -714,7 +741,6 @@ function Install-IoTEdge {
         -OfflineInstallationPath $OfflineInstallationPath `
         -InvokeWebRequestParameters $InvokeWebRequestParameters `
         -RestartIfNeeded:$RestartIfNeeded `
-        -SkipArchCheck:$SkipArchCheck `
         -SkipBatteryCheck:$SkipBatteryCheck
 
     if (-not $script:installPackagesCompleted) {
@@ -772,7 +798,8 @@ function Install-IoTEdge {
     if ($AgentImage) { $Params["-AgentImage"] = $AgentImage }
     if ($Username) { $Params["-Username"] = $Username }
     if ($Password) { $Params["-Password"] = $Password }
-
+    $Params["-DynamicReprovisioning"] = $DynamicReprovisioning
+    
     # Used to suppress some messages from Initialize-IoTEdge that have already been emitted by Deploy-IoTEdge
     $initializeCalledFromInstall = $true
 
@@ -882,7 +909,6 @@ function Install-Packages(
         [HashTable] $InvokeWebRequestParameters,
         [Switch] $RestartIfNeeded,
         [Switch] $Update,
-        [Switch] $SkipArchCheck,
         [Switch] $SkipBatteryCheck
     )
 {
@@ -945,7 +971,7 @@ function Install-Packages(
         }
     }
 
-    Setup-Environment -ContainerOs $ContainerOs -SkipArchCheck:$SkipArchCheck -SkipBatteryCheck:$SkipBatteryCheck
+    Setup-Environment -ContainerOs $ContainerOs -SkipBatteryCheck:$SkipBatteryCheck
 
     $restartNeeded = $false
 
@@ -993,7 +1019,7 @@ function Install-Packages(
 
 function Setup-Environment {
     [CmdletBinding()]
-    param ([string] $ContainerOs, [switch] $SkipArchCheck, [switch] $SkipBatteryCheck)
+    param ([string] $ContainerOs, [switch] $SkipBatteryCheck)
 
     $currentWindowsBuild = Get-WindowsBuild
     $preRequisitesMet = switch ($ContainerOs) {
@@ -1030,12 +1056,6 @@ function Setup-Environment {
                 $true
             }
         }
-    }
-
-    if ((-not $SkipArchCheck) -and ($env:PROCESSOR_ARCHITECTURE -eq 'ARM')) {
-        Write-HostRed ('IoT Edge is currently not supported on Windows ARM32. ' +
-            'See https://aka.ms/iotedge-platsup for more details.')
-        $preRequisitesMet = $false
     }
 
     if (Test-IoTCore) {
@@ -1301,9 +1321,18 @@ function Get-IoTEdge([ref] $RestartNeeded, [bool] $Update) {
             Invoke-Native 'ApplyUpdate -clear'
         }
 
+        $edgeCabUrl = switch ($env:PROCESSOR_ARCHITECTURE) {
+            'AMD64' {
+                'https://aka.ms/iotedged-windows-latest-cab'
+            }
+            'ARM' {
+                'https://aka.ms/iotedged-windows-arm32v7-latest-cab'
+            }
+        }
+
         $edgeArchivePath = Download-File `
             -Description 'IoT Edge' `
-            -Url 'https://aka.ms/iotedged-windows-latest-cab' `
+            -Url $edgeCabUrl `
             -DownloadFilename 'microsoft-azure-iotedge.cab' `
             -LocalCacheGlob 'microsoft-azure-iotedge.cab' `
             -Delete ([ref] $deleteEdgeArchive)
@@ -1312,21 +1341,6 @@ function Get-IoTEdge([ref] $RestartNeeded, [bool] $Update) {
         Install-Package -Path $edgeArchivePath -RestartNeeded $RestartNeeded
         if (-not $Update) {
             Stop-Service $EdgeServiceName -ErrorAction SilentlyContinue
-
-            foreach ($name in 'mgmt', 'workload') {
-                # We can't bind socket files directly in Windows, so create a folder
-                # and bind to that. The folder needs to give Modify rights to a
-                # well-known group that will exist in any container so that
-                # non-privileged modules can access it.
-                $path = "$EdgeDataDirectory\$name"
-                New-Item $Path -ItemType Directory -Force | Out-Null
-                $sid = New-Object System.Security.Principal.SecurityIdentifier 'S-1-5-11' # NT AUTHORITY\Authenticated Users
-                $rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule(`
-                    $sid, 'Modify', 'ObjectInherit', 'InheritOnly', 'Allow')
-                $acl = Get-Acl -Path $path
-                $acl.AddAccessRule($rule)
-                Set-Acl -Path $path -AclObject $acl
-            }
         }
     }
     finally {
@@ -1741,14 +1755,22 @@ function Set-ProvisioningMode {
     Update-ConfigYaml({
         param($configurationYaml)
 
+        if ($DynamicReprovisioning) {
+            $DynamicReprovisioning = 'true'
+        }
+        else {
+            $DynamicReprovisioning = 'false'
+        }
+
         if ($ManualConnectionString -or $ManualX509) {
-            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"'
+            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"\s*#?\s*dynamic_reprovisioning:\s*.*'
             $authenticationMethod = Get-ManualAuthSettings
             if ($authenticationMethod -eq 'device_connection_string') {
                 $replacementContent = @(
                     'provisioning:',
                     '  source: ''manual''',
-                    "  device_connection_string: '$DeviceConnectionString'")
+                    "  device_connection_string: '$DeviceConnectionString'",
+                    "  dynamic_reprovisioning: $DynamicReprovisioning")
             } elseif ($authenticationMethod -eq 'x509') {
                 $certUri = ([System.Uri][System.IO.Path]::GetFullPath($X509IdentityCertificate)).AbsoluteUri
                 $pkUri = ([System.Uri][System.IO.Path]::GetFullPath($X509IdentityPrivateKey)).AbsoluteUri
@@ -1760,19 +1782,26 @@ function Set-ProvisioningMode {
                     "    iothub_hostname: '$IotHubHostName'"
                     "    device_id: '$DeviceId'"
                     "    identity_cert: '$certUri'"
-                    "    identity_pk: '$pkUri'")
+                    "    identity_pk: '$pkUri'",
+                    "  dynamic_reprovisioning: $DynamicReprovisioning")
             }
             $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
             Write-HostGreen 'Configured device for manual provisioning.'
             return $configurationYaml
         }
         elseif ($External -or $ExternalProvisioningEndpoint){
-            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*endpoint:\s*".*"'
+            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*endpoint:\s*".*"\s*#?\s*dynamic_reprovisioning:\s*.*'
             $replacementContent = @(
                 'provisioning:',
                 '  source: ''external''',
-                "  endpoint: '$ExternalProvisioningEndpoint'")
+                "  endpoint: '$ExternalProvisioningEndpoint'",
+                "  dynamic_reprovisioning: $DynamicReprovisioning")
             $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
+
+            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"\s*#?\s*dynamic_reprovisioning:\s*.*'
+            $replacementContent = ''
+            $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
+
             Write-HostGreen 'Configured device for external provisioning.'
             return $configurationYaml
         }
@@ -1785,6 +1814,8 @@ function Set-ProvisioningMode {
             } elseif ($attestationMethod -eq 'x509') {
                 $selectionRegex += '\s*#?\s*identity_cert:\s".*"\s*#?\s*identity_pk:\s".*"'
             }
+
+            $selectionRegex += '\s*#?\s*dynamic_reprovisioning:\s*.*'
             $replacementContent = @(
                 'provisioning:',
                 '  source: ''dps''',
@@ -1806,9 +1837,11 @@ function Set-ProvisioningMode {
                 $uri = ([System.Uri][System.IO.Path]::GetFullPath($X509IdentityPrivateKey)).AbsoluteUri
                 $replacementContent += "    identity_pk: '$uri'"
             }
+
+            $replacementContent += "  dynamic_reprovisioning: $DynamicReprovisioning"
             $configurationYaml = $configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")
 
-            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"'
+            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"\s*#?\s*dynamic_reprovisioning:\s*.*'
             $replacementContent = ''
             $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
 

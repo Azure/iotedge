@@ -6,7 +6,8 @@
     clippy::default_trait_access,
     clippy::module_name_repetitions,
     clippy::similar_names,
-    clippy::use_self
+    clippy::use_self,
+    clippy::too_many_lines
 )]
 
 pub mod cert;
