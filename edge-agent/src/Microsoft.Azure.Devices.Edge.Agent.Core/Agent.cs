@@ -134,7 +134,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
                     {
                         ModuleSet desiredModuleSet = deploymentConfig.GetModuleSet();
                         _ = Task.Run(() => this.availabilityMetric.ComputeAvailability(desiredModuleSet, current))
-                            .ContinueWith(t => Log.LogError($"ComputeAvailability failed. Reason: {t.Exception}"), TaskContinuationOptions.OnlyOnFaulted);
+                            .ContinueWith(t => Log.LogError($"ComputeAvailability failed. Reason: {t.Exception}"), TaskContinuationOptions.OnlyOnFaulted)
+                            .ConfigureAwait(false);
 
                         // TODO - Update this logic to create identities only when needed, in the Command factory, instead of creating all the identities
                         // up front here. That will allow handling the case when only the state of the system has changed (say one module crashes), and

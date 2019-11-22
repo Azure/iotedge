@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
             this.systemTime = systemTime ?? SystemTime.Instance;
         }
 
-        public Task<IEnumerable<Metric>> ScrapeEndpointAsync(CancellationToken cancellationToken)
+        public Task<IEnumerable<Metric>> ScrapeEndpointsAsync(CancellationToken cancellationToken)
         {
             return this.endpoints.Value.SelectManyAsync(async endpoint =>
             {

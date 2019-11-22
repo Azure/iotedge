@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
 
             /* Setup mocks */
             var scraper = new Mock<IMetricsScraper>();
-            scraper.Setup(s => s.ScrapeEndpointAsync(CancellationToken.None)).ReturnsAsync(() => this.PrometheousMetrics(modules));
+            scraper.Setup(s => s.ScrapeEndpointsAsync(CancellationToken.None)).ReturnsAsync(() => this.PrometheousMetrics(modules));
 
             var storage = new Mock<IMetricsStorage>();
             string storedValue = string.Empty;
@@ -170,7 +170,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
 
             var scraper = new Mock<IMetricsScraper>();
             var scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 1.0)));
-            scraper.Setup(s => s.ScrapeEndpointAsync(ct)).ReturnsAsync(() => scrapeResults);
+            scraper.Setup(s => s.ScrapeEndpointsAsync(ct)).ReturnsAsync(() => scrapeResults);
 
             var storage = new MetricsFileStorage(this.tempDirectory.CreateTempDir(), systemTime.Object);
 
@@ -232,7 +232,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
             TaskCompletionSource<bool> uploadTaskSource = new TaskCompletionSource<bool>();
 
             var scraper = new Mock<IMetricsScraper>();
-            scraper.Setup(s => s.ScrapeEndpointAsync(CancellationToken.None)).Returns(async () =>
+            scraper.Setup(s => s.ScrapeEndpointsAsync(CancellationToken.None)).Returns(async () =>
             {
                 await scrapeTaskSource.Task;
                 return this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 1.0)).ToArray());
