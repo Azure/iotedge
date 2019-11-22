@@ -4,6 +4,7 @@ namespace Relayer
     using System;
     using System.IO;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Converters;
@@ -30,8 +31,8 @@ namespace Relayer
             TransportType transportType,
             string outputName)
         {
-            this.TransportType = transportType;
-            this.OutputName = outputName;
+            this.TransportType = Preconditions.CheckNotNull(transportType);
+            this.OutputName = Preconditions.CheckNonWhiteSpace(outputName, nameof(outputName));
         }
 
         public static Settings Current => DefaultSettings.Value;

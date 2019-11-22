@@ -20,7 +20,6 @@ namespace Relayer
             Logger.LogInformation($"Starting Relayer with the following settings: \r\n{Settings.Current}");
             try
             {
-                // Create moduleClient
                 ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
                     Settings.Current.TransportType,
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
