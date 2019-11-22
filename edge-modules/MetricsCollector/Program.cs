@@ -69,7 +69,7 @@ namespace MetricsCollector
             await ioTHubModuleClient.OpenAsync();
             Logger.LogInformation("IoT Hub module client initialized.");
 
-            Configuration configuration = await GetConfigurationAsync(ioTHubModuleClient);
+            MetricsConfigFromTwin configuration = await GetConfigurationAsync(ioTHubModuleClient);
             Logger.LogInformation($"Obtained configuration: {configuration}");
 
             MessageFormatter messageFormatter = new MessageFormatter(configuration.MetricsFormat, Settings.Current.MessageIdentifier);
@@ -102,11 +102,11 @@ namespace MetricsCollector
             }
         }
 
-        private static async Task<Configuration> GetConfigurationAsync(ModuleClient ioTHubModuleClient)
+        private static async Task<MetricsConfigFromTwin> GetConfigurationAsync(ModuleClient ioTHubModuleClient)
         {
             Twin twin = await ioTHubModuleClient.GetTwinAsync();
             string desiredPropertiesJson = twin.Properties.Desired.ToJson();
-            Configuration configuration = JsonConvert.DeserializeObject<Configuration>(desiredPropertiesJson);
+            MetricsConfigFromTwin configuration = JsonConvert.DeserializeObject<MetricsConfigFromTwin>(desiredPropertiesJson);
             if (ExpectedSchemaVersion.CompareMajorVersion(configuration.SchemaVersion, "logs upload request schema") !=
                 0)
                 throw new InvalidOperationException($"Payload schema version is not valid - {desiredPropertiesJson}");
