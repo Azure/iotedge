@@ -22,6 +22,8 @@ namespace LoadGen
         {
             Logger.LogInformation($"Starting load gen with the following settings:\r\n{Settings.Current}");
 
+            Option<PeriodicTask> messageTask = Option.None<PeriodicTask>();
+            Option<PeriodicTask> twinUpdateTask = Option.None<PeriodicTask>();
             try
             {
                 ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
@@ -30,41 +32,44 @@ namespace LoadGen
                     ModuleUtil.DefaultTransientRetryStrategy,
                     Logger);
 
-                using (var timers = new Timers())
-                {
-                    Guid batchId = Guid.NewGuid();
-                    Logger.LogInformation($"Batch Id={batchId}");
+                Guid batchId = Guid.NewGuid();
+                Logger.LogInformation($"Batch Id={batchId}");
 
-                    // setup the message timer
-                    timers.Add(
-                        Settings.Current.MessageFrequency,
-                        Settings.Current.JitterFactor,
-                        () => GenerateMessageAsync(moduleClient, batchId));
+                // setup the message PeriodicTask
+                messageTask = Option.Some(new PeriodicTask(
+                    () => GenerateMessageAsync(moduleClient, batchId),
+                    Settings.Current.MessageFrequency,
+                    TimeSpan.FromSeconds(Settings.Current.StartDelay),
+                    Logger,
+                    "Generate message"));
 
-                    // setup the twin update timer
-                    timers.Add(
-                        Settings.Current.TwinUpdateFrequency,
-                        Settings.Current.JitterFactor,
-                        () => GenerateTwinUpdateAsync(moduleClient, batchId));
+                // setup the twin update PeriodicTask
+                twinUpdateTask = Option.Some(new PeriodicTask(
+                    () => GenerateTwinUpdateAsync(moduleClient, batchId),
+                    Settings.Current.MessageFrequency,
+                    TimeSpan.FromSeconds(Settings.Current.StartDelay),
+                    Logger,
+                    "Generate twin update"));
 
-                    timers.Start();
-                    (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
-                    Logger.LogInformation("Load gen running.");
+                (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
+                Logger.LogInformation("Load gen running.");
 
-                    await cts.Token.WhenCanceled();
-                    Logger.LogInformation("Stopping timers.");
-                    timers.Stop();
-                    Logger.LogInformation("Closing connection to Edge Hub.");
-                    await moduleClient.CloseAsync();
+                await cts.Token.WhenCanceled();
+                Logger.LogInformation("Closing connection to Edge Hub.");
+                await moduleClient.CloseAsync();
 
-                    completed.Set();
-                    handler.ForEach(h => GC.KeepAlive(h));
-                    Logger.LogInformation("Load Gen complete. Exiting.");
-                }
+                completed.Set();
+                handler.ForEach(h => GC.KeepAlive(h));
+                Logger.LogInformation("Load Gen complete. Exiting.");
             }
             catch (Exception ex)
             {
                 Logger.LogError($"Error occurred during load gen.\r\n{ex}");
+            }
+            finally
+            {
+                messageTask.ForEach(x => x.Dispose());
+                twinUpdateTask.ForEach(x => x.Dispose());
             }
         }
 
