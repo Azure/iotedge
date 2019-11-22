@@ -31,7 +31,7 @@ namespace MetricsCollector
                     string workspaceId = Settings.Current.AzMonWorkspaceId;
                     string workspaceKey = Settings.Current.AzMonWorkspaceKey;
                     string logType = Settings.Current.AzMonLogType;
-                    AzureLogAnalytics.Instance.PostAsync(workspaceId, workspaceKey, this.messageFormatter.BuildJSON(scrape), logType);
+                    await AzureLogAnalytics.Instance.PostAsync(workspaceId, workspaceKey, this.messageFormatter.BuildJSON(scrape), logType);
                 }
 
                 Logger.LogInformation($"Sent metrics to LogAnalytics");

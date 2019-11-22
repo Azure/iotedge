@@ -25,11 +25,13 @@ namespace MetricsCollector
             this.identifier = identifier;
         }
 
+        // For Log Analytics upload
         public string BuildJSON(string prometheusMessage)
         {
             return JsonConvert.SerializeObject(this.GetMetricsDataList(prometheusMessage));
         }
 
+        // For IoT Hub upload
         public IList<Message> Build(string prometheusMessage)
         {
             IList<Message> messages = this.format == MetricsFormat.Prometheus

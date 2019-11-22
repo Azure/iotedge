@@ -62,30 +62,26 @@ namespace MetricsCollector
         private static async Task InitAsync()
         {
             MqttTransportSettings mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
-            ITransportSettings[] settings = { mqttSetting };
+            ITransportSettings[] transportSettings = { mqttSetting };
 
-            // Open a connection to the Edge runtime
-            ModuleClient ioTHubModuleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
-            await ioTHubModuleClient.OpenAsync();
-            Logger.LogInformation("IoT Hub module client initialized.");
-
-            MetricsConfigFromTwin configuration = await GetConfigurationAsync(ioTHubModuleClient);
-            Logger.LogInformation($"Obtained configuration: {configuration}");
-
-            MessageFormatter messageFormatter = new MessageFormatter(configuration.MetricsFormat, Settings.Current.MessageIdentifier);
-            Scraper scraper = new Scraper(configuration.Endpoints.Values.ToList());
+            MessageFormatter messageFormatter = new MessageFormatter(Settings.Current.MetricsFormat, Settings.Current.MessageIdentifier);
+            Scraper scraper = new Scraper(Settings.Current.Endpoints);
 
             IMetricsSync metricsSync;
-            if (configuration.SyncTarget == SyncTarget.AzureLogAnalytics)
+            if (Settings.Current.SyncTarget == SyncTarget.AzureLogAnalytics)
             {
                 metricsSync = new LogAnalyticsMetricsSync(messageFormatter, scraper);
             }
             else
             {
+                // Open a connection to the Edge runtime
+                ModuleClient ioTHubModuleClient = await ModuleClient.CreateFromEnvironmentAsync(transportSettings);
+                await ioTHubModuleClient.OpenAsync();
+                Logger.LogInformation("IoT Hub module client initialized.");
                 metricsSync = new IoTHubMetricsSync(messageFormatter, scraper, ioTHubModuleClient);
             }
 
-            TimeSpan scrapingInterval = TimeSpan.FromSeconds(configuration.ScrapeFrequencySecs);
+            TimeSpan scrapingInterval = TimeSpan.FromSeconds(Settings.Current.ScrapeFrequencySecs);
             scrapingTimer = new Timer(ScrapeAndUploadPrometheusMetricsAsync, metricsSync, scrapingInterval, scrapingInterval);
         }
 
@@ -100,17 +96,6 @@ namespace MetricsCollector
             {
                 Logger.LogError($"Error scraping and syncing metrics to IoTHub - {e}");
             }
-        }
-
-        private static async Task<MetricsConfigFromTwin> GetConfigurationAsync(ModuleClient ioTHubModuleClient)
-        {
-            Twin twin = await ioTHubModuleClient.GetTwinAsync();
-            string desiredPropertiesJson = twin.Properties.Desired.ToJson();
-            MetricsConfigFromTwin configuration = JsonConvert.DeserializeObject<MetricsConfigFromTwin>(desiredPropertiesJson);
-            if (ExpectedSchemaVersion.CompareMajorVersion(configuration.SchemaVersion, "logs upload request schema") !=
-                0)
-                throw new InvalidOperationException($"Payload schema version is not valid - {desiredPropertiesJson}");
-            return configuration;
         }
     }
 }

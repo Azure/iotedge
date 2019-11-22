@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
     using System.Net.Http.Headers;
     using System.Security.Cryptography;
     using System.Text;
+    using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
 
     /* Sample code from:
@@ -36,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
             }
         }
 
-        public async void PostAsync(string workspaceId, string sharedKey, string content, string logType)
+        public async Task PostAsync(string workspaceId, string sharedKey, string content, string logType)
         {
             Preconditions.CheckNotNull(workspaceId, "Log Analytics workspace ID cannot be empty.");
             Preconditions.CheckNotNull(sharedKey, "Log Analytics shared key cannot be empty.");
