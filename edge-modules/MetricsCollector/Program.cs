@@ -94,7 +94,7 @@ namespace MetricsCollector
             try
             {
                 IMetricsSync metricsSync = (IMetricsSync)context;
-                await metricsSync.ScrapeAndSync();
+                await metricsSync.ScrapeAndSyncMetricsAsync();
             }
             catch (Exception e)
             {

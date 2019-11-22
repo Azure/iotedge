@@ -5,6 +5,6 @@ namespace MetricsCollector
 
     interface IMetricsSync
     {
-        Task ScrapeAndSync();
+        Task ScrapeAndSyncMetricsAsync();
     }
 }

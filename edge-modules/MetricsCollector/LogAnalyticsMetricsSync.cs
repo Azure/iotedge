@@ -21,7 +21,7 @@ namespace MetricsCollector
             this.scraper = Preconditions.CheckNotNull(scraper);
         }
 
-        public async Task ScrapeAndSync()
+        public async Task ScrapeAndSyncMetricsAsync()
         {
             try
             {

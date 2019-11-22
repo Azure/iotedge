@@ -24,7 +24,7 @@ namespace MetricsCollector
             this.moduleClient = Preconditions.CheckNotNull(moduleClient);
         }
 
-        public async Task ScrapeAndSync()
+        public async Task ScrapeAndSyncMetricsAsync()
         {
             try
             {
