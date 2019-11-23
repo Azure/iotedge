@@ -38,19 +38,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 .As<IMetricsListener>()
                 .SingleInstance();
 
-            Dictionary<Type, string> recognizedExceptions = new Dictionary<Type, string>
-            {
-                // TODO: Decide what exceptions to recognize and ignore
-                { typeof(Newtonsoft.Json.JsonSerializationException), "json_serialization" },
-                { typeof(ArgumentException), "argument" },
-                { typeof(Rest.HttpOperationException), "http" },
-            };
-            HashSet<Type> ignoredExceptions = new HashSet<Type>
-            {
-                typeof(TaskCanceledException),
-                typeof(OperationCanceledException),
-            };
-
             base.Load(builder);
         }
     }
