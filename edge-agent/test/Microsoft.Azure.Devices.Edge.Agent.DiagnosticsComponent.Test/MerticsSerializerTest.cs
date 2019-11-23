@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
-    public class MerticsSerializerTests
+    public class MerticsSerializerTest
     {
         readonly Random rand = new Random();
 
@@ -20,8 +20,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
         {
             Metric testMetric = new Metric(DateTime.UtcNow, this.metrics[0].name, this.rand.NextDouble() * 50, this.metrics[0].tags);
 
-            byte[] data = RawMetric.MetricsToBytes(new Metric[] { testMetric }).ToArray();
-            var reconstructedValues = RawMetric.BytesToMetrics(data).ToArray();
+            byte[] data = MetricsSerializer.MetricsToBytes(new Metric[] { testMetric }).ToArray();
+            var reconstructedValues = MetricsSerializer.BytesToMetrics(data).ToArray();
 
             Assert.Single(reconstructedValues);
             Assert.Equal(testMetric, reconstructedValues[0]);
@@ -32,8 +32,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
         {
             var testMetrics = this.GenerateSeries(this.metrics[0].name, this.metrics[0].tags).ToArray();
 
-            byte[] data = RawMetric.MetricsToBytes(testMetrics).ToArray();
-            var reconstructedValues = RawMetric.BytesToMetrics(data).ToArray();
+            byte[] data = MetricsSerializer.MetricsToBytes(testMetrics).ToArray();
+            var reconstructedValues = MetricsSerializer.BytesToMetrics(data).ToArray();
 
             var expected = testMetrics.OrderBy(m => m.Name).ThenBy(m => m.Tags).ThenBy(m => m.TimeGeneratedUtc);
             var actual = reconstructedValues.OrderBy(m => m.Name).ThenBy(m => m.Tags).ThenBy(m => m.TimeGeneratedUtc);
@@ -45,8 +45,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
         {
             var testMetrics = this.metrics.SelectMany(m => this.GenerateSeries(m.name, m.tags, this.rand.Next(10, 20))).ToArray();
 
-            byte[] data = RawMetric.MetricsToBytes(testMetrics).ToArray();
-            var reconstructedValues = RawMetric.BytesToMetrics(data).ToArray();
+            byte[] data = MetricsSerializer.MetricsToBytes(testMetrics).ToArray();
+            var reconstructedValues = MetricsSerializer.BytesToMetrics(data).ToArray();
 
             var expected = testMetrics.OrderBy(m => m.Name).ThenBy(m => m.Tags).ThenBy(m => m.TimeGeneratedUtc).ToArray();
             var actual = reconstructedValues.OrderBy(m => m.Name).ThenBy(m => m.Tags).ThenBy(m => m.TimeGeneratedUtc).ToArray();
@@ -71,11 +71,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
             // Gibberish
             byte[] randData = new byte[300];
             this.rand.NextBytes(randData);
-            Assert.Throws<InvalidDataException>(() => RawMetric.BytesToMetrics(randData).ToArray());
+            Assert.Throws<InvalidDataException>(() => MetricsSerializer.BytesToMetrics(randData).ToArray());
 
             // Overflow
             var overflowData = BitConverter.GetBytes(int.MaxValue).Concat(randData);
-            var exception = Assert.Throws<InvalidDataException>(() => RawMetric.BytesToMetrics(randData).ToArray());
+            var exception = Assert.Throws<InvalidDataException>(() => MetricsSerializer.BytesToMetrics(randData).ToArray());
             Assert.Throws<ArgumentOutOfRangeException>((Action)(() => throw exception.InnerException));
         }
 

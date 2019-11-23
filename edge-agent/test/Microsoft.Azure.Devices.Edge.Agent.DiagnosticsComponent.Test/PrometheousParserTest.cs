@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
     using Newtonsoft.Json;
     using Xunit;
 
-    public class PrometheousParserTests
+    public class PrometheousParserTest
     {
         [Fact]
         public void ParsesBasicMetrics()

@@ -14,6 +14,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     {
         // Extracts data from prometheous format. Read about prometheous format here:
         // https://prometheus.io/docs/concepts/data_model/
+        // Example:
+        // edgeagent_total_disk_read_bytes{iothub="lefitche-hub-3.azure-devices.net",edge_device="device4",instance_number="1",module="edgeHub"} 32908854
         const string PrometheusMetricSchema = @"^(?<metricname>[^#\{\}]+)(\{((?<tagname>[^="",]+)=(\""(?<tagvalue>[^="",]+)\"")(,(?<tagname>[^="",]+)=(\""(?<tagvalue>[^="",]+)\""))*)\})?\s(?<metricvalue>.+)$";
         static readonly Regex PrometheusSchemaRegex = new Regex(PrometheusMetricSchema, RegexOptions.Compiled);
 

@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
         public async Task PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(metrics, nameof(metrics));
-            byte[] data = RawMetric.MetricsToBytes(metrics).ToArray();
+            byte[] data = MetricsSerializer.MetricsToBytes(metrics).ToArray();
             byte[] compressedData = Compression.CompressToGzip(data);
 
             // TODO: add check for too big of a message
