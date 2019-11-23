@@ -11,7 +11,7 @@ namespace DevOpsLib
         {
             if (string.IsNullOrWhiteSpace(value))
             {
-                throw new ArgumentException("Cannot be null or white space.", field);
+                throw new ArgumentException("Cannot be null or white space.", field ?? string.Empty);
             }
         }
 
@@ -19,14 +19,14 @@ namespace DevOpsLib
         {
             if (value <= 0)
             {
-                throw new ArgumentOutOfRangeException(field, "Cannot be less than or equal to zero.");
+                throw new ArgumentOutOfRangeException(field ?? string.Empty, "Cannot be less than or equal to zero.");
             }
         }
         public static void ThrowIfNegative(int value, string field)
         {
             if (value < 0)
             {
-                throw new ArgumentOutOfRangeException(field, "Cannot be negative.");
+                throw new ArgumentOutOfRangeException(field ?? string.Empty, "Cannot be negative.");
             }
         }
 
@@ -35,7 +35,7 @@ namespace DevOpsLib
         {
             if (value == null || !value.Any())
             {
-                throw new ArgumentException("Cannot be null or empty collection.", field);
+                throw new ArgumentException("Cannot be null or empty collection.", field ?? string.Empty);
             }
         }
 
@@ -43,7 +43,7 @@ namespace DevOpsLib
         {
             if (value == null)
             {
-                throw new ArgumentNullException( field, "Cannot be null.");
+                throw new ArgumentNullException( field ?? string.Empty, "Cannot be null.");
             }
         }
     }

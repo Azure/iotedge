@@ -5,7 +5,7 @@ namespace DevOpsLib.VstsModels
     using System.Collections.Generic;
     using Newtonsoft.Json;
 
-    // Refer to https://docs.microsoft.com/en-us/rest/api/azure/devops/release/releases/list?view=azure-devops-rest-5.1#release for schema
+    // Schema reference: https://docs.microsoft.com/en-us/rest/api/azure/devops/release/releases/list?view=azure-devops-rest-5.1#release
     [JsonConverter(typeof(JsonPathConverter))]
     public class VstsRelease
     {
