@@ -2,7 +2,6 @@
 namespace MetricsCollector
 {
     using System;
-    using System.Linq;
     using System.Runtime.Loader;
     using System.Threading;
     using System.Threading.Tasks;
@@ -11,15 +10,11 @@ namespace MetricsCollector
     using Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
-    using Newtonsoft.Json;
 
     internal class Program
     {
-        static readonly Version ExpectedSchemaVersion = new Version("1.0");
         static readonly ILogger Logger = ModuleUtil.CreateLogger("MetricsCollector");
-        static Timer scrapingTimer;
 
         public static int Main() => MainAsync().Result;
 
@@ -27,9 +22,25 @@ namespace MetricsCollector
         {
             Logger.LogInformation($"Starting metrics collector with the following settings:\r\n{Settings.Current}");
 
-            await InitAsync();
-
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
+
+            MetricsScraper scraper = new MetricsScraper(Settings.Current.Endpoints);
+            IMetricsPublisher publisher;
+            if (Settings.Current.SyncTarget == SyncTarget.AzureLogAnalytics)
+            {
+                publisher = new LogAnalyticsUpload(Settings.Current.AzMonWorkspaceId, Settings.Current.AzMonWorkspaceKey, Settings.Current.AzMonLogType);
+            }
+            else
+            {
+                MqttTransportSettings mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
+                ITransportSettings[] transportSettings = { mqttSetting };
+                ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(transportSettings);
+                publisher = new IoTHubMetricsUpload(moduleClient);
+            }
+
+            MetricsScrapeAndUpload metricsScrapeAndUpload = new MetricsScrapeAndUpload(scraper, publisher);
+
+            PeriodicTask periodicTask = new PeriodicTask(metricsScrapeAndUpload.ScrapeAndUploadPrometheusMetricsAsync, TimeSpan.FromSeconds(Settings.Current.ScrapeFrequencySecs), TimeSpan.MinValue, Logger, "Scrape Metrics");
 
             // Wait until the app unloads or is cancelled
             AssemblyLoadContext.Default.Unloading += ctx => cts.Cancel();
@@ -54,53 +65,6 @@ namespace MetricsCollector
                 },
                 tcs);
             return tcs.Task;
-        }
-
-        /// <summary>
-        ///     Initializes the ModuleClient and sets up the callback to receive
-        ///     messages containing temperature information
-        /// </summary>
-        private static async Task InitAsync()
-        {
-            MqttTransportSettings mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
-            ITransportSettings[] transportSettings = { mqttSetting };
-
-            MessageFormatter messageFormatter = new MessageFormatter(Settings.Current.MetricsFormat, Settings.Current.MessageIdentifier);
-            Scraper scraper = new Scraper(Settings.Current.Endpoints);
-
-            IMetricsSync metricsSync;
-            if (Settings.Current.SyncTarget == SyncTarget.AzureLogAnalytics)
-            {
-                metricsSync = new LogAnalyticsMetricsSync(messageFormatter, scraper);
-            }
-            else
-            {
-                // Open a connection to the Edge runtime
-                ModuleClient ioTHubModuleClient = await ModuleClient.CreateFromEnvironmentAsync(transportSettings);
-                await ioTHubModuleClient.OpenAsync();
-                Logger.LogInformation("IoT Hub module client initialized.");
-                metricsSync = new IoTHubMetricsSync(messageFormatter, scraper, ioTHubModuleClient);
-            }
-
-            TimeSpan scrapingInterval = TimeSpan.FromSeconds(Settings.Current.ScrapeFrequencySecs);
-            scrapingTimer = new Timer(ScrapeAndUploadPrometheusMetricsAsync, metricsSync, scrapingInterval, scrapingInterval);
-
-            /*
-            add periodic task to scrape and upload
-             */
-        }
-
-        private static async void ScrapeAndUploadPrometheusMetricsAsync(object context)
-        {
-            try
-            {
-                IMetricsSync metricsSync = (IMetricsSync)context;
-                await metricsSync.ScrapeAndSyncMetricsAsync();
-            }
-            catch (Exception e)
-            {
-                Logger.LogError($"Error scraping and syncing metrics to IoTHub - {e}");
-            }
         }
     }
 }

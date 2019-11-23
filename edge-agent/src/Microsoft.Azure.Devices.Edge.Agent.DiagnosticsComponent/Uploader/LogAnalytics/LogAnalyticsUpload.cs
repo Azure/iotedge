@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
-    class LogAnalyticsUpload : IMetricsPublisher
+    public sealed class LogAnalyticsUpload : IMetricsPublisher
     {
         static readonly ILogger Log = Logger.Factory.CreateLogger<LogAnalyticsUpload>();
         readonly string workspaceId;
