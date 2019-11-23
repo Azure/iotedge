@@ -276,7 +276,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             if (metricsConfig.Enabled)
             {
                 container.Resolve<IMetricsListener>().Start(logger);
-                container.Resolve<ExceptionCounter>().Start();
             }
 
             // Initialize metric uploading

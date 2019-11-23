@@ -50,8 +50,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 typeof(TaskCanceledException),
                 typeof(OperationCanceledException),
             };
-            builder.Register(c => new ExceptionCounter(recognizedExceptions, ignoredExceptions, c.Resolve<IMetricsProvider>()))
-                .SingleInstance();
 
             base.Load(builder);
         }
