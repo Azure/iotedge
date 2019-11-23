@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
     public class PrometheousParserTest
     {
         [Fact]
-        public void ParsesBasicMetrics()
+        public void TestParsesBasicMetrics()
         {
             int n = 10;
 
