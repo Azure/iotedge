@@ -8,6 +8,7 @@ namespace MetricsCollector
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
+    using Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
@@ -83,6 +84,10 @@ namespace MetricsCollector
 
             TimeSpan scrapingInterval = TimeSpan.FromSeconds(Settings.Current.ScrapeFrequencySecs);
             scrapingTimer = new Timer(ScrapeAndUploadPrometheusMetricsAsync, metricsSync, scrapingInterval, scrapingInterval);
+
+            /*
+            add periodic task to scrape and upload
+             */
         }
 
         private static async void ScrapeAndUploadPrometheusMetricsAsync(object context)
