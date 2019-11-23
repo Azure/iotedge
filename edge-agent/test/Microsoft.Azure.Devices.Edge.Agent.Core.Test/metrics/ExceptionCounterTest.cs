@@ -32,8 +32,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                 { typeof(TestException1), "test1" },
                 { typeof(TestException2), "test2" },
             };
-            using (new ExceptionCounter(recognizedExceptions, new HashSet<Type>(), provider))
+            using (var counter = new ExceptionCounter(recognizedExceptions, new HashSet<Type>(), provider))
             {
+                counter.Start();
                 /* test */
                 Assert.Equal(expected, result);
 
@@ -53,10 +54,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                 this.ThrowAndCatch(new TestException2());
                 this.ThrowAndCatch(new TestException2());
                 expected["test2"] = 5;
-                Assert.Equal(expected, result);
-
-                this.ThrowAndCatch(new DivideByZeroException());
-                expected["other"] = 1;
                 Assert.Equal(expected, result);
             }
         }
@@ -78,8 +75,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                 typeof(TaskCanceledException),
                 typeof(OperationCanceledException),
             };
-            using (new ExceptionCounter(recognizedExceptions, ignoredExceptions, provider))
+            using (var counter = new ExceptionCounter(recognizedExceptions, ignoredExceptions, provider))
             {
+                counter.Start();
+
                 /* test */
                 Assert.Equal(expected, result);
 
@@ -107,8 +106,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                 { typeof(TestException1), "test1" },
                 { typeof(TestException2), "test2" },
             };
-            using (new ExceptionCounter(recognizedExceptions, new HashSet<Type>(), provider))
+            using (var counter = new ExceptionCounter(recognizedExceptions, new HashSet<Type>(), provider))
             {
+                counter.Start();
+
                 /* test */
                 await Task.Run(() => { this.ThrowAndCatch(new TestException2()); });
                 Assert.Equal(1, result["test2"]);
@@ -132,16 +133,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
         {
             /* setup */
             (Dictionary<string, long> result, IMetricsProvider provider) = this.MockCounter();
-            Dictionary<string, long> expected = new Dictionary<string, long>();
-            using (new ExceptionCounter(new Dictionary<Type, string>(), new HashSet<Type>(), provider))
+            Dictionary<Type, string> recognizedExceptions = new Dictionary<Type, string>
             {
-                this.ThrowAndCatch(new Exception());
-                expected["other"] = 1;
-                Assert.Equal(expected, result);
+                { typeof(TestException1), "test1" },
+                { typeof(TestException2), "test2" },
+            };
+            using (var counter = new ExceptionCounter(recognizedExceptions, new HashSet<Type>(), provider))
+            {
+                counter.Start();
+
+                this.ThrowAndCatch(new TestException1());
+                Assert.Equal(1, result["test1"]);
             }
 
             this.ThrowAndCatch(new Exception());
-            Assert.Equal(expected, result);
+            Assert.Equal(1, result["test1"]);
         }
 
         (Dictionary<string, long> result, IMetricsProvider provider) MockCounter()
@@ -149,6 +155,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             Dictionary<string, long> result = new Dictionary<string, long>();
             void Increment(long val, string[] tags)
             {
+                if (tags[0] == "other")
+                {
+                    return;
+                }
+
                 if (result.ContainsKey(tags[0]))
                 {
                     result[tags[0]]++;
