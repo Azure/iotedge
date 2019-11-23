@@ -604,8 +604,8 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         let client = self.client.clone();
         let docker_stats = self
-            .list()
-            .and_then(|modules: Vec<Self::Module>| {
+            .list() // Get all modules
+            .and_then(|modules: Vec<Self::Module>| { // Get iterable of stats
                 future::join_all(
                     modules
                         .into_iter()
@@ -626,8 +626,8 @@ impl ModuleRuntime for DockerModuleRuntime {
                         }),
                 )
             })
-            .map(|stats| serde_json::Value::Array(stats))
-            .and_then(|stats| {
+            .map(|stats| serde_json::Value::Array(stats)) // Condense into single json value
+            .and_then(|stats| { // convert to string
                 serde_json::to_string(&stats).map_err(|_| {
                     Error::from(ErrorKind::RuntimeOperation(
                         RuntimeOperation::SystemResources,

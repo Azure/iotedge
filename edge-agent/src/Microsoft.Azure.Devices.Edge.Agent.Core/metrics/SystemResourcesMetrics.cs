@@ -41,13 +41,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             this.apiVersion = Preconditions.CheckNotNull(apiVersion, nameof(apiVersion));
 
             this.hostUptime = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
-                "host_uptime",
+                "host_uptime_seconds",
                 "How long the host has been on",
                 new List<string> { }));
 
             this.iotedgedUptime = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
-                "iotedged_uptime",
-                "How long the host has been on",
+                "iotedged_uptime_seconds",
+                "How long iotedged has been running",
                 new List<string> { }));
 
             this.usedSpace = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
@@ -76,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                 new List<string> { "module" }));
 
             this.createdPids = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
-                "created_pids",
+                "created_pids_total",
                 "The number of processes or threads the container has created",
                 new List<string> { "module" }));
 
@@ -164,6 +164,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
         static double GetCpuUsage(ModuleStats module)
         {
+            if (module.stats.precpu_stats == null)
+            {
+                return 0; // startup doesn't doesn't have a previous
+            }
+
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
                 double moduleDiff = module.stats.cpu_stats.cpu_usage.total_usage - module.stats.precpu_stats.cpu_usage.total_usage;
