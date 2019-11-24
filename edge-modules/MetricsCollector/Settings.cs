@@ -2,13 +2,12 @@
 namespace MetricsCollector
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
-    using Newtonsoft.Json.Serialization;
 
-    [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
     public class Settings
     {
         static readonly Lazy<Settings> DefaultSettings = new Lazy<Settings>(
@@ -21,38 +20,64 @@ namespace MetricsCollector
                     .Build();
 
                 return new Settings(
-                    configuration.GetValue<string>("MessageIdentifier"),
                     configuration.GetValue<string>("AzMonWorkspaceId"),
                     configuration.GetValue<string>("AzMonWorkspaceKey"),
-                    configuration.GetValue<string>("AzMonLogType", "edgeHubMetrics"));
-            });
+                    configuration.GetValue<string>("AzMonLogType"),
+                    configuration.GetValue<string>("MetricsEndpoints"),
+                    configuration.GetValue<int>("ScrapeFrequencyInSecs"),
+                    configuration.GetValue<SyncTarget>("SyncTarget"));
+                });
 
         Settings(
-            string messageIdentifier,
             string azMonWorkspaceId,
             string azMonWorkspaceKey,
-            string azMonLogType)
+            string azMonLogType,
+            string endpoints,
+            int scrapeFrequencySecs,
+            SyncTarget syncTarget)
         {
-            this.MessageIdentifier = Preconditions.CheckNonWhiteSpace(messageIdentifier, nameof(messageIdentifier));
             this.AzMonWorkspaceId = Preconditions.CheckNonWhiteSpace(azMonWorkspaceId, nameof(azMonWorkspaceId));
             this.AzMonWorkspaceKey = Preconditions.CheckNonWhiteSpace(azMonWorkspaceKey, nameof(azMonWorkspaceKey));
             this.AzMonLogType = Preconditions.CheckNonWhiteSpace(azMonLogType, nameof(azMonLogType));
+            this.Endpoints = JsonConvert.DeserializeObject<List<string>>(endpoints);
+            if (this.Endpoints.Count == 0)
+            {
+                throw new ArgumentException("No endpoints specified for metrics scrape");
+            }
+
+            this.ScrapeFrequencySecs = Preconditions.CheckRange(scrapeFrequencySecs, 0);
+            this.SyncTarget = Preconditions.CheckNotNull(syncTarget);
         }
 
         public static Settings Current => DefaultSettings.Value;
 
-        public string MessageIdentifier { get; }
-
         public string AzMonWorkspaceId { get; }
 
-        [JsonIgnore]
         public string AzMonWorkspaceKey { get; }
 
         public string AzMonLogType { get; }
 
+        public List<string> Endpoints { get; }
+
+        public int ScrapeFrequencySecs { get; }
+
+        public SyncTarget SyncTarget { get; }
+
         public override string ToString()
         {
-            return JsonConvert.SerializeObject(this, Formatting.Indented);
+            Dictionary<string, string> fields = new Dictionary<string, string>();
+            fields.Add(nameof(this.AzMonWorkspaceId), this.AzMonWorkspaceId);
+            fields.Add(nameof(this.AzMonLogType), this.AzMonLogType);
+            fields.Add(nameof(this.Endpoints), JsonConvert.SerializeObject(this.Endpoints, Formatting.Indented));
+            fields.Add(nameof(this.ScrapeFrequencySecs), this.ScrapeFrequencySecs.ToString());
+            fields.Add(nameof(this.SyncTarget), Enum.GetName(typeof(SyncTarget), this.SyncTarget));
+            return JsonConvert.SerializeObject(fields, Formatting.Indented);
         }
+    }
+
+    public enum SyncTarget
+    {
+        IoTHub,
+        AzureLogAnalytics
     }
 }

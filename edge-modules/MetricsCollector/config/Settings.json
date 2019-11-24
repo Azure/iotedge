@@ -1,0 +1,8 @@
+{
+  "AzMonWorkspaceId": "",
+  "AzMonWorkspaceKey": "",
+  "AzMonLogType": "edgeHubMetrics",
+  "MetricsEndpoints": "[\"http://edgeHub:9600/metrics\"]",
+  "ScrapeFrequencyInSecs": 300,
+  "SyncTarget": "AzureLogAnalytics"
+}

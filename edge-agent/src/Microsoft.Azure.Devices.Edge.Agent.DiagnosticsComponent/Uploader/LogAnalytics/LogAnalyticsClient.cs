@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
+namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
 {
     using System;
     using System.Net.Http;
@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
     using System.Security.Cryptography;
     using System.Text;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
     /* Sample code from:
@@ -14,22 +15,22 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
     /* https://dejanstojanovic.net/aspnet/2018/february/send-data-to-azure-log-analytics-from-c-code/
     */
 
-    public sealed class AzureLogAnalytics
+    public sealed class LogAnalyticsClient
     {
-        static readonly ILogger Log = Logger.Factory.CreateLogger<AzureLogAnalytics>();
-        static readonly AzureLogAnalytics instance = new AzureLogAnalytics();
+        static readonly ILogger Log = Logger.Factory.CreateLogger<LogAnalyticsClient>();
+        static readonly LogAnalyticsClient instance = new LogAnalyticsClient();
 
         // Explicit static constructor to tell C# compiler
         // not to mark type as beforefieldinit
-        static AzureLogAnalytics()
+        static LogAnalyticsClient()
         {
         }
 
-        AzureLogAnalytics()
+        LogAnalyticsClient()
         {
         }
 
-        public static AzureLogAnalytics Instance
+        public static LogAnalyticsClient Instance
         {
             get
             {
