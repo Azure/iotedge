@@ -113,8 +113,14 @@
     .PARAMETER LogAnalyticsLogType
         Optional Log Analytics log type for the Analyzer module.
 
-    .PARAMETER LogAnalyticsLogType
-        Defines the interval at which the MetricsCollector module will scrape metrics from the exposed edgeHub endpoint.
+    .PARAMETER MetricsEndpointsJsonArray
+        Optional stringified json array of exposed endpoints for which to scrape metrics.
+
+    .PARAMETER MetricsScrapeFrequencyInSecs
+        Optional frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds. 
+
+    .PARAMETER MetricsUploadTarget
+        Optional upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics. 
 
     .EXAMPLE
         .\Run-E2ETest.ps1
@@ -246,7 +252,11 @@ Param (
 
     [string] $LoadGenMessageFrequency = $null,
 
+    [string] $MetricsEndpointsJsonArray = $null,
+
     [string] $MetricsScrapeFrequencyInSecs = $null,
+
+    [string] $MetricsUploadTarget = $null,
 
     [ValidateScript({($_ -as [System.Uri]).AbsoluteUri -ne $null})]
     [string] $ProxyUri = $null,
@@ -480,7 +490,9 @@ Function PrepareTestFromArtifacts
                 (Get-Content $DeploymentWorkingFilePath).replace('<LogAnalyticsSharedKey>',$LogAnalyticsSharedKey) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen.MessageFrequency>',$LoadGenMessageFrequency) | Set-Content $DeploymentWorkingFilePath
                 $escapedBuildId= $ArtifactImageBuildNumber -replace "\.",""
+                (Get-Content $DeploymentWorkingFilePath).replace('<MetricsCollector.MetricsEndpointsJsonArray>',$MetricsEndpointsJsonArray) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<MetricsCollector.ScrapeFrequencyInSecs>',$MetricsScrapeFrequencyInSecs) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<MetricsCollector.UploadTarget>',$MetricsUploadTarget) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.AlertUrl>',$SnitchAlertUrl) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildNumber>',$SnitchBuildNumber) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildId>',"$ReleaseLabel-$(GetImageArchitectureLabel)-windows-$escapedBuildId") | Set-Content $DeploymentWorkingFilePath
@@ -1535,6 +1547,11 @@ If ([string]::IsNullOrWhiteSpace($EdgeE2ERootCAKeyRSAFile))
 If ([string]::IsNullOrWhiteSpace($MetricsScrapeFrequencyInSecs))
 {
     $MetricsScrapeFrequencyInSecs=300;
+}
+
+If ([string]::IsNullOrWhiteSpace($MetricsUploadTarget))
+{
+    $MetricsScrapeFrequencyInSecs="AzureLogAnalytics";
 }
 
 If ($TestName -eq "LongHaul")

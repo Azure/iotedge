@@ -211,13 +211,13 @@
                     "value": "<LogAnalyticsSharedKey>"
                 },
                 "MetricsEndpoints": {
-                  "value": "<MetricsCollector.MetricsEndpoints>"
+                  "value": "<MetricsCollector.MetricsEndpointsJsonArray>"
                 },
                 "ScrapeFrequencySecs": {
                     "value": "<MetricsCollector.ScrapeFrequencyInSecs>"
                 },
-                "SyncTarget": {
-                  "value": "<MetricsCollector.SyncTarget>"
+                "UploadTarget": {
+                  "value": "<MetricsCollector.UploadTarget>"
                 }
             },
             "status": "running",
