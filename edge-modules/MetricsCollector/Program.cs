@@ -26,7 +26,7 @@ namespace MetricsCollector
 
             MetricsScraper scraper = new MetricsScraper(Settings.Current.Endpoints);
             IMetricsPublisher publisher;
-            if (Settings.Current.SyncTarget == SyncTarget.AzureLogAnalytics)
+            if (Settings.Current.UploadTarget == UploadTarget.AzureLogAnalytics)
             {
                 publisher = new LogAnalyticsUpload(Settings.Current.AzMonWorkspaceId, Settings.Current.AzMonWorkspaceKey, Settings.Current.AzMonLogType);
             }
