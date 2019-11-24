@@ -75,7 +75,9 @@ steps:
           -logAnalyticsLogType "${{ parameters['analyzer.logAnalytics.logType'] }}" \
           -logAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" \
           -logAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" \
+          -metricsEndpointsJsonArray "${{ parameters['metricsCollector.metricsEndpointsJsonArray'] }}" \
           -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
+          -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
           -cleanAll
         #Remove all pending jobs
         atrm $(atq | cut -f1)

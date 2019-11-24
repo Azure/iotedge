@@ -24,7 +24,9 @@ parameters:
   analyzer.logAnalytics.logType: ''
   logAnalytics.workspaceId: ''
   logAnalytics.sharedKey: ''
+  metricsCollector.metricsEndpointsJsonArray: ''
   metricsCollector.scrapeFrequencyInSecs: ''
+  metricsCollector.uploadTarget: ''
 
 steps:
   - task: CopyFiles@2
@@ -117,6 +119,8 @@ steps:
           -LogAnalyticsLogType "${{ parameters['analyzer.logAnalytics.logType'] }}" `
           -LogAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" `
           -LogAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" `
+          -MetricsEndpointsJsonArray "${{ parameters['metricsCollector.metricsEndpointsJsonArray'] }}" `
           -MetricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" `
+          -MetricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" `
           -BypassEdgeInstallation
       CommunicationProtocol: Http

@@ -26,7 +26,9 @@ variables:
   #run.linux.arm64v8.docker: 'true/false'
   #run.windows.amd64.moby: 'true/false'
   #snitch.build.number: '1.1'
+  #metricsCollector.metricsEndpointsJsonArray
   #metricsCollector.scrapeFrequencyInSecs: 'xx:xx:xx.xx'
+  #metricsCollector.uploadTarget
 
 jobs:
 ################################################################################
@@ -97,7 +99,9 @@ jobs:
           analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          metricsCollector.metricsEndpointsJsonArray: '$(metricsCollector.metricsEndpointsJsonArray)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
+          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
 
 ################################################################################
   - job: linux_arm32v7_moby
@@ -168,7 +172,9 @@ jobs:
           analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          metricsCollector.metricsEndpointsJsonArray: '$(metricsCollector.metricsEndpointsJsonArray)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
+          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
 
 ################################################################################
   - job: linux_arm64v8_docker
@@ -239,7 +245,9 @@ jobs:
           analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          metricsCollector.metricsEndpointsJsonArray: '$(metricsCollector.metricsEndpointsJsonArray)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
+          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
 
 ################################################################################
   - job: windows_amd64_moby
@@ -312,7 +320,9 @@ jobs:
           analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          metricsCollector.metricsEndpointsJsonArray: '$(metricsCollector.metricsEndpointsJsonArray)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
+          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
 
 ################################################################################
   - job: windows_servercore_amd64_moby
@@ -385,7 +395,9 @@ jobs:
           analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          metricsCollector.metricsEndpointsJsonArray: '$(metricsCollector.metricsEndpointsJsonArray)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
+          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
 
 ################################################################################
   - job: iotuap_amd64_moby
@@ -457,4 +469,6 @@ jobs:
           analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          metricsCollector.metricsEndpointsJsonArray: '$(metricsCollector.metricsEndpointsJsonArray)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
+          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'

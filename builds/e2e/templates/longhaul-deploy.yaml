@@ -20,7 +20,9 @@ parameters:
   analyzer.logAnalytics.logType: ''
   logAnalytics.workspaceId: ''
   logAnalytics.sharedKey: ''
+  metricsCollector.metricsEndpointsJsonArray: ''
   metricsCollector.scrapeFrequencyInSecs: ''
+  metricsCollector.uploadTarget: ''
 
 steps:
   - task: CopyFiles@2
@@ -66,6 +68,8 @@ steps:
           -logAnalyticsLogType "${{ parameters['analyzer.logAnalytics.logType'] }}" \
           -logAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" \
           -logAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" \
+          -metricsEndpointsJsonArray "${{ parameters['metricsCollector.metricsEndpointsJsonArray'] }}" \
           -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
+          -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
           -cleanAll
       workingDirectory: "$(Agent.HomeDirectory)/.."
