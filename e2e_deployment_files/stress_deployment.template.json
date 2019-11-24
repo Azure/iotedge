@@ -40,6 +40,12 @@
               },
               "mqttSettings__enabled": {
                 "value": "<mqttSettings__enabled>"
+              },
+              "experimentalfeatures__enabled": {
+                  "value": "true"
+              },
+              "experimentalfeatures__enableMetrics": {
+                  "value": "true"
               }
             },
             "status": "running",
@@ -200,6 +206,15 @@
                 },
                 "AzMonWorkspaceKey": {
                     "value": "<LogAnalyticsSharedKey>"
+                },
+                "MetricsEndpoints": {
+                  "value": "<MetricsCollector.MetricsEndpoints>"
+                },
+                "ScrapeFrequencySecs": {
+                    "value": "<MetricsCollector.ScrapeFrequencyInSecs>"
+                },
+                "SyncTarget": {
+                  "value": "<MetricsCollector.SyncTarget>"
                 }
             },
             "status": "running",
