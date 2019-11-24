@@ -29,11 +29,11 @@ namespace MetricsCollector
             {
                 List<Metric> metrics = (List<Metric>)await this.scraper.ScrapeEndpointsAsync(cancellationToken);
                 await this.publisher.PublishAsync(metrics, cancellationToken);
-                Logger.LogInformation("Successfully sent data to log analytics");
+                Logger.LogInformation("Successfully scraped and uploaded metrics");
             }
             catch (Exception e)
             {
-                Logger.LogError($"Error scraping and syncing metrics to IoTHub - {e}");
+                Logger.LogError($"Error scraping and uploading metrics: {e}");
             }
         }
     }
