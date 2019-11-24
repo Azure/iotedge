@@ -25,7 +25,7 @@ namespace MetricsCollector
                     configuration.GetValue<string>("AzMonLogType"),
                     configuration.GetValue<string>("MetricsEndpoints"),
                     configuration.GetValue<int>("ScrapeFrequencyInSecs"),
-                    configuration.GetValue<SyncTarget>("SyncTarget"));
+                    configuration.GetValue<UploadTarget>("UploadTarget"));
                 });
 
         Settings(
@@ -34,7 +34,7 @@ namespace MetricsCollector
             string azMonLogType,
             string endpoints,
             int scrapeFrequencySecs,
-            SyncTarget syncTarget)
+            UploadTarget uploadTarget)
         {
             this.AzMonWorkspaceId = Preconditions.CheckNonWhiteSpace(azMonWorkspaceId, nameof(azMonWorkspaceId));
             this.AzMonWorkspaceKey = Preconditions.CheckNonWhiteSpace(azMonWorkspaceKey, nameof(azMonWorkspaceKey));
@@ -46,7 +46,7 @@ namespace MetricsCollector
             }
 
             this.ScrapeFrequencySecs = Preconditions.CheckRange(scrapeFrequencySecs, 0);
-            this.SyncTarget = Preconditions.CheckNotNull(syncTarget);
+            this.UploadTarget = Preconditions.CheckNotNull(uploadTarget);
         }
 
         public static Settings Current => DefaultSettings.Value;
@@ -61,7 +61,7 @@ namespace MetricsCollector
 
         public int ScrapeFrequencySecs { get; }
 
-        public SyncTarget SyncTarget { get; }
+        public UploadTarget UploadTarget { get; }
 
         public override string ToString()
         {
@@ -70,12 +70,12 @@ namespace MetricsCollector
             fields.Add(nameof(this.AzMonLogType), this.AzMonLogType);
             fields.Add(nameof(this.Endpoints), JsonConvert.SerializeObject(this.Endpoints, Formatting.Indented));
             fields.Add(nameof(this.ScrapeFrequencySecs), this.ScrapeFrequencySecs.ToString());
-            fields.Add(nameof(this.SyncTarget), Enum.GetName(typeof(SyncTarget), this.SyncTarget));
+            fields.Add(nameof(this.UploadTarget), Enum.GetName(typeof(UploadTarget), this.UploadTarget));
             return JsonConvert.SerializeObject(fields, Formatting.Indented);
         }
     }
 
-    public enum SyncTarget
+    public enum UploadTarget
     {
         IoTHub,
         AzureLogAnalytics
