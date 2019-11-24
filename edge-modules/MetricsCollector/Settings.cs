@@ -39,7 +39,7 @@ namespace MetricsCollector
             this.AzMonWorkspaceId = Preconditions.CheckNonWhiteSpace(azMonWorkspaceId, nameof(azMonWorkspaceId));
             this.AzMonWorkspaceKey = Preconditions.CheckNonWhiteSpace(azMonWorkspaceKey, nameof(azMonWorkspaceKey));
             this.AzMonLogType = Preconditions.CheckNonWhiteSpace(azMonLogType, nameof(azMonLogType));
-            this.Endpoints = (List<string>)JsonConvert.DeserializeObject(endpoints);
+            this.Endpoints = JsonConvert.DeserializeObject<List<string>>(endpoints);
             if (this.Endpoints.Count == 0)
             {
                 throw new ArgumentException("No endpoints specified for metrics scrape");

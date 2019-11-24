@@ -40,7 +40,8 @@ namespace MetricsCollector
 
             MetricsScrapeAndUpload metricsScrapeAndUpload = new MetricsScrapeAndUpload(scraper, publisher);
 
-            PeriodicTask periodicTask = new PeriodicTask(metricsScrapeAndUpload.ScrapeAndUploadPrometheusMetricsAsync, TimeSpan.FromSeconds(Settings.Current.ScrapeFrequencySecs), TimeSpan.MinValue, Logger, "Scrape Metrics");
+            TimeSpan scrapeAndUploadInterval = TimeSpan.FromSeconds(Settings.Current.ScrapeFrequencySecs);
+            PeriodicTask periodicTask = new PeriodicTask(metricsScrapeAndUpload.ScrapeAndUploadPrometheusMetricsAsync, scrapeAndUploadInterval, scrapeAndUploadInterval, Logger, "Scrape and Upload Metrics");
 
             // Wait until the app unloads or is cancelled
             AssemblyLoadContext.Default.Unloading += ctx => cts.Cancel();
