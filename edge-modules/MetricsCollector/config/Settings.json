@@ -3,9 +3,6 @@
   "AzMonWorkspaceKey": "",
   "AzMonLogType": "edgeHubMetrics",
   "MetricsEndpoints": "[\"http://edgeHub:9600/metrics\"]",
-  "MetricsFormat": "Json",
-  "MessageIdentifier": "",
-  "SchemaVersion": "",
   "ScrapeFrequencyInSecs": 300,
   "SyncTarget": "AzureLogAnalytics"
 }

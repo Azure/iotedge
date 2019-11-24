@@ -22,7 +22,7 @@ namespace MetricsCollector
                 return new Settings(
                     configuration.GetValue<string>("AzMonWorkspaceId"),
                     configuration.GetValue<string>("AzMonWorkspaceKey"),
-                    configuration.GetValue<string>("AzMonLogType", "edgeHubMetrics"),
+                    configuration.GetValue<string>("AzMonLogType"),
                     configuration.GetValue<string>("MetricsEndpoints"),
                     configuration.GetValue<int>("ScrapeFrequencyInSecs"),
                     configuration.GetValue<SyncTarget>("SyncTarget"));
