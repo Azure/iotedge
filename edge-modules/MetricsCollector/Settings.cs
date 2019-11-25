@@ -22,10 +22,10 @@ namespace MetricsCollector
                 return new Settings(
                     configuration.GetValue<string>("AzMonWorkspaceId"),
                     configuration.GetValue<string>("AzMonWorkspaceKey"),
-                    configuration.GetValue<string>("AzMonLogType"),
-                    configuration.GetValue<string>("MetricsEndpoints"),
-                    configuration.GetValue<int>("ScrapeFrequencyInSecs"),
-                    configuration.GetValue<UploadTarget>("UploadTarget"));
+                    configuration.GetValue<string>("AzMonLogType", "edgeHubMetrics"),
+                    configuration.GetValue<string>("MetricsEndpoints", "[\"http://edgeHub:9600/metrics\"]"),
+                    configuration.GetValue<int>("ScrapeFrequencyInSecs", 300),
+                    configuration.GetValue<UploadTarget>("UploadTarget", UploadTarget.AzureLogAnalytics));
                 });
 
         Settings(
