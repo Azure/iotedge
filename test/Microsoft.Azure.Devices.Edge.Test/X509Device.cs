@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             var leaf = await LeafDevice.CreateAsync(
                 leafDeviceId,
                 Protocol.Amqp,
-                AuthenticationType.SelfSigned,
+                AuthenticationType.Sas,
                 Option.Some(Context.Current.DeviceId + "-x509"),
                 false,
                 CertificateAuthority.GetQuickstart(),
