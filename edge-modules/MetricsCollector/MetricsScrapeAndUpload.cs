@@ -3,6 +3,7 @@ namespace MetricsCollector
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent;
@@ -27,7 +28,7 @@ namespace MetricsCollector
         {
             try
             {
-                List<Metric> metrics = (List<Metric>)await this.scraper.ScrapeEndpointsAsync(cancellationToken);
+                List<Metric> metrics = (await this.scraper.ScrapeEndpointsAsync(cancellationToken)).ToList();
                 await this.publisher.PublishAsync(metrics, cancellationToken);
                 Logger.LogInformation("Successfully scraped and uploaded metrics");
             }
