@@ -26,8 +26,7 @@ namespace LoadGen
                     configuration.GetValue<double>("jitterFactor", 0.5),
                     configuration.GetValue<ulong>("messageSizeInBytes", 1024),
                     configuration.GetValue<TransportType>("transportType", TransportType.Amqp_Tcp_Only),
-                    configuration.GetValue<string>("outputName", "output1"),
-                    configuration.GetValue<string>("analyzerUrl", "http://analyzer:15000"));
+                    configuration.GetValue<string>("outputName", "output1"));
             });
 
         Settings(
@@ -35,15 +34,13 @@ namespace LoadGen
             double jitterFactor,
             ulong messageSizeInBytes,
             TransportType transportType,
-            string outputName,
-            string analyzerUrl)
+            string outputName)
         {
             this.MessageFrequency = messageFrequency;
             this.JitterFactor = jitterFactor;
             this.MessageSizeInBytes = messageSizeInBytes;
             this.TransportType = transportType;
             this.OutputName = outputName;
-            this.AnalyzerUrl = analyzerUrl;
         }
 
         public static Settings Current => DefaultSettings.Value;
@@ -58,8 +55,6 @@ namespace LoadGen
         public TransportType TransportType { get; }
 
         public string OutputName { get; }
-
-        public string AnalyzerUrl { get; }
 
         public override string ToString()
         {

@@ -15,8 +15,8 @@ namespace TestAnalyzer
     public class Storage
     {
         const string MessageStorePartitionKey = "MessagesCache";
-        const string DirectMethodsStorePartitionKey = "DmCache";
-        const string TwinsStorePartitionKey = "TwinCache";
+        const string DirectMethodsStorePartitionKey = "DirectMethodsCache";
+        const string TwinsStorePartitionKey = "TwinsCache";
         static readonly ILogger Logger = ModuleUtil.CreateLogger("Analyzer");
         ISequentialStore<MessageDetails> messagesStore;
         ISequentialStore<ResponseStatus> directMethodsStore;

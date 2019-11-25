@@ -67,6 +67,7 @@ namespace LoadGen
         {
             var random = new Random();
             var bufferPool = new BufferPool();
+            long sequenceNumber = -1;
 
             try
             {
@@ -78,8 +79,8 @@ namespace LoadGen
                     // build message
                     var messageBody = new { data = data.Data };
                     var message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)));
-                    Interlocked.Increment(ref messageId);
-                    message.Properties.Add("sequenceNumber", messageId.ToString());
+                    sequenceNumber = Interlocked.Increment(ref messageId);
+                    message.Properties.Add("sequenceNumber", sequenceNumber.ToString());
                     message.Properties.Add("batchId", batchId.ToString());
 
                     await client.SendEventAsync(Settings.Current.OutputName, message);
@@ -87,7 +88,7 @@ namespace LoadGen
             }
             catch (Exception e)
             {
-                Logger.LogError($"[GenerateMessageAsync] Sequence number {messageId}, BatchId: {batchId.ToString()};{Environment.NewLine}{e}");
+                Logger.LogError($"[GenerateMessageAsync] Sequence number {sequenceNumber}, BatchId: {batchId.ToString()};{Environment.NewLine}{e}");
             }
         }
     }

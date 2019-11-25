@@ -32,7 +32,7 @@ namespace TestAnalyzer.Controllers
                 this.PublishToLogAnalytics(deviceAnalysis);
             }
 
-            return JsonConvert.SerializeObject(deviceAnalysis.MessagesReport, Formatting.Indented);
+            return deviceAnalysis.MessagesReport.ToString();
         }
 
         private void PublishToLogAnalytics(DeviceAnalysis deviceAnalysis)

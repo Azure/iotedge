@@ -45,13 +45,13 @@ namespace TestAnalyzer
 
         static IList<ModuleMessagesReport> GetReceivedMessagesReport(double toleranceInMilliseconds)
         {
-            DateTime enDateTime = DateTime.UtcNow;
+            DateTime endDateTime = DateTime.UtcNow;
             IDictionary<string, IList<SortedSet<MessageDetails>>> messages = ReportingCache.Instance.GetMessagesSnapshot();
             IList<ModuleMessagesReport> report = new List<ModuleMessagesReport>();
 
             foreach (KeyValuePair<string, IList<SortedSet<MessageDetails>>> moduleMessages in messages)
             {
-                report.Add(GetReceivedMessagesReport(moduleMessages.Key, toleranceInMilliseconds, moduleMessages.Value, enDateTime));
+                report.Add(GetReceivedMessagesReport(moduleMessages.Key, toleranceInMilliseconds, moduleMessages.Value, endDateTime));
             }
 
             return report;
