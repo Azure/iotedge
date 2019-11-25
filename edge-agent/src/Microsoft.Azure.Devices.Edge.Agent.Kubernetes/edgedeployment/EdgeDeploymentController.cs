@@ -113,6 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             }
             catch (HttpOperationException e)
             {
+                Events.DeployModulesException(e);
                 return EdgeDeploymentStatus.Failure(e);
             }
         }
@@ -232,37 +233,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     });
             await Task.WhenAll(updatingTask);
 
-            try
-            {
-                // Remove all PVCs that are not in the desired list, and are labeled (created by Agent)
-                var removingTasks = diff.Removed
-                    .Select(
-                        name =>
-                        {
-                            Events.DeletePvc(name);
-                            return this.client.DeleteNamespacedPersistentVolumeClaimAsync(name, this.deviceNamespace);
-                        });
-                await Task.WhenAll(removingTasks);
+            // Remove all PVCs that are not in the desired list, and are labeled (created by Agent)
+            var removingTasks = diff.Removed
+                .Select(
+                    name =>
+                    {
+                        Events.DeletePvc(name);
+                        return this.client.DeleteNamespacedPersistentVolumeClaimAsync(name, this.deviceNamespace);
+                    });
+            await Task.WhenAll(removingTasks);
 
-                // Create all new desired PVCs.
-                var addingTasks = diff.Added
-                    .Select(
-                        pvc =>
-                        {
-                            Events.CreatePvc(pvc);
-                            return this.client.CreateNamespacedPersistentVolumeClaimAsync(pvc, this.deviceNamespace);
-                        });
-                await Task.WhenAll(addingTasks);
-            }
-            catch (HttpOperationException ex)
-            {
-                // Some PVCs may not allow updates, depending on the PV, the reasons for update,
-                // or the k8s server version.
-                // Also some PVCs may not allow deletion immediately (while pod still exists),
-                // or may require user intervention, like deleting the PV created under a storage class.
-                // Our best option is to log it and wait for a resolution.
-                Events.PvcException(ex);
-            }
+            // Create all new desired PVCs.
+            var addingTasks = diff.Added
+                .Select(
+                    pvc =>
+                    {
+                        Events.CreatePvc(pvc);
+                        return this.client.CreateNamespacedPersistentVolumeClaimAsync(pvc, this.deviceNamespace);
+                    });
+            await Task.WhenAll(addingTasks);
         }
 
         Diff<V1PersistentVolumeClaim> FindPvcDiff(
@@ -369,78 +358,78 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 CreatePvc,
                 DeletePvc,
                 UpdatePvc,
-                PvcException,
                 CreateServiceAccount,
                 DeleteServiceAccount,
-                UpdateServiceAccount
+                UpdateServiceAccount,
+                DeployModulesException
             }
 
-            public static void DeleteService(string name)
+            internal static void DeleteService(string name)
             {
                 Log.LogInformation((int)EventIds.DeleteService, $"Delete service {name}");
             }
 
-            public static void CreateService(V1Service service)
+            internal static void CreateService(V1Service service)
             {
                 Log.LogInformation((int)EventIds.CreateService, $"Create service {service.Metadata.Name}");
             }
 
-            public static void CreateDeployment(V1Deployment deployment)
+            internal static void CreateDeployment(V1Deployment deployment)
             {
                 Log.LogInformation((int)EventIds.CreateDeployment, $"Create deployment {deployment.Metadata.Name}");
             }
 
-            public static void DeleteDeployment(string name)
+            internal static void DeleteDeployment(string name)
             {
                 Log.LogInformation((int)EventIds.DeleteDeployment, $"Delete deployment {name}");
             }
 
-            public static void UpdateDeployment(V1Deployment deployment)
+            internal static void UpdateDeployment(V1Deployment deployment)
             {
                 Log.LogInformation((int)EventIds.UpdateDeployment, $"Update deployment {deployment.Metadata.Name}");
             }
 
-            public static void CreatePvc(V1PersistentVolumeClaim pvc)
+            internal static void CreatePvc(V1PersistentVolumeClaim pvc)
             {
                 Log.LogInformation((int)EventIds.CreatePvc, $"Create PVC {pvc.Metadata.Name}");
             }
 
-            public static void DeletePvc(string name)
+            internal static void DeletePvc(string name)
             {
                 Log.LogInformation((int)EventIds.DeletePvc, $"Delete PVC {name}");
             }
 
-            public static void UpdatePvc(V1PersistentVolumeClaim pvc)
+            internal static void UpdatePvc(V1PersistentVolumeClaim pvc)
             {
                 Log.LogInformation((int)EventIds.UpdatePvc, $"Update PVC {pvc.Metadata.Name}");
             }
 
-            public static void PvcException(Exception ex)
+            internal static void DeployModulesException(Exception ex)
             {
-                Log.LogWarning((int)EventIds.PvcException, ex, "PVC update or deletion failed. This may reconcile over time or require operator intervention.");
+                Log.LogWarning((int)EventIds.DeployModulesException, ex, "Module deployment failed");
             }
 
-            public static void InvalidCreationString(string kind, string name)
+            internal static void InvalidCreationString(string kind, string name)
             {
                 Log.LogDebug((int)EventIds.InvalidCreationString, $"Expected a valid '{kind}' creation string in k8s Object '{name}'.");
             }
 
-            public static void UpdateService(V1Service service)
+            internal static void UpdateService(V1Service service)
             {
                 Log.LogDebug((int)EventIds.UpdateService, $"Update service object '{service.Metadata.Name}'");
             }
 
-            public static void CreateServiceAccount(V1ServiceAccount serviceAccount)
+            internal static void CreateServiceAccount(V1ServiceAccount serviceAccount)
             {
                 Log.LogDebug((int)EventIds.CreateServiceAccount, $"Create Service Account {serviceAccount.Metadata.Name}");
             }
 
-            public static void DeleteServiceAccount(string name)
+            internal static void DeleteServiceAccount(string name)
             {
                 Log.LogDebug((int)EventIds.DeleteServiceAccount, $"Delete Service Account {name}");
             }
 
-            public static void UpdateServiceAccount(V1ServiceAccount serviceAccount)
+            internal static void UpdateServiceAccount(V1ServiceAccount serviceAccount)
             {
                 Log.LogDebug((int)EventIds.UpdateServiceAccount, $"Update Service Account {serviceAccount.Metadata.Name}");
             }
