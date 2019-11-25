@@ -201,6 +201,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "edge-modules", "edge-module
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MetricsCollector", "edge-modules\MetricsCollector\MetricsCollector.csproj", "{FE9E7051-FD7E-4759-95E7-6295282307B3}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Relayer", "edge-modules\Relayer\Relayer.csproj", "{61500583-6040-416F-A639-7BDC171E56A7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		CheckInBuild|Any CPU = CheckInBuild|Any CPU
