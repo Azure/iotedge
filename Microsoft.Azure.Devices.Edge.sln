@@ -191,6 +191,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edg
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest\Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.csproj", "{79540E35-45EA-4568-9AB7-C1CC0BFF73EE}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Relayer", "edge-modules\Relayer\Relayer.csproj", "{61500583-6040-416F-A639-7BDC171E56A7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		CheckInBuild|Any CPU = CheckInBuild|Any CPU
@@ -607,6 +609,14 @@ Global
 		{79540E35-45EA-4568-9AB7-C1CC0BFF73EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{79540E35-45EA-4568-9AB7-C1CC0BFF73EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{79540E35-45EA-4568-9AB7-C1CC0BFF73EE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{61500583-6040-416F-A639-7BDC171E56A7}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
+		{61500583-6040-416F-A639-7BDC171E56A7}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
+		{61500583-6040-416F-A639-7BDC171E56A7}.CodeCoverage|Any CPU.ActiveCfg = CheckInBuild|Any CPU
+		{61500583-6040-416F-A639-7BDC171E56A7}.CodeCoverage|Any CPU.Build.0 = CheckInBuild|Any CPU
+		{61500583-6040-416F-A639-7BDC171E56A7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{61500583-6040-416F-A639-7BDC171E56A7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{61500583-6040-416F-A639-7BDC171E56A7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{61500583-6040-416F-A639-7BDC171E56A7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -680,6 +690,7 @@ Global
 		{A5DFFB52-D8EA-4E1A-BF4F-8B9665C7DAFE} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
 		{08986FED-9283-47F1-B938-86D9C6E753E1} = {2300ED4C-1D5A-460F-8691-7C85E1162E0C}
 		{79540E35-45EA-4568-9AB7-C1CC0BFF73EE} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
+		{61500583-6040-416F-A639-7BDC171E56A7} = {578D5330-2F72-44C6-9DB5-C93B3F42C473}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D71830F5-3AF5-46B4-8A9E-1DCE4F2253AC}
