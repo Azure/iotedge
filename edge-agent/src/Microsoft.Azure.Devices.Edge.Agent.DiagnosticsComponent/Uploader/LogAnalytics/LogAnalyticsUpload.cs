@@ -16,20 +16,36 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
         readonly string workspaceId;
         readonly string workspaceKey;
         readonly string logType;
+        readonly Guid guid;
 
-        public LogAnalyticsUpload(string workspaceId, string workspaceKey, string logType)
+        public LogAnalyticsUpload(string workspaceId, string workspaceKey, string logType, Guid guid)
         {
             this.workspaceId = Preconditions.CheckNonWhiteSpace(workspaceId, nameof(workspaceId));
             this.workspaceKey = Preconditions.CheckNonWhiteSpace(workspaceKey, nameof(workspaceKey));
             this.logType = Preconditions.CheckNonWhiteSpace(logType, nameof(logType));
+            this.guid = Preconditions.CheckNotNull(guid);
+        }
+
+        public List<Metric> GetGuidTaggedMetrics(IEnumerable<Metric> originalMetrics)
+        {
+            List<Metric> metricsWithGuid = new List<Metric>();
+            foreach (Metric metric in originalMetrics)
+            {
+                Dictionary<string, string> tagsWithGuid = JsonConvert.DeserializeObject<Dictionary<string, string>>(metric.Tags);
+                tagsWithGuid.Add("guid", this.guid.ToString());
+                metricsWithGuid.Add(new Metric(metric.TimeGeneratedUtc, metric.Name, metric.Value, JsonConvert.SerializeObject(tagsWithGuid)));
+            }
+
+            return metricsWithGuid;
         }
 
         public async Task PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
         {
+            List<Metric> guidTaggedMetrics = this.GetGuidTaggedMetrics(metrics);
             try
             {
-                await AzureLogAnalytics.Instance.PostAsync(this.workspaceId, this.workspaceKey, JsonConvert.SerializeObject(metrics), this.logType);
-                Log.LogInformation($"Sent metrics to LogAnalytics");
+                await AzureLogAnalytics.Instance.PostAsync(this.workspaceId, this.workspaceKey, JsonConvert.SerializeObject(guidTaggedMetrics), this.logType);
+                Log.LogInformation($"Successfully sent metrics to LogAnalytics");
             }
             catch (Exception e)
             {
