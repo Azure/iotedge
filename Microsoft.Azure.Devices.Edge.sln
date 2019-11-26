@@ -189,9 +189,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edg
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Test", "test\Microsoft.Azure.Devices.Edge.Test\Microsoft.Azure.Devices.Edge.Test.csproj", "{08986FED-9283-47F1-B938-86D9C6E753E1}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent", "edge-agent\src\Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent\Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.csproj", "{47AA5965-5826-489D-B74B-314A61629121}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Diagnostics", "edge-agent\src\Microsoft.Azure.Devices.Edge.Agent.Diagnostics\Microsoft.Azure.Devices.Edge.Agent.Diagnostics.csproj", "{47AA5965-5826-489D-B74B-314A61629121}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test\Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test.csproj", "{B736B03C-1185-4AE5-87B7-665C6790F50F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test\Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.csproj", "{B736B03C-1185-4AE5-87B7-665C6790F50F}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest\Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.csproj", "{79540E35-45EA-4568-9AB7-C1CC0BFF73EE}"
 EndProject

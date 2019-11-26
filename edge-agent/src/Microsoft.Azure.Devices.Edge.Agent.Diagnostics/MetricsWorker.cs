@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-[assembly: System.Runtime.CompilerServices.InternalsVisibleToAttribute("Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleToAttribute("Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test")]
 namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
 {
     using System;
