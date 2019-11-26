@@ -162,14 +162,8 @@ pub(crate) async fn already_in_containerd(
     let res = content_client.info(req).await;
 
     match res {
-        Ok(res) => {
-            // Sanity check:
-            // `info` is only an `Option` type because of funky protobuf codegen
-            let _info = res
-                .into_inner()
-                .info
-                .expect("containerd grpc api returned null info");
-            // ultimately, we don't actually care about the info, just if it exists or not
+        Ok(_) => {
+            // we don't actually care about the info, just if it exists or not
             Ok(true)
         }
         Err(e) => match e.code() {

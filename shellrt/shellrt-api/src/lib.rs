@@ -60,8 +60,9 @@ macro_rules! api_impl {
             #[derive(Debug, Serialize, Deserialize)]
             #[serde(bound(deserialize = "Request: DeserializeOwned"))]
             pub struct Input<Request: ReqMarker> {
+                #[serde(rename = "_version")]
                 version: String,
-                #[serde(rename = "type")]
+                #[serde(rename = "_type")]
                 type_: String,
                 #[serde(flatten)]
                 request: Request,
@@ -84,6 +85,7 @@ macro_rules! api_impl {
             #[derive(Debug, Serialize, Deserialize)]
             #[serde(bound(deserialize = "Response: DeserializeOwned"))]
             pub struct Output<Response: ResMarker> {
+                #[serde(rename = "_version")]
                 version: String,
                 #[serde(flatten)]
                 #[serde(with = "crate::util::api_result")]
@@ -109,7 +111,7 @@ macro_rules! api_impl {
 
             /// Enumeration over all possible action request payloads.
             #[derive(Debug, Serialize, Deserialize)]
-            #[serde(tag = "type")]
+            #[serde(tag = "_type")]
             pub enum Request {
                 $(
                     #[serde(rename = $tag)]
@@ -131,6 +133,7 @@ macro_rules! api_impl {
             /// Input JSON sent from a plugin via stdout.
             #[derive(Debug, Serialize, Deserialize)]
             pub struct Input {
+                #[serde(rename = "_version")]
                 version: String,
                 #[serde(flatten)]
                 request: Request,
@@ -151,6 +154,7 @@ macro_rules! api_impl {
             /// Output JSON sent from a plugin via stdout.
             #[derive(Debug, Serialize, Deserialize)]
             pub struct Output {
+                #[serde(rename = "_version")]
                 version: String,
                 #[serde(flatten)]
                 #[serde(with = "crate::util::api_result")]
@@ -230,29 +234,30 @@ macro_rules! api_impl {
 
 /// shellrt api v0
 pub mod v0 {
+    pub use status::ModuleStatus;
+
     api_impl! {
-        +---------------------------------------------------------------------------------------------------------+
-        | version "0.1.0"                                                                                         |
-        +-----------------+---------------------++-------------+------------------------+-------------------------+
-        | name            | json tag            || module      | request                | response                |
-        +-----------------+---------------------++-------------+------------------------+-------------------------+
-        | ImgPull         | "img_pull"          || img_pull    | ImgPullRequest         | ImgPullResponse         |
-        | ImgRemove       | "img_remove"        || img_remove  | ImgRemoveRequest       | ImgRemoveResponse       |
-        +-----------------+---------------------++-------------+------------------------+-------------------------+
-        | Create          | "create"            || create      | CreateRequest          | CreateResponse          |
-        | Remove          | "remove"            || remove      | RemoveRequest          | RemoveResponse          |
-     // | RemoveAll       | "remove_all"        || remove_all  | RemoveAllRequest       | RemoveAllResponse       |
-        | Restart         | "restart"           || restart     | RestartRequest         | RestartResponse         |
-        | Start           | "start"             || start       | StartRequest           | StartResponse           |
-        | Stop            | "stop"              || stop        | StopRequest            | StopResponse            |
-     // +-----------------+---------------------++-------------+------------------------+-------------------------+
-     // | Get             | "get"               || get         | GetRequest             | GetResponse             |
-     // | List            | "list"              || list        | ListRequest            | ListResponse            |
-     // | ListWithDetails | "list_with_details" || listwd      | ListWithDetailsRequest | ListWithDetailsResponse |
-     // | Logs            | "logs"              || logs        | LogsRequest            | LogsResponse            |
-     // | SystemInfo      | "system_info"       || system_info | SystemInfoRequest      | SystemInfoResponse      |
-        +-----------------+---------------------++-------------+------------------------+-------------------------+
-        | Version         | "version"           || version     | VersionRequest         | VersionResponse         |
-        +-----------------+---------------------++-------------+------------------------+-------------------------+
+        +------------------------------------------------------------------------------------+
+        | version "0.1.0"                                                                    |
+        +------------+---------------++-------------+-------------------+--------------------+
+        | name       | json tag      || module      | request           | response           |
+        +------------+---------------++-------------+-------------------+--------------------+
+        | ImgPull    | "img_pull"    || img_pull    | ImgPullRequest    | ImgPullResponse    |
+        | ImgRemove  | "img_remove"  || img_remove  | ImgRemoveRequest  | ImgRemoveResponse  |
+        +------------+---------------++-------------+-------------------+--------------------+
+        | Create     | "create"      || create      | CreateRequest     | CreateResponse     |
+        | Remove     | "remove"      || remove      | RemoveRequest     | RemoveResponse     |
+        | Restart    | "restart"     || restart     | RestartRequest    | RestartResponse    |
+        | Start      | "start"       || start       | StartRequest      | StartResponse      |
+        | Stop       | "stop"        || stop        | StopRequest       | StopResponse       |
+        +------------+---------------++-------------+-------------------+--------------------+
+     // | List       | "list"        || list        | ListRequest       | ListResponse       |
+     // | Logs       | "logs"        || logs        | LogsRequest       | LogsResponse       |
+        | Status     | "status"      || status      | StatusRequest     | StatusResponse     |
+     // | SystemInfo | "system_info" || system_info | SystemInfoRequest | SystemInfoResponse |
+     // | Top        | "top"         || top         | TopRequest        | TopResponse        |
+        +------------+---------------++-------------+-------------------+--------------------+
+        | Version    | "version"     || version     | VersionRequest    | VersionResponse    |
+        +------------+---------------++-------------+-------------------+--------------------+
     }
 }

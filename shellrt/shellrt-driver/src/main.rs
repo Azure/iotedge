@@ -112,6 +112,16 @@ async fn true_main() -> Result<(), failure::Error> {
             ),
         )
         .subcommand(
+            SubCommand::with_name("status")
+                .about("Query the runtime status of a module")
+                .arg(
+                    Arg::with_name("name")
+                        .help("Module name")
+                        .required(true)
+                        .index(1),
+                ),
+        )
+        .subcommand(
             SubCommand::with_name("stop")
                 .about("Stop a module")
                 .arg(
@@ -240,6 +250,19 @@ async fn true_main() -> Result<(), failure::Error> {
 
             println!("the module was started successfully");
             debug!("{:#?}", res);
+        }
+        ("status", Some(sub_m)) => {
+            let name = sub_m
+                .value_of("name")
+                .expect("name should be a required argument");
+
+            let res = plugin
+                .send(request::Status {
+                    name: name.to_string(),
+                })
+                .await?;
+
+            println!("{:#?}", res);
         }
         ("stop", Some(sub_m)) => {
             let name = sub_m

@@ -10,7 +10,7 @@ where
     E: Deserialize<'de>,
 {
     #[derive(Debug, Deserialize)]
-    #[serde(tag = "status", rename_all = "snake_case")]
+    #[serde(tag = "_status", rename_all = "snake_case")]
     pub enum ApiOutputResult<T, E> {
         Ok(T),
         Err(E),
@@ -31,7 +31,7 @@ where
     E: Serialize,
 {
     #[derive(Serialize)]
-    #[serde(tag = "status", rename_all = "snake_case")]
+    #[serde(tag = "_status", rename_all = "snake_case")]
     pub enum ApiOutputResult<'a, T, E> {
         Ok(&'a T),
         Err(&'a E),

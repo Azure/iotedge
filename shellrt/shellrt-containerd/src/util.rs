@@ -26,6 +26,8 @@ impl<T> TonicRequestExt<T> for Request<T> {
 use crate::error::*;
 use cri_grpc::{client::RuntimeServiceClient, ListContainersRequest};
 
+/// Returns the container_id associated with a moddule name. Returns an error if
+/// the module doesn't exist.
 pub async fn module_to_container_id(
     mut cri_client: RuntimeServiceClient<tonic::transport::Channel>,
     name: &str,

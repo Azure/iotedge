@@ -46,6 +46,7 @@ handlers! {
     | Remove    | remove     | RemoveHandler    |
     | Restart   | restart    | RestartHandler   |
     | Start     | start      | StartHandler     |
+    | Status    | status     | StatusHandler    |
     | Stop      | stop       | StopHandler      |
     | Version   | version    | VersionHandler   |
     +-----------+------------+------------------+
@@ -101,7 +102,6 @@ async fn handle_input(grpc_uri: String) -> Result<Response> {
         return Err(ErrorKind::IncompatibleVersion.into());
     }
 
-    // TODO?: use a macro for these match statement
     let res = handle_message(grpc_uri, input.into_inner()).await?;
 
     Ok(res)

@@ -9,10 +9,7 @@ use serde_json::Value;
 pub struct Error {
     /// The code field will be a unique identifier corresponding to either a
     /// well-known error, or a plugin-specific error.
-    #[serde(
-        serialize_with = "error_enum_to_u32",
-        deserialize_with = "u32_to_error_enum"
-    )]
+    #[serde(with = "u32_error_enum")]
     pub code: ErrorCode,
     /// The message field will be a human readable string.
     pub message: String,
@@ -65,10 +62,14 @@ impl From<ErrorCode> for u32 {
     }
 }
 
-fn u32_to_error_enum<'de, D: Deserializer<'de>>(des: D) -> Result<ErrorCode, D::Error> {
-    Ok(u32::deserialize(des)?.into())
-}
+mod u32_error_enum {
+    use super::*;
 
-fn error_enum_to_u32<S: Serializer>(v: &ErrorCode, ser: S) -> Result<S::Ok, S::Error> {
-    u32::serialize(&v.into(), ser)
+    pub fn deserialize<'de, D: Deserializer<'de>>(des: D) -> Result<ErrorCode, D::Error> {
+        Ok(u32::deserialize(des)?.into())
+    }
+
+    pub fn serialize<S: Serializer>(v: &ErrorCode, ser: S) -> Result<S::Ok, S::Error> {
+        u32::serialize(&v.into(), ser)
+    }
 }
