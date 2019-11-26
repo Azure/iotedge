@@ -59,21 +59,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
         public void ComputeAvailability(ModuleSet desired, ModuleSet current)
         {
             IEnumerable<IRuntimeModule> modulesToCheck = current.Modules.Values
-                .Where(c => (c is IRuntimeModule) && c.Name != Constants.EdgeAgentModuleName)
-                .Select(c => c as IRuntimeModule);
+                .OfType<IRuntimeModule>()
+                .Where(m => m.Name != Constants.EdgeAgentModuleName);
 
             /* Get all modules that are not running but should be */
             var down = new HashSet<string>(modulesToCheck
-                .Where(c =>
-                    c.RuntimeStatus != ModuleStatus.Running &&
-                    desired.Modules.TryGetValue(c.Name, out var d) &&
+                .Where(m =>
+                    m.RuntimeStatus != ModuleStatus.Running &&
+                    desired.Modules.TryGetValue(m.Name, out var d) &&
                     d.DesiredStatus == ModuleStatus.Running)
-                .Select(c => c.Name));
+                .Select(m => m.Name));
 
             /* Get all correctly running modules */
             var up = new HashSet<string>(modulesToCheck
-                .Where(c => c.RuntimeStatus == ModuleStatus.Running)
-                .Select(c => c.Name));
+                .Where(m => m.RuntimeStatus == ModuleStatus.Running)
+                .Select(m => m.Name));
 
             /* handle edgeAgent specially */
             this.edgeAgent.Value.AddPoint(true);
