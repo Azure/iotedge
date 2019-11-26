@@ -11,7 +11,7 @@ namespace TwinTester
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
-    public class DesiredPropertyOperation : ITwinOperation
+    public class DesiredPropertyOperation : TwinOperationBase
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("TwinTester");
         readonly RegistryManager registryManager;

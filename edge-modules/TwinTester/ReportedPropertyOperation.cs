@@ -10,7 +10,7 @@ namespace TwinTester
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
 
-    public class ReportedPropertyOperation : ITwinOperation
+    public class ReportedPropertyOperation : TwinOperationBase
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("TwinTester");
         readonly RegistryManager registryManager;

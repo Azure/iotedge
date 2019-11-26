@@ -6,7 +6,7 @@ namespace TwinTester
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Extensions.Logging;
 
-    public abstract class ITwinOperation
+    public abstract class TwinOperationBase
     {
         TwinState TwinState { get; set; }
         AnalyzerClient AnalyzerClient { get; set; }
