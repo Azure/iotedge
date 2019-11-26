@@ -30,19 +30,8 @@ namespace TwinTester
             this.moduleClient.SetDesiredPropertyUpdateCallbackAsync(this.OnDesiredPropertyUpdateAsync, storage);
         }
 
-        public override async Task PerformValidation()
+        async Task<Dictionary<string, string>> ValidatePropertiesFromTwin(Twin receivedTwin)
         {
-            Twin receivedTwin;
-            try
-            {
-                receivedTwin = await this.moduleClient.GetTwinAsync();
-            }
-            catch (Exception e)
-            {
-                Logger.LogInformation($"Failed call to module client get twin: {e}");
-                return;
-            }
-
             TwinCollection propertyUpdatesFromTwin = receivedTwin.Properties.Desired;
             Dictionary<string, DateTime> desiredPropertiesUpdated = await this.storage.GetAllDesiredPropertiesUpdated();
             Dictionary<string, DateTime> desiredPropertiesReceived = await this.storage.GetAllDesiredPropertiesReceived();
@@ -83,6 +72,23 @@ namespace TwinTester
                 propertiesToRemoveFromTwin.Add(desiredPropertyUpdate.Key, null); // will later be serialized as a twin update
             }
 
+            return propertiesToRemoveFromTwin; 
+        }
+
+        public override async Task PerformValidation()
+        {
+            Twin receivedTwin;
+            try
+            {
+                receivedTwin = await this.moduleClient.GetTwinAsync();
+            }
+            catch (Exception e)
+            {
+                Logger.LogInformation($"Failed call to module client get twin: {e}");
+                return;
+            }
+
+            Dictionary<string, string> propertiesToRemoveFromTwin = await ValidatePropertiesFromTwin(receivedTwin);
             foreach (KeyValuePair<string, string> pair in propertiesToRemoveFromTwin)
             {
                     try

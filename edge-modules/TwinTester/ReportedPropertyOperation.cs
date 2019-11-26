@@ -28,21 +28,8 @@ namespace TwinTester
             this.twinState = twinState;
         }
 
-        public override async Task PerformValidation()
+        async Task<TwinCollection> ValidatePropertiesFromTwin(Twin receivedTwin)
         {
-            Twin receivedTwin;
-            try
-            {
-                receivedTwin = await this.registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
-                this.twinState.TwinETag = receivedTwin.ETag;
-            }
-            catch (Exception e)
-            {
-                Logger.LogInformation($"Failed call to registry manager get twin: {e}");
-                this.twinState.LastTimeOffline = DateTime.UtcNow;
-                return;
-            }
-
             TwinCollection propertyUpdatesFromTwin = receivedTwin.Properties.Reported;
             Dictionary<string, DateTime> reportedPropertiesUpdated = await this.storage.GetAllReportedPropertiesUpdated();
             TwinCollection propertiesToRemoveFromTwin = new TwinCollection();
@@ -78,6 +65,25 @@ namespace TwinTester
                 await this.CallAnalyzerToReportStatus(Settings.Current.ModuleId, status, string.Empty);
             }
 
+            return propertiesToRemoveFromTwin;
+        }
+
+        public override async Task PerformValidation()
+        {
+            Twin receivedTwin;
+            try
+            {
+                receivedTwin = await this.registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
+                this.twinState.TwinETag = receivedTwin.ETag;
+            }
+            catch (Exception e)
+            {
+                Logger.LogInformation($"Failed call to registry manager get twin: {e}");
+                this.twinState.LastTimeOffline = DateTime.UtcNow;
+                return;
+            }
+
+            TwinCollection propertiesToRemoveFromTwin = await ValidatePropertiesFromTwin(receivedTwin);
             foreach (dynamic pair in propertiesToRemoveFromTwin)
             {
                 KeyValuePair<string, object> property = (KeyValuePair<string, object>)pair;
