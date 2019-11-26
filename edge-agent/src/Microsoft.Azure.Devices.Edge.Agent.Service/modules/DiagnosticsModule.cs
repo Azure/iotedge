@@ -7,8 +7,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using System.IO;
     using System.Text;
     using Autofac;
-    using Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent;
-    using Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Publish;
+    using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
+    using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publish;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
