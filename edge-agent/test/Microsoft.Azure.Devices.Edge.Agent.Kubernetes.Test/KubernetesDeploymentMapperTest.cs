@@ -192,7 +192,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var pod = deployment.Spec.Template;
 
             Assert.True(pod != null);
-            var podVolume = pod.Spec.Volumes.Single(v => v.Name == "elephant");
+            var podVolume = pod.Spec.Volumes.Single(v => v.Name == "a-volume");
             Assert.NotNull(podVolume.PersistentVolumeClaim);
 
             Assert.Equal("module1-a-volume", podVolume.PersistentVolumeClaim.ClaimName);
@@ -217,7 +217,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var pod = deployment.Spec.Template;
 
             Assert.True(pod != null);
-            var podVolume = pod.Spec.Volumes.Single(v => v.Name == "module1-a-volume");
+            var podVolume = pod.Spec.Volumes.Single(v => v.Name == "a-volume");
             Assert.NotNull(podVolume.PersistentVolumeClaim);
             Assert.Equal("module1-a-volume", podVolume.PersistentVolumeClaim.ClaimName);
             Assert.True(podVolume.PersistentVolumeClaim.ReadOnlyProperty);
@@ -241,7 +241,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var pod = deployment.Spec.Template;
 
             Assert.True(pod != null);
-            var podVolume = pod.Spec.Volumes.Single(v => v.Name == "module1-a-volume");
+            var podVolume = pod.Spec.Volumes.Single(v => v.Name == "a-volume");
             Assert.NotNull(podVolume.PersistentVolumeClaim);
             Assert.Equal("module1-a-volume", podVolume.PersistentVolumeClaim.ClaimName);
             Assert.True(podVolume.PersistentVolumeClaim.ReadOnlyProperty);

@@ -7,16 +7,13 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
     public static class Compression
     {
-        public static byte[] CompressToGzip(IEnumerable<byte> input)
+        public static byte[] CompressToGzip(byte[] input)
         {
             using (var compressedStream = new MemoryStream())
             {
                 using (var gzipStream = new GZipStream(compressedStream, CompressionMode.Compress))
                 {
-                    foreach (byte b in input)
-                    {
-                        gzipStream.WriteByte(b);
-                    }
+                    gzipStream.Write(input, 0, input.Length);
                 }
 
                 var compressedBytes = compressedStream.ToArray();
