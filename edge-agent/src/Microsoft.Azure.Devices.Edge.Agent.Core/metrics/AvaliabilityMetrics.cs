@@ -6,28 +6,33 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
-    using System.Runtime.CompilerServices;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Extensions.Logging;
 
-    public interface IAvailabilityMetric
-    {
-        void ComputeAvailability(ModuleSet desired, ModuleSet current);
-    }
-
-    public class AvailabilityMetrics : IAvailabilityMetric
+    public class AvailabilityMetrics : IAvailabilityMetric, IDisposable
     {
         readonly IMetricsGauge running;
         readonly IMetricsGauge expectedRunning;
-        readonly ISystemTime time;
-        readonly ILogger log = Logger.Factory.CreateLogger<Availability>();
+        readonly ISystemTime systemTime;
+        readonly ILogger log = Logger.Factory.CreateLogger<AvailabilityMetrics>();
+
+        // This allows edgeAgent to track its own avaliability. If edgeAgent shutsdown unexpectedly, it can look at the last checkpoint time to determine its previous avaliability.
+        readonly TimeSpan checkpointFrequency = TimeSpan.FromMinutes(5);
+        readonly PeriodicTask updateCheckpointFile;
+        readonly string checkpointFile;
 
         readonly List<Availability> availabilities;
         readonly Lazy<Availability> edgeAgent;
 
-        public AvailabilityMetrics(IMetricsProvider metricsProvider, ISystemTime time)
+        public AvailabilityMetrics(IMetricsProvider metricsProvider, string storageFolder, ISystemTime time = null)
         {
+            this.systemTime = time ?? SystemTime.Instance;
+            this.availabilities = new List<Availability>();
+            this.edgeAgent = new Lazy<Availability>(() => new Availability(Constants.EdgeAgentModuleName, this.CalculateEdgeAgentDowntime(), this.systemTime));
+
+            Preconditions.CheckNotNull(metricsProvider, nameof(metricsProvider));
             this.running = metricsProvider.CreateGauge(
                 "total_time_running_correctly_seconds",
                 "The amount of time the module was specified in the deployment and was in the running state",
@@ -38,31 +43,40 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                 "The amount of time the module was specified in the deployment",
                 new List<string> { "module_name" });
 
-            this.time = time;
-            this.availabilities = new List<Availability>();
-            this.edgeAgent = new Lazy<Availability>(() => new Availability("edgeAgent", this.CalculateEdgeAgentDowntime(), this.time));
+            string storageDirectory = Path.Combine(Preconditions.CheckNonWhiteSpace(storageFolder, nameof(storageFolder)), "availability");
+            try
+            {
+                Directory.CreateDirectory(storageDirectory);
+                this.checkpointFile = Path.Combine(storageDirectory, "avaliability.checkpoint");
+                this.updateCheckpointFile = new PeriodicTask(this.UpdateCheckpointFile, this.checkpointFrequency, this.checkpointFrequency, this.log, "Checkpoint Availability");
+            }
+            catch (Exception ex)
+            {
+                this.log.LogError(ex, "Could not create checkpoint directory");
+            }
         }
 
         public void ComputeAvailability(ModuleSet desired, ModuleSet current)
         {
+            IEnumerable<IRuntimeModule> modulesToCheck = current.Modules.Values
+                .OfType<IRuntimeModule>()
+                .Where(m => m.Name != Constants.EdgeAgentModuleName);
+
             /* Get all modules that are not running but should be */
-            var down = new HashSet<string>(current.Modules.Values
-                .Where(c =>
-                    (c is IRuntimeModule) &&
-                    (c as IRuntimeModule).RuntimeStatus != ModuleStatus.Running &&
-                    desired.Modules.TryGetValue(c.Name, out var d) &&
+            var down = new HashSet<string>(modulesToCheck
+                .Where(m =>
+                    m.RuntimeStatus != ModuleStatus.Running &&
+                    desired.Modules.TryGetValue(m.Name, out var d) &&
                     d.DesiredStatus == ModuleStatus.Running)
-                .Select(c => c.Name));
+                .Select(m => m.Name));
 
             /* Get all correctly running modules */
-            var up = new HashSet<string>(current.Modules.Values
-                .Where(c => (c is IRuntimeModule) && (c as IRuntimeModule).RuntimeStatus == ModuleStatus.Running)
-                .Select(c => c.Name));
+            var up = new HashSet<string>(modulesToCheck
+                .Where(m => m.RuntimeStatus == ModuleStatus.Running)
+                .Select(m => m.Name));
 
             /* handle edgeAgent specially */
             this.edgeAgent.Value.AddPoint(true);
-            down.Remove("edgeAgent");
-            up.Remove("edgeAgent");
             this.running.Set(this.edgeAgent.Value.ExpectedTime.TotalSeconds, new[] { this.edgeAgent.Value.Name });
             this.expectedRunning.Set(this.edgeAgent.Value.RunningTime.TotalSeconds, new[] { this.edgeAgent.Value.Name });
 
@@ -90,40 +104,56 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             /* Add new modules to track */
             foreach (string module in down.Union(up))
             {
-                this.availabilities.Add(new Availability(module, this.time));
+                this.availabilities.Add(new Availability(module, this.systemTime));
+            }
+        }
+
+        public void Dispose()
+        {
+            this.updateCheckpointFile.Dispose();
+        }
+
+        /*
+         * The Logic below handles edgeAgent's own avaliability. It keeps a checkpoint file containing the current timestamp
+         *  that it updates every 5 minutes. On a clean shutdown, it deletes this file to indicate it shouldn't be running. If agent crashes
+         *  or returns a non-zero code, it leaves the file. On startup, if the file exists, agent knows it shutdown incorrectly \
+         *  and can calculate its downtime using the timestamp in the file.
+         */
+        public void IndicateCleanShutdown()
+        {
+            try
+            {
+                File.Delete(this.checkpointFile);
+            }
+            catch (Exception ex)
+            {
+                this.log.LogError(ex, "Could not delete checkpoint file");
             }
         }
 
         TimeSpan CalculateEdgeAgentDowntime()
         {
-            AppDomain.CurrentDomain.ProcessExit += this.NoteCurrentTime;
             try
             {
-                if (File.Exists("shutdown_time"))
+                if (File.Exists(this.checkpointFile))
                 {
-                    // TODO: get iotedged uptime. if < a couple minutes, assume intentional shutdown and return 0.
-                    long ticks = long.Parse(File.ReadAllText("shutdown_time"));
-                    return this.time.UtcNow - new DateTime(ticks);
+                    long ticks = long.Parse(File.ReadAllText(this.checkpointFile));
+                    DateTime checkpointTime = new DateTime(ticks, DateTimeKind.Utc);
+                    return this.systemTime.UtcNow - checkpointTime;
                 }
             }
             catch (Exception ex)
             {
-                this.log.LogError($"Could not load shutdown time:\n{ex}");
+                this.log.LogError(ex, "Could not load shutdown time");
             }
 
             return TimeSpan.Zero;
         }
 
-        void NoteCurrentTime(object sender, EventArgs e)
+        Task UpdateCheckpointFile()
         {
-            try
-            {
-                File.WriteAllText("shutdown_time", this.time.UtcNow.Ticks.ToString());
-            }
-            catch (Exception ex)
-            {
-                this.log.LogError($"Could not save shutdown time:\n{ex}");
-            }
+            File.WriteAllText(this.checkpointFile, this.systemTime.UtcNow.Ticks.ToString());
+            return Task.CompletedTask;
         }
     }
 }

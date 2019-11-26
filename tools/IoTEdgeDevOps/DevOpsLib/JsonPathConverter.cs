@@ -37,7 +37,7 @@ namespace DevOpsLib
 
                 if (serializer.ContractResolver is DefaultContractResolver)
                 {
-                    var resolver = (DefaultContractResolver) serializer.ContractResolver;
+                    var resolver = (DefaultContractResolver)serializer.ContractResolver;
                     jsonPath = resolver.GetResolvedPropertyName(jsonPath);
                 }
 

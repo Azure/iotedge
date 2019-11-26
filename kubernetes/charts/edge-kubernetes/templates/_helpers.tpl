@@ -32,6 +32,9 @@ agent:
     {{- if .Values.edgeAgent.env.portMappingServiceType}}
     PortMappingServiceType: {{ .Values.edgeAgent.env.portMappingServiceType | quote }}
     {{- end }}
+    {{- if .Values.edgeAgent.env.backupConfigFilePath}}
+    BackupConfigFilePath: {{ .Values.edgeAgent.env.backupConfigFilePath | quote }}
+    {{- end }}
     {{- if .Values.edgeAgent.env.enableK8sServiceCallTracing}}
     EnableK8sServiceCallTracing: {{ .Values.edgeAgent.env.enableK8sServiceCallTracing | quote }}
     {{- end }}
@@ -55,6 +58,9 @@ agent:
     {{- end }}
     {{- if .Values.edgeAgent.env.enableK8sExtensions }}
     ExperimentalFeatures__EnableK8SExtensions: {{ .Values.edgeAgent.env.enableK8sExtensions | quote }}
+    {{- end }}
+    {{- if .Values.edgeAgent.env.runAsNonRoot }}
+    RunAsNonRoot: {{ .Values.edgeAgent.env.runAsNonRoot | quote }}
     {{- end }}
   {{ else }}
   env: {}

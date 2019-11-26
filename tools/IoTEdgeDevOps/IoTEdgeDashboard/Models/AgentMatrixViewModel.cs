@@ -10,6 +10,6 @@ namespace IoTEdgeDashboard.Models
 
         public ImageBuildViewModel ImageBuild { get; set; }
 
-        public List<IoTEdgeVstsAgent> UnmatchedAgents { get; set; }
+        public List<IoTEdgeAgent> UnmatchedAgents { get; set; }
     }
 }
