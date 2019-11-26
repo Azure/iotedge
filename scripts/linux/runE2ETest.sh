@@ -379,7 +379,7 @@ function process_args() {
             LOG_ANALYTICS_LOG_TYPE="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 36 ]; then
-            METRICS_ENDPOINTS_JSON_ARRAY="$arg"
+            METRICS_ENDPOINTS_JSON_ARRAY="${arg//\\/\\\\\\}"
             saveNextArg=0
         elif [ $saveNextArg -eq 37 ]; then
             METRICS_SCRAPE_FREQUENCY_IN_SECS="$arg"
