@@ -9,6 +9,6 @@ namespace TestAnalyzer
 
         public string StatusCode { get; set; }
 
-        public DateTime EnqueuedDateTime { get; set; }
+        public DateTime ResponseDateTime { get; set; }
     }
 }
