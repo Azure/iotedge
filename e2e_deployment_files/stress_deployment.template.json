@@ -63,9 +63,6 @@
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
-            },
-            "ServiceClientConnectionString": {
-              "value": "<ServiceClientConnectionString>"
             }
           },
           "loadGen2": {
@@ -84,9 +81,6 @@
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
-            },
-            "ServiceClientConnectionString": {
-              "value": "<ServiceClientConnectionString>"
             }
           },
           "loadGen3": {
@@ -100,9 +94,6 @@
               },
               "transportType": {
                 "value": "<TransportType3>"
-              },
-              "ServiceClientConnectionString": {
-                "value": "<ServiceClientConnectionString>"
               }
             },
             "settings": {
@@ -121,9 +112,6 @@
               },
               "transportType": {
                 "value": "<TransportType4>"
-              },
-              "ServiceClientConnectionString": {
-                "value": "<ServiceClientConnectionString>"
               }
             },
             "settings": {
