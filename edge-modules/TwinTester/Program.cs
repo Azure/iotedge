@@ -2,7 +2,6 @@
 namespace TwinTester
 {
     using System;
-    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Client;
