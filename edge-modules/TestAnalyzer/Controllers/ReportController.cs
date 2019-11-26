@@ -22,7 +22,7 @@ namespace TestAnalyzer.Controllers
             return deviceAnalysis.ToString();
         }
 
-        // GET api/report (exposed for backwards compatibility for snitcher)
+        // GET api/report (exposed for backwards compatibility for snitcher which will eventually be deprecated)
         [HttpGet]
         public ActionResult<string> GetMessages()
         {

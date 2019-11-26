@@ -34,44 +34,17 @@ namespace TwinTester
                 Storage storage = new Storage();
                 storage.Init(Settings.Current.StoragePath, new SystemEnvironment(), Settings.Current.StorageOptimizeForPerformance);
 
-                TwinOperator twinOperator = new TwinOperator(registryManager, moduleClient, analyzerClient, storage);
-                await twinOperator.InitializeModuleTwin();
+                TwinState twinState = await TwinOperator.InitializeModuleTwin(registryManager, moduleClient, storage);
+                TwinOperator twinOperator = new TwinOperator(registryManager, moduleClient, analyzerClient, storage, twinState);
 
-                (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
-                Task updateLoop = PerformRecurringUpdates(twinOperator, Settings.Current.TwinUpdateFrequency, cts);
-                Task validationLoop = PerformRecurringValidation(twinOperator, Settings.Current.TwinUpdateFailureThreshold, cts);
-                await Task.WhenAll(updateLoop, validationLoop);
-
-                completed.Set();
-                handler.ForEach(h => GC.KeepAlive(h));
+                TimeSpan validationInterval = new TimeSpan(Settings.Current.TwinUpdateFailureThreshold.Ticks / 4);
+                PeriodicTask periodicValidation = new PeriodicTask(twinOperator.PerformValidation, validationInterval, validationInterval, Logger, "TwinValidation");
+                PeriodicTask periodicUpdate = new PeriodicTask(twinOperator.PerformUpdates, Settings.Current.TwinUpdateFrequency, Settings.Current.TwinUpdateFrequency, Logger, "TwinUpdates");
             }
             catch (Exception ex)
             {
                 Logger.LogError($"Error occurred during twin test setup.\r\n{ex}");
             }
-        }
-
-        static async Task PerformRecurringUpdates(TwinOperator twinOperator, TimeSpan twinUpdateFrequency, CancellationTokenSource cts)
-        {
-            while (!cts.Token.IsCancellationRequested)
-            {
-                await twinOperator.PerformUpdates();
-                await Task.Delay(twinUpdateFrequency);
-            }
-
-            Logger.LogInformation("PerformRecurringUpdates finished.");
-        }
-
-        static async Task PerformRecurringValidation(TwinOperator twinOperator, TimeSpan twinUpdateFailureThreshold, CancellationTokenSource cts)
-        {
-            TimeSpan validationInterval = new TimeSpan(Settings.Current.TwinUpdateFailureThreshold.Ticks / 4);
-            while (!cts.Token.IsCancellationRequested)
-            {
-                await twinOperator.PerformValidation();
-                await Task.Delay(validationInterval);
-            }
-
-            Logger.LogInformation("PerformRecurringValidation finished.");
         }
     }
 }
