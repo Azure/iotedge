@@ -21,12 +21,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
         // This allows edgeAgent to track its own avaliability. If edgeAgent shutsdown unexpectedly, it can look at the last checkpoint time to determine its previous avaliability.
         readonly TimeSpan checkpointFrequency = TimeSpan.FromMinutes(5);
         readonly PeriodicTask updateCheckpointFile;
-        readonly string checkpointFile = "avaliability_checkpoint";
+        readonly string checkpointFile;
 
         readonly List<Availability> availabilities;
         readonly Lazy<Availability> edgeAgent;
 
-        public AvailabilityMetrics(IMetricsProvider metricsProvider, ISystemTime time = null)
+        public AvailabilityMetrics(IMetricsProvider metricsProvider, string storageFolder, ISystemTime time = null)
         {
             this.systemTime = time ?? SystemTime.Instance;
             this.availabilities = new List<Availability>();
@@ -43,7 +43,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                 "The amount of time the module was specified in the deployment",
                 new List<string> { "module_name" });
 
-            this.updateCheckpointFile = new PeriodicTask(this.UpdateCheckpointFile, this.checkpointFrequency, this.checkpointFrequency, this.log, "Checkpoint Availability");
+            string storageDirectory = Path.Combine(Preconditions.CheckNonWhiteSpace(storageFolder, nameof(storageFolder)), "availability");
+            try
+            {
+                Directory.CreateDirectory(storageDirectory);
+                this.checkpointFile = Path.Combine(storageDirectory, "avaliability.checkpoint");
+                this.updateCheckpointFile = new PeriodicTask(this.UpdateCheckpointFile, this.checkpointFrequency, this.checkpointFrequency, this.log, "Checkpoint Availability");
+            }
+            catch (Exception ex)
+            {
+                this.log.LogError(ex, "Could not create checkpoint directory");
+            }
         }
 
         public void ComputeAvailability(ModuleSet desired, ModuleSet current)
