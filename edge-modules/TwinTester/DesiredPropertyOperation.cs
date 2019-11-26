@@ -72,7 +72,7 @@ namespace TwinTester
                 propertiesToRemoveFromTwin.Add(desiredPropertyUpdate.Key, null); // will later be serialized as a twin update
             }
 
-            return propertiesToRemoveFromTwin; 
+            return propertiesToRemoveFromTwin;
         }
 
         public override async Task PerformValidation()
@@ -88,7 +88,7 @@ namespace TwinTester
                 return;
             }
 
-            Dictionary<string, string> propertiesToRemoveFromTwin = await ValidatePropertiesFromTwin(receivedTwin);
+            Dictionary<string, string> propertiesToRemoveFromTwin = await this.ValidatePropertiesFromTwin(receivedTwin);
             foreach (KeyValuePair<string, string> pair in propertiesToRemoveFromTwin)
             {
                     try

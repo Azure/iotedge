@@ -83,7 +83,7 @@ namespace TwinTester
                 return;
             }
 
-            TwinCollection propertiesToRemoveFromTwin = await ValidatePropertiesFromTwin(receivedTwin);
+            TwinCollection propertiesToRemoveFromTwin = await this.ValidatePropertiesFromTwin(receivedTwin);
             foreach (dynamic pair in propertiesToRemoveFromTwin)
             {
                 KeyValuePair<string, object> property = (KeyValuePair<string, object>)pair;
