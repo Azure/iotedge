@@ -26,22 +26,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
             this.guid = Preconditions.CheckNotNull(guid);
         }
 
-        public List<Metric> GetGuidTaggedMetrics(IEnumerable<Metric> originalMetrics)
+        public IEnumerable<Metric> GetGuidTaggedMetrics(IEnumerable<Metric> originalMetrics)
         {
-            List<Metric> metricsWithGuid = new List<Metric>();
             foreach (Metric metric in originalMetrics)
             {
                 Dictionary<string, string> tagsWithGuid = JsonConvert.DeserializeObject<Dictionary<string, string>>(metric.Tags);
                 tagsWithGuid.Add("guid", this.guid.ToString());
-                metricsWithGuid.Add(new Metric(metric.TimeGeneratedUtc, metric.Name, metric.Value, JsonConvert.SerializeObject(tagsWithGuid)));
+                yield return new Metric(metric.TimeGeneratedUtc, metric.Name, metric.Value, JsonConvert.SerializeObject(tagsWithGuid));
             }
-
-            return metricsWithGuid;
         }
 
         public async Task PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
         {
-            List<Metric> guidTaggedMetrics = this.GetGuidTaggedMetrics(metrics);
+            IEnumerable<Metric> guidTaggedMetrics = this.GetGuidTaggedMetrics(metrics);
             try
             {
                 await AzureLogAnalytics.Instance.PostAsync(this.workspaceId, this.workspaceKey, JsonConvert.SerializeObject(guidTaggedMetrics), this.logType);
