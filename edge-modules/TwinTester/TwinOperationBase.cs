@@ -22,11 +22,11 @@ namespace TwinTester
             return DateTime.UtcNow - comparisonPoint > Settings.Current.TwinUpdateFailureThreshold;
         }
 
-        protected async Task CallAnalyzerToReportStatus(string moduleId, string status, string responseJson)
+        protected async Task CallAnalyzerToReportStatus(string moduleId, string status)
         {
             try
             {
-                await this.AnalyzerClient.AddTwinStatusAsync(new ResponseStatus { ModuleId = moduleId, StatusCode = status, ResultAsJson = responseJson, EnqueuedDateTime = DateTime.UtcNow });
+                await this.AnalyzerClient.AddTwinStatusAsync(new ResponseStatus { ModuleId = moduleId, StatusCode = status, EnqueuedDateTime = DateTime.UtcNow });
             }
             catch (Exception e)
             {

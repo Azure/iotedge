@@ -62,7 +62,7 @@ namespace TwinTester
                 }
 
                 propertiesToRemoveFromTwin[reportedPropertyUpdate.Key] = null; // will later be serialized as a twin update
-                await this.CallAnalyzerToReportStatus(Settings.Current.ModuleId, status, string.Empty);
+                await this.CallAnalyzerToReportStatus(Settings.Current.ModuleId, status);
             }
 
             return propertiesToRemoveFromTwin;
@@ -121,7 +121,7 @@ namespace TwinTester
             {
                 string failureStatus = $"{(int)StatusCode.ReportedPropertyUpdateCallFailure}: Failed call to update reported properties";
                 Logger.LogError(failureStatus + $": {e}");
-                await this.CallAnalyzerToReportStatus(Settings.Current.ModuleId, failureStatus, string.Empty);
+                await this.CallAnalyzerToReportStatus(Settings.Current.ModuleId, failureStatus);
                 return;
             }
 

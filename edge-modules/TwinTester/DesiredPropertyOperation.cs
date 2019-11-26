@@ -68,7 +68,7 @@ namespace TwinTester
                     continue;
                 }
 
-                await this.CallAnalyzerToReportStatus(Settings.Current.ModuleId, status, string.Empty);
+                await this.CallAnalyzerToReportStatus(Settings.Current.ModuleId, status);
                 propertiesToRemoveFromTwin.Add(desiredPropertyUpdate.Key, null); // will later be serialized as a twin update
             }
 

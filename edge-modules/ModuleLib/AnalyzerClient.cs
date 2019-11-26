@@ -453,10 +453,6 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset EnqueuedDateTime { get; set; }
     
-        [Newtonsoft.Json.JsonProperty("resultAsJson", Required = Newtonsoft.Json.Required.Always)]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string ResultAsJson { get; set; }
-    
     
     }
 
