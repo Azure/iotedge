@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Publish;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;

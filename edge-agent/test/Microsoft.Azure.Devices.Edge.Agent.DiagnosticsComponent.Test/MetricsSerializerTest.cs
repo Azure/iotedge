@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
-    public class MerticsSerializerTest
+    public class MetricsSerializerTest
     {
         readonly Random rand = new Random();
 

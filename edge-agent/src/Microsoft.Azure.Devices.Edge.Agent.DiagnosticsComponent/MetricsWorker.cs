@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Publish;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;

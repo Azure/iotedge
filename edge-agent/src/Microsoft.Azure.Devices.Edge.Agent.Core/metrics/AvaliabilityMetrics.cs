@@ -117,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             }
             catch (Exception ex)
             {
-                this.log.LogError($"Could not delete checkpoint file:\n{ex}");
+                this.log.LogError(ex, "Could not delete checkpoint file");
             }
         }
 
@@ -134,7 +134,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             }
             catch (Exception ex)
             {
-                this.log.LogError($"Could not load shutdown time:\n{ex}");
+                this.log.LogError(ex, "Could not load shutdown time");
             }
 
             return TimeSpan.Zero;
