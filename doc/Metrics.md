@@ -1,3 +1,6 @@
+
+# **!!! IMPORTANT NOTE !!! The metrics described here are deprecated and will be removed in subsequent releases. They are superseded by [edge metrics V2](edge-metrics-v2.md).**
+
 ## Metrics in EdgeHub
 
 EdgeHub is intrumented to collect the following metrics:

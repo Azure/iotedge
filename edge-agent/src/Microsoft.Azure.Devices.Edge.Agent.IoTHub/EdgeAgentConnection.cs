@@ -139,15 +139,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
         {
             try
             {
+                UpstreamProtocol protocol =
+                    this.ModuleConnection.GetModuleClient().Map(x => x.UpstreamProtocol).GetOrElse(UpstreamProtocol.Amqp);
                 Events.ConnectionStatusChanged(status, reason);
 
-                // TODO: Change this to `Device_Not_Found` after that reason is added to the C# IoT SDK
-                // and uncomment the following block to enable dynamic reprovisioning based on the
-                // new ConnectionStatusChangeReason.
-                // if (reason == ConnectionStatusChangeReason.Device_Not_Found)
-                // {
-                //    await this.deviceManager.ReprovisionDeviceAsync();
-                // }
+                // Notify the IoT Edge daemon that a device has been deprovisioned and it should check
+                // if the device has been provisioned to a different IoT hub instead.
+                // When the Amqp or AmqpWs protocol is used, the SDK returns a connection status change reason of
+                // Device_Disabled when a device is either disabled or deleted in IoT hub.
+                // For the Mqtt and MqttWs protocol however, the SDK returns a Bad_Credential status as it's not
+                // possible for IoT hub to distinguish between 'device does not exist', 'device is disabled' and
+                // 'device exists but wrong credentials were supplied' cases.
+                if ((reason == ConnectionStatusChangeReason.Device_Disabled &&
+                    (protocol == UpstreamProtocol.Amqp || protocol == UpstreamProtocol.AmqpWs)) ||
+                    (reason == ConnectionStatusChangeReason.Bad_Credential &&
+                    (protocol == UpstreamProtocol.Mqtt || protocol == UpstreamProtocol.MqttWs)))
+                {
+                    await this.deviceManager.ReprovisionDeviceAsync();
+                }
+
                 if (this.pullOnReconnect && this.initTask.IsCompleted && status == ConnectionStatus.Connected)
                 {
                     using (await this.twinLock.LockAsync())

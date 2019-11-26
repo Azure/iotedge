@@ -1,4 +1,4 @@
-ARG base_tag=1.0.2-windows-arm32v7
+ARG base_tag=1.0.3-windows-arm32v7
 ARG base_registry
 FROM ${base_registry}/azureiotedge/azureiotedge-hub-base:${base_tag}
 

@@ -1,4 +1,4 @@
-ARG base_tag=3.0.0-preview5-bionic-arm64v8
+ARG base_tag=3.0.0-bionic-arm64v8
 ARG num_procs=4
 
 FROM mcr.microsoft.com/dotnet/core/runtime:${base_tag}

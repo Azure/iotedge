@@ -6,22 +6,15 @@ namespace MessagesAnalyzer
     using System.IO;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Serialization;
 
+    [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
     class Settings
     {
-        const string ExcludeModulesIdsPropertyName = "ExcludeModules:Ids";
-        const string EventHubConnectionStringPropertyValue = "eventHubConnectionString";
-        const string DeviceIdPropertyName = "IOTEDGE_DEVICEID";
-        const string ConsumerGroupIdPropertyName = "ConsumerGroupId";
-        const string WebhostPortPropertyName = "WebhostPort";
-        const string ToleranceInMillisecondsPropertyName = "ToleranceInMilliseconds";
         const string DefaultConsumerGroupId = "$Default";
         const string DefaultWebhostPort = "5001";
         const double DefaultToleranceInMilliseconds = 1000 * 60;
-        const string LogAnalyticEnabledName = "LogAnalyticEnabled";
-        const string LogAnalyticWorkspaceIdName = "LogAnalyticWorkspaceId";
-        const string LogAnalyticSharedKeyName = "LogAnalyticSharedKey";
-        const string LogAnalyticLogTypeName = "LogAnalyticLogType";
 
         static readonly Lazy<Settings> Setting = new Lazy<Settings>(
             () =>
@@ -32,39 +25,38 @@ namespace MessagesAnalyzer
                     .AddEnvironmentVariables()
                     .Build();
 
-                IList<string> excludedModules = configuration.GetSection(ExcludeModulesIdsPropertyName).Get<List<string>>() ?? new List<string>();
+                IList<string> excludedModules = configuration.GetSection("ExcludeModules:Ids").Get<List<string>>() ?? new List<string>();
 
                 return new Settings(
-                    configuration.GetValue<string>(EventHubConnectionStringPropertyValue),
-                    configuration.GetValue(ConsumerGroupIdPropertyName, DefaultConsumerGroupId),
-                    configuration.GetValue<string>(DeviceIdPropertyName),
+                    configuration.GetValue<string>("eventHubConnectionString"),
+                    configuration.GetValue("ConsumerGroupId", DefaultConsumerGroupId),
+                    configuration.GetValue<string>("IOTEDGE_DEVICEID"),
                     excludedModules,
-                    configuration.GetValue(WebhostPortPropertyName, DefaultWebhostPort),
-                    configuration.GetValue(ToleranceInMillisecondsPropertyName, DefaultToleranceInMilliseconds),
-                    configuration.GetValue<string>(LogAnalyticEnabledName),
-                    configuration.GetValue<string>(LogAnalyticWorkspaceIdName),
-                    configuration.GetValue<string>(LogAnalyticSharedKeyName),
-                    configuration.GetValue<string>(LogAnalyticLogTypeName));
+                    configuration.GetValue("WebhostPort", DefaultWebhostPort),
+                    configuration.GetValue("ToleranceInMilliseconds", DefaultToleranceInMilliseconds),
+                    configuration.GetValue<bool>("LogAnalyticsEnabled"),
+                    configuration.GetValue<string>("LogAnalyticsWorkspaceId"),
+                    configuration.GetValue<string>("LogAnalyticsSharedKey"),
+                    configuration.GetValue<string>("LogAnalyticsLogType"));
             });
 
-        Settings(string eventHubConnectionString, string consumerGroupId, string deviceId, IList<string> excludedModuleIds, string webhostPort, double tolerance, string logAnalyticEnabledText, string logAnalyticsWorkspaceIdName, string logAnalyticsSharedKeyName, string logAnalyticsLogTypeName)
+        Settings(string eventHubConnectionString, string consumerGroupId, string deviceId, IList<string> excludedModuleIds, string webhostPort, double tolerance, bool logAnalyticsEnabled, string logAnalyticsWorkspaceIdName, string logAnalyticsSharedKeyName, string logAnalyticsLogTypeName)
         {
-            bool logAnalyticEnabled;
             this.EventHubConnectionString = Preconditions.CheckNonWhiteSpace(eventHubConnectionString, nameof(eventHubConnectionString));
             this.ConsumerGroupId = Preconditions.CheckNonWhiteSpace(consumerGroupId, nameof(consumerGroupId));
-            this.ExcludedModuleIds = excludedModuleIds;
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            this.ExcludedModuleIds = excludedModuleIds;
             this.WebhostPort = Preconditions.CheckNonWhiteSpace(webhostPort, nameof(webhostPort));
             this.ToleranceInMilliseconds = Preconditions.CheckRange(tolerance, 0);
-            bool.TryParse(logAnalyticEnabledText, out logAnalyticEnabled);
-            this.LogAnalyticEnabled = logAnalyticEnabled;
-            this.LogAnalyticWorkspaceId = logAnalyticsWorkspaceIdName;
-            this.LogAnalyticSharedKey = logAnalyticsSharedKeyName;
-            this.LogAnalyticLogType = logAnalyticsLogTypeName;
+            this.LogAnalyticsEnabled = logAnalyticsEnabled;
+            this.LogAnalyticsWorkspaceId = logAnalyticsWorkspaceIdName;
+            this.LogAnalyticsSharedKey = logAnalyticsSharedKeyName;
+            this.LogAnalyticsLogType = logAnalyticsLogTypeName;
         }
 
         public static Settings Current => Setting.Value;
 
+        [JsonIgnore]
         public string EventHubConnectionString { get; }
 
         public string ConsumerGroupId { get; }
@@ -77,12 +69,18 @@ namespace MessagesAnalyzer
 
         public double ToleranceInMilliseconds { get; }
 
-        public bool LogAnalyticEnabled { get; }
+        public bool LogAnalyticsEnabled { get; }
 
-        public string LogAnalyticWorkspaceId { get; }
+        public string LogAnalyticsWorkspaceId { get; }
 
-        public string LogAnalyticSharedKey { get; }
+        [JsonIgnore]
+        public string LogAnalyticsSharedKey { get; }
 
-        public string LogAnalyticLogType { get; }
+        public string LogAnalyticsLogType { get; }
+
+        public override string ToString()
+        {
+            return JsonConvert.SerializeObject(this, Formatting.Indented);
+        }
     }
 }

@@ -7,7 +7,7 @@ namespace DevOpsLib
     using System.Linq;
     using DevOpsLib.VstsModels;
 
-    public class IoTEdgeVstsAgent : IEquatable<IoTEdgeVstsAgent>, ICloneable
+    public class IoTEdgeAgent : IEquatable<IoTEdgeAgent>, ICloneable
     {
         const string AgentGroupCapabilityKey = "agent-group";
 
@@ -19,7 +19,7 @@ namespace DevOpsLib
         readonly HashSet<AgentCapability> systemCapabilities;
         readonly HashSet<AgentCapability> userCapabilities;
 
-        public IoTEdgeVstsAgent(int id, string name, string version, VstsAgentStatus status, bool enabled, HashSet<AgentCapability> systemCapabilities, HashSet<AgentCapability> userCapabilities)
+        public IoTEdgeAgent(int id, string name, string version, VstsAgentStatus status, bool enabled, HashSet<AgentCapability> systemCapabilities, HashSet<AgentCapability> userCapabilities)
         {
             ValidationUtil.ThrowIfNonPositive(id, nameof(id));
             ValidationUtil.ThrowIfNullOrWhiteSpace(name, nameof(name));
@@ -51,14 +51,14 @@ namespace DevOpsLib
 
         public bool IsAvailable => this.enabled && this.status == VstsAgentStatus.Online;
 
-        public static IoTEdgeVstsAgent Create(VstsAgent vstsAgent)
+        public static IoTEdgeAgent Create(VstsAgent vstsAgent)
         {
             ValidationUtil.ThrowIfNull(vstsAgent, nameof(vstsAgent));
 
             HashSet<AgentCapability> systemCapabilities = vstsAgent.SystemCapabilities?.Select(c => new AgentCapability(c.Key, c.Value)).ToHashSet();
             HashSet<AgentCapability> userCapabilities = vstsAgent.UserCapabilities?.Select(c => new AgentCapability(c.Key, c.Value)).ToHashSet();
 
-            return new IoTEdgeVstsAgent(
+            return new IoTEdgeAgent(
                 vstsAgent.Id,
                 vstsAgent.Name,
                 vstsAgent.Version,
@@ -81,7 +81,7 @@ namespace DevOpsLib
 
         public object Clone()
         {
-            return new IoTEdgeVstsAgent(
+            return new IoTEdgeAgent(
                 this.Id,
                 this.Name,
                 this.Version,
@@ -96,7 +96,7 @@ namespace DevOpsLib
             return this.Id.GetHashCode();
         }
 
-        public bool Equals(IoTEdgeVstsAgent other)
+        public bool Equals(IoTEdgeAgent other)
         {
             if (ReferenceEquals(null, other))
             {
@@ -108,34 +108,13 @@ namespace DevOpsLib
                 return true;
             }
 
-            if (this.id != other.id ||
-                !string.Equals(this.name, other.name, StringComparison.Ordinal) ||
-                !string.Equals(this.version, other.version, StringComparison.Ordinal) ||
-                this.status != other.status ||
-                this.enabled != other.enabled)
-            {
-                return false;
-            }
-
-            if (this.systemCapabilities.Count != other.systemCapabilities.Count ||
-                this.userCapabilities.Count != other.userCapabilities.Count)
-            {
-                return false;
-            }
-
-            var matchedSystemCapabilities = this.systemCapabilities.Intersect(other.systemCapabilities);
-            if (matchedSystemCapabilities.Count() != this.systemCapabilities.Count)
-            {
-                return false;
-            }
-
-            var matchedUserCapabilities = this.userCapabilities.Intersect(other.userCapabilities);
-            if (matchedUserCapabilities.Count() != this.userCapabilities.Count)
-            {
-                return false;
-            }
-
-            return true;
+            return this.id == other.id &&
+                string.Equals(this.name, other.name, StringComparison.Ordinal) &&
+                string.Equals(this.version, other.version, StringComparison.Ordinal) &&
+                this.status == other.status &&
+                this.enabled == other.enabled &&
+                this.systemCapabilities.SetEquals(other.systemCapabilities) &&
+                this.userCapabilities.SetEquals(other.userCapabilities);
         }
 
         public override bool Equals(object obj)
@@ -155,7 +134,7 @@ namespace DevOpsLib
                 return false;
             }
 
-            return this.Equals((IoTEdgeVstsAgent)obj);
+            return this.Equals((IoTEdgeAgent)obj);
         }
     }
 }

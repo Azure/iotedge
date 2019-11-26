@@ -51,9 +51,9 @@ namespace DevOpsLibTest
             set.Add(new AgentCapability("c2", "v1"));
 
             Assert.AreEqual(2, set.Count);
-            Assert.IsTrue(set.Contains(new AgentCapability("c1", "v1")));
-            Assert.IsTrue(set.Contains(new AgentCapability("c2", "v1")));
-            Assert.IsFalse(set.Contains(new AgentCapability("c3", "v1")));
+            Assert.True(set.Contains(new AgentCapability("c1", "v1")));
+            Assert.True(set.Contains(new AgentCapability("c2", "v1")));
+            Assert.False(set.Contains(new AgentCapability("c3", "v1")));
         }
 
         [Test]
@@ -62,7 +62,14 @@ namespace DevOpsLibTest
             var c1 = new AgentCapability("cap", "value");
             var c2 = new AgentCapability("CAP", "value");
 
-            Assert.AreEqual(c1, c2);
+            Assert.False(c1.Equals(null));
+            Assert.True(c1.Equals(c1));
+            Assert.True(c1.Equals(c2));
+
+            Assert.False(c1.Equals((object) null));
+            Assert.True(c1.Equals((object) c1));
+            Assert.True(c1.Equals((object) c2));
+            Assert.False(c1.Equals(new object()));
         }
 
         [Test]
@@ -71,7 +78,31 @@ namespace DevOpsLibTest
             var c1 = new AgentCapability("cap", "value");
             var c2 = c1.Clone();
 
+            Assert.AreNotSame(c1, c2);
             Assert.AreEqual(c1, c2);
+        }
+
+        [Test]
+        public void TestCompareTo()
+        {
+            var c1 = new AgentCapability("cap1", "value1");
+            var c2 = new AgentCapability("cap1", "value1");
+            var c3 = new AgentCapability("cap2", "value1");
+            var c4 = new AgentCapability("cap1", "value2");
+            var c5 = new AgentCapability("cap2", "value2");
+
+            Assert.AreEqual(0, c1.CompareTo(c2));
+            Assert.Greater(0, c1.CompareTo(c3));
+            Assert.Less(0, c4.CompareTo(c1));
+            Assert.Greater(0, c1.CompareTo(c5));
+        }
+
+        [Test]
+        public void TestToString()
+        {
+            var c = new AgentCapability("cap", "value");
+
+            Assert.AreEqual("cap=value", c.ToString());
         }
     }
 }
