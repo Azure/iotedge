@@ -1,3 +1,32 @@
+# 1.0.9-rc3 (2019-11-21)
+
+## Edge Hub
+### Features
+* Update Twin max property depth and length limits to match IoTHub ([2d69f78](https://github.com/Azure/iotedge/commit/2d69f7879ee4c90e805f6ae6b0053d5b71b2947c))
+* Update .NET core version to 2.1.13 ([6b27f06](https://github.com/Azure/iotedge/commit/6b27f064fcd78374bae8a7f53162130d6eb4916c))
+
+### Bug fixes
+* Update Twin property value validation to apply 4K property value length limit ([4acce35](https://github.com/Azure/iotedge/commit/4acce3576be89cfc8c929229d6c5c7c6a6b41cc5))
+* Set max rocksdb write-ahead-log size to 512MB ([1853388](https://github.com/Azure/iotedge/commit/18533882b86db081e8370d9f9be5750181d3e930))
+* Fix iotedge version passed instead of client version ([4b335d2](https://github.com/Azure/iotedge/commit/4b335d2336d15f72a1be110f1168d75e69c37c00))
+
+## Edge Agent
+### Features
+* Add iotedge support bundle ([1853388](https://github.com/Azure/iotedge/commit/18533882b86db081e8370d9f9be5750181d3e930))
+* Update .NET core version to 2.1.13 ([6b27f06](https://github.com/Azure/iotedge/commit/6b27f064fcd78374bae8a7f53162130d6eb4916c))
+
+### Bug fixes
+* Update deployment status to "success" if there is no deployment change ([ee0ce67](https://github.com/Azure/iotedge/commit/ee0ce67eed7a7fd685f8a719054c543bbadd428d)) 
+* Set max rocksdb write-ahead-log size to 512MB ([1853388](https://github.com/Azure/iotedge/commit/18533882b86db081e8370d9f9be5750181d3e930))
+* Fix iotedge version passed instead of client version ([4b335d2](https://github.com/Azure/iotedge/commit/4b335d2336d15f72a1be110f1168d75e69c37c00))
+
+## iotedged
+### Features
+* Allow the user to specify auto generated certificate expiry ([d0f6ed3](https://github.com/Azure/iotedge/commit/d0f6ed3a2caef77881ec536e56c83c48091c5577))
+
+### Bug fixes
+* Fix "storage directories are mounted from host" checks to account for mounts of parent directories ([666313b](https://github.com/Azure/iotedge/commit/666313b79be406f96904e0a7c724a15759cad5cc))
+
 # 1.0.9-rc2 (2019-09-03)
 
 ## Edge Hub
