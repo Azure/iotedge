@@ -414,7 +414,11 @@ namespace LeafDeviceTest
                     Option.None<IEnumerable<X509Certificate2>>(),
                     Option.None<List<string>>()));
 
-        X509Certificate2 GetTrustedCertificate() => new X509Certificate2(X509Certificate.CreateFromCertFile(this.trustedCACertificateFileName));
+        X509Certificate2 GetTrustedCertificate()
+        {
+            Console.WriteLine($"GetTrustedCertificate from: {this.trustedCACertificateFileName}");
+            return new X509Certificate2(X509Certificate.CreateFromCertFile(this.trustedCACertificateFileName));
+        }
 
         async Task CreateDeviceIdentityAsync(RegistryManager rm, Option<string> edgeDeviceScope)
         {
