@@ -24,6 +24,7 @@ namespace LoadGen
                 return new Settings(
                     configuration.GetValue("messageFrequency", TimeSpan.FromMilliseconds(20)),
                     configuration.GetValue<double>("jitterFactor", 0.5),
+                    configuration.GetValue("twinUpdateFrequency", TimeSpan.FromMilliseconds(500)),
                     configuration.GetValue<ulong>("messageSizeInBytes", 1024),
                     configuration.GetValue<TransportType>("transportType", TransportType.Amqp_Tcp_Only),
                     configuration.GetValue<string>("outputName", "output1"));
@@ -32,12 +33,14 @@ namespace LoadGen
         Settings(
             TimeSpan messageFrequency,
             double jitterFactor,
+            TimeSpan twinUpdateFrequency,
             ulong messageSizeInBytes,
             TransportType transportType,
             string outputName)
         {
             this.MessageFrequency = messageFrequency;
             this.JitterFactor = jitterFactor;
+            this.TwinUpdateFrequency = twinUpdateFrequency;
             this.MessageSizeInBytes = messageSizeInBytes;
             this.TransportType = transportType;
             this.OutputName = outputName;
@@ -48,6 +51,8 @@ namespace LoadGen
         public TimeSpan MessageFrequency { get; }
 
         public double JitterFactor { get; }
+
+        public TimeSpan TwinUpdateFrequency { get; }
 
         public ulong MessageSizeInBytes { get; }
 
