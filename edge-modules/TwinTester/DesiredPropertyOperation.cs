@@ -94,10 +94,11 @@ namespace TwinTester
                     try
                     {
                         await this.storage.RemoveDesiredPropertyUpdate(pair.Key);
+                        await this.storage.RemoveDesiredPropertyReceived(pair.Key);
                     }
                     catch (Exception e)
                     {
-                        Logger.LogError($"Failed to remove validated reported property id {pair.Key} from storage: {e}");
+                        Logger.LogError($"Failed to remove validated desired property id {pair.Key} from storage: {e}");
                     }
             }
 
