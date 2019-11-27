@@ -115,6 +115,6 @@ steps:
           -LogAnalyticsEnabled "${{ parameters['analyzer.logAnalytics.enabled'] }}" `
           -LogAnalyticsLogType "${{ parameters['analyzer.logAnalytics.logType'] }}" `
           -LogAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" `
-          -LogAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}"
+          -LogAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" `
           -BypassEdgeInstallation
       CommunicationProtocol: Http
