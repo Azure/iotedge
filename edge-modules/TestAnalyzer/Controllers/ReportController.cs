@@ -1,22 +1,28 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace TestAnalyzer.Controllers
 {
+    using System;
+    using System.Threading.Tasks;
     using Microsoft.AspNetCore.Mvc;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics;
+    using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
     [Route("api/[controller]")]
     [ApiController]
     public class ReportController : Controller
     {
+        static readonly ILogger Logger = ModuleUtil.CreateLogger("Analyzer");
+
         // GET api/report/all
         [HttpGet("all")]
-        public ActionResult<string> GetReport()
+        public async Task<string> GetReport()
         {
             DeviceAnalysis deviceAnalysis = Reporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
             if (Settings.Current.LogAnalyticsEnabled)
             {
-                this.PublishToLogAnalytics(deviceAnalysis);
+                await this.PublishToLogAnalytics(deviceAnalysis);
             }
 
             return deviceAnalysis.ToString();
@@ -24,18 +30,18 @@ namespace TestAnalyzer.Controllers
 
         // GET api/report (exposed for backwards compatibility for snitcher which will eventually be deprecated)
         [HttpGet]
-        public ActionResult<string> GetMessages()
+        public async Task<string> GetMessages()
         {
             DeviceAnalysis deviceAnalysis = Reporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
             if (Settings.Current.LogAnalyticsEnabled)
             {
-                this.PublishToLogAnalytics(deviceAnalysis);
+                await this.PublishToLogAnalytics(deviceAnalysis); // TODO: await
             }
 
-            return deviceAnalysis.MessagesReport.ToString();
+            return JsonConvert.SerializeObject(deviceAnalysis.MessagesReport, Formatting.Indented);
         }
 
-        private void PublishToLogAnalytics(DeviceAnalysis deviceAnalysis)
+        private async Task PublishToLogAnalytics(DeviceAnalysis deviceAnalysis)
         {
             string messagesJson = JsonConvert.SerializeObject(deviceAnalysis.MessagesReport, Formatting.Indented);
             string twinsJson = JsonConvert.SerializeObject(deviceAnalysis.TwinsReport, Formatting.Indented);
@@ -46,23 +52,30 @@ namespace TestAnalyzer.Controllers
             string logType = Settings.Current.LogAnalyticsLogType;
 
             // Upload the data to Log Analytics for our dashboards
-            AzureLogAnalytics.Instance.PostAsync(
-                workspaceId,
-                sharedKey,
-                messagesJson,
-                logType);
+            try
+            {
+                await AzureLogAnalytics.Instance.PostAsync(
+                    workspaceId,
+                    sharedKey,
+                    messagesJson,
+                    logType);
 
-            AzureLogAnalytics.Instance.PostAsync(
-                workspaceId,
-                sharedKey,
-                twinsJson,
-                logType);
+                await AzureLogAnalytics.Instance.PostAsync(
+                    workspaceId,
+                    sharedKey,
+                    twinsJson,
+                    logType);
 
-            AzureLogAnalytics.Instance.PostAsync(
-                workspaceId,
-                sharedKey,
-                directMethodsJson,
-                logType);
+                await AzureLogAnalytics.Instance.PostAsync(
+                    workspaceId,
+                    sharedKey,
+                    directMethodsJson,
+                    logType);
+            }
+            catch (Exception e)
+            {
+                Logger.LogError($"Failed uploading reports to log analytics: {e}");
+            }
         }
     }
 }

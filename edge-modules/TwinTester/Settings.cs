@@ -53,7 +53,7 @@ namespace TwinTester
             this.TransportType = Preconditions.CheckNotNull(transportType);
             this.AnalyzerUrl = Preconditions.CheckNotNull(analyzerUrl, nameof(analyzerUrl));
             this.ServiceClientConnectionString = Preconditions.CheckNonWhiteSpace(serviceClientConnectionString, nameof(serviceClientConnectionString));
-            this.StoragePath = storagePath;
+            this.StoragePath = Preconditions.CheckNotNull(storagePath);
             this.StorageOptimizeForPerformance = Preconditions.CheckNotNull(storageOptimizeForPerformance);
         }
 
