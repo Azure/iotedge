@@ -39,7 +39,7 @@ namespace DirectMethodCloudSender
             TimeSpan dmDelay = configuration.GetValue("DirectMethodDelay", TimeSpan.FromSeconds(5));
             Uri analyzerUrl = configuration.GetValue("AnalyzerUrl", new Uri("http://analyzer:15000"));
 
-            var analyzerClient = new AnalyzerClient { BaseUrl = analyzerUrl.ToString() };
+            AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = analyzerUrl.AbsoluteUri };
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
