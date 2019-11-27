@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
+namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
 {
     using System;
     using System.Net.Http;

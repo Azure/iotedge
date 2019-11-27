@@ -7,7 +7,8 @@ namespace MetricsCollector
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
-    using Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent;
+    using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
+    using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
