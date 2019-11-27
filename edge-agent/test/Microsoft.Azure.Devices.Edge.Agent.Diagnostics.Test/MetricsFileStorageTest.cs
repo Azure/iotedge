@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
+namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
 {
     using System;
     using System.Collections.Generic;
@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
         }
 
         [Fact]
-        public void WriteData()
+        public void TestWriteData()
         {
             string directory = Path.Combine(this.tempDirectory.CreateTempDir(), "metricsStore");
             MetricsFileStorage storage = new MetricsFileStorage(directory, this.systemTime);
@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
         }
 
         [Fact]
-        public void GetDataSingleEntry()
+        public void TestGetDataSingleEntry()
         {
             MetricsFileStorage storage = new MetricsFileStorage(this.tempDirectory.CreateTempDir(), this.systemTime);
 
@@ -50,7 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
         }
 
         [Fact]
-        public void GetDataByTime()
+        public void TestGetDataByTime()
         {
             MetricsFileStorage storage = new MetricsFileStorage(this.tempDirectory.CreateTempDir(), this.systemTime);
 

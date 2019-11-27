@@ -44,7 +44,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\edge-util\test\Microsoft.Azure.Devices.Edge.Util.Test.Common\Microsoft.Azure.Devices.Edge.Util.Test.Common.csproj" />
-    <ProjectReference Include="..\..\src\Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent\Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.csproj" />
+    <ProjectReference Include="..\..\src\Microsoft.Azure.Devices.Edge.Agent.Diagnostics\Microsoft.Azure.Devices.Edge.Agent.Diagnostics.csproj" />
   </ItemGroup>
 
   <ItemGroup>

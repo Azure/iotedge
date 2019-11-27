@@ -1,16 +1,15 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
+namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Reflection;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Extensions.Logging.Abstractions;
     using Moq;
     using Xunit;
 
@@ -70,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
         }
 
         [Fact]
-        public async Task BasicUploading()
+        public async Task TestBasicUploading()
         {
             /* Setup mocks */
             var scraper = new Mock<IMetricsScraper>();
@@ -95,7 +94,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
         }
 
         [Fact]
-        public async Task UploadContent()
+        public async Task TestUploadContent()
         {
             /* test data */
             var metrics = Enumerable.Range(1, 10).Select(i => new Metric(DateTime.UtcNow, "test_metric", 3, $"tag_{i}")).ToList();
@@ -122,7 +121,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
         }
 
         [Fact]
-        public async Task UploadIsLazy()
+        public async Task TestUploadIsLazy()
         {
             /* test data */
             int metricsCalls = 0;
@@ -159,7 +158,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
         }
 
         [Fact]
-        public async Task ScrapeAndUpload()
+        public async Task TestScrapeAndUpload()
         {
             /* Setup mocks */
             var systemTime = new Mock<ISystemTime>();
@@ -225,7 +224,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
         }
 
         [Fact]
-        public async Task NoOverlap()
+        public async Task TestNoOverlap()
         {
             /* Setup mocks */
             TaskCompletionSource<bool> scrapeTaskSource = new TaskCompletionSource<bool>();

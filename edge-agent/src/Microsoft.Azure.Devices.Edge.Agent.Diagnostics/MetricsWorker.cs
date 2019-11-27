@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-[assembly: System.Runtime.CompilerServices.InternalsVisibleToAttribute("Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test")]
-namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
+[assembly: System.Runtime.CompilerServices.InternalsVisibleToAttribute("Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test")]
+namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
 {
     using System;
     using System.Collections;
@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;

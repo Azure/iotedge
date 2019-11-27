@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
+namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
 {
     using System;
     using System.Collections.Generic;
@@ -11,29 +11,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
-    public class MerticsSerializerTests
+    public class MetricsSerializerTest
     {
         readonly Random rand = new Random();
 
         [Fact]
-        public void SingleMetricSerializes()
+        public void TestSingleMetricSerializes()
         {
             Metric testMetric = new Metric(DateTime.UtcNow, this.metrics[0].name, this.rand.NextDouble() * 50, this.metrics[0].tags);
 
-            byte[] data = RawMetric.MetricsToBytes(new Metric[] { testMetric }).ToArray();
-            var reconstructedValues = RawMetric.BytesToMetrics(data).ToArray();
+            byte[] data = MetricsSerializer.MetricsToBytes(new Metric[] { testMetric }).ToArray();
+            Metric[] reconstructedValues = MetricsSerializer.BytesToMetrics(data).ToArray();
 
             Assert.Single(reconstructedValues);
             Assert.Equal(testMetric, reconstructedValues[0]);
         }
 
         [Fact]
-        public void SingleMetricSeriesSerializes()
+        public void TestSingleMetricSeriesSerializes()
         {
-            var testMetrics = this.GenerateSeries(this.metrics[0].name, this.metrics[0].tags).ToArray();
+            Metric[] testMetrics = this.GenerateSeries(this.metrics[0].name, this.metrics[0].tags).ToArray();
 
-            byte[] data = RawMetric.MetricsToBytes(testMetrics).ToArray();
-            var reconstructedValues = RawMetric.BytesToMetrics(data).ToArray();
+            byte[] data = MetricsSerializer.MetricsToBytes(testMetrics).ToArray();
+            Metric[] reconstructedValues = MetricsSerializer.BytesToMetrics(data).ToArray();
 
             var expected = testMetrics.OrderBy(m => m.Name).ThenBy(m => m.Tags).ThenBy(m => m.TimeGeneratedUtc);
             var actual = reconstructedValues.OrderBy(m => m.Name).ThenBy(m => m.Tags).ThenBy(m => m.TimeGeneratedUtc);
@@ -41,12 +41,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
         }
 
         [Fact]
-        public void MetricsSeriesSerializes()
+        public void TestMetricsSeriesSerializes()
         {
-            var testMetrics = this.metrics.SelectMany(m => this.GenerateSeries(m.name, m.tags, this.rand.Next(10, 20))).ToArray();
+            Metric[] testMetrics = this.metrics.SelectMany(m => this.GenerateSeries(m.name, m.tags, this.rand.Next(10, 20))).ToArray();
 
-            byte[] data = RawMetric.MetricsToBytes(testMetrics).ToArray();
-            var reconstructedValues = RawMetric.BytesToMetrics(data).ToArray();
+            byte[] data = MetricsSerializer.MetricsToBytes(testMetrics).ToArray();
+            Metric[] reconstructedValues = MetricsSerializer.BytesToMetrics(data).ToArray();
 
             var expected = testMetrics.OrderBy(m => m.Name).ThenBy(m => m.Tags).ThenBy(m => m.TimeGeneratedUtc).ToArray();
             var actual = reconstructedValues.OrderBy(m => m.Name).ThenBy(m => m.Tags).ThenBy(m => m.TimeGeneratedUtc).ToArray();
@@ -54,28 +54,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent.Test
         }
 
         [Fact]
-        public void RawValuesSerialize()
+        public void TestRawValuesSerialize()
         {
             var time = DateTime.UtcNow;
-            var testValues = Enumerable.Range(1, 10).Select(i => new RawMetricValue(time.AddHours(i), this.rand.NextDouble() * 200)).ToArray();
+            RawMetricValue[] testValues = Enumerable.Range(1, 10).Select(i => new RawMetricValue(time.AddHours(i), this.rand.NextDouble() * 200)).ToArray();
 
             byte[] data = RawMetricValue.RawValuesToBytes(testValues).ToArray();
-            var reconstructedValues = RawMetricValue.BytesToRawValues(data, 0, testValues.Length).ToArray();
+            RawMetricValue[] reconstructedValues = RawMetricValue.BytesToRawValues(data, 0, testValues.Length).ToArray();
 
             Assert.Equal(testValues, reconstructedValues);
         }
 
         [Fact]
-        public void InvalidDataThrows()
+        public void TestInvalidDataThrows()
         {
             // Gibberish
             byte[] randData = new byte[300];
             this.rand.NextBytes(randData);
-            Assert.Throws<InvalidDataException>(() => RawMetric.BytesToMetrics(randData).ToArray());
+            Assert.Throws<InvalidDataException>(() => MetricsSerializer.BytesToMetrics(randData).ToArray());
 
             // Overflow
-            var overflowData = BitConverter.GetBytes(int.MaxValue).Concat(randData);
-            var exception = Assert.Throws<InvalidDataException>(() => RawMetric.BytesToMetrics(randData).ToArray());
+            byte[] overflowData = BitConverter.GetBytes(int.MaxValue).Concat(randData).ToArray();
+            var exception = Assert.Throws<InvalidDataException>(() => MetricsSerializer.BytesToMetrics(randData).ToArray());
             Assert.Throws<ArgumentOutOfRangeException>((Action)(() => throw exception.InnerException));
         }
 

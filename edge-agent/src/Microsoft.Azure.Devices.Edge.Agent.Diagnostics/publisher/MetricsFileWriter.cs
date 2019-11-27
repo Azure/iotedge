@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
+namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
 {
     using System;
     using System.Collections.Generic;
@@ -16,6 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent
     {
         public async Task PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
         {
+            Directory.CreateDirectory("shared");
             using (FileStream file = File.Open(@"shared/MetricsUpload.txt", FileMode.Append))
             {
                 Console.WriteLine("Writing to file");
