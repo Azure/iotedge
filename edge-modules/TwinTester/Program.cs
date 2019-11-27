@@ -29,7 +29,7 @@ namespace TwinTester
                     Logger);
                 await moduleClient.OpenAsync();
 
-                AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = Settings.Current.AnalyzerUrl.ToString() };
+                AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = Settings.Current.AnalyzerUrl.AbsoluteUri };
 
                 Storage storage = new Storage();
                 storage.Init(Settings.Current.StoragePath, new SystemEnvironment(), Settings.Current.StorageOptimizeForPerformance);
