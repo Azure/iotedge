@@ -17,12 +17,12 @@ namespace TestAnalyzer.Controllers
 
         // GET api/report/all
         [HttpGet("all")]
-        public ActionResult<string> GetReport()
+        public async Task<ActionResult<string>> GetReport()
         {
             DeviceAnalysis deviceAnalysis = Reporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
             if (Settings.Current.LogAnalyticsEnabled)
             {
-                this.PublishToLogAnalytics(deviceAnalysis);
+                await this.PublishToLogAnalytics(deviceAnalysis);
             }
 
             return deviceAnalysis.ToString();
@@ -30,12 +30,12 @@ namespace TestAnalyzer.Controllers
 
         // GET api/report (exposed for backwards compatibility for snitcher which will eventually be deprecated)
         [HttpGet]
-        public ActionResult<string> GetMessages()
+        public async Task<ActionResult<string>> GetMessages()
         {
             DeviceAnalysis deviceAnalysis = Reporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
             if (Settings.Current.LogAnalyticsEnabled)
             {
-                this.PublishToLogAnalytics(deviceAnalysis); // TODO: await
+                await this.PublishToLogAnalytics(deviceAnalysis); // TODO: await
             }
 
             return deviceAnalysis.MessagesReport.ToString();
@@ -72,9 +72,9 @@ namespace TestAnalyzer.Controllers
                     directMethodsJson,
                     logType);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-                Logger.LogError($"Failed call to upload reports to log analytics: {e}");
+                Logger.LogError($"Failed uploading reports to log analytics: {e}");
             }
         }
     }
