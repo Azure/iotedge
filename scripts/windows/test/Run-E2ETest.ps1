@@ -297,9 +297,9 @@ Param (
 
     [string] $TwinUpdateSize = $null,
 
-    [string] $TwinUpdateFrequency = "00:00:10",
+    [string] $TwinUpdateFrequency = $null,
 
-    [string] $TwinUpdateFailureThreshold = "00:01:00",
+    [string] $TwinUpdateFailureThreshold = $null,
 
     [switch] $BypassEdgeInstallation
 )
@@ -1544,6 +1544,11 @@ If ([string]::IsNullOrWhiteSpace($EdgeE2ERootCAKeyRSAFile))
     $EdgeE2ERootCAKeyRSAFile=$DefaultInstalledRSARootCAKey
 }
 
+If ([string]::IsNullOrWhiteSpace($TwinUpdateFailureThreshold))
+{
+    $TwinUpdateFailureThreshold="00:00:01"
+}
+
 If ($TestName -eq "LongHaul")
 {
     If ([string]::IsNullOrEmpty($DesiredModulesToRestartCSV)) {$DesiredModulesToRestartCSV = ","}
@@ -1551,6 +1556,7 @@ If ($TestName -eq "LongHaul")
     If ([string]::IsNullOrEmpty($RestartIntervalInMins)) {$RestartIntervalInMins = "10"}
     If ([string]::IsNullOrEmpty($SnitchReportingIntervalInSecs)) {$SnitchReportingIntervalInSecs = "86400"}
     If ([string]::IsNullOrEmpty($SnitchTestDurationInSecs)) {$SnitchTestDurationInSecs = "604800"}
+    If ([string]::IsNullOrEmpty($TwinUpdateFrequency)) {$TwinUpdateSize = "00:00:15"}
     If ([string]::IsNullOrEmpty($TwinUpdateSize)) {$TwinUpdateSize = "1"}
 }
 
@@ -1559,6 +1565,7 @@ If ($TestName -eq "Stress")
     If ([string]::IsNullOrEmpty($LoadGenMessageFrequency)) {$LoadGenMessageFrequency = "00:00:00.03"}
     If ([string]::IsNullOrEmpty($SnitchReportingIntervalInSecs)) {$SnitchReportingIntervalInSecs = "1700000"}
     If ([string]::IsNullOrEmpty($SnitchTestDurationInSecs)) {$SnitchTestDurationInSecs = "14400"}
+    If ([string]::IsNullOrEmpty($TwinUpdateFrequency)) {$TwinUpdateSize = "00:00:01"}
     If ([string]::IsNullOrEmpty($TwinUpdateSize)) {$TwinUpdateSize = "100"}
 }
 
