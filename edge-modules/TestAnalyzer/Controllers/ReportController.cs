@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace TestAnalyzer.Controllers
 {
+    using System.Threading;
+    using System.Threading.Tasks;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics;
     using Newtonsoft.Json;
@@ -11,7 +13,7 @@ namespace TestAnalyzer.Controllers
     {
         // GET api/report/all
         [HttpGet("all")]
-        public ActionResult<string> GetReport()
+        public async ActionResult<string> GetReport()
         {
             DeviceAnalysis deviceAnalysis = Reporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
             if (Settings.Current.LogAnalyticsEnabled)
@@ -24,7 +26,7 @@ namespace TestAnalyzer.Controllers
 
         // GET api/report (exposed for backwards compatibility for snitcher which will eventually be deprecated)
         [HttpGet]
-        public ActionResult<string> GetMessages()
+        public async ActionResult<string> GetMessages()
         {
             DeviceAnalysis deviceAnalysis = Reporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
             if (Settings.Current.LogAnalyticsEnabled)
@@ -35,7 +37,7 @@ namespace TestAnalyzer.Controllers
             return deviceAnalysis.MessagesReport.ToString();
         }
 
-        private void PublishToLogAnalytics(DeviceAnalysis deviceAnalysis)
+        private async Task PublishToLogAnalytics(DeviceAnalysis deviceAnalysis)
         {
             string messagesJson = JsonConvert.SerializeObject(deviceAnalysis.MessagesReport, Formatting.Indented);
             string twinsJson = JsonConvert.SerializeObject(deviceAnalysis.TwinsReport, Formatting.Indented);
@@ -46,19 +48,19 @@ namespace TestAnalyzer.Controllers
             string logType = Settings.Current.LogAnalyticsLogType;
 
             // Upload the data to Log Analytics for our dashboards
-            AzureLogAnalytics.Instance.PostAsync(
+            await AzureLogAnalytics.Instance.PostAsync(
                 workspaceId,
                 sharedKey,
                 messagesJson,
                 logType);
 
-            AzureLogAnalytics.Instance.PostAsync(
+            await AzureLogAnalytics.Instance.PostAsync(
                 workspaceId,
                 sharedKey,
                 twinsJson,
                 logType);
 
-            AzureLogAnalytics.Instance.PostAsync(
+            await AzureLogAnalytics.Instance.PostAsync(
                 workspaceId,
                 sharedKey,
                 directMethodsJson,
