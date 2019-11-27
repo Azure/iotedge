@@ -21,12 +21,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
         // This allows edgeAgent to track its own avaliability. If edgeAgent shutsdown unexpectedly, it can look at the last checkpoint time to determine its previous avaliability.
         readonly TimeSpan checkpointFrequency = TimeSpan.FromMinutes(5);
         readonly PeriodicTask updateCheckpointFile;
-        readonly string checkpointFile = "avaliability_checkpoint";
+        readonly string checkpointFile;
 
         readonly List<Availability> availabilities;
         readonly Lazy<Availability> edgeAgent;
 
-        public AvailabilityMetrics(IMetricsProvider metricsProvider, ISystemTime time = null)
+        public AvailabilityMetrics(IMetricsProvider metricsProvider, string storageFolder, ISystemTime time = null)
         {
             this.systemTime = time ?? SystemTime.Instance;
             this.availabilities = new List<Availability>();
@@ -43,27 +43,37 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                 "The amount of time the module was specified in the deployment",
                 new List<string> { "module_name" });
 
-            this.updateCheckpointFile = new PeriodicTask(this.UpdateCheckpointFile, this.checkpointFrequency, this.checkpointFrequency, this.log, "Checkpoint Availability");
+            string storageDirectory = Path.Combine(Preconditions.CheckNonWhiteSpace(storageFolder, nameof(storageFolder)), "availability");
+            try
+            {
+                Directory.CreateDirectory(storageDirectory);
+                this.checkpointFile = Path.Combine(storageDirectory, "avaliability.checkpoint");
+                this.updateCheckpointFile = new PeriodicTask(this.UpdateCheckpointFile, this.checkpointFrequency, this.checkpointFrequency, this.log, "Checkpoint Availability");
+            }
+            catch (Exception ex)
+            {
+                this.log.LogError(ex, "Could not create checkpoint directory");
+            }
         }
 
         public void ComputeAvailability(ModuleSet desired, ModuleSet current)
         {
             IEnumerable<IRuntimeModule> modulesToCheck = current.Modules.Values
-                .Where(c => (c is IRuntimeModule) && c.Name != Constants.EdgeAgentModuleName)
-                .Select(c => c as IRuntimeModule);
+                .OfType<IRuntimeModule>()
+                .Where(m => m.Name != Constants.EdgeAgentModuleName);
 
             /* Get all modules that are not running but should be */
             var down = new HashSet<string>(modulesToCheck
-                .Where(c =>
-                    c.RuntimeStatus != ModuleStatus.Running &&
-                    desired.Modules.TryGetValue(c.Name, out var d) &&
+                .Where(m =>
+                    m.RuntimeStatus != ModuleStatus.Running &&
+                    desired.Modules.TryGetValue(m.Name, out var d) &&
                     d.DesiredStatus == ModuleStatus.Running)
-                .Select(c => c.Name));
+                .Select(m => m.Name));
 
             /* Get all correctly running modules */
             var up = new HashSet<string>(modulesToCheck
-                .Where(c => c.RuntimeStatus == ModuleStatus.Running)
-                .Select(c => c.Name));
+                .Where(m => m.RuntimeStatus == ModuleStatus.Running)
+                .Select(m => m.Name));
 
             /* handle edgeAgent specially */
             this.edgeAgent.Value.AddPoint(true);
@@ -117,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             }
             catch (Exception ex)
             {
-                this.log.LogError($"Could not delete checkpoint file:\n{ex}");
+                this.log.LogError(ex, "Could not delete checkpoint file");
             }
         }
 
@@ -134,7 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             }
             catch (Exception ex)
             {
-                this.log.LogError($"Could not load shutdown time:\n{ex}");
+                this.log.LogError(ex, "Could not load shutdown time");
             }
 
             return TimeSpan.Zero;

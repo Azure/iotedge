@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
-    using Microsoft.Azure.Devices.Edge.Agent.DiagnosticsComponent;
+    using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
@@ -276,7 +276,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             if (metricsConfig.Enabled)
             {
                 container.Resolve<IMetricsListener>().Start(logger);
+<<<<<<< HEAD
                 container.Resolve<ExceptionCounter>().Start();
+=======
+>>>>>>> fdf4052fd6150199784b9a9f63b6ada204d0f23e
             }
 
             // Initialize metric uploading

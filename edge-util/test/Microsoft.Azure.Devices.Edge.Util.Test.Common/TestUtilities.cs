@@ -3,9 +3,6 @@
 namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
 {
     using System;
-    using System.Collections.Generic;
-    using System.Reflection;
-    using System.Text;
     using Xunit;
 
     public static class TestUtilities
