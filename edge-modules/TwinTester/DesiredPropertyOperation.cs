@@ -11,7 +11,7 @@ namespace TwinTester
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
-    public class DesiredPropertyOperation : ITwinOperation
+    public class DesiredPropertyOperation : TwinOperationBase
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("TwinTester");
         readonly RegistryManager registryManager;
@@ -46,7 +46,7 @@ namespace TwinTester
                     status = $"{(int)StatusCode.Success}: Successfully validated desired property update";
                     Logger.LogInformation(status + $" {desiredPropertyUpdate.Key}");
                 }
-                else if (this.IsPastFailureThreshold(desiredPropertyUpdate.Value))
+                else if (TwinOperationBase.IsPastFailureThreshold(this.twinState, desiredPropertyUpdate.Value))
                 {
                     if (doesTwinHaveUpdate && !hasModuleReceivedCallback)
                     {
@@ -68,7 +68,7 @@ namespace TwinTester
                     continue;
                 }
 
-                await this.CallAnalyzerToReportStatus(Settings.Current.ModuleId, status, string.Empty);
+                await TwinOperationBase.CallAnalyzerToReportStatus(this.analyzerClient, Settings.Current.ModuleId, status);
                 propertiesToRemoveFromTwin.Add(desiredPropertyUpdate.Key, null); // will later be serialized as a twin update
             }
 
@@ -94,10 +94,11 @@ namespace TwinTester
                     try
                     {
                         await this.storage.RemoveDesiredPropertyUpdate(pair.Key);
+                        await this.storage.RemoveDesiredPropertyReceived(pair.Key);
                     }
                     catch (Exception e)
                     {
-                        Logger.LogError($"Failed to remove validated reported property id {pair.Key} from storage: {e}");
+                        Logger.LogError($"Failed to remove validated desired property id {pair.Key} from storage: {e}");
                     }
             }
 
@@ -117,7 +118,7 @@ namespace TwinTester
         {
             try
             {
-                string desiredPropertyUpdate = new string('1', Settings.Current.TwinUpdateCharCount); // dummy twin update needs to be any number
+                string desiredPropertyUpdate = new string('1', Settings.Current.TwinUpdateSize); // dummy twin update needs to be any number
                 string patch = string.Format("{{ properties: {{ desired: {{ {0}: {1}}} }} }}", this.twinState.DesiredPropertyUpdateCounter, desiredPropertyUpdate);
                 Twin newTwin = await this.registryManager.UpdateTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId, patch, this.twinState.TwinETag);
                 this.twinState.TwinETag = newTwin.ETag;

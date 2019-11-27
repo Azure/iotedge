@@ -37,9 +37,9 @@ namespace DirectMethodCloudSender
             string targetModuleId = configuration.GetValue("TargetModuleId", "DirectMethodReceiver");
             TransportType transportType = configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only);
             TimeSpan dmDelay = configuration.GetValue("DirectMethodDelay", TimeSpan.FromSeconds(5));
-            string analyzerUrl = configuration.GetValue("AnalyzerUrl", "http://analyzer:15000");
+            Uri analyzerUrl = configuration.GetValue("AnalyzerUrl", new Uri("http://analyzer:15000"));
 
-            var analyzerClient = new AnalyzerClient { BaseUrl = analyzerUrl };
+            var analyzerClient = new AnalyzerClient { BaseUrl = analyzerUrl.ToString() };
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
@@ -123,11 +123,11 @@ namespace DirectMethodCloudSender
         {
             try
             {
-                analyzerClient.AddDirectMethodStatusAsync(new ResponseStatus { ModuleId = moduleId, StatusCode = result.Status.ToString(), ResultAsJson = result.GetPayloadAsJson(), EnqueuedDateTime = DateTime.UtcNow });
+                analyzerClient.AddDirectMethodStatusAsync(new ResponseStatus { ModuleId = moduleId, StatusCode = result.Status.ToString(), EnqueuedDateTime = DateTime.UtcNow });
             }
             catch (Exception e)
             {
-                Logger.LogError(e.ToString());
+                Logger.LogError($"Failed call to report status to analyzer: {e}");
             }
         }
     }

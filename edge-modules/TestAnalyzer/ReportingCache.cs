@@ -43,10 +43,10 @@ namespace TestAnalyzer
 
                 batch.AddOrUpdate(
                     responseStatus.StatusCode,
-                    new Tuple<int, DateTime>(1, responseStatus.EnqueuedDateTime),
+                    new Tuple<int, DateTime>(1, responseStatus.ResponseDateTime),
                     (key, value) => new Tuple<int, DateTime>(
                         value.Item1 + 1,
-                        responseStatus.EnqueuedDateTime > value.Item2 ? responseStatus.EnqueuedDateTime : value.Item2));
+                        responseStatus.ResponseDateTime > value.Item2 ? responseStatus.ResponseDateTime : value.Item2));
             }
         }
 

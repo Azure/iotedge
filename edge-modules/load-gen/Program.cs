@@ -8,17 +8,15 @@ namespace LoadGen
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
-    using Message = Microsoft.Azure.Devices.Client.Message;
 
     class Program
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("LoadGen");
-        static readonly Guid BatchId = Guid.NewGuid();
-        static readonly string DeviceId = Environment.GetEnvironmentVariable("IOTEDGE_DEVICEID");
-        static readonly string ModuleId = Environment.GetEnvironmentVariable("IOTEDGE_MODULEID");
-        static long messageId = 0;
+
+        static long messageIdCounter = 0;
 
         static async Task Main()
         {
@@ -34,17 +32,24 @@ namespace LoadGen
 
                 using (var timers = new Timers())
                 {
-                    Logger.LogInformation($"Batch Id={BatchId}");
+                    Guid batchId = Guid.NewGuid();
+                    Logger.LogInformation($"Batch Id={batchId}");
 
                     // setup the message timer
                     timers.Add(
                         Settings.Current.MessageFrequency,
                         Settings.Current.JitterFactor,
-                        () => GenerateMessageAsync(moduleClient, BatchId.ToString()));
-                    timers.Start();
-                    Logger.LogInformation("Load gen starting message send.");
+                        () => GenerateMessageAsync(moduleClient, batchId));
 
+                    // setup the twin update timer
+                    timers.Add(
+                        Settings.Current.TwinUpdateFrequency,
+                        Settings.Current.JitterFactor,
+                        () => GenerateTwinUpdateAsync(moduleClient, batchId));
+
+                    timers.Start();
                     (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
+                    Logger.LogInformation("Load gen running.");
 
                     await cts.Token.WhenCanceled();
                     Logger.LogInformation("Stopping timers.");
@@ -59,11 +64,11 @@ namespace LoadGen
             }
             catch (Exception ex)
             {
-                Logger.LogError($"Error occurred during load gen setup.\r\n{ex}");
+                Logger.LogError($"Error occurred during load gen.\r\n{ex}");
             }
         }
 
-        static async Task GenerateMessageAsync(ModuleClient client, string batchId)
+        static async Task GenerateMessageAsync(ModuleClient client, Guid batchId)
         {
             var random = new Random();
             var bufferPool = new BufferPool();
@@ -79,7 +84,7 @@ namespace LoadGen
                     // build message
                     var messageBody = new { data = data.Data };
                     var message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)));
-                    sequenceNumber = Interlocked.Increment(ref messageId);
+                    sequenceNumber = Interlocked.Increment(ref messageIdCounter);
                     message.Properties.Add("sequenceNumber", sequenceNumber.ToString());
                     message.Properties.Add("batchId", batchId.ToString());
 
@@ -89,6 +94,22 @@ namespace LoadGen
             catch (Exception e)
             {
                 Logger.LogError($"[GenerateMessageAsync] Sequence number {sequenceNumber}, BatchId: {batchId.ToString()};{Environment.NewLine}{e}");
+            }
+        }
+
+        static async Task GenerateTwinUpdateAsync(ModuleClient client, Guid batchId)
+        {
+            var twin = new TwinCollection();
+            long sequenceNumber = messageIdCounter;
+            twin["messagesSent"] = sequenceNumber;
+
+            try
+            {
+                await client.UpdateReportedPropertiesAsync(twin);
+            }
+            catch (Exception e)
+            {
+                Logger.LogError($"[GenerateTwinUpdateAsync] Sequence number {sequenceNumber}, BatchId: {batchId.ToString()};{Environment.NewLine}{e}");
             }
         }
     }

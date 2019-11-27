@@ -10,7 +10,7 @@ namespace TwinTester
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
 
-    public class ReportedPropertyOperation : ITwinOperation
+    public class ReportedPropertyOperation : TwinOperationBase
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("TwinTester");
         readonly RegistryManager registryManager;
@@ -51,7 +51,7 @@ namespace TwinTester
                     status = $"{(int)StatusCode.Success}: Successfully validated reported property update";
                     Logger.LogInformation(status + $" {reportedPropertyUpdate.Key}");
                 }
-                else if (this.IsPastFailureThreshold(reportedPropertyUpdate.Value))
+                else if (TwinOperationBase.IsPastFailureThreshold(this.twinState, reportedPropertyUpdate.Value))
                 {
                     status = $"{(int)StatusCode.ReportedPropertyUpdateNotInCloudTwin}: Failure receiving reported property update";
                     Logger.LogError(status + $" for reported property update {reportedPropertyUpdate.Key}");
@@ -62,7 +62,7 @@ namespace TwinTester
                 }
 
                 propertiesToRemoveFromTwin[reportedPropertyUpdate.Key] = null; // will later be serialized as a twin update
-                await this.CallAnalyzerToReportStatus(Settings.Current.ModuleId, status, string.Empty);
+                await TwinOperationBase.CallAnalyzerToReportStatus(this.analyzerClient, Settings.Current.ModuleId, status);
             }
 
             return propertiesToRemoveFromTwin;
@@ -109,7 +109,7 @@ namespace TwinTester
 
         public override async Task PerformUpdate()
         {
-            string reportedPropertyUpdate = new string('1', Settings.Current.TwinUpdateCharCount); // dummy twin update needs to be any number
+            string reportedPropertyUpdate = new string('1', Settings.Current.TwinUpdateSize); // dummy twin update needs to be any number
             var twin = new TwinCollection();
             twin[this.twinState.ReportedPropertyUpdateCounter.ToString()] = reportedPropertyUpdate;
             try
@@ -121,7 +121,7 @@ namespace TwinTester
             {
                 string failureStatus = $"{(int)StatusCode.ReportedPropertyUpdateCallFailure}: Failed call to update reported properties";
                 Logger.LogError(failureStatus + $": {e}");
-                await this.CallAnalyzerToReportStatus(Settings.Current.ModuleId, failureStatus, string.Empty);
+                await TwinOperationBase.CallAnalyzerToReportStatus(this.analyzerClient, Settings.Current.ModuleId, failureStatus);
                 return;
             }
 
