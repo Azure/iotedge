@@ -75,6 +75,7 @@ namespace TwinTester
             Dictionary<string, string> fields = new Dictionary<string, string>();
             fields.Add(nameof(this.DeviceId), this.DeviceId);
             fields.Add(nameof(this.ModuleId), this.ModuleId);
+            fields.Add(nameof(this.TwinUpdateSize), this.TwinUpdateSize.ToString());
             fields.Add(nameof(this.TwinUpdateFrequency), this.TwinUpdateFrequency.ToString());
             fields.Add(nameof(this.TwinUpdateFailureThreshold), this.TwinUpdateFailureThreshold.ToString());
             fields.Add(nameof(this.TransportType), Enum.GetName(typeof(TransportType), this.TransportType));
