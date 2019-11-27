@@ -23,7 +23,7 @@ parameters:
   analyzer.logAnalytics.logType: ''
   logAnalytics.workspaceId: ''
   logAnalytics.sharedKey: ''
-  twinTester.twinUpdateCharCount: ''
+  twinTester.twinUpdateSize: ''
   twinTester.twinUpdateFrequency: ''
   twinTester.twinUpdateFailureThreshold: ''
 
@@ -74,7 +74,7 @@ steps:
           -LogAnalyticsLogType "${{ parameters['analyzer.logAnalytics.logType'] }}" `
           -LogAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" `
           -LogAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" `
-          -TwinUpdateCharCount "${{ parameters['twinTester.twinUpdateCharCount'] }}" `
+          -TwinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" `
           -TwinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" `
           -TwinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}"
         # schedule a task to stop iotedge service (terminate the test) in 4:30h

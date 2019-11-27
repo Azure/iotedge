@@ -113,7 +113,7 @@
     .PARAMETER LogAnalyticsLogType
         Optional Log Analytics log type for the Analyzer module.
 
-    .PARAMETER TwinUpdateCharCount
+    .PARAMETER TwinUpdateSize
         Specifies the char count (i.e. size) of each twin update. Default is 1 for long haul and 100 for stress test.
 
     .PARAMETER TwinUpdateFrequency
@@ -295,7 +295,7 @@ Param (
 
     [string] $LogAnalyticsLogType = $null,
 
-    [string] $TwinUpdateCharCount = $null,
+    [string] $TwinUpdateSize = $null,
 
     [string] $TwinUpdateFrequency = "00:00:10",
 
@@ -501,7 +501,7 @@ Function PrepareTestFromArtifacts
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.Binds>',$SnitcherBinds) | Set-Content $DeploymentWorkingFilePath
                 $ManagementUri = "unix:///$($env:ProgramData.Replace("\", "/"))/iotedge/mgmt/sock"
                 (Get-Content $DeploymentWorkingFilePath).replace('<Management.Uri>',$ManagementUri) | Set-Content $DeploymentWorkingFilePath
-                (Get-Content $DeploymentWorkingFilePath).replace('<TwinUpdateCharCount>',$TwinUpdateCharCount) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<TwinUpdateSize>',$TwinUpdateSize) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<TwinUpdateFrequency>',$TwinUpdateFrequency) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<TwinUpdateFailureThreshold>',$TwinUpdateFailureThreshold) | Set-Content $DeploymentWorkingFilePath
             }
@@ -1551,7 +1551,7 @@ If ($TestName -eq "LongHaul")
     If ([string]::IsNullOrEmpty($RestartIntervalInMins)) {$RestartIntervalInMins = "10"}
     If ([string]::IsNullOrEmpty($SnitchReportingIntervalInSecs)) {$SnitchReportingIntervalInSecs = "86400"}
     If ([string]::IsNullOrEmpty($SnitchTestDurationInSecs)) {$SnitchTestDurationInSecs = "604800"}
-    If ([string]::IsNullOrEmpty($TwinUpdateCharCount)) {$TwinUpdateCharCount = "1"}
+    If ([string]::IsNullOrEmpty($TwinUpdateSize)) {$TwinUpdateSize = "1"}
 }
 
 If ($TestName -eq "Stress")
@@ -1559,7 +1559,7 @@ If ($TestName -eq "Stress")
     If ([string]::IsNullOrEmpty($LoadGenMessageFrequency)) {$LoadGenMessageFrequency = "00:00:00.03"}
     If ([string]::IsNullOrEmpty($SnitchReportingIntervalInSecs)) {$SnitchReportingIntervalInSecs = "1700000"}
     If ([string]::IsNullOrEmpty($SnitchTestDurationInSecs)) {$SnitchTestDurationInSecs = "14400"}
-    If ([string]::IsNullOrEmpty($TwinUpdateCharCount)) {$TwinUpdateCharCount = "100"}
+    If ([string]::IsNullOrEmpty($TwinUpdateSize)) {$TwinUpdateSize = "100"}
 }
 
 If ($BypassEdgeInstallation)

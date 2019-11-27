@@ -109,7 +109,7 @@ namespace TwinTester
 
         public override async Task PerformUpdate()
         {
-            string reportedPropertyUpdate = new string('1', Settings.Current.TwinUpdateCharCount); // dummy twin update needs to be any number
+            string reportedPropertyUpdate = new string('1', Settings.Current.TwinUpdateSize); // dummy twin update needs to be any number
             var twin = new TwinCollection();
             twin[this.twinState.ReportedPropertyUpdateCounter.ToString()] = reportedPropertyUpdate;
             try

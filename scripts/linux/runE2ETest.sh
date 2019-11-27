@@ -186,7 +186,7 @@ function prepare_test_from_artifacts() {
                 sed -i -e "s@<Snitch.StorageAccount>@$SNITCH_STORAGE_ACCOUNT@g" "$deployment_working_file"
                 sed -i -e "s@<Snitch.StorageMasterKey>@$SNITCH_STORAGE_MASTER_KEY@g" "$deployment_working_file"
                 sed -i -e "s@<Snitch.TestDurationInSecs>@$SNITCH_TEST_DURATION_IN_SECS@g" "$deployment_working_file"
-                sed -i -e "s@<TwinUpdateCharCount>@$TWIN_UPDATE_CHAR_COUNT@g" "$deployment_working_file"
+                sed -i -e "s@<TwinUpdateSize>@$TWIN_UPDATE_SIZE@g" "$deployment_working_file"
                 sed -i -e "s@<TwinUpdateFrequency>@$TWIN_UPDATE_FREQUENCY@g" "$deployment_working_file"
                 sed -i -e "s@<TwinUpdateFailureThreshold>@$TWIN_UPDATE_FAILURE_THRESHOLD@g" "$deployment_working_file";;
             'tempfilter')
@@ -379,7 +379,7 @@ function process_args() {
             LOG_ANALYTICS_LOG_TYPE="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 36 ]; then
-            TWIN_UPDATE_CHAR_COUNT="$arg"
+            TWIN_UPDATE_SIZE="$arg"
             saveNextArg=0;
         elif [ $saveNextArg -eq 37 ]; then
             TWIN_UPDATE_FREQUENCY="$arg"
@@ -425,7 +425,7 @@ function process_args() {
                 '-logAnalyticsWorkspaceId' ) saveNextArg=33;;
                 '-logAnalyticsSharedKey' ) saveNextArg=34;;
                 '-logAnalyticsLogType' ) saveNextArg=35;;
-                '-twinUpdateCharCount' ) saveNextArg=36;;
+                '-twinUpdateSize' ) saveNextArg=36;;
                 '-twinUpdateFrequency' ) saveNextArg=37;;
                 '-twinUpdateFailureThreshold' ) saveNextArg=38;;
                 '-cleanAll' ) CLEAN_ALL=1;;
@@ -1016,7 +1016,7 @@ function usage() {
     echo ' -logAnalyticsWorkspaceId          Optional Log Analytics workspace ID for metrics collection and reporting.'
     echo ' -logAnalyticsSharedKey            Optional Log Analytics shared key for metrics collection and reporting.'
     echo ' -logAnalyticsLogType              Optional Log Analytics log type for the Analyzer module.'
-    echo ' -twinUpdateCharCount              Specifies the char count (i.e. size) of each twin update. Default is 1 for long haul and 100 for stress test.'
+    echo ' -twinUpdateSize                   Specifies the char count (i.e. size) of each twin update. Default is 1 for long haul and 100 for stress test.'
     echo ' -twinUpdateFrequency              Frequency to make twin updates. This should be specified in DateTime format. Default is 00:00:15 for long haul and 00:00:05 for stress test.'
     echo ' -twinUpdateFailureThreshold       Specifies the longest period of time a twin update can take before being marked as a failure. This should be specified in DateTime format. Default is 00:01:00'
     exit 1;
@@ -1039,14 +1039,14 @@ if [[ "${TEST_NAME,,}" == "longhaul" ]]; then
     RESTART_INTERVAL_IN_MINS="${RESTART_INTERVAL_IN_MINS:-10}"
     SNITCH_REPORTING_INTERVAL_IN_SECS="${SNITCH_REPORTING_INTERVAL_IN_SECS:-86400}"
     SNITCH_TEST_DURATION_IN_SECS="${SNITCH_TEST_DURATION_IN_SECS:-604800}"
-    TWIN_UPDATE_CHAR_COUNT="${TWIN_UPDATE_CHAR_COUNT:-1}"
+    TWIN_UPDATE_SIZE="${TWIN_UPDATE_SIZE:-1}"
     TWIN_UPDATE_FREQUENCY="${TWIN_UPDATE_FREQUENCY:-00:00:15}"
 fi
 if [[ "${TEST_NAME,,}" == "stress" ]]; then
     LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:00.03}"
     SNITCH_REPORTING_INTERVAL_IN_SECS="${SNITCH_REPORTING_INTERVAL_IN_SECS:-1700000}"
     SNITCH_TEST_DURATION_IN_SECS="${SNITCH_TEST_DURATION_IN_SECS:-14400}"
-    TWIN_UPDATE_CHAR_COUNT="${TWIN_UPDATE_CHAR_COUNT:-100}"
+    TWIN_UPDATE_SIZE="${TWIN_UPDATE_SIZE:-100}"
     TWIN_UPDATE_FREQUENCY="${TWIN_UPDATE_FREQUENCY:-00:00:05}"
 fi
 if [ "$AMQP_SETTINGS_ENABLED" != "false" ]; then

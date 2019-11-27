@@ -25,7 +25,7 @@ namespace TwinTester
                 return new Settings(
                     configuration.GetValue<string>("IOTEDGE_DEVICEID", string.Empty),
                     configuration.GetValue<string>("IOTEDGE_MODULEID", string.Empty),
-                    configuration.GetValue<int>("TwinUpdateCharCount", 1),
+                    configuration.GetValue<int>("TwinUpdateSize", 1),
                     configuration.GetValue<TimeSpan>("TwinUpdateFrequency", TimeSpan.FromSeconds(10)),
                     configuration.GetValue<TimeSpan>("TwinUpdateFailureThreshold", TimeSpan.FromMinutes(1)),
                     configuration.GetValue<TransportType>("TransportType", TransportType.Amqp_Tcp_Only),
@@ -38,7 +38,7 @@ namespace TwinTester
         Settings(
             string deviceId,
             string moduleId,
-            int twinUpdateCharCount,
+            int twinUpdateSize,
             TimeSpan twinUpdateFrequency,
             TimeSpan twinUpdateFailureThreshold,
             TransportType transportType,
@@ -49,7 +49,7 @@ namespace TwinTester
         {
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
-            this.TwinUpdateCharCount = Preconditions.CheckRange(twinUpdateCharCount, 0);
+            this.TwinUpdateSize = Preconditions.CheckRange(twinUpdateSize, 0);
             this.TwinUpdateFrequency = Preconditions.CheckNotNull(twinUpdateFrequency);
             this.TwinUpdateFailureThreshold = Preconditions.CheckNotNull(twinUpdateFailureThreshold);
             this.TransportType = Preconditions.CheckNotNull(transportType);
@@ -63,7 +63,7 @@ namespace TwinTester
 
         public string DeviceId { get; }
         public string ModuleId { get; }
-        public int TwinUpdateCharCount { get; }
+        public int TwinUpdateSize { get; }
         public TimeSpan TwinUpdateFrequency { get; }
         public TimeSpan TwinUpdateFailureThreshold { get; }
 

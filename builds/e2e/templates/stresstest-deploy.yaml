@@ -23,7 +23,7 @@ parameters:
   analyzer.logAnalytics.logType: ''
   logAnalytics.workspaceId: ''
   logAnalytics.sharedKey: ''
-  twinTester.twinUpdateCharCount: ''
+  twinTester.twinUpdateSize: ''
   twinTester.twinUpdateFrequency: ''
   twinTester.twinUpdateFailureThreshold: ''
 
@@ -77,7 +77,7 @@ steps:
           -logAnalyticsLogType "${{ parameters['analyzer.logAnalytics.logType'] }}" \
           -logAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" \
           -logAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" \
-          -twinUpdateCharCount "${{ parameters['twinTester.twinUpdateCharCount'] }}" \
+          -twinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" \
           -twinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" \
           -twinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}" \
           -cleanAll

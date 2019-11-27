@@ -27,7 +27,7 @@ variables:
   #run.windows.amd64.moby: 'true/false'
   #longhaul.desiredModulesToRestartCSV: ''
   #longhaul.restartIntervalInMins: ''
-  #twinTester.twinUpdateCharCount: ''
+  #twinTester.twinUpdateSize: ''
   #twinTester.twinUpdateFrequency: 'xx:xx:xx.xx' 
   #twinTester.twinUpdateFailureThreshold: 'xx:xx:xx.xx'
 
@@ -102,7 +102,7 @@ jobs:
           analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
-          twinTester.twinUpdateCharCount: '$(twinTester.twinUpdateCharCount)'
+          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
           twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
           twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
 
@@ -177,7 +177,7 @@ jobs:
           analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
-          twinTester.twinUpdateCharCount: '$(twinTester.twinUpdateCharCount)'
+          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
           twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
           twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
 
@@ -252,7 +252,7 @@ jobs:
           analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
-          twinTester.twinUpdateCharCount: '$(twinTester.twinUpdateCharCount)'
+          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
           twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
           twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
           
@@ -329,7 +329,7 @@ jobs:
           analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
-          twinTester.twinUpdateCharCount: '$(twinTester.twinUpdateCharCount)'
+          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
           twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
           twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
 
@@ -406,7 +406,7 @@ jobs:
           analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
-          twinTester.twinUpdateCharCount: '$(twinTester.twinUpdateCharCount)'
+          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
           twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
           twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
 
@@ -482,6 +482,6 @@ jobs:
           analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
-          twinTester.twinUpdateCharCount: '$(twinTester.twinUpdateCharCount)'
+          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
           twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
           twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'

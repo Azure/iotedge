@@ -133,8 +133,8 @@
                 "ServiceClientConnectionString": {
                     "value": "<ServiceClientConnectionString>"
                 },
-                "TwinUpdateCharCount": {
-                    "value": "<TwinUpdateCharCount>"
+                "TwinUpdateSize": {
+                    "value": "<TwinUpdateSize>"
                 },
                 "TwinUpdateFrequency": {
                     "value": "<TwinUpdateFrequency>"
@@ -160,8 +160,8 @@
                 "ServiceClientConnectionString": {
                     "value": "<ServiceClientConnectionString>"
                 },
-                "TwinUpdateCharCount": {
-                    "value": "<TwinUpdateCharCount>"
+                "TwinUpdateSize": {
+                    "value": "<TwinUpdateSize>"
                 },
                 "TwinUpdateFrequency": {
                     "value": "<TwinUpdateFrequency>"
@@ -187,8 +187,8 @@
                 "ServiceClientConnectionString": {
                     "value": "<ServiceClientConnectionString>"
                 },
-                "TwinUpdateCharCount": {
-                    "value": "<TwinUpdateCharCount>"
+                "TwinUpdateSize": {
+                    "value": "<TwinUpdateSize>"
                 },
                 "TwinUpdateFrequency": {
                     "value": "<TwinUpdateFrequency>"
@@ -214,8 +214,8 @@
                 "ServiceClientConnectionString": {
                     "value": "<ServiceClientConnectionString>"
                 },
-                "TwinUpdateCharCount": {
-                    "value": "<TwinUpdateCharCount>"
+                "TwinUpdateSize": {
+                    "value": "<TwinUpdateSize>"
                 },
                 "TwinUpdateFrequency": {
                     "value": "<TwinUpdateFrequency>"
