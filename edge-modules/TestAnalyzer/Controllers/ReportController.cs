@@ -1,19 +1,23 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace TestAnalyzer.Controllers
 {
-    using System.Threading;
+    using System;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Mvc;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics;
+    using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
     [Route("api/[controller]")]
     [ApiController]
     public class ReportController : Controller
     {
+        static readonly ILogger Logger = ModuleUtil.CreateLogger("Analyzer");
+
         // GET api/report/all
         [HttpGet("all")]
-        public async ActionResult<string> GetReport()
+        public ActionResult<string> GetReport()
         {
             DeviceAnalysis deviceAnalysis = Reporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
             if (Settings.Current.LogAnalyticsEnabled)
@@ -26,12 +30,12 @@ namespace TestAnalyzer.Controllers
 
         // GET api/report (exposed for backwards compatibility for snitcher which will eventually be deprecated)
         [HttpGet]
-        public async ActionResult<string> GetMessages()
+        public ActionResult<string> GetMessages()
         {
             DeviceAnalysis deviceAnalysis = Reporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
             if (Settings.Current.LogAnalyticsEnabled)
             {
-                this.PublishToLogAnalytics(deviceAnalysis);
+                this.PublishToLogAnalytics(deviceAnalysis); // TODO: await
             }
 
             return deviceAnalysis.MessagesReport.ToString();
@@ -47,24 +51,31 @@ namespace TestAnalyzer.Controllers
             string sharedKey = Settings.Current.LogAnalyticsSharedKey;
             string logType = Settings.Current.LogAnalyticsLogType;
 
-            // Upload the data to Log Analytics for our dashboards
-            await AzureLogAnalytics.Instance.PostAsync(
-                workspaceId,
-                sharedKey,
-                messagesJson,
-                logType);
+            try
+            {
+                // Upload the data to Log Analytics for our dashboards
+                await AzureLogAnalytics.Instance.PostAsync(
+                    workspaceId,
+                    sharedKey,
+                    messagesJson,
+                    logType);
 
-            await AzureLogAnalytics.Instance.PostAsync(
-                workspaceId,
-                sharedKey,
-                twinsJson,
-                logType);
+                await AzureLogAnalytics.Instance.PostAsync(
+                    workspaceId,
+                    sharedKey,
+                    twinsJson,
+                    logType);
 
-            await AzureLogAnalytics.Instance.PostAsync(
-                workspaceId,
-                sharedKey,
-                directMethodsJson,
-                logType);
+                await AzureLogAnalytics.Instance.PostAsync(
+                    workspaceId,
+                    sharedKey,
+                    directMethodsJson,
+                    logType);
+            }
+            catch(Exception e)
+            {
+                Logger.LogError($"Failed call to upload reports to log analytics: {e}");
+            }
         }
     }
 }
