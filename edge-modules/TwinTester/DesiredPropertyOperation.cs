@@ -46,7 +46,7 @@ namespace TwinTester
                     status = $"{(int)StatusCode.Success}: Successfully validated desired property update";
                     Logger.LogInformation(status + $" {desiredPropertyUpdate.Key}");
                 }
-                else if (this.IsPastFailureThreshold(desiredPropertyUpdate.Value))
+                else if (TwinOperationBase.IsPastFailureThreshold(this.twinState, desiredPropertyUpdate.Value))
                 {
                     if (doesTwinHaveUpdate && !hasModuleReceivedCallback)
                     {
@@ -68,7 +68,7 @@ namespace TwinTester
                     continue;
                 }
 
-                await this.CallAnalyzerToReportStatus(Settings.Current.ModuleId, status);
+                await TwinOperationBase.CallAnalyzerToReportStatus(this.analyzerClient, Settings.Current.ModuleId, status);
                 propertiesToRemoveFromTwin.Add(desiredPropertyUpdate.Key, null); // will later be serialized as a twin update
             }
 

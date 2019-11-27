@@ -8,25 +8,23 @@ namespace TwinTester
 
     public abstract class TwinOperationBase
     {
-        TwinState TwinState { get; set; }
-        AnalyzerClient AnalyzerClient { get; set; }
         static readonly ILogger Logger = ModuleUtil.CreateLogger("TwinTester");
 
         public abstract Task PerformUpdate();
 
         public abstract Task PerformValidation();
 
-        protected bool IsPastFailureThreshold(DateTime twinUpdateTime)
+        protected static bool IsPastFailureThreshold(TwinState twinState, DateTime twinUpdateTime)
         {
-            DateTime comparisonPoint = new DateTime(Math.Max(twinUpdateTime.Ticks, this.TwinState.LastTimeOffline.Ticks));
+            DateTime comparisonPoint = new DateTime(Math.Max(twinUpdateTime.Ticks, twinState.LastTimeOffline.Ticks));
             return DateTime.UtcNow - comparisonPoint > Settings.Current.TwinUpdateFailureThreshold;
         }
 
-        protected async Task CallAnalyzerToReportStatus(string moduleId, string status)
+        protected static async Task CallAnalyzerToReportStatus(AnalyzerClient analyzerClient, string moduleId, string status)
         {
             try
             {
-                await this.AnalyzerClient.AddTwinStatusAsync(new ResponseStatus { ModuleId = moduleId, StatusCode = status, EnqueuedDateTime = DateTime.UtcNow });
+                await analyzerClient.AddTwinStatusAsync(new ResponseStatus { ModuleId = moduleId, StatusCode = status, EnqueuedDateTime = DateTime.UtcNow });
             }
             catch (Exception e)
             {

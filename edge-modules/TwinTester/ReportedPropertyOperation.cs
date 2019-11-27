@@ -51,7 +51,7 @@ namespace TwinTester
                     status = $"{(int)StatusCode.Success}: Successfully validated reported property update";
                     Logger.LogInformation(status + $" {reportedPropertyUpdate.Key}");
                 }
-                else if (this.IsPastFailureThreshold(reportedPropertyUpdate.Value))
+                else if (TwinOperationBase.IsPastFailureThreshold(this.twinState, reportedPropertyUpdate.Value))
                 {
                     status = $"{(int)StatusCode.ReportedPropertyUpdateNotInCloudTwin}: Failure receiving reported property update";
                     Logger.LogError(status + $" for reported property update {reportedPropertyUpdate.Key}");
@@ -62,7 +62,7 @@ namespace TwinTester
                 }
 
                 propertiesToRemoveFromTwin[reportedPropertyUpdate.Key] = null; // will later be serialized as a twin update
-                await this.CallAnalyzerToReportStatus(Settings.Current.ModuleId, status);
+                await TwinOperationBase.CallAnalyzerToReportStatus(this.analyzerClient, Settings.Current.ModuleId, status);
             }
 
             return propertiesToRemoveFromTwin;
@@ -121,7 +121,7 @@ namespace TwinTester
             {
                 string failureStatus = $"{(int)StatusCode.ReportedPropertyUpdateCallFailure}: Failed call to update reported properties";
                 Logger.LogError(failureStatus + $": {e}");
-                await this.CallAnalyzerToReportStatus(Settings.Current.ModuleId, failureStatus);
+                await TwinOperationBase.CallAnalyzerToReportStatus(this.analyzerClient, Settings.Current.ModuleId, failureStatus);
                 return;
             }
 
