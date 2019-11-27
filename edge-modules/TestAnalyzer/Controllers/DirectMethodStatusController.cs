@@ -10,10 +10,9 @@ namespace TestAnalyzer.Controllers
     {
         // POST api/directmethodstatus
         [HttpPost]
-        public async Task<EmptyResult> Post(ResponseStatus methodCallStatus)
+        public async Task Post(ResponseStatus methodCallStatus)
         {
             await ReportingCacheWithStorage.Instance.AddDirectMethod(methodCallStatus);
-            return new EmptyResult();
         }
     }
 }
