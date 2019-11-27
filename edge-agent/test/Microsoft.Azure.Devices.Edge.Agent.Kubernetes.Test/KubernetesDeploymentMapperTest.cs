@@ -554,6 +554,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Assert.Equal(20001, deployment.Spec.Template.Spec.SecurityContext.RunAsUser);
         }
 
+        [Fact]
         public void EdgeAgentEnvSettingsHaveLotsOfStuff()
         {
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "$edgeAgent", Mock.Of<ICredentials>());
@@ -598,12 +599,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         }
 
         static KubernetesDeploymentMapper CreateMapper(
-          string persistentVolumeName = "", 
-          string storageClassName = "", 
-          string proxyImagePullSecretName = null, 
-          bool runAsNonRoot = false, 
-          IDictionary<string, bool> experimentalFeatures = null
-        )
+          string persistentVolumeName = "",
+          string storageClassName = "",
+          string proxyImagePullSecretName = null,
+          bool runAsNonRoot = false,
+          IDictionary<string, bool> experimentalFeatures = null)
             => new KubernetesDeploymentMapper(
                 "namespace",
                 "edgehub",
