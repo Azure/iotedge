@@ -2,6 +2,7 @@
 namespace TwinTester
 {
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Client;
@@ -39,6 +40,12 @@ namespace TwinTester
                 TimeSpan validationInterval = new TimeSpan(Settings.Current.TwinUpdateFailureThreshold.Ticks / 4);
                 PeriodicTask periodicValidation = new PeriodicTask(twinOperator.PerformValidation, validationInterval, validationInterval, Logger, "TwinValidation");
                 PeriodicTask periodicUpdate = new PeriodicTask(twinOperator.PerformUpdates, Settings.Current.TwinUpdateFrequency, Settings.Current.TwinUpdateFrequency, Logger, "TwinUpdates");
+
+                (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
+                await cts.Token.WhenCanceled();
+                completed.Set();
+                handler.ForEach(h => GC.KeepAlive(h));
+                Logger.LogInformation("TwinTester exiting.");
             }
             catch (Exception ex)
             {
