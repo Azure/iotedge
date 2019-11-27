@@ -328,6 +328,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         static class Events
         {
             const int IdStart = AgentEventIds.Agent;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<Agent>();
 
             enum EventIds
             {
