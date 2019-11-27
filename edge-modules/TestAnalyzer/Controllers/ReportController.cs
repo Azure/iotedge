@@ -51,9 +51,9 @@ namespace TestAnalyzer.Controllers
             string sharedKey = Settings.Current.LogAnalyticsSharedKey;
             string logType = Settings.Current.LogAnalyticsLogType;
 
+            // Upload the data to Log Analytics for our dashboards
             try
             {
-                // Upload the data to Log Analytics for our dashboards
                 await AzureLogAnalytics.Instance.PostAsync(
                     workspaceId,
                     sharedKey,
