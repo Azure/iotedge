@@ -7,9 +7,9 @@ namespace TestAnalyzer
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Extensions.Logging;
 
-    class Reporter
+    class TestResultReporter
     {
-        static readonly ILogger Logger = ModuleUtil.CreateLogger("Analyzer");
+        static readonly ILogger Logger = ModuleUtil.CreateLogger("Reporter");
 
         public static TestResultAnalysis GetDeviceReport(double toleranceInMilliseconds)
         {

@@ -19,7 +19,7 @@ namespace TestAnalyzer.Controllers
         [HttpGet("all")]
         public async Task<ContentResult> GetReport()
         {
-            TestResultAnalysis deviceAnalysis = Reporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
+            TestResultAnalysis deviceAnalysis = TestResultReporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
             if (Settings.Current.LogAnalyticsEnabled)
             {
                 await this.PublishToLogAnalyticsAsync(deviceAnalysis);
@@ -32,7 +32,7 @@ namespace TestAnalyzer.Controllers
         [HttpGet]
         public async Task<ContentResult> GetMessagesAsync()
         {
-            TestResultAnalysis deviceAnalysis = Reporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
+            TestResultAnalysis deviceAnalysis = TestResultReporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
             if (Settings.Current.LogAnalyticsEnabled)
             {
                 await this.PublishToLogAnalyticsAsync(deviceAnalysis);

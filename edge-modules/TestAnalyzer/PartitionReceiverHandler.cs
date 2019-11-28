@@ -15,7 +15,7 @@ namespace TestAnalyzer
         const string SequenceNumberPropertyName = "sequenceNumber";
         const string EnqueuedTimePropertyName = "iothub-enqueuedtime";
         const string BatchIdPropertyName = "batchId";
-        static readonly ILogger Logger = ModuleUtil.CreateLogger("Analyzer");
+        static readonly ILogger Logger = ModuleUtil.CreateLogger("PartitionReceiveHandler");
         readonly string deviceId;
         readonly IList<string> excludedModulesIds;
 
