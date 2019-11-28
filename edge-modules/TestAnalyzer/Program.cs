@@ -38,7 +38,7 @@ namespace TestAnalyzer
         {
             DateTime lastReceivedAt = DateTime.MinValue;
             await ReportingCacheWithStorage.Instance.InitAsync(Settings.Current.StoragePath, Settings.Current.OptimizeForPerformance);
-            var messagesSnapShot = ReportingCache.Instance.GetMessagesSnapshot();
+            IDictionary<string, IList<SortedSet<MessageDetails>>> messagesSnapShot = ReportingCache.Instance.GetMessagesSnapshot();
             foreach (KeyValuePair<string, IList<SortedSet<MessageDetails>>> moduleMesssages in messagesSnapShot)
             {
                 foreach (var moduleMesssage in moduleMesssages.Value)
