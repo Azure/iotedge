@@ -13,7 +13,7 @@ namespace TestAnalyzer.Controllers
     [ApiController]
     public class ReportController : Controller
     {
-        static readonly ILogger Logger = ModuleUtil.CreateLogger("ReportController");
+        static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(ReportController));
 
         // GET api/report/all
         [HttpGet("all")]

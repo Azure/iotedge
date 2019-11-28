@@ -9,7 +9,7 @@ namespace TestAnalyzer
 
     class TestResultReporter
     {
-        static readonly ILogger Logger = ModuleUtil.CreateLogger("Reporter");
+        static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TestResultReporter));
 
         public static TestResultAnalysis GetDeviceReport(double toleranceInMilliseconds)
         {

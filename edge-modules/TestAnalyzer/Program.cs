@@ -16,7 +16,7 @@ namespace TestAnalyzer
 
     class Program
     {
-        static readonly ILogger Logger = ModuleUtil.CreateLogger("Analyzer");
+        static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TestAnalyzer));
 
         static async Task Main(string[] args)
         {

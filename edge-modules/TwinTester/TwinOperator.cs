@@ -14,7 +14,7 @@ namespace TwinTester
 
     public class TwinOperator
     {
-        static readonly ILogger Logger = ModuleUtil.CreateLogger("TwinOperator");
+        static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TwinOperator));
         readonly SemaphoreSlim operationLock = new SemaphoreSlim(1, 1);
         readonly ReportedPropertyOperation reportedPropertyOperation;
         readonly DesiredPropertyOperation desiredPropertyOperation;

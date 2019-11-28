@@ -12,7 +12,7 @@ namespace TwinTester
 
     class Program
     {
-        static readonly ILogger Logger = ModuleUtil.CreateLogger("TwinTester");
+        static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TwinTester));
 
         static async Task Main()
         {

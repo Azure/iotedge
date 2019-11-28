@@ -13,7 +13,7 @@ namespace TwinTester
 
     public class DesiredPropertyOperation : TwinOperationBase
     {
-        static readonly ILogger Logger = ModuleUtil.CreateLogger("DesiredPropertyOperation");
+        static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(DesiredPropertyOperation));
         readonly RegistryManager registryManager;
         readonly ModuleClient moduleClient;
         readonly AnalyzerClient analyzerClient;

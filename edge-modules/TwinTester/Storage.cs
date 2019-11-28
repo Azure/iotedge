@@ -16,7 +16,7 @@ namespace TwinTester
         const string DesiredPropertyUpdatePartitionKey = "DesiredPropertyUpdateCache";
         const string DesiredPropertyReceivedPartitionKey = "DesiredPropertyReceivedCache";
         const string ReportedPropertyUpdatePartitionKey = "ReportedPropertyUpdateCache";
-        static readonly ILogger Logger = ModuleUtil.CreateLogger("TwinEventStorage");
+        static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TwinEventStorage));
         IEntityStore<string, DateTime> desiredPropertyUpdateCache;
         IEntityStore<string, DateTime> desiredPropertyReceivedCache;
         IEntityStore<string, DateTime> reportedPropertyUpdateCache;
