@@ -25,7 +25,7 @@ namespace TestAnalyzer.Controllers
                 await this.PublishToLogAnalytics(deviceAnalysis);
             }
 
-            return new ContentResult { Content=deviceAnalysis.ToString() };
+            return new ContentResult { Content = deviceAnalysis.ToString() };
         }
 
         // GET api/report (exposed for backwards compatibility for snitcher which will eventually be deprecated)

@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace TestAnalyzer.Controllers
 {
+    using System.Net;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Mvc;
 
@@ -10,10 +11,10 @@ namespace TestAnalyzer.Controllers
     {
         // POST api/directmethodstatus
         [HttpPost]
-        public async Task<StatusCodeResult> Post(ResponseStatus methodCallStatus)
+        public async Task<StatusCodeResult> PostAsync(ResponseStatus methodCallStatus)
         {
             await ReportingCacheWithStorage.Instance.AddDirectMethod(methodCallStatus);
-            return this.StatusCode(200);
+            return this.StatusCode((int)HttpStatusCode.OK);
         }
     }
 }

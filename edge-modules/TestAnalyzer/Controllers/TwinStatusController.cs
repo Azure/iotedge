@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace TestAnalyzer.Controllers
 {
+    using System.Net;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Mvc;
 
@@ -13,7 +14,7 @@ namespace TestAnalyzer.Controllers
         public async Task<StatusCodeResult> Post(ResponseStatus twinStatus)
         {
             await ReportingCacheWithStorage.Instance.AddTwin(twinStatus);
-            return this.StatusCode(200);
+            return this.StatusCode((int)HttpStatusCode.OK);
         }
     }
 }
