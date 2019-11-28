@@ -8,7 +8,7 @@ namespace TwinTester
 
     public abstract class TwinOperationBase
     {
-        static readonly ILogger Logger = ModuleUtil.CreateLogger("TwinTester");
+        static readonly ILogger Logger = ModuleUtil.CreateLogger("TwinOperationBase");
 
         public abstract Task PerformUpdateAsync();
 

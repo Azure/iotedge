@@ -12,14 +12,14 @@ namespace TwinTester
 
     public class ReportedPropertyOperation : TwinOperationBase
     {
-        static readonly ILogger Logger = ModuleUtil.CreateLogger("TwinTester");
+        static readonly ILogger Logger = ModuleUtil.CreateLogger("ReportedPropertyOperation");
         readonly RegistryManager registryManager;
         readonly ModuleClient moduleClient;
         readonly AnalyzerClient analyzerClient;
-        readonly Storage storage;
+        readonly TwinEventStorage storage;
         TwinState twinState;
 
-        public ReportedPropertyOperation(RegistryManager registryManager, ModuleClient moduleClient, AnalyzerClient analyzerClient, Storage storage, TwinState twinState)
+        public ReportedPropertyOperation(RegistryManager registryManager, ModuleClient moduleClient, AnalyzerClient analyzerClient, TwinEventStorage storage, TwinState twinState)
         {
             this.registryManager = registryManager;
             this.moduleClient = moduleClient;

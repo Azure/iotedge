@@ -11,9 +11,9 @@ namespace TestAnalyzer
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("Analyzer");
 
-        public static DeviceAnalysis GetDeviceReport(double toleranceInMilliseconds)
+        public static TestResultAnalysis GetDeviceReport(double toleranceInMilliseconds)
         {
-            return new DeviceAnalysis(GetReceivedMessagesReport(toleranceInMilliseconds), GetDirectMethodsReport(), GetTwinsReport());
+            return new TestResultAnalysis(GetReceivedMessagesReport(toleranceInMilliseconds), GetDirectMethodsReport(), GetTwinsReport());
         }
 
         static IList<ResponseOrientedReport> GetDirectMethodsReport()

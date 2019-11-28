@@ -13,14 +13,14 @@ namespace TwinTester
 
     public class DesiredPropertyOperation : TwinOperationBase
     {
-        static readonly ILogger Logger = ModuleUtil.CreateLogger("TwinTester");
+        static readonly ILogger Logger = ModuleUtil.CreateLogger("DesiredPropertyOperation");
         readonly RegistryManager registryManager;
         readonly ModuleClient moduleClient;
         readonly AnalyzerClient analyzerClient;
-        readonly Storage storage;
+        readonly TwinEventStorage storage;
         TwinState twinState;
 
-        public DesiredPropertyOperation(RegistryManager registryManager, ModuleClient moduleClient, AnalyzerClient analyzerClient, Storage storage, TwinState twinState)
+        public DesiredPropertyOperation(RegistryManager registryManager, ModuleClient moduleClient, AnalyzerClient analyzerClient, TwinEventStorage storage, TwinState twinState)
         {
             this.registryManager = registryManager;
             this.moduleClient = moduleClient;
@@ -143,7 +143,7 @@ namespace TwinTester
 
         async Task OnDesiredPropertyUpdateAsync(TwinCollection desiredProperties, object userContext)
         {
-            Storage storage = (Storage)userContext;
+            TwinEventStorage storage = (TwinEventStorage)userContext;
             foreach (dynamic twinUpdate in desiredProperties)
             {
                 KeyValuePair<string, object> pair = (KeyValuePair<string, object>)twinUpdate;

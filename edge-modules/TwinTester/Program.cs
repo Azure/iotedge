@@ -31,7 +31,7 @@ namespace TwinTester
 
                 AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = Settings.Current.AnalyzerUrl.AbsoluteUri };
 
-                Storage storage = new Storage();
+                TwinEventStorage storage = new TwinEventStorage();
                 storage.Init(Settings.Current.StoragePath, new SystemEnvironment(), Settings.Current.StorageOptimizeForPerformance);
 
                 TwinState twinState = await TwinOperator.InitializeModuleTwinAsync(registryManager, moduleClient, storage);

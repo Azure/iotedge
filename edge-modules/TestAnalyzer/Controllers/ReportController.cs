@@ -13,13 +13,13 @@ namespace TestAnalyzer.Controllers
     [ApiController]
     public class ReportController : Controller
     {
-        static readonly ILogger Logger = ModuleUtil.CreateLogger("Analyzer");
+        static readonly ILogger Logger = ModuleUtil.CreateLogger("ReportController");
 
         // GET api/report/all
         [HttpGet("all")]
         public async Task<ContentResult> GetReport()
         {
-            DeviceAnalysis deviceAnalysis = Reporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
+            TestResultAnalysis deviceAnalysis = Reporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
             if (Settings.Current.LogAnalyticsEnabled)
             {
                 await this.PublishToLogAnalyticsAsync(deviceAnalysis);
@@ -32,7 +32,7 @@ namespace TestAnalyzer.Controllers
         [HttpGet]
         public async Task<ContentResult> GetMessagesAsync()
         {
-            DeviceAnalysis deviceAnalysis = Reporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
+            TestResultAnalysis deviceAnalysis = Reporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
             if (Settings.Current.LogAnalyticsEnabled)
             {
                 await this.PublishToLogAnalyticsAsync(deviceAnalysis);
@@ -41,7 +41,7 @@ namespace TestAnalyzer.Controllers
             return new ContentResult { Content = JsonConvert.SerializeObject(deviceAnalysis.MessagesReport, Formatting.Indented) };
         }
 
-        private async Task PublishToLogAnalyticsAsync(DeviceAnalysis deviceAnalysis)
+        private async Task PublishToLogAnalyticsAsync(TestResultAnalysis deviceAnalysis)
         {
             string messagesJson = JsonConvert.SerializeObject(deviceAnalysis.MessagesReport, Formatting.Indented);
             string twinsJson = JsonConvert.SerializeObject(deviceAnalysis.TwinsReport, Formatting.Indented);
@@ -74,7 +74,7 @@ namespace TestAnalyzer.Controllers
             }
             catch (Exception e)
             {
-                Logger.LogError($"Failed uploading reports to log analytics: {e}");
+                Logger.LogError($"Failed uploading reports to log analytics:",  e);
             }
         }
     }

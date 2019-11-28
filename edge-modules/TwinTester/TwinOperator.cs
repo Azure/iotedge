@@ -14,12 +14,12 @@ namespace TwinTester
 
     public class TwinOperator
     {
-        static readonly ILogger Logger = ModuleUtil.CreateLogger("TwinTester");
+        static readonly ILogger Logger = ModuleUtil.CreateLogger("TwinOperator");
         readonly SemaphoreSlim operationLock = new SemaphoreSlim(1, 1);
         readonly ReportedPropertyOperation reportedPropertyOperation;
         readonly DesiredPropertyOperation desiredPropertyOperation;
 
-        public TwinOperator(RegistryManager registryManager, ModuleClient moduleClient, AnalyzerClient analyzerClient, Storage storage, TwinState twinState)
+        public TwinOperator(RegistryManager registryManager, ModuleClient moduleClient, AnalyzerClient analyzerClient, TwinEventStorage storage, TwinState twinState)
         {
             this.reportedPropertyOperation = new ReportedPropertyOperation(registryManager, moduleClient, analyzerClient, storage, twinState);
             this.desiredPropertyOperation = new DesiredPropertyOperation(registryManager, moduleClient, analyzerClient, storage, twinState);
@@ -48,7 +48,7 @@ namespace TwinTester
             return eraseReportedProperties;
         }
 
-        public static async Task<TwinState> InitializeModuleTwinAsync(RegistryManager registryManager, ModuleClient moduleClient, Storage storage)
+        public static async Task<TwinState> InitializeModuleTwinAsync(RegistryManager registryManager, ModuleClient moduleClient, TwinEventStorage storage)
         {
             try
             {
