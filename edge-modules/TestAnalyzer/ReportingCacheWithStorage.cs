@@ -14,36 +14,36 @@ namespace TestAnalyzer
         {
         }
 
-        public async Task Init(string storagePath, bool optimizeForPerformance)
+        public async Task InitAsync(string storagePath, bool optimizeForPerformance)
         {
             this.storage = new Storage();
-            await this.storage.Init(storagePath, new SystemEnvironment(), optimizeForPerformance);
-            await this.storage.ProcessAllMessages(message => ReportingCache.Instance.AddMessage(message));
-            await this.storage.ProcessAllDirectMethods(directMethodStatus => ReportingCache.Instance.AddDirectMethodStatus(directMethodStatus));
-            await this.storage.ProcessAllTwins(twinStatus => ReportingCache.Instance.AddTwinStatus(twinStatus));
+            await this.storage.InitAsync(storagePath, new SystemEnvironment(), optimizeForPerformance);
+            await this.storage.ProcessAllMessagesAsync(message => ReportingCache.Instance.AddMessage(message));
+            await this.storage.ProcessAllDirectMethodsAsync(directMethodStatus => ReportingCache.Instance.AddDirectMethodStatus(directMethodStatus));
+            await this.storage.ProcessAllTwinsAsync(twinStatus => ReportingCache.Instance.AddTwinStatus(twinStatus));
         }
 
-        public async Task AddMessage(MessageDetails msg)
+        public async Task AddMessageAsync(MessageDetails msg)
         {
-            bool added = await this.storage.AddMessage(msg);
+            bool added = await this.storage.AddMessageAsync(msg);
             if (added)
             {
                 ReportingCache.Instance.AddMessage(msg);
             }
         }
 
-        public async Task AddDirectMethod(ResponseStatus dmStatus)
+        public async Task AddDirectMethodAsync(ResponseStatus dmStatus)
         {
-            bool added = await this.storage.AddDirectMethod(dmStatus);
+            bool added = await this.storage.AddDirectMethodAsync(dmStatus);
             if (added)
             {
                 ReportingCache.Instance.AddDirectMethodStatus(dmStatus);
             }
         }
 
-        public async Task AddTwin(ResponseStatus twinStatus)
+        public async Task AddTwinAsync(ResponseStatus twinStatus)
         {
-            bool added = await this.storage.AddTwin(twinStatus);
+            bool added = await this.storage.AddTwinAsync(twinStatus);
             if (added)
             {
                 ReportingCache.Instance.AddTwinStatus(twinStatus);

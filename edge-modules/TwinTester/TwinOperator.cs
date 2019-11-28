@@ -48,13 +48,13 @@ namespace TwinTester
             return eraseReportedProperties;
         }
 
-        public static async Task<TwinState> InitializeModuleTwin(RegistryManager registryManager, ModuleClient moduleClient, Storage storage)
+        public static async Task<TwinState> InitializeModuleTwinAsync(RegistryManager registryManager, ModuleClient moduleClient, Storage storage)
         {
             try
             {
                 TwinState initializedState;
                 Twin twin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
-                int storageCount = (await storage.GetAllDesiredPropertiesReceived()).Count + (await storage.GetAllDesiredPropertiesUpdated()).Count + (await storage.GetAllReportedPropertiesUpdated()).Count;
+                int storageCount = (await storage.GetAllDesiredPropertiesReceivedAsync()).Count + (await storage.GetAllDesiredPropertiesUpdatedAsync()).Count + (await storage.GetAllReportedPropertiesUpdatedAsync()).Count;
                 if (storageCount == 0)
                 {
                     Logger.LogInformation("No existing storage detected. Initializing new module twin for fresh run.");
@@ -73,8 +73,8 @@ namespace TwinTester
                 else
                 {
                     Logger.LogInformation("Existing storage detected. Initializing reported / desired property update counters.");
-                    Dictionary<string, DateTime> reportedProperties = await storage.GetAllReportedPropertiesUpdated();
-                    Dictionary<string, DateTime> desiredProperties = await storage.GetAllDesiredPropertiesUpdated();
+                    Dictionary<string, DateTime> reportedProperties = await storage.GetAllReportedPropertiesUpdatedAsync();
+                    Dictionary<string, DateTime> desiredProperties = await storage.GetAllDesiredPropertiesUpdatedAsync();
                     initializedState = new TwinState { ReportedPropertyUpdateCounter = GetNewPropertyCounter(reportedProperties), DesiredPropertyUpdateCounter = GetNewPropertyCounter(desiredProperties), TwinETag = twin.ETag, LastTimeOffline = DateTime.MinValue };
                 }
 
@@ -87,19 +87,19 @@ namespace TwinTester
             }
         }
 
-        public async Task PerformUpdates(CancellationToken cancellationToken)
+        public async Task PerformUpdatesAsync(CancellationToken cancellationToken)
         {
             await this.operationLock.WaitAsync();
-            await this.reportedPropertyOperation.PerformUpdate();
-            await this.desiredPropertyOperation.PerformUpdate();
+            await this.reportedPropertyOperation.PerformUpdateAsync();
+            await this.desiredPropertyOperation.PerformUpdateAsync();
             this.operationLock.Release();
         }
 
-        public async Task PerformValidation(CancellationToken cancellationToken)
+        public async Task PerformValidationAsync(CancellationToken cancellationToken)
         {
             await this.operationLock.WaitAsync();
-            await this.reportedPropertyOperation.PerformValidation();
-            await this.desiredPropertyOperation.PerformValidation();
+            await this.reportedPropertyOperation.PerformValidationAsync();
+            await this.desiredPropertyOperation.PerformValidationAsync();
             this.operationLock.Release();
         }
     }

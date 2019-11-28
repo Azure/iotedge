@@ -22,8 +22,8 @@ namespace TestAnalyzer
         {
             Logger.LogInformation($"Starting analyzer with the following settings:\r\n{Settings.Current}");
 
-            DateTime lastReceivedMessageTime = await LoadStartupTimeFromStorage();
-            await ReceiveMessages(lastReceivedMessageTime);
+            DateTime lastReceivedMessageTime = await LoadStartupTimeFromStorageAsync();
+            await ReceiveMessagesAsync(lastReceivedMessageTime);
 
             var cts = new CancellationTokenSource();
             AssemblyLoadContext.Default.Unloading += (ctx) => cts.Cancel();
@@ -34,10 +34,10 @@ namespace TestAnalyzer
             await CreateWebHostBuilder(args).Build().RunAsync(cts.Token);
         }
 
-        static async Task<DateTime> LoadStartupTimeFromStorage()
+        static async Task<DateTime> LoadStartupTimeFromStorageAsync()
         {
             DateTime lastReceivedAt = DateTime.MinValue;
-            await ReportingCacheWithStorage.Instance.Init(Settings.Current.StoragePath, Settings.Current.OptimizeForPerformance);
+            await ReportingCacheWithStorage.Instance.InitAsync(Settings.Current.StoragePath, Settings.Current.OptimizeForPerformance);
             var messagesSnapShot = ReportingCache.Instance.GetMessagesSnapshot();
             foreach (KeyValuePair<string, IList<SortedSet<MessageDetails>>> moduleMesssages in messagesSnapShot)
             {
@@ -58,7 +58,7 @@ namespace TestAnalyzer
                 .UseUrls($"http://*:{Settings.Current.WebhostPort}")
                 .UseStartup<Startup>();
 
-        static async Task ReceiveMessages(DateTime lastReceivedMesssage)
+        static async Task ReceiveMessagesAsync(DateTime lastReceivedMesssage)
         {
             var builder = new EventHubsConnectionStringBuilder(Settings.Current.EventHubConnectionString);
             Logger.LogInformation($"Receiving events from device '{Settings.Current.DeviceId}' on Event Hub '{builder.EntityPath}'");

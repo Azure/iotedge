@@ -57,58 +57,58 @@ namespace TwinTester
             return storagePath;
         }
 
-        public async Task<bool> AddDesiredPropertyUpdate(string desiredPropertyUpdateId)
+        public async Task<bool> AddDesiredPropertyUpdateAsync(string desiredPropertyUpdateId)
         {
             await this.desiredPropertyUpdateCache.Put(desiredPropertyUpdateId, DateTime.UtcNow);
             return true;
         }
 
-        public async Task<bool> AddDesiredPropertyReceived(string desiredPropertyReceivedId)
+        public async Task<bool> AddDesiredPropertyReceivedAsync(string desiredPropertyReceivedId)
         {
             await this.desiredPropertyReceivedCache.Put(desiredPropertyReceivedId, DateTime.UtcNow);
             return true;
         }
 
-        public async Task<bool> AddReportedPropertyUpdate(string reportedPropertyUpdateId)
+        public async Task<bool> AddReportedPropertyUpdateAsync(string reportedPropertyUpdateId)
         {
             await this.reportedPropertyUpdateCache.Put(reportedPropertyUpdateId, DateTime.UtcNow);
             return true;
         }
 
-        public async Task<bool> RemoveDesiredPropertyUpdate(string desiredPropertyUpdateId)
+        public async Task<bool> RemoveDesiredPropertyUpdateAsync(string desiredPropertyUpdateId)
         {
             await this.desiredPropertyUpdateCache.Remove(desiredPropertyUpdateId);
             return true;
         }
 
-        public async Task<bool> RemoveDesiredPropertyReceived(string desiredPropertyReceivedId)
+        public async Task<bool> RemoveDesiredPropertyReceivedAsync(string desiredPropertyReceivedId)
         {
             await this.desiredPropertyReceivedCache.Remove(desiredPropertyReceivedId);
             return true;
         }
 
-        public async Task<bool> RemoveReportedPropertyUpdate(string reportedPropertyUpdateId)
+        public async Task<bool> RemoveReportedPropertyUpdateAsync(string reportedPropertyUpdateId)
         {
             await this.reportedPropertyUpdateCache.Remove(reportedPropertyUpdateId);
             return true;
         }
 
-        public async Task<Dictionary<string, DateTime>> GetAllDesiredPropertiesUpdated()
+        public async Task<Dictionary<string, DateTime>> GetAllDesiredPropertiesUpdatedAsync()
         {
-            return await this.GetAllUpdatesHelper(this.desiredPropertyUpdateCache);
+            return await this.GetAllUpdatesHelperAsync(this.desiredPropertyUpdateCache);
         }
 
-        public async Task<Dictionary<string, DateTime>> GetAllDesiredPropertiesReceived()
+        public async Task<Dictionary<string, DateTime>> GetAllDesiredPropertiesReceivedAsync()
         {
-            return await this.GetAllUpdatesHelper(this.desiredPropertyReceivedCache);
+            return await this.GetAllUpdatesHelperAsync(this.desiredPropertyReceivedCache);
         }
 
-        public async Task<Dictionary<string, DateTime>> GetAllReportedPropertiesUpdated()
+        public async Task<Dictionary<string, DateTime>> GetAllReportedPropertiesUpdatedAsync()
         {
-            return await this.GetAllUpdatesHelper(this.reportedPropertyUpdateCache);
+            return await this.GetAllUpdatesHelperAsync(this.reportedPropertyUpdateCache);
         }
 
-        public async Task<Dictionary<string, DateTime>> GetAllUpdatesHelper(IEntityStore<string, DateTime> store)
+        public async Task<Dictionary<string, DateTime>> GetAllUpdatesHelperAsync(IEntityStore<string, DateTime> store)
         {
             Dictionary<string, DateTime> allData = new Dictionary<string, DateTime>();
             await store.IterateBatch(

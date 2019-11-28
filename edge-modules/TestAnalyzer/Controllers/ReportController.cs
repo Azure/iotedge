@@ -22,7 +22,7 @@ namespace TestAnalyzer.Controllers
             DeviceAnalysis deviceAnalysis = Reporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
             if (Settings.Current.LogAnalyticsEnabled)
             {
-                await this.PublishToLogAnalytics(deviceAnalysis);
+                await this.PublishToLogAnalyticsAsync(deviceAnalysis);
             }
 
             return new ContentResult { Content = deviceAnalysis.ToString() };
@@ -30,18 +30,18 @@ namespace TestAnalyzer.Controllers
 
         // GET api/report (exposed for backwards compatibility for snitcher which will eventually be deprecated)
         [HttpGet]
-        public async Task<ContentResult> GetMessages()
+        public async Task<ContentResult> GetMessagesAsync()
         {
             DeviceAnalysis deviceAnalysis = Reporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
             if (Settings.Current.LogAnalyticsEnabled)
             {
-                await this.PublishToLogAnalytics(deviceAnalysis);
+                await this.PublishToLogAnalyticsAsync(deviceAnalysis);
             }
 
             return new ContentResult { Content = JsonConvert.SerializeObject(deviceAnalysis.MessagesReport, Formatting.Indented) };
         }
 
-        private async Task PublishToLogAnalytics(DeviceAnalysis deviceAnalysis)
+        private async Task PublishToLogAnalyticsAsync(DeviceAnalysis deviceAnalysis)
         {
             string messagesJson = JsonConvert.SerializeObject(deviceAnalysis.MessagesReport, Formatting.Indented);
             string twinsJson = JsonConvert.SerializeObject(deviceAnalysis.TwinsReport, Formatting.Indented);

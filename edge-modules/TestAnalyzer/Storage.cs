@@ -22,7 +22,7 @@ namespace TestAnalyzer
         ISequentialStore<ResponseStatus> directMethodsStore;
         ISequentialStore<ResponseStatus> twinsStore;
 
-        public async Task Init(string storagePath, ISystemEnvironment systemEnvironment, bool optimizeForPerformance)
+        public async Task InitAsync(string storagePath, ISystemEnvironment systemEnvironment, bool optimizeForPerformance)
         {
             StoreProvider storeProvider;
             try
@@ -58,40 +58,40 @@ namespace TestAnalyzer
             return storagePath;
         }
 
-        public async Task<bool> AddMessage(MessageDetails message)
+        public async Task<bool> AddMessageAsync(MessageDetails message)
         {
             await this.messagesStore.Append(message);
             return true;
         }
 
-        public async Task<bool> AddDirectMethod(ResponseStatus dmStatus)
+        public async Task<bool> AddDirectMethodAsync(ResponseStatus dmStatus)
         {
             await this.directMethodsStore.Append(dmStatus);
             return true;
         }
 
-        public async Task<bool> AddTwin(ResponseStatus dmStatus)
+        public async Task<bool> AddTwinAsync(ResponseStatus dmStatus)
         {
             await this.twinsStore.Append(dmStatus);
             return true;
         }
 
-        public async Task ProcessAllMessages(Action<MessageDetails> callback)
+        public async Task ProcessAllMessagesAsync(Action<MessageDetails> callback)
         {
-            await this.ProcessAllHelper(this.messagesStore, callback);
+            await this.ProcessAllHelperAsync(this.messagesStore, callback);
         }
 
-        public async Task ProcessAllDirectMethods(Action<ResponseStatus> callback)
+        public async Task ProcessAllDirectMethodsAsync(Action<ResponseStatus> callback)
         {
-            await this.ProcessAllHelper(this.directMethodsStore, callback);
+            await this.ProcessAllHelperAsync(this.directMethodsStore, callback);
         }
 
-        public async Task ProcessAllTwins(Action<ResponseStatus> callback)
+        public async Task ProcessAllTwinsAsync(Action<ResponseStatus> callback)
         {
-            await this.ProcessAllHelper(this.twinsStore, callback);
+            await this.ProcessAllHelperAsync(this.twinsStore, callback);
         }
 
-        public async Task ProcessAllHelper<T>(ISequentialStore<T> store, Action<T> callback)
+        public async Task ProcessAllHelperAsync<T>(ISequentialStore<T> store, Action<T> callback)
         {
             int batchSize = 10;
             long lastKey = 0;

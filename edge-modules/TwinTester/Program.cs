@@ -34,12 +34,12 @@ namespace TwinTester
                 Storage storage = new Storage();
                 storage.Init(Settings.Current.StoragePath, new SystemEnvironment(), Settings.Current.StorageOptimizeForPerformance);
 
-                TwinState twinState = await TwinOperator.InitializeModuleTwin(registryManager, moduleClient, storage);
+                TwinState twinState = await TwinOperator.InitializeModuleTwinAsync(registryManager, moduleClient, storage);
                 TwinOperator twinOperator = new TwinOperator(registryManager, moduleClient, analyzerClient, storage, twinState);
 
                 TimeSpan validationInterval = new TimeSpan(Settings.Current.TwinUpdateFailureThreshold.Ticks / 4);
-                PeriodicTask periodicValidation = new PeriodicTask(twinOperator.PerformValidation, validationInterval, validationInterval, Logger, "TwinValidation");
-                PeriodicTask periodicUpdate = new PeriodicTask(twinOperator.PerformUpdates, Settings.Current.TwinUpdateFrequency, Settings.Current.TwinUpdateFrequency, Logger, "TwinUpdates");
+                PeriodicTask periodicValidation = new PeriodicTask(twinOperator.PerformValidationAsync, validationInterval, validationInterval, Logger, "TwinValidation");
+                PeriodicTask periodicUpdate = new PeriodicTask(twinOperator.PerformUpdatesAsync, Settings.Current.TwinUpdateFrequency, Settings.Current.TwinUpdateFrequency, Logger, "TwinUpdates");
 
                 (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
                 await cts.Token.WhenCanceled();

@@ -47,7 +47,7 @@ namespace TestAnalyzer
                             if (long.TryParse(sequence.ToString(), out long sequenceNumber))
                             {
                                 DateTime enqueuedtime = GetEnqueuedTime(devId.ToString(), modId.ToString(), eventData);
-                                await ReportingCacheWithStorage.Instance.AddMessage(new MessageDetails(modId.ToString(), batchId.ToString(), sequenceNumber, enqueuedtime));
+                                await ReportingCacheWithStorage.Instance.AddMessageAsync(new MessageDetails(modId.ToString(), batchId.ToString(), sequenceNumber, enqueuedtime));
                             }
                             else
                             {

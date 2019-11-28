@@ -10,9 +10,9 @@ namespace TwinTester
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("TwinTester");
 
-        public abstract Task PerformUpdate();
+        public abstract Task PerformUpdateAsync();
 
-        public abstract Task PerformValidation();
+        public abstract Task PerformValidationAsync();
 
         protected static bool IsPastFailureThreshold(TwinState twinState, DateTime twinUpdateTime)
         {
@@ -20,7 +20,7 @@ namespace TwinTester
             return DateTime.UtcNow - comparisonPoint > Settings.Current.TwinUpdateFailureThreshold;
         }
 
-        protected static async Task CallAnalyzerToReportStatus(AnalyzerClient analyzerClient, string moduleId, string status)
+        protected static async Task CallAnalyzerToReportStatusAsync(AnalyzerClient analyzerClient, string moduleId, string status)
         {
             try
             {

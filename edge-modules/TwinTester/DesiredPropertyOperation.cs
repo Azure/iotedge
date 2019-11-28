@@ -30,11 +30,11 @@ namespace TwinTester
             this.moduleClient.SetDesiredPropertyUpdateCallbackAsync(this.OnDesiredPropertyUpdateAsync, storage);
         }
 
-        async Task<Dictionary<string, string>> ValidatePropertiesFromTwin(Twin receivedTwin)
+        async Task<Dictionary<string, string>> ValidatePropertiesFromTwinAsync(Twin receivedTwin)
         {
             TwinCollection propertyUpdatesFromTwin = receivedTwin.Properties.Desired;
-            Dictionary<string, DateTime> desiredPropertiesUpdated = await this.storage.GetAllDesiredPropertiesUpdated();
-            Dictionary<string, DateTime> desiredPropertiesReceived = await this.storage.GetAllDesiredPropertiesReceived();
+            Dictionary<string, DateTime> desiredPropertiesUpdated = await this.storage.GetAllDesiredPropertiesUpdatedAsync();
+            Dictionary<string, DateTime> desiredPropertiesReceived = await this.storage.GetAllDesiredPropertiesReceivedAsync();
             Dictionary<string, string> propertiesToRemoveFromTwin = new Dictionary<string, string>();
             foreach (KeyValuePair<string, DateTime> desiredPropertyUpdate in desiredPropertiesUpdated)
             {
@@ -68,14 +68,14 @@ namespace TwinTester
                     continue;
                 }
 
-                await TwinOperationBase.CallAnalyzerToReportStatus(this.analyzerClient, Settings.Current.ModuleId, status);
+                await TwinOperationBase.CallAnalyzerToReportStatusAsync(this.analyzerClient, Settings.Current.ModuleId, status);
                 propertiesToRemoveFromTwin.Add(desiredPropertyUpdate.Key, null); // will later be serialized as a twin update
             }
 
             return propertiesToRemoveFromTwin;
         }
 
-        public override async Task PerformValidation()
+        public override async Task PerformValidationAsync()
         {
             Twin receivedTwin;
             try
@@ -88,13 +88,13 @@ namespace TwinTester
                 return;
             }
 
-            Dictionary<string, string> propertiesToRemoveFromTwin = await this.ValidatePropertiesFromTwin(receivedTwin);
+            Dictionary<string, string> propertiesToRemoveFromTwin = await this.ValidatePropertiesFromTwinAsync(receivedTwin);
             foreach (KeyValuePair<string, string> pair in propertiesToRemoveFromTwin)
             {
                     try
                     {
-                        await this.storage.RemoveDesiredPropertyUpdate(pair.Key);
-                        await this.storage.RemoveDesiredPropertyReceived(pair.Key);
+                        await this.storage.RemoveDesiredPropertyUpdateAsync(pair.Key);
+                        await this.storage.RemoveDesiredPropertyReceivedAsync(pair.Key);
                     }
                     catch (Exception e)
                     {
@@ -114,7 +114,7 @@ namespace TwinTester
             }
         }
 
-        public override async Task PerformUpdate()
+        public override async Task PerformUpdateAsync()
         {
             try
             {
@@ -132,7 +132,7 @@ namespace TwinTester
 
             try
             {
-                await this.storage.AddDesiredPropertyUpdate(this.twinState.DesiredPropertyUpdateCounter.ToString());
+                await this.storage.AddDesiredPropertyUpdateAsync(this.twinState.DesiredPropertyUpdateCounter.ToString());
                 this.twinState.DesiredPropertyUpdateCounter += 1;
             }
             catch (Exception e)
@@ -147,7 +147,7 @@ namespace TwinTester
             foreach (dynamic twinUpdate in desiredProperties)
             {
                 KeyValuePair<string, object> pair = (KeyValuePair<string, object>)twinUpdate;
-                await this.storage.AddDesiredPropertyReceived(pair.Key);
+                await this.storage.AddDesiredPropertyReceivedAsync(pair.Key);
             }
         }
     }
