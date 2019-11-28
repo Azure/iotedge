@@ -104,7 +104,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             builder.Register(
                     c =>
                         this.metricsConfig.Enabled
-                            ? new MetricsProvider(MetricsConstants.EdgeHubMetricPrefix, this.iothubHostName, this.edgeDeviceId)
+                            ? new MetricsProvider(MetricsConstants.EdgeHubMetricPrefix, this.iothubHostName, this.edgeDeviceId, this.storagePath)
                             : new NullMetricsProvider() as IMetricsProvider)
                 .As<IMetricsProvider>()
                 .SingleInstance();

@@ -13,16 +13,20 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
     {
         const string CounterNameFormat = "{0}_{1}_total";
         const string NameFormat = "{0}_{1}";
-        const string InstanceFile = "metrics_instance";
+        const string InstanceFileName = "metrics_instance";
         readonly string namePrefix;
         readonly List<string> defaultLabelNames;
-        static readonly Lazy<string> instanceNumber = new Lazy<string>(GetInstanceNumber);
+        // static readonly Lazy<string> instanceNumber = new Lazy<string>(GetInstanceNumber);
 
-        public MetricsProvider(string namePrefix, string iotHubName, string deviceId)
+        public MetricsProvider(string namePrefix, string iotHubName, string deviceId, string storagePath)
         {
             this.namePrefix = Preconditions.CheckNonWhiteSpace(namePrefix, nameof(namePrefix));
+
+
             Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            Preconditions.CheckNonWhiteSpace(storagePath, nameof(storagePath));
+            Lazy<string> instanceNumber = new Lazy<string>(() => GetInstanceNumber(storagePath));
             this.defaultLabelNames = new List<string> { iotHubName, deviceId, instanceNumber.Value };
 
             // TODO:
@@ -89,19 +93,20 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
         /// it is clear what happened.
         /// </summary>
         /// <returns></returns>
-        static string GetInstanceNumber()
+        static string GetInstanceNumber(string storagePath)
         {
-            if (!File.Exists(InstanceFile))
+            string AbsoluteInstanceFilePath = Path.Combine(storagePath, InstanceFileName);
+            if (!File.Exists(AbsoluteInstanceFilePath))
             {
-                File.WriteAllText(InstanceFile, "1");
+                File.WriteAllText(AbsoluteInstanceFilePath, "1");
                 return "1";
             }
 
             try
             {
-                string string_num = File.ReadAllText(InstanceFile);
+                string string_num = File.ReadAllText(AbsoluteInstanceFilePath);
                 string_num = (int.Parse(string_num) + 1).ToString();
-                File.WriteAllText(InstanceFile, string_num);
+                File.WriteAllText(AbsoluteInstanceFilePath, string_num);
                 return string_num;
             }
             catch (Exception ex)
