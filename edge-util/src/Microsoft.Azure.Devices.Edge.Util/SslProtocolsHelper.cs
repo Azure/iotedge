@@ -5,12 +5,16 @@ namespace Microsoft.Azure.Devices.Edge.Util
     using System.Collections.Generic;
     using System.Linq;
     using System.Security.Authentication;
-    using System.Text;
     using Microsoft.Extensions.Logging;
 
     public static class SslProtocolsHelper
     {
-        // 
+        // Parse SslProtocols from input comma separated string
+        // Examples:
+        //      Tls1.2
+        //      Tls12
+        //      Tls11, Tls12
+        //      Tls1.1, Tls1.2
         public static SslProtocols Parse(string protocols, SslProtocols defaultSslProtocols, ILogger logger)
         {
             if (string.IsNullOrEmpty(protocols))
@@ -43,6 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
+        // Print the SSL protocols included in this value (which is an or of multiple SSL protocol values)
         public static string Print(this SslProtocols sslProtocols)
         {
             var sslProtocolsList = new List<string>();
