@@ -6,9 +6,9 @@ namespace TestAnalyzer
     using Newtonsoft.Json.Serialization;
 
     [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
-    class DeviceAnalysis
+    class TestResultAnalysis
     {
-        public DeviceAnalysis(IList<ModuleMessagesReport> messagesReport, IList<ResponseOrientedReport> dmReport, IList<ResponseOrientedReport> twinsReport)
+        public TestResultAnalysis(IList<ModuleMessagesReport> messagesReport, IList<ResponseOrientedReport> dmReport, IList<ResponseOrientedReport> twinsReport)
         {
             this.MessagesReport = messagesReport;
             this.DmReport = dmReport;
