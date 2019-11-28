@@ -24,17 +24,17 @@ namespace TestAnalyzer
 
         public static ReportingCache Instance { get; } = new ReportingCache();
 
-        public void AddDirectMethodStatus(ResponseStatus directMethodStatus)
+        public void AddDirectMethodStatus(CloudOperationStatus directMethodStatus)
         {
             this.AddStatus(directMethodStatus, this.directMethodsReportCache);
         }
 
-        public void AddTwinStatus(ResponseStatus twinStatus)
+        public void AddTwinStatus(CloudOperationStatus twinStatus)
         {
             this.AddStatus(twinStatus, this.twinsReportCache);
         }
 
-        public void AddStatus(ResponseStatus responseStatus, ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> cache)
+        public void AddStatus(CloudOperationStatus responseStatus, ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> cache)
         {
             // lock needed for update of concurrent dict
             lock (cache)

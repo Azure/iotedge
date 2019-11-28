@@ -11,7 +11,7 @@ namespace TestAnalyzer.Controllers
     {
         // POST api/twinstatus
         [HttpPost]
-        public async Task<StatusCodeResult> PostAsync(ResponseStatus twinStatus)
+        public async Task<StatusCodeResult> PostAsync(CloudOperationStatus twinStatus)
         {
             await ReportingCacheWithStorage.Instance.AddTwinAsync(twinStatus);
             return this.StatusCode((int)HttpStatusCode.OK);

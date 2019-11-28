@@ -11,7 +11,7 @@ namespace TestAnalyzer.Controllers
     {
         // POST api/directmethodstatus
         [HttpPost]
-        public async Task<StatusCodeResult> PostAsync(ResponseStatus methodCallStatus)
+        public async Task<StatusCodeResult> PostAsync(CloudOperationStatus methodCallStatus)
         {
             await ReportingCacheWithStorage.Instance.AddDirectMethodAsync(methodCallStatus);
             return this.StatusCode((int)HttpStatusCode.OK);

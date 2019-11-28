@@ -18,9 +18,10 @@ namespace TestAnalyzer
         {
             this.storage = new Storage();
             await this.storage.InitAsync(storagePath, new SystemEnvironment(), optimizeForPerformance);
-            await this.storage.ProcessAllMessagesAsync(message => ReportingCache.Instance.AddMessage(message));
-            await this.storage.ProcessAllDirectMethodsAsync(directMethodStatus => ReportingCache.Instance.AddDirectMethodStatus(directMethodStatus));
-            await this.storage.ProcessAllTwinsAsync(twinStatus => ReportingCache.Instance.AddTwinStatus(twinStatus));
+            Task messageProcessing = this.storage.ProcessAllMessagesAsync(message => ReportingCache.Instance.AddMessage(message));
+            Task directMethodProcessing = this.storage.ProcessAllDirectMethodsAsync(directMethodStatus => ReportingCache.Instance.AddDirectMethodStatus(directMethodStatus));
+            Task twinProcessing = this.storage.ProcessAllTwinsAsync(twinStatus => ReportingCache.Instance.AddTwinStatus(twinStatus));
+            await Task.WhenAll(messageProcessing, directMethodProcessing, twinProcessing);
         }
 
         public async Task AddMessageAsync(MessageDetails msg)
@@ -32,7 +33,7 @@ namespace TestAnalyzer
             }
         }
 
-        public async Task AddDirectMethodAsync(ResponseStatus dmStatus)
+        public async Task AddDirectMethodAsync(CloudOperationStatus dmStatus)
         {
             bool added = await this.storage.AddDirectMethodAsync(dmStatus);
             if (added)
@@ -41,7 +42,7 @@ namespace TestAnalyzer
             }
         }
 
-        public async Task AddTwinAsync(ResponseStatus twinStatus)
+        public async Task AddTwinAsync(CloudOperationStatus twinStatus)
         {
             bool added = await this.storage.AddTwinAsync(twinStatus);
             if (added)

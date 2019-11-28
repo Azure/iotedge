@@ -3,7 +3,7 @@ namespace TestAnalyzer
 {
     using System;
 
-    public class ResponseStatus
+    public class CloudOperationStatus
     {
         public string ModuleId { get; set; }
 

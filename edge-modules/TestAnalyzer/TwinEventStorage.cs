@@ -19,8 +19,8 @@ namespace TestAnalyzer
         const string TwinsStorePartitionKey = "TwinsCache";
         static readonly ILogger Logger = ModuleUtil.CreateLogger("Analyzer");
         ISequentialStore<MessageDetails> messagesStore;
-        ISequentialStore<ResponseStatus> directMethodsStore;
-        ISequentialStore<ResponseStatus> twinsStore;
+        ISequentialStore<CloudOperationStatus> directMethodsStore;
+        ISequentialStore<CloudOperationStatus> twinsStore;
 
         public async Task InitAsync(string storagePath, ISystemEnvironment systemEnvironment, bool optimizeForPerformance)
         {
@@ -42,8 +42,8 @@ namespace TestAnalyzer
             }
 
             this.messagesStore = await storeProvider.GetSequentialStore<MessageDetails>(MessageStorePartitionKey);
-            this.directMethodsStore = await storeProvider.GetSequentialStore<ResponseStatus>(DirectMethodsStorePartitionKey);
-            this.twinsStore = await storeProvider.GetSequentialStore<ResponseStatus>(TwinsStorePartitionKey);
+            this.directMethodsStore = await storeProvider.GetSequentialStore<CloudOperationStatus>(DirectMethodsStorePartitionKey);
+            this.twinsStore = await storeProvider.GetSequentialStore<CloudOperationStatus>(TwinsStorePartitionKey);
         }
 
         string GetStoragePath(string baseStoragePath)
@@ -64,13 +64,13 @@ namespace TestAnalyzer
             return true;
         }
 
-        public async Task<bool> AddDirectMethodAsync(ResponseStatus dmStatus)
+        public async Task<bool> AddDirectMethodAsync(CloudOperationStatus dmStatus)
         {
             await this.directMethodsStore.Append(dmStatus);
             return true;
         }
 
-        public async Task<bool> AddTwinAsync(ResponseStatus dmStatus)
+        public async Task<bool> AddTwinAsync(CloudOperationStatus dmStatus)
         {
             await this.twinsStore.Append(dmStatus);
             return true;
@@ -81,12 +81,12 @@ namespace TestAnalyzer
             await this.ProcessAllHelperAsync(this.messagesStore, callback);
         }
 
-        public async Task ProcessAllDirectMethodsAsync(Action<ResponseStatus> callback)
+        public async Task ProcessAllDirectMethodsAsync(Action<CloudOperationStatus> callback)
         {
             await this.ProcessAllHelperAsync(this.directMethodsStore, callback);
         }
 
-        public async Task ProcessAllTwinsAsync(Action<ResponseStatus> callback)
+        public async Task ProcessAllTwinsAsync(Action<CloudOperationStatus> callback)
         {
             await this.ProcessAllHelperAsync(this.twinsStore, callback);
         }
