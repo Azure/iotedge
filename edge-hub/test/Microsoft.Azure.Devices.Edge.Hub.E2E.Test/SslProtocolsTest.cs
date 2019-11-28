@@ -3,12 +3,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using System;
     using System.IO;
-    using System.Net;
     using System.Net.Security;
     using System.Net.Sockets;
     using System.Security.Authentication;
-    using System.Security.Cryptography.X509Certificates;
-    using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
@@ -37,11 +35,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             SslProtocols validProtocol = SslProtocols.Tls12;
             SslProtocols invalidProtocol1 = SslProtocols.Tls;
             SslProtocols invalidProtocol2 = SslProtocols.Tls11;
-            Type expectedException = typeof(IOException);
+            Option<Type> expectedException = Option.Some(typeof(IOException));
 
-            TestConnection(httpsPort, validProtocol, null);
-            TestConnection(amqpsPort, validProtocol, null);
-            TestConnection(mqttPort, validProtocol, null);
+            TestConnection(httpsPort, validProtocol, Option.None<Type>());
+            TestConnection(amqpsPort, validProtocol, Option.None<Type>());
+            TestConnection(mqttPort, validProtocol, Option.None<Type>());
 
             TestConnection(httpsPort, invalidProtocol1, expectedException);
             TestConnection(amqpsPort, invalidProtocol1, expectedException);
@@ -50,10 +48,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             TestConnection(httpsPort, invalidProtocol2, expectedException);
             TestConnection(amqpsPort, invalidProtocol2, expectedException);
             TestConnection(mqttPort, invalidProtocol2, expectedException);
-
         }
 
-        static void TestConnection(int port, SslProtocols protocol, Type expectedException)
+        static void TestConnection(int port, SslProtocols protocol, Option<Type> expectedException)
         {
             string server = "127.0.0.1";
             TcpClient client = new TcpClient(server, port);
@@ -67,7 +64,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             {
                 try
                 {
-
                     sslStream.AuthenticateAsClient(server, null, protocol, false);
                 }
                 catch (Exception e)
@@ -75,16 +71,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     exception = e;
                 }
             }
+
             client.Close();
 
-            if (expectedException == null)
-            {
+            if (!expectedException.HasValue)
+            { 
                 Assert.Null(exception);
             }
             else
             {
                 Assert.NotNull(exception);
-                Assert.Equal(expectedException, exception.GetType());
+                expectedException.ForEach(e => Assert.Equal(e, exception.GetType()));
             }
         }
     }
