@@ -17,7 +17,7 @@ namespace TestAnalyzer.Controllers
 
         // GET api/report/all
         [HttpGet("all")]
-        public async Task<string> GetReport()
+        public async Task<ContentResult> GetReport()
         {
             DeviceAnalysis deviceAnalysis = Reporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
             if (Settings.Current.LogAnalyticsEnabled)
@@ -25,12 +25,12 @@ namespace TestAnalyzer.Controllers
                 await this.PublishToLogAnalytics(deviceAnalysis);
             }
 
-            return deviceAnalysis.ToString();
+            return new ContentResult { Content=deviceAnalysis.ToString() };
         }
 
         // GET api/report (exposed for backwards compatibility for snitcher which will eventually be deprecated)
         [HttpGet]
-        public async Task<string> GetMessages()
+        public async Task<ContentResult> GetMessages()
         {
             DeviceAnalysis deviceAnalysis = Reporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
             if (Settings.Current.LogAnalyticsEnabled)
@@ -38,7 +38,7 @@ namespace TestAnalyzer.Controllers
                 await this.PublishToLogAnalytics(deviceAnalysis);
             }
 
-            return JsonConvert.SerializeObject(deviceAnalysis.MessagesReport, Formatting.Indented);
+            return new ContentResult { Content = JsonConvert.SerializeObject(deviceAnalysis.MessagesReport, Formatting.Indented) };
         }
 
         private async Task PublishToLogAnalytics(DeviceAnalysis deviceAnalysis)
