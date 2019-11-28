@@ -16,12 +16,10 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
         const string InstanceFileName = "metrics_instance";
         readonly string namePrefix;
         readonly List<string> defaultLabelNames;
-        // static readonly Lazy<string> instanceNumber = new Lazy<string>(GetInstanceNumber);
 
         public MetricsProvider(string namePrefix, string iotHubName, string deviceId, string storagePath)
         {
             this.namePrefix = Preconditions.CheckNonWhiteSpace(namePrefix, nameof(namePrefix));
-
 
             Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
@@ -95,7 +93,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
         /// <returns></returns>
         static string GetInstanceNumber(string storagePath)
         {
-            string AbsoluteInstanceFilePath = Path.Combine(storagePath, InstanceFileName);
+            string absoluteInstanceFilePath = Path.Combine(storagePath, InstanceFileName);
             if (!File.Exists(AbsoluteInstanceFilePath))
             {
                 File.WriteAllText(AbsoluteInstanceFilePath, "1");
