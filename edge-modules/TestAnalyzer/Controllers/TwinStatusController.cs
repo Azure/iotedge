@@ -10,9 +10,10 @@ namespace TestAnalyzer.Controllers
     {
         // POST api/twinstatus
         [HttpPost]
-        public async Task Post(ResponseStatus twinStatus)
+        public async Task<StatusCodeResult> Post(ResponseStatus twinStatus)
         {
             await ReportingCacheWithStorage.Instance.AddTwin(twinStatus);
+            return this.StatusCode(200);
         }
     }
 }

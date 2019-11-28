@@ -35,7 +35,7 @@ namespace TestAnalyzer.Controllers
             DeviceAnalysis deviceAnalysis = Reporter.GetDeviceReport(Settings.Current.ToleranceInMilliseconds);
             if (Settings.Current.LogAnalyticsEnabled)
             {
-                await this.PublishToLogAnalytics(deviceAnalysis); // TODO: await
+                await this.PublishToLogAnalytics(deviceAnalysis);
             }
 
             return JsonConvert.SerializeObject(deviceAnalysis.MessagesReport, Formatting.Indented);
