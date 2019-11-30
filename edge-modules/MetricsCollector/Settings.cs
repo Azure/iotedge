@@ -23,7 +23,7 @@ namespace MetricsCollector
                     configuration.GetValue<string>("AzMonWorkspaceId"),
                     configuration.GetValue<string>("AzMonWorkspaceKey"),
                     configuration.GetValue<string>("AzMonLogType", "edgeHubMetrics"),
-                    configuration.GetValue<string>("MetricsEndpoints", "[\"http://edgeHub:9600/metrics\"]"),
+                    configuration.GetValue<string>("MetricsEndpointsCSV", "http://edgeHub:9600/metrics"),
                     configuration.GetValue<int>("ScrapeFrequencyInSecs", 300),
                     configuration.GetValue<UploadTarget>("UploadTarget", UploadTarget.AzureLogAnalytics));
                 });
@@ -39,10 +39,14 @@ namespace MetricsCollector
             this.AzMonWorkspaceId = Preconditions.CheckNonWhiteSpace(azMonWorkspaceId, nameof(azMonWorkspaceId));
             this.AzMonWorkspaceKey = Preconditions.CheckNonWhiteSpace(azMonWorkspaceKey, nameof(azMonWorkspaceKey));
             this.AzMonLogType = Preconditions.CheckNonWhiteSpace(azMonLogType, nameof(azMonLogType));
-            this.Endpoints = JsonConvert.DeserializeObject<List<string>>(endpoints);
-            if (this.Endpoints.Count == 0)
+
+            this.Endpoints = new List<string>();
+            foreach (string endpoint in endpoints.Split(","))
             {
-                throw new ArgumentException("No endpoints specified for metrics scrape");
+                if (!string.IsNullOrWhiteSpace(endpoint))
+                {
+                    this.Endpoints.Add(endpoint);
+                }
             }
 
             this.ScrapeFrequencySecs = Preconditions.CheckRange(scrapeFrequencySecs, 0);
