@@ -177,7 +177,7 @@ function prepare_test_from_artifacts() {
                 sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
                 sed -i -e "s@<LogAnalyticsSharedKey>@$LOG_ANALYTICS_SHARED_KEY@g" "$deployment_working_file"
                 sed -i -e "s@<LogAnalyticsWorkspaceId>@$LOG_ANALYTICS_WORKSPACE_ID@g" "$deployment_working_file"
-                sed -i -e "s@<MetricsCollector.MetricsEndpointsJsonArray>@$METRICS_ENDPOINTS_JSON_ARRAY@g" "$deployment_working_file"
+                sed -i -e "s@<MetricsCollector.metricsEndpointsCSV>@$METRICS_ENDPOINTS_CSV@g" "$deployment_working_file"
                 sed -i -e "s@<MetricsCollector.ScrapeFrequencyInSecs>@$METRICS_SCRAPE_FREQUENCY_IN_SECS@g" "$deployment_working_file"
                 sed -i -e "s@<MetricsCollector.UploadTarget>@$METRICS_UPLOAD_TARGET@g" "$deployment_working_file"
                 escapedSnitchAlertUrl="${SNITCH_ALERT_URL//&/\\&}"
@@ -379,7 +379,7 @@ function process_args() {
             LOG_ANALYTICS_LOG_TYPE="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 36 ]; then
-            METRICS_ENDPOINTS_JSON_ARRAY="${arg//\\/\\\\\\}"
+            METRICS_ENDPOINTS_CSV="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 37 ]; then
             METRICS_SCRAPE_FREQUENCY_IN_SECS="$arg"
@@ -425,7 +425,7 @@ function process_args() {
                 '-logAnalyticsWorkspaceId' ) saveNextArg=33;;
                 '-logAnalyticsSharedKey' ) saveNextArg=34;;
                 '-logAnalyticsLogType' ) saveNextArg=35;;
-                '-metricsEndpointsJsonArray' ) saveNextArg=36;;
+                '-metricsEndpointsCSV' ) saveNextArg=36;;
                 '-metricsScrapeFrequencyInSecs' ) saveNextArg=37;;
                 '-metricsUploadTarget' ) saveNextArg=38;;
                 '-cleanAll' ) CLEAN_ALL=1;;
@@ -1016,7 +1016,7 @@ function usage() {
     echo ' -logAnalyticsWorkspaceId        Optional Log Analytics workspace ID for metrics collection and reporting.'
     echo ' -logAnalyticsSharedKey          Optional Log Analytics shared key for metrics collection and reporting.'
     echo ' -logAnalyticsLogType            Optional Log Analytics log type for the Analyzer module.'
-    echo ' -metricsEndpointsJsonArray      Optional stringified json array of exposed endpoints for which to scrape metrics.'
+    echo ' -metricsEndpointsCSV            Optional csv of exposed endpoints for which to scrape metrics.'
     echo ' -metricsScrapeFrequencyInSecs   Optional frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds.'
     echo ' -metricsUploadTarget            Optional upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics.'
     exit 1;

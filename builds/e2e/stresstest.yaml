@@ -26,7 +26,7 @@ variables:
   #run.linux.arm64v8.docker: 'true/false'
   #run.windows.amd64.moby: 'true/false'
   #snitch.build.number: '1.1'
-  #metricsCollector.metricsEndpointsJsonArray
+  #metricsCollector.metricsEndpointsCSV
   #metricsCollector.scrapeFrequencyInSecs: 'xx:xx:xx.xx'
   #metricsCollector.uploadTarget
 
@@ -99,7 +99,7 @@ jobs:
           analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
-          metricsCollector.metricsEndpointsJsonArray: '$(metricsCollector.metricsEndpointsJsonArray)'
+          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
 
@@ -172,7 +172,7 @@ jobs:
           analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
-          metricsCollector.metricsEndpointsJsonArray: '$(metricsCollector.metricsEndpointsJsonArray)'
+          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
 
@@ -245,7 +245,7 @@ jobs:
           analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
-          metricsCollector.metricsEndpointsJsonArray: '$(metricsCollector.metricsEndpointsJsonArray)'
+          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
 
@@ -320,7 +320,7 @@ jobs:
           analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
-          metricsCollector.metricsEndpointsJsonArray: '$(metricsCollector.metricsEndpointsJsonArray)'
+          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
 
@@ -395,7 +395,7 @@ jobs:
           analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
-          metricsCollector.metricsEndpointsJsonArray: '$(metricsCollector.metricsEndpointsJsonArray)'
+          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
 
@@ -469,6 +469,6 @@ jobs:
           analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
           logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
           logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
-          metricsCollector.metricsEndpointsJsonArray: '$(metricsCollector.metricsEndpointsJsonArray)'
+          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
           metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
           metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'

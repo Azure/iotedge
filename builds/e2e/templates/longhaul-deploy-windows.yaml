@@ -19,7 +19,7 @@ parameters:
   analyzer.logAnalytics.logType: ''
   logAnalytics.workspaceId: ''
   logAnalytics.sharedKey: ''
-  metricsCollector.metricsEndpointsJsonArray: ''
+  metricsCollector.metricsEndpointsCSV: ''
   metricsCollector.scrapeFrequencyInSecs: ''
   metricsCollector.uploadTarget: ''
 
@@ -66,7 +66,7 @@ steps:
           -LogAnalyticsLogType "${{ parameters['analyzer.logAnalytics.logType'] }}" `
           -LogAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" `
           -LogAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" `
-          -MetricsEndpointsJsonArray "${{ parameters['metricsCollector.metricsEndpointsJsonArray'] }}" `
+          -metricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" `
           -MetricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" `
           -MetricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}"
       workingDirectory: "$(Agent.HomeDirectory)/.."
