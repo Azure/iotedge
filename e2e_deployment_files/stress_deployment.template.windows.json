@@ -210,8 +210,8 @@
                 "AzMonWorkspaceKey": {
                     "value": "<LogAnalyticsSharedKey>"
                 },
-                "MetricsEndpoints": {
-                  "value": "<MetricsCollector.MetricsEndpointsJsonArray>"
+                "MetricsEndpointsCSV": {
+                  "value": "<MetricsCollector.MetricsEndpointsCSV>"
                 },
                 "ScrapeFrequencySecs": {
                     "value": "<MetricsCollector.ScrapeFrequencyInSecs>"
