@@ -75,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             client.Close();
 
             if (!expectedException.HasValue)
-            { 
+            {
                 Assert.Null(exception);
             }
             else

@@ -66,22 +66,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
         async Task StartProtocolHead()
         {
-            //string certificateValue = await SecretsHelper.GetSecret("IotHubMqttHeadCert");
-            //byte[] cert = Convert.FromBase64String(certificateValue);
-            //var certificate = new X509Certificate2(cert);
-            var certificate = new X509Certificate2(@"e:\dump\server.pfx", "Test123");
+            string certificateValue = await SecretsHelper.GetSecret("IotHubMqttHeadCert");
+            byte[] cert = Convert.FromBase64String(certificateValue);
+            var certificate = new X509Certificate2(cert);
+
             // TODO for now this is empty as will suffice for SAS X.509 thumbprint auth but we will need other CA certs for X.509 CA validation
             var trustBundle = new List<X509Certificate2>();
 
-            // string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
-            string edgeDeviceConnectionString = "HostName=varuntest.azure-devices.net;DeviceId=ed1;SharedAccessKey=PDxSoxjt5tMlJ9KgRt4QCjqMcyK4HlGMt/FRXaglYGo=";
+            string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
 
             // TODO - After IoTHub supports MQTT, remove this and move to using MQTT for upstream connections
             await ConnectToIotHub(edgeDeviceConnectionString);
 
             ConfigHelper.TestConfig[EdgeHubConstants.ConfigKey.IotHubConnectionString] = edgeDeviceConnectionString;
-
-
 
             IDependencyManager dependencyManager = new DependencyManager(ConfigHelper.TestConfig, certificate, trustBundle, this.sslProtocols);
             Hosting hosting = Hosting.Initialize(ConfigHelper.TestConfig, certificate, dependencyManager, true, this.sslProtocols);
