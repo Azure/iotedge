@@ -16,28 +16,28 @@ namespace TestAnalyzer
             return new TestResultAnalysis(GetReceivedMessagesReport(toleranceInMilliseconds), GetDirectMethodsReport(), GetTwinsReport());
         }
 
-        static IList<ResponseOrientedReport> GetDirectMethodsReport()
+        static IList<AggregateCloudOperationReport> GetDirectMethodsReport()
         {
             IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> dms = ReportingCache.Instance.GetDirectMethodsSnapshot();
             string description = "Report for direct methods";
             return GetReportHelper(dms, description);
         }
 
-        static IList<ResponseOrientedReport> GetTwinsReport()
+        static IList<AggregateCloudOperationReport> GetTwinsReport()
         {
             IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> twins = ReportingCache.Instance.GetTwinsSnapshot();
             string description = "Report for twins";
             return GetReportHelper(twins, description);
         }
 
-        static IList<ResponseOrientedReport> GetReportHelper(IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> cache, string reportDescription)
+        static IList<AggregateCloudOperationReport> GetReportHelper(IDictionary<string, IDictionary<string, Tuple<int, DateTime>>> cache, string reportDescription)
         {
-            IList<ResponseOrientedReport> report = new List<ResponseOrientedReport>();
+            IList<AggregateCloudOperationReport> report = new List<AggregateCloudOperationReport>();
 
             foreach (KeyValuePair<string, IDictionary<string, Tuple<int, DateTime>>> obj in cache)
             {
                 Logger.LogInformation($"{reportDescription} {obj.Key}");
-                report.Add(new ResponseOrientedReport(obj.Key, obj.Value));
+                report.Add(new AggregateCloudOperationReport(obj.Key, obj.Value));
             }
 
             return report;

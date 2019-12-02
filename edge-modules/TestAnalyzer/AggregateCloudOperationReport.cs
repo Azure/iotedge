@@ -7,15 +7,15 @@ namespace TestAnalyzer
     using Newtonsoft.Json.Serialization;
 
     [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
-    class ResponseOrientedReport
+    class AggregateCloudOperationReport
     {
-        public ResponseOrientedReport(string moduleId, IDictionary<string, Tuple<int, DateTime>> statusCodes)
+        public AggregateCloudOperationReport(string moduleId, IDictionary<string, Tuple<int, DateTime>> statusCodes)
         {
             this.ModuleId = moduleId;
-            this.StatusCodes = new List<ResponseStatusReport>();
+            this.StatusCodes = new List<CloudOperationReport>();
             foreach (KeyValuePair<string, Tuple<int, DateTime>> status in statusCodes)
             {
-                this.StatusCodes.Add(new ResponseStatusReport()
+                this.StatusCodes.Add(new CloudOperationReport()
                 {
                     StatusCode = status.Key,
                     Count = status.Value.Item1,
@@ -26,7 +26,7 @@ namespace TestAnalyzer
 
         public string ModuleId { get; }
 
-        public IList<ResponseStatusReport> StatusCodes { get; }
+        public IList<CloudOperationReport> StatusCodes { get; }
 
         public override string ToString()
         {
@@ -34,7 +34,7 @@ namespace TestAnalyzer
         }
 
         [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
-        public class ResponseStatusReport
+        public class CloudOperationReport
         {
             public string StatusCode { get; set; }
 
