@@ -95,17 +95,17 @@ namespace TwinTester
 
         public async Task<Dictionary<string, DateTime>> GetAllDesiredPropertiesUpdatedAsync()
         {
-            return await this.GetAllUpdatesHelperAsync(this.desiredPropertyUpdateCache);
+            return await this.GetAllUpdatesAsync(this.desiredPropertyUpdateCache);
         }
 
         public async Task<Dictionary<string, DateTime>> GetAllDesiredPropertiesReceivedAsync()
         {
-            return await this.GetAllUpdatesHelperAsync(this.desiredPropertyReceivedCache);
+            return await this.GetAllUpdatesAsync(this.desiredPropertyReceivedCache);
         }
 
         public async Task<Dictionary<string, DateTime>> GetAllReportedPropertiesUpdatedAsync()
         {
-            return await this.GetAllUpdatesHelperAsync(this.reportedPropertyUpdateCache);
+            return await this.GetAllUpdatesAsync(this.reportedPropertyUpdateCache);
         }
 
         private async Task<Dictionary<string, DateTime>> GetAllUpdatesAsync(IEntityStore<string, DateTime> store)

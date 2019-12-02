@@ -78,20 +78,20 @@ namespace TestAnalyzer
 
         public async Task ProcessAllMessagesAsync(Action<MessageDetails> callback)
         {
-            await this.ProcessAllHelperAsync(this.messagesStore, callback);
+            await this.ProcessAllAsync(this.messagesStore, callback);
         }
 
         public async Task ProcessAllDirectMethodsAsync(Action<CloudOperationStatus> callback)
         {
-            await this.ProcessAllHelperAsync(this.directMethodsStore, callback);
+            await this.ProcessAllAsync(this.directMethodsStore, callback);
         }
 
         public async Task ProcessAllTwinsAsync(Action<CloudOperationStatus> callback)
         {
-            await this.ProcessAllHelperAsync(this.twinsStore, callback);
+            await this.ProcessAllAsync(this.twinsStore, callback);
         }
 
-        public async Task ProcessAllHelperAsync<T>(ISequentialStore<T> store, Action<T> callback)
+        private async Task ProcessAllAsync<T>(ISequentialStore<T> store, Action<T> callback)
         {
             int batchSize = 10;
             long lastKey = 0;
