@@ -404,10 +404,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             // The messages need to be processed in order.
             using (await this.serializeMessagesLock.LockAsync())
             {
+                var taskCompletionSource = new TaskCompletionSource<bool>();
+                if (!this.IsActive)
+                {
+                    taskCompletionSource.SetException(new EdgeHubIOException("Cannot send message. The communication channel is not active anymore."));
+                    await taskCompletionSource.Task;
+                }
+
                 string lockToken = Guid.NewGuid().ToString();
                 message.SystemProperties[SystemProperties.LockToken] = lockToken;
 
-                var taskCompletionSource = new TaskCompletionSource<bool>();
                 this.messageTaskCompletionSources.TryAdd(lockToken, taskCompletionSource);
 
                 using (Metrics.TimeMessageSend(this.Identity, message))
