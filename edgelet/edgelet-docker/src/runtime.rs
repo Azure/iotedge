@@ -626,7 +626,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                         }),
                 )
             })
-            .map(|stats| serde_json::Value::Array(stats)) // Condense into single json value
+            .map(serde_json::Value::Array) // Condense into single json value
             .and_then(|stats| { // convert to string
                 serde_json::to_string(&stats).map_err(|_| {
                     Error::from(ErrorKind::RuntimeOperation(
@@ -651,10 +651,8 @@ impl ModuleRuntime for DockerModuleRuntime {
         let used_cpu = system_info
             .get_processor_list()
             .iter()
-            .filter(|p| p.get_name() == "Total CPU")
-            .next()
-            .map(|p| p.get_cpu_usage())
-            .unwrap_or_else(|| -1.0);
+            .find(|p| p.get_name() == "Total CPU")
+            .map_or_else(|| -1.0, |p| p.get_cpu_usage());
 
         let total_memory = system_info.get_total_memory();
         let used_memory = system_info.get_used_memory();
