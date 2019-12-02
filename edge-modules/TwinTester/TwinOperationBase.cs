@@ -10,9 +10,9 @@ namespace TwinTester
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TwinOperationBase));
 
-        public abstract Task PerformUpdateAsync();
+        public abstract Task UpdateAsync();
 
-        public abstract Task PerformValidationAsync();
+        public abstract Task ValidateAsync();
 
         protected static bool IsPastFailureThreshold(TwinState twinState, DateTime twinUpdateTime)
         {

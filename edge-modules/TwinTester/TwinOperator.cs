@@ -16,8 +16,8 @@ namespace TwinTester
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TwinOperator));
         readonly SemaphoreSlim operationLock = new SemaphoreSlim(1, 1);
-        readonly ReportedPropertyOperation reportedPropertyOperation;
-        readonly DesiredPropertyOperation desiredPropertyOperation;
+        readonly TwinOperationBase reportedPropertyOperation;
+        readonly TwinOperationBase desiredPropertyOperation;
 
         public TwinOperator(RegistryManager registryManager, ModuleClient moduleClient, AnalyzerClient analyzerClient, TwinEventStorage storage, TwinState twinState)
         {
@@ -90,16 +90,16 @@ namespace TwinTester
         public async Task PerformUpdatesAsync(CancellationToken cancellationToken)
         {
             await this.operationLock.WaitAsync();
-            await this.reportedPropertyOperation.PerformUpdateAsync();
-            await this.desiredPropertyOperation.PerformUpdateAsync();
+            await this.reportedPropertyOperation.UpdateAsync();
+            await this.desiredPropertyOperation.UpdateAsync();
             this.operationLock.Release();
         }
 
         public async Task PerformValidationAsync(CancellationToken cancellationToken)
         {
             await this.operationLock.WaitAsync();
-            await this.reportedPropertyOperation.PerformValidationAsync();
-            await this.desiredPropertyOperation.PerformValidationAsync();
+            await this.reportedPropertyOperation.ValidateAsync();
+            await this.desiredPropertyOperation.ValidateAsync();
             this.operationLock.Release();
         }
     }

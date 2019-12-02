@@ -75,7 +75,7 @@ namespace TwinTester
             return propertiesToRemoveFromTwin;
         }
 
-        public override async Task PerformValidationAsync()
+        public override async Task ValidateAsync()
         {
             Twin receivedTwin;
             try
@@ -114,7 +114,7 @@ namespace TwinTester
             }
         }
 
-        public override async Task PerformUpdateAsync()
+        public override async Task UpdateAsync()
         {
             try
             {
