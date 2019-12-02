@@ -29,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         readonly ResourceName resourceName;
         readonly JsonSerializerSettings serializerSettings;
         readonly KubernetesModuleOwner moduleOwner;
-        Option<EdgeDeploymentDefinition> activeDeployment;
+        readonly Option<EdgeDeploymentDefinition> activeDeployment;
 
         // We use the sum of the IDs of the underlying commands as the id for this group
         // command.
@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             this.resourceName = Preconditions.CheckNotNull(resourceName, nameof(resourceName));
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.modules = Preconditions.CheckNotNull(desiredmodules, nameof(desiredmodules)).ToList();
-            this.activeDeployment = Preconditions.CheckNotNull(activeDeployment, nameof(activeDeployment));
+            this.activeDeployment = activeDeployment;
             this.runtimeInfo = Preconditions.CheckNotNull(runtimeInfo, nameof(runtimeInfo));
             this.configProvider = Preconditions.CheckNotNull(configProvider, nameof(configProvider));
             this.id = new Lazy<string>(() => this.modules.Aggregate(string.Empty, (prev, module) => module.Name + prev));
