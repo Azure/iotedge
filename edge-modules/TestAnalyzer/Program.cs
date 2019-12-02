@@ -61,7 +61,7 @@ namespace TestAnalyzer
         static async Task ReceiveMessagesAsync(DateTime lastReceivedMesssage)
         {
             var builder = new EventHubsConnectionStringBuilder(Settings.Current.EventHubConnectionString);
-            Logger.LogInformation($"Receiving events from device '{Settings.Current.DeviceId}' on Event Hub '{builder.EntityPath}'");
+            Logger.LogInformation($"Receiving events from device '{Settings.Current.DeviceId}' on Event Hub '{builder.EntityPath}' with last received message at {lastReceivedMesssage.ToString()}");
 
             EventHubClient eventHubClient =
                 EventHubClient.CreateFromConnectionString(builder.ToString());
