@@ -43,6 +43,7 @@ handlers! {
     | Create    | create     | CreateHandler    |
     | ImgPull   | img_pull   | ImgPullHandler   |
     | ImgRemove | img_remove | ImgRemoveHandler |
+    | List      | list       | ListHandler      |
     | Remove    | remove     | RemoveHandler    |
     | Restart   | restart    | RestartHandler   |
     | Start     | start      | StartHandler     |

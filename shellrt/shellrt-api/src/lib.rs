@@ -196,7 +196,7 @@ macro_rules! api_impl {
         ///
         /// In addition, this trait associates each Request with it's corresponding
         /// Response (via ReqMarker::Response)
-        pub trait ReqMarker: private::Sealed + Serialize + DeserializeOwned {
+        pub trait ReqMarker: private::Sealed + Serialize + DeserializeOwned + std::fmt::Debug {
             /// The Request's associated Response
             type Response: ResMarker;
 
@@ -208,7 +208,7 @@ macro_rules! api_impl {
         ///
         /// In addition, this trait associates each Response with it's corresponding
         /// Request (via ReqMarker::Request)
-        pub trait ResMarker: private::Sealed + Serialize + DeserializeOwned {
+        pub trait ResMarker: private::Sealed + Serialize + DeserializeOwned + std::fmt::Debug {
             /// Returns the Response's api "type" tag
             fn payload_tag(&self) -> &'static str;
             /// The Response's associated Request
@@ -251,7 +251,7 @@ pub mod v0 {
         | Start      | "start"       || start       | StartRequest      | StartResponse      |
         | Stop       | "stop"        || stop        | StopRequest       | StopResponse       |
         +------------+---------------++-------------+-------------------+--------------------+
-     // | List       | "list"        || list        | ListRequest       | ListResponse       |
+        | List       | "list"        || list        | ListRequest       | ListResponse       |
      // | Logs       | "logs"        || logs        | LogsRequest       | LogsResponse       |
         | Status     | "status"      || status      | StatusRequest     | StatusResponse     |
      // | SystemInfo | "system_info" || system_info | SystemInfoRequest | SystemInfoResponse |

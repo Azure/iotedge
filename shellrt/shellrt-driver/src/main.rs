@@ -112,16 +112,6 @@ async fn true_main() -> Result<(), failure::Error> {
             ),
         )
         .subcommand(
-            SubCommand::with_name("status")
-                .about("Query the runtime status of a module")
-                .arg(
-                    Arg::with_name("name")
-                        .help("Module name")
-                        .required(true)
-                        .index(1),
-                ),
-        )
-        .subcommand(
             SubCommand::with_name("stop")
                 .about("Stop a module")
                 .arg(
@@ -136,6 +126,17 @@ async fn true_main() -> Result<(), failure::Error> {
                         .index(2),
                 ),
         )
+        .subcommand(
+            SubCommand::with_name("status")
+                .about("Query the runtime status of a module")
+                .arg(
+                    Arg::with_name("name")
+                        .help("Module name")
+                        .required(true)
+                        .index(1),
+                ),
+        )
+        .subcommand(SubCommand::with_name("list").about("List all registered modules"))
         .subcommand(
             SubCommand::with_name("version").about("Retrieve the runtime's version information"),
         )
@@ -167,7 +168,7 @@ async fn true_main() -> Result<(), failure::Error> {
 
             let image = image.parse::<Reference>()?;
 
-            let res = plugin
+            let _res = plugin
                 .send(request::ImgPull {
                     image: image.to_string(),
                     credentials,
@@ -175,7 +176,6 @@ async fn true_main() -> Result<(), failure::Error> {
                 .await?;
 
             println!("the image was pulled successfully");
-            debug!("{:#?}", res);
         }
         ("img_remove", Some(sub_m)) => {
             let image = sub_m
@@ -184,14 +184,13 @@ async fn true_main() -> Result<(), failure::Error> {
 
             let image = image.parse::<Reference>()?;
 
-            let res = plugin
+            let _res = plugin
                 .send(request::ImgRemove {
                     image: image.to_string(),
                 })
                 .await?;
 
             println!("the image was removed successfully");
-            debug!("{:#?}", res);
         }
         ("create", Some(sub_m)) => {
             let sub_m = match sub_m.subcommand() {
@@ -208,7 +207,7 @@ async fn true_main() -> Result<(), failure::Error> {
 
             let image = image.parse::<Reference>()?;
 
-            let res = plugin
+            let _res = plugin
                 .send(request::Create {
                     name: name.to_string(),
                     config_type: "containerd-cri".to_string(),
@@ -221,35 +220,47 @@ async fn true_main() -> Result<(), failure::Error> {
                 .await?;
 
             println!("the module was created successfully");
-            debug!("{:#?}", res);
         }
         ("remove", Some(sub_m)) => {
             let name = sub_m
                 .value_of("name")
                 .expect("name should be a required argument");
 
-            let res = plugin
+            let _res = plugin
                 .send(request::Remove {
                     name: name.to_string(),
                 })
                 .await?;
 
             println!("the module was removed successfully");
-            debug!("{:#?}", res);
         }
         ("start", Some(sub_m)) => {
             let name = sub_m
                 .value_of("name")
                 .expect("name should be a required argument");
 
-            let res = plugin
+            let _res = plugin
                 .send(request::Start {
                     name: name.to_string(),
                 })
                 .await?;
 
             println!("the module was started successfully");
-            debug!("{:#?}", res);
+        }
+        ("stop", Some(sub_m)) => {
+            let name = sub_m
+                .value_of("name")
+                .expect("name should be a required argument");
+            let timeout = sub_m.value_of("timeout").unwrap_or("0");
+
+            let _res = plugin
+                .send(request::Stop {
+                    name: name.to_string(),
+                    timeout: timeout.parse::<i64>()?,
+                })
+                .await?;
+
+            println!("the module was stopped successfully");
         }
         ("status", Some(sub_m)) => {
             let name = sub_m
@@ -264,27 +275,15 @@ async fn true_main() -> Result<(), failure::Error> {
 
             println!("{:#?}", res);
         }
-        ("stop", Some(sub_m)) => {
-            let name = sub_m
-                .value_of("name")
-                .expect("name should be a required argument");
-            let timeout = sub_m.value_of("timeout").unwrap_or("0");
+        ("list", Some(_sub_m)) => {
+            let res = plugin.send(request::List {}).await?;
 
-            let res = plugin
-                .send(request::Stop {
-                    name: name.to_string(),
-                    timeout: timeout.parse::<i64>()?,
-                })
-                .await?;
-
-            println!("the module was stopped successfully");
-            debug!("{:#?}", res);
+            println!("{:?}", res.modules);
         }
         ("version", Some(_sub_m)) => {
             let res = plugin.send(request::Version {}).await?;
 
             println!("{}", res.info);
-            debug!("{:#?}", res);
         }
         _ => unreachable!(),
     }
@@ -333,8 +332,12 @@ impl Plugin {
             failure::bail!("Bad response: invalid API version");
         }
 
-        output
+        let res = output
             .into_inner()
-            .map_err(|e| failure::err_msg(format!("API error: {:#?}", e)))
+            .map_err(|e| failure::err_msg(format!("API error: {:#?}", e)))?;
+
+        debug!("{:#?}", res);
+
+        Ok(res)
     }
 }

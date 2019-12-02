@@ -39,9 +39,13 @@ pub async fn module_to_container_id(
         .context(ErrorKind::GrpcUnexpectedErr)?
         .into_inner()
         .containers;
-    let container = containers
-        .into_iter()
-        .find(|c| c.metadata.as_ref().unwrap().name == name);
+    let container = containers.into_iter().find(|c| {
+        name == c
+            .metadata
+            .as_ref()
+            .expect("somehow received a null container metadata response")
+            .name
+    });
     match container {
         Some(container) => Ok(container.id),
         None => Err(ErrorKind::ModuleDoesNotExist.into()),
