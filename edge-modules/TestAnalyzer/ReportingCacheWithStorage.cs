@@ -6,7 +6,7 @@ namespace TestAnalyzer
 
     public class ReportingCacheWithStorage
     {
-        Storage storage;
+        TestStatusStorage storage;
 
         public static ReportingCacheWithStorage Instance { get; } = new ReportingCacheWithStorage();
 
@@ -16,7 +16,7 @@ namespace TestAnalyzer
 
         public async Task InitAsync(string storagePath, bool optimizeForPerformance)
         {
-            this.storage = new Storage();
+            this.storage = new TestStatusStorage();
             await this.storage.InitAsync(storagePath, new SystemEnvironment(), optimizeForPerformance);
             Task messageProcessing = this.storage.ProcessAllMessagesAsync(message => ReportingCache.Instance.AddMessage(message));
             Task directMethodProcessing = this.storage.ProcessAllDirectMethodsAsync(directMethodStatus => ReportingCache.Instance.AddDirectMethodStatus(directMethodStatus));
