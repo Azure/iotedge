@@ -7,13 +7,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
     public class ExperimentalFeatures
     {
-        ExperimentalFeatures(bool enabled, bool disableCloudSubscriptions, bool enableUploadLogs, bool enableGetLogs, bool enableMetrics)
+        ExperimentalFeatures(bool enabled, bool disableCloudSubscriptions, bool enableUploadLogs, bool enableGetLogs, bool enableMetrics, bool enableMetricsUpload)
         {
             this.Enabled = enabled;
             this.DisableCloudSubscriptions = disableCloudSubscriptions;
             this.EnableUploadLogs = enableUploadLogs;
             this.EnableGetLogs = enableGetLogs;
             this.EnableMetrics = enableMetrics;
+            this.EnableMetricsUpload = enableMetricsUpload;
         }
 
         public static ExperimentalFeatures Create(IConfiguration experimentalFeaturesConfig, ILogger logger)
@@ -23,7 +24,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             bool enableUploadLogs = enabled && experimentalFeaturesConfig.GetValue("enableUploadLogs", false);
             bool enableGetLogs = enabled && experimentalFeaturesConfig.GetValue("enableGetLogs", false);
             bool enableMetrics = enabled && experimentalFeaturesConfig.GetValue("enableMetrics", false);
-            var experimentalFeatures = new ExperimentalFeatures(enabled, disableCloudSubscriptions, enableUploadLogs, enableGetLogs, enableMetrics);
+            bool enableMetricsUpload = enabled && experimentalFeaturesConfig.GetValue("enableMetricsUpload", false);
+            var experimentalFeatures = new ExperimentalFeatures(enabled, disableCloudSubscriptions, enableUploadLogs, enableGetLogs, enableMetrics, enableMetricsUpload);
             logger.LogInformation($"Experimental features configuration: {experimentalFeatures.ToJson()}");
             return experimentalFeatures;
         }
@@ -37,5 +39,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
         public bool EnableGetLogs { get; }
 
         public bool EnableMetrics { get; }
+
+        public bool EnableMetricsUpload { get; }
     }
 }
