@@ -5,6 +5,7 @@ namespace DevOpsLib
 
     public class ReleaseEnvironmentId
     {
+        // TODO: Create a class to manage release environment id and relationship with release definition
         public Dictionary<int, string> DefinitionIdToDisplayNameMapping = new Dictionary<int, string>
         {
             { 10073, "Linux AMD64 Docker" },

@@ -3,6 +3,7 @@ namespace DevOpsLib.VstsModels
 {
     using Newtonsoft.Json;
 
+    // Schema reference: https://docs.microsoft.com/en-us/rest/api/azure/devops/release/releases/get%20release%20environment?view=azure-devops-rest-5.1#releaseenvironment
     [JsonConverter(typeof(JsonPathConverter))]
     public class VstsReleaseEnvironment
     {
