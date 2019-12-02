@@ -38,21 +38,21 @@ namespace TwinTester
             Dictionary<string, string> propertiesToRemoveFromTwin = new Dictionary<string, string>();
             foreach (KeyValuePair<string, DateTime> desiredPropertyUpdate in desiredPropertiesUpdated)
             {
-                bool doesTwinHaveUpdate = propertyUpdatesFromTwin.Contains(desiredPropertyUpdate.Key);
+                bool hasTwinUpdate = propertyUpdatesFromTwin.Contains(desiredPropertyUpdate.Key);
                 bool hasModuleReceivedCallback = desiredPropertiesReceived.ContainsKey(desiredPropertyUpdate.Key);
                 string status;
-                if (doesTwinHaveUpdate && hasModuleReceivedCallback)
+                if (hasTwinUpdate && hasModuleReceivedCallback)
                 {
                     status = $"{(int)StatusCode.Success}: Successfully validated desired property update";
                     Logger.LogInformation(status + $" {desiredPropertyUpdate.Key}");
                 }
                 else if (TwinOperationBase.IsPastFailureThreshold(this.twinState, desiredPropertyUpdate.Value))
                 {
-                    if (doesTwinHaveUpdate && !hasModuleReceivedCallback)
+                    if (hasTwinUpdate && !hasModuleReceivedCallback)
                     {
                         status = $"{(int)StatusCode.DesiredPropertyUpdateNoCallbackReceived}: Failure receiving desired property update in callback";
                     }
-                    else if (!doesTwinHaveUpdate && hasModuleReceivedCallback)
+                    else if (!hasTwinUpdate && hasModuleReceivedCallback)
                     {
                         status = $"{(int)StatusCode.DesiredPropertyUpdateNotInEdgeTwin}: Failure receiving desired property update in twin";
                     }
