@@ -521,6 +521,40 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         }
 
         [Fact]
+        public void PodSecurityContextFromCreateOptionsOverridesDefaultRunAsNonRootOptionsWhenProvided()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var securityContext = new V1PodSecurityContext { RunAsNonRoot = true, RunAsUser = 0 };
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(securityContext: securityContext), Option.Some(new AuthConfig("user-registry1")));
+            var module = new KubernetesModule("module1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, DefaultConfigurationInfo, EnvVarsDict, config, ImagePullPolicy.OnCreate, EdgeletModuleOwner);
+            var labels = new Dictionary<string, string>();
+            var mapper = CreateMapper(runAsNonRoot: true);
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            Assert.Equal(1, deployment.Spec.Template.Spec.ImagePullSecrets.Count);
+            Assert.Equal(true, deployment.Spec.Template.Spec.SecurityContext.RunAsNonRoot);
+            Assert.Equal(0, deployment.Spec.Template.Spec.SecurityContext.RunAsUser);
+        }
+
+        [Fact]
+        public void ApplyPodSecurityContextFromCreateOptionsWhenProvided()
+        {
+            var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "Module1", Mock.Of<ICredentials>());
+            var securityContext = new V1PodSecurityContext { RunAsNonRoot = true, RunAsUser = 20001 };
+            var config = new KubernetesConfig("image", CreatePodParameters.Create(securityContext: securityContext), Option.Some(new AuthConfig("user-registry1")));
+            var module = new KubernetesModule("module1", "v1", "docker", ModuleStatus.Running, RestartPolicy.Always, DefaultConfigurationInfo, EnvVarsDict, config, ImagePullPolicy.OnCreate, EdgeletModuleOwner);
+            var labels = new Dictionary<string, string>();
+            var mapper = CreateMapper();
+
+            var deployment = mapper.CreateDeployment(identity, module, labels);
+
+            Assert.Equal(1, deployment.Spec.Template.Spec.ImagePullSecrets.Count);
+            Assert.Equal(true, deployment.Spec.Template.Spec.SecurityContext.RunAsNonRoot);
+            Assert.Equal(20001, deployment.Spec.Template.Spec.SecurityContext.RunAsUser);
+        }
+
+        [Fact]
         public void EdgeAgentEnvSettingsHaveLotsOfStuff()
         {
             var identity = new ModuleIdentity("hostname", "gatewayhost", "deviceid", "$edgeAgent", Mock.Of<ICredentials>());
@@ -564,7 +598,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Assert.Equal("False", container.Env.Single(e => e.Name == "feature2").Value);
         }
 
-        static KubernetesDeploymentMapper CreateMapper(string persistentVolumeName = "", string storageClassName = "", string proxyImagePullSecretName = null, bool runAsNonRoot = false, IDictionary<string, bool> experimentalFeatures = null)
+        static KubernetesDeploymentMapper CreateMapper(
+          string persistentVolumeName = "",
+          string storageClassName = "",
+          string proxyImagePullSecretName = null,
+          bool runAsNonRoot = false,
+          IDictionary<string, bool> experimentalFeatures = null)
             => new KubernetesDeploymentMapper(
                 "namespace",
                 "edgehub",

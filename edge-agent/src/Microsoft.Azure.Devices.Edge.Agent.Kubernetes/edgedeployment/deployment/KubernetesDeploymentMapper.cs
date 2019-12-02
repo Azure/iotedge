@@ -132,9 +132,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
                 .Select(pullSecretName => new V1LocalObjectReference(pullSecretName))
                 .ToList();
 
-            V1PodSecurityContext securityContext = this.runAsNonRoot
-                ? new V1PodSecurityContext { RunAsNonRoot = true, RunAsUser = 1000 }
-                : null;
+            V1PodSecurityContext securityContext = module.Config.CreateOptions.SecurityContext.GetOrElse(
+                () => this.runAsNonRoot
+                    ? new V1PodSecurityContext { RunAsNonRoot = true, RunAsUser = 1000 }
+                    : null);
 
             return new V1PodTemplateSpec
             {
