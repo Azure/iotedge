@@ -24,7 +24,8 @@ pub struct Settings {
     device_id: Option<String>,
     device_hub_selector: String,
     proxy: ProxySettings,
-    has_cluster_rbac: Option<bool>,
+    #[serde(default = "Settings::default_cluster_rbac")]
+    has_cluster_rbac: bool,
 }
 
 impl Settings {
@@ -77,8 +78,12 @@ impl Settings {
         &self.device_hub_selector
     }
 
-    pub fn has_cluster_rbac(&self) -> Option<&bool> {
-        self.has_cluster_rbac.as_ref()
+    pub fn has_cluster_rbac(&self) -> bool {
+        self.has_cluster_rbac
+    }
+
+    pub fn default_cluster_rbac() -> bool {
+        true
     }
 }
 

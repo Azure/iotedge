@@ -183,8 +183,7 @@ where
             name: String,
             nodes_count: u32,
         };
-        let has_rbac = *self.settings.has_cluster_rbac().unwrap_or(&true);
-        let fut = if has_rbac {
+        let fut = if self.settings.has_cluster_rbac() {
             future::Either::A(
                 self.client
                     .lock()
@@ -395,7 +394,7 @@ mod tests {
     fn runtime_get_system_info_no_rbac() {
         let more_settings = json!({"has_cluster_rbac" : "false"});
         let settings = make_settings(Option::Some(more_settings));
-        assert_eq!(settings.has_cluster_rbac(), Some(&false));
+        assert_eq!(settings.has_cluster_rbac(), false);
         let dispatch_table = routes!(
             GET "/api/v1/nodes" => list_node_handler(),
         );
@@ -409,17 +408,14 @@ mod tests {
         let mut runtime = Runtime::new().unwrap();
         let info = runtime.block_on(task).unwrap();
 
-        assert_eq!(
-            info.architecture(),
-            "Kubernetes"
-        );
+        assert_eq!(info.architecture(), "Kubernetes");
     }
 
     #[test]
     fn runtime_get_system_info_rbac_set() {
         let more_settings = json!({"has_cluster_rbac" : "true"});
         let settings = make_settings(Option::Some(more_settings));
-        assert_eq!(settings.has_cluster_rbac(), Some(&true));
+        assert_eq!(settings.has_cluster_rbac(), true);
         let dispatch_table = routes!(
             GET "/api/v1/nodes" => list_node_handler(),
         );
