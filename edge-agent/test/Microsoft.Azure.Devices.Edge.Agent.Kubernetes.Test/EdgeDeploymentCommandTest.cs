@@ -331,8 +331,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 .Returns(() => new CombinedKubernetesConfig(AgentConfig1.Image, CreatePodParameters.Create(image: AgentConfig1.Image), Option.Maybe(ImagePullSecret)));
             var edgeDefinition = Option.None<EdgeDeploymentDefinition>();
             KubernetesConfig kc = new KubernetesConfig(AgentConfig1.Image, CreatePodParameters.Create(), Option.None<AuthConfig>());
-            var edgeDefinitionCurrentModule = new EdgeDeploymentDefinition("v1", "EdgeDeployment", new V1ObjectMeta(name: ResourceName),
-                new List<KubernetesModule>() { new KubernetesModule(currentModule, kc, EdgeletModuleOwner) }, null);
+            var edgeDefinitionCurrentModule = new EdgeDeploymentDefinition("v1", "EdgeDeployment", new V1ObjectMeta(name: ResourceName), new List<KubernetesModule>() { new KubernetesModule(currentModule, kc, EdgeletModuleOwner) }, null);
 
             using (var server = new KubernetesApiServer(
                 resp: string.Empty,
@@ -458,7 +457,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 }))
             {
                 var client = new Kubernetes(new KubernetesClientConfiguration { Host = server.Uri });
-                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule }, Option.None<EdgeDeploymentDefinition>(), Runtime, configProvider.Object, EdgeletModuleOwner);;
+                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule }, Option.None<EdgeDeploymentDefinition>(), Runtime, configProvider.Object, EdgeletModuleOwner);
 
                 await cmd.ExecuteAsync(CancellationToken.None);
 
