@@ -36,11 +36,11 @@ namespace TestAnalyzer
 
         public void AddStatus(CloudOperationStatus responseStatus, ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> cache)
         {
-            // lock needed for update of concurrent dict
-            lock (cache)
-            {
-                ConcurrentDictionary<string, Tuple<int, DateTime>> batch = cache.GetOrAdd(responseStatus.ModuleId, key => new ConcurrentDictionary<string, Tuple<int, DateTime>>());
+            ConcurrentDictionary<string, Tuple<int, DateTime>> batch = cache.GetOrAdd(responseStatus.ModuleId, key => new ConcurrentDictionary<string, Tuple<int, DateTime>>());
 
+            // lock needed for update of concurrent dict
+            lock (batch)
+            {
                 batch.AddOrUpdate(
                     responseStatus.StatusCode,
                     new Tuple<int, DateTime>(1, responseStatus.ResponseDateTime),
