@@ -38,7 +38,7 @@ namespace TestAnalyzer.Controllers
                 await this.PublishToLogAnalyticsAsync(deviceAnalysis);
             }
 
-            return new ContentResult { Content = JsonConvert.SerializeObject(deviceAnalysis.MessagesReport, Formatting.Indented) };
+            return new ContentResult { Content = JsonConvert.SerializeObject(deviceAnalysis.MessagesReport, Formatting.Indented) }; // explicit serialization needed due to the wrapping list
         }
 
         private async Task PublishToLogAnalyticsAsync(TestResultAnalysis deviceAnalysis)

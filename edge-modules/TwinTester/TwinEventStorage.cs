@@ -108,7 +108,7 @@ namespace TwinTester
             return await this.GetAllUpdatesHelperAsync(this.reportedPropertyUpdateCache);
         }
 
-        public async Task<Dictionary<string, DateTime>> GetAllUpdatesHelperAsync(IEntityStore<string, DateTime> store)
+        private async Task<Dictionary<string, DateTime>> GetAllUpdatesAsync(IEntityStore<string, DateTime> store)
         {
             Dictionary<string, DateTime> allData = new Dictionary<string, DateTime>();
             await store.IterateBatch(
