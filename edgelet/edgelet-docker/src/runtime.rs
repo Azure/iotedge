@@ -1444,7 +1444,8 @@ mod tests {
         type StartFuture = FutureResult<(), Self::Error>;
         type StopFuture = FutureResult<(), Self::Error>;
         type SystemInfoFuture = FutureResult<CoreSystemInfo, Self::Error>;
-        type SystemResourcesFuture = Box<dyn Future<Item = SystemResources, Error = Self::Error> + Send>;
+        type SystemResourcesFuture =
+            Box<dyn Future<Item = SystemResources, Error = Self::Error> + Send>;
         type RemoveAllFuture = FutureResult<(), Self::Error>;
 
         fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {

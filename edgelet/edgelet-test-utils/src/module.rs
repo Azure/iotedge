@@ -395,7 +395,7 @@ where
     fn system_resources(&self) -> Self::SystemResourcesFuture {
         match self.module.as_ref().unwrap() {
             Ok(_) => future::ok(SystemResources::new(
-                595023,
+                595_023,
                 200,
                 0.25,
                 5000,
