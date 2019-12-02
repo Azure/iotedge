@@ -183,46 +183,56 @@ where
             name: String,
             nodes_count: u32,
         };
-
-        let fut = self
-            .client
-            .lock()
-            .expect("Unexpected lock error")
-            .borrow_mut()
-            .list_nodes()
-            .map_err(|err| {
-                Error::from(err.context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo)))
-            })
-            .map(|nodes| {
-                // Accumulate the architectures and their node counts into a map
-                let architectures = nodes
-                    .items
-                    .into_iter()
-                    .filter_map(|node| {
-                        node.status
-                            .and_then(|status| status.node_info.map(|info| info.architecture))
+        let has_rbac = *self.settings.has_cluster_rbac().unwrap_or(&true);
+        let fut = if has_rbac {
+            future::Either::A(
+                self.client
+                    .lock()
+                    .expect("Unexpected lock error")
+                    .borrow_mut()
+                    .list_nodes()
+                    .map_err(|err| {
+                        Error::from(
+                            err.context(ErrorKind::RuntimeOperation(RuntimeOperation::SystemInfo)),
+                        )
                     })
-                    .fold(HashMap::new(), |mut architectures, current_arch| {
-                        let count = architectures.entry(current_arch).or_insert(0);
-                        *count += 1;
-                        architectures
-                    });
+                    .map(|nodes| {
+                        // Accumulate the architectures and their node counts into a map
+                        let architectures = nodes
+                            .items
+                            .into_iter()
+                            .filter_map(|node| {
+                                node.status.and_then(|status| {
+                                    status.node_info.map(|info| info.architecture)
+                                })
+                            })
+                            .fold(HashMap::new(), |mut architectures, current_arch| {
+                                let count = architectures.entry(current_arch).or_insert(0);
+                                *count += 1;
+                                architectures
+                            });
 
-                // Convert a map to a list of architectures
-                let architectures = architectures
-                    .into_iter()
-                    .map(|(name, count)| Architecture {
-                        name,
-                        nodes_count: count,
-                    })
-                    .collect::<Vec<Architecture>>();
+                        // Convert a map to a list of architectures
+                        let architectures = architectures
+                            .into_iter()
+                            .map(|(name, count)| Architecture {
+                                name,
+                                nodes_count: count,
+                            })
+                            .collect::<Vec<Architecture>>();
 
-                SystemInfo::new(
-                    "Kubernetes".to_string(),
-                    serde_json::to_string(&architectures).unwrap(),
-                )
-            });
-
+                        SystemInfo::new(
+                            "Kubernetes".to_string(),
+                            serde_json::to_string(&architectures).unwrap(),
+                        )
+                    }),
+            )
+        } else {
+            future::Either::B(future::ok(SystemInfo::new(
+                "Kubernetes".to_string(),
+                "Kubernetes".to_string(),
+            )))
+        };
         Box::new(fut)
     }
 
@@ -362,6 +372,54 @@ mod tests {
     fn runtime_get_system_info() {
         let settings = make_settings(None);
 
+        let dispatch_table = routes!(
+            GET "/api/v1/nodes" => list_node_handler(),
+        );
+
+        let handler = make_req_dispatcher(dispatch_table, Box::new(not_found_handler));
+        let service = service_fn(handler);
+        let runtime = create_runtime(settings, service);
+
+        let task = runtime.system_info();
+
+        let mut runtime = Runtime::new().unwrap();
+        let info = runtime.block_on(task).unwrap();
+
+        assert_eq!(
+            info.architecture(),
+            "[{\"name\":\"amd64\",\"nodes_count\":2}]"
+        );
+    }
+
+    #[test]
+    fn runtime_get_system_info_no_rbac() {
+        let more_settings = json!({"has_cluster_rbac" : "false"});
+        let settings = make_settings(Option::Some(more_settings));
+        assert_eq!(settings.has_cluster_rbac(), Some(&false));
+        let dispatch_table = routes!(
+            GET "/api/v1/nodes" => list_node_handler(),
+        );
+
+        let handler = make_req_dispatcher(dispatch_table, Box::new(not_found_handler));
+        let service = service_fn(handler);
+        let runtime = create_runtime(settings, service);
+
+        let task = runtime.system_info();
+
+        let mut runtime = Runtime::new().unwrap();
+        let info = runtime.block_on(task).unwrap();
+
+        assert_eq!(
+            info.architecture(),
+            "Kubernetes"
+        );
+    }
+
+    #[test]
+    fn runtime_get_system_info_rbac_set() {
+        let more_settings = json!({"has_cluster_rbac" : "true"});
+        let settings = make_settings(Option::Some(more_settings));
+        assert_eq!(settings.has_cluster_rbac(), Some(&true));
         let dispatch_table = routes!(
             GET "/api/v1/nodes" => list_node_handler(),
         );

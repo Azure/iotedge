@@ -24,6 +24,7 @@ pub struct Settings {
     device_id: Option<String>,
     device_hub_selector: String,
     proxy: ProxySettings,
+    has_cluster_rbac: Option<bool>,
 }
 
 impl Settings {
@@ -74,6 +75,10 @@ impl Settings {
 
     pub fn device_hub_selector(&self) -> &str {
         &self.device_hub_selector
+    }
+
+    pub fn has_cluster_rbac(&self) -> Option<&bool> {
+        self.has_cluster_rbac.as_ref()
     }
 }
 
