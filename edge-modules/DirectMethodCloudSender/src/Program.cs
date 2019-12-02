@@ -35,7 +35,6 @@ namespace DirectMethodCloudSender
             // Get device id of this device, exposed as a system variable by the iot edge runtime
             string targetDeviceId = configuration.GetValue<string>("IOTEDGE_DEVICEID");
             string targetModuleId = configuration.GetValue("TargetModuleId", "DirectMethodReceiver");
-            TransportType transportType = configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only);
             TimeSpan dmDelay = configuration.GetValue("DirectMethodDelay", TimeSpan.FromSeconds(5));
             Uri analyzerUrl = configuration.GetValue("AnalyzerUrl", new Uri("http://analyzer:15000"));
 
@@ -43,7 +42,7 @@ namespace DirectMethodCloudSender
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
-            await CallDirectMethodFromCloud(serviceClientConnectionString, targetDeviceId, targetModuleId, transportType, dmDelay, analyzerClient, cts);
+            await CallDirectMethodFromCloud(serviceClientConnectionString, targetDeviceId, targetModuleId, dmDelay, analyzerClient, cts);
 
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
@@ -55,7 +54,6 @@ namespace DirectMethodCloudSender
             string serviceClientConnectionString,
             string deviceId,
             string moduleId,
-            TransportType transportType,
             TimeSpan delay,
             AnalyzerClient analyzerClient,
             CancellationTokenSource cts)
@@ -90,7 +88,7 @@ namespace DirectMethodCloudSender
                             Logger.LogError($"Calling Direct Method from cloud with count {count} failed with status code {result.Status}.");
                         }
 
-                        CallAnalyzerToReportStatus(moduleId, result, analyzerClient);
+                        await CallAnalyzerToReportStatusAsync(moduleId, result, analyzerClient);
 
                         count++;
                     }
@@ -119,11 +117,11 @@ namespace DirectMethodCloudSender
             Logger.LogInformation("CallDirectMethodFromCloud finished.");
         }
 
-        static void CallAnalyzerToReportStatus(string moduleId, CloudToDeviceMethodResult result, AnalyzerClient analyzerClient)
+        static async Task CallAnalyzerToReportStatusAsync(string moduleId, CloudToDeviceMethodResult result, AnalyzerClient analyzerClient)
         {
             try
             {
-                analyzerClient.AddDirectMethodStatusAsync(new ResponseStatus { ModuleId = moduleId, StatusCode = result.Status.ToString(), EnqueuedDateTime = DateTime.UtcNow });
+                await analyzerClient.AddDirectMethodStatusAsync(new ResponseStatus { ModuleId = moduleId, StatusCode = result.Status.ToString(), EnqueuedDateTime = DateTime.UtcNow });
             }
             catch (Exception e)
             {

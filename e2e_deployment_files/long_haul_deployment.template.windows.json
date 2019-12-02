@@ -283,9 +283,6 @@
               "TargetModuleId": {
                 "value": "DirectMethodReceiver"
               },
-              "ClientTransportType": {
-                "value": "Amqp_Tcp_Only"
-              },
               "ServiceClientConnectionString": {
                 "value": "<ServiceClientConnectionString>"
               }
@@ -318,9 +315,6 @@
             "env": {
               "TargetModuleId": {
                 "value": "DirectMethodReceiver2"
-              },
-              "ClientTransportType": {
-                "value": "Mqtt_Tcp_Only"
               },
               "ServiceClientConnectionString": {
                 "value": "<ServiceClientConnectionString>"
