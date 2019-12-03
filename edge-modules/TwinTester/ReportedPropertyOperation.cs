@@ -85,6 +85,12 @@ namespace TwinTester
             }
 
             TwinCollection propertiesToRemoveFromTwin = await this.ValidatePropertiesFromTwinAsync(receivedTwin);
+            await this.RemovePropertiesFromStorage(propertiesToRemoveFromTwin);
+            await this.RemovePropertiesFromTwin(propertiesToRemoveFromTwin);
+        }
+
+        async Task RemovePropertiesFromStorage(TwinCollection propertiesToRemoveFromTwin)
+        {
             foreach (dynamic pair in propertiesToRemoveFromTwin)
             {
                 KeyValuePair<string, object> property = (KeyValuePair<string, object>)pair;
@@ -97,7 +103,10 @@ namespace TwinTester
                     this.Logger.LogError($"Failed to remove validated reported property id {property.Key} from storage: {e}");
                 }
             }
+        }
 
+        async Task RemovePropertiesFromTwin(TwinCollection propertiesToRemoveFromTwin)
+        {
             try
             {
                 await this.moduleClient.UpdateReportedPropertiesAsync(propertiesToRemoveFromTwin);
