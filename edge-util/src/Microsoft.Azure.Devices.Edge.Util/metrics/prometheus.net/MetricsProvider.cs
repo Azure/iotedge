@@ -24,8 +24,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
             Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             Preconditions.CheckNonWhiteSpace(storagePath, nameof(storagePath));
-            Lazy<string> instanceNumber = new Lazy<string>(() => GetInstanceNumber(storagePath));
-            this.defaultLabelNames = new List<string> { iotHubName, deviceId, instanceNumber.Value };
+            string instanceNumber = GetInstanceNumber(storagePath);
+            this.defaultLabelNames = new List<string> { iotHubName, deviceId, instanceNumber };
 
             // TODO:
             // By default, the Prometheus.Net library emits some default metrics.
@@ -93,18 +93,18 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
         /// <returns></returns>
         static string GetInstanceNumber(string storagePath)
         {
-            string absoluteInstanceFilePath = Path.Combine(storagePath, InstanceFileName);
-            if (!File.Exists(absoluteInstanceFilePath))
+            string instanceFileAbsolutePath = Path.Combine(storagePath, InstanceFileName);
+            if (!File.Exists(instanceFileAbsolutePath))
             {
-                File.WriteAllText(absoluteInstanceFilePath, "1");
+                File.WriteAllText(instanceFileAbsolutePath, "1");
                 return "1";
             }
 
             try
             {
-                string string_num = File.ReadAllText(absoluteInstanceFilePath);
+                string string_num = File.ReadAllText(instanceFileAbsolutePath);
                 string_num = (int.Parse(string_num) + 1).ToString();
-                File.WriteAllText(absoluteInstanceFilePath, string_num);
+                File.WriteAllText(instanceFileAbsolutePath, string_num);
                 return string_num;
             }
             catch (Exception ex)
