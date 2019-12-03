@@ -31,6 +31,36 @@ namespace TwinTester
 
         public override ILogger Logger => LoggerImpl;
 
+        public override async Task UpdateAsync()
+        {
+            string reportedPropertyUpdate = new string('1', Settings.Current.TwinUpdateSize); // dummy twin update needs to be any number
+            var twin = new TwinCollection();
+            twin[this.twinState.ReportedPropertyUpdateCounter.ToString()] = reportedPropertyUpdate;
+            try
+            {
+                await this.moduleClient.UpdateReportedPropertiesAsync(twin);
+                this.Logger.LogInformation($"Made reported property update {this.twinState.ReportedPropertyUpdateCounter}");
+            }
+            catch (Exception e)
+            {
+                string failureStatus = $"{(int)StatusCode.ReportedPropertyUpdateCallFailure}: Failed call to update reported properties";
+                this.Logger.LogError(failureStatus + $": {e}");
+                await this.CallAnalyzerToReportStatusAsync(this.analyzerClient, Settings.Current.ModuleId, failureStatus);
+                return;
+            }
+
+            try
+            {
+                await this.storage.AddReportedPropertyUpdateAsync(this.twinState.ReportedPropertyUpdateCounter.ToString());
+                this.twinState.ReportedPropertyUpdateCounter += 1;
+            }
+            catch (Exception e)
+            {
+                this.Logger.LogError($"Failed adding reported property update to storage: {e}");
+                return;
+            }
+        }
+
         public override async Task ValidateAsync()
         {
             Twin receivedTwin;
@@ -75,36 +105,6 @@ namespace TwinTester
             catch (Exception e)
             {
                 this.Logger.LogInformation($"Failed call to twin property reset: {e}");
-            }
-        }
-
-        public override async Task UpdateAsync()
-        {
-            string reportedPropertyUpdate = new string('1', Settings.Current.TwinUpdateSize); // dummy twin update needs to be any number
-            var twin = new TwinCollection();
-            twin[this.twinState.ReportedPropertyUpdateCounter.ToString()] = reportedPropertyUpdate;
-            try
-            {
-                await this.moduleClient.UpdateReportedPropertiesAsync(twin);
-                this.Logger.LogInformation($"Made reported property update {this.twinState.ReportedPropertyUpdateCounter}");
-            }
-            catch (Exception e)
-            {
-                string failureStatus = $"{(int)StatusCode.ReportedPropertyUpdateCallFailure}: Failed call to update reported properties";
-                this.Logger.LogError(failureStatus + $": {e}");
-                await this.CallAnalyzerToReportStatusAsync(this.analyzerClient, Settings.Current.ModuleId, failureStatus);
-                return;
-            }
-
-            try
-            {
-                await this.storage.AddReportedPropertyUpdateAsync(this.twinState.ReportedPropertyUpdateCounter.ToString());
-                this.twinState.ReportedPropertyUpdateCounter += 1;
-            }
-            catch (Exception e)
-            {
-                this.Logger.LogError($"Failed adding reported property update to storage: {e}");
-                return;
             }
         }
 

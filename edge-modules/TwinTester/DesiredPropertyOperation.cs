@@ -32,6 +32,33 @@ namespace TwinTester
 
         public override ILogger Logger => LoggerImpl;
 
+        public override async Task UpdateAsync()
+        {
+            try
+            {
+                string desiredPropertyUpdate = new string('1', Settings.Current.TwinUpdateSize); // dummy twin update needs to be any number
+                string patch = string.Format("{{ properties: {{ desired: {{ {0}: {1}}} }} }}", this.twinState.DesiredPropertyUpdateCounter, desiredPropertyUpdate);
+                Twin newTwin = await this.registryManager.UpdateTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId, patch, this.twinState.TwinETag);
+                this.twinState.TwinETag = newTwin.ETag;
+                this.Logger.LogInformation($"Made desired property update {this.twinState.DesiredPropertyUpdateCounter}");
+            }
+            catch (Exception e)
+            {
+                this.Logger.LogInformation($"Failed call to desired property update: {e}");
+                return;
+            }
+
+            try
+            {
+                await this.storage.AddDesiredPropertyUpdateAsync(this.twinState.DesiredPropertyUpdateCounter.ToString());
+                this.twinState.DesiredPropertyUpdateCounter += 1;
+            }
+            catch (Exception e)
+            {
+                this.Logger.LogError($"Failed adding desired property update to storage: {e}");
+            }
+        }
+
         public override async Task ValidateAsync()
         {
             Twin receivedTwin;
@@ -68,33 +95,6 @@ namespace TwinTester
             catch (Exception e)
             {
                 this.Logger.LogInformation($"Failed call to remove successful desired property updates: {e}");
-            }
-        }
-
-        public override async Task UpdateAsync()
-        {
-            try
-            {
-                string desiredPropertyUpdate = new string('1', Settings.Current.TwinUpdateSize); // dummy twin update needs to be any number
-                string patch = string.Format("{{ properties: {{ desired: {{ {0}: {1}}} }} }}", this.twinState.DesiredPropertyUpdateCounter, desiredPropertyUpdate);
-                Twin newTwin = await this.registryManager.UpdateTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId, patch, this.twinState.TwinETag);
-                this.twinState.TwinETag = newTwin.ETag;
-                this.Logger.LogInformation($"Made desired property update {this.twinState.DesiredPropertyUpdateCounter}");
-            }
-            catch (Exception e)
-            {
-                this.Logger.LogInformation($"Failed call to desired property update: {e}");
-                return;
-            }
-
-            try
-            {
-                await this.storage.AddDesiredPropertyUpdateAsync(this.twinState.DesiredPropertyUpdateCounter.ToString());
-                this.twinState.DesiredPropertyUpdateCounter += 1;
-            }
-            catch (Exception e)
-            {
-                this.Logger.LogError($"Failed adding desired property update to storage: {e}");
             }
         }
 
