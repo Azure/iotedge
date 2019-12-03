@@ -13,7 +13,7 @@ namespace TestAnalyzer.Controllers
         [HttpPost]
         public async Task<StatusCodeResult> PostAsync(CloudOperationStatus methodCallStatus)
         {
-            await ReportingCacheWithStorage.Instance.AddDirectMethodAsync(methodCallStatus);
+            await ReportingCache.Instance.AddDirectMethodStatusAsync(methodCallStatus);
             return this.StatusCode((int)HttpStatusCode.NoContent);
         }
     }

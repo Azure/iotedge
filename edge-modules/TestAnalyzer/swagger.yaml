@@ -25,7 +25,7 @@ paths:
         schema:
           $ref: "#/definitions/ResponseStatus"
       responses:
-        200:
+        204:
           description: "Ok"
   /api/directmethodstatus:
     post:
@@ -46,7 +46,7 @@ paths:
         schema:
           $ref: "#/definitions/ResponseStatus"
       responses:
-        200:
+        204:
           description: "Ok"
   /api/report:
     get:
@@ -138,7 +138,7 @@ definitions:
         type: "string"
       statusCode:
         type: "string"
-        example: "200"
+        example: "204"
       enqueuedDateTime:
         type: "string"
         format: date-time

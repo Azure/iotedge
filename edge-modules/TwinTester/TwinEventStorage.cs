@@ -11,7 +11,7 @@ namespace TwinTester
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public class TwinEventStorage
+    class TwinEventStorage
     {
         const string DesiredPropertyUpdatePartitionKey = "DesiredPropertyUpdateCache";
         const string DesiredPropertyReceivedPartitionKey = "DesiredPropertyReceivedCache";

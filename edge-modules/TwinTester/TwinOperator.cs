@@ -8,11 +8,12 @@ namespace TwinTester
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
-    public class TwinOperator
+    class TwinOperator
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TwinOperator));
         readonly SemaphoreSlim operationLock = new SemaphoreSlim(1, 1);
@@ -48,14 +49,15 @@ namespace TwinTester
             return eraseReportedProperties;
         }
 
-        public static async Task<TwinState> InitializeModuleTwinAsync(RegistryManager registryManager, ModuleClient moduleClient, TwinEventStorage storage)
+        public static async Task<TwinOperator> CreateAsync(RegistryManager registryManager, ModuleClient moduleClient, AnalyzerClient analyzerClient, TwinEventStorage storage)
         {
             try
             {
                 TwinState initializedState;
                 Twin twin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
-                int storageCount = (await storage.GetAllDesiredPropertiesReceivedAsync()).Count + (await storage.GetAllDesiredPropertiesUpdatedAsync()).Count + (await storage.GetAllReportedPropertiesUpdatedAsync()).Count;
-                if (storageCount == 0)
+                if ((await storage.GetAllDesiredPropertiesReceivedAsync()).Count == 0 &&
+                    (await storage.GetAllDesiredPropertiesUpdatedAsync()).Count == 0 &&
+                    (await storage.GetAllReportedPropertiesUpdatedAsync()).Count == 0)
                 {
                     Logger.LogInformation("No existing storage detected. Initializing new module twin for fresh run.");
 
@@ -66,7 +68,7 @@ namespace TwinTester
                     TwinCollection eraseReportedProperties = GetReportedPropertiesResetTwin(desiredPropertyResetTwin);
                     await moduleClient.UpdateReportedPropertiesAsync(eraseReportedProperties);
 
-                    await Task.Delay(TimeSpan.FromSeconds(10)); // give ample time for reported properties reset to reach cloud
+                    await Task.Delay(TimeSpan.FromSeconds(10)); // give enough time for reported properties reset to reach cloud
                     twin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
                     initializedState = new TwinState { ReportedPropertyUpdateCounter = 0, DesiredPropertyUpdateCounter = 0, TwinETag = twin.ETag, LastTimeOffline = DateTime.MinValue };
                 }
@@ -79,7 +81,7 @@ namespace TwinTester
                 }
 
                 Logger.LogInformation($"Start state of module twin: {JsonConvert.SerializeObject(twin, Formatting.Indented)}");
-                return initializedState;
+                return new TwinOperator(registryManager, moduleClient, analyzerClient, storage, initializedState);
             }
             catch (Exception e)
             {
@@ -87,20 +89,35 @@ namespace TwinTester
             }
         }
 
+        public void Start()
+        {
+            TimeSpan validationInterval = new TimeSpan(Settings.Current.TwinUpdateFailureThreshold.Ticks / 4);
+            PeriodicTask periodicValidation = new PeriodicTask(this.PerformValidationAsync, validationInterval, validationInterval, Logger, "TwinValidation");
+            PeriodicTask periodicUpdate = new PeriodicTask(this.PerformUpdatesAsync, Settings.Current.TwinUpdateFrequency, Settings.Current.TwinUpdateFrequency, Logger, "TwinUpdates");
+        }
+
         public async Task PerformUpdatesAsync(CancellationToken cancellationToken)
         {
-            await this.operationLock.WaitAsync();
-            await this.reportedPropertyOperation.UpdateAsync();
-            await this.desiredPropertyOperation.UpdateAsync();
-            this.operationLock.Release();
+            try {
+                await this.operationLock.WaitAsync();
+                await this.reportedPropertyOperation.UpdateAsync();
+                await this.desiredPropertyOperation.UpdateAsync();
+            }
+            finally {
+                this.operationLock.Release();
+            }
         }
 
         public async Task PerformValidationAsync(CancellationToken cancellationToken)
         {
-            await this.operationLock.WaitAsync();
-            await this.reportedPropertyOperation.ValidateAsync();
-            await this.desiredPropertyOperation.ValidateAsync();
-            this.operationLock.Release();
+            try {
+                await this.operationLock.WaitAsync();
+                await this.reportedPropertyOperation.ValidateAsync();
+                await this.desiredPropertyOperation.ValidateAsync();
+            }
+            finally {
+                this.operationLock.Release();
+            }
         }
     }
 }

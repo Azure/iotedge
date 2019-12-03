@@ -37,7 +37,7 @@ namespace TestAnalyzer
         static async Task<DateTime> LoadStartupTimeFromStorageAsync()
         {
             DateTime lastReceivedAt = DateTime.MinValue;
-            await ReportingCacheWithStorage.Instance.InitAsync(Settings.Current.StoragePath, Settings.Current.OptimizeForPerformance);
+            await ReportingCache.Instance.InitAsync(Settings.Current.StoragePath, Settings.Current.OptimizeForPerformance);
             IDictionary<string, IList<SortedSet<MessageDetails>>> messagesSnapShot = ReportingCache.Instance.GetMessagesSnapshot();
             foreach (KeyValuePair<string, IList<SortedSet<MessageDetails>>> moduleMesssages in messagesSnapShot)
             {

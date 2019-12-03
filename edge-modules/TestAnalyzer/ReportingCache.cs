@@ -5,6 +5,8 @@ namespace TestAnalyzer
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     class ReportingCache
     {
@@ -17,21 +19,40 @@ namespace TestAnalyzer
         // maps module id with a dictionary of status code counts
         readonly ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> twinsReportCache = new ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>>();
         readonly IComparer<MessageDetails> comparer = new EventDataComparer();
+        TestStatusStorage storage;
 
         ReportingCache()
         {
         }
 
-        public static ReportingCache Instance { get; } = new ReportingCache();
-
-        public void AddDirectMethodStatus(CloudOperationStatus directMethodStatus)
+        public async Task InitAsync(string storagePath, bool optimizeForPerformance)
         {
-            this.AddStatus(directMethodStatus, this.directMethodsReportCache);
+            this.storage = new TestStatusStorage();
+            await this.storage.InitAsync(storagePath, new SystemEnvironment(), optimizeForPerformance);
+            Task messageProcessing = this.storage.ProcessAllMessagesAsync(async (message) => await ReportingCache.Instance.AddMessageAsync(message));
+            Task directMethodProcessing = this.storage.ProcessAllDirectMethodsAsync(async (directMethodStatus) => await ReportingCache.Instance.AddDirectMethodStatusAsync(directMethodStatus));
+            Task twinProcessing = this.storage.ProcessAllTwinsAsync(async (twinStatus) => await ReportingCache.Instance.AddTwinStatusAsync(twinStatus));
+            await Task.WhenAll(messageProcessing, directMethodProcessing, twinProcessing);
         }
 
-        public void AddTwinStatus(CloudOperationStatus twinStatus)
+        public static ReportingCache Instance { get; } = new ReportingCache();
+
+        public async Task AddDirectMethodStatusAsync(CloudOperationStatus directMethodStatus)
         {
-            this.AddStatus(twinStatus, this.twinsReportCache);
+            bool added = await this.storage.AddDirectMethodAsync(directMethodStatus);
+            if (added)
+            {
+                this.AddStatus(directMethodStatus, this.directMethodsReportCache);
+            }
+        }
+
+        public async Task AddTwinStatusAsync(CloudOperationStatus twinStatus)
+        {
+            bool added = await this.storage.AddTwinAsync(twinStatus);
+            if (added)
+            {
+                this.AddStatus(twinStatus, this.twinsReportCache);
+            }
         }
 
         public void AddStatus(CloudOperationStatus responseStatus, ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> cache)
@@ -50,9 +71,13 @@ namespace TestAnalyzer
             }
         }
 
-        public void AddMessage(MessageDetails messageDetails)
+        public async Task AddMessageAsync(MessageDetails messageDetails)
         {
-            this.batches.TryAdd(messageDetails.BatchId, messageDetails.ModuleId);
+            bool added = await this.storage.AddMessageAsync(messageDetails);
+            if (added)
+            {
+                this.batches.TryAdd(messageDetails.BatchId, messageDetails.ModuleId);
+            }
 
             IList<MessageDetails> batchMessages = this.messagesReportCache.GetOrAdd(messageDetails.BatchId, key => new List<MessageDetails>());
             this.AddMessageDetails(batchMessages, messageDetails);

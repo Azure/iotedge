@@ -11,9 +11,9 @@ namespace TwinTester
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
-    public class DesiredPropertyOperation : TwinOperationBase
+    class DesiredPropertyOperation : TwinOperationBase
     {
-        static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(DesiredPropertyOperation));
+        static readonly ILogger LoggerImpl = ModuleUtil.CreateLogger(nameof(DesiredPropertyOperation));
         readonly RegistryManager registryManager;
         readonly ModuleClient moduleClient;
         readonly AnalyzerClient analyzerClient;
@@ -29,6 +29,8 @@ namespace TwinTester
             this.twinState = twinState;
             this.moduleClient.SetDesiredPropertyUpdateCallbackAsync(this.OnDesiredPropertyUpdateAsync, storage);
         }
+
+        public override ILogger Logger => LoggerImpl;
 
         async Task<Dictionary<string, string>> ValidatePropertiesFromTwinAsync(Twin receivedTwin)
         {
@@ -46,7 +48,7 @@ namespace TwinTester
                     status = $"{(int)StatusCode.Success}: Successfully validated desired property update";
                     Logger.LogInformation(status + $" {desiredPropertyUpdate.Key}");
                 }
-                else if (TwinOperationBase.IsPastFailureThreshold(this.twinState, desiredPropertyUpdate.Value))
+                else if (this.ExceedFailureThreshold(this.twinState, desiredPropertyUpdate.Value))
                 {
                     if (hasTwinUpdate && !hasModuleReceivedCallback)
                     {
@@ -68,7 +70,7 @@ namespace TwinTester
                     continue;
                 }
 
-                await TwinOperationBase.CallAnalyzerToReportStatusAsync(this.analyzerClient, Settings.Current.ModuleId, status);
+                await this.CallAnalyzerToReportStatusAsync(this.analyzerClient, Settings.Current.ModuleId, status);
                 propertiesToRemoveFromTwin.Add(desiredPropertyUpdate.Key, null); // will later be serialized as a twin update
             }
 

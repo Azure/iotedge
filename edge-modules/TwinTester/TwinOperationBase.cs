@@ -6,21 +6,21 @@ namespace TwinTester
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Extensions.Logging;
 
-    public abstract class TwinOperationBase
+    abstract class TwinOperationBase
     {
-        static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TwinOperationBase));
+        public abstract ILogger Logger { get; }
 
         public abstract Task UpdateAsync();
 
         public abstract Task ValidateAsync();
 
-        protected static bool IsPastFailureThreshold(TwinState twinState, DateTime twinUpdateTime)
+        protected bool ExceedFailureThreshold(TwinState twinState, DateTime twinUpdateTime)
         {
-            DateTime comparisonPoint = new DateTime(Math.Max(twinUpdateTime.Ticks, twinState.LastTimeOffline.Ticks));
+            DateTime comparisonPoint = twinUpdateTime > twinState.LastTimeOffline ? twinUpdateTime : twinState.LastTimeOffline; 
             return DateTime.UtcNow - comparisonPoint > Settings.Current.TwinUpdateFailureThreshold;
         }
 
-        protected static async Task CallAnalyzerToReportStatusAsync(AnalyzerClient analyzerClient, string moduleId, string status)
+        protected async Task CallAnalyzerToReportStatusAsync(AnalyzerClient analyzerClient, string moduleId, string status)
         {
             try
             {

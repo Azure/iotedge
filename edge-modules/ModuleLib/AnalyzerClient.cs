@@ -90,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
                         ProcessResponse(client_, response_);
     
                         var status_ = ((int)response_.StatusCode).ToString();
-                        if (status_ == "200") 
+                        if (status_ == "204") 
                         {
                             return;
                         }
@@ -162,7 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
                         ProcessResponse(client_, response_);
     
                         var status_ = ((int)response_.StatusCode).ToString();
-                        if (status_ == "200") 
+                        if (status_ == "204") 
                         {
                             return;
                         }
