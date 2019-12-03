@@ -29,9 +29,11 @@ spec:
           env:
           - name: "IOTEDGE_LOG"
             value: "debug"
-          {{- if .Values.iotedged.data.allowClusterRBAC }}
           - name: "IOTEDGE_HAS_CLUSTER_RBAC"
-            value: true
+          {{- if .Values.iotedged.data.allowClusterRBAC }}
+            value: "true"
+          {{else}}
+            value: "false"
           {{end}}
           volumeMounts:
           - name: config
