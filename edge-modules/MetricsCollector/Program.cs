@@ -37,7 +37,8 @@ namespace MetricsCollector
             }
 
             MetricsScrapeAndUpload metricsScrapeAndUpload = new MetricsScrapeAndUpload(scraper, publisher);
-            metricsScrapeAndUpload.Start();
+            TimeSpan scrapeAndUploadInterval = TimeSpan.FromSeconds(Settings.Current.ScrapeFrequencySecs);
+            metricsScrapeAndUpload.Start(scrapeAndUploadInterval);
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
             await cts.Token.WhenCanceled();
