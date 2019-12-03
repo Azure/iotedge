@@ -47,7 +47,7 @@ namespace TwinTester
         {
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
-            this.TwinUpdateSize = Preconditions.CheckRange(twinUpdateSize, 0);
+            this.TwinUpdateSize = Preconditions.CheckRange(twinUpdateSize, 1);
             this.TwinUpdateFrequency = Preconditions.CheckNotNull(twinUpdateFrequency);
             this.TwinUpdateFailureThreshold = Preconditions.CheckNotNull(twinUpdateFailureThreshold);
             this.TransportType = Preconditions.CheckNotNull(transportType);

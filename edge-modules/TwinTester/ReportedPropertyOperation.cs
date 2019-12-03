@@ -6,6 +6,7 @@ namespace TwinTester
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
@@ -38,10 +39,18 @@ namespace TwinTester
                 receivedTwin = await this.registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
                 this.twinState.TwinETag = receivedTwin.ETag;
             }
-            catch (Exception e)
+            catch (Exception e) // This is the transient exception case for microsoft.azure.devices.client.deviceclient version 1.21.2
             {
-                this.Logger.LogInformation($"Failed call to registry manager get twin: {e}");
-                this.twinState.LastTimeOffline = DateTime.UtcNow;
+                if (e is IotHubCommunicationException || e is OperationCanceledException)
+                {
+                    this.Logger.LogInformation($"Failed call to registry manager get twin due to transient error: {e}");
+                    this.twinState.LastTimeOffline = DateTime.UtcNow;
+                }
+                else
+                {
+                    this.Logger.LogInformation($"Failed call to registry manager get twin due to non-transient error: {e}");
+                }
+
                 return;
             }
 

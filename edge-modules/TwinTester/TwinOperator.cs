@@ -13,12 +13,14 @@ namespace TwinTester
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
-    class TwinOperator
+    class TwinOperator : IDisposable
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TwinOperator));
         readonly SemaphoreSlim operationLock = new SemaphoreSlim(1, 1);
         readonly TwinOperationBase reportedPropertyOperation;
         readonly TwinOperationBase desiredPropertyOperation;
+        PeriodicTask periodicValidation;
+        PeriodicTask periodicUpdate;
 
         public TwinOperator(RegistryManager registryManager, ModuleClient moduleClient, AnalyzerClient analyzerClient, TwinEventStorage storage, TwinState twinState)
         {
@@ -34,9 +36,9 @@ namespace TwinTester
                 Twin twin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
                 Dictionary<string, DateTime> reportedPropertyUpdates = await storage.GetAllReportedPropertiesUpdatedAsync();
                 Dictionary<string, DateTime> desiredPropertyUpdates = await storage.GetAllDesiredPropertiesUpdatedAsync();
-                if ( reportedPropertyUpdates.Count == 0 &&
-                     desiredPropertyUpdates.Count == 0 &&
-                     (await storage.GetAllDesiredPropertiesReceivedAsync()).Count == 0)
+                if (reportedPropertyUpdates.Count == 0 &&
+                    desiredPropertyUpdates.Count == 0 &&
+                    (await storage.GetAllDesiredPropertiesReceivedAsync()).Count == 0)
                 {
                     Logger.LogInformation("No existing storage detected. Initializing new module twin for fresh run.");
 
@@ -69,8 +71,8 @@ namespace TwinTester
         public void Start()
         {
             TimeSpan validationInterval = new TimeSpan(Settings.Current.TwinUpdateFailureThreshold.Ticks / 4);
-            PeriodicTask periodicValidation = new PeriodicTask(this.PerformValidationAsync, validationInterval, validationInterval, Logger, "TwinValidation");
-            PeriodicTask periodicUpdate = new PeriodicTask(this.PerformUpdatesAsync, Settings.Current.TwinUpdateFrequency, Settings.Current.TwinUpdateFrequency, Logger, "TwinUpdates");
+            this.periodicValidation = new PeriodicTask(this.PerformValidationAsync, validationInterval, validationInterval, Logger, "TwinValidation");
+            this.periodicUpdate = new PeriodicTask(this.PerformUpdatesAsync, Settings.Current.TwinUpdateFrequency, Settings.Current.TwinUpdateFrequency, Logger, "TwinUpdates");
         }
 
         public async Task PerformUpdatesAsync(CancellationToken cancellationToken)
@@ -122,6 +124,12 @@ namespace TwinTester
             }
 
             return eraseReportedProperties;
+        }
+
+        public void Dispose()
+        {
+            this.periodicValidation.Dispose();
+            this.periodicUpdate.Dispose();
         }
     }
 }
