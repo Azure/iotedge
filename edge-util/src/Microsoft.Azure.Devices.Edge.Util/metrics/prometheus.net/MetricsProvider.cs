@@ -90,7 +90,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
         ///     {instance=2) 190
         /// it is clear what happened.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>Instance number.</returns>
         static string GetInstanceNumber(string storagePath)
         {
             string absoluteInstanceFilePath = Path.Combine(storagePath, InstanceFileName);

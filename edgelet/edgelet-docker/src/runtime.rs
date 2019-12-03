@@ -1,9 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::collections::HashMap;
-use std::convert::From;
+use std::convert::{From, TryInto};
 use std::ops::Deref;
+use std::process;
 use std::time::Duration;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use base64;
 use failure::{Fail, ResultExt};
@@ -14,15 +16,18 @@ use hyper::{Body, Chunk as HyperChunk, Client, Request};
 use lazy_static::lazy_static;
 use log::{debug, info, Level};
 use serde_json;
+use serde_json::json;
+use sysinfo::*; //{DiskExt, SystemExt, Process};
 use url::Url;
 
 use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig};
 use edgelet_core::{
-    AuthId, Authenticator, GetTrustBundle, Ipam as CoreIpam, LogOptions, MakeModuleRuntime,
-    MobyNetwork, Module, ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
-    RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, UrlExt,
+    AuthId, Authenticator, DiskInfo, GetTrustBundle, Ipam as CoreIpam, LogOptions,
+    MakeModuleRuntime, MobyNetwork, Module, ModuleId, ModuleRegistry, ModuleRuntime,
+    ModuleRuntimeState, ModuleSpec, RegistryOperation, RuntimeOperation,
+    SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
 };
 use edgelet_http::{Pid, UrlConnector};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
@@ -305,6 +310,8 @@ impl ModuleRuntime for DockerModuleRuntime {
     type StartFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type StopFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
     type SystemInfoFuture = Box<dyn Future<Item = CoreSystemInfo, Error = Self::Error> + Send>;
+    type SystemResourcesFuture =
+        Box<dyn Future<Item = SystemResources, Error = Self::Error> + Send>;
     type RemoveAllFuture = Box<dyn Future<Item = (), Error = Self::Error> + Send>;
 
     fn create(&self, module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
@@ -588,6 +595,95 @@ impl ModuleRuntime for DockerModuleRuntime {
                     }
                 }),
         )
+    }
+
+    fn system_resources(&self) -> Self::SystemResourcesFuture {
+        info!("Querying system resources...");
+        let mut system_info = sysinfo::System::new();
+        system_info.refresh_all();
+
+        let client = self.client.clone();
+        let docker_stats = self
+            .list() // Get all modules
+            .and_then(|modules: Vec<Self::Module>| { // Get iterable of stats
+                future::join_all(
+                    modules
+                        .into_iter()
+                        .map(|module| module.name().to_owned())
+                        .map(move |name| {
+                            client
+                                .container_api()
+                                .container_stats(&name, false)
+                                .map_err(|err| {
+                                    Error::from_docker_error(
+                                        err,
+                                        ErrorKind::RuntimeOperation(
+                                            RuntimeOperation::SystemResources,
+                                        ),
+                                    )
+                                })
+                                .map(move |v: serde_json::Value| json!({ "module": name, "stats":v }))
+                        }),
+                )
+            })
+            .map(serde_json::Value::Array) // Condense into single json value
+            .and_then(|stats| { // convert to string
+                serde_json::to_string(&stats).map_err(|_| {
+                    Error::from(ErrorKind::RuntimeOperation(
+                        RuntimeOperation::SystemResources,
+                    ))
+                })
+            });
+
+        let uptime: u64 = uptime_lib::get()
+            .map(|u| u.num_seconds())
+            .unwrap_or_default()
+            .try_into()
+            .unwrap_or_default();
+
+        let current_time = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        let start_time =
+            system_info.get_process_list()[&process::id().try_into().unwrap()].start_time();
+
+        let used_cpu = system_info
+            .get_processor_list()
+            .iter()
+            .find(|p| p.get_name() == "Total CPU")
+            .map_or_else(|| -1.0, |p| p.get_cpu_usage());
+
+        let total_memory = system_info.get_total_memory();
+        let used_memory = system_info.get_used_memory();
+
+        let disks = system_info
+            .get_disks()
+            .iter()
+            .map(|disk| {
+                DiskInfo::new(
+                    disk.get_name().to_string_lossy().into_owned(),
+                    disk.get_available_space(),
+                    disk.get_total_space(),
+                    String::from_utf8_lossy(disk.get_file_system()).into_owned(),
+                    format!("{:?}", disk.get_type()),
+                )
+            })
+            .collect();
+
+        let result = docker_stats.map(move |stats: String| {
+            SystemResources::new(
+                uptime,
+                current_time - start_time,
+                used_cpu.into(),
+                total_memory,
+                used_memory,
+                disks,
+                stats,
+            )
+        });
+
+        Box::new(result)
     }
 
     fn list(&self) -> Self::ListFuture {
@@ -1346,6 +1442,8 @@ mod tests {
         type StartFuture = FutureResult<(), Self::Error>;
         type StopFuture = FutureResult<(), Self::Error>;
         type SystemInfoFuture = FutureResult<CoreSystemInfo, Self::Error>;
+        type SystemResourcesFuture =
+            Box<dyn Future<Item = SystemResources, Error = Self::Error> + Send>;
         type RemoveAllFuture = FutureResult<(), Self::Error>;
 
         fn create(&self, _module: ModuleSpec<Self::Config>) -> Self::CreateFuture {
@@ -1373,6 +1471,10 @@ mod tests {
         }
 
         fn system_info(&self) -> Self::SystemInfoFuture {
+            unimplemented!()
+        }
+
+        fn system_resources(&self) -> Self::SystemResourcesFuture {
             unimplemented!()
         }
 
