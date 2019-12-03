@@ -8,14 +8,17 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
     using System.Threading;
     using System.Threading.Tasks;
     using global::Prometheus;
+    using Microsoft.Extensions.Logging;
 
     public class MetricsProvider : IMetricsProvider
     {
         const string CounterNameFormat = "{0}_{1}_total";
         const string NameFormat = "{0}_{1}";
         const string InstanceFileName = "metrics_instance";
+        readonly string instanceFileAbsolutePath;
         readonly string namePrefix;
         readonly List<string> defaultLabelNames;
+        readonly ILogger logger = Logger.Factory.CreateLogger<MetricsProvider>();
 
         public MetricsProvider(string namePrefix, string iotHubName, string deviceId, string storagePath)
         {
@@ -24,7 +27,19 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
             Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             Preconditions.CheckNonWhiteSpace(storagePath, nameof(storagePath));
-            string instanceNumber = GetInstanceNumber(storagePath);
+
+            string storageDirectory = Path.Combine(storagePath, "metrics");
+            try
+            {
+                Directory.CreateDirectory(storageDirectory);
+                this.instanceFileAbsolutePath = Path.Combine(storageDirectory, InstanceFileName);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "Could not create metrics directory");
+            }
+
+            string instanceNumber = this.GetInstanceNumber();
             this.defaultLabelNames = new List<string> { iotHubName, deviceId, instanceNumber };
 
             // TODO:
@@ -91,20 +106,19 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
         /// it is clear what happened.
         /// </summary>
         /// <returns></returns>
-        static string GetInstanceNumber(string storagePath)
+        string GetInstanceNumber()
         {
-            string instanceFileAbsolutePath = Path.Combine(storagePath, InstanceFileName);
-            if (!File.Exists(instanceFileAbsolutePath))
+            if (!File.Exists(this.instanceFileAbsolutePath))
             {
-                File.WriteAllText(instanceFileAbsolutePath, "1");
+                File.WriteAllText(this.instanceFileAbsolutePath, "1");
                 return "1";
             }
 
             try
             {
-                string string_num = File.ReadAllText(instanceFileAbsolutePath);
+                string string_num = File.ReadAllText(this.instanceFileAbsolutePath);
                 string_num = (int.Parse(string_num) + 1).ToString();
-                File.WriteAllText(instanceFileAbsolutePath, string_num);
+                File.WriteAllText(this.instanceFileAbsolutePath, string_num);
                 return string_num;
             }
             catch (Exception ex)
