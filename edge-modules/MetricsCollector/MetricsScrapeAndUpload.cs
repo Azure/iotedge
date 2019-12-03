@@ -38,9 +38,8 @@ namespace MetricsCollector
             }
         }
 
-        public void Start()
+        public void Start(TimeSpan scrapeAndUploadInterval)
         {
-            TimeSpan scrapeAndUploadInterval = TimeSpan.FromSeconds(Settings.Current.ScrapeFrequencySecs);
             this.periodicScrapeAndUpload = new PeriodicTask(this.ScrapeAndUploadPrometheusMetricsAsync, scrapeAndUploadInterval, scrapeAndUploadInterval, Logger, "Scrape and Upload Metrics");
         }
 
