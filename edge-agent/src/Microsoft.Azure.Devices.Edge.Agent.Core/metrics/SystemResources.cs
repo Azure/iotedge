@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             this.UsedRam = Preconditions.CheckNotNull(usedRam, nameof(usedRam));
             this.TotalRam = Preconditions.CheckNotNull(totalRam, nameof(totalRam));
             this.Disks = Preconditions.CheckNotNull(disks, nameof(disks));
-            this.ModuleStats = JsonConvert.DeserializeObject<ModuleStats[]>(Preconditions.CheckNotNull(dockerStats, nameof(dockerStats)));
+            this.ModuleStats = JsonConvert.DeserializeObject<DockerStats[]>(Preconditions.CheckNotNull(dockerStats, nameof(dockerStats)));
         }
 
         public long HostUptime { get; }
@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
         public Disk[] Disks { get; }
 
-        public ModuleStats[] ModuleStats { get; }
+        public DockerStats[] ModuleStats { get; }
     }
 
     public class Disk
@@ -58,16 +58,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
     }
 
 #pragma warning disable SA1300 // Element should begin with upper-case letter
-
-    public class ModuleStats
-    {
-        // TODO: change to moduleName
-        public string module { get; set; }
-        public DockerStats stats { get; set; }
-    }
-
     public class DockerStats
     {
+        public string name { get; set; }
         public Dictionary<string, DiskIO[]> blkio_stats { get; set; }
         public DockerCpuStats cpu_stats { get; set; }
         public DockerCpuStats precpu_stats { get; set; }

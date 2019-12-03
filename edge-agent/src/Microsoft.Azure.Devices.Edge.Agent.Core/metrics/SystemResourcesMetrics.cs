@@ -146,40 +146,40 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
         void SetModuleStats(SystemResources systemResources)
         {
-            foreach (ModuleStats module in systemResources.ModuleStats)
+            foreach (DockerStats module in systemResources.ModuleStats)
             {
-                var tags = new string[] { module.module };
+                var tags = new string[] { module.name };
 
                 this.cpuPercentage.Update(GetCpuUsage(module), tags);
-                this.totalMemory.Set(module.stats.memory_stats.limit, tags);
-                this.usedMemory.Set((long)module.stats.memory_stats.usage, tags);
-                this.createdPids.Set(module.stats.pids_stats.current, tags);
+                this.totalMemory.Set(module.memory_stats.limit, tags);
+                this.usedMemory.Set((long)module.memory_stats.usage, tags);
+                this.createdPids.Set(module.pids_stats.current, tags);
 
-                this.networkIn.Set(module.stats.networks.Sum(n => n.Value.rx_bytes), tags);
-                this.networkOut.Set(module.stats.networks.Sum(n => n.Value.tx_bytes), tags);
-                this.diskRead.Set(module.stats.blkio_stats.Sum(io => io.Value.Where(d => d.op == "Read").Sum(d => d.value)), tags);
-                this.diskWrite.Set(module.stats.blkio_stats.Sum(io => io.Value.Where(d => d.op == "Write").Sum(d => d.value)), tags);
+                this.networkIn.Set(module.networks.Sum(n => n.Value.rx_bytes), tags);
+                this.networkOut.Set(module.networks.Sum(n => n.Value.tx_bytes), tags);
+                this.diskRead.Set(module.blkio_stats.Sum(io => io.Value.Where(d => d.op == "Read").Sum(d => d.value)), tags);
+                this.diskWrite.Set(module.blkio_stats.Sum(io => io.Value.Where(d => d.op == "Write").Sum(d => d.value)), tags);
             }
         }
 
-        static double GetCpuUsage(ModuleStats module)
+        static double GetCpuUsage(DockerStats module)
         {
-            if (module.stats.precpu_stats == null)
+            if (module.precpu_stats == null)
             {
                 return 0; // startup doesn't doesn't have a previous
             }
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                double moduleDiff = module.stats.cpu_stats.cpu_usage.total_usage - module.stats.precpu_stats.cpu_usage.total_usage;
-                double systemDiff = module.stats.cpu_stats.system_cpu_usage - module.stats.precpu_stats.system_cpu_usage;
+                double moduleDiff = module.cpu_stats.cpu_usage.total_usage - module.precpu_stats.cpu_usage.total_usage;
+                double systemDiff = module.cpu_stats.system_cpu_usage - module.precpu_stats.system_cpu_usage;
 
                 return moduleDiff / systemDiff;
             }
             else
             {
-                double totalIntervals = (module.stats.read - module.stats.preread).TotalMilliseconds * 10; // Get number of 100ns intervals during read
-                ulong intervalsUsed = module.stats.cpu_stats.cpu_usage.total_usage - module.stats.precpu_stats.cpu_usage.total_usage;
+                double totalIntervals = (module.read - module.preread).TotalMilliseconds * 10; // Get number of 100ns intervals during read
+                ulong intervalsUsed = module.cpu_stats.cpu_usage.total_usage - module.precpu_stats.cpu_usage.total_usage;
 
                 if (totalIntervals > 0)
                 {

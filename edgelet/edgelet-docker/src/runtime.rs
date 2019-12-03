@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::collections::HashMap;
-use std::convert::{From, TryInto};
+use std::convert::TryInto;
 use std::ops::Deref;
 use std::process;
 use std::time::Duration;
@@ -16,8 +16,7 @@ use hyper::{Body, Chunk as HyperChunk, Client, Request};
 use lazy_static::lazy_static;
 use log::{debug, info, Level};
 use serde_json;
-use serde_json::json;
-use sysinfo::*; //{DiskExt, SystemExt, Process};
+use sysinfo::{DiskExt, ProcessExt, ProcessorExt, SystemExt};
 use url::Url;
 
 use docker::apis::client::APIClient;
@@ -605,29 +604,25 @@ impl ModuleRuntime for DockerModuleRuntime {
         let client = self.client.clone();
         let docker_stats = self
             .list() // Get all modules
-            .and_then(|modules: Vec<Self::Module>| { // Get iterable of stats
-                future::join_all(
-                    modules
-                        .into_iter()
-                        .map(|module| module.name().to_owned())
-                        .map(move |name| {
-                            client
-                                .container_api()
-                                .container_stats(&name, false)
-                                .map_err(|err| {
-                                    Error::from_docker_error(
-                                        err,
-                                        ErrorKind::RuntimeOperation(
-                                            RuntimeOperation::SystemResources,
-                                        ),
-                                    )
-                                })
-                                .map(move |v: serde_json::Value| json!({ "module": name, "stats":v }))
+            .and_then(|modules: Vec<Self::Module>| {
+                // Get iterable of stats
+                remove_not_found(
+                    stream::iter_ok(modules)
+                        .and_then(move |module| {
+                            client.container_api().container_stats(module.name(), false)
+                        })
+                        .map_err(|err| {
+                            Error::from_docker_error(
+                                err,
+                                ErrorKind::RuntimeOperation(RuntimeOperation::SystemResources),
+                            )
                         }),
                 )
+                .collect()
             })
             .map(serde_json::Value::Array) // Condense into single json value
-            .and_then(|stats| { // convert to string
+            .and_then(|stats| {
+                // convert to string
                 serde_json::to_string(&stats).map_err(|_| {
                     Error::from(ErrorKind::RuntimeOperation(
                         RuntimeOperation::SystemResources,
@@ -902,7 +897,7 @@ where
     M: Module<Error = Error> + Send + 'static,
     <M as Module>::Config: Clone + Send,
 {
-    Box::new(
+    Box::new(remove_not_found(
         runtime
             .list()
             .into_stream()
@@ -912,17 +907,25 @@ where
                         .map(|module| module.runtime_state().map(|state| (module, state))),
                 )
             })
-            .flatten()
-            .then(Ok::<_, Error>) // Ok(_) -> Ok(Ok(_)), Err(_) -> Ok(Err(_)), ! -> Err(_)
-            .filter_map(|value| match value {
-                Ok(value) => Some(Ok(value)),
-                Err(err) => match err.kind() {
-                    ErrorKind::NotFound(_) => None,
-                    _ => Some(Err(err)),
-                },
-            })
-            .then(Result::unwrap), // Ok(Ok(_)) -> Ok(_), Ok(Err(_)) -> Err(_), Err(_) -> !
-    )
+            .flatten(),
+    ))
+}
+
+fn remove_not_found<S>(stream: S) -> impl Stream<Item = S::Item, Error = S::Error> + Send
+where
+    S: Stream<Error = Error> + Send + 'static,
+    S::Item: Send + 'static,
+{
+    stream
+        .then(Ok::<_, Error>) // Ok(_) -> Ok(Ok(_)), Err(_) -> Ok(Err(_)), ! -> Err(_)
+        .filter_map(|value| match value {
+            Ok(value) => Some(Ok(value)),
+            Err(err) => match err.kind() {
+                ErrorKind::NotFound(_) => None,
+                _ => Some(Err(err)),
+            },
+        })
+        .then(Result::unwrap) // Ok(Ok(_)) -> Ok(_), Ok(Err(_)) -> Err(_), Err(_) -> !
 }
 
 fn authenticate<MR>(
