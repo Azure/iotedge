@@ -189,7 +189,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edg
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Test", "test\Microsoft.Azure.Devices.Edge.Test\Microsoft.Azure.Devices.Edge.Test.csproj", "{08986FED-9283-47F1-B938-86D9C6E753E1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest\Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.csproj", "{79540E35-45EA-4568-9AB7-C1CC0BFF73EE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Diagnostics", "edge-agent\src\Microsoft.Azure.Devices.Edge.Agent.Diagnostics\Microsoft.Azure.Devices.Edge.Agent.Diagnostics.csproj", "{47AA5965-5826-489D-B74B-314A61629121}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test\Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.csproj", "{B736B03C-1185-4AE5-87B7-665C6790F50F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest\Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.csproj", "{79540E35-45EA-4568-9AB7-C1CC0BFF73EE}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Relayer", "edge-modules\Relayer\Relayer.csproj", "{61500583-6040-416F-A639-7BDC171E56A7}"
 EndProject
@@ -601,6 +605,22 @@ Global
 		{08986FED-9283-47F1-B938-86D9C6E753E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{08986FED-9283-47F1-B938-86D9C6E753E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{08986FED-9283-47F1-B938-86D9C6E753E1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{47AA5965-5826-489D-B74B-314A61629121}.CheckInBuild|Any CPU.ActiveCfg = Debug|Any CPU
+		{47AA5965-5826-489D-B74B-314A61629121}.CheckInBuild|Any CPU.Build.0 = Debug|Any CPU
+		{47AA5965-5826-489D-B74B-314A61629121}.CodeCoverage|Any CPU.ActiveCfg = Debug|Any CPU
+		{47AA5965-5826-489D-B74B-314A61629121}.CodeCoverage|Any CPU.Build.0 = Debug|Any CPU
+		{47AA5965-5826-489D-B74B-314A61629121}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{47AA5965-5826-489D-B74B-314A61629121}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{47AA5965-5826-489D-B74B-314A61629121}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{47AA5965-5826-489D-B74B-314A61629121}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B736B03C-1185-4AE5-87B7-665C6790F50F}.CheckInBuild|Any CPU.ActiveCfg = Debug|Any CPU
+		{B736B03C-1185-4AE5-87B7-665C6790F50F}.CheckInBuild|Any CPU.Build.0 = Debug|Any CPU
+		{B736B03C-1185-4AE5-87B7-665C6790F50F}.CodeCoverage|Any CPU.ActiveCfg = Debug|Any CPU
+		{B736B03C-1185-4AE5-87B7-665C6790F50F}.CodeCoverage|Any CPU.Build.0 = Debug|Any CPU
+		{B736B03C-1185-4AE5-87B7-665C6790F50F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B736B03C-1185-4AE5-87B7-665C6790F50F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B736B03C-1185-4AE5-87B7-665C6790F50F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B736B03C-1185-4AE5-87B7-665C6790F50F}.Release|Any CPU.Build.0 = Release|Any CPU
 		{79540E35-45EA-4568-9AB7-C1CC0BFF73EE}.CheckInBuild|Any CPU.ActiveCfg = Debug|Any CPU
 		{79540E35-45EA-4568-9AB7-C1CC0BFF73EE}.CheckInBuild|Any CPU.Build.0 = Debug|Any CPU
 		{79540E35-45EA-4568-9AB7-C1CC0BFF73EE}.CodeCoverage|Any CPU.ActiveCfg = Debug|Any CPU
@@ -689,6 +709,8 @@ Global
 		{B63C506E-5CB5-4DE8-8275-F7BA8354799E} = {54351E51-19CB-4DE3-8302-99846AB216CF}
 		{A5DFFB52-D8EA-4E1A-BF4F-8B9665C7DAFE} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
 		{08986FED-9283-47F1-B938-86D9C6E753E1} = {2300ED4C-1D5A-460F-8691-7C85E1162E0C}
+		{47AA5965-5826-489D-B74B-314A61629121} = {54351E51-19CB-4DE3-8302-99846AB216CF}
+		{B736B03C-1185-4AE5-87B7-665C6790F50F} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
 		{79540E35-45EA-4568-9AB7-C1CC0BFF73EE} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
 		{61500583-6040-416F-A639-7BDC171E56A7} = {578D5330-2F72-44C6-9DB5-C93B3F42C473}
 	EndGlobalSection

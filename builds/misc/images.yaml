@@ -236,6 +236,7 @@ jobs:
   - job: windows
 ################################################################################
     displayName: Windows
+    timeoutInMinutes: 90
     pool:
       name: Azure-IoT-Edge-Core
       demands:

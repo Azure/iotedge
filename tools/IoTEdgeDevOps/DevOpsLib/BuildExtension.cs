@@ -3,7 +3,7 @@ namespace DevOpsLib
 {
     using System.Collections.Generic;
 
-    public static class BuildDefinitionExtension
+    public static class BuildExtension
     {
         public static HashSet<BuildDefinitionId> MasterBranchReporting =>
             new HashSet<BuildDefinitionId>

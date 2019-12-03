@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Diff;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Service;
+    using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.ServiceAccount;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Microsoft.Rest;
@@ -338,8 +339,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             var desiredSet = new Set<V1ServiceAccount>(desired.ToDictionary(serviceAccount => serviceAccount.Metadata.Name));
             var existingSet = new Set<V1ServiceAccount>(existing.ToDictionary(serviceAccount => serviceAccount.Metadata.Name));
 
-            return desiredSet.Diff(existingSet);
+            return desiredSet.Diff(existingSet, KubernetesServiceAccountByValueEqualityComparer);
         }
+
+        static IEqualityComparer<V1ServiceAccount> KubernetesServiceAccountByValueEqualityComparer { get; } = new KubernetesServiceAccountByValueEqualityComparer();
 
         static class Events
         {
