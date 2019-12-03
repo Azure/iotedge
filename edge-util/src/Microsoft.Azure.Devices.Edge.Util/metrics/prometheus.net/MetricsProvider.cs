@@ -14,7 +14,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
     {
         const string CounterNameFormat = "{0}_{1}_total";
         const string NameFormat = "{0}_{1}";
-        const string InstanceFileName = "metrics_instance";
+        const string InstanceFileName = "instance";
+        const string InstanceFolderName = "metrics_instance";
         readonly string instanceFileAbsolutePath;
         readonly string namePrefix;
         readonly List<string> defaultLabelNames;
@@ -28,7 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
             Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             Preconditions.CheckNonWhiteSpace(storagePath, nameof(storagePath));
 
-            string storageDirectory = Path.Combine(storagePath, "metrics");
+            string storageDirectory = Path.Combine(storagePath, InstanceFolderName);
             try
             {
                 Directory.CreateDirectory(storageDirectory);
