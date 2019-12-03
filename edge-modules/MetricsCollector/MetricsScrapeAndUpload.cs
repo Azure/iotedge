@@ -11,11 +11,12 @@ namespace MetricsCollector
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    class MetricsScrapeAndUpload
+    class MetricsScrapeAndUpload : IDisposable
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("MetricsCollector");
         readonly MetricsScraper scraper;
         readonly IMetricsPublisher publisher;
+        PeriodicTask periodicScrapeAndUpload;
 
         public MetricsScrapeAndUpload(MetricsScraper scraper, IMetricsPublisher publisher)
         {
@@ -23,7 +24,7 @@ namespace MetricsCollector
             this.publisher = Preconditions.CheckNotNull(publisher);
         }
 
-        public async Task ScrapeAndUploadPrometheusMetricsAsync(CancellationToken cancellationToken)
+        async Task ScrapeAndUploadPrometheusMetricsAsync(CancellationToken cancellationToken)
         {
             try
             {
@@ -35,6 +36,17 @@ namespace MetricsCollector
             {
                 Logger.LogError($"Error scraping and uploading metrics: {e}");
             }
+        }
+
+        public void Start()
+        {
+            TimeSpan scrapeAndUploadInterval = TimeSpan.FromSeconds(Settings.Current.ScrapeFrequencySecs);
+            this.periodicScrapeAndUpload = new PeriodicTask(this.ScrapeAndUploadPrometheusMetricsAsync, scrapeAndUploadInterval, scrapeAndUploadInterval, Logger, "Scrape and Upload Metrics");
+        }
+
+        public void Dispose()
+        {
+           this.periodicScrapeAndUpload.Dispose();
         }
     }
 }
