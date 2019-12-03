@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace MessagesAnalyzer.Controllers
 {
+    using System;
     using Microsoft.AspNetCore.Mvc;
+    using Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics;
 
     [Route("api/[controller]")]
     [ApiController]
@@ -11,7 +13,19 @@ namespace MessagesAnalyzer.Controllers
         [HttpGet]
         public ActionResult<string> Get()
         {
-            return Reporter.GetReceivedMessagesReport(Settings.Current.ToleranceInMilliseconds).ToString();
+            string resultJson = Reporter.GetReceivedMessagesReport(Settings.Current.ToleranceInMilliseconds).ToString();
+
+            if (Settings.Current.LogAnalyticsEnabled)
+            {
+                // Upload the data to Log Analytics
+                AzureLogAnalytics.Instance.PostAsync(
+                    Settings.Current.LogAnalyticsWorkspaceId,
+                    Settings.Current.LogAnalyticsSharedKey,
+                    resultJson,
+                    Settings.Current.LogAnalyticsLogType);
+            }
+
+            return resultJson;
         }
     }
 }

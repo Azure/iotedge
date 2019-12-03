@@ -99,12 +99,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             }
         }
 
-        async Task HandleEdgeDeploymentChangedAsync(WatchEventType type, EdgeDeploymentDefinition edgeDeploymentDefinition)
+        async Task HandleEdgeDeploymentChangedAsync(WatchEventType type, EdgeDeploymentDefinition edgeDeploymentCrdObject)
         {
             // only operate on the device that matches this operator.
-            if (!this.resourceName.Equals(edgeDeploymentDefinition.Metadata.Name))
+            if (!this.resourceName.Equals(edgeDeploymentCrdObject.Metadata.Name))
             {
-                Events.DeploymentNameMismatch(edgeDeploymentDefinition.Metadata.Name, this.resourceName);
+                Events.DeploymentNameMismatch(edgeDeploymentCrdObject.Metadata.Name, this.resourceName);
                 return;
             }
 
@@ -113,15 +113,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             {
                 case WatchEventType.Added:
                 case WatchEventType.Modified:
-                    var desiredModules = ModuleSet.Create(edgeDeploymentDefinition.Spec.ToArray());
+                    var desiredModules = ModuleSet.Create(edgeDeploymentCrdObject.Spec.ToArray());
                     var status = await this.controller.DeployModulesAsync(desiredModules, this.currentModules);
-                    await this.ReportEdgeDeploymentStatus(edgeDeploymentDefinition, status);
+                    await this.ReportEdgeDeploymentStatus(edgeDeploymentCrdObject, status);
                     this.currentModules = desiredModules;
                     this.currentStatus = status;
                     break;
 
                 case WatchEventType.Deleted:
-                    await this.controller.PurgeModulesAsync();
+                    // Kubernetes garbage collection will handle cleanup of deployment artifacts
                     this.currentModules = ModuleSet.Empty;
                     this.currentStatus = DefaultStatus;
                     break;

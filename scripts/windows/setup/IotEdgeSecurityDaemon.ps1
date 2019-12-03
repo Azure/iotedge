@@ -1763,7 +1763,7 @@ function Set-ProvisioningMode {
         }
 
         if ($ManualConnectionString -or $ManualX509) {
-            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"\s*#?\s*dynamic_reprovisioning:\s*".*"'
+            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"\s*#?\s*dynamic_reprovisioning:\s*.*'
             $authenticationMethod = Get-ManualAuthSettings
             if ($authenticationMethod -eq 'device_connection_string') {
                 $replacementContent = @(

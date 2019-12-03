@@ -100,6 +100,18 @@
 
     .PARAMETER DpsMasterSymmetricKey
         DPS master symmetric key. Required only when using DPS symmetric key to provision the Edge device.
+    
+    .PARAMETER LogAnalyticsEnabled
+        Optional Log Analytics enable string for the Analyzer module. If LogAnalyticsEnabled is set to enable (true), the rest of Log Analytics parameters must be provided.
+
+    .PARAMETER LogAnalyticsWorkspaceId
+        Optional Log Analytics workspace ID for metrics collection and reporting.
+
+    .PARAMETER LogAnalyticsSharedKey
+        Optional Log Analytics shared key for metrics collection and reporting.
+
+    .PARAMETER LogAnalyticsLogType
+        Optional Log Analytics log type for the Analyzer module.
 
     .EXAMPLE
         .\Run-E2ETest.ps1
@@ -265,8 +277,16 @@ Param (
     [ValidateSet("true", "false")]
     [string] $MqttSettingsEnabled = "true",
 
-    [switch] $BypassEdgeInstallation
+    [ValidateSet("true", "false")]
+    [string] $LogAnalyticsEnabled = "false",
 
+    [string] $LogAnalyticsWorkspaceId = $null,
+
+    [string] $LogAnalyticsSharedKey = $null,
+
+    [string] $LogAnalyticsLogType = $null,
+
+    [switch] $BypassEdgeInstallation
 )
 
 Add-Type -TypeDefinition @"
@@ -447,8 +467,12 @@ Function PrepareTestFromArtifacts
                     (Get-Content $DeploymentWorkingFilePath).replace('<mqttSettings__enabled>',$MqttSettingsEnabled) | Set-Content $DeploymentWorkingFilePath
                 }
 
-                (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.EventHubConnectionString>',$EventHubConnectionString) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.ConsumerGroupId>',$EventHubConsumerGroupId) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.EventHubConnectionString>',$EventHubConnectionString) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.LogAnalyticsEnabled>',$LogAnalyticsEnabled) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.LogAnalyticsLogType>',$LogAnalyticsLogType) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<LogAnalyticsWorkspaceId>',$LogAnalyticsWorkspaceId) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<LogAnalyticsSharedKey>',$LogAnalyticsSharedKey) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen.MessageFrequency>',$LoadGenMessageFrequency) | Set-Content $DeploymentWorkingFilePath
                 $escapedBuildId= $ArtifactImageBuildNumber -replace "\.",""
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.AlertUrl>',$SnitchAlertUrl) | Set-Content $DeploymentWorkingFilePath
