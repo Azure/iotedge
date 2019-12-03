@@ -2,7 +2,6 @@
 namespace MetricsCollector
 {
     using System;
-    using System.Runtime.Loader;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
@@ -23,8 +22,6 @@ namespace MetricsCollector
         {
             Logger.LogInformation($"Starting metrics collector with the following settings:\r\n{Settings.Current}");
 
-            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
-
             MetricsScraper scraper = new MetricsScraper(Settings.Current.Endpoints);
             IMetricsPublisher publisher;
             if (Settings.Current.UploadTarget == UploadTarget.AzureLogAnalytics)
@@ -40,33 +37,16 @@ namespace MetricsCollector
             }
 
             MetricsScrapeAndUpload metricsScrapeAndUpload = new MetricsScrapeAndUpload(scraper, publisher);
+            metricsScrapeAndUpload.Start();
 
-            TimeSpan scrapeAndUploadInterval = TimeSpan.FromSeconds(Settings.Current.ScrapeFrequencySecs);
-            PeriodicTask periodicTask = new PeriodicTask(metricsScrapeAndUpload.ScrapeAndUploadPrometheusMetricsAsync, scrapeAndUploadInterval, scrapeAndUploadInterval, Logger, "Scrape and Upload Metrics");
+            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
+            await cts.Token.WhenCanceled();
 
-            // Wait until the app unloads or is cancelled
-            AssemblyLoadContext.Default.Unloading += ctx => cts.Cancel();
-            Console.CancelKeyPress += (sender, cpe) => cts.Cancel();
-            await WhenCancelled(cts.Token, completed, handler).ConfigureAwait(false);
+            completed.Set();
+            handler.ForEach(h => GC.KeepAlive(h));
+
             Logger.LogInformation("MetricsCollector Main() finished.");
             return 0;
-        }
-
-        /// <summary>
-        ///     Handles cleanup operations when app is cancelled or unloads
-        /// </summary>
-        public static Task WhenCancelled(CancellationToken cancellationToken, ManualResetEventSlim completed, Option<object> handler)
-        {
-            TaskCompletionSource<bool> tcs = new TaskCompletionSource<bool>();
-            cancellationToken.Register(
-                s =>
-                {
-                    completed.Set();
-                    handler.ForEach(h => GC.KeepAlive(h));
-                    ((TaskCompletionSource<bool>)s).SetResult(true);
-                },
-                tcs);
-            return tcs.Task;
         }
     }
 }
