@@ -1,8 +1,7 @@
 {
   "messageFrequency": "00:00:00.02",
-  "twinUpdateFrequency": "00:00:05",
   "transportType": "amqp",
   "messageSizeInBytes": 1024,
   "outputName": "output1",
-  "startDelay": 2
+  "startDelay": "00:00:02"
 }

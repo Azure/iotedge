@@ -22,8 +22,6 @@ namespace LoadGen
         {
             Logger.LogInformation($"Starting load gen with the following settings:\r\n{Settings.Current}");
 
-            Option<PeriodicTask> messageTask = Option.None<PeriodicTask>();
-            Option<PeriodicTask> twinUpdateTask = Option.None<PeriodicTask>();
             try
             {
                 ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
@@ -35,26 +33,20 @@ namespace LoadGen
                 Guid batchId = Guid.NewGuid();
                 Logger.LogInformation($"Batch Id={batchId}");
 
+                (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
+
                 // setup the message PeriodicTask
-                messageTask = Option.Some(new PeriodicTask(
+                using (PeriodicTask messageTask = new PeriodicTask(
                     () => GenerateMessageAsync(moduleClient, batchId),
                     Settings.Current.MessageFrequency,
-                    TimeSpan.FromSeconds(Settings.Current.StartDelay),
+                    Settings.Current.StartDelay,
                     Logger,
-                    "Generate message"));
+                    "Generate message"))
+                {
+                    Logger.LogInformation("Load gen running.");
+                    await cts.Token.WhenCanceled();
+                }
 
-                // setup the twin update PeriodicTask
-                twinUpdateTask = Option.Some(new PeriodicTask(
-                    () => GenerateTwinUpdateAsync(moduleClient, batchId),
-                    Settings.Current.MessageFrequency,
-                    TimeSpan.FromSeconds(Settings.Current.StartDelay),
-                    Logger,
-                    "Generate twin update"));
-
-                (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
-                Logger.LogInformation("Load gen running.");
-
-                await cts.Token.WhenCanceled();
                 Logger.LogInformation("Closing connection to Edge Hub.");
                 await moduleClient.CloseAsync();
 
@@ -66,18 +58,12 @@ namespace LoadGen
             {
                 Logger.LogError($"Error occurred during load gen.\r\n{ex}");
             }
-            finally
-            {
-                messageTask.ForEach(x => x.Dispose());
-                twinUpdateTask.ForEach(x => x.Dispose());
-            }
         }
 
         static async Task GenerateMessageAsync(ModuleClient client, Guid batchId)
         {
             var random = new Random();
             var bufferPool = new BufferPool();
-            long sequenceNumber = -1;
 
             try
             {
@@ -89,8 +75,8 @@ namespace LoadGen
                     // build message
                     var messageBody = new { data = data.Data };
                     var message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)));
-                    sequenceNumber = Interlocked.Increment(ref messageIdCounter);
-                    message.Properties.Add("sequenceNumber", sequenceNumber.ToString());
+                    messageIdCounter++;
+                    message.Properties.Add("sequenceNumber", messageIdCounter.ToString());
                     message.Properties.Add("batchId", batchId.ToString());
 
                     await client.SendEventAsync(Settings.Current.OutputName, message);
@@ -98,23 +84,7 @@ namespace LoadGen
             }
             catch (Exception e)
             {
-                Logger.LogError($"[GenerateMessageAsync] Sequence number {sequenceNumber}, BatchId: {batchId.ToString()};{Environment.NewLine}{e}");
-            }
-        }
-
-        static async Task GenerateTwinUpdateAsync(ModuleClient client, Guid batchId)
-        {
-            var twin = new TwinCollection();
-            long sequenceNumber = messageIdCounter;
-            twin["messagesSent"] = sequenceNumber;
-
-            try
-            {
-                await client.UpdateReportedPropertiesAsync(twin);
-            }
-            catch (Exception e)
-            {
-                Logger.LogError($"[GenerateTwinUpdateAsync] Sequence number {sequenceNumber}, BatchId: {batchId.ToString()};{Environment.NewLine}{e}");
+                Logger.LogError($"[GenerateMessageAsync] Sequence number {messageIdCounter}, BatchId: {batchId.ToString()};{Environment.NewLine}{e}");
             }
         }
     }
