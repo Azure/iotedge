@@ -39,10 +39,10 @@ namespace LoadGen
             TimeSpan startDelay)
         {
             this.MessageFrequency = Preconditions.CheckNotNull(messageFrequency);
-            this.MessageSizeInBytes = Preconditions.CheckNotNull(messageSizeInBytes);
-            this.TransportType = Preconditions.CheckNotNull(transportType);
+            this.MessageSizeInBytes = Preconditions.CheckRange<ulong>(messageSizeInBytes, 1);
             this.OutputName = Preconditions.CheckNonWhiteSpace(outputName, nameof(outputName));
-            this.StartDelay = Preconditions.CheckNotNull(startDelay);
+            this.StartDelay = startDelay;
+            this.TransportType = transportType;
         }
 
         public static Settings Current => DefaultSettings.Value;
@@ -61,12 +61,15 @@ namespace LoadGen
         public override string ToString()
         {
             // serializing in this pattern so that secrets don't accidentally get added anywhere in the future
-            Dictionary<string, string> fields = new Dictionary<string, string>();
-            fields.Add(nameof(this.MessageFrequency), this.MessageFrequency.ToString());
-            fields.Add(nameof(this.MessageSizeInBytes), this.MessageSizeInBytes.ToString());
-            fields.Add(nameof(this.TransportType), Enum.GetName(typeof(TransportType), this.TransportType));
-            fields.Add(nameof(this.OutputName), this.OutputName);
-            fields.Add(nameof(this.StartDelay), this.StartDelay.ToString());
+            var fields = new Dictionary<string, string>()
+            {
+                { nameof(this.MessageFrequency), this.MessageFrequency.ToString() },
+                { nameof(this.MessageSizeInBytes), this.MessageSizeInBytes.ToString() },
+                { nameof(this.TransportType), Enum.GetName(typeof(TransportType), this.TransportType) },
+                { nameof(this.OutputName), this.OutputName },
+                { nameof(this.StartDelay), this.StartDelay.ToString() },
+            };
+
             return JsonConvert.SerializeObject(fields, Formatting.Indented);
         }
     }

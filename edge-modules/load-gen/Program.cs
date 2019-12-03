@@ -8,7 +8,6 @@ namespace LoadGen
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
@@ -36,7 +35,7 @@ namespace LoadGen
                 (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
                 // setup the message PeriodicTask
-                using (PeriodicTask messageTask = new PeriodicTask(
+                using (var messageTask = new PeriodicTask(
                     () => GenerateMessageAsync(moduleClient, batchId),
                     Settings.Current.MessageFrequency,
                     Settings.Current.StartDelay,
