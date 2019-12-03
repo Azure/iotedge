@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             this.guid = Preconditions.CheckNotNull(guid);
         }
 
-        public IEnumerable<Metric> GetGuidTaggedMetrics(IEnumerable<Metric> originalMetrics)
+        IEnumerable<Metric> GetGuidTaggedMetrics(IEnumerable<Metric> originalMetrics)
         {
             foreach (Metric metric in originalMetrics)
             {
