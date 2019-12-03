@@ -45,7 +45,7 @@ namespace MetricsCollector
 
         public void Dispose()
         {
-           this.periodicScrapeAndUpload.Dispose();
+           this.periodicScrapeAndUpload?.Dispose();
         }
     }
 }
