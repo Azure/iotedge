@@ -22,7 +22,7 @@ namespace TwinTester
         PeriodicTask periodicValidation;
         PeriodicTask periodicUpdate;
 
-        public TwinOperator(RegistryManager registryManager, ModuleClient moduleClient, AnalyzerClient analyzerClient, TwinEventStorage storage, TwinState twinState)
+        private TwinOperator(RegistryManager registryManager, ModuleClient moduleClient, AnalyzerClient analyzerClient, TwinEventStorage storage, TwinState twinState)
         {
             this.reportedPropertyOperation = new ReportedPropertyOperation(registryManager, moduleClient, analyzerClient, storage, twinState);
             this.desiredPropertyOperation = new DesiredPropertyOperation(registryManager, moduleClient, analyzerClient, storage, twinState);
