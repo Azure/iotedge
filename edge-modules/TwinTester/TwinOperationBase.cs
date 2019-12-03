@@ -16,7 +16,7 @@ namespace TwinTester
 
         protected bool ExceedFailureThreshold(TwinState twinState, DateTime twinUpdateTime)
         {
-            DateTime comparisonPoint = twinUpdateTime > twinState.LastTimeOffline ? twinUpdateTime : twinState.LastTimeOffline; 
+            DateTime comparisonPoint = twinUpdateTime > twinState.LastTimeOffline ? twinUpdateTime : twinState.LastTimeOffline;
             return DateTime.UtcNow - comparisonPoint > Settings.Current.TwinUpdateFailureThreshold;
         }
 
@@ -28,7 +28,7 @@ namespace TwinTester
             }
             catch (Exception e)
             {
-                Logger.LogError($"Failed call to report status to analyzer: {e}");
+                this.Logger.LogError($"Failed call to report status to analyzer: {e}");
             }
         }
     }

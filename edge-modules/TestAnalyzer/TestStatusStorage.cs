@@ -12,7 +12,7 @@ namespace TestAnalyzer
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public class TestStatusStorage
+    class TestStatusStorage
     {
         const string MessageStorePartitionKey = "MessagesCache";
         const string DirectMethodsStorePartitionKey = "DirectMethodsCache";

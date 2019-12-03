@@ -17,7 +17,7 @@ namespace TwinTester
         readonly ModuleClient moduleClient;
         readonly AnalyzerClient analyzerClient;
         readonly TwinEventStorage storage;
-        TwinState twinState;
+        readonly TwinState twinState;
 
         public ReportedPropertyOperation(RegistryManager registryManager, ModuleClient moduleClient, AnalyzerClient analyzerClient, TwinEventStorage storage, TwinState twinState)
         {
@@ -29,6 +29,75 @@ namespace TwinTester
         }
 
         public override ILogger Logger => LoggerImpl;
+
+        public override async Task ValidateAsync()
+        {
+            Twin receivedTwin;
+            try
+            {
+                receivedTwin = await this.registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
+                this.twinState.TwinETag = receivedTwin.ETag;
+            }
+            catch (Exception e)
+            {
+                this.Logger.LogInformation($"Failed call to registry manager get twin: {e}");
+                this.twinState.LastTimeOffline = DateTime.UtcNow;
+                return;
+            }
+
+            TwinCollection propertiesToRemoveFromTwin = await this.ValidatePropertiesFromTwinAsync(receivedTwin);
+            foreach (dynamic pair in propertiesToRemoveFromTwin)
+            {
+                KeyValuePair<string, object> property = (KeyValuePair<string, object>)pair;
+                try
+                {
+                    await this.storage.RemoveReportedPropertyUpdateAsync(property.Key);
+                }
+                catch (Exception e)
+                {
+                    this.Logger.LogError($"Failed to remove validated reported property id {property.Key} from storage: {e}");
+                }
+            }
+
+            try
+            {
+                await this.moduleClient.UpdateReportedPropertiesAsync(propertiesToRemoveFromTwin);
+            }
+            catch (Exception e)
+            {
+                this.Logger.LogInformation($"Failed call to twin property reset: {e}");
+            }
+        }
+
+        public override async Task UpdateAsync()
+        {
+            string reportedPropertyUpdate = new string('1', Settings.Current.TwinUpdateSize); // dummy twin update needs to be any number
+            var twin = new TwinCollection();
+            twin[this.twinState.ReportedPropertyUpdateCounter.ToString()] = reportedPropertyUpdate;
+            try
+            {
+                await this.moduleClient.UpdateReportedPropertiesAsync(twin);
+                this.Logger.LogInformation($"Made reported property update {this.twinState.ReportedPropertyUpdateCounter}");
+            }
+            catch (Exception e)
+            {
+                string failureStatus = $"{(int)StatusCode.ReportedPropertyUpdateCallFailure}: Failed call to update reported properties";
+                this.Logger.LogError(failureStatus + $": {e}");
+                await this.CallAnalyzerToReportStatusAsync(this.analyzerClient, Settings.Current.ModuleId, failureStatus);
+                return;
+            }
+
+            try
+            {
+                await this.storage.AddReportedPropertyUpdateAsync(this.twinState.ReportedPropertyUpdateCounter.ToString());
+                this.twinState.ReportedPropertyUpdateCounter += 1;
+            }
+            catch (Exception e)
+            {
+                this.Logger.LogError($"Failed adding reported property update to storage: {e}");
+                return;
+            }
+        }
 
         async Task<TwinCollection> ValidatePropertiesFromTwinAsync(Twin receivedTwin)
         {
@@ -46,17 +115,17 @@ namespace TwinTester
                     }
                     catch (Exception e)
                     {
-                        Logger.LogError($"Failed to remove validated reported property id {reportedPropertyUpdate.Key} from storage: {e}");
+                        this.Logger.LogError($"Failed to remove validated reported property id {reportedPropertyUpdate.Key} from storage: {e}");
                         continue;
                     }
 
                     status = $"{(int)StatusCode.Success}: Successfully validated reported property update";
-                    Logger.LogInformation(status + $" {reportedPropertyUpdate.Key}");
+                    this.Logger.LogInformation(status + $" {reportedPropertyUpdate.Key}");
                 }
                 else if (this.ExceedFailureThreshold(this.twinState, reportedPropertyUpdate.Value))
                 {
                     status = $"{(int)StatusCode.ReportedPropertyUpdateNotInCloudTwin}: Failure receiving reported property update";
-                    Logger.LogError(status + $" for reported property update {reportedPropertyUpdate.Key}");
+                    this.Logger.LogError(status + $" for reported property update {reportedPropertyUpdate.Key}");
                 }
                 else
                 {
@@ -68,75 +137,6 @@ namespace TwinTester
             }
 
             return propertiesToRemoveFromTwin;
-        }
-
-        public override async Task ValidateAsync()
-        {
-            Twin receivedTwin;
-            try
-            {
-                receivedTwin = await this.registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
-                this.twinState.TwinETag = receivedTwin.ETag;
-            }
-            catch (Exception e)
-            {
-                Logger.LogInformation($"Failed call to registry manager get twin: {e}");
-                this.twinState.LastTimeOffline = DateTime.UtcNow;
-                return;
-            }
-
-            TwinCollection propertiesToRemoveFromTwin = await this.ValidatePropertiesFromTwinAsync(receivedTwin);
-            foreach (dynamic pair in propertiesToRemoveFromTwin)
-            {
-                KeyValuePair<string, object> property = (KeyValuePair<string, object>)pair;
-                try
-                {
-                    await this.storage.RemoveReportedPropertyUpdateAsync(property.Key);
-                }
-                catch (Exception e)
-                {
-                    Logger.LogError($"Failed to remove validated reported property id {property.Key} from storage: {e}");
-                }
-            }
-
-            try
-            {
-                await this.moduleClient.UpdateReportedPropertiesAsync(propertiesToRemoveFromTwin);
-            }
-            catch (Exception e)
-            {
-                Logger.LogInformation($"Failed call to twin property reset: {e}");
-            }
-        }
-
-        public override async Task UpdateAsync()
-        {
-            string reportedPropertyUpdate = new string('1', Settings.Current.TwinUpdateSize); // dummy twin update needs to be any number
-            var twin = new TwinCollection();
-            twin[this.twinState.ReportedPropertyUpdateCounter.ToString()] = reportedPropertyUpdate;
-            try
-            {
-                await this.moduleClient.UpdateReportedPropertiesAsync(twin);
-                Logger.LogInformation($"Made reported property update {this.twinState.ReportedPropertyUpdateCounter}");
-            }
-            catch (Exception e)
-            {
-                string failureStatus = $"{(int)StatusCode.ReportedPropertyUpdateCallFailure}: Failed call to update reported properties";
-                Logger.LogError(failureStatus + $": {e}");
-                await this.CallAnalyzerToReportStatusAsync(this.analyzerClient, Settings.Current.ModuleId, failureStatus);
-                return;
-            }
-
-            try
-            {
-                await this.storage.AddReportedPropertyUpdateAsync(this.twinState.ReportedPropertyUpdateCounter.ToString());
-                this.twinState.ReportedPropertyUpdateCounter += 1;
-            }
-            catch (Exception e)
-            {
-                Logger.LogError($"Failed adding reported property update to storage: {e}");
-                return;
-            }
         }
     }
 }

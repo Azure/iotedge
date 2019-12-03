@@ -45,18 +45,6 @@ namespace TwinTester
             this.reportedPropertyUpdateCache = storeProvider.GetEntityStore<string, DateTime>(ReportedPropertyUpdatePartitionKey);
         }
 
-        string GetStoragePath(string baseStoragePath)
-        {
-            if (string.IsNullOrWhiteSpace(baseStoragePath) || !Directory.Exists(baseStoragePath))
-            {
-                baseStoragePath = Path.GetTempPath();
-            }
-
-            string storagePath = Path.Combine(baseStoragePath, "analyzer");
-            Directory.CreateDirectory(storagePath);
-            return storagePath;
-        }
-
         public async Task<bool> AddDesiredPropertyUpdateAsync(string desiredPropertyUpdateId)
         {
             await this.desiredPropertyUpdateCache.Put(desiredPropertyUpdateId, DateTime.UtcNow);
@@ -108,7 +96,19 @@ namespace TwinTester
             return await this.GetAllUpdatesAsync(this.reportedPropertyUpdateCache);
         }
 
-        private async Task<Dictionary<string, DateTime>> GetAllUpdatesAsync(IEntityStore<string, DateTime> store)
+        string GetStoragePath(string baseStoragePath)
+        {
+            if (string.IsNullOrWhiteSpace(baseStoragePath) || !Directory.Exists(baseStoragePath))
+            {
+                baseStoragePath = Path.GetTempPath();
+            }
+
+            string storagePath = Path.Combine(baseStoragePath, "analyzer");
+            Directory.CreateDirectory(storagePath);
+            return storagePath;
+        }
+
+        async Task<Dictionary<string, DateTime>> GetAllUpdatesAsync(IEntityStore<string, DateTime> store)
         {
             Dictionary<string, DateTime> allData = new Dictionary<string, DateTime>();
             await store.IterateBatch(

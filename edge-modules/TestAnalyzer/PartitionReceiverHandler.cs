@@ -63,6 +63,12 @@ namespace TestAnalyzer
             }
         }
 
+        public Task ProcessErrorAsync(Exception error)
+        {
+            Logger.LogError(error.ToString());
+            return Task.CompletedTask;
+        }
+
         static DateTime GetEnqueuedTime(string deviceId, string moduleId, EventData eventData)
         {
             DateTime enqueuedtime = DateTime.MinValue.ToUniversalTime();
@@ -84,12 +90,6 @@ namespace TestAnalyzer
             }
 
             return enqueuedtime;
-        }
-
-        public Task ProcessErrorAsync(Exception error)
-        {
-            Logger.LogError(error.ToString());
-            return Task.CompletedTask;
         }
     }
 }

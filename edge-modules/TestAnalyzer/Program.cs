@@ -41,7 +41,7 @@ namespace TestAnalyzer
             IDictionary<string, IList<SortedSet<MessageDetails>>> messagesSnapShot = ReportingCache.Instance.GetMessagesSnapshot();
             foreach (KeyValuePair<string, IList<SortedSet<MessageDetails>>> moduleMesssages in messagesSnapShot)
             {
-                foreach (var moduleMesssage in moduleMesssages.Value)
+                foreach (SortedSet<MessageDetails> moduleMesssage in moduleMesssages.Value)
                 {
                     if (lastReceivedAt < moduleMesssage.Last().EnqueuedDateTime)
                     {

@@ -12,10 +12,13 @@ namespace TestAnalyzer
     {
         // maps batchId with moduleId, there can be multiple batches for a module
         readonly ConcurrentDictionary<string, string> batches = new ConcurrentDictionary<string, string>();
+
         // maps batchId with messages
         readonly ConcurrentDictionary<string, IList<MessageDetails>> messagesReportCache = new ConcurrentDictionary<string, IList<MessageDetails>>();
+
         // maps module id with a dictionary of status code counts
         readonly ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> directMethodsReportCache = new ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>>();
+
         // maps module id with a dictionary of status code counts
         readonly ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> twinsReportCache = new ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>>();
         readonly IComparer<MessageDetails> comparer = new EventDataComparer();
@@ -25,17 +28,17 @@ namespace TestAnalyzer
         {
         }
 
+        public static ReportingCache Instance { get; } = new ReportingCache();
+
         public async Task InitAsync(string storagePath, bool optimizeForPerformance)
         {
             this.storage = new TestStatusStorage();
             await this.storage.InitAsync(storagePath, new SystemEnvironment(), optimizeForPerformance);
-            Task messageProcessing = this.storage.ProcessAllMessagesAsync(async (message) => await ReportingCache.Instance.AddMessageAsync(message));
-            Task directMethodProcessing = this.storage.ProcessAllDirectMethodsAsync(async (directMethodStatus) => await ReportingCache.Instance.AddDirectMethodStatusAsync(directMethodStatus));
-            Task twinProcessing = this.storage.ProcessAllTwinsAsync(async (twinStatus) => await ReportingCache.Instance.AddTwinStatusAsync(twinStatus));
+            Task messageProcessing = this.storage.ProcessAllMessagesAsync(async (message) => await Instance.AddMessageAsync(message));
+            Task directMethodProcessing = this.storage.ProcessAllDirectMethodsAsync(async (directMethodStatus) => await Instance.AddDirectMethodStatusAsync(directMethodStatus));
+            Task twinProcessing = this.storage.ProcessAllTwinsAsync(async (twinStatus) => await Instance.AddTwinStatusAsync(twinStatus));
             await Task.WhenAll(messageProcessing, directMethodProcessing, twinProcessing);
         }
-
-        public static ReportingCache Instance { get; } = new ReportingCache();
 
         public async Task AddDirectMethodStatusAsync(CloudOperationStatus directMethodStatus)
         {

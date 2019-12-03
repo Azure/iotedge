@@ -26,29 +26,6 @@ namespace TwinTester
             this.desiredPropertyOperation = new DesiredPropertyOperation(registryManager, moduleClient, analyzerClient, storage, twinState);
         }
 
-        static int GetNewPropertyCounter(Dictionary<string, DateTime> properties)
-        {
-            int maxPropertyId = -1;
-            foreach (KeyValuePair<string, DateTime> propertyUpdate in properties)
-            {
-                maxPropertyId = Math.Max(int.Parse(propertyUpdate.Key), maxPropertyId);
-            }
-
-            return maxPropertyId + 1;
-        }
-
-        static TwinCollection GetReportedPropertiesResetTwin(Twin originalTwin)
-        {
-            TwinCollection eraseReportedProperties = new TwinCollection();
-            foreach (dynamic twinUpdate in originalTwin.Properties.Reported)
-            {
-                KeyValuePair<string, object> pair = (KeyValuePair<string, object>)twinUpdate;
-                eraseReportedProperties[pair.Key] = null; // erase twin property by assigning null
-            }
-
-            return eraseReportedProperties;
-        }
-
         public static async Task<TwinOperator> CreateAsync(RegistryManager registryManager, ModuleClient moduleClient, AnalyzerClient analyzerClient, TwinEventStorage storage)
         {
             try
@@ -98,26 +75,53 @@ namespace TwinTester
 
         public async Task PerformUpdatesAsync(CancellationToken cancellationToken)
         {
-            try {
+            try
+            {
                 await this.operationLock.WaitAsync();
                 await this.reportedPropertyOperation.UpdateAsync();
                 await this.desiredPropertyOperation.UpdateAsync();
             }
-            finally {
+            finally
+            {
                 this.operationLock.Release();
             }
         }
 
         public async Task PerformValidationAsync(CancellationToken cancellationToken)
         {
-            try {
+            try
+            {
                 await this.operationLock.WaitAsync();
                 await this.reportedPropertyOperation.ValidateAsync();
                 await this.desiredPropertyOperation.ValidateAsync();
             }
-            finally {
+            finally
+            {
                 this.operationLock.Release();
             }
+        }
+
+        static int GetNewPropertyCounter(Dictionary<string, DateTime> properties)
+        {
+            int maxPropertyId = -1;
+            foreach (KeyValuePair<string, DateTime> propertyUpdate in properties)
+            {
+                maxPropertyId = Math.Max(int.Parse(propertyUpdate.Key), maxPropertyId);
+            }
+
+            return maxPropertyId + 1;
+        }
+
+        static TwinCollection GetReportedPropertiesResetTwin(Twin originalTwin)
+        {
+            TwinCollection eraseReportedProperties = new TwinCollection();
+            foreach (dynamic twinUpdate in originalTwin.Properties.Reported)
+            {
+                KeyValuePair<string, object> pair = (KeyValuePair<string, object>)twinUpdate;
+                eraseReportedProperties[pair.Key] = null; // erase twin property by assigning null
+            }
+
+            return eraseReportedProperties;
         }
     }
 }
