@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             HostConfig hostConfig,
             string image,
             IDictionary<string, string> labels)
-            : this(env?.ToList(), exposedPorts, hostConfig, image, labels, null, null, null)
+            : this(env?.ToList(), exposedPorts, hostConfig, image, labels, null, null, null, null)
         {
         }
 
@@ -31,7 +31,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             IDictionary<string, string> labels,
             IDictionary<string, string> nodeSelector,
             V1ResourceRequirements resources,
-            IReadOnlyList<KubernetesModuleVolumeSpec> volumes)
+            IReadOnlyList<KubernetesModuleVolumeSpec> volumes,
+            V1PodSecurityContext securityContext)
         {
             this.Env = Option.Maybe(env);
             this.ExposedPorts = Option.Maybe(exposedPorts);
@@ -41,6 +42,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             this.NodeSelector = Option.Maybe(nodeSelector);
             this.Resources = Option.Maybe(resources);
             this.Volumes = Option.Maybe(volumes);
+            this.SecurityContext = Option.Maybe(securityContext);
         }
 
         internal static CreatePodParameters Create(
@@ -51,8 +53,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             IDictionary<string, string> labels = null,
             IDictionary<string, string> nodeSelector = null,
             V1ResourceRequirements resources = null,
-            IReadOnlyList<KubernetesModuleVolumeSpec> volumes = null)
-            => new CreatePodParameters(env, exposedPorts, hostConfig, image, labels, nodeSelector, resources, volumes);
+            IReadOnlyList<KubernetesModuleVolumeSpec> volumes = null,
+            V1PodSecurityContext securityContext = null)
+            => new CreatePodParameters(env, exposedPorts, hostConfig, image, labels, nodeSelector, resources, volumes, securityContext);
 
         [JsonProperty("env", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [JsonConverter(typeof(OptionConverter<IReadOnlyList<string>>))]
@@ -85,5 +88,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         [JsonProperty("volumes", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [JsonConverter(typeof(OptionConverter<IReadOnlyList<KubernetesModuleVolumeSpec>>))]
         public Option<IReadOnlyList<KubernetesModuleVolumeSpec>> Volumes { get; set; }
+
+        [JsonProperty("securityContext", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [JsonConverter(typeof(OptionConverter<V1PodSecurityContext>))]
+        public Option<V1PodSecurityContext> SecurityContext { get; set; }
     }
 }
