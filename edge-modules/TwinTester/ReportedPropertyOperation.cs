@@ -33,9 +33,9 @@ namespace TwinTester
 
         public override async Task UpdateAsync()
         {
-            string reportedPropertyUpdate = new string('1', Settings.Current.TwinUpdateSize); // dummy twin update needs to be any number
+            string reportedPropertyUpdateValue = new string('1', Settings.Current.TwinUpdateSize); // dummy twin update needs to be any number
             var twin = new TwinCollection();
-            twin[this.twinState.ReportedPropertyUpdateCounter.ToString()] = reportedPropertyUpdate;
+            twin[this.twinState.ReportedPropertyUpdateCounter.ToString()] = reportedPropertyUpdateValue;
             try
             {
                 await this.moduleClient.UpdateReportedPropertiesAsync(twin);
