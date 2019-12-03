@@ -36,12 +36,13 @@ namespace MetricsCollector
                 publisher = new IoTHubMetricsUpload(moduleClient);
             }
 
-            MetricsScrapeAndUpload metricsScrapeAndUpload = new MetricsScrapeAndUpload(scraper, publisher);
-            TimeSpan scrapeAndUploadInterval = TimeSpan.FromSeconds(Settings.Current.ScrapeFrequencySecs);
-            metricsScrapeAndUpload.Start(scrapeAndUploadInterval);
-
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
-            await cts.Token.WhenCanceled();
+            using (MetricsScrapeAndUpload metricsScrapeAndUpload = new MetricsScrapeAndUpload(scraper, publisher))
+            {
+                TimeSpan scrapeAndUploadInterval = TimeSpan.FromSeconds(Settings.Current.ScrapeFrequencySecs);
+                metricsScrapeAndUpload.Start(scrapeAndUploadInterval);
+                await cts.Token.WhenCanceled();
+            }
 
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
