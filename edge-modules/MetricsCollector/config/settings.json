@@ -2,7 +2,7 @@
   "AzMonWorkspaceId": "",
   "AzMonWorkspaceKey": "",
   "AzMonLogType": "edgeHubMetrics",
-  "MetricsEndpoints": "http://edgeHub:9600/metrics",
+  "MetricsEndpointsCSV": "http://edgeHub:9600/metrics,http://edgeAgent:9600/metrics",
   "ScrapeFrequencyInSecs": 300,
   "UploadTarget": "AzureLogAnalytics"
 }
