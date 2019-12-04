@@ -638,10 +638,12 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         let current_time = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
+            .unwrap_or_default()
             .as_secs();
-        let start_time =
-            system_info.get_process_list()[&process::id().try_into().unwrap()].start_time();
+        let start_time = process::id()
+            .try_into()
+            .map(|id| system_info.get_process_list()[&id].start_time())
+            .unwrap_or_default();
 
         let used_cpu = system_info
             .get_processor_list()
