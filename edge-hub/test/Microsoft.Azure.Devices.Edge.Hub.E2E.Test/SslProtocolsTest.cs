@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     using System.Net.Security;
     using System.Net.Sockets;
     using System.Security.Authentication;
+    using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
@@ -14,17 +15,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.SslProtocolsTest")]
     public class SslProtocolsTest : IDisposable
     {
-        readonly IDisposable protocolHead;
+        readonly ProtocolHeadFixture protocolHead;
 
         public SslProtocolsTest()
         {
             this.protocolHead = EdgeHubFixtureCollection.GetFixture(SslProtocols.Tls12);
         }
 
-        public void Dispose()
-        {
-            this.protocolHead?.Dispose();
-        }
+        public async void Dispose() => await (this.protocolHead?.CloseAsync() ?? Task.CompletedTask);
 
         [Fact]
         public void SslProtocolConnectionTest()
