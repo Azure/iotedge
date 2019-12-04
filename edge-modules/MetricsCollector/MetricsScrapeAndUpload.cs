@@ -10,6 +10,7 @@ namespace MetricsCollector
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json;
 
     class MetricsScrapeAndUpload : IDisposable
     {
@@ -18,24 +19,13 @@ namespace MetricsCollector
         readonly IMetricsPublisher publisher;
         PeriodicTask periodicScrapeAndUpload;
 
-        public MetricsScrapeAndUpload(MetricsScraper scraper, IMetricsPublisher publisher)
+        Guid guid;
+
+        public MetricsScrapeAndUpload(MetricsScraper scraper, IMetricsPublisher publisher, Guid guid)
         {
             this.scraper = Preconditions.CheckNotNull(scraper);
             this.publisher = Preconditions.CheckNotNull(publisher);
-        }
-
-        async Task ScrapeAndUploadPrometheusMetricsAsync(CancellationToken cancellationToken)
-        {
-            try
-            {
-                IEnumerable<Metric> metrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
-                await this.publisher.PublishAsync(metrics, cancellationToken);
-                Logger.LogInformation("Successfully scraped and uploaded metrics");
-            }
-            catch (Exception e)
-            {
-                Logger.LogError($"Error scraping and uploading metrics: {e}");
-            }
+            this.guid = Preconditions.CheckNotNull(guid);
         }
 
         public void Start(TimeSpan scrapeAndUploadInterval)
@@ -46,6 +36,26 @@ namespace MetricsCollector
         public void Dispose()
         {
            this.periodicScrapeAndUpload?.Dispose();
+        }
+
+        async Task ScrapeAndUploadPrometheusMetricsAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                IEnumerable<Metric> metrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
+                foreach (Metric metric in metrics)
+                {
+                    metric.Tags.Add("guid", this.guid.ToString());
+                }
+
+                await this.publisher.PublishAsync(metrics, cancellationToken);
+
+                Logger.LogInformation("Successfully scraped and uploaded metrics");
+            }
+            catch (Exception e)
+            {
+                Logger.LogError($"Error scraping and uploading metrics: {e}");
+            }
         }
     }
 }
