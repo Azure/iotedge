@@ -7,5 +7,7 @@
   "analyzerURL": "http://analyzer:15000",
   "serviceClientConnectionString": "",
   "StoragePath": "",
-  "StorageOptimizeForPerformance": true
+  "StorageOptimizeForPerformance": true,
+  "TestMode": "TwinAllOperations",
+  "TargetModuleId": ""
 }
