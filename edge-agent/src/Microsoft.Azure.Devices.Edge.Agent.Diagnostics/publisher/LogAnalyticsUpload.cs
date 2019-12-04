@@ -30,6 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
         {
             try
             {
+                Preconditions.CheckNotNull(metrics, nameof(metrics));
                 await AzureLogAnalytics.Instance.PostAsync(this.workspaceId, this.workspaceKey, JsonConvert.SerializeObject(metrics), this.logType);
                 Log.LogInformation($"Successfully sent metrics to LogAnalytics");
             }

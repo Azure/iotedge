@@ -26,8 +26,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
         {
             try
             {
-                Message metricsMessage = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(metrics)));
+                Preconditions.CheckNotNull(metrics, nameof(metrics));
+                byte[] metricsData = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(metrics));
+                Message metricsMessage = new Message(metricsData);
+
                 await this.moduleClient.SendEventAsync(metricsMessage);
+
                 Log.LogInformation($"Successfully sent metrics to Event Hub via IoT Hub");
             }
             catch (Exception e)
