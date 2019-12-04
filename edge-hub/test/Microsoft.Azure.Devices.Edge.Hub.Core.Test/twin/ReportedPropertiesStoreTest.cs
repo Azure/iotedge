@@ -50,12 +50,17 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
         {
             // Arrange
             string id = "d1";
+            string id2 = "d2";
             IEntityStore<string, TwinStoreEntity> rpEntityStore = GetReportedPropertiesEntityStore();
 
             var receivedReportedProperties = new List<TwinCollection>();
+            var receivedReportedPropertiesId2 = new List<TwinCollection>();
             var cloudSync = new Mock<ICloudSync>();
             cloudSync.Setup(c => c.UpdateReportedProperties(id, It.IsAny<TwinCollection>()))
                 .Callback<string, TwinCollection>((s, collection) => receivedReportedProperties.Add(collection))
+                .ReturnsAsync(true);
+            cloudSync.Setup(c => c.UpdateReportedProperties(id2, It.IsAny<TwinCollection>()))
+                .Callback<string, TwinCollection>((s, collection) => receivedReportedPropertiesId2.Add(collection))
                 .ReturnsAsync(true);
 
             var reportedPropertiesStore = new ReportedPropertiesStore(rpEntityStore, cloudSync.Object, Option.None<TimeSpan>());
@@ -86,23 +91,34 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Twin
 
             // Act
             await reportedPropertiesStore.Update(id, rp1);
+            await reportedPropertiesStore.Update(id2, rp1);
             reportedPropertiesStore.InitSyncToCloud(id);
+            reportedPropertiesStore.InitSyncToCloud(id2);
 
             await reportedPropertiesStore.Update(id, rp2);
+            await reportedPropertiesStore.Update(id2, rp2);
             reportedPropertiesStore.InitSyncToCloud(id);
+            reportedPropertiesStore.InitSyncToCloud(id2);
 
             await reportedPropertiesStore.Update(id, rp3);
+            await reportedPropertiesStore.Update(id2, rp3);
             reportedPropertiesStore.InitSyncToCloud(id);
+            reportedPropertiesStore.InitSyncToCloud(id2);
 
             await reportedPropertiesStore.Update(id, rp4);
+            await reportedPropertiesStore.Update(id2, rp4);
             reportedPropertiesStore.InitSyncToCloud(id);
+            reportedPropertiesStore.InitSyncToCloud(id2);
 
             // Assert
             await Task.Delay(TimeSpan.FromSeconds(7));
 
             cloudSync.Verify(c => c.UpdateReportedProperties(id, It.IsAny<TwinCollection>()), Times.Once);
+            cloudSync.Verify(c => c.UpdateReportedProperties(id2, It.IsAny<TwinCollection>()), Times.Once);
             Assert.Single(receivedReportedProperties);
+            Assert.Single(receivedReportedPropertiesId2);
             Assert.Equal("{\"p1\":\"v14\",\"p2\":\"v2\",\"p3\":\"v32\",\"p4\":\"v4\"}", receivedReportedProperties[0].ToJson());
+            Assert.Equal("{\"p1\":\"v14\",\"p2\":\"v2\",\"p3\":\"v32\",\"p4\":\"v4\"}", receivedReportedPropertiesId2[0].ToJson());
         }
 
         static IEntityStore<string, TwinStoreEntity> GetReportedPropertiesEntityStore()
