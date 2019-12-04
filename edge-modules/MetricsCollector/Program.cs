@@ -33,7 +33,7 @@ namespace MetricsCollector
                 MqttTransportSettings mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
                 ITransportSettings[] transportSettings = { mqttSetting };
                 ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(transportSettings);
-                publisher = new IoTHubMetricsUpload(moduleClient);
+                publisher = new EventHubMetricUpload(moduleClient);
             }
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
