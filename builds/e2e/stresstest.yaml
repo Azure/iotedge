@@ -13,6 +13,8 @@ variables:
   #pool.name: ''
   #container.registry: ''
   #snitch.storage.account: ''
+  #analyzer.logAnalytics.enabled
+  #analyzer.logAnalytics.logType
   # Variables settable at queue time
   #edgelet.package.branchName
   #images.branchName
@@ -24,6 +26,9 @@ variables:
   #run.linux.arm64v8.docker: 'true/false'
   #run.windows.amd64.moby: 'true/false'
   #snitch.build.number: '1.1'
+  #twinTester.twinUpdateSize: ''
+  #twinTester.twinUpdateFrequency: 'xx:xx:xx.xx' 
+  #twinTester.twinUpdateFailureThreshold: 'xx:xx:xx.xx'
 
 jobs:
 ################################################################################
@@ -47,7 +52,7 @@ jobs:
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchStressAlertUrl'
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchStressAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -89,6 +94,14 @@ jobs:
           snitch.storage.account: '$(snitch.storage.account)'
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
+          analyzer.consumerGroupId: 'stress_linux_amd64'
+          analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
+          analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
+          logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
+          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
+          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
+          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
 
 ################################################################################
   - job: linux_arm32v7_moby
@@ -112,7 +125,7 @@ jobs:
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchStressAlertUrl'
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchStressAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -154,6 +167,14 @@ jobs:
           snitch.storage.account: '$(snitch.storage.account)'
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: $(loadGen.message.frequency.arm32v7)
+          analyzer.consumerGroupId: 'stress_linux_arm32v7'
+          analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
+          analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
+          logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
+          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
+          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
+          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
 
 ################################################################################
   - job: linux_arm64v8_docker
@@ -177,7 +198,7 @@ jobs:
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchStressAlertUrl'
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchStressAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -219,6 +240,14 @@ jobs:
           snitch.storage.account: '$(snitch.storage.account)'
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: $(loadGen.message.frequency.arm64v8)
+          analyzer.consumerGroupId: 'stress_linux_arm64v8'
+          analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
+          analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
+          logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
+          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
+          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
+          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
 
 ################################################################################
   - job: windows_amd64_moby
@@ -242,7 +271,7 @@ jobs:
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchStressAlertUrl'
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchStressAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -264,7 +293,6 @@ jobs:
           downloadPath: '$(Build.StagingDirectory)'
           artifactName: $(images.artifact.name.windows)
           itemPattern: |
-            $(images.artifact.name.windows)/CACertificates/*
             $(images.artifact.name.windows)/IotEdgeQuickstart/x64/*
             $(images.artifact.name.windows)/e2e_deployment_files/stress_deployment.template.windows.json
             $(images.artifact.name.windows)/scripts/windows/setup/IotEdgeSecurityDaemon.ps1
@@ -287,6 +315,14 @@ jobs:
           snitch.storage.account: '$(snitch.storage.account)'
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
+          analyzer.consumerGroupId: 'stress_windows_amd64'
+          analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
+          analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
+          logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
+          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
+          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
+          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
 
 ################################################################################
   - job: windows_servercore_amd64_moby
@@ -310,7 +346,7 @@ jobs:
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchStressAlertUrl'
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchStressAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -354,6 +390,14 @@ jobs:
           snitch.storage.account: '$(snitch.storage.account)'
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
+          analyzer.consumerGroupId: 'stress_windows_servercore_amd64'
+          analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
+          analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
+          logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
+          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
+          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
+          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
 
 ################################################################################
   - job: iotuap_amd64_moby
@@ -364,7 +408,6 @@ jobs:
       name: $(pool.name)
       demands:
         - agent-group -equals $(agent.group)
-        #- stress_iotuap_x64 -equals true
         - run-stress -equals true
         - runner-os-name -equals WinIoTCore_x64
     variables:
@@ -372,11 +415,11 @@ jobs:
     steps:
       - checkout: none
       - task: AzureKeyVault@1
-        displayName: 'Access Key Vault SEcrets'
+        displayName: 'Access Key Vault Secrets'
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchStressAlertUrl'
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,IotHubStressConnString,EventHubStressConnStr,StorageAccountMasterKeyStress,SnitchStressAlertUrl,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -421,3 +464,11 @@ jobs:
           snitch.storage.account: '$(snitch.storage.account)'
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
+          analyzer.consumerGroupId: 'stress_iotuap_amd64'
+          analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
+          analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
+          logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
+          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
+          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
+          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'

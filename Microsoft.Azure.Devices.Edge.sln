@@ -1,5 +1,4 @@
-﻿
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27130.0
 MinimumVisualStudioVersion = 10.0.40219.1
@@ -151,8 +150,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edg
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "load-gen", "edge-modules\load-gen\load-gen.csproj", "{54771470-860C-4853-9318-6DB4EA76B595}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MessagesAnalyzer", "edge-modules\MessagesAnalyzer\MessagesAnalyzer.csproj", "{047DC795-A159-4BFF-AC0F-4DCE51A79C2C}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LeafDevice", "smoke\LeafDevice\LeafDevice.csproj", "{C5CBC493-96A4-4628-A952-8C7B9EEF1441}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.WebJobs.Extensions.EdgeHub", "edge-modules\functions\binding\src\Microsoft.Azure.WebJobs.Extensions.EdgeHub\Microsoft.Azure.WebJobs.Extensions.EdgeHub.csproj", "{0D5C5996-7414-47D2-AF0F-C68E0E3F3AA4}"
@@ -185,6 +182,10 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test\Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.csproj", "{A5DFFB52-D8EA-4E1A-BF4F-8B9665C7DAFE}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Test", "test\Microsoft.Azure.Devices.Edge.Test\Microsoft.Azure.Devices.Edge.Test.csproj", "{08986FED-9283-47F1-B938-86D9C6E753E1}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "edge-modules", "edge-modules", "{FE4B8A39-CBB4-4046-BD27-9BA0CDAE370A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TwinTester", "edge-modules\TwinTester\TwinTester.csproj", "{76D29C31-EADC-49BE-9A15-3D1EE7571247}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -490,14 +491,6 @@ Global
 		{54771470-860C-4853-9318-6DB4EA76B595}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{54771470-860C-4853-9318-6DB4EA76B595}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{54771470-860C-4853-9318-6DB4EA76B595}.Release|Any CPU.Build.0 = Release|Any CPU
-		{047DC795-A159-4BFF-AC0F-4DCE51A79C2C}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
-		{047DC795-A159-4BFF-AC0F-4DCE51A79C2C}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
-		{047DC795-A159-4BFF-AC0F-4DCE51A79C2C}.CodeCoverage|Any CPU.ActiveCfg = Debug|Any CPU
-		{047DC795-A159-4BFF-AC0F-4DCE51A79C2C}.CodeCoverage|Any CPU.Build.0 = Debug|Any CPU
-		{047DC795-A159-4BFF-AC0F-4DCE51A79C2C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{047DC795-A159-4BFF-AC0F-4DCE51A79C2C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{047DC795-A159-4BFF-AC0F-4DCE51A79C2C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{047DC795-A159-4BFF-AC0F-4DCE51A79C2C}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C5CBC493-96A4-4628-A952-8C7B9EEF1441}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
 		{C5CBC493-96A4-4628-A952-8C7B9EEF1441}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
 		{C5CBC493-96A4-4628-A952-8C7B9EEF1441}.CodeCoverage|Any CPU.ActiveCfg = CodeCoverage|Any CPU
@@ -594,6 +587,14 @@ Global
 		{08986FED-9283-47F1-B938-86D9C6E753E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{08986FED-9283-47F1-B938-86D9C6E753E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{08986FED-9283-47F1-B938-86D9C6E753E1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{76D29C31-EADC-49BE-9A15-3D1EE7571247}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
+		{76D29C31-EADC-49BE-9A15-3D1EE7571247}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
+		{76D29C31-EADC-49BE-9A15-3D1EE7571247}.CodeCoverage|Any CPU.ActiveCfg = Debug|Any CPU
+		{76D29C31-EADC-49BE-9A15-3D1EE7571247}.CodeCoverage|Any CPU.Build.0 = Debug|Any CPU
+		{76D29C31-EADC-49BE-9A15-3D1EE7571247}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{76D29C31-EADC-49BE-9A15-3D1EE7571247}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{76D29C31-EADC-49BE-9A15-3D1EE7571247}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{76D29C31-EADC-49BE-9A15-3D1EE7571247}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -652,7 +653,6 @@ Global
 		{F8253E40-6EE0-4FFA-BF39-D133A504175E} = {54351E51-19CB-4DE3-8302-99846AB216CF}
 		{79E573DB-A6A8-4F6F-B5A0-DA2258EB82E6} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
 		{54771470-860C-4853-9318-6DB4EA76B595} = {578D5330-2F72-44C6-9DB5-C93B3F42C473}
-		{047DC795-A159-4BFF-AC0F-4DCE51A79C2C} = {578D5330-2F72-44C6-9DB5-C93B3F42C473}
 		{C5CBC493-96A4-4628-A952-8C7B9EEF1441} = {871A0862-7480-49C3-ACEB-9A60E9CE5B61}
 		{0D5C5996-7414-47D2-AF0F-C68E0E3F3AA4} = {1ABF19EE-7689-4EE3-A099-16111A8F16F4}
 		{C3BDC9FA-B7D8-44F3-970F-D24281335F46} = {33B7755E-D6F9-4F9B-86A8-5DFE9FEE674E}
@@ -666,6 +666,7 @@ Global
 		{B63C506E-5CB5-4DE8-8275-F7BA8354799E} = {54351E51-19CB-4DE3-8302-99846AB216CF}
 		{A5DFFB52-D8EA-4E1A-BF4F-8B9665C7DAFE} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
 		{08986FED-9283-47F1-B938-86D9C6E753E1} = {2300ED4C-1D5A-460F-8691-7C85E1162E0C}
+		{76D29C31-EADC-49BE-9A15-3D1EE7571247} = {FE4B8A39-CBB4-4046-BD27-9BA0CDAE370A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D71830F5-3AF5-46B4-8A9E-1DCE4F2253AC}
