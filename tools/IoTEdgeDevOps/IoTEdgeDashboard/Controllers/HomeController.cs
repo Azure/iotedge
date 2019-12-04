@@ -24,7 +24,7 @@ namespace IoTEdgeDashboard.Controllers
         {
             string masterBranch = "refs/heads/master";
             var buildManagement = new BuildManagement(new DevOpsAccessSetting(this._appConfig.PersonalAccessToken));
-            IList<VstsBuild> builds = await buildManagement.GetLatestBuildsAsync(BuildDefinitionExtension.MasterBranchReporting, masterBranch).ConfigureAwait(false);
+            IList<VstsBuild> builds = await buildManagement.GetLatestBuildsAsync(BuildExtension.MasterBranchReporting, masterBranch).ConfigureAwait(false);
 
             return this.View(
                 new DashboardViewModel
