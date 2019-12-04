@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher;
+    using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
@@ -20,7 +21,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
         readonly IMetricsScraper scraper;
         readonly IMetricsStorage storage;
         readonly IMetricsPublisher uploader;
-        readonly ISystemTime systemTime;
         readonly AsyncLock scrapeUploadLock = new AsyncLock();
         static readonly ILogger Log = Logger.Factory.CreateLogger<MetricsScraper>();
 
@@ -33,12 +33,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
         PeriodicTask scrape;
         PeriodicTask upload;
 
-        public MetricsWorker(IMetricsScraper scraper, IMetricsStorage storage, IMetricsPublisher uploader, ISystemTime systemTime = null)
+        public MetricsWorker(IMetricsScraper scraper, IMetricsStorage storage, IMetricsPublisher uploader)
         {
             this.scraper = Preconditions.CheckNotNull(scraper, nameof(scraper));
             this.storage = Preconditions.CheckNotNull(storage, nameof(storage));
             this.uploader = Preconditions.CheckNotNull(uploader, nameof(uploader));
-            this.systemTime = systemTime ?? SystemTime.Instance;
         }
 
         public void Start(TimeSpan scrapingInterval, TimeSpan uploadInterval)
@@ -52,34 +51,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             using (await this.scrapeUploadLock.LockAsync(cancellationToken))
             {
                 Log.LogInformation("Scraping Metrics");
-                List<Metric> metricsToPersist = new List<Metric>();
-                int numScrapedMetrics = 0;
-                foreach (Metric scrapedMetric in await this.scraper.ScrapeEndpointsAsync(cancellationToken))
-                {
-                    numScrapedMetrics++;
-                    // Get the previous scrape for this metric
-                    if (this.metrics.TryGetValue(scrapedMetric.GetMetricKey(), out Metric oldMetric))
-                    {
-                        // If the metric is unchanged, do nothing
-                        if (oldMetric.Value.Equals(scrapedMetric.Value))
-                        {
-                            continue;
-                        }
-                    }
+                IEnumerable<Metric> scrapedMetrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
+                Log.LogInformation($"Scraped Metrics");
 
-                    // if new metric or metric changed, save to local buffer and disk.
-                    metricsToPersist.Add(scrapedMetric);
-                    this.metrics[scrapedMetric.GetMetricKey()] = scrapedMetric;
-                }
-
-                Log.LogInformation($"Scraped {numScrapedMetrics} Metrics");
-
-                if (metricsToPersist.Any())
-                {
-                    Log.LogInformation("Storing Metrics");
-                    this.storage.WriteData(Newtonsoft.Json.JsonConvert.SerializeObject(metricsToPersist));
-                    Log.LogInformation("Stored Metrics");
-                }
+                IEnumerable<Metric> metricsToStore = this.RemoveDuplicateMetrics(scrapedMetrics);
+                Log.LogInformation("Storing Metrics");
+                await this.storage.StoreMetricsAsync(metricsToStore);
+                Log.LogInformation("Stored Metrics");
             }
         }
 
@@ -87,33 +65,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
         {
             using (await this.scrapeUploadLock.LockAsync(cancellationToken))
             {
-                Log.LogInformation($"Uploading Metrics. Last upload was at {this.lastUploadTime}");
-                DateTime currentUploadTime = this.systemTime.UtcNow;
-                int numMetricsUploaded = 0;
-                IEnumerable<Metric> metricsToUpload = this.GetMetricsToUpload(this.lastUploadTime).Select(metric =>
-                {
-                    numMetricsUploaded++;
-                    return metric;
-                });
+                Log.LogInformation($"Uploading Metrics");
+                IEnumerable<Metric> metricsToUpload = await this.storage.GetAllMetricsAsync();
                 await this.uploader.PublishAsync(metricsToUpload, cancellationToken);
-                Log.LogInformation($"Uploaded {numMetricsUploaded} Metrics");
+                Log.LogInformation($"Uploaded Metrics");
 
-                this.storage.RemoveOldEntries(currentUploadTime);
+                // Clear local cache so all metrics are stored next scrape
                 this.metrics.Clear();
-                this.lastUploadTime = currentUploadTime;
-            }
-        }
-
-        IEnumerable<Metric> GetMetricsToUpload(DateTime lastUploadTime)
-        {
-            // Get all metrics that have been stored since the last upload
-            foreach (KeyValuePair<DateTime, Func<string>> data in this.storage.GetData(lastUploadTime))
-            {
-                var fileMetrics = Newtonsoft.Json.JsonConvert.DeserializeObject<Metric[]>(data.Value()) ?? Enumerable.Empty<Metric>();
-                foreach (Metric metric in fileMetrics)
-                {
-                    yield return metric;
-                }
             }
         }
 
@@ -121,6 +79,26 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
         {
             this.scrape?.Dispose();
             this.upload?.Dispose();
+        }
+
+        private IEnumerable<Metric> RemoveDuplicateMetrics(IEnumerable<Metric> newMetrics)
+        {
+            foreach (Metric newMetric in newMetrics)
+            {
+                // Get the previous scrape for this metric
+                if (this.metrics.TryGetValue(newMetric.GetMetricKey(), out Metric oldMetric))
+                {
+                    // If the metric is unchanged, do nothing
+                    if (oldMetric.Value.Equals(newMetric.Value))
+                    {
+                        continue;
+                    }
+                }
+
+                // if new metric or metric changed, save to local buffer and disk.
+                this.metrics[newMetric.GetMetricKey()] = newMetric;
+                yield return newMetric;
+            }
         }
     }
 }

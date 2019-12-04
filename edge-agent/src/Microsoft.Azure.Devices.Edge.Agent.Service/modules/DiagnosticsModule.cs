@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher;
+    using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -29,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 .SingleInstance();
 
             // IMetricsStorage
-            builder.Register(c => new MetricsFileStorage(this.diagnosticConfig.MetricsStoragePath))
+            builder.RegisterType<MetricsStorage>()
                 .As<IMetricsStorage>()
                 .SingleInstance();
 
