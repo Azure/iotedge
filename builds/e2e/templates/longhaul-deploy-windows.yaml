@@ -19,6 +19,9 @@ parameters:
   analyzer.logAnalytics.logType: ''
   logAnalytics.workspaceId: ''
   logAnalytics.sharedKey: ''
+  twinTester.twinUpdateSize: ''
+  twinTester.twinUpdateFrequency: ''
+  twinTester.twinUpdateFailureThreshold: ''
   metricsCollector.metricsEndpointsCSV: ''
   metricsCollector.scrapeFrequencyInSecs: ''
   metricsCollector.uploadTarget: ''
@@ -66,6 +69,9 @@ steps:
           -LogAnalyticsLogType "${{ parameters['analyzer.logAnalytics.logType'] }}" `
           -LogAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" `
           -LogAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" `
+          -TwinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" `
+          -TwinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" `
+          -TwinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}" `
           -metricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" `
           -MetricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" `
           -MetricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}"

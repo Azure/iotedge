@@ -5,14 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Reflection;
-    using System.Threading;
-    using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Extensions.Logging.Abstractions;
-    using Moq;
-    using Newtonsoft.Json;
     using Xunit;
 
     public class PrometheousParserTest
@@ -35,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
                 Assert.Equal(fakeScrape[i].value, parsedMetrics[i].Value);
                 Assert.Equal(dateTime, parsedMetrics[i].TimeGeneratedUtc);
 
-                var tags = JsonConvert.DeserializeObject<Dictionary<string, string>>(parsedMetrics[i].Tags);
+                var tags = parsedMetrics[i].Tags;
                 Assert.Equal("fakeHub", tags["iothub"]);
                 Assert.Equal("fakeDevice", tags["edge_device"]);
                 Assert.Equal("1", tags["instance_number"]);

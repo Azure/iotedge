@@ -33,11 +33,11 @@ namespace MetricsCollector
                 MqttTransportSettings mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
                 ITransportSettings[] transportSettings = { mqttSetting };
                 ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(transportSettings);
-                publisher = new IoTHubMetricsUpload(moduleClient);
+                publisher = new EventHubMetricsUpload(moduleClient);
             }
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
-            using (MetricsScrapeAndUpload metricsScrapeAndUpload = new MetricsScrapeAndUpload(scraper, publisher))
+            using (MetricsScrapeAndUpload metricsScrapeAndUpload = new MetricsScrapeAndUpload(scraper, publisher, Guid.NewGuid()))
             {
                 TimeSpan scrapeAndUploadInterval = TimeSpan.FromSeconds(Settings.Current.ScrapeFrequencySecs);
                 metricsScrapeAndUpload.Start(scrapeAndUploadInterval);
