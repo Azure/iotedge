@@ -1,14 +1,15 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
+namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
     using System.Text;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
+    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
@@ -151,7 +152,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
         void SetModuleStats(SystemResources systemResources)
         {
-            foreach (DockerStats module in systemResources.ModuleStats)
+            DockerStats[] modules = JsonConvert.DeserializeObject<DockerStats[]>(systemResources.ModuleStats);
+            foreach (DockerStats module in modules)
             {
                 string name = module.name.Substring(1); // remove '/' from start of name
                 var tags = new string[] { name };

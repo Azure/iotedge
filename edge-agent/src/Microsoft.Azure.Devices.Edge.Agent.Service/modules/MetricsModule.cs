@@ -7,8 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
-    using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Edge.Util.Metrics.NullMetrics;
@@ -19,14 +17,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
         MetricsConfig metricsConfig;
         string iothubHostname;
         string deviceId;
-        string apiVersion;
 
-        public MetricsModule(MetricsConfig metricsConfig, string iothubHostname, string deviceId, string apiVersion)
+        public MetricsModule(MetricsConfig metricsConfig, string iothubHostname, string deviceId)
         {
             this.metricsConfig = Preconditions.CheckNotNull(metricsConfig, nameof(metricsConfig));
             this.iothubHostname = Preconditions.CheckNotNull(iothubHostname, nameof(iothubHostname));
             this.deviceId = Preconditions.CheckNotNull(deviceId, nameof(deviceId));
-            this.apiVersion = Preconditions.CheckNotNull(apiVersion, nameof(apiVersion));
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -40,9 +36,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             builder.Register(c => new Util.Metrics.Prometheus.Net.MetricsListener(this.metricsConfig.ListenerConfig, c.Resolve<IMetricsProvider>()))
                 .As<IMetricsListener>()
                 .SingleInstance();
-
-            builder.Register(c => new SystemResourcesMetrics(c.Resolve<IMetricsProvider>(), c.Resolve<IModuleManager>().GetSystemResourcesAsync, this.apiVersion))
-                            .SingleInstance();
 
             base.Load(builder);
         }
