@@ -2,14 +2,12 @@
 namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
 {
     using System;
-    using System.IO;
-    using System.Net;
     using System.Net.Http;
     using System.Net.Http.Headers;
     using System.Security.Cryptography;
     using System.Text;
+    using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
-    using Newtonsoft.Json;
 
     /* Sample code from:
     /* https://github.com/veyalla/MetricsCollector/blob/master/modules/MetricsCollector/AzureLogAnalytics.cs
@@ -39,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics
             }
         }
 
-        public async void PostAsync(string workspaceId, string sharedKey, string content, string logType)
+        public async Task PostAsync(string workspaceId, string sharedKey, string content, string logType)
         {
             Preconditions.CheckNotNull(workspaceId, "Log Analytics workspace ID cannot be empty.");
             Preconditions.CheckNotNull(sharedKey, "Log Analytics shared key cannot be empty.");
