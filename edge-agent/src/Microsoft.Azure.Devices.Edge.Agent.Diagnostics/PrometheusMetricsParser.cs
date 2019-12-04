@@ -8,7 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
     using System.Linq;
     using System.Text.RegularExpressions;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Newtonsoft.Json;
 
     public static class PrometheusMetricsParser
     {
@@ -52,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                             timeGeneratedUtc,
                             metricName,
                             metricValue,
-                            JsonConvert.SerializeObject(tags));
+                            tags);
                     }
                 }
             }
