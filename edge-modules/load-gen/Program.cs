@@ -34,16 +34,15 @@ namespace LoadGen
 
                 (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
-                // setup the message PeriodicTask
-                using (var messageTask = new PeriodicTask(
-                    () => GenerateMessageAsync(moduleClient, batchId),
-                    Settings.Current.MessageFrequency,
-                    Settings.Current.StartDelay,
-                    Logger,
-                    "Generate message"))
+                Logger.LogInformation("Load gen running.");
+                Logger.LogInformation($"Load gen delay start for {Settings.Current.TestStartDelay}.");
+                await Task.Delay(Settings.Current.TestStartDelay).ConfigureAwait(false);
+
+                var testStartTimestamp = DateTime.UtcNow;
+                while (!cts.IsCancellationRequested && DateTime.UtcNow - testStartTimestamp > Settings.Current.TestRunDuration)
                 {
-                    Logger.LogInformation("Load gen running.");
-                    await cts.Token.WhenCanceled();
+                    await GenerateMessageAsync(moduleClient, batchId, Settings.Current.TrackingId);
+                    await Task.Delay(Settings.Current.MessageFrequency).ConfigureAwait(false);
                 }
 
                 Logger.LogInformation("Closing connection to Edge Hub.");
@@ -51,15 +50,16 @@ namespace LoadGen
 
                 completed.Set();
                 handler.ForEach(h => GC.KeepAlive(h));
-                Logger.LogInformation("Load Gen complete. Exiting.");
             }
             catch (Exception ex)
             {
                 Logger.LogError($"Error occurred during load gen.\r\n{ex}");
             }
+
+            Logger.LogInformation("Load Gen complete. Exiting.");
         }
 
-        static async Task GenerateMessageAsync(ModuleClient client, Guid batchId)
+        static async Task GenerateMessageAsync(ModuleClient client, Guid batchId, string trackingId)
         {
             var random = new Random();
             var bufferPool = new BufferPool();
@@ -77,8 +77,14 @@ namespace LoadGen
                     messageIdCounter++;
                     message.Properties.Add("sequenceNumber", messageIdCounter.ToString());
                     message.Properties.Add("batchId", batchId.ToString());
+                    message.Properties.Add("trackingId", trackingId);
 
                     await client.SendEventAsync(Settings.Current.OutputName, message);
+
+                    if (messageIdCounter % 1000 == 0)
+                    {
+                        Logger.LogInformation($"Sending {messageIdCounter} messages.");
+                    }
                 }
             }
             catch (Exception e)
