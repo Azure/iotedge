@@ -145,11 +145,12 @@ $appProjectList.Add("Microsoft.Azure.Devices.Edge.Hub.Service.csproj")
 $appProjectList.Add("SimulatedTemperatureSensor.csproj")
 $appProjectList.Add("TemperatureFilter.csproj")
 $appProjectList.Add("load-gen.csproj")
-$appProjectList.Add("MessagesAnalyzer.csproj")
+$appProjectList.Add("TestAnalyzer.csproj")
 $appProjectList.Add("DirectMethodSender.csproj")
 $appProjectList.Add("DirectMethodReceiver.csproj")
 $appProjectList.Add("DirectMethodCloudSender.csproj")
 $appProjectList.Add("ModuleRestarter.csproj")
+$appProjectList.Add("TwinTester.csproj")
 $appProjectList.Add("MetricsCollector.csproj")
 
 # Download latest rocksdb ARM32 library
