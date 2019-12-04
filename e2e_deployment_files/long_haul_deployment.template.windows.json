@@ -14,7 +14,9 @@
                 "password": "<CR.Password>",
                 "address": "<Container_Registry>"
               }
-            }
+            },
+            "experimentalfeatures__enabled": "true",
+            "experimentalfeatures__enableMetrics": "true"
           }
         },
         "systemModules": {
