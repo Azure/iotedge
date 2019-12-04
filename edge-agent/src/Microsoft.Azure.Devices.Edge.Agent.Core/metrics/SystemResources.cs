@@ -63,12 +63,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
         public string name { get; set; }
         public Dictionary<string, DiskIO[]> blkio_stats { get; set; }
         public DockerCpuStats cpu_stats { get; set; }
-        public DockerCpuStats precpu_stats { get; set; }
         public MemoryStats memory_stats { get; set; }
         public Dictionary<string, NetworkInfo> networks { get; set; }
         public int num_procs { get; set; }
         public PidsStats pids_stats { get; set; }
-        public DateTime preread { get; set; }
         public DateTime read { get; set; }
     }
 

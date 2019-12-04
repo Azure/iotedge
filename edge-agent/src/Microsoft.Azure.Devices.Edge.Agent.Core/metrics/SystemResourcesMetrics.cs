@@ -34,6 +34,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
         IMetricsGauge diskRead;
         IMetricsGauge diskWrite;
 
+        // Used to calculate cpu percentage
+        Dictionary<string, ulong> previousModuleCpu = new Dictionary<string, ulong>();
+        Dictionary<string, ulong> previousSystemCpu = new Dictionary<string, ulong>();
+        Dictionary<string, DateTime> previousReadTime = new Dictionary<string, DateTime>();
+
         public SystemResourcesMetrics(IMetricsProvider metricsProvider, Func<Task<SystemResources>> getSystemResources, string apiVersion)
         {
             Preconditions.CheckNotNull(metricsProvider, nameof(metricsProvider));
@@ -105,7 +110,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
         {
             if (ApiVersion.ParseVersion(this.apiVersion).Value >= ApiVersion.Version20191105.Value)
             {
-                this.updateResources = new PeriodicTask(this.Update, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(30), logger, "Get system resources");
+                this.updateResources = new PeriodicTask(this.Update, TimeSpan.FromSeconds(15), TimeSpan.FromSeconds(30), logger, "Get system resources");
             }
             else
             {
@@ -148,9 +153,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
         {
             foreach (DockerStats module in systemResources.ModuleStats)
             {
-                var tags = new string[] { module.name };
+                string name = module.name.Substring(1); // remove '/' from start of name
+                var tags = new string[] { name };
 
-                this.cpuPercentage.Update(GetCpuUsage(module), tags);
+                this.cpuPercentage.Update(this.GetCpuUsage(module), tags);
                 this.totalMemory.Set(module.memory_stats.limit, tags);
                 this.usedMemory.Set((long)module.memory_stats.usage, tags);
                 this.createdPids.Set(module.pids_stats.current, tags);
@@ -162,33 +168,41 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             }
         }
 
-        static double GetCpuUsage(DockerStats module)
+        double GetCpuUsage(DockerStats module)
         {
-            if (module.precpu_stats == null)
-            {
-                return 0; // startup doesn't doesn't have a previous
-            }
-
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                double moduleDiff = module.cpu_stats.cpu_usage.total_usage - module.precpu_stats.cpu_usage.total_usage;
-                double systemDiff = module.cpu_stats.system_cpu_usage - module.precpu_stats.system_cpu_usage;
+                double result = 0;
+                if (this.previousModuleCpu.TryGetValue(module.name, out ulong prevModule) && this.previousSystemCpu.TryGetValue(module.name, out ulong prevSystem))
+                {
+                    double moduleDiff = module.cpu_stats.cpu_usage.total_usage - prevModule;
+                    double systemDiff = module.cpu_stats.system_cpu_usage - prevSystem;
+                    result = moduleDiff / systemDiff;
+                }
 
-                return moduleDiff / systemDiff;
+                this.previousModuleCpu[module.name] = module.cpu_stats.cpu_usage.total_usage;
+                this.previousSystemCpu[module.name] = module.cpu_stats.system_cpu_usage;
+
+                return result;
             }
             else
             {
-                double totalIntervals = (module.read - module.preread).TotalMilliseconds * 10; // Get number of 100ns intervals during read
-                ulong intervalsUsed = module.cpu_stats.cpu_usage.total_usage - module.precpu_stats.cpu_usage.total_usage;
+                double result = 0;
+                if (this.previousModuleCpu.TryGetValue(module.name, out ulong prevModule) && this.previousReadTime.TryGetValue(module.name, out DateTime prevTime))
+                {
+                    double totalIntervals = (module.read - prevTime).TotalMilliseconds * 10; // Get number of 100ns intervals during read
+                    ulong intervalsUsed = module.cpu_stats.cpu_usage.total_usage - prevModule;
 
-                if (totalIntervals > 0)
-                {
-                    return intervalsUsed / totalIntervals;
+                    if (totalIntervals > 0)
+                    {
+                        result = intervalsUsed / totalIntervals;
+                    }
                 }
-                else
-                {
-                    return 0;
-                }
+
+                this.previousModuleCpu[module.name] = module.cpu_stats.cpu_usage.total_usage;
+                this.previousReadTime[module.name] = module.read;
+
+                return result;
             }
         }
     }
