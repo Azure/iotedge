@@ -77,6 +77,60 @@
               "createOptions": ""
             }
           },
+          "twinTester1": {
+            "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-windows-<Architecture>",
+                "createOptions": ""
+            },
+            "type": "docker",
+            "version": "1.0",
+            "env": {
+                "TransportType": {
+                    "value": "amqp"
+                },
+                "ServiceClientConnectionString": {
+                    "value": "<ServiceClientConnectionString>"
+                },
+                "TwinUpdateSize": {
+                    "value": "<TwinUpdateSize>"
+                },
+                "TwinUpdateFrequency": {
+                    "value": "<TwinUpdateFrequency>"
+                },
+                "TwinUpdateFailureThreshold": {
+                    "value": "<TwinUpdateFailureThreshold>"
+                }
+            },
+            "status": "running",
+            "restartPolicy": "always"
+          },
+          "twinTester2": {
+            "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-windows-<Architecture>",
+                "createOptions": ""
+            },
+            "type": "docker",
+            "version": "1.0",
+            "env": {
+                "TransportType": {
+                    "value": "mqtt"
+                },
+                "ServiceClientConnectionString": {
+                    "value": "<ServiceClientConnectionString>"
+                },
+                "TwinUpdateSize": {
+                    "value": "<TwinUpdateSize>"
+                },
+                "TwinUpdateFrequency": {
+                    "value": "<TwinUpdateFrequency>"
+                },
+                "TwinUpdateFailureThreshold": {
+                    "value": "<TwinUpdateFailureThreshold>"
+                }
+            },
+            "status": "running",
+            "restartPolicy": "always"
+          },
           "tempSensor": {
             "version": "1.0",
             "type": "docker",
@@ -229,9 +283,6 @@
               "TargetModuleId": {
                 "value": "DirectMethodReceiver"
               },
-              "ClientTransportType": {
-                "value": "Amqp_Tcp_Only"
-              },
               "ServiceClientConnectionString": {
                 "value": "<ServiceClientConnectionString>"
               }
@@ -264,9 +315,6 @@
             "env": {
               "TargetModuleId": {
                 "value": "DirectMethodReceiver2"
-              },
-              "ClientTransportType": {
-                "value": "Mqtt_Tcp_Only"
               },
               "ServiceClientConnectionString": {
                 "value": "<ServiceClientConnectionString>"
