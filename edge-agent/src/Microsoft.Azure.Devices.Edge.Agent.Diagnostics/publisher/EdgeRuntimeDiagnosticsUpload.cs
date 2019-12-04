@@ -9,11 +9,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public sealed class EventHubMetricUpload : IMetricsPublisher
+    public sealed class EdgeRuntimeDiagnosticsUpload : IMetricsPublisher
     {
         readonly ModuleClient moduleClient;
 
-        public EventHubMetricUpload(ModuleClient moduleClient)
+        public EdgeRuntimeDiagnosticsUpload(ModuleClient moduleClient)
         {
             this.moduleClient = Preconditions.CheckNotNull(moduleClient, nameof(moduleClient));
         }
