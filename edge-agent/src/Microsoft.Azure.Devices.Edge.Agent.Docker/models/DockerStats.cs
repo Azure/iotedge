@@ -4,65 +4,98 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
 {
     using System;
     using System.Collections.Generic;
-    using System.Text;
+    using Newtonsoft.Json;
 
-#pragma warning disable SA1300 // Element should begin with upper-case letter
     public class DockerStats
     {
-        public string name { get; set; }
-        public Dictionary<string, DiskIO[]> blkio_stats { get; set; }
-        public DockerCpuStats cpu_stats { get; set; }
-        public MemoryStats memory_stats { get; set; }
-        public Dictionary<string, NetworkInfo> networks { get; set; }
-        public int num_procs { get; set; }
-        public PidsStats pids_stats { get; set; }
-        public DateTime read { get; set; }
+        [JsonProperty("name", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public string Name { get; set; }
+
+        [JsonProperty("blkio_stats", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public Dictionary<string, DiskIO[]> BlockIoStats { get; set; }
+
+        [JsonProperty("cpu_stats", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public DockerCpuStats CpuStats { get; set; }
+
+        [JsonProperty("memory_stats", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public MemoryStats MemoryStats { get; set; }
+
+        [JsonProperty("networks", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public Dictionary<string, NetworkInfo> Networks { get; set; }
+
+        [JsonProperty("num_procs", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public int NumProcesses { get; set; }
+
+        [JsonProperty("pids_stats", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public PidsStats PidsStats { get; set; }
+
+        [JsonProperty("read", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public DateTime Read { get; set; }
     }
 
     public class DiskIO
     {
-        public long major { get; set; }
-        public long minor { get; set; }
-        public string op { get; set; }
-        public long value { get; set; }
+        [JsonProperty("major", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public long Major { get; set; }
+
+        [JsonProperty("minor", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public long Minor { get; set; }
+
+        [JsonProperty("op", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public string Op { get; set; }
+
+        [JsonProperty("value", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public long Value { get; set; }
     }
 
     public class DockerCpuStats
     {
-        public CpuUsage cpu_usage { get; set; }
-        public int online_cpus { get; set; }
-        public ulong system_cpu_usage { get; set; }
+        [JsonProperty("cpu_usage", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public CpuUsage CpuUsage { get; set; }
+
+        [JsonProperty("online_cpus", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public int OnlineCpus { get; set; }
+
+        [JsonProperty("system_cpu_usage", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public ulong SystemCpuUsage { get; set; }
     }
 
     public class CpuUsage
     {
-        public ulong total_usage { get; set; }
-        public ulong usage_in_kernelmode { get; set; }
-        public ulong usage_in_usermode { get; set; }
+        [JsonProperty("total_usage", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public ulong TotalUsage { get; set; }
+
+        [JsonProperty("usage_in_kernelmode", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public ulong UsageInKernelmode { get; set; }
+
+        [JsonProperty("usage_in_usermode", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public ulong UsageInUsermode { get; set; }
     }
 
     public class MemoryStats
     {
-        public ulong limit { get; set; }
-        public ulong max_usage { get; set; }
-        public ulong usage { get; set; }
+        [JsonProperty("limit", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public ulong Limit { get; set; }
+
+        [JsonProperty("max_usage", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public ulong MaxUsage { get; set; }
+
+        [JsonProperty("usage", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public ulong Usage { get; set; }
     }
 
     public class NetworkInfo
     {
-        public int rx_bytes { get; set; }
-        public int rx_dropped { get; set; }
-        public int rx_errors { get; set; }
-        public int rx_packets { get; set; }
-        public int tx_bytes { get; set; }
-        public int tx_dropped { get; set; }
-        public int tx_errors { get; set; }
-        public int tx_packets { get; set; }
+        [JsonProperty("rx_bytes", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public int RxBytes { get; set; }
+
+        [JsonProperty("tx_bytes", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public int TxBytes { get; set; }
     }
 
     public class PidsStats
     {
-        public int current { get; set; }
+        [JsonProperty("current", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        public int Current { get; set; }
     }
-#pragma warning restore SA1300 // Element should begin with upper-case letter
 }

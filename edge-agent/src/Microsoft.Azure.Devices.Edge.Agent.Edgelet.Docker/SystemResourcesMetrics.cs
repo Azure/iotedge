@@ -155,18 +155,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             DockerStats[] modules = JsonConvert.DeserializeObject<DockerStats[]>(systemResources.ModuleStats);
             foreach (DockerStats module in modules)
             {
-                string name = module.name.Substring(1); // remove '/' from start of name
+                string name = module.Name.Substring(1); // remove '/' from start of name
                 var tags = new string[] { name };
 
                 this.cpuPercentage.Update(this.GetCpuUsage(module), tags);
-                this.totalMemory.Set(module.memory_stats.limit, tags);
-                this.usedMemory.Set((long)module.memory_stats.usage, tags);
-                this.createdPids.Set(module.pids_stats.current, tags);
+                this.totalMemory.Set(module.MemoryStats.Limit, tags);
+                this.usedMemory.Set((long)module.MemoryStats.Usage, tags);
+                this.createdPids.Set(module.PidsStats.Current, tags);
 
-                this.networkIn.Set(module.networks.Sum(n => n.Value.rx_bytes), tags);
-                this.networkOut.Set(module.networks.Sum(n => n.Value.tx_bytes), tags);
-                this.diskRead.Set(module.blkio_stats.Sum(io => io.Value.Where(d => d.op == "Read").Sum(d => d.value)), tags);
-                this.diskWrite.Set(module.blkio_stats.Sum(io => io.Value.Where(d => d.op == "Write").Sum(d => d.value)), tags);
+                this.networkIn.Set(module.Networks.Sum(n => n.Value.RxBytes), tags);
+                this.networkOut.Set(module.Networks.Sum(n => n.Value.TxBytes), tags);
+                this.diskRead.Set(module.BlockIoStats.Sum(io => io.Value.Where(d => d.Op == "Read").Sum(d => d.Value)), tags);
+                this.diskWrite.Set(module.BlockIoStats.Sum(io => io.Value.Where(d => d.Op == "Write").Sum(d => d.Value)), tags);
             }
         }
 
@@ -175,25 +175,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
                 double result = 0;
-                if (this.previousModuleCpu.TryGetValue(module.name, out ulong prevModule) && this.previousSystemCpu.TryGetValue(module.name, out ulong prevSystem))
+                if (this.previousModuleCpu.TryGetValue(module.Name, out ulong prevModule) && this.previousSystemCpu.TryGetValue(module.Name, out ulong prevSystem))
                 {
-                    double moduleDiff = module.cpu_stats.cpu_usage.total_usage - prevModule;
-                    double systemDiff = module.cpu_stats.system_cpu_usage - prevSystem;
+                    double moduleDiff = module.CpuStats.CpuUsage.TotalUsage - prevModule;
+                    double systemDiff = module.CpuStats.SystemCpuUsage - prevSystem;
                     result = moduleDiff / systemDiff;
                 }
 
-                this.previousModuleCpu[module.name] = module.cpu_stats.cpu_usage.total_usage;
-                this.previousSystemCpu[module.name] = module.cpu_stats.system_cpu_usage;
+                this.previousModuleCpu[module.Name] = module.CpuStats.CpuUsage.TotalUsage;
+                this.previousSystemCpu[module.Name] = module.CpuStats.SystemCpuUsage;
 
                 return result;
             }
             else
             {
                 double result = 0;
-                if (this.previousModuleCpu.TryGetValue(module.name, out ulong prevModule) && this.previousReadTime.TryGetValue(module.name, out DateTime prevTime))
+                if (this.previousModuleCpu.TryGetValue(module.Name, out ulong prevModule) && this.previousReadTime.TryGetValue(module.Name, out DateTime prevTime))
                 {
-                    double totalIntervals = (module.read - prevTime).TotalMilliseconds * 10; // Get number of 100ns intervals during read
-                    ulong intervalsUsed = module.cpu_stats.cpu_usage.total_usage - prevModule;
+                    double totalIntervals = (module.Read - prevTime).TotalMilliseconds * 10; // Get number of 100ns intervals during read
+                    ulong intervalsUsed = module.CpuStats.CpuUsage.TotalUsage - prevModule;
 
                     if (totalIntervals > 0)
                     {
@@ -201,8 +201,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
                     }
                 }
 
-                this.previousModuleCpu[module.name] = module.cpu_stats.cpu_usage.total_usage;
-                this.previousReadTime[module.name] = module.read;
+                this.previousModuleCpu[module.Name] = module.CpuStats.CpuUsage.TotalUsage;
+                this.previousReadTime[module.Name] = module.Read;
 
                 return result;
             }
