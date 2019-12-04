@@ -122,7 +122,7 @@
     .PARAMETER TwinUpdateFailureThreshold
         Specifies the longest period of time a twin update can take before being marked as a failure. This should be specified in DateTime format. Default is 00:01:00
 
-    .PARAMETER metricsEndpointsCSV
+    .PARAMETER MetricsEndpointsCSV
         Optional CSV of exposed endpoints for which to scrape metrics.
 
     .PARAMETER MetricsScrapeFrequencyInSecs
@@ -261,7 +261,7 @@ Param (
 
     [string] $LoadGenMessageFrequency = $null,
 
-    [string] $metricsEndpointsCSV = $null,
+    [string] $MetricsEndpointsCSV = $null,
 
     [string] $MetricsScrapeFrequencyInSecs = $null,
 
@@ -505,7 +505,7 @@ Function PrepareTestFromArtifacts
                 (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen.MessageFrequency>',$LoadGenMessageFrequency) | Set-Content $DeploymentWorkingFilePath
                 $escapedBuildId= $ArtifactImageBuildNumber -replace "\.",""
                 (Get-Content $DeploymentWorkingFilePath).replace('<ServiceClientConnectionString>',$IoTHubConnectionString) | Set-Content $DeploymentWorkingFilePath
-                (Get-Content $DeploymentWorkingFilePath).replace('<MetricsCollector.MetricsEndpointsCSV>',$metricsEndpointsCSV) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<MetricsCollector.MetricsEndpointsCSV>',$MetricsEndpointsCSV) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<MetricsCollector.ScrapeFrequencyInSecs>',$MetricsScrapeFrequencyInSecs) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<MetricsCollector.UploadTarget>',$MetricsUploadTarget) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.AlertUrl>',$SnitchAlertUrl) | Set-Content $DeploymentWorkingFilePath
