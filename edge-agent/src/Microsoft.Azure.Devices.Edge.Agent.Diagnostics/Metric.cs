@@ -6,15 +6,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
     using System.Collections.Generic;
     using System.Text;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Newtonsoft.Json;
 
     public sealed class Metric : IEquatable<Metric>
     {
         public DateTime TimeGeneratedUtc { get; }
         public string Name { get; }
         public double Value { get; }
-        public string Tags { get; }
+        public Dictionary<string, string> Tags { get; }
 
-        public Metric(DateTime timeGeneratedUtc, string name, double value, string tags)
+        public Metric(DateTime timeGeneratedUtc, string name, double value, Dictionary<string, string> tags)
         {
             Preconditions.CheckArgument(timeGeneratedUtc.Kind == DateTimeKind.Utc, $"Metric {nameof(timeGeneratedUtc)} parameter only supports in UTC.");
             this.TimeGeneratedUtc = timeGeneratedUtc;
@@ -33,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             // when upgraded to .net standard 2.1: https://docs.microsoft.com/en-us/dotnet/api/system.hashcode.combine?view=netstandard-2.1
             int hash = 17;
             hash = hash * 31 + this.Name.GetHashCode();
-            hash = hash * 31 + this.Tags.GetHashCode();
+            hash = hash * 31 + JsonConvert.SerializeObject(this.Tags).GetHashCode();
 
             return hash;
         }
@@ -43,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             return this.TimeGeneratedUtc == other.TimeGeneratedUtc &&
                 this.Name == other.Name &&
                 this.Value == other.Value &&
-                this.Tags == other.Tags;
+                JsonConvert.SerializeObject(this.Tags) == JsonConvert.SerializeObject(other.Tags);
         }
     }
 }

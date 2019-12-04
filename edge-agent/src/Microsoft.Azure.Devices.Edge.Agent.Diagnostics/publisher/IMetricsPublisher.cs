@@ -2,7 +2,6 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
 {
-    using System;
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;

@@ -28,25 +28,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
 
         public async Task PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
         {
-            IEnumerable<Metric> guidTaggedMetrics = this.GetGuidTaggedMetrics(metrics);
             try
             {
-                await AzureLogAnalytics.Instance.PostAsync(this.workspaceId, this.workspaceKey, JsonConvert.SerializeObject(guidTaggedMetrics), this.logType);
+                await AzureLogAnalytics.Instance.PostAsync(this.workspaceId, this.workspaceKey, JsonConvert.SerializeObject(metrics), this.logType);
                 Log.LogInformation($"Successfully sent metrics to LogAnalytics");
             }
             catch (Exception e)
             {
                 Log.LogError($"Error uploading metrics to LogAnalytics: {e}");
-            }
-        }
-
-        IEnumerable<Metric> GetGuidTaggedMetrics(IEnumerable<Metric> originalMetrics)
-        {
-            foreach (Metric metric in originalMetrics)
-            {
-                Dictionary<string, string> tagsWithGuid = JsonConvert.DeserializeObject<Dictionary<string, string>>(metric.Tags);
-                tagsWithGuid.Add("guid", this.guid.ToString());
-                yield return new Metric(metric.TimeGeneratedUtc, metric.Name, metric.Value, JsonConvert.SerializeObject(tagsWithGuid));
             }
         }
     }
