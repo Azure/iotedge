@@ -26,16 +26,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             this.guid = Preconditions.CheckNotNull(guid);
         }
 
-        IEnumerable<Metric> GetGuidTaggedMetrics(IEnumerable<Metric> originalMetrics)
-        {
-            foreach (Metric metric in originalMetrics)
-            {
-                Dictionary<string, string> tagsWithGuid = JsonConvert.DeserializeObject<Dictionary<string, string>>(metric.Tags);
-                tagsWithGuid.Add("guid", this.guid.ToString());
-                yield return new Metric(metric.TimeGeneratedUtc, metric.Name, metric.Value, JsonConvert.SerializeObject(tagsWithGuid));
-            }
-        }
-
         public async Task PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
         {
             IEnumerable<Metric> guidTaggedMetrics = this.GetGuidTaggedMetrics(metrics);
@@ -47,6 +37,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             catch (Exception e)
             {
                 Log.LogError($"Error uploading metrics to LogAnalytics: {e}");
+            }
+        }
+
+        IEnumerable<Metric> GetGuidTaggedMetrics(IEnumerable<Metric> originalMetrics)
+        {
+            foreach (Metric metric in originalMetrics)
+            {
+                Dictionary<string, string> tagsWithGuid = JsonConvert.DeserializeObject<Dictionary<string, string>>(metric.Tags);
+                tagsWithGuid.Add("guid", this.guid.ToString());
+                yield return new Metric(metric.TimeGeneratedUtc, metric.Name, metric.Value, JsonConvert.SerializeObject(tagsWithGuid));
             }
         }
     }
