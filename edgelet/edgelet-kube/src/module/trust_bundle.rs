@@ -12,6 +12,7 @@ use kube_client::TokenSource;
 use crate::convert::trust_bundle_to_config_map;
 use crate::{Error, ErrorKind, KubeModuleRuntime};
 
+#[allow(clippy::needless_pass_by_value)]
 pub fn init_trust_bundle<T, S>(
     runtime: &KubeModuleRuntime<T, S>,
     crypto: impl GetTrustBundle,
