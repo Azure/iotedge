@@ -29,12 +29,6 @@ spec:
           env:
           - name: "IOTEDGE_LOG"
             value: "debug"
-          - name: "IOTEDGE_HAS_CLUSTER_RBAC"
-          {{- if .Values.iotedged.data.allowClusterRBAC }}
-            value: "true"
-          {{else}}
-            value: "false"
-          {{end}}
           volumeMounts:
           - name: config
             mountPath: "/etc/iotedged"

@@ -117,7 +117,7 @@ impl MakeModuleRuntime
             .map(|(config, mut client)| {
                 client
                     .is_subject_allowed(Some("nodes".to_string()), Some("list".to_string()))
-                    .map(|is_allowed| settings.with_cluster_rbac(is_allowed))
+                    .map(|is_allowed| settings.with_nodes_rbac(is_allowed))
                     .map_err(|err| Error::from(err.context(ErrorKind::Initialization)))
                     .map(|settings| KubeModuleRuntime::new(KubeClient::new(config), settings))
                     .and_then(move |runtime| init_trust_bundle(&runtime, crypto).map(|_| runtime))
@@ -190,7 +190,7 @@ where
             name: String,
             nodes_count: u32,
         };
-        let fut = if self.settings.has_cluster_rbac() {
+        let fut = if self.settings.has_nodes_rbac() {
             future::Either::A(
                 self.client
                     .lock()
@@ -399,9 +399,9 @@ mod tests {
 
     #[test]
     fn runtime_get_system_info_no_rbac() {
-        let more_settings = json!({"has_cluster_rbac" : "false"});
+        let more_settings = json!({"has_nodes_rbac" : "false"});
         let settings = make_settings(Option::Some(more_settings));
-        assert_eq!(settings.has_cluster_rbac(), false);
+        assert_eq!(settings.has_nodes_rbac(), false);
         let dispatch_table = routes!(
             GET "/api/v1/nodes" => list_node_handler(),
         );
@@ -420,9 +420,9 @@ mod tests {
 
     #[test]
     fn runtime_get_system_info_rbac_set() {
-        let more_settings = json!({"has_cluster_rbac" : "true"});
+        let more_settings = json!({"has_nodes_rbac" : "true"});
         let settings = make_settings(Option::Some(more_settings));
-        assert_eq!(settings.has_cluster_rbac(), true);
+        assert_eq!(settings.has_nodes_rbac(), true);
         let dispatch_table = routes!(
             GET "/api/v1/nodes" => list_node_handler(),
         );

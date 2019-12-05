@@ -24,8 +24,8 @@ pub struct Settings {
     device_id: Option<String>,
     device_hub_selector: String,
     proxy: ProxySettings,
-    #[serde(default = "Settings::default_cluster_rbac")]
-    has_cluster_rbac: bool,
+    #[serde(default = "Settings::default_nodes_rbac")]
+    has_nodes_rbac: bool,
 }
 
 impl Settings {
@@ -58,8 +58,8 @@ impl Settings {
         self
     }
 
-    pub fn with_cluster_rbac(mut self, has_cluster_rbac: bool) -> Self {
-        self.has_cluster_rbac = has_cluster_rbac;
+    pub fn with_nodes_rbac(mut self, has_nodes_rbac: bool) -> Self {
+        self.has_nodes_rbac = has_nodes_rbac;
         self
     }
 
@@ -83,11 +83,11 @@ impl Settings {
         &self.device_hub_selector
     }
 
-    pub fn has_cluster_rbac(&self) -> bool {
-        self.has_cluster_rbac
+    pub fn has_nodes_rbac(&self) -> bool {
+        self.has_nodes_rbac
     }
 
-    pub fn default_cluster_rbac() -> bool {
+    pub fn default_nodes_rbac() -> bool {
         true
     }
 }
