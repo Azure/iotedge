@@ -46,6 +46,7 @@ namespace MetricsCollector
                 foreach (Metric metric in metrics)
                 {
                     metric.Tags.Add("guid", this.guid.ToString());
+                    Logger.LogInformation(JsonConvert.SerializeObject(metric), Formatting.Indented); // for debugging remove later
                 }
 
                 await this.publisher.PublishAsync(metrics, cancellationToken);

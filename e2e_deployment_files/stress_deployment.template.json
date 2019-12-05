@@ -326,7 +326,7 @@
                 "MetricsEndpointsCSV": {
                   "value": "<MetricsCollector.MetricsEndpointsCSV>"
                 },
-                "ScrapeFrequencySecs": {
+                "ScrapeFrequencyInSecs": {
                     "value": "<MetricsCollector.ScrapeFrequencyInSecs>"
                 },
                 "UploadTarget": {
