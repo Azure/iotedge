@@ -29,7 +29,7 @@ namespace LoadGen
                     configuration.GetValue<ulong>("messageSizeInBytes", 1024),
                     configuration.GetValue("transportType", TransportType.Amqp_Tcp_Only),
                     configuration.GetValue("outputName", "output1"),
-                    configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(5)),
+                    configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
                     configuration.GetValue("testDuration", TimeSpan.MaxValue),
                     configuration.GetValue("trackingId", string.Empty));
             });

@@ -15,8 +15,6 @@ namespace LoadGen
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("LoadGen");
 
-        static long messageIdCounter = 0;
-
         static async Task Main()
         {
             Logger.LogInformation($"Starting load gen with the following settings:\r\n{Settings.Current}");
@@ -36,13 +34,27 @@ namespace LoadGen
 
                 Logger.LogInformation("Load gen running.");
                 Logger.LogInformation($"Load gen delay start for {Settings.Current.TestStartDelay}.");
-                await Task.Delay(Settings.Current.TestStartDelay).ConfigureAwait(false);
+                await Task.Delay(Settings.Current.TestStartDelay);
 
                 DateTime testStartAt = DateTime.UtcNow;
+                long messageIdCounter = 1;
                 while (!cts.IsCancellationRequested && DateTime.UtcNow - testStartAt < Settings.Current.TestDuration)
                 {
-                    await GenerateMessageAsync(moduleClient, batchId, Settings.Current.TrackingId);
-                    await Task.Delay(Settings.Current.MessageFrequency).ConfigureAwait(false);
+                    try
+                    {
+                        await SendEventAsync(moduleClient, batchId, Settings.Current.TrackingId, messageIdCounter);
+                        messageIdCounter++;
+                        await Task.Delay(Settings.Current.MessageFrequency).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError(ex, "Error occurred during load gen");
+                    }
+                    
+                    if (messageIdCounter % 1000 == 0)
+                    {
+                        Logger.LogInformation($"Sent {messageIdCounter} messages.");
+                    }
                 }
 
                 Logger.LogInformation("Closing connection to Edge Hub.");
@@ -53,13 +65,13 @@ namespace LoadGen
             }
             catch (Exception ex)
             {
-                Logger.LogError($"Error occurred during load gen.\r\n{ex}");
+                Logger.LogError(ex, "Error occurred during load gen.");
             }
 
             Logger.LogInformation("Load Gen complete. Exiting.");
         }
 
-        static async Task GenerateMessageAsync(ModuleClient client, Guid batchId, string trackingId)
+        static async Task SendEventAsync(ModuleClient client, Guid batchId, string trackingId, long messageId)
         {
             var random = new Random();
             var bufferPool = new BufferPool();
@@ -74,22 +86,16 @@ namespace LoadGen
                     // build message
                     var messageBody = new { data = data.Data };
                     var message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)));
-                    messageIdCounter++;
-                    message.Properties.Add("sequenceNumber", messageIdCounter.ToString());
+                    message.Properties.Add("sequenceNumber", messageId.ToString());
                     message.Properties.Add("batchId", batchId.ToString());
                     message.Properties.Add("trackingId", trackingId);
 
                     await client.SendEventAsync(Settings.Current.OutputName, message);
-
-                    if (messageIdCounter % 1000 == 0)
-                    {
-                        Logger.LogInformation($"Sending {messageIdCounter} messages.");
-                    }
                 }
             }
             catch (Exception e)
             {
-                Logger.LogError($"[GenerateMessageAsync] Sequence number {messageIdCounter}, BatchId: {batchId.ToString()};{Environment.NewLine}{e}");
+                Logger.LogError($"[SendEventAsync] Sequence number {messageId}, BatchId: {batchId.ToString()};{Environment.NewLine}{e}");
             }
         }
     }
