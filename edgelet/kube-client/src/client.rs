@@ -893,7 +893,6 @@ mod tests {
 
     #[test]
     fn is_subject_allowed_is_false() {
-
         let service = service_fn(
             move |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
                 let mut res = Response::new(Body::from(ACCESS_REVIEW_DENIED));
@@ -904,8 +903,8 @@ mod tests {
         let mut client = make_test_client(service);
 
         let fut = client
-        .is_subject_allowed(Some("nodes".to_string()), Some("list".to_string()))
-        .map(|is_allowed| assert!(!is_allowed));
+            .is_subject_allowed(Some("nodes".to_string()), Some("list".to_string()))
+            .map(|is_allowed| assert!(!is_allowed));
 
         Runtime::new()
             .unwrap()
