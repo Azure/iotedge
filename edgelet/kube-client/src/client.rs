@@ -124,7 +124,7 @@ where
                         RequestType::SelfSubjectAccessReviewCreate,
                     )))
                 })
-                .and_then(|ssar| Ok(ssar.status.map(|status| status.allowed).unwrap_or(false)))
+                .and_then(|ssar| Ok(ssar.status.map_or(false, |status| status.allowed)))
         })
         .into_future()
         .flatten()
