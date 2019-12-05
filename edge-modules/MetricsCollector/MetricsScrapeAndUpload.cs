@@ -11,6 +11,7 @@ namespace MetricsCollector
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
+    using System.Linq;
 
     class MetricsScrapeAndUpload : IDisposable
     {
@@ -43,13 +44,12 @@ namespace MetricsCollector
             try
             {
                 IEnumerable<Metric> metrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
-                foreach (Metric metric in metrics)
-                {
+                IEnumerable<Metric> metricsWithTags = metrics.Select(metric => {
                     metric.Tags.Add("guid", this.guid.ToString());
-                    Logger.LogInformation(JsonConvert.SerializeObject(metric), Formatting.Indented); // for debugging remove later
-                }
+                    return metric;
+                });
 
-                await this.publisher.PublishAsync(metrics, cancellationToken);
+                await this.publisher.PublishAsync(metricsWithTags, cancellationToken);
 
                 Logger.LogInformation("Successfully scraped and uploaded metrics");
             }
