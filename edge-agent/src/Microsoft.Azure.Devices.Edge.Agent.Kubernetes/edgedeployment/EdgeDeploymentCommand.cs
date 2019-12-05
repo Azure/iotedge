@@ -22,7 +22,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     {
         readonly IKubernetes client;
         readonly IReadOnlyCollection<IModule> modules;
-        readonly ModuleSet currentmodules;
         readonly IRuntimeInfo runtimeInfo;
         readonly Lazy<string> id;
         readonly ICombinedConfigProvider<CombinedKubernetesConfig> configProvider;
@@ -30,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         readonly ResourceName resourceName;
         readonly JsonSerializerSettings serializerSettings;
         readonly KubernetesModuleOwner moduleOwner;
+        readonly Option<EdgeDeploymentDefinition> activeDeployment;
 
         // We use the sum of the IDs of the underlying commands as the id for this group
         // command.
@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             ResourceName resourceName,
             IKubernetes client,
             IEnumerable<IModule> desiredmodules,
-            ModuleSet currentmodules,
+            Option<EdgeDeploymentDefinition> activeDeployment,
             IRuntimeInfo runtimeInfo,
             ICombinedConfigProvider<CombinedKubernetesConfig> configProvider,
             KubernetesModuleOwner moduleOwner)
@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             this.resourceName = Preconditions.CheckNotNull(resourceName, nameof(resourceName));
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.modules = Preconditions.CheckNotNull(desiredmodules, nameof(desiredmodules)).ToList();
-            this.currentmodules = Preconditions.CheckNotNull(currentmodules, nameof(currentmodules));
+            this.activeDeployment = activeDeployment;
             this.runtimeInfo = Preconditions.CheckNotNull(runtimeInfo, nameof(runtimeInfo));
             this.configProvider = Preconditions.CheckNotNull(configProvider, nameof(configProvider));
             this.id = new Lazy<string>(() => this.modules.Aggregate(string.Empty, (prev, module) => module.Name + prev));
@@ -135,13 +135,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     module =>
                     {
                         var combinedConfig = this.configProvider.GetCombinedConfig(module, this.runtimeInfo);
-                        // TODO: this is a workaround in preview to keep Agent from updating
-                        var image = combinedConfig.Image;
-                        if (module.Name == Core.Constants.EdgeAgentModuleName &&
-                            this.currentmodules.Modules.TryGetValue(Core.Constants.EdgeAgentModuleName, out IModule edgeAgentCurrentModule))
+                        string image = combinedConfig.Image;
+
+                        // TODO: this is a workaround in preview to keep Edge Agent from updating itself
+                        if (module.Name == Core.Constants.EdgeAgentModuleName)
                         {
-                            var currentAgent = this.configProvider.GetCombinedConfig(edgeAgentCurrentModule, this.runtimeInfo);
-                            image = currentAgent.Image;
+                            var agentImage = this.FindAgentImageAsync(token).ConfigureAwait(false);
+                            agentImage.GetAwaiter().GetResult().ForEach(foundImage => image = foundImage);
                         }
 
                         var authConfig = combinedConfig.ImagePullSecret.Map(secret => new AuthConfig(secret.Name));
@@ -149,38 +149,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     })
                 .ToList();
 
-            Option<EdgeDeploymentDefinition> activeDeployment;
-            try
-            {
-                JObject currentDeployment = await this.client.GetNamespacedCustomObjectAsync(
-                    Constants.EdgeDeployment.Group,
-                    Constants.EdgeDeployment.Version,
-                    this.deviceNamespace,
-                    Constants.EdgeDeployment.Plural,
-                    this.resourceName,
-                    token) as JObject;
-
-                activeDeployment = Option.Maybe(currentDeployment)
-                    .Map(deployment => deployment.ToObject<EdgeDeploymentDefinition>(JsonSerializer.Create(this.serializerSettings)));
-            }
-            catch (Exception parseException)
-            {
-                Events.FindActiveDeploymentFailed(this.resourceName, parseException);
-                activeDeployment = Option.None<EdgeDeploymentDefinition>();
-            }
-
             var metadata = new V1ObjectMeta(
                 name: this.resourceName,
                 namespaceProperty: this.deviceNamespace,
                 ownerReferences: this.moduleOwner.ToOwnerReferences());
 
             // need resourceVersion for Replace.
-            activeDeployment.ForEach(deployment => metadata.ResourceVersion = deployment.Metadata.ResourceVersion);
+            this.activeDeployment.ForEach(deployment => metadata.ResourceVersion = deployment.Metadata.ResourceVersion);
 
             var customObjectDefinition = new EdgeDeploymentDefinition(Constants.EdgeDeployment.ApiVersion, Constants.EdgeDeployment.Kind, metadata, modulesList);
             var crdObject = JObject.FromObject(customObjectDefinition, JsonSerializer.Create(this.serializerSettings));
 
-            await activeDeployment.Match(
+            await this.activeDeployment.Match(
                 async a =>
                 {
                     Events.ReplaceEdgeDeployment(customObjectDefinition);
@@ -206,10 +186,36 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 });
         }
 
-        public Task UndoAsync(CancellationToken token)
+        Task<Option<string>> FindAgentImageAsync(CancellationToken token)
         {
-            return Task.CompletedTask;
+            var agentImage = this.activeDeployment.Match(
+                edgeDeployment =>
+                {
+                    var currentAgent = this.activeDeployment.OrDefault().Spec.First(agentModule => agentModule.Name == Core.Constants.EdgeAgentModuleName);
+                    return Task.FromResult(Option.Some(currentAgent.Config.Image));
+                },
+                async () =>
+                {
+                    try
+                    {
+                        // When CRD has not been created, use helm chart deployment details
+                        var agentDeployment = await this.client.ReadNamespacedDeploymentAsync(
+                                Core.Constants.EdgeAgentModuleName.ToLower(),
+                                this.deviceNamespace,
+                                cancellationToken: token);
+                        return Option.Some(agentDeployment.Spec.Template.Spec.Containers.First(container => container.Name == Core.Constants.EdgeAgentModuleName.ToLower()).Image);
+                    }
+                    catch (Exception e)
+                    {
+                        Events.FindActiveDeploymentFailed(Core.Constants.EdgeAgentModuleName, e);
+                        return Option.None<string>();
+                    }
+                });
+
+            return agentImage;
         }
+
+        public Task UndoAsync(CancellationToken token) => Task.CompletedTask;
 
         public string Show() => $"Create an EdgeDeployment with modules: ({string.Join(", ", this.modules.Select(m => m.Name))}\n)";
 
@@ -229,30 +235,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 ReplaceDeployment
             }
 
-            public static void CreateEdgeDeployment(EdgeDeploymentDefinition deployment)
-            {
-                Log.LogDebug((int)EventIds.CreateDeployment, $"Create edge deployment: {deployment.Metadata.Name}");
-            }
+            public static void CreateEdgeDeployment(EdgeDeploymentDefinition deployment) => Log.LogDebug((int)EventIds.CreateDeployment, $"Create edge deployment: {deployment.Metadata.Name}");
 
-            public static void FailedToFindSecret(string key, Exception exception)
-            {
-                Log.LogDebug((int)EventIds.FailedToFindSecret, exception, $"Failed to find image pull secret ${key}");
-            }
+            public static void FailedToFindSecret(string key, Exception exception) => Log.LogDebug((int)EventIds.FailedToFindSecret, exception, $"Failed to find image pull secret ${key}");
 
-            public static void SecretCreateUpdateFailed(string key, Exception exception)
-            {
-                Log.LogError((int)EventIds.SecretCreateUpdateFailed, exception, $"Failed to create or update image pull secret ${key}");
-            }
+            public static void SecretCreateUpdateFailed(string key, Exception exception) => Log.LogError((int)EventIds.SecretCreateUpdateFailed, exception, $"Failed to create or update image pull secret ${key}");
 
-            public static void FindActiveDeploymentFailed(ResourceName resourceName, Exception parseException)
-            {
-                Log.LogDebug((int)EventIds.FindActiveDeploymentFailed, parseException, $"Failed to find active edge deployment ${resourceName}");
-            }
+            public static void FindActiveDeploymentFailed(string deploymentName, Exception exception) => Log.LogDebug((int)EventIds.FindActiveDeploymentFailed, exception, $"Failed to find active edge deployment ${deploymentName}");
 
-            public static void ReplaceEdgeDeployment(EdgeDeploymentDefinition deployment)
-            {
-                Log.LogDebug((int)EventIds.ReplaceDeployment, $"Replace edge deployment: {deployment.Metadata.Name}");
-            }
+            public static void ReplaceEdgeDeployment(EdgeDeploymentDefinition deployment) => Log.LogDebug((int)EventIds.ReplaceDeployment, $"Replace edge deployment: {deployment.Metadata.Name}");
         }
     }
 }
