@@ -3,6 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Service
 {
     using System;
+    using System.IO;
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Autofac;
@@ -25,7 +26,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             this.metricsConfig = Preconditions.CheckNotNull(metricsConfig, nameof(metricsConfig));
             this.iothubHostname = Preconditions.CheckNotNull(iothubHostname, nameof(iothubHostname));
             this.deviceId = Preconditions.CheckNotNull(deviceId, nameof(deviceId));
-            this.edgeAgentStorageFolder = Preconditions.CheckNotNull(edgeAgentStorageFolder, nameof(edgeAgentStorageFolder));
+            if (!Directory.Exists(Preconditions.CheckNotNull(edgeAgentStorageFolder, nameof(edgeAgentStorageFolder)))
+            {
+                throw new ArgumentException("Edge Agent storage folder not defined");
+            }
+            this.edgeAgentStorageFolder = edgeAgentStorageFolder;
         }
 
         protected override void Load(ContainerBuilder builder)
