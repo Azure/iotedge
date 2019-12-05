@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
     [Integration]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
-    public class TelemetryTest : IClassFixture<ProtocolHeadFixture>
+    public class TelemetryTest
     {
         [Theory]
         [MemberData(nameof(TestSettings.TransportSettings), MemberType = typeof(TestSettings))]
@@ -231,7 +231,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", transportSettings);
                 await receiver.SetupReceiveMessageHandler();
 
-                await Task.Delay(TimeSpan.FromSeconds(20));
+                await Task.Delay(TimeSpan.FromSeconds(60));
                 ISet<int> receivedMessages = receiver.GetReceivedMessageIndices();
 
                 Assert.Equal(messagesCount, receivedMessages.Count);

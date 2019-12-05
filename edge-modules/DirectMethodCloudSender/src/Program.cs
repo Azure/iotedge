@@ -2,135 +2,101 @@
 namespace DirectMethodCloudSender
 {
     using System;
-    using System.IO;
     using System.Net;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
-    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
-    using IotHubConnectionStringBuilder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder;
-    using Message = Microsoft.Azure.Devices.Client.Message;
-    using TransportType = Microsoft.Azure.Devices.Client.TransportType;
+    using TransportType2 = Microsoft.Azure.Devices.TransportType;
 
     class Program
     {
         const string RouteOutputName = "output1";
         static readonly ILogger Logger = ModuleUtil.CreateLogger("DirectMethodCloudSender");
 
-        public static int Main() => MainAsync().Result;
-
-        static async Task<int> MainAsync()
+        public static async Task Main()
         {
-            Logger.LogInformation("DirectMethodCloudSender Main() started.");
+            Logger.LogInformation($"Starting DirectMethodCloudSender with the following settings:\r\n{Settings.Current}");
 
-            IConfiguration configuration = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("config/appsettings.json", optional: true)
-                .AddEnvironmentVariables()
-                .Build();
+            try
+            {
+                string serviceClientConnectionString = Settings.Current.ServiceClientConnectionString;
+                Uri analyzerUrl = Settings.Current.AnalyzerUrl;
 
-            string serviceClientConnectionString = Preconditions.CheckNonWhiteSpace(configuration.GetValue<string>("ServiceClientConnectionString"), "ServiceClientConnectionString");
-            // Get device id of this device, exposed as a system variable by the iot edge runtime
-            string targetDeviceId = configuration.GetValue<string>("IOTEDGE_DEVICEID");
-            string targetModuleId = configuration.GetValue("TargetModuleId", "DirectMethodReceiver");
-            TransportType transportType = configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only);
-            TimeSpan dmDelay = configuration.GetValue("DirectMethodDelay", TimeSpan.FromSeconds(5));
-            string analyzerUrl = configuration.GetValue("AnalyzerUrl", "http://analyzer:15000");
+                ServiceClient serviceClient = ServiceClient.CreateFromConnectionString(serviceClientConnectionString, (TransportType2)Settings.Current.TransportType);
+                AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = analyzerUrl.AbsoluteUri };
 
-            var analyzerClient = new AnalyzerClient { BaseUrl = analyzerUrl };
+                (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
-            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
+                await CallDirectMethodFromCloud(serviceClient, Settings.Current.DirectMethodDelay, analyzerClient, cts);
 
-            await CallDirectMethodFromCloud(serviceClientConnectionString, targetDeviceId, targetModuleId, transportType, dmDelay, analyzerClient, cts);
-
-            completed.Set();
-            handler.ForEach(h => GC.KeepAlive(h));
-            Logger.LogInformation("DirectMethodCloudSender Main() finished.");
-            return 0;
+                completed.Set();
+                handler.ForEach(h => GC.KeepAlive(h));
+                Logger.LogInformation("DirectMethodCloudSender Main() finished.");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError($"Error occurred during direct method cloud sender test setup.\r\n{ex}");
+            }
         }
 
         static async Task CallDirectMethodFromCloud(
-            string serviceClientConnectionString,
-            string deviceId,
-            string moduleId,
-            TransportType transportType,
+            ServiceClient serviceClient,
             TimeSpan delay,
             AnalyzerClient analyzerClient,
             CancellationTokenSource cts)
         {
             Logger.LogInformation("CallDirectMethodFromCloud started.");
-            ServiceClient serviceClient = null;
 
-            try
+            CloudToDeviceMethod cloudToDeviceMethod = new CloudToDeviceMethod("HelloWorldMethod").SetPayloadJson("{ \"Message\": \"Hello\" }");
+            string deviceId = Settings.Current.DeviceId;
+            string targetModuleId = Settings.Current.TargetModuleId;
+            int directMethodCount = 1;
+
+            while (!cts.Token.IsCancellationRequested)
             {
-                int count = 1;
+                Logger.LogInformation($"Calling Direct Method from cloud on device {Settings.Current.DeviceId} targeting module [{Settings.Current.TargetModuleId}] with count {directMethodCount}.");
 
-                IotHubConnectionStringBuilder iotHubConnectionStringBuilder = IotHubConnectionStringBuilder.Create(serviceClientConnectionString);
-                Logger.LogInformation($"Prepare to call Direct Method from cloud ({iotHubConnectionStringBuilder.IotHubName}) on device [{deviceId}] module [{moduleId}]");
-
-                serviceClient = ServiceClient.CreateFromConnectionString(serviceClientConnectionString, Microsoft.Azure.Devices.TransportType.Amqp);
-                var cloudToDeviceMethod = new CloudToDeviceMethod("HelloWorldMethod").SetPayloadJson("{ \"Message\": \"Hello\" }");
-
-                while (!cts.Token.IsCancellationRequested)
+                try
                 {
-                    Logger.LogInformation($"Calling Direct Method from cloud ({iotHubConnectionStringBuilder.IotHubName}) on device [{deviceId}] module [{moduleId}] of count {count}.");
+                    CloudToDeviceMethodResult result = await serviceClient.InvokeDeviceMethodAsync(deviceId, targetModuleId, cloudToDeviceMethod, CancellationToken.None);
 
-                    try
+                    string statusMessage = $"Calling Direct Method from cloud with count {directMethodCount} returned with status code {result.Status}";
+                    if (result.Status == (int)HttpStatusCode.OK)
                     {
-                        CloudToDeviceMethodResult result = await serviceClient.InvokeDeviceMethodAsync(deviceId, moduleId, cloudToDeviceMethod, CancellationToken.None);
-
-                        if (result.Status == (int)HttpStatusCode.OK)
-                        {
-                            Logger.LogDebug($"Calling Direct Method from cloud with count {count} returned with status code {result.Status}.");
-                        }
-                        else
-                        {
-                            Logger.LogError($"Calling Direct Method from cloud with count {count} failed with status code {result.Status}.");
-                        }
-
-                        CallAnalyzerToReportStatus(moduleId, result, analyzerClient);
-
-                        count++;
+                        Logger.LogDebug(statusMessage);
                     }
-                    catch (Exception e)
+                    else
                     {
-                        Logger.LogError($"Exception caught with count {count}: {e}");
+                        Logger.LogError(statusMessage);
                     }
 
-                    await Task.Delay(delay, cts.Token);
+                    await CallAnalyzerToReportStatusAsync(targetModuleId, result, analyzerClient);
+                    directMethodCount++;
                 }
-            }
-            catch (Exception e)
-            {
-                Logger.LogError($"Exception caught: {e}");
-                throw;
-            }
-            finally
-            {
-                Logger.LogInformation("Close connection for service client and module client");
-                if (serviceClient != null)
+                catch (Exception e)
                 {
-                    await serviceClient.CloseAsync();
+                    Logger.LogError($"Exception caught with count {directMethodCount}: {e}");
                 }
+
+                await Task.Delay(delay, cts.Token);
             }
 
             Logger.LogInformation("CallDirectMethodFromCloud finished.");
+            await serviceClient.CloseAsync();
         }
 
-        static void CallAnalyzerToReportStatus(string moduleId, CloudToDeviceMethodResult result, AnalyzerClient analyzerClient)
+        static async Task CallAnalyzerToReportStatusAsync(string moduleId, CloudToDeviceMethodResult result, AnalyzerClient analyzerClient)
         {
             try
             {
-                analyzerClient.AddDirectMethodResponseAsync(new DirectMethodStatus { ModuleId = moduleId, StatusCode = result.Status.ToString(), ResultAsJson = result.GetPayloadAsJson(), EnqueuedDateTime = DateTime.UtcNow });
+                await analyzerClient.AddDirectMethodStatusAsync(new ResponseStatus { ModuleId = moduleId, StatusCode = result.Status.ToString(), EnqueuedDateTime = DateTime.UtcNow });
             }
             catch (Exception e)
             {
-                Logger.LogError(e.ToString());
+                Logger.LogError(e, "Failed call to report status to analyzer");
             }
         }
     }

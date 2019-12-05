@@ -107,22 +107,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
             return Task.CompletedTask;
         }
 
-        public Task<int> StopModuleAsync(string apiVersion, string name)
+        public Task StopModuleAsync(string apiVersion, string name)
         {
             if (!this.modules.TryGetValue(name, out ModuleDetails module))
             {
                 throw new InvalidOperationException("Module not found");
             }
 
-            if (module.Status.RuntimeStatus.Status == "Stopped")
-            {
-                return Task.FromResult(304);
-            }
-            else
-            {
-                module.Status.RuntimeStatus.Status = "Stopped";
-                return Task.FromResult(204);
-            }
+            module.Status.RuntimeStatus.Status = "Stopped";
+            return Task.CompletedTask;
         }
 
         public Task<ModuleDetails> UpdateModuleAsync(string apiVersion, string name, bool start, ModuleSpec module)
@@ -154,5 +147,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Test.TestServer
             };
             return moduleDetails;
         }
+
+        public Task ModuleLogsAsync(string api_version, string name, bool follow, string tail, int? since) => Task.CompletedTask;
+
+        public Task<SystemInfo> GetSystemInfoAsync(string api_version) => Task.FromResult(new SystemInfo());
+
+        public Task ReprovisionDeviceAsync(string api_version) => Task.CompletedTask;
     }
 }

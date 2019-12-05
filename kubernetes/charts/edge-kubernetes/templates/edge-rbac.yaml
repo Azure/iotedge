@@ -25,6 +25,7 @@ subjects:
     namespace: {{ include "edge-kubernetes.namespace" . | quote }}
 ...
 ---
+{{- if .Values.iotedged.data.enableGetNodesRBAC }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -39,6 +40,7 @@ subjects:
     name: iotedged
     namespace: {{ include "edge-kubernetes.namespace" . | quote }}
 ...
+{{ end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -55,6 +57,7 @@ subjects:
     namespace: {{ include "edge-kubernetes.namespace" . | quote }}
 ...
 ---
+{{- if .Values.iotedged.data.enableGetNodesRBAC }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -64,6 +67,7 @@ rules:
     resources: ["nodes"]
     verbs: ["list", "watch", "get"]
 ...
+{{ end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -79,22 +83,25 @@ rules:
     verbs: ["list", "watch"]
   - apiGroups: [""]
     resources: ["services"]
-    verbs: ["list", "create", "delete"]
+    verbs: ["list", "create", "delete", "update"]
   - apiGroups: ["apps"]
     resources: ["deployments"]
-    verbs: ["list", "create", "delete", "update"]
+    verbs: ["list", "get", "create", "delete", "update"]
   - apiGroups: [""]
     resources: ["secrets", "serviceaccounts", "configmaps"]
     verbs: ["list", "get", "create", "update", "delete"]
   - apiGroups: [""]
     resources: ["persistentvolumeclaims"]
-    verbs: ["list", "create"]
+    verbs: ["list", "create", "update", "delete"]
   - apiGroups: ["rbac.authorization.k8s.io"]
     resources: ["rolebindings"]
     verbs: ["list", "create", "delete", "update"]
   - apiGroups: ["microsoft.azure.devices.edge"]
     resources: ["edgedeployments"]
     verbs: ["list", "get", "create", "update", "delete", "watch"]
+  - apiGroups: ["microsoft.azure.devices.edge"]
+    resources: ["edgedeployments/status"]
+    verbs: ["list", "get", "create", "update", "delete"]
 ...
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -108,16 +115,19 @@ rules:
     verbs: ["list", "watch"]
   - apiGroups: [""]
     resources: ["services"]
-    verbs: ["list", "create", "delete"]
+    verbs: ["list", "create", "delete", "update"]
   - apiGroups: ["apps"]
     resources: ["deployments"]
-    verbs: ["list", "create", "delete", "update"]
+    verbs: ["list", "get", "create", "delete", "update"]
   - apiGroups: [""]
     resources: ["secrets", "serviceaccounts"]
     verbs: ["list", "get", "create", "update", "delete"]
   - apiGroups: [""]
     resources: ["persistentvolumeclaims"]
-    verbs: ["list", "create"]
+    verbs: ["list", "create", "update", "delete"]
   - apiGroups: ["microsoft.azure.devices.edge"]
     resources: ["edgedeployments"]
     verbs: ["list", "get", "create", "update", "delete", "watch"]
+  - apiGroups: ["microsoft.azure.devices.edge"]
+    resources: ["edgedeployments/status"]
+    verbs: ["list", "get", "create", "update", "delete"]

@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
     using global::Docker.DotNet;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Planners;
     using Microsoft.Azure.Devices.Edge.Agent.Core.PlanRunners;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Reporters;
@@ -159,7 +160,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
 
                 var dockerCommandFactory = new DockerCommandFactory(client, loggingConfig, configSource.Object, new CombinedDockerConfigProvider(Enumerable.Empty<AuthConfig>()));
                 IRuntimeInfoProvider runtimeInfoProvider = await RuntimeInfoProvider.CreateAsync(client);
-                IEnvironmentProvider environmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, restartStateStore, restartManager);
+                IEnvironmentProvider environmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, restartStateStore, restartManager, CancellationToken.None);
 
                 var logFactoryMock = new Mock<ILoggerFactory>();
                 var logMock = new Mock<ILogger<LoggingCommandFactory>>();
@@ -177,6 +178,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                 }.ToImmutableDictionary();
                 var moduleIdentityLifecycleManager = new Mock<IModuleIdentityLifecycleManager>();
                 moduleIdentityLifecycleManager.Setup(m => m.GetModuleIdentitiesAsync(It.IsAny<ModuleSet>(), It.IsAny<ModuleSet>())).Returns(Task.FromResult(identities));
+                var availabilityMetric = Mock.Of<IAvailabilityMetric>();
 
                 Agent agent = await Agent.Create(
                     configSource.Object,
@@ -187,7 +189,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.E2E.Test
                     environmentProvider,
                     configStore,
                     deploymentConfigInfoSerde,
-                    NullEncryptionProvider.Instance);
+                    NullEncryptionProvider.Instance,
+                    availabilityMetric);
                 await agent.ReconcileAsync(CancellationToken.None);
 
                 // Sometimes the container is still not ready by the time we run the validator.

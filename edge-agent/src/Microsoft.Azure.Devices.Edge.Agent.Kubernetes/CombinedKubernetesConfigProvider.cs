@@ -51,6 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
                 experimentalOptions.ForEach(parameters => createOptions.Volumes = parameters.Volumes);
                 experimentalOptions.ForEach(parameters => createOptions.NodeSelector = parameters.NodeSelector);
                 experimentalOptions.ForEach(parameters => createOptions.Resources = parameters.Resources);
+                experimentalOptions.ForEach(parameters => createOptions.SecurityContext = parameters.SecurityContext);
             }
 
             Option<ImagePullSecret> imagePullSecret = dockerConfig.AuthConfig

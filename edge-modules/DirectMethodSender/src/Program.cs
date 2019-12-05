@@ -2,7 +2,6 @@
 namespace DirectMethodSender
 {
     using System;
-    using System.IO;
     using System.Net;
     using System.Text;
     using System.Threading;
@@ -10,78 +9,93 @@ namespace DirectMethodSender
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
 
     class Program
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("DirectMethodSender");
 
-        public static int Main() => MainAsync().Result;
-
-        static async Task<int> MainAsync()
+        public static async Task Main()
         {
-            Logger.LogInformation("DirectMethodSender Main() started.");
+            Logger.LogInformation($"Starting DirectMethodSender with the following settings:\r\n{Settings.Current}");
 
-            IConfiguration configuration = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("config/appsettings.json", optional: true)
-                .AddEnvironmentVariables()
-                .Build();
+            try
+            {
+                ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
+                    Settings.Current.TransportType,
+                    ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
+                    ModuleUtil.DefaultTransientRetryStrategy,
+                    Logger);
 
-            TimeSpan dmDelay = configuration.GetValue("DirectMethodDelay", TimeSpan.FromSeconds(5));
-            // Get device id of this device, exposed as a system variable by the iot edge runtime
-            string targetDeviceId = configuration.GetValue<string>("IOTEDGE_DEVICEID");
-            string targetModuleId = configuration.GetValue("TargetModuleId", "DirectMethodReceiver");
-            TransportType transportType = configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only);
+                Uri analyzerUrl = Settings.Current.AnalyzerUrl;
+                AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = analyzerUrl.AbsoluteUri };
 
-            ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
-                transportType,
-                ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                ModuleUtil.DefaultTransientRetryStrategy,
-                Logger);
+                (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
-            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
+                await CallDirectMethod(moduleClient, analyzerClient, Settings.Current.DirectMethodDelay, cts);
+                await moduleClient.CloseAsync();
+                await cts.Token.WhenCanceled();
 
-            await CallDirectMethod(moduleClient, dmDelay, targetDeviceId, targetModuleId, cts);
-            await moduleClient.CloseAsync();
-            await cts.Token.WhenCanceled();
-
-            completed.Set();
-            handler.ForEach(h => GC.KeepAlive(h));
-            Logger.LogInformation("DirectMethodSender Main() finished.");
-            return 0;
+                completed.Set();
+                handler.ForEach(h => GC.KeepAlive(h));
+                Logger.LogInformation("DirectMethodSender Main() finished.");
+            }
+            catch (Exception e)
+            {
+                Logger.LogError(e, "Error occurred during direct method sender test setup");
+            }
         }
 
         static async Task CallDirectMethod(
             ModuleClient moduleClient,
+            AnalyzerClient analyzerClient,
             TimeSpan delay,
-            string deviceId,
-            string moduleId,
             CancellationTokenSource cts)
         {
             var request = new MethodRequest("HelloWorldMethod", Encoding.UTF8.GetBytes("{ \"Message\": \"Hello\" }"));
+            string deviceId = Settings.Current.DeviceId;
+            string targetModuleId = Settings.Current.TargetModuleId;
+            int directMethodCount = 1;
 
             while (!cts.Token.IsCancellationRequested)
             {
-                Logger.LogInformation($"Calling Direct Method on device [{deviceId}] module [{moduleId}].");
+                Logger.LogInformation($"Calling Direct Method on device {deviceId} targeting module {targetModuleId}.");
 
                 try
                 {
-                    MethodResponse response = await moduleClient.InvokeMethodAsync(deviceId, moduleId, request);
+                    MethodResponse response = await moduleClient.InvokeMethodAsync(deviceId, targetModuleId, request);
 
+                    string statusMessage = $"Calling Direct Method with count {directMethodCount} returned with status code {response.Status}";
                     if (response.Status == (int)HttpStatusCode.OK)
                     {
-                        await moduleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method Call succeeded.")));
-                        break;
+                        Logger.LogDebug(statusMessage);
                     }
+                    else
+                    {
+                        Logger.LogError(statusMessage);
+                    }
+
+                    CallAnalyzerToReportStatus(targetModuleId, response, analyzerClient);
+                    directMethodCount++;
                 }
                 catch (Exception e)
                 {
-                    Logger.LogError($"Exception caught: {e}");
+                    Logger.LogError(e, "Exception caught");
                 }
 
                 await Task.Delay(delay, cts.Token);
+            }
+        }
+
+        static void CallAnalyzerToReportStatus(string moduleId, MethodResponse response, AnalyzerClient analyzerClient)
+        {
+            try
+            {
+                analyzerClient.AddDirectMethodStatusAsync(new ResponseStatus { ModuleId = moduleId, StatusCode = response.Status.ToString(), EnqueuedDateTime = DateTime.UtcNow });
+            }
+            catch (Exception e)
+            {
+                Logger.LogError(e.ToString());
             }
         }
     }

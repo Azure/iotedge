@@ -1,7 +1,9 @@
 use std::env::consts::ARCH;
 use std::str;
 
+#[cfg(unix)]
 use byte_unit::{Byte, ByteUnit};
+#[cfg(unix)]
 use sysinfo::{DiskExt, SystemExt};
 
 /// Additional info for the JSON output of `iotedge check`
@@ -195,7 +197,7 @@ pub(super) fn os_version() -> Result<
         ))
     }
 }
-#[derive(Clone, Debug, serde_derive::Serialize)]
+#[derive(Clone, Debug, Default, serde_derive::Serialize)]
 struct SystemInfo {
     used_ram: String,
     total_ram: String,
@@ -207,21 +209,26 @@ struct SystemInfo {
 
 impl SystemInfo {
     fn new() -> Self {
-        let mut system = sysinfo::System::new();
-        system.refresh_all();
+        #[cfg(unix)]
+        {
+            let mut system = sysinfo::System::new();
+            system.refresh_all();
+            SystemInfo {
+                total_ram: pretty_kbyte(system.get_total_memory()),
+                used_ram: pretty_kbyte(system.get_used_memory()),
+                total_swap: pretty_kbyte(system.get_total_swap()),
+                used_swap: pretty_kbyte(system.get_used_swap()),
 
-        SystemInfo {
-            total_ram: pretty_kbyte(system.get_total_memory()),
-            used_ram: pretty_kbyte(system.get_used_memory()),
-            total_swap: pretty_kbyte(system.get_total_swap()),
-            used_swap: pretty_kbyte(system.get_used_swap()),
-
-            disks: system.get_disks().iter().map(DiskInfo::new).collect(),
+                disks: system.get_disks().iter().map(DiskInfo::new).collect(),
+            }
         }
+
+        #[cfg(not(unix))]
+        return SystemInfo::default();
     }
 }
 
-#[derive(Clone, Debug, serde_derive::Serialize)]
+#[derive(Clone, Debug, Default, serde_derive::Serialize)]
 struct DiskInfo {
     name: String,
     percent_free: String,
@@ -231,6 +238,7 @@ struct DiskInfo {
     file_type: String,
 }
 
+#[cfg(unix)]
 impl DiskInfo {
     fn new<T>(disk: &T) -> Self
     where
@@ -259,6 +267,7 @@ impl DiskInfo {
     }
 }
 
+#[cfg(unix)]
 fn pretty_kbyte(bytes: u64) -> String {
     #[allow(clippy::cast_precision_loss)]
     match Byte::from_unit(bytes as f64, ByteUnit::KiB) {

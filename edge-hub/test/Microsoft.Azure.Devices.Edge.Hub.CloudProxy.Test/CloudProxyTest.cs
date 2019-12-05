@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     {
         static readonly TimeSpan ClockSkew = TimeSpan.FromMinutes(5);
 
-        static readonly int EventHubMessageReceivedRetry = 5;
+        static readonly int EventHubMessageReceivedRetry = 10;
 
         [Fact]
         [TestPriority(401)]
@@ -222,7 +222,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var eventHubReceiver = new EventHubReceiver(eventHubConnectionString);
             var cloudMessages = new List<EventData>();
             bool messagesFound = false;
-            // Add retry mechanism to make sure all the messages sent reached Event Hub. Retry 3 times.
+            // Add retry mechanism to make sure all the messages sent reached Event Hub.
             for (int i = 0; i < EventHubMessageReceivedRetry; i++)
             {
                 cloudMessages.AddRange(await eventHubReceiver.GetMessagesFromAllPartitions(startTime));
