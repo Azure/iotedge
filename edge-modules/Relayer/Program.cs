@@ -40,7 +40,7 @@ namespace Relayer
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, $"Error occurred during Relayer.");
+                Logger.LogError(ex, "Error occurred during Relayer.");
             }
         }
 
