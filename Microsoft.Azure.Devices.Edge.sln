@@ -154,7 +154,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edg
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "load-gen", "edge-modules\load-gen\load-gen.csproj", "{54771470-860C-4853-9318-6DB4EA76B595}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MessagesAnalyzer", "edge-modules\MessagesAnalyzer\MessagesAnalyzer.csproj", "{047DC795-A159-4BFF-AC0F-4DCE51A79C2C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestAnalyzer", "edge-modules\TestAnalyzer\TestAnalyzer.csproj", "{047DC795-A159-4BFF-AC0F-4DCE51A79C2C}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LeafDevice", "smoke\LeafDevice\LeafDevice.csproj", "{C5CBC493-96A4-4628-A952-8C7B9EEF1441}"
 EndProject
@@ -195,7 +195,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edg
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest", "edge-agent\test\Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest\Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest.csproj", "{79540E35-45EA-4568-9AB7-C1CC0BFF73EE}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Relayer", "edge-modules\Relayer\Relayer.csproj", "{61500583-6040-416F-A639-7BDC171E56A7}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "edge-modules", "edge-modules", "{69157D2B-2AD3-4EE0-A837-6AD9329EDDC3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TwinTester", "edge-modules\TwinTester\TwinTester.csproj", "{9237E577-DD0B-4A49-8155-7BC8635F9DBD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModuleRestarter", "edge-modules\ModuleRestarter\ModuleRestarter.csproj", "{2C7AE89A-648C-4EBC-8084-0E59BAFF496D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Relayer", "edge-modules\Relayer\Relayer.csproj", "{C1FDA6CF-7EF6-4C3F-81E7-4C13EE399BF1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -629,14 +635,30 @@ Global
 		{79540E35-45EA-4568-9AB7-C1CC0BFF73EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{79540E35-45EA-4568-9AB7-C1CC0BFF73EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{79540E35-45EA-4568-9AB7-C1CC0BFF73EE}.Release|Any CPU.Build.0 = Release|Any CPU
-		{61500583-6040-416F-A639-7BDC171E56A7}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
-		{61500583-6040-416F-A639-7BDC171E56A7}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
-		{61500583-6040-416F-A639-7BDC171E56A7}.CodeCoverage|Any CPU.ActiveCfg = CheckInBuild|Any CPU
-		{61500583-6040-416F-A639-7BDC171E56A7}.CodeCoverage|Any CPU.Build.0 = CheckInBuild|Any CPU
-		{61500583-6040-416F-A639-7BDC171E56A7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{61500583-6040-416F-A639-7BDC171E56A7}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{61500583-6040-416F-A639-7BDC171E56A7}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{61500583-6040-416F-A639-7BDC171E56A7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9237E577-DD0B-4A49-8155-7BC8635F9DBD}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
+		{9237E577-DD0B-4A49-8155-7BC8635F9DBD}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
+		{9237E577-DD0B-4A49-8155-7BC8635F9DBD}.CodeCoverage|Any CPU.ActiveCfg = Debug|Any CPU
+		{9237E577-DD0B-4A49-8155-7BC8635F9DBD}.CodeCoverage|Any CPU.Build.0 = Debug|Any CPU
+		{9237E577-DD0B-4A49-8155-7BC8635F9DBD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9237E577-DD0B-4A49-8155-7BC8635F9DBD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9237E577-DD0B-4A49-8155-7BC8635F9DBD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9237E577-DD0B-4A49-8155-7BC8635F9DBD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2C7AE89A-648C-4EBC-8084-0E59BAFF496D}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
+		{2C7AE89A-648C-4EBC-8084-0E59BAFF496D}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
+		{2C7AE89A-648C-4EBC-8084-0E59BAFF496D}.CodeCoverage|Any CPU.ActiveCfg = CodeCoverage|Any CPU
+		{2C7AE89A-648C-4EBC-8084-0E59BAFF496D}.CodeCoverage|Any CPU.Build.0 = CodeCoverage|Any CPU
+		{2C7AE89A-648C-4EBC-8084-0E59BAFF496D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2C7AE89A-648C-4EBC-8084-0E59BAFF496D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2C7AE89A-648C-4EBC-8084-0E59BAFF496D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2C7AE89A-648C-4EBC-8084-0E59BAFF496D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C1FDA6CF-7EF6-4C3F-81E7-4C13EE399BF1}.CheckInBuild|Any CPU.ActiveCfg = CheckInBuild|Any CPU
+		{C1FDA6CF-7EF6-4C3F-81E7-4C13EE399BF1}.CheckInBuild|Any CPU.Build.0 = CheckInBuild|Any CPU
+		{C1FDA6CF-7EF6-4C3F-81E7-4C13EE399BF1}.CodeCoverage|Any CPU.ActiveCfg = Debug|Any CPU
+		{C1FDA6CF-7EF6-4C3F-81E7-4C13EE399BF1}.CodeCoverage|Any CPU.Build.0 = Debug|Any CPU
+		{C1FDA6CF-7EF6-4C3F-81E7-4C13EE399BF1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C1FDA6CF-7EF6-4C3F-81E7-4C13EE399BF1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C1FDA6CF-7EF6-4C3F-81E7-4C13EE399BF1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C1FDA6CF-7EF6-4C3F-81E7-4C13EE399BF1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -712,7 +734,9 @@ Global
 		{47AA5965-5826-489D-B74B-314A61629121} = {54351E51-19CB-4DE3-8302-99846AB216CF}
 		{B736B03C-1185-4AE5-87B7-665C6790F50F} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
 		{79540E35-45EA-4568-9AB7-C1CC0BFF73EE} = {F5E37327-3AA9-4CC2-9FE3-B28271ADB5E3}
-		{61500583-6040-416F-A639-7BDC171E56A7} = {578D5330-2F72-44C6-9DB5-C93B3F42C473}
+		{9237E577-DD0B-4A49-8155-7BC8635F9DBD} = {69157D2B-2AD3-4EE0-A837-6AD9329EDDC3}
+		{2C7AE89A-648C-4EBC-8084-0E59BAFF496D} = {69157D2B-2AD3-4EE0-A837-6AD9329EDDC3}
+		{C1FDA6CF-7EF6-4C3F-81E7-4C13EE399BF1} = {69157D2B-2AD3-4EE0-A837-6AD9329EDDC3}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D71830F5-3AF5-46B4-8A9E-1DCE4F2253AC}
