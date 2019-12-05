@@ -28,8 +28,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             byte[] nameArray = Encoding.UTF8.GetBytes(name);
             byte[] nameLength = BitConverter.GetBytes(name.Length);
 
-            byte[] tagsArray = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(tags));
-            byte[] tagsLength = BitConverter.GetBytes(JsonConvert.SerializeObject(tags).Length);
+            string serializedTags = JsonConvert.SerializeObject(tags);
+            byte[] tagsArray = Encoding.UTF8.GetBytes(serializedTags);
+            byte[] tagsLength = BitConverter.GetBytes(serializedTags.Length);
 
             // Unfortunately this extra array is necessary, since we need to know the length before we enumerate the values.
             RawMetricValue[] rawValuesArray = rawValues.ToArray();

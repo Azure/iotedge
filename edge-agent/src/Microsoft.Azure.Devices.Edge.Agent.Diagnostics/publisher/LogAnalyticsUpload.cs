@@ -23,7 +23,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             this.workspaceId = Preconditions.CheckNonWhiteSpace(workspaceId, nameof(workspaceId));
             this.workspaceKey = Preconditions.CheckNonWhiteSpace(workspaceKey, nameof(workspaceKey));
             this.logType = Preconditions.CheckNonWhiteSpace(logType, nameof(logType));
-            this.guid = Preconditions.CheckNotNull(guid);
+            Preconditions.CheckArgument(guid != Guid.Empty);
+            this.guid = guid;
         }
 
         public async Task PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
@@ -36,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             }
             catch (Exception e)
             {
-                Log.LogError($"Error uploading metrics to LogAnalytics: {e}");
+                Log.LogError(e, "Error uploading metrics to LogAnalytics");
             }
         }
     }

@@ -4,6 +4,7 @@ namespace MetricsCollector
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
@@ -69,13 +70,16 @@ namespace MetricsCollector
 
         public override string ToString()
         {
-            Dictionary<string, string> fields = new Dictionary<string, string>();
-            fields.Add(nameof(this.AzMonWorkspaceId), this.AzMonWorkspaceId);
-            fields.Add(nameof(this.AzMonLogType), this.AzMonLogType);
-            fields.Add(nameof(this.Endpoints), JsonConvert.SerializeObject(this.Endpoints, Formatting.Indented));
-            fields.Add(nameof(this.ScrapeFrequencySecs), this.ScrapeFrequencySecs.ToString());
-            fields.Add(nameof(this.UploadTarget), Enum.GetName(typeof(UploadTarget), this.UploadTarget));
-            return JsonConvert.SerializeObject(fields, Formatting.Indented);
+            var fields = new Dictionary<string, string>()
+            {
+                { nameof(this.AzMonWorkspaceId), this.AzMonWorkspaceId },
+                { nameof(this.AzMonLogType), this.AzMonLogType },
+                { nameof(this.Endpoints), JsonConvert.SerializeObject(this.Endpoints, Formatting.Indented) },
+                { nameof(this.ScrapeFrequencySecs), this.ScrapeFrequencySecs.ToString() },
+                { nameof(this.UploadTarget), Enum.GetName(typeof(UploadTarget), this.UploadTarget) }
+            };
+
+            return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
         }
     }
 
