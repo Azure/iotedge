@@ -520,6 +520,7 @@ where
             self.client.clone(),
             self.scope_id.clone(),
             self.registration_id.clone(),
+            None,
             DpsAuthKind::Tpm { ek, srk },
             key_activator,
         );
@@ -608,6 +609,7 @@ where
             self.client.clone(),
             self.scope_id.clone(),
             self.registration_id.clone(),
+            None,
             DpsAuthKind::SymmetricKey,
             key_activator,
         );
@@ -652,6 +654,7 @@ where
     client: HttpClient<C, DpsTokenSource<MemoryKey>>,
     scope_id: String,
     registration_id: String,
+    csr: String
 }
 
 impl<C> DpsX509Provisioning<C>
@@ -663,6 +666,7 @@ where
         endpoint: Url,
         scope_id: String,
         registration_id: String,
+        csr: String,
         api_version: String,
     ) -> Result<Self, Error> {
         let client = HttpClient::new(
@@ -676,6 +680,7 @@ where
             client,
             scope_id,
             registration_id,
+            csr,
         };
         Ok(result)
     }
@@ -695,6 +700,7 @@ where
             self.client.clone(),
             self.scope_id.clone(),
             self.registration_id.clone(),
+            Some(self.csr.clone()),
             DpsAuthKind::X509,
             key_activator,
         );

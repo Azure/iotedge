@@ -104,6 +104,7 @@ where
     client: Arc<RwLock<Client<C, DpsTokenSource<K>>>>,
     scope_id: String,
     registration_id: String,
+    csr: Option<String>,
     auth: DpsAuthKind,
     key_store: A,
 }
@@ -118,6 +119,7 @@ where
         client: Client<C, DpsTokenSource<K>>,
         scope_id: String,
         registration_id: String,
+        csr: Option<String>,
         auth: DpsAuthKind,
         key_store: A,
     ) -> Result<Self, Error> {
@@ -125,6 +127,7 @@ where
             client: Arc::new(RwLock::new(client)),
             scope_id,
             registration_id,
+            csr,
             auth,
             key_store,
         })
@@ -303,11 +306,15 @@ where
         client: &Arc<RwLock<Client<C, DpsTokenSource<K>>>>,
         scope_id: &str,
         registration_id: String,
+        csr: Option<String>,
         _key_store: &A,
     ) -> Box<dyn Future<Item = Option<RegistrationOperationStatus>, Error = Error> + Send> {
         let cli = client.clone();
         let uri_path = format!("{}/registrations/{}/register", scope_id, registration_id);
-        let registration = DeviceRegistration::new().with_registration_id(registration_id);
+        let mut registration = DeviceRegistration::new().with_registration_id(registration_id);
+        registration.set_csr(csr);
+        info!("Object constructed as:");
+        info!("{:?}", serde_json::to_string(&registration));
         let cli = cli.read().expect("RwLock read failure").clone();
         let f = cli
             .request::<DeviceRegistration, RegistrationOperationStatus>(
@@ -493,6 +500,7 @@ where
                     &self.client,
                     &scope_id,
                     registration_id.clone(),
+                    self.csr.clone(),
                     &self.key_store,
                 )
             }
@@ -571,6 +579,8 @@ where
 fn get_device_info(
     registration_result: &DeviceRegistrationResult,
 ) -> Result<(String, String, Option<String>), Error> {
+    info!("Device registration has completed.");
+    info!("{:?}", registration_result.issued_certificate());
     Ok((
         registration_result
             .device_id()
