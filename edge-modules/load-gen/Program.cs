@@ -38,8 +38,8 @@ namespace LoadGen
                 Logger.LogInformation($"Load gen delay start for {Settings.Current.TestStartDelay}.");
                 await Task.Delay(Settings.Current.TestStartDelay).ConfigureAwait(false);
 
-                var testStartTimestamp = DateTime.UtcNow;
-                while (!cts.IsCancellationRequested && DateTime.UtcNow - testStartTimestamp > Settings.Current.TestRunDuration)
+                DateTime testStartAt = DateTime.UtcNow;
+                while (!cts.IsCancellationRequested && DateTime.UtcNow - testStartAt < Settings.Current.TestDuration)
                 {
                     await GenerateMessageAsync(moduleClient, batchId, Settings.Current.TrackingId);
                     await Task.Delay(Settings.Current.MessageFrequency).ConfigureAwait(false);

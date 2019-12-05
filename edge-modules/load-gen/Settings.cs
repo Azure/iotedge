@@ -30,7 +30,7 @@ namespace LoadGen
                     configuration.GetValue("transportType", TransportType.Amqp_Tcp_Only),
                     configuration.GetValue("outputName", "output1"),
                     configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(5)),
-                    configuration.GetValue("testRunDuration", TimeSpan.MaxValue),
+                    configuration.GetValue("testDuration", TimeSpan.MaxValue),
                     configuration.GetValue("trackingId", string.Empty));
             });
 
@@ -40,18 +40,18 @@ namespace LoadGen
             TransportType transportType,
             string outputName,
             TimeSpan testStartDelay,
-            TimeSpan testRunDuration,
+            TimeSpan testDuration,
             string trackingId)
         {
             Preconditions.CheckRange(messageFrequency.Ticks, 0);
             Preconditions.CheckRange(testStartDelay.Ticks, 0);
-            Preconditions.CheckRange(testRunDuration.Ticks, 0);
+            Preconditions.CheckRange(testDuration.Ticks, 0);
 
             this.MessageSizeInBytes = Preconditions.CheckRange<ulong>(messageSizeInBytes, 1);
             this.OutputName = Preconditions.CheckNonWhiteSpace(outputName, nameof(outputName));
 
             this.MessageFrequency = messageFrequency;
-            this.TestRunDuration = testRunDuration;
+            this.TestDuration = testDuration;
             this.TestStartDelay = testStartDelay;
             this.TrackingId = trackingId ?? string.Empty;
             this.TransportType = transportType;
@@ -70,7 +70,7 @@ namespace LoadGen
 
         public TimeSpan TestStartDelay { get; }
 
-        public TimeSpan TestRunDuration { get; }
+        public TimeSpan TestDuration { get; }
 
         public string TrackingId { get; }
 
@@ -83,7 +83,7 @@ namespace LoadGen
                 { nameof(this.MessageSizeInBytes), this.MessageSizeInBytes.ToString() },
                 { nameof(this.OutputName), this.OutputName },
                 { nameof(this.TestStartDelay), this.TestStartDelay.ToString() },
-                { nameof(this.TestRunDuration), this.TestRunDuration.ToString() },
+                { nameof(this.TestDuration), this.TestDuration.ToString() },
                 { nameof(this.TrackingId), this.TrackingId },
                 { nameof(this.TransportType), Enum.GetName(typeof(TransportType), this.TransportType) },
             };
