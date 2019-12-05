@@ -649,8 +649,13 @@ impl ModuleRuntime for DockerModuleRuntime {
                 .as_secs();
             let start_time = process::id()
                 .try_into()
-                .map(|id| system_info.get_process_list().get(&id))
-                .map(|p| p.start_time())
+                .map(|id| {
+                    system_info
+                        .get_process_list()
+                        .get(&id)
+                        .map(|p| p.start_time())
+                        .unwrap_or_default()
+                })
                 .unwrap_or_default();
 
             let used_cpu = system_info
