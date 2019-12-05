@@ -32,11 +32,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
 
                 await this.moduleClient.SendEventAsync(metricsMessage);
 
-                Log.LogInformation($"Successfully sent metrics to Event Hub via IoT Hub");
+                Log.LogInformation("Successfully sent metrics to Event Hub via IoT Hub");
             }
             catch (Exception e)
             {
-                Log.LogError($"Error uploading metrics to Event Hub via IoTHub: {e}");
+                Log.LogError(e, "Error uploading metrics to Event Hub via IoTHub");
             }
         }
     }
