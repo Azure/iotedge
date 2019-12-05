@@ -8,12 +8,12 @@ namespace DevOpsLibTest
     using NUnit.Framework;
 
     [TestFixture]
-    public class BuildDefinitionExtensionTest
+    public class BuildExtensionTest
     {
         [Test]
         public void TestMasterBranchReporting()
         {
-            HashSet<BuildDefinitionId> ids = BuildDefinitionExtension.MasterBranchReporting;
+            HashSet<BuildDefinitionId> ids = BuildExtension.MasterBranchReporting;
 
             Assert.AreEqual(6, ids.Count);
             Assert.True(ids.Contains(BuildDefinitionId.CI));
@@ -35,6 +35,13 @@ namespace DevOpsLibTest
             Assert.AreEqual("End-to-End Test", BuildDefinitionId.EndToEndTest.DisplayName());
             Assert.AreEqual("Image Release", BuildDefinitionId.ImageRelease.DisplayName());
             Assert.AreEqual("Libiohsm CI", BuildDefinitionId.LibiohsmCI.DisplayName());
+        }
+
+        [Test]
+        public void TestIdString()
+        {
+            Assert.AreEqual("45137", BuildDefinitionId.CI.IdString());
+            Assert.AreEqual("39853", BuildDefinitionId.LibiohsmCI.IdString());
         }
     }
 }

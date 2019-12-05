@@ -4,7 +4,7 @@ namespace DevOpsLib.VstsModels
     using System;
     using Newtonsoft.Json;
 
-    // Refer to https://docs.microsoft.com/en-us/rest/api/azure/devops/build/builds/get?view=azure-devops-rest-5.1 for schema
+    // Schema reference: https://docs.microsoft.com/en-us/rest/api/azure/devops/build/builds/get?view=azure-devops-rest-5.1
     [JsonConverter(typeof(JsonPathConverter))]
     public class VstsBuild : IEquatable<VstsBuild>
     {
@@ -38,7 +38,7 @@ namespace DevOpsLib.VstsModels
         [JsonProperty("finishTime")]
         public DateTime FinishTime { get; set; }
 
-        public static VstsBuild GetBuildWithNoResult(BuildDefinitionId buildDefinitionId, string sourceBranch) =>
+        public static VstsBuild CreateBuildWithNoResult(BuildDefinitionId buildDefinitionId, string sourceBranch) =>
             new VstsBuild
             {
                 DefinitionId = buildDefinitionId,
