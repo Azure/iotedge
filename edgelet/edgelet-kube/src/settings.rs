@@ -58,6 +58,11 @@ impl Settings {
         self
     }
 
+    pub fn with_cluster_rbac(mut self, has_cluster_rbac: bool) -> Self {
+        self.has_cluster_rbac = has_cluster_rbac;
+        self
+    }
+
     pub fn namespace(&self) -> &str {
         &self.namespace
     }

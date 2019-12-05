@@ -105,16 +105,23 @@ impl MakeModuleRuntime
     fn make_runtime(
         settings: Self::Settings,
         provisioning_result: Self::ProvisioningResult,
-        crypto: impl GetTrustBundle + 'static,
+        crypto: impl GetTrustBundle + Send + 'static,
     ) -> Self::Future {
         let settings = settings
             .with_device_id(provisioning_result.device_id())
             .with_iot_hub_hostname(provisioning_result.hub_name());
 
         let fut = get_config()
-            .map(|config| KubeModuleRuntime::new(KubeClient::new(config), settings))
+            .map(|config| (config.clone(), KubeClient::new(config)))
             .map_err(|err| Error::from(err.context(ErrorKind::Initialization)))
-            .map(|runtime| init_trust_bundle(&runtime, &crypto).map(|_| runtime))
+            .map(|(config, mut client)| {
+                client
+                    .is_subject_allowed(Some("nodes".to_string()), Some("list".to_string()))
+                    .map(|is_allowed| settings.with_cluster_rbac(is_allowed))
+                    .map_err(|err| Error::from(err.context(ErrorKind::Initialization)))
+                    .map(|settings| KubeModuleRuntime::new(KubeClient::new(config), settings))
+                    .and_then(move |runtime| init_trust_bundle(&runtime, crypto).map(|_| runtime))
+            })
             .into_future()
             .flatten();
 
