@@ -5,28 +5,27 @@ namespace MetricsCollector
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
+    using System.Linq;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using Newtonsoft.Json;
-    using System.Linq;
 
     class MetricsScrapeAndUpload : IDisposable
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("MetricsCollector");
-        readonly MetricsScraper scraper;
+        readonly IMetricsScraper scraper;
         readonly IMetricsPublisher publisher;
         PeriodicTask periodicScrapeAndUpload;
-
         Guid guid;
 
-        public MetricsScrapeAndUpload(MetricsScraper scraper, IMetricsPublisher publisher, Guid guid)
+        public MetricsScrapeAndUpload(IMetricsScraper scraper, IMetricsPublisher publisher, Guid guid)
         {
             this.scraper = Preconditions.CheckNotNull(scraper);
             this.publisher = Preconditions.CheckNotNull(publisher);
-            this.guid = Preconditions.CheckNotNull(guid);
+            Preconditions.CheckArgument(guid != Guid.Empty);
+            this.guid = guid;
         }
 
         public void Start(TimeSpan scrapeAndUploadInterval)
@@ -44,7 +43,8 @@ namespace MetricsCollector
             try
             {
                 IEnumerable<Metric> metrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
-                IEnumerable<Metric> metricsWithTags = metrics.Select(metric => {
+                IEnumerable<Metric> metricsWithTags = metrics.Select(metric =>
+                {
                     metric.Tags.Add("guid", this.guid.ToString());
                     return metric;
                 });
@@ -55,7 +55,7 @@ namespace MetricsCollector
             }
             catch (Exception e)
             {
-                Logger.LogError($"Error scraping and uploading metrics: {e}");
+                Logger.LogError(e, "Error scraping and uploading metrics");
             }
         }
     }
