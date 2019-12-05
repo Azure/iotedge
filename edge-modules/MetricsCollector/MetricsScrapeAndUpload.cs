@@ -11,11 +11,6 @@ namespace MetricsCollector
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-<<<<<<< HEAD
-    using Newtonsoft.Json;
-    using System.Linq;
-=======
->>>>>>> a497743cc950764196c07c5b7245478e777ba1f6
 
     class MetricsScrapeAndUpload : IDisposable
     {
@@ -48,14 +43,9 @@ namespace MetricsCollector
             try
             {
                 IEnumerable<Metric> metrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
-<<<<<<< HEAD
-                IEnumerable<Metric> metricsWithTags = metrics.Select(metric => {
-                    metric.Tags.Add("guid", this.guid.ToString());
-=======
                 IEnumerable<Metric> metricsWithTags = metrics.Select(metric =>
                 {
                     metric.Tags.Add("guid", this.testId.ToString());
->>>>>>> a497743cc950764196c07c5b7245478e777ba1f6
                     return metric;
                 });
 
