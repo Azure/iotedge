@@ -43,15 +43,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             KubernetesModule km1 = new KubernetesModule(m1, config, EdgeletModuleOwner);
             KubernetesModule[] modules = { km1 };
-            ModuleSet currentModules = new ModuleSet(new Dictionary<string, IModule> { ["module1"] = m1 });
-            Assert.Throws<ArgumentException>(() => new EdgeDeploymentCommand(null, ResourceName, DefaultClient, modules, currentModules, Runtime, ConfigProvider, EdgeletModuleOwner));
-            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, null, DefaultClient, modules, currentModules, Runtime, ConfigProvider, EdgeletModuleOwner));
-            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, null, modules, currentModules, Runtime, ConfigProvider, EdgeletModuleOwner));
-            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, DefaultClient, null, currentModules, Runtime, ConfigProvider, EdgeletModuleOwner));
-            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, DefaultClient, modules, null, Runtime, ConfigProvider, EdgeletModuleOwner));
-            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, DefaultClient, modules, currentModules, null, ConfigProvider, EdgeletModuleOwner));
-            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, DefaultClient, modules, currentModules, Runtime, null, EdgeletModuleOwner));
-            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, DefaultClient, modules, currentModules, Runtime, ConfigProvider, null));
+            EdgeDeploymentDefinition edgeDefinition = new EdgeDeploymentDefinition("v1", "EdgeDeployment", new V1ObjectMeta(name: ResourceName), new List<KubernetesModule>(), null);
+            Assert.Throws<ArgumentException>(() => new EdgeDeploymentCommand(null, ResourceName, DefaultClient, modules, Option.Maybe(edgeDefinition), Runtime, ConfigProvider, EdgeletModuleOwner));
+            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, null, DefaultClient, modules, Option.Maybe(edgeDefinition), Runtime, ConfigProvider, EdgeletModuleOwner));
+            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, null, modules, Option.Maybe(edgeDefinition), Runtime, ConfigProvider, EdgeletModuleOwner));
+            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, DefaultClient, null, Option.Maybe(edgeDefinition), Runtime, ConfigProvider, EdgeletModuleOwner));
+            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, DefaultClient, modules, Option.Maybe(edgeDefinition), null, ConfigProvider, EdgeletModuleOwner));
+            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, DefaultClient, modules, Option.Maybe(edgeDefinition), Runtime, null, EdgeletModuleOwner));
+            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, DefaultClient, modules, Option.Maybe(edgeDefinition), Runtime, ConfigProvider, null));
         }
 
         [Fact]
@@ -68,7 +67,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 .Returns(() => new CombinedKubernetesConfig("test-image:1", CreatePodParameters.Create(image: "test-image:1"), Option.Maybe(ImagePullSecret)));
             bool getSecretCalled = false;
             bool postSecretCalled = false;
-            bool getCrdCalled = false;
             bool postCrdCalled = false;
 
             using (var server = new KubernetesApiServer(
@@ -83,10 +81,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                         if (pathStr.Contains($"api/v1/namespaces/{Namespace}/secrets"))
                         {
                             getSecretCalled = true;
-                        }
-                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.EdgeDeployment.Plural}"))
-                        {
-                            getCrdCalled = true;
                         }
                     }
                     else if (string.Equals(method, "POST", StringComparison.OrdinalIgnoreCase))
@@ -107,13 +101,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 }))
             {
                 var client = new Kubernetes(new KubernetesClientConfiguration { Host = server.Uri });
-                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule }, currentModules, Runtime, configProvider.Object, EdgeletModuleOwner);
+                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule }, Option.None<EdgeDeploymentDefinition>(), Runtime, configProvider.Object, EdgeletModuleOwner);
 
                 await cmd.ExecuteAsync(CancellationToken.None);
 
                 Assert.True(getSecretCalled, nameof(getSecretCalled));
                 Assert.True(postSecretCalled, nameof(postSecretCalled));
-                Assert.True(getCrdCalled, nameof(getCrdCalled));
                 Assert.True(postCrdCalled, nameof(postCrdCalled));
             }
         }
@@ -163,7 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 }))
             {
                 var client = new Kubernetes(new KubernetesClientConfiguration { Host = server.Uri });
-                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule }, currentModules, Runtime, configProvider.Object, EdgeletModuleOwner);
+                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule }, Option.None<EdgeDeploymentDefinition>(), Runtime, configProvider.Object, EdgeletModuleOwner);
 
                 await cmd.ExecuteAsync(CancellationToken.None);
 
@@ -182,7 +175,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var secretData = new Dictionary<string, byte[]> { [Constants.K8sPullSecretData] = Encoding.UTF8.GetBytes("Invalid Secret Data") };
             var secretMeta = new V1ObjectMeta(name: secretName, namespaceProperty: Namespace);
             IModule dockerModule = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            ModuleSet currentModules = ModuleSet.Create(dockerModule);
             var dockerConfigProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
             dockerConfigProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
                 .Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(DockerAuth)));
@@ -194,7 +186,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             var existingDeployment = new EdgeDeploymentDefinition(Constants.EdgeDeployment.ApiVersion, Constants.EdgeDeployment.Kind, new V1ObjectMeta(name: ResourceName), new List<KubernetesModule>());
             bool getSecretCalled = false;
             bool putSecretCalled = false;
-            bool getCrdCalled = false;
             bool putCrdCalled = false;
 
             using (var server = new KubernetesApiServer(
@@ -209,11 +200,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                         {
                             getSecretCalled = true;
                             await httpContext.Response.Body.WriteAsync(JsonConvert.SerializeObject(existingSecret).ToBody());
-                        }
-                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.EdgeDeployment.Plural}/{ResourceName}"))
-                        {
-                            getCrdCalled = true;
-                            await httpContext.Response.Body.WriteAsync(JsonConvert.SerializeObject(existingDeployment).ToBody());
                         }
                     }
                     else if (string.Equals(method, "PUT", StringComparison.OrdinalIgnoreCase))
@@ -233,13 +219,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 }))
             {
                 var client = new Kubernetes(new KubernetesClientConfiguration { Host = server.Uri });
-                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule }, currentModules, Runtime, configProvider.Object, EdgeletModuleOwner);
+                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule }, Option.Maybe(existingDeployment), Runtime, configProvider.Object, EdgeletModuleOwner);
 
                 await cmd.ExecuteAsync(CancellationToken.None);
 
                 Assert.True(getSecretCalled, nameof(getSecretCalled));
                 Assert.True(putSecretCalled, nameof(putSecretCalled));
-                Assert.True(getCrdCalled, nameof(getCrdCalled));
                 Assert.True(putCrdCalled, nameof(putCrdCalled));
             }
         }
@@ -251,7 +236,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             string secretName = "username-docker.io";
             IModule dockerModule1 = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             IModule dockerModule2 = new DockerModule("module2", "v1", ModuleStatus.Running, RestartPolicy.Always, Config2, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            ModuleSet currentModules = ModuleSet.Create(dockerModule1);
             var dockerConfigProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
             dockerConfigProvider.Setup(cp => cp.GetCombinedConfig(It.IsAny<DockerModule>(), Runtime))
                 .Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(DockerAuth)));
@@ -261,7 +245,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             bool getSecretCalled = false;
             bool putSecretCalled = false;
             int postSecretCalled = 0;
-            bool getCrdCalled = false;
             bool putCrdCalled = false;
             int postCrdCalled = 0;
             Stream secretBody = Stream.Null;
@@ -287,11 +270,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                                 // 2nd pass, use secret from creation.
                                 httpContext.Response.Body = secretBody;
                             }
-                        }
-                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.EdgeDeployment.Plural}/{ResourceName}"))
-                        {
-                            getCrdCalled = true;
-                            httpContext.Response.StatusCode = 404;
                         }
                     }
                     else if (string.Equals(method, "POST", StringComparison.OrdinalIgnoreCase))
@@ -325,14 +303,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 }))
             {
                 var client = new Kubernetes(new KubernetesClientConfiguration { Host = server.Uri });
-                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule1, dockerModule2 }, currentModules, Runtime, configProvider.Object, EdgeletModuleOwner);
+                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule1, dockerModule2 }, Option.None<EdgeDeploymentDefinition>(), Runtime, configProvider.Object, EdgeletModuleOwner);
 
                 await cmd.ExecuteAsync(CancellationToken.None);
 
                 Assert.True(getSecretCalled, nameof(getSecretCalled));
                 Assert.Equal(1, postSecretCalled);
                 Assert.False(putSecretCalled, nameof(putSecretCalled));
-                Assert.True(getCrdCalled, nameof(getCrdCalled));
                 Assert.Equal(1, postCrdCalled);
                 Assert.False(putCrdCalled, nameof(putCrdCalled));
             }
@@ -344,7 +321,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         {
             IModule dockerModule = new DockerModule("edgeAgent", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             IRuntimeModule currentModule = new EdgeAgentDockerRuntimeModule(AgentConfig1, ModuleStatus.Running, 0, "description", DateTime.Today, DateTime.Today, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            ModuleSet currentModules = ModuleSet.Create(currentModule);
             var dockerConfigProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
             dockerConfigProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
                 .Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(DockerAuth)));
@@ -354,6 +330,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             configProvider.Setup(cp => cp.GetCombinedConfig(currentModule, Runtime))
                 .Returns(() => new CombinedKubernetesConfig(AgentConfig1.Image, CreatePodParameters.Create(image: AgentConfig1.Image), Option.Maybe(ImagePullSecret)));
             var edgeDefinition = Option.None<EdgeDeploymentDefinition>();
+            KubernetesConfig kc = new KubernetesConfig(AgentConfig1.Image, CreatePodParameters.Create(), Option.None<AuthConfig>());
+            var edgeDefinitionCurrentModule = new EdgeDeploymentDefinition("v1", "EdgeDeployment", new V1ObjectMeta(name: ResourceName), new List<KubernetesModule>() { new KubernetesModule(currentModule, kc, EdgeletModuleOwner) }, null);
 
             using (var server = new KubernetesApiServer(
                 resp: string.Empty,
@@ -365,9 +343,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                     {
                         httpContext.Response.StatusCode = 404;
                     }
-                    else if (string.Equals(method, "POST", StringComparison.OrdinalIgnoreCase))
+                    else if (string.Equals(method, "PUT", StringComparison.OrdinalIgnoreCase))
                     {
-                        httpContext.Response.StatusCode = 201;
                         httpContext.Response.Body = httpContext.Request.Body;
                         if (pathStr.Contains($"namespaces/{Namespace}/{Constants.EdgeDeployment.Plural}"))
                         {
@@ -382,7 +359,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 }))
             {
                 var client = new Kubernetes(new KubernetesClientConfiguration { Host = server.Uri });
-                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule }, currentModules, Runtime, configProvider.Object, EdgeletModuleOwner);
+                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule }, Option.Maybe(edgeDefinitionCurrentModule), Runtime, configProvider.Object, EdgeletModuleOwner);
 
                 await cmd.ExecuteAsync(CancellationToken.None);
 
@@ -390,6 +367,106 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 var receivedEdgeDefinition = edgeDefinition.OrDefault();
                 var agentModule = receivedEdgeDefinition.Spec[0];
                 Assert.Equal(AgentConfig1.Image, agentModule.Config.Image);
+            }
+        }
+
+        [Fact]
+        [Unit]
+        public async void CrdCommandExecuteEdgeAgentDeploymentImageFallback()
+        {
+            IModule dockerModule = new DockerModule("edgeAgent", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
+            var dockerConfigProvider = new Mock<ICombinedConfigProvider<CombinedDockerConfig>>();
+            dockerConfigProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
+                .Returns(() => new CombinedDockerConfig("test-image:1", Config1.CreateOptions, Option.Maybe(DockerAuth)));
+            var configProvider = new Mock<ICombinedConfigProvider<CombinedKubernetesConfig>>();
+            configProvider.Setup(cp => cp.GetCombinedConfig(dockerModule, Runtime))
+                .Returns(() => new CombinedKubernetesConfig("test-image:1", CreatePodParameters.Create(image: "test-image:1"), Option.Maybe(ImagePullSecret)));
+            Option<EdgeDeploymentDefinition> edgeDefinition = Option.None<EdgeDeploymentDefinition>();
+            string agentDeploymentImage = "image:3";
+            bool postSecretCalled = false;
+            bool postCrdCalled = false;
+
+            using (var server = new KubernetesApiServer(
+                resp: string.Empty,
+                shouldNext: async httpContext =>
+                {
+                    string pathStr = httpContext.Request.Path.Value;
+                    string method = httpContext.Request.Method;
+                    if (string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (pathStr.Contains($"namespaces/{Namespace}/deployment"))
+                        {
+                            httpContext.Response.StatusCode = 200;
+                            V1Deployment d = new V1Deployment
+                            {
+                                ApiVersion = "apps/v1",
+                                Kind = "Deployment",
+                                Metadata = new V1ObjectMeta
+                                {
+                                    Name = "edgeagent",
+                                    NamespaceProperty = Namespace
+                                },
+                                Spec = new V1DeploymentSpec
+                                {
+                                    Template = new V1PodTemplateSpec
+                                    {
+                                        Metadata = new V1ObjectMeta
+                                        {
+                                            Name = "edgeagent",
+                                        },
+                                        Spec = new V1PodSpec
+                                        {
+                                            Containers = new List<V1Container>
+                                            {
+                                                new V1Container
+                                                {
+                                                    Image = agentDeploymentImage,
+                                                    Name = "edgeagent"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            };
+                            await httpContext.Response.Body.WriteAsync(JsonConvert.SerializeObject(d).ToBody());
+                        }
+                        else
+                        {
+                            httpContext.Response.StatusCode = 404;
+                        }
+                    }
+                    else if (string.Equals(method, "POST", StringComparison.OrdinalIgnoreCase))
+                    {
+                        httpContext.Response.StatusCode = 201;
+                        httpContext.Response.Body = httpContext.Request.Body;
+                        if (pathStr.Contains($"api/v1/namespaces/{Namespace}/secrets"))
+                        {
+                            postSecretCalled = true;
+                        }
+                        else if (pathStr.Contains($"namespaces/{Namespace}/{Constants.EdgeDeployment.Plural}"))
+                        {
+                            postCrdCalled = true;
+                            StreamReader reader = new StreamReader(httpContext.Request.Body);
+                            string bodyText = reader.ReadToEnd();
+                            var body = JsonConvert.DeserializeObject<EdgeDeploymentDefinition>(bodyText);
+                            edgeDefinition = Option.Maybe(body);
+                        }
+                    }
+
+                    return false;
+                }))
+            {
+                var client = new Kubernetes(new KubernetesClientConfiguration { Host = server.Uri });
+                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule }, Option.None<EdgeDeploymentDefinition>(), Runtime, configProvider.Object, EdgeletModuleOwner);
+
+                await cmd.ExecuteAsync(CancellationToken.None);
+
+                Assert.True(postSecretCalled, nameof(postSecretCalled));
+                Assert.True(postCrdCalled, nameof(postCrdCalled));
+                Assert.True(edgeDefinition.HasValue);
+                var receivedEdgeDefinition = edgeDefinition.OrDefault();
+                var agentModule = receivedEdgeDefinition.Spec[0];
+                Assert.Equal(agentDeploymentImage, agentModule.Config.Image);
             }
         }
     }
