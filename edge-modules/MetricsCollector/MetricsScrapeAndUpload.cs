@@ -3,9 +3,9 @@ namespace MetricsCollector
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-    using System.Linq;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
@@ -18,19 +18,19 @@ namespace MetricsCollector
         readonly IMetricsScraper scraper;
         readonly IMetricsPublisher publisher;
         PeriodicTask periodicScrapeAndUpload;
-        Guid guid;
+        Guid testId; // used for differentiating between test runs on the same device
 
-        public MetricsScrapeAndUpload(IMetricsScraper scraper, IMetricsPublisher publisher, Guid guid)
+        public MetricsScrapeAndUpload(IMetricsScraper scraper, IMetricsPublisher publisher, Guid testId)
         {
             this.scraper = Preconditions.CheckNotNull(scraper);
             this.publisher = Preconditions.CheckNotNull(publisher);
-            Preconditions.CheckArgument(guid != Guid.Empty);
-            this.guid = guid;
+            Preconditions.CheckArgument(testId != Guid.Empty);
+            this.testId = testId;
         }
 
         public void Start(TimeSpan scrapeAndUploadInterval)
         {
-            this.periodicScrapeAndUpload = new PeriodicTask(this.ScrapeAndUploadPrometheusMetricsAsync, scrapeAndUploadInterval, scrapeAndUploadInterval, Logger, "Scrape and Upload Metrics");
+            this.periodicScrapeAndUpload = new PeriodicTask(this.ScrapeAndUploadMetricsAsync, scrapeAndUploadInterval, scrapeAndUploadInterval, Logger, "Scrape and Upload Metrics");
         }
 
         public void Dispose()
@@ -38,14 +38,14 @@ namespace MetricsCollector
            this.periodicScrapeAndUpload?.Dispose();
         }
 
-        async Task ScrapeAndUploadPrometheusMetricsAsync(CancellationToken cancellationToken)
+        async Task ScrapeAndUploadMetricsAsync(CancellationToken cancellationToken)
         {
             try
             {
                 IEnumerable<Metric> metrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
                 IEnumerable<Metric> metricsWithTags = metrics.Select(metric =>
                 {
-                    metric.Tags.Add("guid", this.guid.ToString());
+                    metric.Tags.Add("guid", this.testId.ToString());
                     return metric;
                 });
 

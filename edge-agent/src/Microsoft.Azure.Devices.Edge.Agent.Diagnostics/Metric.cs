@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Text;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
@@ -34,7 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             // when upgraded to .net standard 2.1: https://docs.microsoft.com/en-us/dotnet/api/system.hashcode.combine?view=netstandard-2.1
             int hash = 17;
             hash = hash * 31 + this.Name.GetHashCode();
-            hash = hash * 31 + JsonConvert.SerializeObject(this.Tags).GetHashCode();
+            hash = hash * 31 + this.Tags.GetHashCode();
 
             return hash;
         }
@@ -44,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             return this.TimeGeneratedUtc == other.TimeGeneratedUtc &&
                 this.Name == other.Name &&
                 this.Value == other.Value &&
-                JsonConvert.SerializeObject(this.Tags) == JsonConvert.SerializeObject(other.Tags);
+                this.Tags.Count == other.Tags.Count && !this.Tags.Except(other.Tags).Any();
         }
     }
 }
