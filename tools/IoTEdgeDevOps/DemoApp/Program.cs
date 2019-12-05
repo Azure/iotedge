@@ -16,6 +16,9 @@ namespace DemoApp
 
             try
             {
+                var releaseManagement = new ReleaseManagement(devOpsAccessSetting);
+                List<IoTEdgeRelease> releases = await releaseManagement.GetReleasesAsync(ReleaseDefinitionId.E2ETest, "refs/heads/master");
+
                 var agentManagement = new AgentManagement(devOpsAccessSetting);
                 IList<VstsAgent> agents = await agentManagement.GetAgentsAsync(AgentManagement.IoTEdgeAgentPoolId).ConfigureAwait(false);
 
@@ -24,7 +27,7 @@ namespace DemoApp
                 var unmatchedAgents = agentMatrix.GetUnmatchedAgents();
 
                 var buildManagement = new BuildManagement(devOpsAccessSetting);
-                var result = await buildManagement.GetLatestBuildsAsync(BuildDefinitionExtension.MasterBranchReporting, "refs/heads/master").ConfigureAwait(false);
+                var result = await buildManagement.GetLatestBuildsAsync(BuildExtension.MasterBranchReporting, "refs/heads/master").ConfigureAwait(false);
             }
             catch (Exception e)
             {
