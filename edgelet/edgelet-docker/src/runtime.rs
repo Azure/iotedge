@@ -3,9 +3,7 @@
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::ops::Deref;
-use std::process;
 use std::time::Duration;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use base64;
 use failure::{Fail, ResultExt};
@@ -16,17 +14,15 @@ use hyper::{Body, Chunk as HyperChunk, Client, Request};
 use lazy_static::lazy_static;
 use log::{debug, info, Level};
 use serde_json;
-use sysinfo::{DiskExt, ProcessExt, ProcessorExt, SystemExt};
 use url::Url;
 
 use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
 use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig};
 use edgelet_core::{
-    AuthId, Authenticator, DiskInfo, GetTrustBundle, Ipam as CoreIpam, LogOptions,
-    MakeModuleRuntime, MobyNetwork, Module, ModuleId, ModuleRegistry, ModuleRuntime,
-    ModuleRuntimeState, ModuleSpec, RegistryOperation, RuntimeOperation,
-    SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
+    AuthId, Authenticator, GetTrustBundle, Ipam as CoreIpam, LogOptions, MakeModuleRuntime,
+    MobyNetwork, Module, ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
+    RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
 };
 use edgelet_http::{Pid, UrlConnector};
 use edgelet_utils::{ensure_not_empty_with_context, log_failure};
@@ -39,6 +35,15 @@ use crate::module::{
     runtime_state, DockerModule, DockerModuleTop, MODULE_TYPE as DOCKER_MODULE_TYPE,
 };
 use crate::settings::Settings;
+
+#[cfg(not(windows))]
+use edgelet_core::DiskInfo;
+#[cfg(not(windows))]
+use std::process;
+#[cfg(not(windows))]
+use std::time::{SystemTime, UNIX_EPOCH};
+#[cfg(not(windows))]
+use sysinfo::{DiskExt, ProcessExt, ProcessorExt, SystemExt};
 
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
@@ -598,8 +603,6 @@ impl ModuleRuntime for DockerModuleRuntime {
 
     fn system_resources(&self) -> Self::SystemResourcesFuture {
         info!("Querying system resources...");
-        let mut system_info = sysinfo::System::new();
-        system_info.refresh_all();
 
         let client = self.client.clone();
         let docker_stats = self
@@ -636,51 +639,65 @@ impl ModuleRuntime for DockerModuleRuntime {
             .try_into()
             .unwrap_or_default();
 
-        let current_time = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs();
-        let start_time = process::id()
-            .try_into()
-            .map(|id| system_info.get_process_list()[&id].start_time())
-            .unwrap_or_default();
+        #[cfg(not(windows))]
+        {
+            let mut system_info = sysinfo::System::new();
+            system_info.refresh_all();
+            let current_time = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs();
+            let start_time = process::id()
+                .try_into()
+                .map(|id| system_info.get_process_list()[&id].start_time())
+                .unwrap_or_default();
 
-        let used_cpu = system_info
-            .get_processor_list()
-            .iter()
-            .find(|p| p.get_name() == "Total CPU")
-            .map_or_else(|| -1.0, |p| p.get_cpu_usage());
+            let used_cpu = system_info
+                .get_processor_list()
+                .iter()
+                .find(|p| p.get_name() == "Total CPU")
+                .map_or_else(|| -1.0, |p| p.get_cpu_usage());
 
-        let total_memory = system_info.get_total_memory();
-        let used_memory = system_info.get_used_memory();
+            let total_memory = system_info.get_total_memory();
+            let used_memory = system_info.get_used_memory();
 
-        let disks = system_info
-            .get_disks()
-            .iter()
-            .map(|disk| {
-                DiskInfo::new(
-                    disk.get_name().to_string_lossy().into_owned(),
-                    disk.get_available_space(),
-                    disk.get_total_space(),
-                    String::from_utf8_lossy(disk.get_file_system()).into_owned(),
-                    format!("{:?}", disk.get_type()),
+            let disks = system_info
+                .get_disks()
+                .iter()
+                .map(|disk| {
+                    DiskInfo::new(
+                        disk.get_name().to_string_lossy().into_owned(),
+                        disk.get_available_space(),
+                        disk.get_total_space(),
+                        String::from_utf8_lossy(disk.get_file_system()).into_owned(),
+                        format!("{:?}", disk.get_type()),
+                    )
+                })
+                .collect();
+
+            let result = docker_stats.map(move |stats: String| {
+                SystemResources::new(
+                    uptime,
+                    current_time - start_time,
+                    used_cpu.into(),
+                    total_memory,
+                    used_memory,
+                    disks,
+                    stats,
                 )
-            })
-            .collect();
+            });
 
-        let result = docker_stats.map(move |stats: String| {
-            SystemResources::new(
-                uptime,
-                current_time - start_time,
-                used_cpu.into(),
-                total_memory,
-                used_memory,
-                disks,
-                stats,
-            )
-        });
+            Box::new(result)
+        }
 
-        Box::new(result)
+        #[cfg(windows)]
+        {
+            let result = docker_stats.map(move |stats: String| {
+                SystemResources::new(uptime, 0, 0.0, 0, 0, vec![], stats)
+            });
+
+            Box::new(result)
+        }
     }
 
     fn list(&self) -> Self::ListFuture {
