@@ -71,6 +71,17 @@
               "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
+          },
+          "relayer": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "settings": {
+              "transportType": "amqp",
+              "inputName": "input1",
+              "outputName": "output1"
+            }
           }
         }
       }
@@ -80,7 +91,7 @@
         "schemaVersion": "1.0",
         "routes": {
           "upstreamLoadGen1": "FROM /messages/modules/loadGen1/outputs/output1 INTO $upstream",
-          "upstreamLoadGen2": "FROM /messages/modules/loadGen2/outputs/output1 INTO $upstream",
+          "upstreamLoadGen2": "FROM /messages/modules/loadGen2/outputs/output1 INTO $upstream"
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 86400
