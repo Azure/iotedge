@@ -5,10 +5,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
     using System.Collections.Generic;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public sealed class MetricWithCustomTags : Metric, IEquatable<Metric>
+    public sealed class ExtendedMetric : Metric, IEquatable<Metric>
     {
         public IReadOnlyDictionary<string, string> CustomTags { get; }
-        public MetricWithCustomTags(Metric metric, IReadOnlyDictionary<string, string> customTags)
+
+        public ExtendedMetric(Metric metric, IReadOnlyDictionary<string, string> customTags)
         : base(metric.TimeGeneratedUtc, metric.Name, metric.Value, metric.Tags)
         {
             Preconditions.CheckNotNull(metric);

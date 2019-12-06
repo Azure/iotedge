@@ -50,8 +50,8 @@ namespace MetricsCollector
                 }
             }
 
-            this.ScrapeFrequencySecs = Preconditions.CheckRange(scrapeFrequencySecs, 0);
-            this.UploadTarget = Preconditions.CheckNotNull(uploadTarget);
+            this.ScrapeFrequencySecs = Preconditions.CheckRange(scrapeFrequencySecs, 1);
+            this.UploadTarget = uploadTarget;
         }
 
         public static Settings Current => DefaultSettings.Value;

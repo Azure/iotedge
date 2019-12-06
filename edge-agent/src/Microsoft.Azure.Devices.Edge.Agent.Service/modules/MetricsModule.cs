@@ -24,11 +24,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
         public MetricsModule(MetricsConfig metricsConfig, string iothubHostname, string deviceId, string edgeAgentStorageFolder)
         {
             this.metricsConfig = Preconditions.CheckNotNull(metricsConfig, nameof(metricsConfig));
-            this.iothubHostname = Preconditions.CheckNotNull(iothubHostname, nameof(iothubHostname));
-            this.deviceId = Preconditions.CheckNotNull(deviceId, nameof(deviceId));
-            if (!Directory.Exists(Preconditions.CheckNotNull(edgeAgentStorageFolder, nameof(edgeAgentStorageFolder))))
+            this.iothubHostname = Preconditions.CheckNonWhiteSpace(iothubHostname, nameof(iothubHostname));
+            this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+
+            Preconditions.CheckNotNull(edgeAgentStorageFolder, nameof(edgeAgentStorageFolder));
+            if (!Directory.Exists(edgeAgentStorageFolder))
             {
-                throw new ArgumentException("Edge Agent storage folder not defined");
+                throw new ArgumentException("Edge Agent storage folder does not exist");
             }
 
             this.edgeAgentStorageFolder = edgeAgentStorageFolder;
