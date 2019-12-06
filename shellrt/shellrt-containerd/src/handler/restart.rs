@@ -11,7 +11,10 @@ impl RestartHandler {
         RestartHandler { grpc_uri }
     }
 
-    pub async fn handle(self, req: request::Restart) -> Result<response::Restart> {
+    pub async fn handle(
+        self,
+        req: request::Restart,
+    ) -> Result<(response::Restart, Option<crate::ResponseThunk>)> {
         let request::Restart { name } = req;
 
         // CRI doesn't have an explicit restart command.
@@ -24,6 +27,6 @@ impl RestartHandler {
             .handle(request::Start { name: name.clone() })
             .await?;
 
-        Ok(response::Restart {})
+        Ok((response::Restart {}, None))
     }
 }

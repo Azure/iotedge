@@ -45,6 +45,9 @@ pub enum ErrorKind {
     #[fail(display = "Specified module does not exist")]
     ModuleDoesNotExist,
 
+    #[fail(display = "Could not open module log file")]
+    OpenLogFile,
+
     // TODO: this error is too broad. it might be better to map several of the more "informative"
     // containrs errors to specific ErrorKinds / ErrorCodes.
     #[fail(display = "Error while communicating with registry")]

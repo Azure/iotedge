@@ -12,7 +12,10 @@ impl ImgRemoveHandler {
         ImgRemoveHandler { grpc_uri }
     }
 
-    pub async fn handle(self, req: request::ImgRemove) -> Result<response::ImgRemove> {
+    pub async fn handle(
+        self,
+        req: request::ImgRemove,
+    ) -> Result<(response::ImgRemove, Option<crate::ResponseThunk>)> {
         let mut client = ImageServiceClient::connect(self.grpc_uri)
             .await
             .context(ErrorKind::GrpcConnect)?;
@@ -26,6 +29,6 @@ impl ImgRemoveHandler {
             .await
             .context(ErrorKind::GrpcUnexpectedErr)?;
 
-        Ok(response::ImgRemove {})
+        Ok((response::ImgRemove {}, None))
     }
 }

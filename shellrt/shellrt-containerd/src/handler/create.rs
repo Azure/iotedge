@@ -38,7 +38,10 @@ impl CreateHandler {
         CreateHandler { grpc_uri }
     }
 
-    pub async fn handle(self, req: request::Create) -> Result<response::Create> {
+    pub async fn handle(
+        self,
+        req: request::Create,
+    ) -> Result<(response::Create, Option<crate::ResponseThunk>)> {
         let request::Create {
             name, config, env, ..
         } = req;
@@ -174,6 +177,6 @@ impl CreateHandler {
             Err(e) => return Err(e.context(ErrorKind::GrpcUnexpectedErr).into()),
         };
 
-        Ok(response::Create {})
+        Ok((response::Create {}, None))
     }
 }

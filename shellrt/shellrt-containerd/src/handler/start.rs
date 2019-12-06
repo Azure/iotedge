@@ -13,7 +13,10 @@ impl StartHandler {
         StartHandler { grpc_uri }
     }
 
-    pub async fn handle(self, req: request::Start) -> Result<response::Start> {
+    pub async fn handle(
+        self,
+        req: request::Start,
+    ) -> Result<(response::Start, Option<crate::ResponseThunk>)> {
         let request::Start { name } = req;
 
         let mut cri_client = RuntimeServiceClient::connect(self.grpc_uri.clone())
@@ -27,6 +30,6 @@ impl StartHandler {
             .await
             .context(ErrorKind::GrpcUnexpectedErr)?;
 
-        Ok(response::Start {})
+        Ok((response::Start {}, None))
     }
 }

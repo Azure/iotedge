@@ -30,7 +30,10 @@ impl ImgPullHandler {
         ImgPullHandler { grpc_uri }
     }
 
-    pub async fn handle(self, req: request::ImgPull) -> Result<response::ImgPull> {
+    pub async fn handle(
+        self,
+        req: request::ImgPull,
+    ) -> Result<(response::ImgPull, Option<crate::ResponseThunk>)> {
         let request::ImgPull { image, credentials } = req;
 
         // parse image reference
@@ -146,7 +149,7 @@ impl ImgPullHandler {
 
         register_image_with_containerd(images_client, &image, &manifest_descriptor).await?;
 
-        Ok(response::ImgPull {})
+        Ok((response::ImgPull {}, None))
     }
 }
 

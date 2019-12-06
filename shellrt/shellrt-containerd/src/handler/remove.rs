@@ -13,7 +13,10 @@ impl RemoveHandler {
         RemoveHandler { grpc_uri }
     }
 
-    pub async fn handle(self, req: request::Remove) -> Result<response::Remove> {
+    pub async fn handle(
+        self,
+        req: request::Remove,
+    ) -> Result<(response::Remove, Option<crate::ResponseThunk>)> {
         let request::Remove { name } = req;
 
         // TODO?: Should remove also remove the pod?
@@ -29,6 +32,6 @@ impl RemoveHandler {
             .await
             .context(ErrorKind::GrpcUnexpectedErr)?;
 
-        Ok(response::Remove {})
+        Ok((response::Remove {}, None))
     }
 }

@@ -12,7 +12,10 @@ impl ListHandler {
         ListHandler { grpc_uri }
     }
 
-    pub async fn handle(self, _req: request::List) -> Result<response::List> {
+    pub async fn handle(
+        self,
+        _req: request::List,
+    ) -> Result<(response::List, Option<crate::ResponseThunk>)> {
         let mut cri_client = RuntimeServiceClient::connect(self.grpc_uri.clone())
             .await
             .context(ErrorKind::GrpcConnect)?;
@@ -32,6 +35,6 @@ impl ListHandler {
             })
             .collect::<Vec<String>>();
 
-        Ok(response::List { modules })
+        Ok((response::List { modules }, None))
     }
 }

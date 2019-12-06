@@ -12,7 +12,10 @@ impl VersionHandler {
         VersionHandler { grpc_uri }
     }
 
-    pub async fn handle(self, _req: request::Version) -> Result<response::Version> {
+    pub async fn handle(
+        self,
+        _req: request::Version,
+    ) -> Result<(response::Version, Option<crate::ResponseThunk>)> {
         let mut client = VersionClient::connect(self.grpc_uri)
             .await
             .context(ErrorKind::GrpcConnect)?;
@@ -32,6 +35,6 @@ impl VersionHandler {
             ),
         };
 
-        Ok(res)
+        Ok((res, None))
     }
 }

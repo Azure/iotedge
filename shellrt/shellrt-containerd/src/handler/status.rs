@@ -13,7 +13,10 @@ impl StatusHandler {
         StatusHandler { grpc_uri }
     }
 
-    pub async fn handle(self, req: request::Status) -> Result<response::Status> {
+    pub async fn handle(
+        self,
+        req: request::Status,
+    ) -> Result<(response::Status, Option<crate::ResponseThunk>)> {
         let request::Status { name } = req;
 
         let mut cri_client = RuntimeServiceClient::connect(self.grpc_uri.clone())
@@ -53,13 +56,16 @@ impl StatusHandler {
             _ => (Some(status.finished_at), Some(status.exit_code as i64)),
         };
 
-        Ok(response::Status {
-            status: module_status,
-            status_description: format!("{}: {}", status.reason, status.message),
-            image_id: status.image_ref,
-            started_at: status.started_at,
-            finished_at,
-            exit_code,
-        })
+        Ok((
+            response::Status {
+                status: module_status,
+                status_description: format!("{}: {}", status.reason, status.message),
+                image_id: status.image_ref,
+                started_at: status.started_at,
+                finished_at,
+                exit_code,
+            },
+            None,
+        ))
     }
 }

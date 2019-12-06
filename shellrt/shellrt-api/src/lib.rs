@@ -252,7 +252,7 @@ pub mod v0 {
         | Stop       | "stop"        || stop        | StopRequest       | StopResponse       |
         +------------+---------------++-------------+-------------------+--------------------+
         | List       | "list"        || list        | ListRequest       | ListResponse       |
-     // | Logs       | "logs"        || logs        | LogsRequest       | LogsResponse       |
+        | Logs       | "logs"        || logs        | LogsRequest       | LogsResponse       |
         | Status     | "status"      || status      | StatusRequest     | StatusResponse     |
      // | SystemInfo | "system_info" || system_info | SystemInfoRequest | SystemInfoResponse |
      // | Top        | "top"         || top         | TopRequest        | TopResponse        |

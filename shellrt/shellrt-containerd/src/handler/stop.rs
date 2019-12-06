@@ -13,7 +13,10 @@ impl StopHandler {
         StopHandler { grpc_uri }
     }
 
-    pub async fn handle(self, req: request::Stop) -> Result<response::Stop> {
+    pub async fn handle(
+        self,
+        req: request::Stop,
+    ) -> Result<(response::Stop, Option<crate::ResponseThunk>)> {
         let request::Stop { name, timeout } = req;
 
         // TODO?: Should stop also remove the pod?
@@ -30,6 +33,6 @@ impl StopHandler {
             .await
             .context(ErrorKind::GrpcUnexpectedErr)?;
 
-        Ok(response::Stop {})
+        Ok((response::Stop {}, None))
     }
 }
