@@ -1644,7 +1644,7 @@ function Uninstall-Services([ref] $RestartNeeded, [bool] $LegacyInstaller) {
             Write-Verbose "Stopped the IoT Edge service $EdgeServiceName"
         }
         else {
-            Write-Verbose "stopping IoT Edge service $EdgeServiceName failed.  error: $cmdErr"
+            Write-Verbose "Stopping IoT Edge service $EdgeServiceName failed. Error: $cmdErr"
         }
     }
 
@@ -1657,7 +1657,7 @@ function Uninstall-Services([ref] $RestartNeeded, [bool] $LegacyInstaller) {
             Write-Verbose "Stopped the IoT Edge Moby Engine service $MobyServiceName"
         }
         else {
-            Write-Verbose "Stopping IoT Edge Moby Engine service $MobyServiceName failed.  error: $cmdErr"
+            Write-Verbose "Stopping IoT Edge Moby Engine service $MobyServiceName failed. Error: $cmdErr"
         }
     }
 
