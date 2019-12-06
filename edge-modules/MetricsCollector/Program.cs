@@ -26,7 +26,7 @@ namespace MetricsCollector
             IMetricsPublisher publisher;
             if (Settings.Current.UploadTarget == UploadTarget.AzureLogAnalytics)
             {
-                publisher = new LogAnalyticsUpload(Settings.Current.AzMonWorkspaceId, Settings.Current.AzMonWorkspaceKey, Settings.Current.AzMonLogType, Guid.NewGuid());
+                publisher = new LogAnalyticsUpload(Settings.Current.AzMonWorkspaceId, Settings.Current.AzMonWorkspaceKey, Settings.Current.AzMonLogType);
             }
             else
             {
