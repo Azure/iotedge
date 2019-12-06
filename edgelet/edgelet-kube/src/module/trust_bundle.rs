@@ -12,9 +12,10 @@ use kube_client::TokenSource;
 use crate::convert::trust_bundle_to_config_map;
 use crate::{Error, ErrorKind, KubeModuleRuntime};
 
+#[allow(clippy::needless_pass_by_value)]
 pub fn init_trust_bundle<T, S>(
     runtime: &KubeModuleRuntime<T, S>,
-    crypto: &impl GetTrustBundle,
+    crypto: impl GetTrustBundle,
 ) -> impl Future<Item = (), Error = Error>
 where
     T: TokenSource,
@@ -116,7 +117,7 @@ mod tests {
         let crypto = TestHsm::default().with_fail_call(true);
 
         let runtime = create_runtime(settings, service);
-        let task = init_trust_bundle(&runtime, &crypto);
+        let task = init_trust_bundle(&runtime, crypto);
 
         let mut runtime = Runtime::new().unwrap();
         let err = runtime.block_on(task).unwrap_err();
@@ -141,7 +142,7 @@ mod tests {
         let crypto = TestHsm::default().with_cert(cert);
 
         let runtime = create_runtime(settings, service);
-        let task = init_trust_bundle(&runtime, &crypto);
+        let task = init_trust_bundle(&runtime, crypto);
 
         let mut runtime = Runtime::new().unwrap();
         let err = runtime.block_on(task).unwrap_err();
@@ -166,7 +167,7 @@ mod tests {
         let crypto = TestHsm::default().with_cert(cert);
 
         let runtime = create_runtime(settings, service);
-        let task = init_trust_bundle(&runtime, &crypto);
+        let task = init_trust_bundle(&runtime, crypto);
 
         let mut runtime = Runtime::new().unwrap();
         let err = runtime.block_on(task).unwrap_err();
@@ -196,7 +197,7 @@ mod tests {
         let cert = TestCert::default().with_cert(b"secret_cert".to_vec());
         let crypto = TestHsm::default().with_cert(cert);
 
-        let task = init_trust_bundle(&runtime, &crypto);
+        let task = init_trust_bundle(&runtime, crypto);
 
         let mut runtime = Runtime::new().unwrap();
         runtime.block_on(task).unwrap();
@@ -217,7 +218,7 @@ mod tests {
         let cert = TestCert::default().with_cert(b"secret_cert".to_vec());
         let crypto = TestHsm::default().with_cert(cert);
 
-        let task = init_trust_bundle(&runtime, &crypto);
+        let task = init_trust_bundle(&runtime, crypto);
 
         let mut runtime = Runtime::new().unwrap();
         runtime.block_on(task).unwrap();

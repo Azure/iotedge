@@ -417,7 +417,7 @@ pub trait MakeModuleRuntime {
     fn make_runtime(
         settings: Self::Settings,
         provisioning_result: Self::ProvisioningResult,
-        crypto: impl GetTrustBundle + 'static,
+        crypto: impl GetTrustBundle + Send + 'static,
     ) -> Self::Future;
 }
 

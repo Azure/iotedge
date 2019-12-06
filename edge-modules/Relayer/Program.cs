@@ -8,6 +8,7 @@ namespace Relayer
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+
     /*
      * Module for relaying messages. It receives a message and passes it on.
      */
@@ -18,6 +19,7 @@ namespace Relayer
         static async Task Main(string[] args)
         {
             Logger.LogInformation($"Starting Relayer with the following settings: \r\n{Settings.Current}");
+
             try
             {
                 ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
@@ -29,7 +31,7 @@ namespace Relayer
                 (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
                 // Receive a message and call ProcessAndSendMessageAsync to send it on its way
-                await moduleClient.SetInputMessageHandlerAsync("input1", ProcessAndSendMessageAsync, moduleClient);
+                await moduleClient.SetInputMessageHandlerAsync(Settings.Current.InputName, ProcessAndSendMessageAsync, moduleClient);
 
                 await cts.Token.WhenCanceled();
                 completed.Set();
@@ -38,7 +40,7 @@ namespace Relayer
             }
             catch (Exception ex)
             {
-                Logger.LogError($"Error occurred during Relayer.\r\n{ex}");
+                Logger.LogError(ex, "Error occurred during Relayer.");
             }
         }
 
@@ -56,7 +58,7 @@ namespace Relayer
             }
             catch (Exception ex)
             {
-                Logger.LogError($"Error in ProcessAndSendMessageAsync: {ex}");
+                Logger.LogError(ex, "Error in ProcessAndSendMessageAsync");
             }
 
             return MessageResponse.Completed;
