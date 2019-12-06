@@ -15,7 +15,9 @@ namespace DirectMethodSender
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("DirectMethodSender");
 
-        public static async Task Main()
+        public static int Main() => MainAsync().Result;
+
+        public static async Task<int> MainAsync()
         {
             Logger.LogInformation($"Starting DirectMethodSender with the following settings:\r\n{Settings.Current}");
 
@@ -44,6 +46,8 @@ namespace DirectMethodSender
             {
                 Logger.LogError(e, "Error occurred during direct method sender test setup");
             }
+
+            return 0;
         }
 
         static async Task CallDirectMethod(

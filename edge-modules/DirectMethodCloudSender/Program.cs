@@ -16,7 +16,9 @@ namespace DirectMethodCloudSender
         const string RouteOutputName = "output1";
         static readonly ILogger Logger = ModuleUtil.CreateLogger("DirectMethodCloudSender");
 
-        public static async Task Main()
+        public static int Main() => MainAsync().Result;
+
+        public static async Task<int> MainAsync()
         {
             Logger.LogInformation($"Starting DirectMethodCloudSender with the following settings:\r\n{Settings.Current}");
 
@@ -40,6 +42,8 @@ namespace DirectMethodCloudSender
             {
                 Logger.LogError($"Error occurred during direct method cloud sender test setup.\r\n{ex}");
             }
+
+            return 0;
         }
 
         static async Task CallDirectMethodFromCloud(
