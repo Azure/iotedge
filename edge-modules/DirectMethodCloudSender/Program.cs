@@ -9,7 +9,7 @@ namespace DirectMethodCloudSender
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using TransportType2 = Microsoft.Azure.Devices.TransportType;
+    using TransportType = Microsoft.Azure.Devices.TransportType;
 
     class Program
     {
@@ -25,7 +25,7 @@ namespace DirectMethodCloudSender
                 string serviceClientConnectionString = Settings.Current.ServiceClientConnectionString;
                 Uri analyzerUrl = Settings.Current.AnalyzerUrl;
 
-                ServiceClient serviceClient = ServiceClient.CreateFromConnectionString(serviceClientConnectionString, (TransportType2)Settings.Current.TransportType);
+                ServiceClient serviceClient = ServiceClient.CreateFromConnectionString(serviceClientConnectionString, (TransportType)Settings.Current.TransportType);
                 AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = analyzerUrl.AbsoluteUri };
 
                 (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
@@ -73,7 +73,7 @@ namespace DirectMethodCloudSender
                         Logger.LogError(statusMessage);
                     }
 
-                    await CallAnalyzerToReportStatusAsync(targetModuleId, result, analyzerClient);
+                    await ReportStatus(targetModuleId, result, analyzerClient);
                     directMethodCount++;
                 }
                 catch (Exception e)
@@ -88,7 +88,7 @@ namespace DirectMethodCloudSender
             await serviceClient.CloseAsync();
         }
 
-        static async Task CallAnalyzerToReportStatusAsync(string moduleId, CloudToDeviceMethodResult result, AnalyzerClient analyzerClient)
+        static async Task ReportStatus(string moduleId, CloudToDeviceMethodResult result, AnalyzerClient analyzerClient)
         {
             try
             {
