@@ -41,7 +41,8 @@ namespace DirectMethodSender
         {
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.TargetModuleId = Preconditions.CheckNonWhiteSpace(targetModuleId, nameof(targetModuleId));
-            this.TransportType = Preconditions.CheckNotNull(transportType, nameof(transportType));
+            Preconditions.CheckArgument(TransportType.IsDefined(typeof(TransportType), transportType));
+            this.TransportType = transportType;
             this.DirectMethodDelay = Preconditions.CheckNotNull(directMethodDelay);
             this.AnalyzerUrl = Preconditions.CheckNotNull(analyzerUrl);
         }

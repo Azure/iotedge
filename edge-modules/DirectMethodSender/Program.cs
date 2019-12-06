@@ -75,7 +75,7 @@ namespace DirectMethodSender
                         Logger.LogError(statusMessage);
                     }
 
-                    CallAnalyzerToReportStatus(targetModuleId, response, analyzerClient);
+                    ReportStatus(targetModuleId, response, analyzerClient);
                     directMethodCount++;
                 }
                 catch (Exception e)
@@ -87,7 +87,7 @@ namespace DirectMethodSender
             }
         }
 
-        static void CallAnalyzerToReportStatus(string moduleId, MethodResponse response, AnalyzerClient analyzerClient)
+        static void ReportStatus(string moduleId, MethodResponse response, AnalyzerClient analyzerClient)
         {
             try
             {
