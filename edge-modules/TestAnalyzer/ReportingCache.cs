@@ -40,7 +40,7 @@ namespace TestAnalyzer
             await Task.WhenAll(messageProcessing, directMethodProcessing, twinProcessing);
         }
 
-        public async Task AddDirectMethodStatusAsync(CloudOperationStatus directMethodStatus)
+        public async Task AddDirectMethodStatusAsync(LegacyTestOperationResult directMethodStatus)
         {
             bool added = await this.storage.AddDirectMethodAsync(directMethodStatus);
             if (added)
@@ -49,7 +49,7 @@ namespace TestAnalyzer
             }
         }
 
-        public async Task AddTwinStatusAsync(CloudOperationStatus twinStatus)
+        public async Task AddTwinStatusAsync(LegacyTestOperationResult twinStatus)
         {
             bool added = await this.storage.AddTwinAsync(twinStatus);
             if (added)
@@ -58,7 +58,7 @@ namespace TestAnalyzer
             }
         }
 
-        public void AddStatus(CloudOperationStatus responseStatus, ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> cache)
+        public void AddStatus(LegacyTestOperationResult responseStatus, ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> cache)
         {
             ConcurrentDictionary<string, Tuple<int, DateTime>> batch = cache.GetOrAdd(responseStatus.ModuleId, key => new ConcurrentDictionary<string, Tuple<int, DateTime>>());
 
