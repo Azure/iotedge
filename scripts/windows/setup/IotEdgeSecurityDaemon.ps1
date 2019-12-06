@@ -314,9 +314,14 @@ function Initialize-IoTEdge {
         throw
     }
 
+    if (-not (Test-VcRuntimePresent)) {
+        Write-HostRed 'VC Runtime must be installed before IoT Edge can be initialized.'
+        throw
+    }
+
     if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
         Write-HostRed
-        Write-HostRed ('IoT Edge is installed in an invalid location. ' + $ReinstallMessage)
+        Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. There may be an old preview install present. Please run Uninstall-IoTEdge first or reimage the device. ' + $ReinstallMessage)
         throw
     }
 
@@ -500,6 +505,8 @@ function Deploy-IoTEdge {
         # Skip battery check.
         [Switch] $SkipBatteryCheck
     )
+
+    Set-StrictMode -Version 5
 
     Install-Packages `
         -ContainerOs $ContainerOs `
@@ -726,6 +733,8 @@ function Install-IoTEdge {
         [Switch] $SkipBatteryCheck
     )
 
+    Set-StrictMode -Version 5
+
     # Set by Deploy-IoTEdge if it succeeded, so we can abort early in case of failure.
     #
     # We use a script-scope var instead of having Deploy-IoTEdge return a boolean or take a [ref] parameter
@@ -896,6 +905,8 @@ function Get-IoTEdgeLog {
         [DateTime] $StartTime = [datetime]::Now.AddMinutes(-5)
     )
 
+    Set-StrictMode -Version 5
+
     Get-WinEvent -ea SilentlyContinue -FilterHashtable @{ProviderName='iotedged';LogName='application';StartTime=$StartTime} |
         Select TimeCreated, Message |
         Sort-Object @{Expression='TimeCreated';Descending=$false} |
@@ -932,7 +943,7 @@ function Install-Packages(
 
         if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
             Write-HostRed
-            Write-HostRed ('IoT Edge is installed in an invalid location. ' + $ReinstallMessage)
+            Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. There may be an old preview install present. Please run Uninstall-IoTEdge first or reimage the device. ' + $ReinstallMessage)
             throw
         }
 
@@ -946,7 +957,7 @@ function Install-Packages(
         if (Test-EdgeAlreadyInstalled) {
             if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
                 Write-HostRed
-                Write-HostRed ('IoT Edge is installed in an invalid location. ' + $ReinstallMessage)
+                Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. There may be an old preview install present. Please run Uninstall-IoTEdge first or reimage the device. ' + $ReinstallMessage)
             }
             else {
                 Write-HostRed
@@ -959,8 +970,7 @@ function Install-Packages(
         if (Test-MobyAlreadyInstalled) {
             if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
                 Write-HostRed
-                Write-HostRed ('IoT Edge Moby Engine is installed in an invalid location. ' +
-                    $ReinstallMessage)
+                Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. There may be an old preview install present. Please run Uninstall-IoTEdge first or reimage the device. ' + $ReinstallMessage)
             }
             else {
                 Write-HostRed
@@ -985,8 +995,8 @@ function Install-Packages(
                 }
             }
         }
-        Get-VcRuntime
     }
+    Get-VcRuntime # does nothing if vcruntime already installed
 
     # Download
     Get-IoTEdge -RestartNeeded ([ref] $restartNeeded) -Update $Update
@@ -1575,13 +1585,17 @@ function Reset-SystemPath {
     Write-Verbose 'Removed IoT Edge directories from system PATH'
 }
 
+function Test-VcRuntimePresent {
+    return Test-Path 'C:\Windows\System32\vcruntime140.dll'
+}
+
 function Get-VcRuntime {
     if (Test-IotCore) {
         Write-HostGreen 'Skipping VC Runtime installation on IoT Core.'
         return
     }
 
-    if (Test-Path 'C:\Windows\System32\vcruntime140.dll') {
+    if (Test-VcRuntimePresent) {
         Write-HostGreen 'Skipping VC Runtime installation because it is already installed.'
         return
     }
@@ -1627,10 +1641,10 @@ function Uninstall-Services([ref] $RestartNeeded, [bool] $LegacyInstaller) {
         Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable cmdErr $EdgeServiceName
         if ($?) {
             Start-Sleep -Seconds 7
-            Write-Verbose 'Stopped the IoT Edge service'
+            Write-Verbose "Stopped the IoT Edge service $EdgeServiceName"
         }
         else {
-            Write-Verbose "$cmdErr"
+            Write-Verbose "Stopping IoT Edge service $EdgeServiceName failed. Error: $cmdErr"
         }
     }
 
@@ -1640,10 +1654,10 @@ function Uninstall-Services([ref] $RestartNeeded, [bool] $LegacyInstaller) {
         Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable cmdErr $MobyServiceName
         if ($?) {
             Start-Sleep -Seconds 7
-            Write-Verbose 'Stopped the IoT Edge Moby Engine service'
+            Write-Verbose "Stopped the IoT Edge Moby Engine service $MobyServiceName"
         }
         else {
-            Write-Verbose "$cmdErr"
+            Write-Verbose "Stopping IoT Edge Moby Engine service $MobyServiceName failed. Error: $cmdErr"
         }
     }
 
@@ -1660,6 +1674,7 @@ function Uninstall-Services([ref] $RestartNeeded, [bool] $LegacyInstaller) {
         }
     }
     else {
+        Write-Verbose 'Uninstalling IoT Edge package.'
         Uninstall-Package -Name $EdgePackage -RestartNeeded $RestartNeeded
     }
 }
