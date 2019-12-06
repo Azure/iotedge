@@ -319,7 +319,6 @@ function Initialize-IoTEdge {
         throw
     }
 
-
     if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
         Write-HostRed
         Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. There may be an old preview install present. Please run Uninstall-IoTEdge first or reimage the device. ' + $ReinstallMessage)
@@ -1675,7 +1674,7 @@ function Uninstall-Services([ref] $RestartNeeded, [bool] $LegacyInstaller) {
         }
     }
     else {
-        Write-Verbose "Uninstalling IoT Edge package."
+        Write-Verbose 'Uninstalling IoT Edge package.'
         Uninstall-Package -Name $EdgePackage -RestartNeeded $RestartNeeded
     }
 }
