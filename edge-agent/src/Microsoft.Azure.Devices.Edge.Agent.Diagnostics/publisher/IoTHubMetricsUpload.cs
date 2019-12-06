@@ -22,14 +22,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
         {
             Preconditions.CheckNotNull(metrics, nameof(metrics));
             byte[] data = MetricsSerializer.MetricsToBytes(metrics).ToArray();
-            byte[] compressedData = Compression.CompressToGzip(data);
 
             // TODO: add check for too big of a message
-            if (compressedData.Length > 0)
+            if (data.Length > 0)
             {
-                Message message = new Message(compressedData);
+                Message message = this.BuildMessage(data);
                 await this.moduleClient.SendEventAsync(message);
             }
+        }
+
+        Message BuildMessage(byte[] data)
+        {
+            Message message = new Message(data);
+            message.ContentType = "application/x-azureiot-devicediagnostics";
+
+            return message;
         }
     }
 }
