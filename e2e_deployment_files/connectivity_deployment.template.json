@@ -122,9 +122,9 @@
         "schemaVersion": "1.0",
         "routes": {
           "loadGen1ToRelayer1": "FROM /messages/modules/loadGen1/outputs/output1 INTO BrokeredEndpoint(\"/modules/Relayer/inputs/input1\")",
-          "relayer1ToCloud": "FROM /messages/modules/Relayer/output1 INTO $upstream",
+          "relayer1ToCloud": "FROM /messages/modules/relayer1/outputs/output1 INTO $upstream",
           "loadGen2ToRelayer2": "FROM /messages/modules/loadGen2/outputs/output2 INTO BrokeredEndpoint(\"/modules/Relayer/inputs/input2\")",
-          "relayer2ToCloud": "FROM /messages/modules/Relayer/output2 INTO $upstream"
+          "relayer2ToCloud": "FROM /messages/modules/relayer2/outputs/output2 INTO $upstream"
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 86400
