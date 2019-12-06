@@ -1,0 +1,740 @@
+swagger: '2.0'
+schemes:
+  - http
+info:
+  title: IoT Edge Management API
+  version: '2019-10-22'
+tags:
+  - name: Module
+    x-displayName: Modules
+    description: |
+      Create and manage modules.
+  - name: Identity
+    x-displayName: Identities
+    description: |
+      Create and manage module identity.
+  - name: SystemInformation
+    x-displayName: SystemInformation
+    description: |
+      Get information about the runtime.
+paths:
+  /modules:
+    get:
+      tags:
+        - Module
+      summary: List modules.
+      produces:
+        - application/json
+      description: |
+        This returns the list of currently running modules and their statuses.
+      operationId: ListModules
+      parameters:
+        - $ref: '#/parameters/api-version'
+      responses:
+        '200':
+          description: Ok
+          schema:
+            $ref: '#/definitions/ModuleList'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    post:
+      tags:
+        - Module
+      summary: Create module.
+      operationId: CreateModule
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - $ref: '#/parameters/api-version'
+        - in: body
+          name: module
+          required: true
+          schema:
+            $ref: '#/definitions/ModuleSpec'
+      responses:
+        '201':
+          description: Created
+          schema:
+            $ref: '#/definitions/ModuleDetails'
+        '409':
+          description: Conflict. Returned if module already exists.
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  '/modules/{name}':
+    get:
+      tags:
+        - Module
+      summary: Get a module's status.
+      operationId: GetModule
+      produces:
+        - application/json
+      parameters:
+        - $ref: '#/parameters/api-version'
+        - in: path
+          name: name
+          description: The name of the module to get. (urlencoded)
+          required: true
+          type: string
+      responses:
+        '200':
+          description: Ok
+          schema:
+            $ref: '#/definitions/ModuleDetails'
+        '404':
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    put:
+      tags:
+        - Module
+      summary: Update a module.
+      operationId: UpdateModule
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - $ref: '#/parameters/api-version'
+        - in: path
+          name: name
+          description: The name of the module to update. (urlencoded)
+          required: true
+          type: string
+        - name: start
+          in: query
+          description: Flag indicating whether module should be started after updating.
+          required: false
+          type: boolean
+          default: false
+          allowEmptyValue: true
+        - in: body
+          name: module
+          required: true
+          schema:
+            $ref: '#/definitions/ModuleSpec'
+      responses:
+        '200':
+          description: Ok
+          schema:
+            $ref: '#/definitions/ModuleDetails'
+        '404':
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    delete:
+      tags:
+        - Module
+      summary: Delete a module.
+      operationId: DeleteModule
+      produces:
+        - application/json
+      parameters:
+        - $ref: '#/parameters/api-version'
+        - in: path
+          name: name
+          description: The name of the module to delete. (urlencoded)
+          required: true
+          type: string
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  '/modules/{name}/prepareupdate':
+    post:
+      tags:
+        - Module
+      summary: Prepare to update a module.
+      operationId: PrepareUpdateModule
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - $ref: '#/parameters/api-version'
+        - in: path
+          name: name
+          description: The name of the module to update. (urlencoded)
+          required: true
+          type: string
+        - in: body
+          name: module
+          required: true
+          schema:
+            $ref: '#/definitions/ModuleSpec'
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  '/modules/{name}/start':
+    post:
+      tags:
+        - Module
+      summary: Start a module.
+      operationId: StartModule
+      parameters:
+        - $ref: '#/parameters/api-version'
+        - in: path
+          name: name
+          description: The name of the module to start. (urlencoded)
+          required: true
+          type: string
+      responses:
+        '204':
+          description: No Content
+        '304':
+          description: Not Modified
+        '404':
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  '/modules/{name}/stop':
+    post:
+      tags:
+        - Module
+      summary: Stop a module.
+      operationId: StopModule
+      parameters:
+        - $ref: '#/parameters/api-version'
+        - in: path
+          name: name
+          description: The name of the module to stop. (urlencoded)
+          required: true
+          type: string
+      responses:
+        '204':
+          description: No Content
+        '304':
+          description: Not Modified
+        '404':
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  '/modules/{name}/restart':
+    post:
+      tags:
+        - Module
+      summary: Restart a module.
+      operationId: RestartModule
+      parameters:
+        - $ref: '#/parameters/api-version'
+        - in: path
+          name: name
+          description: The name of the module to restart. (urlencoded)
+          required: true
+          type: string
+      responses:
+        '204':
+          description: No Content
+        '304':
+          description: Not Modified
+        '404':
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  '/modules/{name}/logs':
+    get:
+      tags:
+        - Module
+      summary: Get module logs.
+      operationId: ModuleLogs
+      parameters:
+        - $ref: '#/parameters/api-version'
+        - in: path
+          name: name
+          description: The name of the module to obtain logs for. (urlencoded)
+          required: true
+          type: string
+        - in: query
+          name: follow
+          description: Return the logs as a stream.
+          type: boolean
+          default: false
+        - in: query
+          name: tail
+          description: Only return this number of lines from the end of the logs.
+          type: string
+          default: "all"
+        - in: query
+          name: since
+          description: Only return logs since this time, as a UNIX timestamp.
+          type: integer
+          default: 0
+      responses:
+        '101':
+          description: Logs returned as a stream
+        '200':
+          description: Logs returned as a string in response body
+        '404':
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+
+  '/identities/':
+    get:
+      tags:
+        - Identity
+      summary: List identities.
+      produces:
+        - application/json
+      description: |
+        This returns the list of current known idenities.
+      operationId: ListIdentities
+      parameters:
+        - $ref: '#/parameters/api-version'
+      responses:
+        '200':
+          description: Ok
+          schema:
+            $ref: '#/definitions/IdentityList'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    post:
+      tags:
+        - Identity
+      summary: Create an identity.
+      operationId: CreateIdentity
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - $ref: '#/parameters/api-version'
+        - in: body
+          name: identity
+          required: true
+          schema:
+            $ref: '#/definitions/IdentitySpec'
+      responses:
+        '200':
+          description: Created
+          schema:
+            $ref: '#/definitions/Identity'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+  '/identities/{name}':
+    put:
+      tags:
+        - Identity
+      summary: Update an identity.
+      operationId: UpdateIdentity
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - $ref: '#/parameters/api-version'
+        - in: path
+          name: name
+          description: The name of the identity to update. (urlencoded)
+          required: true
+          type: string
+        - in: body
+          name: updateinfo
+          required: true
+          schema:
+            $ref: '#/definitions/UpdateIdentity'
+      responses:
+        '200':
+          description: Updated
+          schema:
+            $ref: '#/definitions/Identity'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+    delete:
+      tags:
+        - Identity
+      summary: Delete an identity.
+      operationId: DeleteIdentity
+      produces:
+        - application/json
+      parameters:
+        - $ref: '#/parameters/api-version'
+        - in: path
+          name: name
+          description: The name of the identity to delete. (urlencoded)
+          required: true
+          type: string
+      responses:
+        '204':
+          description: Ok
+        '404':
+          description: Not Found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+            
+  /systeminfo:
+    get:
+      tags:
+        - SystemInformation
+      summary: Return host system information.
+      produces:
+        - application/json
+      operationId: GetSystemInfo
+      parameters:
+        - $ref: '#/parameters/api-version'
+      responses:
+        '200':
+          description: Ok
+          schema:
+            $ref: '#/definitions/SystemInfo'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+
+  '/systeminfo/resources':
+    get:
+      tags:
+        - SystemInformation
+      summary: Return host resource usage (DISK, RAM, CPU).
+      produces:
+        - application/json
+      operationId: GetSystemResources
+      parameters:
+        - $ref: '#/parameters/api-version'
+      responses:
+        '200':
+          description: Ok
+          schema:
+            $ref: '#/definitions/SystemResources'
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+
+  '/device/reprovision':
+    post:
+      tags:
+        - DeviceActions
+      summary: Trigger a device reprovisioning flow.
+      operationId: ReprovisionDevice
+      parameters:
+        - $ref: '#/parameters/api-version'
+      responses:
+        '200':
+          description: Ok
+        default:
+          description: Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+            
+definitions:
+  ModuleList:
+    type: object
+    properties:
+      modules:
+        type: array
+        items:
+          $ref: '#/definitions/ModuleDetails'
+    required:
+      - modules
+  ModuleDetails:
+    type: object
+    properties:
+      id:
+        type: string
+        description: System generated unique identitier.
+        example: happy_hawking
+      name:
+        type: string
+        description: The name of the module.
+        example: edgeHub
+      type:
+        type: string
+        description: The type of a module.
+        example: docker
+      config:
+        $ref: '#/definitions/Config'
+      status:
+        $ref: '#/definitions/Status'
+    required:
+      - id
+      - name
+      - type
+      - config
+      - status
+  ModuleSpec:
+    type: object
+    properties:
+      name:
+        type: string
+        description: The name of a the module.
+        example: edgeHub
+      type:
+        type: string
+        example: docker
+      imagePullPolicy:
+        type: string
+        enum:
+          - On-Create
+          - Never
+        example: "On-Create"
+      config:
+        $ref: '#/definitions/Config'
+    required:
+      - name
+      - type
+      - config
+  Config:
+    type: object
+    properties:
+      settings:
+        type: object
+        example:
+          image: "microsoft/azureiotedge-hub:1.0"
+          createOptions:
+            HostConfig:
+              PortBindings:
+                "22/tcp":
+                  - HostPort: "11022"
+      env:
+        type: array
+        items:
+          $ref: '#/definitions/EnvVar'
+    required:
+      - settings
+  Status:
+    type: object
+    properties:
+      startTime:
+        type: string
+        format: date-time
+      exitStatus:
+        $ref: '#/definitions/ExitStatus'
+      runtimeStatus:
+        $ref: '#/definitions/RuntimeStatus'
+    required:
+      - runtimeStatus
+  EnvVar:
+    type: object
+    properties:
+      key:
+        type: string
+        example: the_key
+      value:
+        type: string
+        example: the_value
+    required:
+      - key
+      - value
+  ExitStatus:
+    type: object
+    properties:
+      exitTime:
+        type: string
+        format: date-time
+      statusCode:
+        type: string
+    required:
+      - exitTime
+      - statusCode
+    example:
+      exitTime: '2018-04-03T09:31:00.000Z'
+      statusCode: '101'
+  RuntimeStatus:
+    type: object
+    properties:
+      status:
+        type: string
+      description:
+        type: string
+    required:
+      - status
+    example:
+      status: the status
+      description: the description
+  SystemInfo:
+    type: object
+    properties:
+      osType:
+        type: string
+      architecture:
+        type: string
+      version:
+        type: string
+    required:
+      - osType
+      - architecture
+    example:
+      osType: "linux/windows"
+      architecture: "arm/amd64/x86"
+  SystemResources:
+    type: object
+    properties:
+      host_uptime:
+        type: integer
+        format: int64
+      process_uptime:
+        type: integer
+        format: int64
+      used_cpu:
+        type: number
+      used_ram:
+        type: integer
+        format: int64
+      total_ram:
+        type: integer
+        format: int64
+      disks:
+        type: array
+        items:
+          $ref: '#/definitions/Disk'
+      docker_stats:
+        type: string
+    required:
+      - host_uptime
+      - process_uptime
+      - used_cpu
+      - used_ram
+      - total_ram
+      - disks
+      - docker_stats
+  Disk:
+    type: object
+    properties:
+      name:
+        type: string
+      available_space:
+        type: integer
+        format: int64
+      total_space:
+        type: integer
+        format: int64
+      file_system:
+        type: string
+      file_type:
+        type: string
+    required:
+      - name
+      - available_space
+      - total_space
+      - file_system
+      - file_type
+  IdentityList:
+    type: object
+    properties:
+      identities:
+        type: array
+        items:
+          $ref: '#/definitions/Identity'
+    required:
+      - identities
+  IdentitySpec:
+    type: object
+    properties:
+      moduleId:
+        type: string
+        example: "edgeHub"
+      managedBy:
+        type: string
+        example: "IotEdge"
+    required:
+      - moduleId
+  UpdateIdentity:
+    type: object
+    properties:
+      generationId:
+        type: string
+        example: "636463636967581550"
+      managedBy:
+        type: string
+        example: "IotEdge"
+    required:
+      - generationId
+  Identity:
+    type: object
+    properties:
+      moduleId:
+        type: string
+        example: "edgeHub"
+      managedBy:
+        type: string
+        example: "iot-edge"
+      generationId:
+        type: string
+        example: "636463636967581550"
+      authType:
+        type: string
+        enum:
+          - None
+          - Sas
+          - X509
+        example: "Sas"
+    required:
+      - moduleId
+      - managedBy
+      - generationId
+      - authType
+
+  ErrorResponse:
+    type: object
+    properties:
+      message:
+        type: string
+    required:
+      - message
+
+parameters:
+  api-version:
+    name: api-version
+    in: query
+    description: The version of the API.
+    required: true
+    type: string
+    default: '2018-06-28'
