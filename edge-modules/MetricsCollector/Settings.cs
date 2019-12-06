@@ -50,6 +50,11 @@ namespace MetricsCollector
                 }
             }
 
+            if (this.Endpoints.Count == 0)
+            {
+                throw new ArgumentException("No endpoints specified to scrape metrics");
+            }
+
             this.ScrapeFrequencySecs = Preconditions.CheckRange(scrapeFrequencySecs, 1);
             this.UploadTarget = uploadTarget;
         }
