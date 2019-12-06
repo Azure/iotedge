@@ -6,7 +6,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
-    using Newtonsoft.Json;
+    using System.Runtime.InteropServices;
+    using System.Text;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Xunit;
 
     public class MetricsSerializerTest
@@ -16,8 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
         [Fact]
         public void TestSingleMetricSerializes()
         {
-            Dictionary<string, string> testMetricTags = JsonConvert.DeserializeObject<Dictionary<string, string>>(this.metrics[0].tags);
-            Metric testMetric = new Metric(DateTime.UtcNow, this.metrics[0].name, this.rand.NextDouble() * 50, testMetricTags);
+            Metric testMetric = new Metric(DateTime.UtcNow, this.metrics[0].name, this.rand.NextDouble() * 50, this.metrics[0].tags);
 
             byte[] data = MetricsSerializer.MetricsToBytes(new Metric[] { testMetric }).ToArray();
             Metric[] reconstructedValues = MetricsSerializer.BytesToMetrics(data).ToArray();
@@ -34,8 +35,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             byte[] data = MetricsSerializer.MetricsToBytes(testMetrics).ToArray();
             Metric[] reconstructedValues = MetricsSerializer.BytesToMetrics(data).ToArray();
 
-            var expected = testMetrics.OrderBy(m => m.Name).ThenBy(m => JsonConvert.SerializeObject(m.Tags)).ThenBy(m => m.TimeGeneratedUtc);
-            var actual = reconstructedValues.OrderBy(m => m.Name).ThenBy(m => JsonConvert.SerializeObject(m.Tags)).ThenBy(m => m.TimeGeneratedUtc);
+            var expected = testMetrics.OrderBy(m => m.Name).ThenBy(m => m.Tags).ThenBy(m => m.TimeGeneratedUtc);
+            var actual = reconstructedValues.OrderBy(m => m.Name).ThenBy(m => m.Tags).ThenBy(m => m.TimeGeneratedUtc);
             Assert.Equal(expected, actual);
         }
 
@@ -47,8 +48,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             byte[] data = MetricsSerializer.MetricsToBytes(testMetrics).ToArray();
             Metric[] reconstructedValues = MetricsSerializer.BytesToMetrics(data).ToArray();
 
-            var expected = testMetrics.OrderBy(m => m.Name).ThenBy(m => JsonConvert.SerializeObject(m.Tags)).ThenBy(m => m.TimeGeneratedUtc).ToArray();
-            var actual = reconstructedValues.OrderBy(m => m.Name).ThenBy(m => JsonConvert.SerializeObject(m.Tags)).ThenBy(m => m.TimeGeneratedUtc).ToArray();
+            var expected = testMetrics.OrderBy(m => m.Name).ThenBy(m => m.Tags).ThenBy(m => m.TimeGeneratedUtc).ToArray();
+            var actual = reconstructedValues.OrderBy(m => m.Name).ThenBy(m => m.Tags).ThenBy(m => m.TimeGeneratedUtc).ToArray();
             Assert.Equal(expected, actual);
         }
 
@@ -85,29 +86,29 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
                 time.AddDays(i + 1.25 * this.rand.NextDouble()),
                 name,
                 this.rand.NextDouble() * 100,
-                JsonConvert.DeserializeObject<Dictionary<string, string>>(tags)));
+                tags));
         }
 
         readonly (string name, string tags)[] metrics =
         {
-            ("edgehub_message_size_bytes", "{\"id\": \"device4/SimulatedTemperatureSensor\",\"quantile\": \"0.5\"}"),
-            ("edgehub_message_size_bytes", "{\"id\": \"device4/SimulatedTemperatureSensor\",\"quantile\": \"0.9\"}"),
-            ("edgehub_message_size_bytes", "{\"id\": \"device4/SimulatedTemperatureSensor\",\"quantile\": \"0.99\"}"),
-            ("edgehub_message_size_bytes", "{\"id\": \"device4/SimulatedTemperatureSensor\",\"quantile\": \"0.999\"}"),
-            ("edgehub_message_size_bytes", "{\"id\": \"device4/SimulatedTemperatureSensor\",\"quantile\": \"0.9999\"}"),
-            ("edgehub_reported_properties_update_duration_seconds", "{\"id\": \"device4/$edgeHub\",\"quantile\": \"0.5\"}"),
-            ("edgehub_reported_properties_update_duration_seconds", "{\"id\": \"device4/$edgeHub\",\"quantile\": \"0.9\"}"),
-            ("edgehub_reported_properties_update_duration_seconds", "{\"id\": \"device4/$edgeHub\",\"quantile\": \"0.99\"}"),
-            ("edgehub_reported_properties_update_duration_seconds", "{\"id\": \"device4/$edgeHub\",\"quantile\": \"0.999\"}"),
-            ("edgehub_reported_properties_update_duration_seconds", "{\"id\": \"device4/$edgeHub\",\"quantile\": \"0.9999\"}"),
-            ("edgehub_message_send_duration_seconds_sum", "{\"edge_device\": \"device4\",\"from\": \"device4/SimulatedTemperatureSensor\",\"to\": \"upstream\"}"),
-            ("edgehub_message_send_duration_seconds_count", "{\"edge_device\": \"device4\",\"from\": \"device4/SimulatedTemperatureSensor\",\"to\": \"upstream\"}"),
-            ("edgehub_message_send_duration_seconds", "{\"edge_device\": \"device4\",\"from\": \"device4/SimulatedTemperatureSensor\",\"to\": \"upstream\",\"quantile\": \"0.9\"}"),
-            ("edgehub_messages_received_total", "{\"edge_device\": \"device4\",\"protocol\": \"amqp\",\"id\": \"device4/SimulatedTemperatureSensor\"}"),
-            ("edgehub_message_size_bytes_sum", "{\"edge_device\": \"device4\",\"id\": \"device4/SimulatedTemperatureSensor\"}"),
-            ("edgehub_message_size_bytes_count", "{\"edge_device\": \"device4\",\"id\": \"device4/SimulatedTemperatureSensor\"}"),
-            ("edgehub_reported_properties_total", "{\"edge_device\": \"device4\",\"target\": \"upstream\",\"id\": \"device4/$edgeHub\"}"),
-            ("edgehub_messages_sent_total", "{\"edge_device\": \"device4\",\"from\": \"device4/SimulatedTemperatureSensor\",\"to\": \"upstream\"}"),
+            ("edgehub_message_size_bytes", "{id=\"device4/SimulatedTemperatureSensor\",quantile=\"0.5\"}"),
+            ("edgehub_message_size_bytes", "{id=\"device4/SimulatedTemperatureSensor\",quantile=\"0.9\"}"),
+            ("edgehub_message_size_bytes", "{id=\"device4/SimulatedTemperatureSensor\",quantile=\"0.99\"}"),
+            ("edgehub_message_size_bytes", "{id=\"device4/SimulatedTemperatureSensor\",quantile=\"0.999\"}"),
+            ("edgehub_message_size_bytes", "{id=\"device4/SimulatedTemperatureSensor\",quantile=\"0.9999\"}"),
+            ("edgehub_reported_properties_update_duration_seconds", "{id=\"device4/$edgeHub\",quantile=\"0.5\"}"),
+            ("edgehub_reported_properties_update_duration_seconds", "{id=\"device4/$edgeHub\",quantile=\"0.9\"}"),
+            ("edgehub_reported_properties_update_duration_seconds", "{id=\"device4/$edgeHub\",quantile=\"0.99\"}"),
+            ("edgehub_reported_properties_update_duration_seconds", "{id=\"device4/$edgeHub\",quantile=\"0.999\"}"),
+            ("edgehub_reported_properties_update_duration_seconds", "{id=\"device4/$edgeHub\",quantile=\"0.9999\"}"),
+            ("edgehub_message_send_duration_seconds_sum", "{\"edge_device\":\"device4\",\"from\":\"device4/SimulatedTemperatureSensor\",\"to\":\"upstream\"}"),
+            ("edgehub_message_send_duration_seconds_count", "{\"edge_device\":\"device4\",\"from\":\"device4/SimulatedTemperatureSensor\",\"to\":\"upstream\"}"),
+            ("edgehub_message_send_duration_seconds", "{\"edge_device\":\"device4\",\"from\":\"device4/SimulatedTemperatureSensor\",\"to\":\"upstream\",\"quantile\":\"0.9\"}"),
+            ("edgehub_messages_received_total", "{\"edge_device\":\"device4\",\"protocol\":\"amqp\",\"id\":\"device4/SimulatedTemperatureSensor\"}"),
+            ("edgehub_message_size_bytes_sum", "{\"edge_device\":\"device4\",\"id\":\"device4/SimulatedTemperatureSensor\"}"),
+            ("edgehub_message_size_bytes_count", "{\"edge_device\":\"device4\",\"id\":\"device4/SimulatedTemperatureSensor\"}"),
+            ("edgehub_reported_properties_total", "{\"edge_device\":\"device4\",\"target\":\"upstream\",\"id\":\"device4/$edgeHub\"}"),
+            ("edgehub_messages_sent_total", "{\"edge_device\":\"device4\",\"from\":\"device4/SimulatedTemperatureSensor\",\"to\":\"upstream\"}"),
         };
     }
 }

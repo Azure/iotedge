@@ -12,6 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
+    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
@@ -20,8 +21,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
-    using Microsoft.Azure.Devices.Edge.Util.Metrics.NullMetrics;
-    using Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Constants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
@@ -138,6 +137,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 experimentalFeatures = ExperimentalFeatures.Create(configuration.GetSection("experimentalFeatures"), logger);
                 string iothubHostname;
                 string deviceId;
+                string apiVersion = "2018-06-28";
 
                 switch (mode.ToLowerInvariant())
                 {
@@ -158,7 +158,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         deviceId = configuration.GetValue<string>(Constants.DeviceIdVariableName);
                         string moduleId = configuration.GetValue(Constants.ModuleIdVariableName, Constants.EdgeAgentModuleIdentityName);
                         string moduleGenerationId = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
-                        string apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
+                        apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), enableNonPersistentStorageBackup, storageBackupPath));
                         builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, new Uri(managementUri), new Uri(workloadUri), apiVersion, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout));
                         break;
@@ -276,6 +276,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             if (metricsConfig.Enabled)
             {
                 container.Resolve<IMetricsListener>().Start(logger);
+                container.Resolve<SystemResourcesMetrics>().Start(logger);
             }
 
             // Initialize metric uploading

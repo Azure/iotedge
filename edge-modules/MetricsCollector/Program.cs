@@ -20,6 +20,8 @@ namespace MetricsCollector
 
         private static async Task<int> MainAsync()
         {
+            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
+
             Logger.LogInformation($"Starting metrics collector with the following settings:\r\n{Settings.Current}");
 
             MetricsScraper scraper = new MetricsScraper(Settings.Current.Endpoints);
@@ -36,7 +38,6 @@ namespace MetricsCollector
                 publisher = new EventHubMetricsUpload(moduleClient);
             }
 
-            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
             using (MetricsScrapeAndUpload metricsScrapeAndUpload = new MetricsScrapeAndUpload(scraper, publisher, Guid.NewGuid()))
             {
                 TimeSpan scrapeAndUploadInterval = TimeSpan.FromSeconds(Settings.Current.ScrapeFrequencySecs);
