@@ -13,6 +13,7 @@ iotedged:
     management: 35000
     workload: 35001
   data:
+    enableGetNodesRBAC: true
     targetPath: /var/lib/iotedge
     # In order to benefit from HA, at a minimum the data location for iotedged
     # should be backed by a persistent volume. Please setup a persistent volume
