@@ -7,13 +7,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public sealed class IoTHubMetricsUpload : IMetricsPublisher
     {
-        readonly ModuleClient moduleClient;
+        readonly IModuleClient moduleClient;
 
-        public IoTHubMetricsUpload(ModuleClient moduleClient)
+        public IoTHubMetricsUpload(IModuleClient moduleClient)
         {
             this.moduleClient = Preconditions.CheckNotNull(moduleClient, nameof(moduleClient));
         }
