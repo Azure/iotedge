@@ -138,6 +138,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                     })
                 .As<Task<IEnvironmentProvider>>()
                 .SingleInstance();
+
+            // SystemResourcesMetrics
+            builder.Register(c => new SystemResourcesMetrics(c.Resolve<IMetricsProvider>(), c.Resolve<IModuleManager>().GetSystemResourcesAsync, this.apiVersion))
+                            .SingleInstance();
         }
     }
 }
