@@ -18,14 +18,14 @@ namespace MetricsCollector
         readonly IMetricsScraper scraper;
         readonly IMetricsPublisher publisher;
         PeriodicTask periodicScrapeAndUpload;
-        Guid testId; // used for differentiating between test runs on the same device
+        Guid metricsCollectorRuntimeId;
 
-        public MetricsScrapeAndUpload(IMetricsScraper scraper, IMetricsPublisher publisher, Guid testId)
+        public MetricsScrapeAndUpload(IMetricsScraper scraper, IMetricsPublisher publisher, Guid metricsCollectorRuntimeId)
         {
             this.scraper = Preconditions.CheckNotNull(scraper);
             this.publisher = Preconditions.CheckNotNull(publisher);
-            Preconditions.CheckArgument(testId != Guid.Empty);
-            this.testId = testId;
+            Preconditions.CheckArgument(metricsCollectorRuntimeId != Guid.Empty);
+            this.metricsCollectorRuntimeId = metricsCollectorRuntimeId;
         }
 
         public void Start(TimeSpan scrapeAndUploadInterval)
@@ -58,8 +58,8 @@ namespace MetricsCollector
         {
             foreach (Metric metric in metrics)
             {
-                IReadOnlyDictionary<string, string> customTags = new ReadOnlyDictionary<string, string>(new Dictionary<string, string> { { "guid", this.testId.ToString() } } );
-                yield return new MetricWithCustomTags(metric, customTags);
+                IReadOnlyDictionary<string, string> customTags = new ReadOnlyDictionary<string, string>(new Dictionary<string, string> { { "guid", this.metricsCollectorRuntimeId.ToString() } } );
+                yield return new ExtendedMetric(metric, customTags);
             }
         }
     }
