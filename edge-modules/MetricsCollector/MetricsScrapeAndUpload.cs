@@ -3,7 +3,7 @@ namespace MetricsCollector
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
+    using System.Collections.ObjectModel;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
@@ -43,19 +43,23 @@ namespace MetricsCollector
             try
             {
                 IEnumerable<Metric> metrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
-                IEnumerable<Metric> metricsWithTags = metrics.Select(metric =>
-                {
-                    metric.Tags.Add("guid", this.testId.ToString());
-                    return metric;
-                });
 
-                await this.publisher.PublishAsync(metricsWithTags, cancellationToken);
+                await this.publisher.PublishAsync(this.GetGuidTaggedMetrics(metrics), cancellationToken);
 
                 Logger.LogInformation("Successfully scraped and uploaded metrics");
             }
             catch (Exception e)
             {
                 Logger.LogError(e, "Error scraping and uploading metrics");
+            }
+        }
+
+        IEnumerable<Metric> GetGuidTaggedMetrics(IEnumerable<Metric> metrics)
+        {
+            foreach (Metric metric in metrics)
+            {
+                IReadOnlyDictionary<string, string> customTags = new ReadOnlyDictionary<string, string>(new Dictionary<string, string> { { "guid", this.testId.ToString() } } );
+                yield return new MetricWithCustomTags(metric, customTags);
             }
         }
     }
