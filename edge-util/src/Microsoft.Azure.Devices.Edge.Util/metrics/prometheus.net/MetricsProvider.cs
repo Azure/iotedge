@@ -106,7 +106,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
         ///     {instance=2) 190
         /// it is clear what happened.
         /// </summary>
-        /// <returns></returns>
         string GetInstanceNumber()
         {
             if (!File.Exists(this.instanceFileAbsolutePath))

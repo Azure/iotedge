@@ -20,6 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_10_22
     using Identity = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.Identity;
     using ModuleSpec = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.ModuleSpec;
     using SystemInfo = Microsoft.Azure.Devices.Edge.Agent.Core.SystemInfo;
+    using SystemResources = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.SystemResources;
 
     class ModuleManagementHttpClient : ModuleManagementHttpClientVersioned
     {
