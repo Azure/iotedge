@@ -24,6 +24,10 @@ namespace MetricsCollector
 
             Logger.LogInformation($"Starting metrics collector with the following settings:\r\n{Settings.Current}");
 
+            MqttTransportSettings mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
+            ITransportSettings[] transportSettings = { mqttSetting };
+            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(transportSettings);
+
             MetricsScraper scraper = new MetricsScraper(Settings.Current.Endpoints);
             IMetricsPublisher publisher;
             if (Settings.Current.UploadTarget == UploadTarget.AzureLogAnalytics)
@@ -32,9 +36,6 @@ namespace MetricsCollector
             }
             else
             {
-                MqttTransportSettings mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
-                ITransportSettings[] transportSettings = { mqttSetting };
-                ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(transportSettings);
                 publisher = new EventHubMetricsUpload(moduleClient);
             }
 
@@ -45,6 +46,7 @@ namespace MetricsCollector
                 await cts.Token.WhenCanceled();
             }
 
+            moduleClient?.Dispose();
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
 
