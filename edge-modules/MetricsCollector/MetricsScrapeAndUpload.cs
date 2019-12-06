@@ -3,7 +3,6 @@ namespace MetricsCollector
 {
     using System;
     using System.Collections.Generic;
-    using System.Collections.ObjectModel;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
@@ -11,6 +10,7 @@ namespace MetricsCollector
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json;
 
     class MetricsScrapeAndUpload : IDisposable
     {
@@ -58,8 +58,9 @@ namespace MetricsCollector
         {
             foreach (Metric metric in metrics)
             {
-                IReadOnlyDictionary<string, string> customTags = new ReadOnlyDictionary<string, string>(new Dictionary<string, string> { { "guid", this.metricsCollectorRuntimeId.ToString() } } );
-                yield return new ExtendedMetric(metric, customTags);
+                Dictionary<string, string> tagsWithGuid = JsonConvert.DeserializeObject<Dictionary<string, string>>(metric.Tags);
+                tagsWithGuid.Add("guid", this.metricsCollectorRuntimeId.ToString());
+                yield return new Metric(metric.TimeGeneratedUtc, metric.Name, metric.Value, JsonConvert.SerializeObject(tagsWithGuid));
             }
         }
     }

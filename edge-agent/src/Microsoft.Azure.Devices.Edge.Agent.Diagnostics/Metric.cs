@@ -3,18 +3,16 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
 {
     using System;
-    using System.Collections.Generic;
-    using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class Metric : IEquatable<Metric>
+    public sealed class Metric : IEquatable<Metric>
     {
         public DateTime TimeGeneratedUtc { get; }
         public string Name { get; }
         public double Value { get; }
-        public IReadOnlyDictionary<string, string> Tags { get; }
+        public string Tags { get; }
 
-        public Metric(DateTime timeGeneratedUtc, string name, double value, IReadOnlyDictionary<string, string> tags)
+        public Metric(DateTime timeGeneratedUtc, string name, double value, string tags)
         {
             Preconditions.CheckArgument(timeGeneratedUtc.Kind == DateTimeKind.Utc, $"Metric {nameof(timeGeneratedUtc)} parameter only supports in UTC.");
             this.TimeGeneratedUtc = timeGeneratedUtc;
@@ -43,7 +41,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             return this.TimeGeneratedUtc == other.TimeGeneratedUtc &&
                 this.Name == other.Name &&
                 this.Value == other.Value &&
-                this.Tags.Count == other.Tags.Count && !this.Tags.Except(other.Tags).Any();
+                this.Tags == other.Tags;
         }
     }
 }

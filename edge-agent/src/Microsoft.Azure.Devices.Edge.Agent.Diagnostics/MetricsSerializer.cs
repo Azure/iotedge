@@ -8,7 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
     using System.Linq;
     using System.Text;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Newtonsoft.Json;
 
     /// <summary>
     /// Provides a way to serialize a group of metrics that share a name and tag.
@@ -23,14 +22,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                 x.Select(m => new RawMetricValue(m.TimeGeneratedUtc, m.Value))));
         }
 
-        static IEnumerable<byte> MetricGroupsToBytes(string name, IReadOnlyDictionary<string, string> tags, IEnumerable<RawMetricValue> rawValues)
+        static IEnumerable<byte> MetricGroupsToBytes(string name, string tags, IEnumerable<RawMetricValue> rawValues)
         {
             byte[] nameArray = Encoding.UTF8.GetBytes(name);
             byte[] nameLength = BitConverter.GetBytes(name.Length);
 
-            string serializedTags = JsonConvert.SerializeObject(tags);
-            byte[] tagsArray = Encoding.UTF8.GetBytes(serializedTags);
-            byte[] tagsLength = BitConverter.GetBytes(serializedTags.Length);
+            byte[] tagsArray = Encoding.UTF8.GetBytes(tags);
+            byte[] tagsLength = BitConverter.GetBytes(tags.Length);
 
             // Unfortunately this extra array is necessary, since we need to know the length before we enumerate the values.
             RawMetricValue[] rawValuesArray = rawValues.ToArray();
@@ -45,8 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             int index = 0;
             while (index < bytes.Length)
             {
-                string name;
-                Dictionary<string, string> tags;
+                string name, tags;
                 IEnumerable<RawMetricValue> rawValues;
                 try
                 {
@@ -57,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
 
                     int tagsLength = BitConverter.ToInt32(bytes, index);
                     index = checked(index + sizeof(int));
-                    tags = JsonConvert.DeserializeObject<Dictionary<string, string>>(Encoding.UTF8.GetString(bytes, index, tagsLength));
+                    tags = Encoding.UTF8.GetString(bytes, index, tagsLength);
                     index = checked(index + tagsLength);
 
                     int valuesLength = BitConverter.ToInt32(bytes, index);
