@@ -47,6 +47,9 @@
               },
               "transportType": {
                 "value": "amqp"
+              },
+              "outputName": {
+                "value": "output1"
               }
             },
             "settings": {
@@ -65,10 +68,49 @@
               },
               "transportType": {
                 "value": "mqtt"
+              },
+              "outputName": {
+                "value":  "output2"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
+          },
+          "relayer1": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "transportType": {
+                "value": "amqp"
+              },
+              "inputName": {
+                "value": "input1"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-relayer:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
+          },
+          "relayer2": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "transportType": {
+                "value": "mqtt"
+              },
+              "inputName": {
+                "value":  "input2"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-relayer:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           }
@@ -79,8 +121,10 @@
       "properties.desired": {
         "schemaVersion": "1.0",
         "routes": {
-          "upstreamLoadGen1": "FROM /messages/modules/loadGen1/outputs/output1 INTO $upstream",
-          "upstreamLoadGen2": "FROM /messages/modules/loadGen2/outputs/output1 INTO $upstream",
+          "loadGen1ToRelayer1": "FROM /messages/modules/loadGen1/outputs/output1 INTO BrokeredEndpoint(\"/modules/relayer1/inputs/input1\")",
+          "relayer1ToCloud": "FROM /messages/modules/relayer1/outputs/output1 INTO $upstream",
+          "loadGen2ToRelayer2": "FROM /messages/modules/loadGen2/outputs/output2 INTO BrokeredEndpoint(\"/modules/relayer2/inputs/input2\")",
+          "relayer2ToCloud": "FROM /messages/modules/relayer2/outputs/output2 INTO $upstream"
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 86400
