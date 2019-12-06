@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                 x.Select(m => new RawMetricValue(m.TimeGeneratedUtc, m.Value))));
         }
 
-        static IEnumerable<byte> MetricGroupsToBytes(string name, Dictionary<string, string> tags, IEnumerable<RawMetricValue> rawValues)
+        static IEnumerable<byte> MetricGroupsToBytes(string name, IReadOnlyDictionary<string, string> tags, IEnumerable<RawMetricValue> rawValues)
         {
             byte[] nameArray = Encoding.UTF8.GetBytes(name);
             byte[] nameLength = BitConverter.GetBytes(name.Length);
