@@ -106,8 +106,13 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
         ///     {instance=2) 190
         /// it is clear what happened.
         /// </summary>
+<<<<<<< HEAD
         /// <returns></returns>
         string GetInstanceNumber()
+=======
+        /// <returns>Instance number.</returns>
+        static string GetInstanceNumber()
+>>>>>>> lee/host_metrics
         {
             if (!File.Exists(this.instanceFileAbsolutePath))
             {
