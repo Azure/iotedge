@@ -5,18 +5,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Text;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Newtonsoft.Json;
 
-    public sealed class Metric : IEquatable<Metric>
+    public class Metric : IEquatable<Metric>
     {
         public DateTime TimeGeneratedUtc { get; }
         public string Name { get; }
         public double Value { get; }
-        public Dictionary<string, string> Tags { get; }
+        public IReadOnlyDictionary<string, string> Tags { get; }
 
-        public Metric(DateTime timeGeneratedUtc, string name, double value, Dictionary<string, string> tags)
+        public Metric(DateTime timeGeneratedUtc, string name, double value, IReadOnlyDictionary<string, string> tags)
         {
             Preconditions.CheckArgument(timeGeneratedUtc.Kind == DateTimeKind.Utc, $"Metric {nameof(timeGeneratedUtc)} parameter only supports in UTC.");
             this.TimeGeneratedUtc = timeGeneratedUtc;

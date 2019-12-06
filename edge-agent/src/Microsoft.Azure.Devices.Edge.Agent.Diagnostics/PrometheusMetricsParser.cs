@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                         var tagNames = (match.Groups["tagname"].Captures as IEnumerable<Capture>).Select(c => c.Value);
                         var tagValues = (match.Groups["tagvalue"].Captures as IEnumerable<Capture>).Select(c => c.Value);
 
-                        Dictionary<string, string> tags = tagNames.Zip(tagValues, (k, v) => new { k, v })
+                        IReadOnlyDictionary<string, string> tags = tagNames.Zip(tagValues, (k, v) => new { k, v })
                             .ToDictionary(x => x.k, x => x.v);
 
                         yield return new Metric(
