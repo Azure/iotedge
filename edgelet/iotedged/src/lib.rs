@@ -594,6 +594,7 @@ where
                             &dps,
                             hyper_client.clone(),
                             symmetric_key_info,
+                            issued_id_cert.pem().unwrap().as_ref(),
                         )?;
                         let (key_store, provisioning_result, root_key) =
                             dps_symmetric_key_provision(
@@ -601,7 +602,6 @@ where
                                 &mut tokio_runtime,
                                 memory_hsm,
                                 &dps_symmetric_key,
-                                issued_id_cert.pem().unwrap().as_ref(),
                             )?;
 
                         start_edgelet!(
@@ -625,6 +625,7 @@ where
                             x509_info,
                             hybrid_identity_key,
                             &id_data.common_name,
+                            issued_id_cert.pem().unwrap().as_ref(),
                         )?;
 
                         let (key_store, provisioning_result, root_key) = dps_x509_provision(
@@ -633,7 +634,6 @@ where
                             dps_path,
                             &mut tokio_runtime,
                             id_data.thumbprint.clone(),
-                            issued_id_cert.pem().unwrap().as_ref()
                         )?;
                         let thumbprint_op = Some(id_data.thumbprint.as_str());
                         start_edgelet!(
