@@ -125,7 +125,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                 builder =>
                 {
-                    builder.AddModule(tempSensorModule.Name, tempSensorModule.Image);
+                    builder.AddModule(tempSensorModule.Name, tempSensorModule.Image)
+                        .WithEnvironment(new[] { ("MessageCount", "1") });
                     builder.AddModule(filterFuncModuleName, filterFunc)
                         .WithEnvironment(new[] { ("AZURE_FUNCTIONS_ENVIRONMENT", "Development") });
                     builder.GetModule("$edgeHub")
