@@ -80,21 +80,17 @@ where
 {
     pub fn is_subject_allowed(
         &mut self,
-        resource: Option<String>,
-        verb: Option<String>,
-    ) -> impl Future<Item = bool, Error = Error> {
+        resource: String,
+        verb: String,
+    ) -> impl Future<Item = api_authorize::SubjectAccessReviewStatus, Error = Error> {
         let subject_access_review = api_authorize::SelfSubjectAccessReview {
             spec: api_authorize::SelfSubjectAccessReviewSpec {
-                non_resource_attributes: None,
                 resource_attributes: Some(api_authorize::ResourceAttributes {
-                    group: None,
-                    name: None,
-                    namespace: None,
-                    resource,
-                    subresource: None,
-                    verb,
-                    version: None,
+                    resource: Some(resource),
+                    verb: Some(verb),
+                    ..api_authorize::ResourceAttributes::default()
                 }),
+                ..api_authorize::SelfSubjectAccessReviewSpec::default()
             },
             ..api_authorize::SelfSubjectAccessReview::default()
         };
@@ -124,7 +120,7 @@ where
                         RequestType::SelfSubjectAccessReviewCreate,
                     )))
                 })
-                .and_then(|ssar| Ok(ssar.status.map_or(false, |status| status.allowed)))
+                .and_then(|ssar| Ok(ssar.status.unwrap_or_default()))
         })
         .into_future()
         .flatten()
@@ -869,6 +865,7 @@ mod tests {
 
     const ACCESS_REVIEW_ALLOWED: &str = r##"{"spec": {}, "status": {"allowed":true}}"##;
     const ACCESS_REVIEW_DENIED: &str = r##"{"spec": {}, "status": {"allowed":false}}"##;
+    const ACCESS_REVIEW_MISSING: &str = r##"{"spec": {}}"##;
 
     #[test]
     fn is_subject_allowed_is_true() {
@@ -882,8 +879,8 @@ mod tests {
         let mut client = make_test_client(service);
 
         let fut = client
-            .is_subject_allowed(Some("nodes".to_string()), Some("list".to_string()))
-            .map(|is_allowed| assert!(is_allowed));
+            .is_subject_allowed("nodes".to_string(), "list".to_string())
+            .map(|status| assert!(status.allowed));
 
         Runtime::new()
             .unwrap()
@@ -903,8 +900,29 @@ mod tests {
         let mut client = make_test_client(service);
 
         let fut = client
-            .is_subject_allowed(Some("nodes".to_string()), Some("list".to_string()))
-            .map(|is_allowed| assert!(!is_allowed));
+            .is_subject_allowed("nodes".to_string(), "list".to_string())
+            .map(|status| assert!(!status.allowed));
+
+        Runtime::new()
+            .unwrap()
+            .block_on(fut)
+            .expect("Expected future to be OK");
+    }
+
+    #[test]
+    fn is_subject_allowed_is_default_false() {
+        let service = service_fn(
+            move |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
+                let mut res = Response::new(Body::from(ACCESS_REVIEW_MISSING));
+                *res.status_mut() = StatusCode::CREATED;
+                Ok(res)
+            },
+        );
+        let mut client = make_test_client(service);
+
+        let fut = client
+            .is_subject_allowed("nodes".to_string(), "list".to_string())
+            .map(|status| assert!(!status.allowed));
 
         Runtime::new()
             .unwrap()
