@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
         const string UrlPattern = @"[^/:]+://(?<host>[^/:]+)(:[^:]+)?$";
         static readonly Regex UrlRegex = new Regex(UrlPattern, RegexOptions.Compiled);
         readonly HttpClient httpClient;
-        readonly Lazy<IDictionary<string, string>> endpoints;
+        readonly IList<string> endpoints;
         readonly ISystemTime systemTime;
         static readonly ILogger Log = Logger.Factory.CreateLogger<MetricsScraper>();
 
@@ -34,16 +34,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             Preconditions.CheckNotNull(endpoints, nameof(endpoints));
 
             this.httpClient = new HttpClient();
-            this.endpoints = new Lazy<IDictionary<string, string>>(() => endpoints.ToDictionary(e => e, this.GetUriWithIpAddress));
+            this.endpoints = Preconditions.CheckNotNull(endpoints, nameof(endpoints));
             this.systemTime = systemTime ?? SystemTime.Instance;
         }
 
         public Task<IEnumerable<Metric>> ScrapeEndpointsAsync(CancellationToken cancellationToken)
         {
-            return this.endpoints.Value.SelectManyAsync(async endpoint =>
+            return this.endpoints.SelectManyAsync(async endpoint =>
             {
-                Log.LogInformation($"Scraping endpoint {endpoint.Key}");
-                string metricsData = await this.ScrapeEndpoint(endpoint.Value, cancellationToken);
+                Log.LogInformation($"Scraping endpoint {endpoint}");
+                string metricsData = await this.ScrapeEndpoint(endpoint, cancellationToken);
                 return PrometheusMetricsParser.ParseMetrics(this.systemTime.UtcNow, metricsData);
             });
         }
@@ -51,6 +51,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
         public void Dispose()
         {
             this.httpClient.Dispose();
+        }
+
+        async Task<string> ScrapeEndpoint(string endpoint, CancellationToken cancellationToken)
+        {
+            try
+            {
+                // Temp until prometheous uses asp.net
+                endpoint = this.GetUriWithIpAddress(endpoint);
+
+                HttpResponseMessage result = await this.httpClient.GetAsync(endpoint, cancellationToken);
+                if (result.IsSuccessStatusCode)
+                {
+                    return await result.Content.ReadAsStringAsync();
+                }
+                else
+                {
+                    Log.LogInformation($"Error connecting to {endpoint} with result error code {result.StatusCode}");
+                }
+            }
+            catch (Exception e)
+            {
+                Log.LogInformation($"Error scraping endpoint {endpoint} - {e}");
+            }
+
+            return string.Empty;
         }
 
         string GetUriWithIpAddress(string endpoint)
@@ -71,28 +96,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             string endpointWithIp = builder.Uri.ToString();
             Log.LogInformation($"Endpoint = {endpoint}, IP Addr = {ipAddr}, Endpoint with Ip = {endpointWithIp}");
             return endpointWithIp;
-        }
-
-        async Task<string> ScrapeEndpoint(string endpoint, CancellationToken cancellationToken)
-        {
-            try
-            {
-                HttpResponseMessage result = await this.httpClient.GetAsync(endpoint, cancellationToken);
-                if (result.IsSuccessStatusCode)
-                {
-                    return await result.Content.ReadAsStringAsync();
-                }
-                else
-                {
-                    Log.LogInformation($"Error connecting to {endpoint} with result error code {result.StatusCode}");
-                }
-            }
-            catch (Exception e)
-            {
-                Log.LogInformation($"Error scraping endpoint {endpoint} - {e}");
-            }
-
-            return string.Empty;
         }
     }
 }
