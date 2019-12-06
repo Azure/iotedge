@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
     using System = global::System;
     
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "13.1.6.0 (NJsonSchema v10.0.28.0 (Newtonsoft.Json v11.0.0.0))")]
-    public partial class AnalyzerClient 
+    public partial class AnalyzerClient
     {
         private string _baseUrl = "https://";
         private System.Lazy<Newtonsoft.Json.JsonSerializerSettings> _settings;
@@ -377,9 +377,8 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Result { get; set; }
     
-        [Newtonsoft.Json.JsonProperty("resultType", Required = Newtonsoft.Json.Required.Always)]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string ResultType { get; set; }
+        [Newtonsoft.Json.JsonProperty("type", Required = Newtonsoft.Json.Required.Default, NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore)]
+        public string Type { get; set; }
     
         [Newtonsoft.Json.JsonProperty("createdOn", Required = Newtonsoft.Json.Required.Always)]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]

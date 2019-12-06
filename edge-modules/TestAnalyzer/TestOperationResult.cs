@@ -8,24 +8,22 @@ namespace TestAnalyzer
     {
         public TestOperationResult(
             string source,
-            TestResultType resultType,
+            string type,
             string result,
-            DateTime createdOn)
+            DateTime createdAt)
         {
-            Preconditions.CheckArgument(resultType != TestResultType.Undefined, nameof(resultType));
-
             this.Source = Preconditions.CheckNonWhiteSpace(source, nameof(source));
-            this.ResultType = resultType;
+            this.Type = Preconditions.CheckNonWhiteSpace(result, nameof(type));
             this.Result = Preconditions.CheckNonWhiteSpace(result, nameof(result));
-            this.CreatedOn = createdOn;
+            this.CreatedAt = createdAt;
         }
 
         public string Source { get; }
 
-        public TestResultType ResultType { get; }
+        public string Type { get; }
 
         public string Result { get; }
 
-        public DateTime CreatedOn { get; }
+        public DateTime CreatedAt { get; }
     }
 }

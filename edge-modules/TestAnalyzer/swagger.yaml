@@ -118,7 +118,7 @@ definitions:
         type: "string"
       result:
         type: "string"
-      resultType:
+      type:
         type: "string"
       createdOn:
         type: "string"
