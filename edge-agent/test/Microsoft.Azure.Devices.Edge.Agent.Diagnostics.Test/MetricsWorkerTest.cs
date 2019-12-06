@@ -11,7 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
-    using Newtonsoft.Json;
     using Xunit;
 
     public class MetricsWorkerTest : IDisposable
@@ -98,8 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
         public async Task TestUploadContent()
         {
             /* test data */
-            string metricTagName = "testTag";
-            var metrics = Enumerable.Range(1, 10).Select(i => new Metric(DateTime.UtcNow, "test_metric", 3, JsonConvert.DeserializeObject<Dictionary<string, string>>($"{{ \"{metricTagName}\": {i} }}"))).ToList();
+            var metrics = Enumerable.Range(1, 10).Select(i => new Metric(DateTime.UtcNow, "test_metric", 3, $"tag_{i}")).ToList();
 
             /* Setup mocks */
             var scraper = new Mock<IMetricsScraper>();
@@ -117,7 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
 
             /* test */
             await worker.Upload(CancellationToken.None);
-            Assert.Equal(metrics.OrderBy(x => x.Tags[metricTagName]), uploadedData.OrderBy(x => x.Tags[metricTagName]));
+            Assert.Equal(metrics.OrderBy(x => x.Tags), uploadedData.OrderBy(x => x.Tags));
             Assert.Single(storage.Invocations.Where(s => s.Method.Name == "GetData"));
             Assert.Equal(1, uploader.Invocations.Count);
         }
@@ -130,7 +128,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             string Metrics()
             {
                 metricsCalls++;
-                return Newtonsoft.Json.JsonConvert.SerializeObject(Enumerable.Range(1, 10).Select(i => new Metric(DateTime.UtcNow, "1", 3, JsonConvert.DeserializeObject<Dictionary<string, string>>($"{{ \"testTag\": {i} }}"))));
+                return Newtonsoft.Json.JsonConvert.SerializeObject(Enumerable.Range(1, 10).Select(i => new Metric(DateTime.UtcNow, "1", 3, $"{i}")));
             }
 
             Dictionary<DateTime, Func<string>> data = Enumerable.Range(1, 10).ToDictionary(i => new DateTime(i * 100000000, DateTimeKind.Utc), _ => (Func<string>)Metrics);
