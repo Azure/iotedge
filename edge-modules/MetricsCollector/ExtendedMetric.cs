@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
     public sealed class ExtendedMetric : Metric, IEquatable<Metric>
     {
         public IReadOnlyDictionary<string, string> CustomTags { get; }
+
         public ExtendedMetric(Metric metric, IReadOnlyDictionary<string, string> customTags)
         : base(metric.TimeGeneratedUtc, metric.Name, metric.Value, metric.Tags)
         {
