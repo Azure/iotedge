@@ -16,15 +16,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
         readonly string workspaceId;
         readonly string workspaceKey;
         readonly string logType;
-        readonly Guid guid;
 
-        public LogAnalyticsUpload(string workspaceId, string workspaceKey, string logType, Guid guid)
+        public LogAnalyticsUpload(string workspaceId, string workspaceKey, string logType)
         {
             this.workspaceId = Preconditions.CheckNonWhiteSpace(workspaceId, nameof(workspaceId));
             this.workspaceKey = Preconditions.CheckNonWhiteSpace(workspaceKey, nameof(workspaceKey));
             this.logType = Preconditions.CheckNonWhiteSpace(logType, nameof(logType));
-            Preconditions.CheckArgument(guid != Guid.Empty);
-            this.guid = guid;
         }
 
         public async Task PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
