@@ -16,7 +16,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
         const string NameFormat = "{0}_{1}";
         const string InstanceFileName = "instance";
         const string InstanceFolderName = "metrics_instance";
-        readonly string instanceFileAbsolutePath;
         readonly string namePrefix;
         readonly List<string> defaultLabelNames;
         readonly ILogger logger = Logger.Factory.CreateLogger<MetricsProvider>();
@@ -25,24 +24,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
         {
             this.namePrefix = Preconditions.CheckNonWhiteSpace(namePrefix, nameof(namePrefix));
 
+            Preconditions.CheckNonWhiteSpace(storagePath, nameof(storagePath));
+            string instanceNumber = this.GetInstanceNumber(storagePath);
+
             Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
-            Preconditions.CheckNonWhiteSpace(storagePath, nameof(storagePath));
-
-            string storageDirectory = Path.Combine(storagePath, InstanceFolderName);
-            string instanceNumber;
-            try
-            {
-                Directory.CreateDirectory(storageDirectory);
-                this.instanceFileAbsolutePath = Path.Combine(storageDirectory, InstanceFileName);
-                instanceNumber = this.GetInstanceNumber();
-            }
-            catch (Exception ex)
-            {
-                this.logger.LogError(ex, "Could not create metrics directory. Metrics instance number not supported.");
-                instanceNumber = "0";
-            }
-
             this.defaultLabelNames = new List<string> { iotHubName, deviceId, instanceNumber };
 
             // TODO:
@@ -109,24 +95,30 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
         /// it is clear what happened.
         /// </summary>
         /// <returns>Instance number.</returns>
-        string GetInstanceNumber()
+        string GetInstanceNumber(string storagePath)
         {
             try
             {
-                if (!File.Exists(this.instanceFileAbsolutePath))
+                string storageDirectory = Path.Combine(storagePath, InstanceFolderName);
+                Directory.CreateDirectory(storageDirectory);
+                string instanceFileAbsolutePath = Path.Combine(storageDirectory, InstanceFileName);
+
+                if (!File.Exists(instanceFileAbsolutePath))
                 {
-                    File.WriteAllText(this.instanceFileAbsolutePath, "1");
+                    File.WriteAllText(instanceFileAbsolutePath, "1");
                     return "1";
                 }
-
-                string string_num = File.ReadAllText(this.instanceFileAbsolutePath);
-                string_num = (int.Parse(string_num) + 1).ToString();
-                File.WriteAllText(this.instanceFileAbsolutePath, string_num);
-                return string_num;
+                else
+                {
+                    string string_num = File.ReadAllText(instanceFileAbsolutePath);
+                    string_num = (int.Parse(string_num) + 1).ToString();
+                    File.WriteAllText(instanceFileAbsolutePath, string_num);
+                    return string_num;
+                }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Failed to access metrics instance file:\n{ex}");
+                this.logger.LogError(ex, "Failed to access metrics instance file");
                 return "0";
             }
         }
