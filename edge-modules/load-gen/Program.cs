@@ -19,23 +19,24 @@ namespace LoadGen
         {
             Logger.LogInformation($"Starting load gen with the following settings:\r\n{Settings.Current}");
 
+            ModuleClient moduleClient = null;
+
             try
             {
-                ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
-                    Settings.Current.TransportType,
-                    ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                    ModuleUtil.DefaultTransientRetryStrategy,
-                    Logger);
+                (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
                 Guid batchId = Guid.NewGuid();
                 Logger.LogInformation($"Batch Id={batchId}");
 
-                (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
-
-                Logger.LogInformation("Load gen running.");
+                moduleClient = await ModuleUtil.CreateModuleClientAsync(
+                    Settings.Current.TransportType,
+                    ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
+                    ModuleUtil.DefaultTransientRetryStrategy,
+                    Logger);
+                
                 Logger.LogInformation($"Load gen delay start for {Settings.Current.TestStartDelay}.");
                 await Task.Delay(Settings.Current.TestStartDelay);
-
+                
                 DateTime testStartAt = DateTime.UtcNow;
                 long messageIdCounter = 1;
                 while (!cts.IsCancellationRequested &&
@@ -46,15 +47,15 @@ namespace LoadGen
                         await SendEventAsync(moduleClient, batchId, Settings.Current.TrackingId, messageIdCounter);
                         messageIdCounter++;
                         await Task.Delay(Settings.Current.MessageFrequency).ConfigureAwait(false);
+
+                        if (messageIdCounter % 1000 == 0)
+                        {
+                            Logger.LogInformation($"Sent {messageIdCounter} messages.");
+                        }
                     }
                     catch (Exception ex)
                     {
-                        Logger.LogError(ex, "Error occurred during load gen");
-                    }
-
-                    if (messageIdCounter % 1000 == 0)
-                    {
-                        Logger.LogInformation($"Sent {messageIdCounter} messages.");
+                        Logger.LogError(ex, $"[SendEventAsync] Sequence number {messageIdCounter}, BatchId: {batchId.ToString()};");
                     }
                 }
 
@@ -67,6 +68,7 @@ namespace LoadGen
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error occurred during load gen.");
+                moduleClient?.Dispose();
             }
 
             Logger.LogInformation("Load Gen complete. Exiting.");
@@ -77,26 +79,19 @@ namespace LoadGen
             var random = new Random();
             var bufferPool = new BufferPool();
 
-            try
+            using (Buffer data = bufferPool.AllocBuffer(Settings.Current.MessageSizeInBytes))
             {
-                using (Buffer data = bufferPool.AllocBuffer(Settings.Current.MessageSizeInBytes))
-                {
-                    // generate some bytes
-                    random.NextBytes(data.Data);
+                // generate some bytes
+                random.NextBytes(data.Data);
 
-                    // build message
-                    var messageBody = new { data = data.Data };
-                    var message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)));
-                    message.Properties.Add("sequenceNumber", messageId.ToString());
-                    message.Properties.Add("batchId", batchId.ToString());
-                    message.Properties.Add("trackingId", trackingId);
+                // build message
+                var messageBody = new { data = data.Data };
+                var message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)));
+                message.Properties.Add("sequenceNumber", messageId.ToString());
+                message.Properties.Add("batchId", batchId.ToString());
+                message.Properties.Add("trackingId", trackingId);
 
-                    await client.SendEventAsync(Settings.Current.OutputName, message);
-                }
-            }
-            catch (Exception e)
-            {
-                Logger.LogError($"[SendEventAsync] Sequence number {messageId}, BatchId: {batchId.ToString()};{Environment.NewLine}{e}");
+                await client.SendEventAsync(Settings.Current.OutputName, message);
             }
         }
     }
