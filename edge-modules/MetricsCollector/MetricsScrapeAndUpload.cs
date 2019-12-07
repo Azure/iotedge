@@ -43,9 +43,7 @@ namespace MetricsCollector
             try
             {
                 IEnumerable<Metric> metrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
-
                 await this.publisher.PublishAsync(this.GetGuidTaggedMetrics(metrics), cancellationToken);
-
                 Logger.LogInformation("Successfully scraped and uploaded metrics");
             }
             catch (Exception e)

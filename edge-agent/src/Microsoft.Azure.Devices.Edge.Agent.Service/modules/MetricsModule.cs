@@ -2,7 +2,6 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Service
 {
-    using System;
     using System.IO;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -10,9 +9,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Edge.Util.Metrics.NullMetrics;
     using Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net;
+    using Microsoft.Extensions.Logging;
 
     public sealed class MetricsModule : Module
     {
+        readonly ILogger logger = Logger.Factory.CreateLogger<MetricsModule>();
         MetricsConfig metricsConfig;
         string iothubHostname;
         string deviceId;
@@ -30,6 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             else
             {
                 this.metricsConfig = Preconditions.CheckNotNull(metricsConfig, nameof(metricsConfig));
+                this.logger.LogError("Edge Agent storage directory not found. Disabling metrics.");
             }
 
             this.iothubHostname = Preconditions.CheckNonWhiteSpace(iothubHostname, nameof(iothubHostname));
