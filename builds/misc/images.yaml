@@ -119,6 +119,13 @@ jobs:
           filePath: scripts/linux/buildImage.sh
           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-relayer -n microsoft -P Relayer --target-arch aarch64
 
+      # TestResultCoordinator - Not Using Template for ARM64 because we have 2 different .NET Core.
+      - task: Bash@3
+        displayName: Build Image - Test Result Coordinator - aarch64
+        inputs:
+          filePath: scripts/linux/buildImage.sh
+          arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-test-result-coordinator -n microsoft -P TestResultCoordinator --target-arch aarch64
+
            
           
 ################################################################################
@@ -236,6 +243,13 @@ jobs:
           name: Relayer
           imageName: azureiotedge-relayer
           project: Relayer
+
+     # TestResultCoordinator
+      - template: templates/image-linux.yaml
+        parameters:
+          name: TestResultCoordinator
+          imageName: azureiotedge-test-result-coordinator
+          project: TestResultCoordinator
 
 ################################################################################
 # linux - Rust amd64
@@ -397,6 +411,13 @@ jobs:
           name: Relayer
           imageName: azureiotedge-relayer
           project: Relayer
+
+     # TestResultCoordinator
+      - template: templates/image-windows.yaml
+        parameters:
+          name: TestResultCoordinator
+          imageName: azureiotedge-test-result-coordinator
+          project: TestResultCoordinator
 
       - powershell: docker system prune -a -f
         displayName: Clean Machine
