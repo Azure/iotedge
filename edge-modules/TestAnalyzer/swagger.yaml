@@ -111,7 +111,7 @@ definitions:
     required:
     - "source"
     - "result"
-    - "resultType"
+    - "type"
     - "createdOn"
     properties:
       source:
@@ -120,7 +120,7 @@ definitions:
         type: "string"
       type:
         type: "string"
-      createdOn:
+      createdAt:
         type: "string"
         format: date-time
         
