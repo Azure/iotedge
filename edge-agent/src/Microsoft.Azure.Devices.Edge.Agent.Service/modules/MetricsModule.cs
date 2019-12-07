@@ -3,9 +3,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Service
 {
     using System;
-    using System.Collections.Generic;
     using System.IO;
-    using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -22,17 +20,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
         public MetricsModule(MetricsConfig metricsConfig, string iothubHostname, string deviceId, string edgeAgentStorageFolder)
         {
-            this.metricsConfig = Preconditions.CheckNotNull(metricsConfig, nameof(metricsConfig));
-            this.iothubHostname = Preconditions.CheckNonWhiteSpace(iothubHostname, nameof(iothubHostname));
-            this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
-
             Preconditions.CheckNotNull(edgeAgentStorageFolder, nameof(edgeAgentStorageFolder));
+            this.edgeAgentStorageFolder = edgeAgentStorageFolder;
+
             if (!Directory.Exists(edgeAgentStorageFolder))
             {
-                throw new ArgumentException("Edge Agent storage folder does not exist");
+                this.metricsConfig = new MetricsConfig(false, metricsConfig.ListenerConfig);
+            }
+            else
+            {
+                this.metricsConfig = Preconditions.CheckNotNull(metricsConfig, nameof(metricsConfig));
             }
 
-            this.edgeAgentStorageFolder = edgeAgentStorageFolder;
+            this.iothubHostname = Preconditions.CheckNonWhiteSpace(iothubHostname, nameof(iothubHostname));
+            this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
         }
 
         protected override void Load(ContainerBuilder builder)
