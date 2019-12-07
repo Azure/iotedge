@@ -119,6 +119,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
+        public async Task SendEventAsync(Message message)
+        {
+            Events.UpdatingReportedProperties();
+            try
+            {
+                Option<IModuleClient> moduleClient = this.moduleConnection.GetModuleClient();
+                if (!moduleClient.HasValue)
+                {
+                    Events.UpdateReportedPropertiesDeviceClientEmpty();
+                    return;
+                }
+
+                await moduleClient.ForEachAsync(d => d.SendEventAsync(message));
+                Events.UpdatedReportedProperties();
+            }
+            catch (Exception e)
+            {
+                Events.ErrorUpdatingReportedProperties(e);
+                throw;
+            }
+        }
+
         internal static void ValidateSchemaVersion(string schemaVersion)
         {
             if (ExpectedSchemaVersion.CompareMajorVersion(schemaVersion, "desired properties schema") != 0)
