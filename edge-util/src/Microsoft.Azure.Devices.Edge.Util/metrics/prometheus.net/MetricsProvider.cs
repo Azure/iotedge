@@ -30,17 +30,19 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
             Preconditions.CheckNonWhiteSpace(storagePath, nameof(storagePath));
 
             string storageDirectory = Path.Combine(storagePath, InstanceFolderName);
+            string instanceNumber;
             try
             {
                 Directory.CreateDirectory(storageDirectory);
                 this.instanceFileAbsolutePath = Path.Combine(storageDirectory, InstanceFileName);
+                instanceNumber = this.GetInstanceNumber();
             }
             catch (Exception ex)
             {
-                this.logger.LogError(ex, "Could not create metrics directory");
+                this.logger.LogError(ex, "Could not create metrics directory. Metrics instance number not supported.");
+                instanceNumber = "0";
             }
 
-            string instanceNumber = this.GetInstanceNumber();
             this.defaultLabelNames = new List<string> { iotHubName, deviceId, instanceNumber };
 
             // TODO:
@@ -109,14 +111,14 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
         /// <returns>Instance number.</returns>
         string GetInstanceNumber()
         {
-            if (!File.Exists(this.instanceFileAbsolutePath))
-            {
-                File.WriteAllText(this.instanceFileAbsolutePath, "1");
-                return "1";
-            }
-
             try
             {
+                if (!File.Exists(this.instanceFileAbsolutePath))
+                {
+                    File.WriteAllText(this.instanceFileAbsolutePath, "1");
+                    return "1";
+                }
+
                 string string_num = File.ReadAllText(this.instanceFileAbsolutePath);
                 string_num = (int.Parse(string_num) + 1).ToString();
                 File.WriteAllText(this.instanceFileAbsolutePath, string_num);
@@ -124,7 +126,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Failed to read metrics instance file:\n{ex}");
+                Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Failed to access metrics instance file:\n{ex}");
                 return "0";
             }
         }
