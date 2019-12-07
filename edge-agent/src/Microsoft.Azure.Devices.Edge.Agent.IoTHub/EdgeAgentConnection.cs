@@ -127,16 +127,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 Option<IModuleClient> moduleClient = this.moduleConnection.GetModuleClient();
                 if (!moduleClient.HasValue)
                 {
-                    Events.UpdateReportedPropertiesDeviceClientEmpty();
+                    Events.SendEventClientEmpty();
                     return;
                 }
 
                 await moduleClient.ForEachAsync(d => d.SendEventAsync(message));
-                Events.UpdatedReportedProperties();
+                Events.SendEvent();
             }
             catch (Exception e)
             {
-                Events.ErrorUpdatingReportedProperties(e);
+                Events.ErrorSendingEvent(e);
                 throw;
             }
         }
@@ -353,7 +353,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                 UpdatedReportedProperties,
                 ErrorUpdatingReportedProperties,
                 GotModuleClient,
-                GettingModuleClient
+                GettingModuleClient,
+                SendEvent,
+                SendEventClientEmpty,
+                ErrorSendingEvent,
             }
 
             public static void DesiredPropertiesPatchFailed(Exception exception)
@@ -468,6 +471,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             internal static void RetryingGetTwin(RetryingEventArgs args)
             {
                 Log.LogDebug((int)EventIds.RetryingGetTwin, $"Edge agent is retrying GetTwinAsync. Attempt #{args.CurrentRetryCount}. Last error: {args.LastException?.Message}");
+            }
+
+            internal static void SendEvent()
+            {
+                Log.LogDebug((int)EventIds.SendEvent, $"Edge agent is sending a diagnostic message.");
+            }
+
+            public static void SendEventClientEmpty()
+            {
+                Log.LogDebug((int)EventIds.SendEventClientEmpty, "Client empty.");
+            }
+
+            public static void ErrorSendingEvent(Exception ex)
+            {
+                Log.LogDebug((int)EventIds.ErrorSendingEvent, ex, "Error sending event");
             }
         }
     }
