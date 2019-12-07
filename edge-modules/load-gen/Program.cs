@@ -38,7 +38,8 @@ namespace LoadGen
 
                 DateTime testStartAt = DateTime.UtcNow;
                 long messageIdCounter = 1;
-                while (!cts.IsCancellationRequested && DateTime.UtcNow - testStartAt < Settings.Current.TestDuration)
+                while (!cts.IsCancellationRequested &&
+                    (Settings.Current.TestDuration == TimeSpan.Zero || DateTime.UtcNow - testStartAt < Settings.Current.TestDuration))
                 {
                     try
                     {
@@ -50,7 +51,7 @@ namespace LoadGen
                     {
                         Logger.LogError(ex, "Error occurred during load gen");
                     }
-                    
+
                     if (messageIdCounter % 1000 == 0)
                     {
                         Logger.LogInformation($"Sent {messageIdCounter} messages.");
