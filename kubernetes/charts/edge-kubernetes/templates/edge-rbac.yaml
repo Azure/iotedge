@@ -7,7 +7,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: {{.Release.Service | quote }}
     app.kubernetes.io/instance: {{.Release.Name | quote }}
-    helm.sh/chart: "{{.Chart.Name}}-{{.Chart.Version}}"
+    helm.sh/chart: {{ include "edge-kubernetes.chart" . }}
 ...
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -15,6 +15,10 @@ kind: ClusterRoleBinding
 metadata:
   name: iotedge:{{ .Release.Name }}:auth-delegator
   namespace: {{ include "edge-kubernetes.namespace" . | quote }}
+  labels:
+    app.kubernetes.io/managed-by: {{.Release.Service | quote }}
+    app.kubernetes.io/instance: {{.Release.Name | quote }}
+    helm.sh/chart: {{ include "edge-kubernetes.chart" . }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -31,6 +35,10 @@ kind: ClusterRoleBinding
 metadata:
   name: iotedge:{{ .Release.Name }}:node-observer
   namespace: {{ include "edge-kubernetes.namespace" . | quote }}
+  labels:
+    app.kubernetes.io/managed-by: {{.Release.Service | quote }}
+    app.kubernetes.io/instance: {{.Release.Name | quote }}
+    helm.sh/chart: {{ include "edge-kubernetes.chart" . }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -47,6 +55,10 @@ kind: RoleBinding
 metadata:
   name: iotedged
   namespace: {{ include "edge-kubernetes.namespace" . | quote }}
+  labels:
+    app.kubernetes.io/managed-by: {{.Release.Service | quote }}
+    app.kubernetes.io/instance: {{.Release.Name | quote }}
+    helm.sh/chart: {{ include "edge-kubernetes.chart" . }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -62,6 +74,10 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: iotedge:{{ .Release.Name }}:node-observer
+  labels:
+    app.kubernetes.io/managed-by: {{.Release.Service | quote }}
+    app.kubernetes.io/instance: {{.Release.Name | quote }}
+    helm.sh/chart: {{ include "edge-kubernetes.chart" . }}
 rules:
   - apiGroups: [""]
     resources: ["nodes"]
@@ -74,6 +90,10 @@ kind: Role
 metadata:
   name: iotedged
   namespace: {{ include "edge-kubernetes.namespace" . | quote }}
+  labels:
+    app.kubernetes.io/managed-by: {{.Release.Service | quote }}
+    app.kubernetes.io/instance: {{.Release.Name | quote }}
+    helm.sh/chart: {{ include "edge-kubernetes.chart" . }}
 rules:
   - apiGroups: [""]
     resources: ["nodes"]
@@ -109,6 +129,10 @@ kind: Role
 metadata:
   name: edgeagent
   namespace: {{ include "edge-kubernetes.namespace" . | quote }}
+  labels:
+    app.kubernetes.io/managed-by: {{.Release.Service | quote }}
+    app.kubernetes.io/instance: {{.Release.Name | quote }}
+    helm.sh/chart: {{ include "edge-kubernetes.chart" . }}
 rules:
   - apiGroups: [""]
     resources: ["pods", "pods/log"]
