@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             if (!Directory.Exists(edgeAgentStorageFolder))
             {
-                this.logger.LogError("Edge Agent storage directory not found. Disabling metrics.");
+                this.logger.LogError($"Edge Agent storage directory at {edgeAgentStorageFolder} not found. Disabling metrics.");
                 this.metricsConfig = new MetricsConfig(false, metricsConfig.ListenerConfig);
             }
             else
@@ -46,7 +46,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 .As<IMetricsProvider>()
                 .SingleInstance();
 
-            builder.Register(c => new Util.Metrics.Prometheus.Net.MetricsListener(this.metricsConfig.ListenerConfig, c.Resolve<IMetricsProvider>()))
+            builder.Register(c => this.metricsConfig.Enabled ?
+                                new Util.Metrics.Prometheus.Net.MetricsListener(this.metricsConfig.ListenerConfig, c.Resolve<IMetricsProvider>()) :
+                                new Util.Metrics.NullMetrics.NullMetricsListener() as IMetricsListener)
                 .As<IMetricsListener>()
                 .SingleInstance();
 
