@@ -21,19 +21,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
         public MetricsModule(MetricsConfig metricsConfig, string iothubHostname, string deviceId, string edgeAgentStorageFolder)
         {
-            Preconditions.CheckNotNull(edgeAgentStorageFolder, nameof(edgeAgentStorageFolder));
-            this.edgeAgentStorageFolder = edgeAgentStorageFolder;
-
-            if (!Directory.Exists(edgeAgentStorageFolder))
-            {
-                this.logger.LogError($"Edge Agent storage directory at {edgeAgentStorageFolder} not found. Disabling metrics.");
-                this.metricsConfig = new MetricsConfig(false, metricsConfig.ListenerConfig);
-            }
-            else
-            {
-                this.metricsConfig = Preconditions.CheckNotNull(metricsConfig, nameof(metricsConfig));
-            }
-
+            this.edgeAgentStorageFolder = Preconditions.CheckNotNull(edgeAgentStorageFolder, nameof(edgeAgentStorageFolder));
+            this.metricsConfig = Preconditions.CheckNotNull(metricsConfig, nameof(metricsConfig));
             this.iothubHostname = Preconditions.CheckNonWhiteSpace(iothubHostname, nameof(iothubHostname));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
         }
@@ -46,9 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 .As<IMetricsProvider>()
                 .SingleInstance();
 
-            builder.Register(c => this.metricsConfig.Enabled ?
-                                new Util.Metrics.Prometheus.Net.MetricsListener(this.metricsConfig.ListenerConfig, c.Resolve<IMetricsProvider>()) :
-                                new Util.Metrics.NullMetrics.NullMetricsListener() as IMetricsListener)
+            builder.Register(c => new Util.Metrics.Prometheus.Net.MetricsListener(this.metricsConfig.ListenerConfig, c.Resolve<IMetricsProvider>()))
                 .As<IMetricsListener>()
                 .SingleInstance();
 
