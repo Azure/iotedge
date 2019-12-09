@@ -30,6 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         static readonly DockerConfig Config2 = new DockerConfig("test-image:2");
         static readonly DockerConfig AgentConfig1 = new DockerConfig("agent:3");
         static readonly ConfigurationInfo DefaultConfigurationInfo = new ConfigurationInfo("1");
+        static readonly KubernetesModuleOwner EdgeletModuleOwner = new KubernetesModuleOwner("v1", "Deployment", "iotedged", "123");
         static readonly IKubernetes DefaultClient = Mock.Of<IKubernetes>();
         static readonly ICombinedConfigProvider<CombinedKubernetesConfig> ConfigProvider = Mock.Of<ICombinedConfigProvider<CombinedKubernetesConfig>>();
         static readonly IRuntimeInfo Runtime = Mock.Of<IRuntimeInfo>();
@@ -40,16 +41,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
         {
             KubernetesConfig config = new KubernetesConfig("image", CreatePodParameters.Create(), Option.None<AuthConfig>());
             IModule m1 = new DockerModule("module1", "v1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
-            KubernetesModule km1 = new KubernetesModule(m1, config);
+            KubernetesModule km1 = new KubernetesModule(m1, config, EdgeletModuleOwner);
             KubernetesModule[] modules = { km1 };
             ModuleSet currentModules = new ModuleSet(new Dictionary<string, IModule> { ["module1"] = m1 });
-            Assert.Throws<ArgumentException>(() => new EdgeDeploymentCommand(null, ResourceName, DefaultClient, modules, currentModules, Runtime, ConfigProvider));
-            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, null, DefaultClient, modules, currentModules, Runtime, ConfigProvider));
-            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, null, modules, currentModules, Runtime, ConfigProvider));
-            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, DefaultClient, null, currentModules, Runtime, ConfigProvider));
-            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, DefaultClient, modules, null, Runtime, ConfigProvider));
-            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, DefaultClient, modules, currentModules, null, ConfigProvider));
-            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, DefaultClient, modules, currentModules, Runtime, null));
+            Assert.Throws<ArgumentException>(() => new EdgeDeploymentCommand(null, ResourceName, DefaultClient, modules, currentModules, Runtime, ConfigProvider, EdgeletModuleOwner));
+            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, null, DefaultClient, modules, currentModules, Runtime, ConfigProvider, EdgeletModuleOwner));
+            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, null, modules, currentModules, Runtime, ConfigProvider, EdgeletModuleOwner));
+            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, DefaultClient, null, currentModules, Runtime, ConfigProvider, EdgeletModuleOwner));
+            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, DefaultClient, modules, null, Runtime, ConfigProvider, EdgeletModuleOwner));
+            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, DefaultClient, modules, currentModules, null, ConfigProvider, EdgeletModuleOwner));
+            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, DefaultClient, modules, currentModules, Runtime, null, EdgeletModuleOwner));
+            Assert.Throws<ArgumentNullException>(() => new EdgeDeploymentCommand(Namespace, ResourceName, DefaultClient, modules, currentModules, Runtime, ConfigProvider, null));
         }
 
         [Fact]
@@ -105,7 +107,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 }))
             {
                 var client = new Kubernetes(new KubernetesClientConfiguration { Host = server.Uri });
-                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule }, currentModules, Runtime, configProvider.Object);
+                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule }, currentModules, Runtime, configProvider.Object, EdgeletModuleOwner);
 
                 await cmd.ExecuteAsync(CancellationToken.None);
 
@@ -161,7 +163,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 }))
             {
                 var client = new Kubernetes(new KubernetesClientConfiguration { Host = server.Uri });
-                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule }, currentModules, Runtime, configProvider.Object);
+                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule }, currentModules, Runtime, configProvider.Object, EdgeletModuleOwner);
 
                 await cmd.ExecuteAsync(CancellationToken.None);
 
@@ -231,7 +233,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 }))
             {
                 var client = new Kubernetes(new KubernetesClientConfiguration { Host = server.Uri });
-                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule }, currentModules, Runtime, configProvider.Object);
+                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule }, currentModules, Runtime, configProvider.Object, EdgeletModuleOwner);
 
                 await cmd.ExecuteAsync(CancellationToken.None);
 
@@ -323,7 +325,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 }))
             {
                 var client = new Kubernetes(new KubernetesClientConfiguration { Host = server.Uri });
-                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule1, dockerModule2 }, currentModules, Runtime, configProvider.Object);
+                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule1, dockerModule2 }, currentModules, Runtime, configProvider.Object, EdgeletModuleOwner);
 
                 await cmd.ExecuteAsync(CancellationToken.None);
 
@@ -380,7 +382,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 }))
             {
                 var client = new Kubernetes(new KubernetesClientConfiguration { Host = server.Uri });
-                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule }, currentModules, Runtime, configProvider.Object);
+                var cmd = new EdgeDeploymentCommand(Namespace, ResourceName, client, new[] { dockerModule }, currentModules, Runtime, configProvider.Object, EdgeletModuleOwner);
 
                 await cmd.ExecuteAsync(CancellationToken.None);
 

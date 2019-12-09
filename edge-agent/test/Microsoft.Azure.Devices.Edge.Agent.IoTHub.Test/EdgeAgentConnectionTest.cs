@@ -547,25 +547,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             deviceManager.Verify(x => x.ReprovisionDeviceAsync(), Times.Never);
         }
 
-        /// <summary>
-        /// This test is disabled right now because the product code it depends on is disabled too.
-        /// The `OnConnectionStatusChanged` handler of `EdgeAgentConnection` needs to be updated to
-        /// uncomment the section that calls the ReprovisionDeviceAsync API ONLY when the provided
-        /// `ConnectionStatusChangeReason` is equal to `Device_Not_Found`.
-        ///
-        /// Since this change is not made in the Device SDK and consumed yet, the edge code that depends
-        /// on it is disabled.
-        ///
-        /// The test has been verified with an existing `ConnectionStatusChangeReason` to validate it's
-        /// effectiveness.
-        /// </summary>
-        /// <returns>Test task.</returns>
-        // [Fact]
-        // [Unit]
-        internal async Task ConnectionStatusChangeReasonToDeviceNotFoundReprovisionsDevice()
+        [Theory]
+        [Unit]
+        [InlineData(UpstreamProtocol.Amqp, ConnectionStatusChangeReason.Device_Disabled, true)]
+        [InlineData(UpstreamProtocol.AmqpWs, ConnectionStatusChangeReason.Device_Disabled, true)]
+        [InlineData(UpstreamProtocol.Mqtt, ConnectionStatusChangeReason.Bad_Credential, true)]
+        [InlineData(UpstreamProtocol.MqttWs, ConnectionStatusChangeReason.Bad_Credential, true)]
+        [InlineData(UpstreamProtocol.Amqp, ConnectionStatusChangeReason.Communication_Error, false)]
+        [InlineData(UpstreamProtocol.AmqpWs, ConnectionStatusChangeReason.Communication_Error, false)]
+        [InlineData(UpstreamProtocol.Mqtt, ConnectionStatusChangeReason.Communication_Error, false)]
+        [InlineData(UpstreamProtocol.MqttWs, ConnectionStatusChangeReason.Communication_Error, false)]
+        internal async Task ConnectionStatusChangeReasonToDeviceNotFoundReprovisionsDevice(
+            UpstreamProtocol protocol, ConnectionStatusChangeReason connectionStatusChangeReason, bool shouldReprovision)
         {
             // Arrange
             var deviceClient = new Mock<IModuleClient>();
+            deviceClient.Setup(x => x.UpstreamProtocol).Returns(protocol);
+            deviceClient.Setup(x => x.IsActive).Returns(true);
             var serde = new Mock<ISerde<DeploymentConfig>>();
             ConnectionStatusChangesHandler connectionStatusChangesHandler = null;
             var twin = new Twin
@@ -606,11 +604,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
             Assert.NotNull(connectionStatusChangesHandler);
 
             // Act
-            // connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, ConnectionStatusChangeReason.Device_Not_Found);
+            connectionStatusChangesHandler.Invoke(ConnectionStatus.Connected, connectionStatusChangeReason);
 
             // Assert
-            // The ReprovisionDeviceAsync API should have been called.
-            deviceManager.Verify(x => x.ReprovisionDeviceAsync(), Times.Once);
+            // Whether the ReprovisionDeviceAsync API has been called based on the appropriate protocol and connection status change reason.
+            deviceManager.Verify(x => x.ReprovisionDeviceAsync(), Times.Exactly(shouldReprovision ? 1 : 0));
         }
 
         [Fact]

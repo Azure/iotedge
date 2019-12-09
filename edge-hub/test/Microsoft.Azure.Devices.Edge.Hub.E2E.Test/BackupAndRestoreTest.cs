@@ -23,17 +23,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
     /// using AMQP should suffice for now.
     /// </summary>
     [Integration]
-    [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
+    [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test.Exclusive")]
     [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
     public class BackupAndRestoreTest : IDisposable
     {
         readonly string backupFolder;
-        EdgeHubFixture edgeHubFixture;
         TestConsoleLogger logger;
 
-        public BackupAndRestoreTest(EdgeHubFixture edgeHubFixture, ITestOutputHelper testOutputHelper)
+        public BackupAndRestoreTest(ITestOutputHelper testOutputHelper)
         {
-            this.edgeHubFixture = edgeHubFixture;
             string tempFolder = Path.GetTempPath();
             this.backupFolder = Path.Combine(tempFolder, $"edgeTestBackup{Guid.NewGuid()}");
             if (Directory.Exists(this.backupFolder))
@@ -136,18 +134,19 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             int expectedMessageCountAfterRestore,
             Action postBackupModifier)
         {
-            ProtocolHeadFixture protocolHeadFixture = this.edgeHubFixture.GetFixture();
+            ProtocolHeadFixture protocolHeadFixture = EdgeHubFixtureCollection.GetFixture();
             TestModule sender = null;
             TestModule receiver = null;
 
             string edgeDeviceConnectionString = await SecretsHelper.GetSecretFromConfigKey("edgeCapableDeviceConnStrKey");
             IotHubConnectionStringBuilder connectionStringBuilder = IotHubConnectionStringBuilder.Create(edgeDeviceConnectionString);
             RegistryManager rm = RegistryManager.CreateFromConnectionString(edgeDeviceConnectionString);
-            Func<int, TimeSpan> waitTimeComputer = (numberOfMessages) => TimeSpan.FromMinutes(Math.Ceiling(numberOfMessages / 2000d) + 1);
+            Func<int, TimeSpan> waitTimeComputer = (numberOfMessages) => TimeSpan.FromMinutes(Math.Ceiling(numberOfMessages / 2000d) + 2);
 
             try
             {
                 sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", transportSettings);
+                receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", transportSettings);
 
                 Console.WriteLine($"Sending {beforeBackupMessageCount} messages.");
 
@@ -168,9 +167,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 postBackupModifier();
 
                 // Get new fixture to re-initialize the edge hub container.
-                protocolHeadFixture = this.edgeHubFixture.GetFixture();
+                protocolHeadFixture = EdgeHubFixtureCollection.GetFixture();
 
-                receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", transportSettings);
+                // Register the message handler now.
                 await receiver.SetupReceiveMessageHandler();
 
                 Console.WriteLine($"Sending {afterBackupMessageCount} messages.");

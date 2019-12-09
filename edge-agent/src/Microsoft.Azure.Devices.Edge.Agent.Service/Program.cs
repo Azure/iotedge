@@ -9,7 +9,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
+    using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes;
     using Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment;
@@ -17,11 +19,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Microsoft.Azure.Devices.Edge.Agent.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics.NullMetrics;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Constants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
     using K8sConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
     using KubernetesModule = Microsoft.Azure.Devices.Edge.Agent.Service.Modules.KubernetesModule;
+    using MetricsListener = Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net.MetricsListener;
 
     public class Program
     {
@@ -83,6 +89,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             Dictionary<string, string> dockerLoggingOptions;
             IEnumerable<global::Docker.DotNet.Models.AuthConfig> dockerAuthConfig;
             int configRefreshFrequencySecs;
+            ExperimentalFeatures experimentalFeatures;
+            MetricsConfig metricsConfig;
+            DiagnosticConfig diagnosticConfig;
 
             try
             {
@@ -126,9 +135,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 bool closeOnIdleTimeout = configuration.GetValue(Constants.CloseOnIdleTimeout, false);
                 int idleTimeoutSecs = configuration.GetValue(Constants.IdleTimeoutSecs, 300);
                 TimeSpan idleTimeout = TimeSpan.FromSeconds(idleTimeoutSecs);
-                ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(configuration.GetSection("experimentalFeatures"), logger);
+                experimentalFeatures = ExperimentalFeatures.Create(configuration.GetSection("experimentalFeatures"), logger);
                 string iothubHostname;
                 string deviceId;
+
                 switch (mode.ToLowerInvariant())
                 {
                     case Constants.DockerMode:
@@ -161,8 +171,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
                         iothubHostname = configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
                         deviceId = configuration.GetValue<string>(Constants.DeviceIdVariableName);
-                        string networkId = configuration.GetValue<string>(Constants.NetworkIdKey);
                         string proxyImage = configuration.GetValue<string>(K8sConstants.ProxyImageEnvKey);
+                        Option<string> proxyImagePullSecretName = Option.Maybe(configuration.GetValue<string>(K8sConstants.ProxyImagePullSecretNameEnvKey));
                         string proxyConfigPath = configuration.GetValue<string>(K8sConstants.ProxyConfigPathEnvKey);
                         string proxyConfigVolumeName = configuration.GetValue<string>(K8sConstants.ProxyConfigVolumeEnvKey);
                         string proxyConfigMapName = configuration.GetValue<string>(K8sConstants.ProxyConfigMapNameEnvKey);
@@ -173,17 +183,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         bool enableServiceCallTracing = configuration.GetValue<bool>(K8sConstants.EnableK8sServiceCallTracingName);
                         string persistentVolumeName = configuration.GetValue<string>(K8sConstants.PersistentVolumeNameKey);
                         string storageClassName = configuration.GetValue<string>(K8sConstants.StorageClassNameKey);
-                        uint persistentVolumeClaimDefaultSizeMb = configuration.GetValue<uint>(K8sConstants.PersistentVolumeClaimDefaultSizeInMbKey);
+                        Option<uint> persistentVolumeClaimDefaultSizeMb = Option.Maybe(configuration.GetValue<uint?>(K8sConstants.PersistentVolumeClaimDefaultSizeInMbKey));
                         string deviceNamespace = configuration.GetValue<string>(K8sConstants.K8sNamespaceKey);
                         var kubernetesExperimentalFeatures = KubernetesExperimentalFeatures.Create(configuration.GetSection("experimentalFeatures"), logger);
+                        var moduleOwner = new KubernetesModuleOwner(
+                            configuration.GetValue<string>(K8sConstants.EdgeK8sObjectOwnerApiVersionKey),
+                            configuration.GetValue<string>(K8sConstants.EdgeK8sObjectOwnerKindKey),
+                            configuration.GetValue<string>(K8sConstants.EdgeK8sObjectOwnerNameKey),
+                            configuration.GetValue<string>(K8sConstants.EdgeK8sObjectOwnerUidKey));
+                        bool runAsNonRoot = configuration.GetValue<bool>(K8sConstants.RunAsNonRootKey);
 
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), enableNonPersistentStorageBackup, storageBackupPath));
                         builder.RegisterModule(new KubernetesModule(
                             iothubHostname,
                             deviceId,
-                            networkId,
                             edgeDeviceHostName,
                             proxyImage,
+                            proxyImagePullSecretName,
                             proxyConfigPath,
                             proxyConfigVolumeName,
                             proxyConfigMapName,
@@ -205,7 +221,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                             proxy,
                             closeOnIdleTimeout,
                             idleTimeout,
-                            kubernetesExperimentalFeatures));
+                            kubernetesExperimentalFeatures,
+                            moduleOwner,
+                            runAsNonRoot));
 
                         break;
 
@@ -233,12 +251,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
                     case "local":
                         string localConfigFilePath = GetLocalConfigFilePath(configuration, logger);
-                        builder.RegisterModule(new FileConfigSourceModule(localConfigFilePath, configuration));
+                        builder.RegisterModule(new FileConfigSourceModule(localConfigFilePath, configuration, versionInfo));
                         break;
 
                     default:
                         throw new InvalidOperationException($"ConfigSource '{configSourceConfig}' not supported.");
                 }
+
+                metricsConfig = new MetricsConfig(experimentalFeatures.EnableMetrics, MetricsListenerConfig.Create(configuration));
+                builder.RegisterModule(new MetricsModule(metricsConfig, iothubHostname, deviceId));
+
+                diagnosticConfig = new DiagnosticConfig(experimentalFeatures.EnableMetricsUpload, storagePath, configuration);
+                builder.RegisterModule(new DiagnosticsModule(diagnosticConfig));
 
                 container = builder.Build();
             }
@@ -246,6 +270,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             {
                 logger.LogCritical(AgentEventIds.Agent, ex, "Fatal error building application.");
                 return 1;
+            }
+
+            // Initialize metrics
+            if (metricsConfig.Enabled)
+            {
+                container.Resolve<IMetricsListener>().Start(logger);
+            }
+
+            // Initialize metric uploading
+            if (diagnosticConfig.Enabled)
+            {
+                MetricsWorker worker = container.Resolve<MetricsWorker>();
+                worker.Start(diagnosticConfig.ScrapeInterval, diagnosticConfig.UploadInterval);
+                Console.WriteLine($"Scraping frequency: {diagnosticConfig.ScrapeInterval}\nUpload Frequency: {diagnosticConfig.UploadInterval}");
             }
 
             // TODO move this code to Agent
@@ -311,6 +349,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 // Attempt to report shutdown of Agent
                 await Cleanup(agentOption, logger);
                 await CloseDbStoreProviderAsync(container);
+
+                if (metricsConfig.Enabled && returnCode == 0)
+                {
+                    container.Resolve<IAvailabilityMetric>().IndicateCleanShutdown();
+                }
+
                 completed.Set();
             }
 
