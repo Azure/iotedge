@@ -19,7 +19,6 @@ serde_derive = "1.0"
 serde_json = "1.0"
 sysinfo = "0.9.6"
 tokio = "0.1.11"
-uptime_lib = "0.1.0"
 url = "1.7"
 url_serde = "0.2"
 
@@ -29,6 +28,12 @@ edgelet-hsm = { path = "../edgelet-hsm" }
 edgelet-http = { path = "../edgelet-http" }
 edgelet-utils = { path = "../edgelet-utils" }
 provisioning = { path = "../provisioning" }
+
+[target.'cfg(not(windows))'.dependencies]
+libc = "0.2.66"
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3", features = ["sysinfoapi"] }
 
 [dev_dependencies]
 config = { version = "0.9", default-features = false, features = ["json", "yaml"] }

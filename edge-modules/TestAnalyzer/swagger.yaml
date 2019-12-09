@@ -6,13 +6,13 @@ info:
 schemes:
 - "https"
 paths:
-  /api/twinstatus:
+  /api/testoperationresult:
     post:
       tags:
       - "twinStatus"
-      summary: "Add a new twin status"
+      summary: "Report test operation result"
       description: ""
-      operationId: "addTwinStatus"
+      operationId: "reportResult"
       consumes:
       - "application/json"
       produces:
@@ -20,31 +20,10 @@ paths:
       parameters:
       - in: "body"
         name: "body"
-        description: "Twin status details"
+        description: "Test result details"
         required: true
         schema:
-          $ref: "#/definitions/ResponseStatus"
-      responses:
-        204:
-          description: "Ok"
-  /api/directmethodstatus:
-    post:
-      tags:
-      - "directMethodStatus"
-      summary: "Add a new direct method status"
-      description: ""
-      operationId: "addDirectMethodStatus"
-      consumes:
-      - "application/json"
-      produces:
-      - "application/json"
-      parameters:
-      - in: "body"
-        name: "body"
-        description: "Direct method status details"
-        required: true
-        schema:
-          $ref: "#/definitions/ResponseStatus"
+          $ref: "#/definitions/TestOperationResult"
       responses:
         204:
           description: "Ok"
@@ -127,19 +106,21 @@ definitions:
       lastReceivedAt:
         type: "string"
         format: date-time
-  ResponseStatus:
+  TestOperationResult:
     type: "object"
     required:
-    - "moduleId"
-    - "statusCode"
-    - "enqueuedDateTime"
+    - "source"
+    - "result"
+    - "type"
+    - "createdOn"
     properties:
-      moduleId:
+      source:
         type: "string"
-      statusCode:
+      result:
         type: "string"
-        example: "204"
-      enqueuedDateTime:
+      type:
+        type: "string"
+      createdAt:
         type: "string"
         format: date-time
         
