@@ -4,6 +4,7 @@ namespace TestAnalyzer
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -34,43 +35,50 @@ namespace TestAnalyzer
         {
             this.storage = new TestStatusStorage();
             await this.storage.InitAsync(storagePath, new SystemEnvironment(), optimizeForPerformance);
-            Task messageProcessing = this.storage.ProcessAllMessagesAsync(async (message) => await Instance.AddMessageAsync(message));
-            Task directMethodProcessing = this.storage.ProcessAllDirectMethodsAsync(async (directMethodStatus) => await Instance.AddDirectMethodStatusAsync(directMethodStatus));
-            Task twinProcessing = this.storage.ProcessAllTwinsAsync(async (twinStatus) => await Instance.AddTwinStatusAsync(twinStatus));
+            Task messageProcessing = this.storage.ProcessAllMessagesAsync(async message => await Instance.AddMessageAsync(message));
+            Task directMethodProcessing = this.storage.ProcessAllDirectMethodsAsync(async result => await Instance.AddResultAsync(result));
+            Task twinProcessing = this.storage.ProcessAllTwinsAsync(async result => await Instance.AddResultAsync(result));
             await Task.WhenAll(messageProcessing, directMethodProcessing, twinProcessing);
         }
 
-        public async Task AddDirectMethodStatusAsync(CloudOperationStatus directMethodStatus)
+        public async Task AddResultAsync(TestOperationResult result)
         {
-            bool added = await this.storage.AddDirectMethodAsync(directMethodStatus);
-            if (added)
+            bool isAnalyzerDirectMethodResultType = result.Type.Equals(TestOperationResultType.AnalyzerDirectMethod, StringComparison.OrdinalIgnoreCase);
+            if (!isAnalyzerDirectMethodResultType &&
+                !result.Type.Equals(TestOperationResultType.AnalyzerTwin, StringComparison.OrdinalIgnoreCase))
             {
-                this.AddStatus(directMethodStatus, this.directMethodsReportCache);
+                throw new InvalidDataException($"result type should be either 'AnalyzerDirectMethod' or 'AnalyzerTwin'. Current is '{result.Type}'.");
+            }
+
+            bool isAdded = false;
+            if (isAnalyzerDirectMethodResultType)
+            {
+                isAdded = await this.storage.AddDirectMethodResultAsync(result);
+            }
+            else
+            {
+                isAdded = await this.storage.AddTwinResultAsync(result);
+            }
+            
+            if (isAdded)
+            {
+                this.AddResult(result, isAnalyzerDirectMethodResultType ? this.directMethodsReportCache : this.twinsReportCache);
             }
         }
-
-        public async Task AddTwinStatusAsync(CloudOperationStatus twinStatus)
+        
+        void AddResult(TestOperationResult result, ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> cache)
         {
-            bool added = await this.storage.AddTwinAsync(twinStatus);
-            if (added)
-            {
-                this.AddStatus(twinStatus, this.twinsReportCache);
-            }
-        }
-
-        public void AddStatus(CloudOperationStatus responseStatus, ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> cache)
-        {
-            ConcurrentDictionary<string, Tuple<int, DateTime>> batch = cache.GetOrAdd(responseStatus.ModuleId, key => new ConcurrentDictionary<string, Tuple<int, DateTime>>());
+            ConcurrentDictionary<string, Tuple<int, DateTime>> batch = cache.GetOrAdd(result.Source, key => new ConcurrentDictionary<string, Tuple<int, DateTime>>());
 
             // lock needed for update of concurrent dict
             lock (batch)
             {
                 batch.AddOrUpdate(
-                    responseStatus.StatusCode,
-                    new Tuple<int, DateTime>(1, responseStatus.ResponseDateTime),
+                    result.Result,
+                    new Tuple<int, DateTime>(1, result.CreatedAt),
                     (key, value) => new Tuple<int, DateTime>(
                         value.Item1 + 1,
-                        responseStatus.ResponseDateTime > value.Item2 ? responseStatus.ResponseDateTime : value.Item2));
+                        result.CreatedAt > value.Item2 ? result.CreatedAt : value.Item2));
             }
         }
 
@@ -176,4 +184,11 @@ namespace TestAnalyzer
             }
         }
     }
+    
+    static class TestOperationResultType
+    {
+        internal const string AnalyzerDirectMethod = "analyzerdirectmethod";
+        internal const string AnalyzerTwin = "analyzertwin";
+    }
+    
 }

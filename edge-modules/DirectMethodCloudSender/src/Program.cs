@@ -11,8 +11,6 @@ namespace DirectMethodCloudSender
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
-    using IotHubConnectionStringBuilder = Microsoft.Azure.Devices.IotHubConnectionStringBuilder;
-    using TransportType = Microsoft.Azure.Devices.Client.TransportType;
 
     class Program
     {
@@ -121,7 +119,7 @@ namespace DirectMethodCloudSender
         {
             try
             {
-                await analyzerClient.AddDirectMethodStatusAsync(new ResponseStatus { ModuleId = moduleId, StatusCode = result.Status.ToString(), EnqueuedDateTime = DateTime.UtcNow });
+                await analyzerClient.ReportResultAsync(new TestOperationResult { Source = moduleId, Result = result.Status.ToString(), CreatedAt = DateTime.UtcNow, Type = "LegacyDirectMethod" });
             }
             catch (Exception e)
             {
