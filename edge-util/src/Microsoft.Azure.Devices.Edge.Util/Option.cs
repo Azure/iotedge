@@ -140,7 +140,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
         }
 
-        public void ForEach(Action<T> action, Action none = null)
+        public void ForEach(Action<T> action, Action none)
         {
             if (this.HasValue)
             {
@@ -148,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
             else
             {
-                none?.Invoke();
+                none();
             }
         }
 
