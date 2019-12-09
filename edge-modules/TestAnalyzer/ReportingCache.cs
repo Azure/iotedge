@@ -187,8 +187,8 @@ namespace TestAnalyzer
     
     static class TestOperationResultType
     {
-        internal const string AnalyzerDirectMethod = "analyzerdirectmethod";
-        internal const string AnalyzerTwin = "analyzertwin";
+        internal const string AnalyzerDirectMethod = "LegacyDirectMethod";
+        internal const string AnalyzerTwin = "LegacyTwin";
     }
     
 }
