@@ -29,7 +29,7 @@ edgelet-http = { path = "../edgelet-http" }
 edgelet-utils = { path = "../edgelet-utils" }
 provisioning = { path = "../provisioning" }
 
-[target.'cfg(linux)'.dependencies]
+[target.'cfg(not(windows))'.dependencies]
 libc = "0.2.66"
 
 [target.'cfg(windows)'.dependencies]

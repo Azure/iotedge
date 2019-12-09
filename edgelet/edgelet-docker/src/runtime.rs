@@ -37,18 +37,21 @@ use crate::settings::Settings;
 
 #[cfg(not(windows))]
 use edgelet_core::DiskInfo;
-#[cfg(windows)]
-use kernel32;
-#[cfg(linux)]
+#[cfg(not(windows))]
 use libc;
-#[cfg(linux)]
+#[cfg(not(windows))]
 use std::convert::TryInto;
+#[cfg(not(windows))]
+use std::mem;
 #[cfg(not(windows))]
 use std::process;
 #[cfg(not(windows))]
 use std::time::{SystemTime, UNIX_EPOCH};
 #[cfg(not(windows))]
 use sysinfo::{DiskExt, ProcessExt, ProcessorExt, SystemExt};
+
+#[cfg(windows)]
+use kernel32;
 
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
