@@ -9,8 +9,8 @@ use edgelet_core::{CertificateIssuer, CertificateProperties, CertificateType, IO
 use edgelet_hsm::{Crypto, HsmLock};
 use edgelet_http::certificate_manager::CertificateManager;
 use edgelet_http::route::{Builder, Parameters, RegexRoutesBuilder, Router};
-use edgelet_http::Error as HttpError;
 use edgelet_http::HyperExt;
+use edgelet_http::{Error as HttpError, TlsAcceptorParams};
 use edgelet_http::{Run, Version};
 
 use futures::{future, Future};
@@ -91,8 +91,10 @@ pub fn configure_test(address: &str) -> (Run, u16) {
         .finish();
     let router = Router::from(recognizer);
 
+    let tls_params = TlsAcceptorParams::new(&manager, None);
+
     let server = Http::new()
-        .bind_url(Url::parse(address).unwrap(), router, Some(&manager))
+        .bind_url(Url::parse(address).unwrap(), router, Some(tls_params))
         .unwrap();
     let port = server.port().expect("HTTP server must have port");
     (server.run(), port)

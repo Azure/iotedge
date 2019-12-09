@@ -64,7 +64,7 @@ use edgelet_hsm::{Crypto, HsmLock, X509};
 use edgelet_http::certificate_manager::CertificateManager;
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http::logging::LoggingService;
-use edgelet_http::{HyperExt, MaybeProxyClient, PemCertificate, API_VERSION};
+use edgelet_http::{HyperExt, MaybeProxyClient, PemCertificate, TlsAcceptorParams, API_VERSION};
 use edgelet_http_external_provisioning::ExternalProvisioningClient;
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
@@ -82,6 +82,7 @@ use provisioning::provisioning::{
 
 use crate::error::ExternalProvisioningErrorReason;
 use crate::workload::WorkloadData;
+use native_tls::Protocol;
 
 const EDGE_RUNTIME_MODULEID: &str = "$edgeAgent";
 const EDGE_RUNTIME_MODULE_NAME: &str = "edgeAgent";
@@ -2076,8 +2077,10 @@ where
             ))?;
             let service = LoggingService::new(label, service);
 
+            let tls_params = TlsAcceptorParams::new(&cert_manager, Some(Protocol::Tlsv12));
+
             let run = Http::new()
-                .bind_url(url.clone(), service, Some(&cert_manager))
+                .bind_url(url.clone(), service, Some(tls_params))
                 .map_err(|err| {
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::ManagementService,
@@ -2134,8 +2137,10 @@ where
             ))?;
             let service = LoggingService::new(label, service);
 
+            let tls_params = TlsAcceptorParams::new(&cert_manager, Some(Protocol::Tlsv12));
+
             let run = Http::new()
-                .bind_url(url.clone(), service, Some(&cert_manager))
+                .bind_url(url.clone(), service, Some(tls_params))
                 .map_err(|err| {
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::WorkloadService,
