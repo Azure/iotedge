@@ -26,12 +26,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 
             if (!Directory.Exists(edgeAgentStorageFolder))
             {
+                this.logger.LogError("Edge Agent storage directory not found. Disabling metrics.");
                 this.metricsConfig = new MetricsConfig(false, metricsConfig.ListenerConfig);
             }
             else
             {
                 this.metricsConfig = Preconditions.CheckNotNull(metricsConfig, nameof(metricsConfig));
-                this.logger.LogError("Edge Agent storage directory not found. Disabling metrics.");
             }
 
             this.iothubHostname = Preconditions.CheckNonWhiteSpace(iothubHostname, nameof(iothubHostname));
