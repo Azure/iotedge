@@ -79,7 +79,7 @@ namespace DirectMethodSender
                         Logger.LogError(statusMessage);
                     }
 
-                    ReportStatus(targetModuleId, response, analyzerClient);
+                    await ReportStatus(targetModuleId, response, analyzerClient);
                     directMethodCount++;
                 }
                 catch (Exception e)
@@ -91,11 +91,11 @@ namespace DirectMethodSender
             }
         }
 
-        static void ReportStatus(string moduleId, MethodResponse response, AnalyzerClient analyzerClient)
+        static async Task ReportStatus(string moduleId, MethodResponse response, AnalyzerClient analyzerClient)
         {
             try
             {
-                analyzerClient.AddDirectMethodStatusAsync(new ResponseStatus { ModuleId = moduleId, StatusCode = response.Status.ToString(), EnqueuedDateTime = DateTime.UtcNow });
+                await analyzerClient.ReportResultAsync(new TestOperationResult { Source = moduleId, Result = response.Status.ToString(), CreatedAt = DateTime.UtcNow, Type = "LegacyDirectMethod" });
             }
             catch (Exception e)
             {
