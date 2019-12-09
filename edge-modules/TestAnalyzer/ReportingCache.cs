@@ -47,7 +47,7 @@ namespace TestAnalyzer
             if (!isAnalyzerDirectMethodResultType &&
                 !result.Type.Equals(TestOperationResultType.AnalyzerTwin, StringComparison.OrdinalIgnoreCase))
             {
-                throw new InvalidDataException($"result type should be either 'AnalyzerDirectMethod' or 'AnalyzerTwin'. Current is '{result.Type}'.");
+                throw new InvalidDataException($"result type should be either {TestOperationResultType.AnalyzerDirectMethod} or {TestOperationResultType.AnalyzerTwin}. Current is '{result.Type}'.");
             }
 
             bool isAdded = false;
