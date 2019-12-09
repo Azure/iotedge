@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::collections::HashMap;
-use std::convert::TryInto;
 use std::ops::Deref;
 use std::time::Duration;
 
@@ -38,6 +37,12 @@ use crate::settings::Settings;
 
 #[cfg(not(windows))]
 use edgelet_core::DiskInfo;
+#[cfg(windows)]
+use kernel32;
+#[cfg(linux)]
+use libc;
+#[cfg(linux)]
+use std::convert::TryInto;
 #[cfg(not(windows))]
 use std::process;
 #[cfg(not(windows))]
@@ -633,14 +638,18 @@ impl ModuleRuntime for DockerModuleRuntime {
                 })
             });
 
-        let uptime: u64 = uptime_lib::get()
-            .map(|u| u.num_seconds())
-            .unwrap_or_default()
-            .try_into()
-            .unwrap_or_default();
-
         #[cfg(not(windows))]
         {
+            let mut uptime: u64 = 0;
+            #[cfg(target_os = "linux")]
+            {
+                let mut info: libc::sysinfo = unsafe { mem::zeroed() };
+                let ret = unsafe { libc::sysinfo(&mut info) };
+                if ret == 0 {
+                    uptime = (info.uptime as i64).try_into().unwrap_or_default()
+                }
+            }
+
             let mut system_info = sysinfo::System::new();
             system_info.refresh_all();
             let current_time = SystemTime::now()
@@ -698,6 +707,7 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         #[cfg(windows)]
         {
+            let uptime: u64 = unsafe { kernel32::GetTickCount64() };
             let result = docker_stats.map(move |stats: String| {
                 SystemResources::new(uptime, 0, 0.0, 0, 0, vec![], stats)
             });
