@@ -38,8 +38,6 @@ use crate::settings::Settings;
 #[cfg(not(windows))]
 use edgelet_core::DiskInfo;
 #[cfg(not(windows))]
-use libc;
-#[cfg(not(windows))]
 use std::convert::TryInto;
 #[cfg(not(windows))]
 use std::mem;
@@ -49,9 +47,6 @@ use std::process;
 use std::time::{SystemTime, UNIX_EPOCH};
 #[cfg(not(windows))]
 use sysinfo::{DiskExt, ProcessExt, ProcessorExt, SystemExt};
-
-#[cfg(windows)]
-use kernel32;
 
 type Deserializer = &'static mut serde_json::Deserializer<serde_json::de::IoRead<std::io::Empty>>;
 
@@ -649,7 +644,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                 let mut info: libc::sysinfo = unsafe { mem::zeroed() };
                 let ret = unsafe { libc::sysinfo(&mut info) };
                 if ret == 0 {
-                    uptime = (info.uptime as i64).try_into().unwrap_or_default()
+                    uptime = info.uptime.try_into().unwrap_or_default()
                 }
             }
 
@@ -710,9 +705,9 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         #[cfg(windows)]
         {
-            let uptime: u64 = unsafe { kernel32::GetTickCount64() };
+            let uptime = unsafe { winapi::um::sysinfoapi::GetTickCount() };
             let result = docker_stats.map(move |stats: String| {
-                SystemResources::new(uptime, 0, 0.0, 0, 0, vec![], stats)
+                SystemResources::new(uptime.into(), 0, 0.0, 0, 0, vec![], stats)
             });
 
             Box::new(result)

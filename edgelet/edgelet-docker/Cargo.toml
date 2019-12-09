@@ -33,7 +33,7 @@ provisioning = { path = "../provisioning" }
 libc = "0.2.66"
 
 [target.'cfg(windows)'.dependencies]
-kernel32-sys = "0.2.2"
+winapi = { version = "0.3", features = ["sysinfoapi"] }
 
 [dev_dependencies]
 config = { version = "0.9", default-features = false, features = ["json", "yaml"] }
