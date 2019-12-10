@@ -39,7 +39,7 @@ use crate::settings::Settings;
 use edgelet_core::DiskInfo;
 #[cfg(not(windows))]
 use std::convert::TryInto;
-#[cfg(not(windows))]
+#[cfg(target_os = "linux")]
 use std::mem;
 #[cfg(not(windows))]
 use std::process;
@@ -638,15 +638,18 @@ impl ModuleRuntime for DockerModuleRuntime {
 
         #[cfg(not(windows))]
         {
-            let mut uptime: u64 = 0;
             #[cfg(target_os = "linux")]
-            {
+            let uptime = {
                 let mut info: libc::sysinfo = unsafe { mem::zeroed() };
                 let ret = unsafe { libc::sysinfo(&mut info) };
                 if ret == 0 {
-                    uptime = info.uptime.try_into().unwrap_or_default()
+                    info.uptime.try_into().unwrap_or_default()
+                } else {
+                    0
                 }
-            }
+            };
+            #[cfg(not(target_os = "linux"))]
+            let uptime = 0;
 
             let mut system_info = sysinfo::System::new();
             system_info.refresh_all();

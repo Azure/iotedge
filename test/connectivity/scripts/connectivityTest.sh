@@ -34,7 +34,11 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<CR.Username>@$CONTAINER_REGISTRY_USERNAME@g" "$deployment_working_file"
     sed -i -e "s@<CR.Password>@$CONTAINER_REGISTRY_PASSWORD@g" "$deployment_working_file"
 
+    local tracking_Id=$(cat /proc/sys/kernel/random/uuid)
+
     sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
+    sed -i -e "s@<LoadGen.TestDuration>@$TEST_DURATION@g" "$deployment_working_file"
+    sed -i -e "s@<LoadGen.TrackingId>@$tracking_Id@g" "$deployment_working_file"
 }
 
 function print_logs() {
@@ -99,6 +103,9 @@ function process_args() {
             EVENT_HUB_CONSUMER_GROUP_ID="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 10 ]; then
+            TEST_DURATION="$arg"
+            saveNextArg=0 
+        elif [ $saveNextArg -eq 11 ]; then
             LOADGEN_MESSAGE_FREQUENCY="$arg"
             saveNextArg=0            
         else
@@ -113,7 +120,9 @@ function process_args() {
                 '-iotHubConnectionString' ) saveNextArg=7;;
                 '-eventHubConnectionString' ) saveNextArg=8;;
                 '-eventHubConsumerGroupId' ) saveNextArg=9;;
-                '-loadGenMessageFrequency' ) saveNextArg=10;;
+                '-testDuration' ) saveNextArg=10;;
+                '-loadGenMessageFrequency' ) saveNextArg=11;;
+
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -235,6 +244,7 @@ process_args "$@"
 
 CONTAINER_REGISTRY="${CONTAINER_REGISTRY:-edgebuilds.azurecr.io}"
 E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
+TEST_DURATION="${TEST_DURATION:-01:00:00}"
 EVENT_HUB_CONSUMER_GROUP_ID=${EVENT_HUB_CONSUMER_GROUP_ID:-\$Default}
 LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:01}"
 
