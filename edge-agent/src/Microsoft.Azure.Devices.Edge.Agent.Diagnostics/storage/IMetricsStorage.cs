@@ -17,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage
         Task StoreMetricsAsync(IEnumerable<Metric> metrics);
 
         // Retrieves all metrics stored using StoreMetricsAsync since the last time this was called.
+        // TODO: change to IAsyncEnumerable when c# 8 is valid
         Task<IEnumerable<Metric>> GetAllMetricsAsync();
     }
 }

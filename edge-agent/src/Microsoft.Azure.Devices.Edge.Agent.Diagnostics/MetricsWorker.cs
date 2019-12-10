@@ -75,18 +75,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             }
         }
 
-        public void Dispose()
-        {
-            this.scrape?.Dispose();
-            this.upload?.Dispose();
-        }
-
-        private IEnumerable<Metric> RemoveDuplicateMetrics(IEnumerable<Metric> newMetrics)
+        IEnumerable<Metric> RemoveDuplicateMetrics(IEnumerable<Metric> newMetrics)
         {
             foreach (Metric newMetric in newMetrics)
             {
+                int key = newMetric.GetMetricKey();
                 // Get the previous scrape for this metric
-                if (this.metrics.TryGetValue(newMetric.GetMetricKey(), out Metric oldMetric))
+                if (this.metrics.TryGetValue(key, out Metric oldMetric))
                 {
                     // If the metric is unchanged, do nothing
                     if (oldMetric.Value.Equals(newMetric.Value))
@@ -96,9 +91,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                 }
 
                 // if new metric or metric changed, save to local buffer and disk.
-                this.metrics[newMetric.GetMetricKey()] = newMetric;
+                this.metrics[key] = newMetric;
                 yield return newMetric;
             }
+        }
+
+        public void Dispose()
+        {
+            this.scrape?.Dispose();
+            this.upload?.Dispose();
         }
     }
 }

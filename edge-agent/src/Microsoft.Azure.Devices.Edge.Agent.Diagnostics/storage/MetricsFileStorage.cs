@@ -24,24 +24,21 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage
             this.systemTime = systemTime ?? SystemTime.Instance;
         }
 
-        public async Task StoreMetricsAsync(IEnumerable<Metric> metrics)
+        public Task StoreMetricsAsync(IEnumerable<Metric> metrics)
         {
-            await Task.Yield();
-
-            this.WriteData(JsonConvert.SerializeObject(metrics));
+            return this.WriteData(JsonConvert.SerializeObject(metrics));
         }
 
-        public async Task<IEnumerable<Metric>> GetAllMetricsAsync()
+        public Task<IEnumerable<Metric>> GetAllMetricsAsync()
         {
-            await Task.Yield();
 
             return Directory.GetFiles(this.directory)
-                .SelectMany(filename =>
+                .SelectManyAsync<string, Metric>(async filename =>
                 {
                     Metric[] fileMetrics;
                     try
                     {
-                        string rawMetrics = File.ReadAllText(filename);
+                        string rawMetrics = await DiskFile.ReadAllAsync(filename);
                         fileMetrics = JsonConvert.DeserializeObject<Metric[]>(rawMetrics) ?? new Metric[0];
                         File.Delete(filename);
                     }
@@ -54,11 +51,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage
                 });
         }
 
-        private void WriteData(string data)
+        Task WriteData(string data)
         {
             Directory.CreateDirectory(this.directory);
             string file = Path.Combine(this.directory, this.systemTime.UtcNow.Ticks.ToString());
-            File.WriteAllText(file, data);
+
+            return DiskFile.WriteAllAsync(file, data);
         }
     }
 }
