@@ -45,6 +45,12 @@
               "messageFrequency": {
                 "value": "<LoadGen.MessageFrequency>"
               },
+              "testRunDuration": {
+                "value": "<LoadGen.TestDuration>"
+              },
+              "trackingId": {
+                "value": "<LoadGen.TrackingId>"
+              },
               "transportType": {
                 "value": "amqp"
               },
@@ -65,6 +71,12 @@
             "env": {
               "messageFrequency": {
                 "value": "<LoadGen.MessageFrequency>"
+              },
+              "testRunDuration": {
+                "value": "<LoadGen.TestDuration>"
+              },
+              "trackingId": {
+                "value": "<LoadGen.TrackingId>"
               },
               "transportType": {
                 "value": "mqtt"
