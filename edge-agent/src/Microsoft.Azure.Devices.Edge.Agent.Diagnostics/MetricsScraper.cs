@@ -44,6 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             {
                 Log.LogInformation($"Scraping endpoint {endpoint.Key}");
                 string metricsData = await this.ScrapeEndpoint(endpoint.Value, cancellationToken);
+                Console.WriteLine($"\n\n\n{metricsData}\n\n\n");
                 return PrometheusMetricsParser.ParseMetrics(this.systemTime.UtcNow, metricsData);
             });
         }

@@ -16,17 +16,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
 
     public sealed class IoTHubMetricsUpload : IMetricsPublisher
     {
-        const int MaxRetries = 20;
         readonly IEdgeAgentConnection edgeAgentConnection;
-        readonly IKeyValueStore<Guid, byte[]> messagesToRetry;
-
-        Task retryTask = null;
-        Dictionary<Guid, int> retryTracker = new Dictionary<Guid, int>();
+        readonly RetryHandler<byte[]> retryHandler;
 
         public IoTHubMetricsUpload(IEdgeAgentConnection edgeAgentConnection, IStoreProvider storeProvider)
         {
             this.edgeAgentConnection = Preconditions.CheckNotNull(edgeAgentConnection, nameof(edgeAgentConnection));
-            this.messagesToRetry = Preconditions.CheckNotNull(storeProvider.GetEntityStore<Guid, byte[]>("Diagnostic Messages"), "dataStore");
+            this.retryHandler = new RetryHandler<byte[]>(this.SendMessage, storeProvider);
         }
 
         public async Task PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
@@ -37,11 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             // TODO: add check for too big of a message
             if (data.Length > 0)
             {
-                if (await this.SendMessage(data))
-                {
-                    await this.messagesToRetry.Put(Guid.NewGuid(), data);
-                    this.StartRetrying();
-                }
+                await this.retryHandler.Send(data);
             }
         }
 
@@ -73,88 +65,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             message.ContentType = "application/x-azureiot-edgeruntimediagnostics";
 
             return message;
-        }
-
-        void StartRetrying()
-        {
-            if (this.retryTask == null)
-            {
-                this.retryTask = Task.Run(async () =>
-                {
-                    foreach (TimeSpan sleepTime in this.Backoff())
-                    {
-                        await Task.Delay(sleepTime);
-                        if (await this.Retry())
-                        {
-                            break;
-                        }
-                    }
-
-                    this.retryTask = null;
-                });
-            }
-        }
-
-        async Task<bool> Retry()
-        {
-            bool allCompleatedSuccesfully = true;
-            await this.messagesToRetry.IterateBatch(1000, async (guid, data) =>
-            {
-                if (await this.SendMessage(data))
-                {
-                    // Message not sent.
-                    allCompleatedSuccesfully = false;
-
-                    // If max retrys hit, remove from list
-                    if (!this.ShouldRetry(guid))
-                    {
-                        await this.messagesToRetry.Remove(guid);
-                    }
-                }
-                else
-                {
-                    // Successfully sent message.
-                    await this.messagesToRetry.Remove(guid);
-                    this.retryTracker.Remove(guid);
-                }
-            });
-
-            return allCompleatedSuccesfully;
-        }
-
-        bool ShouldRetry(Guid guid)
-        {
-            if (this.retryTracker.TryGetValue(guid, out int numRetrys))
-            {
-                if (numRetrys > MaxRetries)
-                {
-                    this.retryTracker.Remove(guid);
-                    return false;
-                }
-                else
-                {
-                    this.retryTracker[guid] = numRetrys + 1;
-                }
-            }
-            else
-            {
-                this.retryTracker[guid] = 1;
-            }
-
-            return true;
-        }
-
-        IEnumerable<TimeSpan> Backoff()
-        {
-            yield return TimeSpan.FromMinutes(5);
-            yield return TimeSpan.FromMinutes(5);
-            yield return TimeSpan.FromMinutes(10);
-            yield return TimeSpan.FromMinutes(15);
-
-            while (true)
-            {
-                yield return TimeSpan.FromMinutes(30);
-            }
         }
     }
 }
