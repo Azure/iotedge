@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         protected readonly IotHub iotHub;
         protected EdgeRuntime runtime;
 
-        public ManualProvisioningFixture()
+        public ManualProvisioningFixture(string deviceIdSuffix)
         {
             this.daemon = OsPlatform.Current.CreateEdgeDaemon(Context.Current.InstallerPath);
             this.iotHub = new IotHub(
@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 Context.Current.EventHubEndpoint,
                 Context.Current.Proxy);
             this.runtime = new EdgeRuntime(
-                Context.Current.DeviceId,
+                Context.Current.DeviceId + deviceIdSuffix,
                 Context.Current.EdgeAgentImage,
                 Context.Current.EdgeHubImage,
                 Context.Current.Proxy,

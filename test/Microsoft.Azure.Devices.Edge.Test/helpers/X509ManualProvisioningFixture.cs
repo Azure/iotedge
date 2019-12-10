@@ -11,6 +11,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
     public class X509ManualProvisioningFixture : ManualProvisioningFixture
     {
+        public X509ManualProvisioningFixture()
+            : base("-x509")
+        {
+        }
+
         public X509Thumbprint Thumbprint { get; set; }
         public EdgeDevice Device { get; set; }
 
