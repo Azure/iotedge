@@ -12,6 +12,7 @@ namespace NetworkController
         static readonly ILogger Log = Logger.Factory.CreateLogger<DockerHelper>();
         const int DockerNetworkInterfaceNameLenght = 12;
         const int DockerNetworkInterfaceStartIndex = 0;
+        const string DockerNetworkInterfaceSuffix = "br-";
 
         public static Option<string> GetDockerInterfaceName()
         {
@@ -39,7 +40,7 @@ namespace NetworkController
         {
             //TODO: this is on linux, windows might be different
             //Network interface name has by default first chars form networkId
-            return networkId.Substring(DockerNetworkInterfaceStartIndex, DockerNetworkInterfaceNameLenght);
+            return string.Format($"{DockerNetworkInterfaceSuffix}{networkId.Substring(DockerNetworkInterfaceStartIndex, DockerNetworkInterfaceNameLenght)}");
         }
     }
 }
