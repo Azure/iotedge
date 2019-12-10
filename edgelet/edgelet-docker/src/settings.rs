@@ -1034,4 +1034,10 @@ mod tests {
             Some(&edgelet_core::Protocol::Tls12)
         );
     }
+
+    #[test]
+    fn tls_settings_are_none_by_default() {
+        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
+        assert_eq!(settings.listen().min_tls_version(), None);
+    }
 }

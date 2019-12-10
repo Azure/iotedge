@@ -357,9 +357,9 @@ impl HyperExt for Http {
                         .min_protocol_version
                         .as_ref()
                         .map(|protocol| match protocol {
-                            Protocol::Ssl3 => native_tls::Protocol::Tlsv12,
-                            Protocol::Tls10 => native_tls::Protocol::Tlsv12,
-                            Protocol::Tls11 => native_tls::Protocol::Tlsv12,
+                            Protocol::Ssl3 => native_tls::Protocol::Sslv3,
+                            Protocol::Tls10 => native_tls::Protocol::Tlsv10,
+                            Protocol::Tls11 => native_tls::Protocol::Tlsv11,
                             Protocol::Tls12 => native_tls::Protocol::Tlsv12,
                         })
                 });
