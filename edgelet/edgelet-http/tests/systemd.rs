@@ -13,7 +13,7 @@ use std::sync::{Mutex, MutexGuard};
 use std::{env, io};
 
 use edgelet_hsm::Crypto;
-use edgelet_http::{TlsAcceptorParams, HyperExt};
+use edgelet_http::{HyperExt, TlsAcceptorParams};
 use futures::{future, Future};
 use hyper::server::conn::Http;
 use hyper::service::Service;
@@ -106,7 +106,7 @@ fn test_fd_ok() {
             };
             Ok::<_, io::Error>(service)
         },
-        None::<&TlsAcceptorParams<'_, Crypto>>,
+        None::<TlsAcceptorParams<'_, Crypto>>,
     );
     if let Err(err) = run {
         unistd::close(fd).unwrap();
@@ -139,7 +139,7 @@ fn test_fd_err() {
             };
             Ok::<_, io::Error>(service)
         },
-        None::<&TlsAcceptorParams<'_, Crypto>>,
+        None::<TlsAcceptorParams<'_, Crypto>>,
     );
 
     unistd::close(fd).unwrap();
