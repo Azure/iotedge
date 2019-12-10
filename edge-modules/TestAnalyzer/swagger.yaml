@@ -112,7 +112,7 @@ definitions:
     - "source"
     - "result"
     - "type"
-    - "createdOn"
+    - "createdAt"
     properties:
       source:
         type: "string"

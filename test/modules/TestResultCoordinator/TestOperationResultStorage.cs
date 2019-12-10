@@ -14,7 +14,6 @@ namespace TestResultCoordinator
 
     class TestOperationResultStorage
     {
-        // TODO: sync this result list with the way the rest of TestResultCoordinator does it - once it is finalized
         static readonly ILogger Logger = ModuleUtil.CreateLogger("TestResultCoordinator");
         Dictionary<string, ISequentialStore<TestOperationResult>> resultStores;
 
