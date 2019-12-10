@@ -26,15 +26,24 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
         readonly Dictionary<Guid, int> retryTracker = new Dictionary<Guid, int>();
         Task retryTask = null;
 
-        public RetryHandler(Func<T, CancellationToken, Task<bool>> send, IStoreProvider storeProvider, int maxRetries = 20)
+        public RetryHandler(Func<T, CancellationToken, Task<bool>> send, IStoreProvider storeProvider, string partition, int maxRetries = 20)
         {
             this.send = send;
-            this.messagesToRetry = Preconditions.CheckNotNull(storeProvider.GetEntityStore<Guid, T>("Diagnostic Messages"), "dataStore");
+            this.messagesToRetry = Preconditions.CheckNotNull(storeProvider.GetEntityStore<Guid, T>(partition), "dataStore");
             this.maxRetries = maxRetries;
+
+            // Check for retrys on startup
+            this.messagesToRetry.GetFirstEntry().ContinueWith(result =>
+            {
+                if (result.Result.HasValue)
+                {
+                    this.StartRetrying();
+                }
+            });
         }
 
-        public RetryHandler(Func<T, Task<bool>> send, IStoreProvider storeProvider, int maxRetries = 20)
-            : this((data, _) => send(data), storeProvider, maxRetries = 20)
+        public RetryHandler(Func<T, Task<bool>> send, IStoreProvider storeProvider, string partition, int maxRetries = 20)
+            : this((data, _) => send(data), storeProvider, partition, maxRetries = 20)
         {
         }
 

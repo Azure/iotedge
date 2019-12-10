@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
         public IoTHubMetricsUpload(IEdgeAgentConnection edgeAgentConnection, IStoreProvider storeProvider)
         {
             this.edgeAgentConnection = Preconditions.CheckNotNull(edgeAgentConnection, nameof(edgeAgentConnection));
-            this.retryHandler = new RetryHandler<byte[]>(this.SendMessage, storeProvider);
+            this.retryHandler = new RetryHandler<byte[]>(this.SendMessage, storeProvider, "Diagnostic Messages");
         }
 
         public async Task PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
