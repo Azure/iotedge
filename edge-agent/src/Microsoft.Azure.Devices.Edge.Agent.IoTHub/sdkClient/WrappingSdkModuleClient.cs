@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.SdkClient
         public Task UpdateReportedPropertiesAsync(TwinCollection reportedProperties)
             => this.sdkModuleClient.UpdateReportedPropertiesAsync(reportedProperties);
 
-        public Task SendEventAsync(Message message) => this.sdkModuleClient.SendEventAsync(message);
+        public Task SendEventAsync(Message message, CancellationToken cancellationToken) => this.sdkModuleClient.SendEventAsync(message, cancellationToken);
 
         ////public Task<DeviceStreamRequest> WaitForDeviceStreamRequestAsync(CancellationToken cancellationToken)
         ////    => this.sdkModuleClient.WaitForDeviceStreamRequestAsync(cancellationToken);

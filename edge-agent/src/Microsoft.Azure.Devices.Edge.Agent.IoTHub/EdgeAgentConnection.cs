@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 {
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
@@ -119,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
-        public async Task SendEventAsync(Message message)
+        public async Task SendEventAsync(Message message, CancellationToken cancellationToken)
         {
             Events.UpdatingReportedProperties();
             try
@@ -131,7 +132,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                     return;
                 }
 
-                await moduleClient.ForEachAsync(d => d.SendEventAsync(message));
+                await moduleClient.ForEachAsync(d => d.SendEventAsync(message, cancellationToken));
                 Events.SendEvent();
             }
             catch (Exception e)

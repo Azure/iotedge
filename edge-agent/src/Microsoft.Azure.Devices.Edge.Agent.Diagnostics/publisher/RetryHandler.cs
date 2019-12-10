@@ -5,29 +5,44 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
     using System;
     using System.Collections.Generic;
     using System.Text;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    public class RetryHandler<T>
+    /// <summary>
+    /// This is a wrapper for some function that asynchronously does something that might fail.
+    /// If the function returns true, this class will attempt to retry the task.
+    /// </summary>
+    /// <typeparam name="T">Input data for the wrapped function.</typeparam>
+    public class RetryHandler<T> : IDisposable
     {
-        readonly Func<T, Task<bool>> send;
+        readonly Func<T, CancellationToken, Task<bool>> send;
         readonly IKeyValueStore<Guid, T> messagesToRetry;
         readonly int maxRetries;
-        readonly Dictionary<Guid, int> retryTracker = new Dictionary<Guid, int>();
+        readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
 
+        // This is intentionally stored in memory. If agent restarts, the retry counts are reset.
+        readonly Dictionary<Guid, int> retryTracker = new Dictionary<Guid, int>();
         Task retryTask = null;
 
-        public RetryHandler(Func<T, Task<bool>> send, IStoreProvider storeProvider, int maxRetries = 20)
+        public RetryHandler(Func<T, CancellationToken, Task<bool>> send, IStoreProvider storeProvider, int maxRetries = 20)
         {
             this.send = send;
             this.messagesToRetry = Preconditions.CheckNotNull(storeProvider.GetEntityStore<Guid, T>("Diagnostic Messages"), "dataStore");
             this.maxRetries = maxRetries;
         }
 
-        public async Task Send(T data)
+        public RetryHandler(Func<T, Task<bool>> send, IStoreProvider storeProvider, int maxRetries = 20)
+            : this((data, _) => send(data), storeProvider, maxRetries = 20)
         {
-            if (await this.send(data))
+        }
+
+        public Task Send(T data) => this.Send(data, CancellationToken.None);
+        public async Task Send(T data, CancellationToken cancellationToken)
+        {
+            CancellationToken ct = CancellationTokenSource.CreateLinkedTokenSource(this.cancellationTokenSource.Token, cancellationToken).Token;
+            if (await this.send(data, ct))
             {
                 await this.messagesToRetry.Put(Guid.NewGuid(), data);
                 this.StartRetrying();
@@ -40,43 +55,51 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             {
                 this.retryTask = Task.Run(async () =>
                 {
-                    foreach (TimeSpan sleepTime in this.Backoff())
-                    {
-                        await Task.Delay(sleepTime);
-                        if (await this.Retry())
-                        {
-                            break;
-                        }
-                    }
-
+                    await this.RetryLoop();
                     this.retryTask = null;
                 });
+            }
+        }
+
+        async Task RetryLoop()
+        {
+            foreach (TimeSpan sleepTime in this.Backoff())
+            {
+                await Task.Delay(sleepTime, this.cancellationTokenSource.Token);
+                if (await this.Retry())
+                {
+                    // All messages sent successfully
+                    return;
+                }
             }
         }
 
         async Task<bool> Retry()
         {
             bool allCompleatedSuccesfully = true;
-            await this.messagesToRetry.IterateBatch(1000, async (guid, data) =>
-            {
-                if (await this.send(data))
-                {
-                    // Message not sent.
-                    allCompleatedSuccesfully = false;
-
-                    // If max retrys hit, remove from list
-                    if (!this.ShouldRetry(guid))
+            await this.messagesToRetry.IterateBatch(
+                1000,
+                async (guid, data) =>
                     {
-                        await this.messagesToRetry.Remove(guid);
-                    }
-                }
-                else
-                {
-                    // Successfully sent message.
-                    await this.messagesToRetry.Remove(guid);
-                    this.retryTracker.Remove(guid);
-                }
-            });
+                        if (await this.send(data, this.cancellationTokenSource.Token))
+                        {
+                            // Message not sent.
+                            allCompleatedSuccesfully = false;
+
+                            // If max retrys hit, remove from list
+                            if (!this.ShouldRetry(guid))
+                            {
+                                await this.messagesToRetry.Remove(guid);
+                            }
+                        }
+                        else
+                        {
+                            // Successfully sent message.
+                            await this.messagesToRetry.Remove(guid);
+                            this.retryTracker.Remove(guid);
+                        }
+                    },
+                this.cancellationTokenSource.Token);
 
             return allCompleatedSuccesfully;
         }
@@ -114,6 +137,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             {
                 yield return TimeSpan.FromMinutes(30);
             }
+        }
+
+        public void Dispose()
+        {
+            this.cancellationTokenSource.Dispose();
         }
     }
 }

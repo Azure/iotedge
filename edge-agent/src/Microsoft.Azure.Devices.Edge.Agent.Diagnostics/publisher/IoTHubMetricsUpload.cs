@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging.Abstractions;
 
-    public sealed class IoTHubMetricsUpload : IMetricsPublisher
+    public sealed class IoTHubMetricsUpload : IMetricsPublisher, IDisposable
     {
         readonly IEdgeAgentConnection edgeAgentConnection;
         readonly RetryHandler<byte[]> retryHandler;
@@ -41,13 +41,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
         /// Sends the given bytes to IoT Hub.
         /// </summary>
         /// <param name="data">Metrics in binary form.</param>
-        /// <returns>Whether the message should be retryed.</returns>
-        async Task<bool> SendMessage(byte[] data)
+        /// <returns>Whether the message should be retried.</returns>
+        async Task<bool> SendMessage(byte[] data, CancellationToken cancellationToken)
         {
             Message message = this.BuildMessage(data);
             try
             {
-                await this.edgeAgentConnection.SendEventAsync(message);
+                await this.edgeAgentConnection.SendEventAsync(message, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -65,6 +65,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             message.ContentType = "application/x-azureiot-edgeruntimediagnostics";
 
             return message;
+        }
+
+        public void Dispose()
+        {
+            this.retryHandler.Dispose();
         }
     }
 }

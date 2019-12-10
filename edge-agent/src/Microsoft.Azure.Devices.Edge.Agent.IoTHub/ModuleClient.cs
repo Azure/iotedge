@@ -109,12 +109,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             }
         }
 
-        public async Task SendEventAsync(Message message)
+        public async Task SendEventAsync(Message message, CancellationToken cancellationToken)
         {
             try
             {
                 this.inactivityTimer.Reset();
-                await this.inner.SendEventAsync(message);
+                await this.inner.SendEventAsync(message, cancellationToken);
             }
             catch (Exception e)
             {
