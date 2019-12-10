@@ -51,7 +51,7 @@ namespace NetworkController
         {
             bool result = await this.networkCommands.Disable(cs);
             NetworkStatus status = await this.GetStatus(cs);
-            Log.LogInformation($"Command execution success {result}, network status {status}");
+            Log.LogInformation($"Command AddNetworkControllingRule success {result}, network status {status}");
 
             return result && status == NetworkStatus.Restricted;
         }
@@ -60,7 +60,7 @@ namespace NetworkController
         {
             bool result = await this.networkCommands.Enable(cs);
             NetworkStatus status = await this.GetStatus(cs);
-            Log.LogInformation($"Command execution success {result}, network status {status}");
+            Log.LogInformation($"Command RemoveNetworkControllingRule execution success {result}, network status {status}");
 
             return result && status == NetworkStatus.Default;
         }

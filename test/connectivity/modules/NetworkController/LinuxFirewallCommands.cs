@@ -43,7 +43,7 @@ namespace NetworkController
             }
         }
 
-        public async Task<bool> UnsetDropRule(CancellationToken cs)
+        public async Task<bool> RemoveDropRule(CancellationToken cs)
         {
             try
             {
@@ -61,7 +61,7 @@ namespace NetworkController
             }
         }
 
-        public async Task<bool> SetDropRule(CancellationToken cs)
+        public async Task<bool> AddDropRule(CancellationToken cs)
         {
             try
             {

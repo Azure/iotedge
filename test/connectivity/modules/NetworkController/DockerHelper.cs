@@ -24,7 +24,7 @@ namespace NetworkController
 
             foreach (NetworkInterface item in NetworkInterface.GetAllNetworkInterfaces())
             {
-                if (item.Name.Contains(interfaceName))
+                if (item.Name.StartsWith(interfaceName, StringComparison.OrdinalIgnoreCase))
                 {
                     Log.LogInformation($"Found network interface {item.Name}");
                     return Option.Some(item.Name);

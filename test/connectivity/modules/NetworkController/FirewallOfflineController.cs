@@ -47,20 +47,20 @@ namespace NetworkController
 
         async Task<bool> AddNetworkControllingRule(CancellationToken cs)
         {
-            bool result = await this.networkCommands.SetDropRule(cs);
+            bool result = await this.networkCommands.AddDropRule(cs);
 
             NetworkStatus status = await this.GetStatus(cs);
-            Log.LogInformation($"Command execution success network status {status}");
+            Log.LogInformation($"Command AddDropRule execution success {result}, network status {status}");
 
             return result && status == NetworkStatus.Restricted;
         }
 
         async Task<bool> RemoveNetworkControllingRule(CancellationToken cs)
         {
-            bool result = await this.networkCommands.UnsetDropRule(cs);
+            bool result = await this.networkCommands.RemoveDropRule(cs);
 
             NetworkStatus status = await this.GetStatus(cs);
-            Log.LogInformation($"Command execution success network status {status}");
+            Log.LogInformation($"Command RemoveDropRule execution success {result}, network status {status}");
 
             return result && status == NetworkStatus.Default;
         }

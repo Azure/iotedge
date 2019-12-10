@@ -21,8 +21,8 @@ namespace NetworkController
             throw new NotImplementedException();
         }
 
-        public Task<bool> UnsetDropRule(CancellationToken cs) => throw new NotImplementedException();
+        public Task<bool> RemoveDropRule(CancellationToken cs) => throw new NotImplementedException();
 
-        public Task<bool> SetDropRule(CancellationToken cs) => throw new NotImplementedException();
+        public Task<bool> AddDropRule(CancellationToken cs) => throw new NotImplementedException();
     }
 }

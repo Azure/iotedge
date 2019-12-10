@@ -6,9 +6,9 @@ namespace NetworkController
 
     interface IFirewallCommands
     {
-        Task<bool> UnsetDropRule(CancellationToken cs);
+        Task<bool> RemoveDropRule(CancellationToken cs);
 
-        Task<bool> SetDropRule(CancellationToken cs);
+        Task<bool> AddDropRule(CancellationToken cs);
 
         Task<NetworkStatus> GetStatus(CancellationToken cs);
     }

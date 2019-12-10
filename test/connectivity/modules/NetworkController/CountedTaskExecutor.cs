@@ -37,12 +37,17 @@ namespace NetworkController
 
             for (int i = 0; i < this.runCount; i++)
             {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
+
                 try
                 {
                     this.logger.LogInformation($"Starting operation {this.operationName} run number {i}...");
                     await this.work(cancellationToken);
                     this.logger.LogInformation($"Successfully completed operation {this.operationName} run number {i}");
-                    await Task.Delay(this.interval);
+                    await Task.Delay(this.interval, cancellationToken);
                 }
                 catch (Exception e)
                 {
