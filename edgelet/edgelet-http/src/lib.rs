@@ -42,12 +42,14 @@ use openssl::stack::Stack;
 use openssl::x509::X509;
 
 use edgelet_core::crypto::{Certificate, CreateCertificate, KeyBytes, PrivateKey};
+#[cfg(unix)]
+use edgelet_core::Protocol;
 use edgelet_core::{UrlExt, UNIX_SCHEME};
 use edgelet_utils::log_failure;
 #[cfg(unix)]
-use native_tls::TlsAcceptor;
+use native_tls::Identity;
 #[cfg(unix)]
-use native_tls::{Identity, Protocol};
+use native_tls::TlsAcceptor;
 
 pub mod authentication;
 pub mod authorization;
@@ -350,9 +352,17 @@ impl HyperExt for Http {
                 let cert_identity = Identity::from_pkcs12(&cert, "")
                     .context(ErrorKind::TlsIdentityCreationError)?;
 
-                let min_protocol_version = tls_params
-                    .as_ref()
-                    .and_then(|params| params.min_protocol_version);
+                let min_protocol_version = tls_params.as_ref().and_then(|params| {
+                    params
+                        .min_protocol_version
+                        .as_ref()
+                        .map(|protocol| match protocol {
+                            Protocol::Ssl3 => native_tls::Protocol::Tlsv12,
+                            Protocol::Tls10 => native_tls::Protocol::Tlsv12,
+                            Protocol::Tls11 => native_tls::Protocol::Tlsv12,
+                            Protocol::Tls12 => native_tls::Protocol::Tlsv12,
+                        })
+                });
 
                 let tls_acceptor = TlsAcceptor::builder(cert_identity)
                     .min_protocol_version(min_protocol_version)

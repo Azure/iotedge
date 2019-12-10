@@ -295,6 +295,8 @@ mod tests {
     #[cfg(unix)]
     static BAD_SETTINGS_DYNAMIC_REPROVISIONING: &str =
         "test/linux/bad_sample_settings.dyn.repro.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_TLS: &str = "test/linux/sample_settings.tls.yaml";
 
     #[cfg(windows)]
     static GOOD_SETTINGS: &str = "test/windows/sample_settings.yaml";
@@ -1022,5 +1024,14 @@ mod tests {
         let s = settings.unwrap();
         let watchdog_settings = s.watchdog();
         assert_eq!(watchdog_settings.max_retries().compare(3), Ordering::Equal);
+    }
+
+    #[test]
+    fn tls_settings_are_read() {
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_TLS)).unwrap();
+        assert_eq!(
+            settings.listen().min_tls_version(),
+            Some(&edgelet_core::Protocol::Tls12)
+        );
     }
 }

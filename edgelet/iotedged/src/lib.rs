@@ -82,7 +82,6 @@ use provisioning::provisioning::{
 
 use crate::error::ExternalProvisioningErrorReason;
 use crate::workload::WorkloadData;
-use native_tls::Protocol;
 
 const EDGE_RUNTIME_MODULEID: &str = "$edgeAgent";
 const EDGE_RUNTIME_MODULE_NAME: &str = "edgeAgent";
@@ -2070,6 +2069,8 @@ where
 
     let label = "mgmt".to_string();
     let url = settings.listen().management_uri().clone();
+    let min_protocol_version = settings.listen().min_tls_version().cloned();
+
     ManagementService::new(runtime, id_man, initiate_shutdown_and_reprovision)
         .then(move |service| -> Result<_, Error> {
             let service = service.context(ErrorKind::Initialize(
@@ -2077,7 +2078,7 @@ where
             ))?;
             let service = LoggingService::new(label, service);
 
-            let tls_params = TlsAcceptorParams::new(&cert_manager, Some(Protocol::Tlsv12));
+            let tls_params = TlsAcceptorParams::new(&cert_manager, min_protocol_version);
 
             let run = Http::new()
                 .bind_url(url.clone(), service, Some(tls_params))
@@ -2129,6 +2130,7 @@ where
 
     let label = "work".to_string();
     let url = settings.listen().workload_uri().clone();
+    let min_protocol_version = settings.listen().min_tls_version().cloned();
 
     WorkloadService::new(key_store, crypto.clone(), runtime, config)
         .then(move |service| -> Result<_, Error> {
@@ -2137,7 +2139,7 @@ where
             ))?;
             let service = LoggingService::new(label, service);
 
-            let tls_params = TlsAcceptorParams::new(&cert_manager, Some(Protocol::Tlsv12));
+            let tls_params = TlsAcceptorParams::new(&cert_manager, min_protocol_version);
 
             let run = Http::new()
                 .bind_url(url.clone(), service, Some(tls_params))
