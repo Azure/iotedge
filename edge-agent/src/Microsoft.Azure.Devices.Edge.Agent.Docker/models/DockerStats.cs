@@ -4,10 +4,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel;
     using Newtonsoft.Json;
 
+    // TODO: update defaults
     public class DockerStats
     {
+        [DefaultValue("")]
         [JsonProperty("name", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public string Name { get; set; }
 
