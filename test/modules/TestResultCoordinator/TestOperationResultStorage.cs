@@ -4,6 +4,7 @@ namespace TestResultCoordinator
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Storage;
@@ -14,7 +15,6 @@ namespace TestResultCoordinator
     class TestOperationResultStorage
     {
         // TODO: sync this result list with the way the rest of TestResultCoordinator does it - once it is finalized
-        readonly List<string> resultTypes = new List<string> { "messages", "directMethod", "twin" };
         static readonly ILogger Logger = ModuleUtil.CreateLogger("TestResultCoordinator");
         Dictionary<string, ISequentialStore<TestOperationResult>> resultStores;
 
@@ -24,7 +24,7 @@ namespace TestResultCoordinator
         {
         }
 
-        public async Task InitAsync(string storagePath, ISystemEnvironment systemEnvironment, bool optimizeForPerformance)
+        public async Task InitAsync(string storagePath, ISystemEnvironment systemEnvironment, bool optimizeForPerformance, List<ResultSource> resultSources)
         {
             StoreProvider storeProvider;
             try
@@ -32,7 +32,7 @@ namespace TestResultCoordinator
                 IDbStoreProvider dbStoreprovider = DbStoreProvider.Create(
                     new RocksDbOptionsProvider(systemEnvironment, optimizeForPerformance),
                     this.GetStoragePath(storagePath),
-                    this.resultTypes);
+                    resultSources.Select(r => r.Source));
 
                 storeProvider = new StoreProvider(dbStoreprovider);
             }
@@ -42,18 +42,18 @@ namespace TestResultCoordinator
                 storeProvider = new StoreProvider(new InMemoryDbStoreProvider());
             }
 
-            this.resultStores = await this.InitializeStoresAsync(storeProvider);
+            this.resultStores = await this.InitializeStoresAsync(storeProvider, resultSources);
         }
 
-        private async Task<Dictionary<string, ISequentialStore<TestOperationResult>>> InitializeStoresAsync(StoreProvider storeProvider)
+        private async Task<Dictionary<string, ISequentialStore<TestOperationResult>>> InitializeStoresAsync(StoreProvider storeProvider, List<ResultSource> resultSources)
         {
-            Dictionary<string, ISequentialStore<TestOperationResult>> resultTypesToStores = new Dictionary<string, ISequentialStore<TestOperationResult>>();
-            foreach (string resultType in this.resultTypes)
+            Dictionary<string, ISequentialStore<TestOperationResult>> resultSourcesToStores = new Dictionary<string, ISequentialStore<TestOperationResult>>();
+            foreach (ResultSource resultSource in resultSources)
             {
-                resultTypesToStores.Add(resultType, await storeProvider.GetSequentialStore<TestOperationResult>(resultType));
+                resultSourcesToStores.Add(resultSource.Source, await storeProvider.GetSequentialStore<TestOperationResult>(resultSource.Source));
             }
 
-            return resultTypesToStores;
+            return resultSourcesToStores;
         }
 
         private string GetStoragePath(string baseStoragePath)
@@ -71,7 +71,7 @@ namespace TestResultCoordinator
         public async Task<bool> AddTestOperationResultAsync(TestOperationResult testOperationResult)
         {
             ISequentialStore<TestOperationResult> resultStore;
-            if (this.resultStores.TryGetValue(testOperationResult.Type, out resultStore))
+            if (this.resultStores.TryGetValue(testOperationResult.Source, out resultStore))
             {
                 await resultStore.Append(testOperationResult);
                 return true;

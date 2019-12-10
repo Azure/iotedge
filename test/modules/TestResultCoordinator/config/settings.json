@@ -1,0 +1,5 @@
+{
+  "OptimizeForPerformance": "true",
+  "StoragePath": "",
+  "ResultSources": "loadGen1.send,messages;loadGen2.send,messages;relayer1.receive,messages;relayer2.receive,messages;relayer;relayer1.send,messages;relayer2.send,messages"
+}

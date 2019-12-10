@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace ModuleUtil
+namespace TestResultCoordinator
 {
     using System;
     using Microsoft.Azure.Devices.Edge.Util;
