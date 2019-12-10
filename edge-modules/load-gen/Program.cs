@@ -46,7 +46,7 @@ namespace LoadGen
                     {
                         await SendEventAsync(moduleClient, batchId, Settings.Current.TrackingId, messageIdCounter);
                         messageIdCounter++;
-                        await Task.Delay(Settings.Current.MessageFrequency).ConfigureAwait(false);
+                        await Task.Delay(Settings.Current.MessageFrequency);
 
                         if (messageIdCounter % 1000 == 0)
                         {
