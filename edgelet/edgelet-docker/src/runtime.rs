@@ -643,7 +643,7 @@ impl ModuleRuntime for DockerModuleRuntime {
                 let mut info: libc::sysinfo = unsafe { mem::zeroed() };
                 let ret = unsafe { libc::sysinfo(&mut info) };
                 if ret == 0 {
-                    uptime = info.uptime.try_into().unwrap_or_default()
+                    info.uptime.try_into().unwrap_or_default()
                 } else {
                     0
                 }
