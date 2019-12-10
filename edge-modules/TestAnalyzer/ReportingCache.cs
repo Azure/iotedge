@@ -59,13 +59,13 @@ namespace TestAnalyzer
             {
                 isAdded = await this.storage.AddTwinResultAsync(result);
             }
-            
+
             if (isAdded)
             {
                 this.AddResult(result, isAnalyzerDirectMethodResultType ? this.directMethodsReportCache : this.twinsReportCache);
             }
         }
-        
+
         void AddResult(TestOperationResult result, ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> cache)
         {
             ConcurrentDictionary<string, Tuple<int, DateTime>> batch = cache.GetOrAdd(result.Source, key => new ConcurrentDictionary<string, Tuple<int, DateTime>>());
@@ -184,11 +184,10 @@ namespace TestAnalyzer
             }
         }
     }
-    
+
     static class TestOperationResultType
     {
         internal const string AnalyzerDirectMethod = "analyzerdirectmethod";
         internal const string AnalyzerTwin = "analyzertwin";
     }
-    
 }

@@ -17,6 +17,8 @@ namespace TestResultCoordinator
             // TODO: Add Coordinator logic
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
+            await TestOperationResultStorage.Instance.InitAsync(Settings.Current.StoragePath, new SystemEnvironment(), Settings.Current.OptimizeForPerformance);
+
             await cts.Token.WhenCanceled();
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));

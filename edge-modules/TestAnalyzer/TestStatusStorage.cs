@@ -63,6 +63,7 @@ namespace TestAnalyzer
             await this.messagesStore.Append(message);
             return true;
         }
+
         public async Task<bool> AddDirectMethodResultAsync(TestOperationResult result)
         {
             await this.directMethodsStore.Append(result);
