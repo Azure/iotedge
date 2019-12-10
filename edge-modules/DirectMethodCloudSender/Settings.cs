@@ -8,11 +8,7 @@ namespace DirectMethodCloudSender
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Converters;
-    using Newtonsoft.Json.Serialization;
 
-    [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
     public class Settings
     {
         static readonly Lazy<Settings> DefaultSettings = new Lazy<Settings>(
@@ -56,7 +52,6 @@ namespace DirectMethodCloudSender
 
         public string TargetModuleId { get; }
 
-        [JsonConverter(typeof(StringEnumConverter))]
         public TransportType TransportType { get; }
 
         public TimeSpan DirectMethodDelay { get; }
