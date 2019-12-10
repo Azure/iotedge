@@ -18,14 +18,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
     {
         const int MaxRetries = 20;
         readonly IEdgeAgentConnection edgeAgentConnection;
-        readonly IKeyValueStore<Guid, (byte[] data, int retry)> dataStore;
+        readonly IKeyValueStore<Guid, byte[]> messagesToRetry;
 
         Task retryTask = null;
+        Dictionary<Guid, int> retryTracker = new Dictionary<Guid, int>();
 
         public IoTHubMetricsUpload(IEdgeAgentConnection edgeAgentConnection, IStoreProvider storeProvider)
         {
             this.edgeAgentConnection = Preconditions.CheckNotNull(edgeAgentConnection, nameof(edgeAgentConnection));
-            this.dataStore = Preconditions.CheckNotNull(storeProvider.GetEntityStore<Guid, (byte[], int)>("Diagnostic Messages"), "dataStore");
+            this.messagesToRetry = Preconditions.CheckNotNull(storeProvider.GetEntityStore<Guid, byte[]>("Diagnostic Messages"), "dataStore");
         }
 
         public async Task PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
@@ -36,11 +37,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             // TODO: add check for too big of a message
             if (data.Length > 0)
             {
-                await this.SendMessage(data);
+                if (await this.SendMessage(data))
+                {
+                    await this.messagesToRetry.Put(Guid.NewGuid(), data);
+                    this.StartRetrying();
+                }
             }
         }
 
-        async Task<bool> SendMessage(byte[] data, int retryNum = 0)
+        /// <summary>
+        /// Sends the given bytes to IoT Hub.
+        /// </summary>
+        /// <param name="data">Metrics in binary form.</param>
+        /// <returns>Whether the message should be retryed.</returns>
+        async Task<bool> SendMessage(byte[] data)
         {
             Message message = this.BuildMessage(data);
             try
@@ -49,15 +59,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             }
             catch (Exception ex)
             {
-                if (ex.HasTimeoutException() && retryNum <= MaxRetries)
-                {
-                    await this.dataStore.Put(Guid.NewGuid(), (data, retryNum + 1));
-                    this.StartRetrying();
-                    return false;
-                }
+                // should retry
+                return ex.HasTimeoutException();
             }
 
-            return true;
+            // no retry
+            return false;
         }
 
         Message BuildMessage(byte[] data)
@@ -91,17 +98,50 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
         async Task<bool> Retry()
         {
             bool allCompleatedSuccesfully = true;
-            await this.dataStore.IterateBatch(1000, async (guid, d) =>
+            await this.messagesToRetry.IterateBatch(1000, async (guid, data) =>
             {
-                if (!await this.SendMessage(d.data, d.retry))
+                if (await this.SendMessage(data))
                 {
+                    // Message not sent.
                     allCompleatedSuccesfully = false;
-                }
 
-                await this.dataStore.Remove(guid);
+                    // If max retrys hit, remove from list
+                    if (!this.ShouldRetry(guid))
+                    {
+                        await this.messagesToRetry.Remove(guid);
+                    }
+                }
+                else
+                {
+                    // Successfully sent message.
+                    await this.messagesToRetry.Remove(guid);
+                    this.retryTracker.Remove(guid);
+                }
             });
 
             return allCompleatedSuccesfully;
+        }
+
+        bool ShouldRetry(Guid guid)
+        {
+            if (this.retryTracker.TryGetValue(guid, out int numRetrys))
+            {
+                if (numRetrys > MaxRetries)
+                {
+                    this.retryTracker.Remove(guid);
+                    return false;
+                }
+                else
+                {
+                    this.retryTracker[guid] = numRetrys + 1;
+                }
+            }
+            else
+            {
+                this.retryTracker[guid] = 1;
+            }
+
+            return true;
         }
 
         IEnumerable<TimeSpan> Backoff()
