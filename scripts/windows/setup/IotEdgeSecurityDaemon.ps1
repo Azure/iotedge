@@ -65,6 +65,23 @@ enum ContainerOs {
     Windows
 }
 
+function New-Sockets([string] $EdgeDataDirectory) {
+    foreach ($name in 'mgmt', 'workload') {
+        # We can't bind socket files directly in Windows, so create a folder
+        # and bind to that. The folder needs to give Modify rights to a
+        # well-known group that will exist in any container so that
+        # non-privileged modules can access it.
+        $path = "$EdgeDataDirectory\$name"
+        New-Item $Path -ItemType Directory -Force | Out-Null
+        $sid = New-Object System.Security.Principal.SecurityIdentifier 'S-1-5-11' # NT AUTHORITY\Authenticated Users
+        $rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule(`
+            $sid, 'Modify', 'ObjectInherit', 'InheritOnly', 'Allow')
+        $acl = Get-Acl -Path $path
+        $acl.AddAccessRule($rule)
+        Set-Acl -Path $path -AclObject $acl
+    }
+}
+
 <#
 .SYNOPSIS
 
@@ -213,9 +230,14 @@ function Initialize-IoTEdge {
         throw
     }
 
+    if (-not (Test-VcRuntimePresent)) {
+        Write-HostRed 'VC Runtime must be installed before IoT Edge can be initialized.'
+        throw
+    }
+
     if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
         Write-HostRed
-        Write-HostRed ('IoT Edge is installed in an invalid location. ' + $ReinstallMessage)
+        Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. There may be an old preview install present. Please run Uninstall-IoTEdge first or reimage the device. ' + $ReinstallMessage)
         throw
     }
 
@@ -235,10 +257,18 @@ function Initialize-IoTEdge {
     if (Test-Path $configPath) {
         Write-HostRed
         Write-HostRed "$configPath already exists."
-        Write-HostRed ('Delete it using "Uninstall-IoTEdge -Force" and then ' +
-            're-run "Deploy-IoTEdge" and "Initialize-IoTEdge"')
+        if (Test-IotCore) {
+            Write-HostRed ('You must reflash the device and then ' +
+                're-run "Deploy-IoTEdge" and "Initialize-IoTEdge"')
+        } else {
+            Write-HostRed ('Delete it using "Uninstall-IoTEdge -Force" and then ' +
+                're-run "Deploy-IoTEdge" and "Initialize-IoTEdge"')
+        }
         throw
     }
+
+    New-Sockets $EdgeDataDirectory
+    Set-SystemPath
 
     # config.yaml
     Write-Host 'Generating config.yaml...'
@@ -391,6 +421,8 @@ function Deploy-IoTEdge {
         # Skip battery check.
         [Switch] $SkipBatteryCheck
     )
+
+    Set-StrictMode -Version 5
 
     Install-Packages `
         -ContainerOs $ContainerOs `
@@ -562,6 +594,8 @@ function Install-IoTEdge {
         [Switch] $SkipBatteryCheck
     )
 
+    Set-StrictMode -Version 5
+
     # Set by Deploy-IoTEdge if it succeeded, so we can abort early in case of failure.
     #
     # We use a script-scope var instead of having Deploy-IoTEdge return a boolean or take a [ref] parameter
@@ -700,6 +734,8 @@ function Get-IoTEdgeLog {
         [DateTime] $StartTime = [datetime]::Now.AddMinutes(-5)
     )
 
+    Set-StrictMode -Version 5
+
     Get-WinEvent -ea SilentlyContinue -FilterHashtable @{ProviderName='iotedged';LogName='application';StartTime=$StartTime} |
         Select TimeCreated, Message |
         Sort-Object @{Expression='TimeCreated';Descending=$false} |
@@ -736,7 +772,7 @@ function Install-Packages(
 
         if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
             Write-HostRed
-            Write-HostRed ('IoT Edge is installed in an invalid location. ' + $ReinstallMessage)
+            Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. There may be an old preview install present. Please run Uninstall-IoTEdge first or reimage the device. ' + $ReinstallMessage)
             throw
         }
 
@@ -750,7 +786,7 @@ function Install-Packages(
         if (Test-EdgeAlreadyInstalled) {
             if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
                 Write-HostRed
-                Write-HostRed ('IoT Edge is installed in an invalid location. ' + $ReinstallMessage)
+                Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. There may be an old preview install present. Please run Uninstall-IoTEdge first or reimage the device. ' + $ReinstallMessage)
             }
             else {
                 Write-HostRed
@@ -763,8 +799,7 @@ function Install-Packages(
         if (Test-MobyAlreadyInstalled) {
             if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
                 Write-HostRed
-                Write-HostRed ('IoT Edge Moby Engine is installed in an invalid location. ' +
-                    $ReinstallMessage)
+                Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. There may be an old preview install present. Please run Uninstall-IoTEdge first or reimage the device. ' + $ReinstallMessage)
             }
             else {
                 Write-HostRed
@@ -789,8 +824,8 @@ function Install-Packages(
                 }
             }
         }
-        Get-VcRuntime
     }
+    Get-VcRuntime # does nothing if vcruntime already installed
 
     # Download
     Get-IoTEdge -RestartNeeded ([ref] $restartNeeded) -Update $Update
@@ -1145,21 +1180,6 @@ function Get-IoTEdge([ref] $RestartNeeded, [bool] $Update) {
         Install-Package -Path $edgeArchivePath -RestartNeeded $RestartNeeded
         if (-not $Update) {
             Stop-Service $EdgeServiceName -ErrorAction SilentlyContinue
-
-            foreach ($name in 'mgmt', 'workload') {
-                # We can't bind socket files directly in Windows, so create a folder
-                # and bind to that. The folder needs to give Modify rights to a
-                # well-known group that will exist in any container so that
-                # non-privileged modules can access it.
-                $path = "$EdgeDataDirectory\$name"
-                New-Item $Path -ItemType Directory -Force | Out-Null
-                $sid = New-Object System.Security.Principal.SecurityIdentifier 'S-1-5-11' # NT AUTHORITY\Authenticated Users
-                $rule = New-Object -TypeName System.Security.AccessControl.FileSystemAccessRule(`
-                    $sid, 'Modify', 'ObjectInherit', 'InheritOnly', 'Allow')
-                $acl = Get-Acl -Path $path
-                $acl.AddAccessRule($rule)
-                Set-Acl -Path $path -AclObject $acl
-            }
         }
     }
     finally {
@@ -1394,13 +1414,17 @@ function Reset-SystemPath {
     Write-Verbose 'Removed IoT Edge directories from system PATH'
 }
 
+function Test-VcRuntimePresent {
+    return Test-Path 'C:\Windows\System32\vcruntime140.dll'
+}
+
 function Get-VcRuntime {
     if (Test-IotCore) {
         Write-HostGreen 'Skipping VC Runtime installation on IoT Core.'
         return
     }
 
-    if (Test-Path 'C:\Windows\System32\vcruntime140.dll') {
+    if (Test-VcRuntimePresent) {
         Write-HostGreen 'Skipping VC Runtime installation because it is already installed.'
         return
     }
@@ -1446,10 +1470,10 @@ function Uninstall-Services([ref] $RestartNeeded, [bool] $LegacyInstaller) {
         Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable cmdErr $EdgeServiceName
         if ($?) {
             Start-Sleep -Seconds 7
-            Write-Verbose 'Stopped the IoT Edge service'
+            Write-Verbose "Stopped the IoT Edge service $EdgeServiceName"
         }
         else {
-            Write-Verbose "$cmdErr"
+            Write-Verbose "Stopping IoT Edge service $EdgeServiceName failed. Error: $cmdErr"
         }
     }
 
@@ -1459,10 +1483,10 @@ function Uninstall-Services([ref] $RestartNeeded, [bool] $LegacyInstaller) {
         Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable cmdErr $MobyServiceName
         if ($?) {
             Start-Sleep -Seconds 7
-            Write-Verbose 'Stopped the IoT Edge Moby Engine service'
+            Write-Verbose "Stopped the IoT Edge Moby Engine service $MobyServiceName"
         }
         else {
-            Write-Verbose "$cmdErr"
+            Write-Verbose "Stopping IoT Edge Moby Engine service $MobyServiceName failed. Error: $cmdErr"
         }
     }
 
@@ -1479,6 +1503,7 @@ function Uninstall-Services([ref] $RestartNeeded, [bool] $LegacyInstaller) {
         }
     }
     else {
+        Write-Verbose 'Uninstalling IoT Edge package.'
         Uninstall-Package -Name $EdgePackage -RestartNeeded $RestartNeeded
     }
 }
