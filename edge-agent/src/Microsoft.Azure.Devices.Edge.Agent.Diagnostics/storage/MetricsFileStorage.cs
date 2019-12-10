@@ -17,6 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage
     {
         readonly string directory;
         readonly ISystemTime systemTime;
+        readonly List<string> filesToDelete = new List<string>();
 
         public MetricsFileStorage(string directory, ISystemTime systemTime = null)
         {
@@ -31,7 +32,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage
 
         public Task<IEnumerable<Metric>> GetAllMetricsAsync()
         {
-
             return Directory.GetFiles(this.directory)
                 .SelectManyAsync<string, Metric>(async filename =>
                 {
@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage
                     {
                         string rawMetrics = await DiskFile.ReadAllAsync(filename);
                         fileMetrics = JsonConvert.DeserializeObject<Metric[]>(rawMetrics) ?? new Metric[0];
-                        File.Delete(filename);
+                        this.filesToDelete.Add(filename);
                     }
                     catch
                     {
@@ -49,6 +49,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage
 
                     return fileMetrics;
                 });
+        }
+
+        public async Task RemoveAllReturnedMetricsAsync()
+        {
+            await Task.Yield();
+            foreach (string filename in this.filesToDelete)
+            {
+                File.Delete(filename);
+            }
         }
 
         Task WriteData(string data)

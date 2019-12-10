@@ -12,12 +12,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage
 
     public class MetricsStorage : IMetricsStorage
     {
-        IKeyValueStore<Guid, IEnumerable<Metric>> dataStore;
+        readonly IKeyValueStore<Guid, IEnumerable<Metric>> dataStore;
+        readonly List<Guid> entriesToRemove = new List<Guid>();
 
         public MetricsStorage(IStoreProvider storeProvider)
         {
             Preconditions.CheckNotNull(storeProvider, nameof(storeProvider));
             this.dataStore = Preconditions.CheckNotNull(storeProvider.GetEntityStore<Guid, IEnumerable<Metric>>("Metrics"), "dataStore");
+        }
+
+        public Task StoreMetricsAsync(IEnumerable<Metric> metrics)
+        {
+            return this.dataStore.Put(Guid.NewGuid(), metrics);
         }
 
         public async Task<IEnumerable<Metric>> GetAllMetricsAsync()
@@ -26,15 +32,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage
             await this.dataStore.IterateBatch(1000, (guid, metrics) =>
             {
                 result.Add(metrics);
-                return this.dataStore.Remove(guid);
+                this.entriesToRemove.Add(guid);
+
+                return Task.CompletedTask;
             });
 
             return result.SelectMany(m => m);
         }
 
-        public Task StoreMetricsAsync(IEnumerable<Metric> metrics)
+        public Task RemoveAllReturnedMetricsAsync()
         {
-            return this.dataStore.Put(Guid.NewGuid(), metrics);
+            return Task.WhenAll(this.entriesToRemove.Select(this.dataStore.Remove));
         }
     }
 }

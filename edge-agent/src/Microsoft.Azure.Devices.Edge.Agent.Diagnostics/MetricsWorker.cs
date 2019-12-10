@@ -61,6 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                 metricsToUpload = this.RemoveDuplicateMetrics(metricsToUpload);
                 await this.uploader.PublishAsync(metricsToUpload, cancellationToken);
                 Log.LogInformation($"Uploaded Metrics");
+                await this.storage.RemoveAllReturnedMetricsAsync();
             }
         }
 
