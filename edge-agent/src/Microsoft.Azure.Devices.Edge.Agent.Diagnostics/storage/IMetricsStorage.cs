@@ -12,8 +12,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage
     /// </summary>
     public interface IMetricsStorage
     {
+        // Stores given metrics until the next time GetAllMetricsAsync is called.
+        // This can be called multiple times before the metrics are retrieved.
         Task StoreMetricsAsync(IEnumerable<Metric> metrics);
 
+        // Retrieves all metrics stored using StoreMetricsAsync since the last time this was called.
         Task<IEnumerable<Metric>> GetAllMetricsAsync();
     }
 }
