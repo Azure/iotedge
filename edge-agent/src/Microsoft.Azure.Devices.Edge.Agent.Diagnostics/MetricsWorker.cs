@@ -24,12 +24,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
         readonly AsyncLock scrapeUploadLock = new AsyncLock();
         static readonly ILogger Log = Logger.Factory.CreateLogger<MetricsScraper>();
 
-        DateTime lastUploadTime = DateTime.MinValue;
-
-        // This acts as a local buffer. It stores the previous value of every metric.
-        // If the new value for that metric is unchanged, it doesn't write the duplicate value to disk.
-        Dictionary<int, Metric> metrics = new Dictionary<int, Metric>();
-
         PeriodicTask scrape;
         PeriodicTask upload;
 
@@ -52,12 +46,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             {
                 Log.LogInformation("Scraping Metrics");
                 IEnumerable<Metric> scrapedMetrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
-                Log.LogInformation($"Scraped Metrics");
-
-                IEnumerable<Metric> metricsToStore = this.RemoveDuplicateMetrics(scrapedMetrics);
                 Log.LogInformation("Storing Metrics");
-                await this.storage.StoreMetricsAsync(metricsToStore);
-                Log.LogInformation("Stored Metrics");
+                await this.storage.StoreMetricsAsync(scrapedMetrics);
+                Log.LogInformation("Scraped and Stored Metrics");
             }
         }
 
@@ -67,32 +58,32 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             {
                 Log.LogInformation($"Uploading Metrics");
                 IEnumerable<Metric> metricsToUpload = await this.storage.GetAllMetricsAsync();
+                metricsToUpload = this.RemoveDuplicateMetrics(metricsToUpload);
                 await this.uploader.PublishAsync(metricsToUpload, cancellationToken);
                 Log.LogInformation($"Uploaded Metrics");
-
-                // Clear local cache so all metrics are stored next scrape
-                this.metrics.Clear();
             }
         }
 
-        IEnumerable<Metric> RemoveDuplicateMetrics(IEnumerable<Metric> newMetrics)
+        IEnumerable<Metric> RemoveDuplicateMetrics(IEnumerable<Metric> metrics)
         {
-            foreach (Metric newMetric in newMetrics)
+            Dictionary<int, Metric> previousValues = new Dictionary<int, Metric>();
+
+            foreach (Metric newMetric in metrics)
             {
                 int key = newMetric.GetMetricKey();
-                // Get the previous scrape for this metric
-                if (this.metrics.TryGetValue(key, out Metric oldMetric))
+                // Get the previous value for this metric. If unchanged, return old
+                if (previousValues.TryGetValue(key, out Metric oldMetric) && oldMetric.Value != newMetric.Value)
                 {
-                    // If the metric is unchanged, do nothing
-                    if (oldMetric.Value.Equals(newMetric.Value))
-                    {
-                        continue;
-                    }
+                    yield return previousValues[key];
                 }
 
-                // if new metric or metric changed, save to local buffer and disk.
-                this.metrics[key] = newMetric;
-                yield return newMetric;
+                // update previous
+                previousValues[key] = newMetric;
+            }
+
+            foreach (var remainingMetric in previousValues)
+            {
+                yield return remainingMetric.Value;
             }
         }
 
