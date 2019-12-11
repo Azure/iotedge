@@ -3,6 +3,8 @@
   "DockerUri": "unix:///var/run/docker.sock",
   "NetworkId": "azure-iot-edge",
   "NetworkControllerMode": "OfflineTrafficController",
+  "TestResultCoordinatorEndpoint": "http://localhost:5001",
+  "TrackingId": "",
   "RunFrequencies": [
     {
       "OfflineFrequency": "00:05:00",

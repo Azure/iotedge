@@ -14,6 +14,9 @@ namespace NetworkController
         const string FrequencyPropertyName = "RunFrequencies";
         const string NetworkIdPropertyName = "NetworkId";
         const string NetworkControllerModePropertyName = "NetworkControllerMode";
+        const string TestResultCoordinatorEndpointPropertyName = "TestResultCoordinatorEndpoint";
+        const string TrackingIdPropertyName = "TrackingId";
+        const string ModuleIdPropertyName = "IOTEDGE_MODULEID";
 
         static readonly Lazy<Settings> Setting = new Lazy<Settings>(
             () =>
@@ -32,7 +35,10 @@ namespace NetworkController
                     configuration.GetValue<string>(DockerUriPropertyName),
                     configuration.GetValue<string>(NetworkIdPropertyName),
                     result,
-                    configuration.GetValue<NetworkControllerMode>(NetworkControllerModePropertyName));
+                    configuration.GetValue<NetworkControllerMode>(NetworkControllerModePropertyName),
+                    configuration.GetValue<Uri>(TestResultCoordinatorEndpointPropertyName),
+                    configuration.GetValue<string>(TrackingIdPropertyName),
+                    configuration.GetValue<string>(ModuleIdPropertyName));
             });
 
         Settings(
@@ -40,13 +46,19 @@ namespace NetworkController
             string dockerUri,
             string networkId,
             IList<Frequency> frequencies,
-            NetworkControllerMode mode)
+            NetworkControllerMode mode,
+            Uri testResultCoordinatorEndpoint,
+            string trackingId,
+            string moduleId)
         {
             this.StartAfter = startAfter;
             this.Frequencies = frequencies;
             this.DockerUri = Preconditions.CheckNonWhiteSpace(dockerUri, nameof(dockerUri));
             this.NetworkId = Preconditions.CheckNonWhiteSpace(networkId, nameof(networkId));
+            this.TestResultCoordinatorEndpoint = Preconditions.CheckNotNull(testResultCoordinatorEndpoint, nameof(testResultCoordinatorEndpoint));
             this.NetworkControllerMode = mode;
+            this.TrackingId = trackingId;
+            this.ModuleId = moduleId;
         }
 
         public static Settings Current => Setting.Value;
@@ -59,7 +71,13 @@ namespace NetworkController
 
         public string NetworkId { get; }
 
+        public Uri TestResultCoordinatorEndpoint { get; }
+
         public NetworkControllerMode NetworkControllerMode { get; }
+
+        public string TrackingId { get; }
+
+        public string ModuleId { get; }
     }
 
     class Frequency
