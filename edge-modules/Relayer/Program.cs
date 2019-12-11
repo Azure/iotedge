@@ -2,6 +2,7 @@
 namespace Relayer
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
@@ -53,7 +54,15 @@ namespace Relayer
                     throw new InvalidOperationException("UserContext doesn't contain expected value");
                 }
 
-                await moduleClient.SendEventAsync(Settings.Current.OutputName, message);
+                // Must make a new message instead of reusing the old message because of the way the SDK sends messages
+                byte[] messageBytes = message.GetBytes();
+                var messageCopy = new Message(messageBytes);
+                foreach (KeyValuePair<string, string> prop in message.Properties)
+                {
+                    messageCopy.Properties.Add(prop.Key, prop.Value);
+                }
+
+                await moduleClient.SendEventAsync(Settings.Current.OutputName, messageCopy);
                 Logger.LogInformation("Successfully sent a message");
             }
             catch (Exception ex)
