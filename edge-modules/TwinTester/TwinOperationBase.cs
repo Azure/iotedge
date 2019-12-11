@@ -24,7 +24,7 @@ namespace TwinTester
         {
             try
             {
-                await analyzerClient.AddTwinStatusAsync(new ResponseStatus { ModuleId = moduleId, StatusCode = status, EnqueuedDateTime = DateTime.UtcNow });
+                await analyzerClient.ReportResultAsync(new TestOperationResult { Source = moduleId, Result = status, CreatedAt = DateTime.UtcNow, Type = "LegacyTwin" });
             }
             catch (Exception e)
             {
