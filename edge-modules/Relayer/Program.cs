@@ -9,13 +9,16 @@ namespace Relayer
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using TestResultCoordinator.Client;
 
+    using TestOperationResult = TestResultCoordinator.Client.TestOperationResult;
     /*
      * Module for relaying messages. It receives a message and passes it on.
      */
     class Program
     {
-        static readonly ILogger Logger = ModuleUtil.CreateLogger("Relayer");
+        const string ModuleId = "Relayer";
+        static readonly ILogger Logger = ModuleUtil.CreateLogger(ModuleId);
 
         static async Task Main(string[] args)
         {
@@ -47,6 +50,7 @@ namespace Relayer
 
         static async Task<MessageResponse> ProcessAndSendMessageAsync(Message message, object userContext)
         {
+            Uri testResultCoordinatorUrl = Settings.Current.TestResultCoordinatorUrl;
             try
             {
                 if (!(userContext is ModuleClient moduleClient))
@@ -62,6 +66,9 @@ namespace Relayer
                     messageCopy.Properties.Add(prop.Key, prop.Value);
                 }
 
+                TestResultCoordinatorClient trcClient = new TestResultCoordinatorClient { BaseUrl = testResultCoordinatorUrl.AbsoluteUri };
+                await ReportStatus(trcClient, ModuleId, messageCopy.ToString());
+
                 await moduleClient.SendEventAsync(Settings.Current.OutputName, messageCopy);
                 Logger.LogInformation("Successfully sent a message");
             }
@@ -71,6 +78,18 @@ namespace Relayer
             }
 
             return MessageResponse.Completed;
+        }
+
+        static async Task ReportStatus(TestResultCoordinatorClient trcClient, string moduleId, string message)
+        {
+            try
+            {
+                await trcClient.ReportResultAsync(new TestOperationResult { Source = moduleId, Result = message, CreatedAt = DateTime.UtcNow, Type = moduleId });
+            }
+            catch (Exception e)
+            {
+                Logger.LogError(e, "Failed call to report status to analyzer");
+            }
         }
     }
 }
