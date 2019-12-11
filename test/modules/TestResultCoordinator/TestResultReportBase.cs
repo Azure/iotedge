@@ -8,12 +8,15 @@ namespace TestResultCoordinator
     /// </summary>
     abstract class TestResultReportBase : ITestResultReport
     {
-        protected TestResultReportBase(string expectSource, string actualSource, string resultType)
+        protected TestResultReportBase(string trackingId, string expectedSource, string actualSource, string resultType)
         {
-            this.ExpectSource = Preconditions.CheckNonWhiteSpace(expectSource, nameof(expectSource));
+            this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
+            this.ExpectSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
             this.ActualSource = Preconditions.CheckNonWhiteSpace(actualSource, nameof(actualSource));
             this.ResultType = Preconditions.CheckNonWhiteSpace(resultType, nameof(resultType));
         }
+
+        public string TrackingId { get; }
 
         public string Title => $"Counting Report ({this.ResultType}) between [{this.ExpectSource}] and [{this.ActualSource}]";
 

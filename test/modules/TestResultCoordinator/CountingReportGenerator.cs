@@ -19,6 +19,7 @@ namespace TestResultCoordinator
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(CountingReportGenerator));
 
+        readonly string trackingId;
         readonly string expectedSource;
         readonly string actualSource;
         readonly ISequentialStore<TestOperationResult> expectedStore;
@@ -27,12 +28,13 @@ namespace TestResultCoordinator
         readonly ITestResultComparer<TestOperationResult> testResultComparer;
         readonly int batchSize;
 
-        long totalExpectCount = 0;
-        long totalMatchCount = 0;
-        long totalDuplicateResultCount = 0;
+        ulong totalExpectCount = 0;
+        ulong totalMatchCount = 0;
+        ulong totalDuplicateResultCount = 0;
         List<TestOperationResult> unmatchedResults;
 
         public CountingReportGenerator(
+            string trackingId,
             string expectedSource,
             ISequentialStore<TestOperationResult> expectedStore,
             string actualSource,
@@ -41,6 +43,7 @@ namespace TestResultCoordinator
             ITestResultComparer<TestOperationResult> testResultComparer,
             int batchSize = 500)
         {
+            this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.expectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
             this.expectedStore = Preconditions.CheckNotNull(expectedStore, nameof(expectedStore));
             this.actualSource = Preconditions.CheckNonWhiteSpace(actualSource, nameof(actualSource));
@@ -142,6 +145,7 @@ namespace TestResultCoordinator
             }
 
             return new CountingReport<TestOperationResult>(
+                this.trackingId,
                 this.expectedSource,
                 this.actualSource,
                 this.resultType,

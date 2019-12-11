@@ -10,14 +10,15 @@ namespace TestResultCoordinator
     class CountingReport<T> : TestResultReportBase
     {
         public CountingReport(
-            string expectSource,
+            string trackingId,
+            string expectedSource,
             string actualSource,
             string resultType,
-            long totalExpectCount,
-            long totalMatchCount,
-            long totalDuplicateResultCount,
+            ulong totalExpectCount,
+            ulong totalMatchCount,
+            ulong totalDuplicateResultCount,
             IReadOnlyList<T> unmatchedResults)
-            : base(expectSource, actualSource, resultType)
+            : base(trackingId, expectedSource, actualSource, resultType)
         {
             this.TotalExpectCount = totalExpectCount;
             this.TotalMatchCount = totalMatchCount;
@@ -25,11 +26,11 @@ namespace TestResultCoordinator
             this.UnmatchedResults = unmatchedResults ?? new List<T>();
         }
 
-        public long TotalExpectCount { get; }
+        public ulong TotalExpectCount { get; }
 
-        public long TotalMatchCount { get; }
+        public ulong TotalMatchCount { get; }
 
-        public long TotalDuplicateResultCount { get; }
+        public ulong TotalDuplicateResultCount { get; }
 
         public IReadOnlyList<T> UnmatchedResults { get; }
     }
