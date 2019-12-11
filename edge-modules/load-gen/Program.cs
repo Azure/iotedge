@@ -35,10 +35,10 @@ namespace LoadGen
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                     ModuleUtil.DefaultTransientRetryStrategy,
                     Logger);
-                
+
                 Logger.LogInformation($"Load gen delay start for {Settings.Current.TestStartDelay}.");
                 await Task.Delay(Settings.Current.TestStartDelay);
-                
+
                 DateTime testStartAt = DateTime.UtcNow;
                 long messageIdCounter = 1;
                 while (!cts.IsCancellationRequested &&
@@ -94,7 +94,7 @@ namespace LoadGen
                 message.Properties.Add("trackingId", trackingId);
 
                 // send a copy of message to the Test Result Coordinator if applicable
-                if(Settings.Current.TestResultCoordinatorUrl != null)
+                if (Settings.Current.TestResultCoordinatorUrl != null)
                 {
                     Uri testResultCoordinatorUrl = Settings.Current.TestResultCoordinatorUrl;
                     TestResultCoordinatorClient trcClient = new TestResultCoordinatorClient { BaseUrl = testResultCoordinatorUrl.AbsoluteUri };
