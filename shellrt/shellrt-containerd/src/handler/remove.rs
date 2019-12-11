@@ -1,4 +1,4 @@
-use cri_grpc::{client::RuntimeServiceClient, RemoveContainerRequest};
+use cri_grpc::{runtimeservice_client::RuntimeServiceClient, RemoveContainerRequest};
 use shellrt_api::v0::{request, response};
 
 use crate::error::*;

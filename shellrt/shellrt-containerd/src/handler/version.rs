@@ -1,4 +1,4 @@
-use containerd_grpc::containerd::services::version::v1::client::VersionClient;
+use containerd_grpc::containerd::services::version::v1::version_client::VersionClient;
 use shellrt_api::v0::{request, response};
 
 use crate::error::*;

@@ -1,6 +1,5 @@
 #![allow(clippy::cognitive_complexity)]
 
-use std::collections::HashMap;
 use std::path::Path;
 use std::time::Instant;
 
@@ -18,21 +17,6 @@ use containrs::{Reference, ReferenceKind};
 
 mod parse_range;
 use crate::parse_range::ParsableRange;
-
-lazy_static! {
-    static ref MEDIA_TYPE_TO_FILE_EXT: HashMap<&'static str, &'static str> = {
-        use ociv1::media_type::*;
-        let mut m: HashMap<&str, &str> = HashMap::new();
-        m.insert(IMAGE_LAYER, "tar");
-        m.insert(IMAGE_LAYER_GZIP, "tar.gz");
-        m.insert(IMAGE_LAYER_GZIP_DOCKER, "tar.gz");
-        m.insert(IMAGE_LAYER_ZSTD, "tar.zst");
-        m.insert(IMAGE_LAYER_NON_DISTRIBUTABLE, "tar");
-        m.insert(IMAGE_LAYER_NON_DISTRIBUTABLE_GZIP, "tar.gz");
-        m.insert(IMAGE_LAYER_NON_DISTRIBUTABLE_ZSTD, "tar.zst");
-        m
-    };
-}
 
 #[tokio::main]
 async fn main() {

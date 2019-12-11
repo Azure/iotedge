@@ -493,7 +493,7 @@ enum BlobEither<'a> {
     Digest(&'a Digest),
 }
 
-/// Returns a closure which computes a range's size given a expected end-bound  
+/// Returns a closure which computes a range's size given a expected end-bound
 fn range_size(range: &impl RangeBounds<u64>) -> impl Fn(u64) -> u64 {
     let end = match range.end_bound() {
         Bound::Unbounded => None,

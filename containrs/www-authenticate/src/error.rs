@@ -1,19 +1,36 @@
-use failure::Fail;
+use std::error::Error as StdError;
+use std::fmt;
+
 use pest::error::Error as PestError;
 
-use super::Rule;
-
-#[derive(Debug, Fail)]
+#[derive(Debug)]
 pub enum WWWAuthenticateError {
-    #[fail(display = "Failed to parse WWW-Authenticate Header: {}", _0)]
-    Parse(PestError<Rule>),
-
-    #[fail(display = "Error in Challenge: {}", _0)]
+    Parse(PestError<super::Rule>),
     BadChallenge(ChallengeError),
 }
 
-#[derive(Debug, Fail)]
+#[derive(Debug)]
 pub enum ChallengeError {
-    #[fail(display = "TODO: add errors")]
     _Placeholder,
+}
+
+impl StdError for WWWAuthenticateError {}
+impl fmt::Display for WWWAuthenticateError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use self::WWWAuthenticateError::*;
+        match self {
+            Parse(e) => write!(f, "Failed to parse WWW-Authenticate Header: {}", e),
+            BadChallenge(e) => write!(f, "Error in Challenge: {}", e),
+        }
+    }
+}
+
+impl StdError for ChallengeError {}
+impl fmt::Display for ChallengeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use self::ChallengeError::*;
+        match self {
+            _Placeholder => write!(f, "(placeholder)"),
+        }
+    }
 }

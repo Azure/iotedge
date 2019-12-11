@@ -3,12 +3,12 @@ use std::collections::HashMap;
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 
-use containerd_grpc::containerd::services::content::v1::client::ContentClient;
+use containerd_grpc::containerd::services::content::v1::content_client::ContentClient;
 use containrs::{Digest, Reference};
 use cri_grpc::{
-    client::RuntimeServiceClient, ContainerConfig, ContainerMetadata, CreateContainerRequest,
-    ImageSpec, KeyValue, ListPodSandboxRequest, PodSandboxConfig, PodSandboxMetadata,
-    RunPodSandboxRequest,
+    runtimeservice_client::RuntimeServiceClient, ContainerConfig, ContainerMetadata,
+    CreateContainerRequest, ImageSpec, KeyValue, ListPodSandboxRequest, PodSandboxConfig,
+    PodSandboxMetadata, RunPodSandboxRequest,
 };
 use shellrt_api::v0::{request, response};
 

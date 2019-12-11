@@ -2,12 +2,12 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::PathBuf;
 
 use futures::future::try_join;
+use futures::StreamExt;
 use log::*;
 use tokio::net::{TcpListener, TcpStream, UnixStream};
-use tokio::prelude::*;
 use tokio::sync::oneshot;
 
-/// Proxy data between a local socket and a local TCP server
+/// Proxy data between a local socket and a local TCP server.
 ///
 /// Adapted from https://github.com/tokio-rs/tokio/blob/master/examples/proxy.rs
 pub async fn server(
@@ -17,7 +17,8 @@ pub async fn server(
 ) -> Result<(), failure::Error> {
     // wait for client to connect to tcp server
     let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), port);
-    let mut incoming = TcpListener::bind(&addr).await?.incoming();
+    let mut listener = TcpListener::bind(&addr).await?;
+    let mut incoming = listener.incoming();
 
     ready.send(()).unwrap();
 
@@ -44,8 +45,8 @@ async fn transfer(mut inbound: TcpStream, sock: PathBuf) -> Result<(), failure::
     let (mut ri, mut wi) = inbound.split();
     let (mut ro, mut wo) = outbound.split();
 
-    let client_to_server = ri.copy(&mut wo);
-    let server_to_client = ro.copy(&mut wi);
+    let client_to_server = tokio::io::copy(&mut ri, &mut wo);
+    let server_to_client = tokio::io::copy(&mut ro, &mut wi);
 
     try_join(client_to_server, server_to_client).await?;
 

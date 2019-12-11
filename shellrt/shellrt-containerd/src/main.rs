@@ -1,3 +1,6 @@
+#![type_length_limit = "1213678"]
+
+use std::future::Future;
 use std::path::PathBuf;
 use std::pin::Pin;
 
@@ -62,13 +65,21 @@ handlers! {
     +-----------+------------+------------------+
 }
 
-#[tokio::main]
-async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
+fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
+    let mut rt = tokio::runtime::Runtime::new()?;
+    rt.block_on(true_main())?;
+    // std::mem::forget(rt);
+    Ok(())
+}
+
+async fn true_main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     pretty_env_logger::init();
 
     // TODO: how to specify containerd socket path?
     //       sent on each request? loaded from config file?
     let containerd_sock = PathBuf::from("/run/containerd/containerd.sock");
+    // TODO: get port from OS instead of hardcoding
+    //       so that multiple instances of this process can run at the same time
     let tcp_proxy_port = 9090;
 
     if !containerd_sock.exists() {

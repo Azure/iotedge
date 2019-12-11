@@ -10,9 +10,10 @@ use containrs::{Blob, Client as RegistryClient, Credentials, Digest, Reference};
 use containerd_grpc::containerd::{
     services::{
         content::v1::{
-            client::ContentClient, InfoRequest, StatusRequest, WriteAction, WriteContentRequest,
+            content_client::ContentClient, InfoRequest, StatusRequest, WriteAction,
+            WriteContentRequest,
         },
-        images::v1::{client::ImagesClient, CreateImageRequest, Image, UpdateImageRequest},
+        images::v1::{images_client::ImagesClient, CreateImageRequest, Image, UpdateImageRequest},
     },
     types::Descriptor as GrpcDescriptor,
 };
@@ -52,14 +53,9 @@ impl ImgPullHandler {
             .context(ErrorKind::MalformedReference)?;
 
         // setup grpc clients
-        let (content_client, images_client) = (
-            ContentClient::connect(self.grpc_uri.clone())
-                .await
-                .context(ErrorKind::GrpcConnect)?,
-            ImagesClient::connect(self.grpc_uri.clone())
-                .await
-                .context(ErrorKind::GrpcConnect)?,
-        );
+        let content_client = ContentClient::connect(self.grpc_uri.clone())
+            .await
+            .context(ErrorKind::GrpcConnect)?;
 
         // fetch manifest
         let manifest_blob = registry_client
@@ -146,6 +142,17 @@ impl ImgPullHandler {
         )
         .await?;
         info!("image downloaded successfully!");
+
+        // manually drop content_client before creating the image_client, otherwise the
+        // tokio runtime blocks in its destructor, preventing the process from exiting.
+        // Why? ¯\_(ツ)_/¯
+        // This _might_ have something to do with the janky "sock_to_tcp_proxy"
+        // approach. If it's ever removed, try removing this drop as well.
+        drop(content_client);
+
+        let images_client = ImagesClient::connect(self.grpc_uri.clone())
+            .await
+            .context(ErrorKind::GrpcConnect)?;
 
         register_image_with_containerd(images_client, &image, &manifest_descriptor).await?;
 

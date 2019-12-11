@@ -7,7 +7,7 @@ use std::path::PathBuf;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // specify containerd proto packages (which all share a common path prefix)
-    let contaierd_protos = vec![
+    let containerd_protos = vec![
         // containerd.events
         vec![
             "events/container.proto",
@@ -58,7 +58,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // collect all proto packages and compile
     let mut protos = Vec::new();
-    protos.extend(contaierd_protos.into_iter());
+    protos.extend(containerd_protos.into_iter());
     protos.push(grpc_protos);
 
     for proto_pkg in protos {

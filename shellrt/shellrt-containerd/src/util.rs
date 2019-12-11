@@ -24,7 +24,7 @@ impl<T> TonicRequestExt<T> for Request<T> {
 }
 
 use crate::error::*;
-use cri_grpc::{client::RuntimeServiceClient, ListContainersRequest};
+use cri_grpc::{runtimeservice_client::RuntimeServiceClient, ListContainersRequest};
 
 /// Returns the container_id associated with a moddule name. Returns an error if
 /// the module doesn't exist.

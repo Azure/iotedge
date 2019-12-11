@@ -1,4 +1,4 @@
-use cri_grpc::{client::ImageServiceClient, ImageSpec, RemoveImageRequest};
+use cri_grpc::{imageservice_client::ImageServiceClient, ImageSpec, RemoveImageRequest};
 use shellrt_api::v0::{request, response};
 
 use crate::error::*;
@@ -20,6 +20,7 @@ impl ImgRemoveHandler {
             .await
             .context(ErrorKind::GrpcConnect)?;
 
+        // FIXME: add the "docker.io" aliasing logic (like in img_pull)
         let grpc_req = RemoveImageRequest {
             image: Some(ImageSpec { image: req.image }),
         };

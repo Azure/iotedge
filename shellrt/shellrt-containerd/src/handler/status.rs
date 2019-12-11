@@ -1,4 +1,6 @@
-use cri_grpc::{client::RuntimeServiceClient, ContainerState, ContainerStatusRequest};
+use cri_grpc::{
+    runtimeservice_client::RuntimeServiceClient, ContainerState, ContainerStatusRequest,
+};
 use shellrt_api::v0::{request, response, ModuleStatus};
 
 use crate::error::*;

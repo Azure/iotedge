@@ -2,10 +2,11 @@ use std::collections::HashMap;
 use std::process::Stdio;
 
 use clap::{App, AppSettings, Arg, SubCommand};
+use futures::{Stream, StreamExt};
 use log::*;
 use tokio::io::BufReader;
-use tokio::net::process::Command;
 use tokio::prelude::*;
+use tokio::process::Command;
 
 use shellrt_api::v0::{
     client::{Input, Output},
@@ -455,7 +456,7 @@ impl Plugin {
             output
                 .into_inner()
                 .map_err(|e| failure::err_msg(format!("API error: {:#?}", e)))?,
-            tokio_codec::FramedRead::new(child_stdout, tokio_codec::BytesCodec::new())
+            tokio_util::codec::FramedRead::new(child_stdout, tokio_util::codec::BytesCodec::new())
                 .map(|bytes| bytes.map(|b| b.to_vec())),
         ))
     }

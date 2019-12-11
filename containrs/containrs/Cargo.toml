@@ -12,13 +12,14 @@ oci-distribution = { path = "../oci-distribution" }
 oci-image = { path = "../oci-image" }
 www-authenticate = { path = "../www-authenticate" }
 
-bytes = "0.4"
+bytes = "0.5"
 failure = "0.1"
-futures-preview = "0.3.0-alpha.19"
-headers = "0.2.3"
-http = "0.1"
+futures = "0.3"
+# TODO: update to headers 0.3 (once it's released)
+headers = { git = "https://github.com/hyperium/headers.git" }
 log = "0.4"
-reqwest = { version = "0.10.0-alpha.2", features = ["unstable-stream", "json"] }
+# TODO: update to reqwest 0.10 (once it's released)
+reqwest = { git = "https://github.com/seanmonstar/reqwest.git", features = ["stream", "json"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_urlencoded = "0.5"
