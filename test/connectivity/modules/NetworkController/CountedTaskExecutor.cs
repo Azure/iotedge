@@ -51,7 +51,7 @@ namespace NetworkController
                 }
                 catch (Exception e)
                 {
-                    this.logger.LogError(e, $"Failued to run {this.operationName} scheduled task run number {i}");
+                    this.logger.LogError(e, $"Failed to run {this.operationName} scheduled task run number {i}");
                 }
             }
         }

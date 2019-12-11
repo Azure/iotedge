@@ -26,7 +26,7 @@ namespace NetworkController
                     $"qdisc show dev {this.networkInterfaceName}",
                     cs);
 
-                //parse output to see if online or offline
+                // parse output to see if online or offline
                 if (output.Contains("qdisc noqueue"))
                 {
                     return NetworkStatus.Default;

@@ -7,7 +7,7 @@ namespace NetworkController
     {
         public Task ReportNetworkStatus(NetworkControllerOperation settingRule, NetworkStatus status, string description, bool success = true)
         {
-            //TODO: send to analyzer
+            // TODO: send to analyzer
             return Task.CompletedTask;
         }
     }

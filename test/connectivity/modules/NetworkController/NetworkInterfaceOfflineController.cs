@@ -75,7 +75,7 @@ namespace NetworkController
                     return this.RemoveNetworkControllingRule(cs);
                 default:
                     Log.LogDebug($"Status not set {status}");
-                    throw new NotSupportedException($"Status is not supported {status}");
+                    throw new NotSupportedException($"Status '{status}' is not supported.");
             }
         }
 

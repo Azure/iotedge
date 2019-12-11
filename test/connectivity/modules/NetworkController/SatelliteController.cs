@@ -4,7 +4,7 @@ namespace NetworkController
     using System.Threading;
     using System.Threading.Tasks;
 
-    //TODO: implement satellite
+    // TODO: implement satellite
     class SatelliteController : IController
     {
         string name;
