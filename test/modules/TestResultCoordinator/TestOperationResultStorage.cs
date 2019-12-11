@@ -61,12 +61,12 @@ namespace TestResultCoordinator
             return storagePath;
         }
 
-        public static async Task<bool> AddTestOperationResultAsync(TestOperationResult testOperationResult)
+        public static async Task<bool> AddResultAsync(TestOperationResult testOperationResult)
         {
             (string, ISequentialStore<TestOperationResult>) typeAndResultStore;
             if (resultStores.TryGetValue(testOperationResult.Source, out typeAndResultStore))
             {
-                if (testOperationResult.Type.Equals(typeAndResultStore.Item1))
+                if (string.Equals(testOperationResult.Type, typeAndResultStore.Item1, StringComparison.OrdinalIgnoreCase))
                 {
                     await typeAndResultStore.Item2.Append(testOperationResult);
                     return true;
