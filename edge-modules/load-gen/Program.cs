@@ -10,7 +10,9 @@ namespace LoadGen
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
+    using TestResultCoordinator.Client;
 
+    using TestOperationResult = TestResultCoordinator.Client.TestOperationResult;
     class Program
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("LoadGen");
@@ -91,7 +93,27 @@ namespace LoadGen
                 message.Properties.Add("batchId", batchId.ToString());
                 message.Properties.Add("trackingId", trackingId);
 
+                // send a copy of message to the Test Result Coordinator if applicable
+                if(Settings.Current.TestResultCoordinatorUrl != null)
+                {
+                    Uri testResultCoordinatorUrl = Settings.Current.TestResultCoordinatorUrl;
+                    TestResultCoordinatorClient trcClient = new TestResultCoordinatorClient { BaseUrl = testResultCoordinatorUrl.AbsoluteUri };
+                    await ReportStatus(trcClient, Settings.Current.TrackingId, message.ToString());
+                }
+
                 await client.SendEventAsync(Settings.Current.OutputName, message);
+            }
+        }
+
+        static async Task ReportStatus(TestResultCoordinatorClient trcClient, string source, string message)
+        {
+            try
+            {
+                await trcClient.ReportResultAsync(new TestOperationResult { Source = source, Result = message, CreatedAt = DateTime.UtcNow, Type = "LoadGen" });
+            }
+            catch (Exception e)
+            {
+                Logger.LogError(e, "Failed call to report status to TestResultCoordinator");
             }
         }
     }

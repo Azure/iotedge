@@ -88,7 +88,7 @@ namespace Relayer
             }
             catch (Exception e)
             {
-                Logger.LogError(e, "Failed call to report status to analyzer");
+                Logger.LogError(e, "Failed call to report status to TestResultCoordinator");
             }
         }
     }
