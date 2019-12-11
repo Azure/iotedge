@@ -29,6 +29,13 @@ use hyper::server::conn::Http;
 use hyper::service::{NewService, Service};
 use hyper::{Body, Response};
 use log::{debug, error, Level};
+use native_tls::Identity;
+#[cfg(unix)]
+use native_tls::TlsAcceptor;
+use openssl::pkcs12::Pkcs12;
+use openssl::pkey::PKey;
+use openssl::stack::Stack;
+use openssl::x509::X509;
 #[cfg(target_os = "linux")]
 use systemd::Socket;
 use tokio::net::TcpListener;
@@ -36,20 +43,9 @@ use tokio::net::TcpListener;
 use tokio_uds::UnixListener;
 use url::Url;
 
-use openssl::pkcs12::Pkcs12;
-use openssl::pkey::PKey;
-use openssl::stack::Stack;
-use openssl::x509::X509;
-
 use edgelet_core::crypto::{Certificate, CreateCertificate, KeyBytes, PrivateKey};
-#[cfg(unix)]
-use edgelet_core::Protocol;
-use edgelet_core::{UrlExt, UNIX_SCHEME};
+use edgelet_core::{Protocol, UrlExt, UNIX_SCHEME};
 use edgelet_utils::log_failure;
-#[cfg(unix)]
-use native_tls::Identity;
-#[cfg(unix)]
-use native_tls::TlsAcceptor;
 
 pub mod authentication;
 pub mod authorization;
