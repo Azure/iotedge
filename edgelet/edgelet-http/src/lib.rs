@@ -296,8 +296,8 @@ pub trait HyperExt {
 }
 
 // This variable is used on Unix but not Windows
-#[allow(unused_variables)]
 impl HyperExt for Http {
+    #[cfg_attr(not(unix), allow(unused_variables))]
     fn bind_url<C, S>(
         &self,
         url: Url,
@@ -338,10 +338,10 @@ impl HyperExt for Http {
                         )
                     })?;
 
-                let cert = match tls_params.as_ref().map(|params| params.cert_manager) {
-                    Some(cert_manager) => cert_manager.get_pkcs12_certificate(),
-                    None => return Err(Error::from(ErrorKind::CertificateCreationError)),
-                };
+                let cert = tls_params
+                    .as_ref()
+                    .map(|params| params.cert_manager.get_pkcs12_certificate())
+                    .ok_or(ErrorKind::CertificateCreationError)?;
 
                 let cert = cert.context(ErrorKind::TlsBootstrapError)?;
 
@@ -436,7 +436,7 @@ impl HyperExt for Http {
     }
 }
 
-#[allow(dead_code)]
+#[cfg_attr(not(unix), allow(dead_code))]
 pub struct TlsAcceptorParams<'a, C>
 where
     C: CreateCertificate + Clone,
