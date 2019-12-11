@@ -437,12 +437,19 @@ impl HyperExt for Http {
     }
 }
 
-pub struct TlsAcceptorParams<'a, C: CreateCertificate + Clone> {
+#[allow(dead_code)]
+pub struct TlsAcceptorParams<'a, C>
+where
+    C: CreateCertificate + Clone,
+{
     cert_manager: &'a CertificateManager<C>,
     min_protocol_version: Option<Protocol>,
 }
 
-impl<'a, C: CreateCertificate + Clone> TlsAcceptorParams<'a, C> {
+impl<'a, C> TlsAcceptorParams<'a, C>
+where
+    C: CreateCertificate + Clone,
+{
     pub fn new(
         cert_manager: &'a CertificateManager<C>,
         min_protocol_version: Option<Protocol>,
