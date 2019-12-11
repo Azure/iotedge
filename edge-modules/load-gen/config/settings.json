@@ -3,5 +3,7 @@
   "transportType": "amqp",
   "messageSizeInBytes": 1024,
   "outputName": "output1",
-  "startDelay": "00:00:02"
+  "testStartDelay": "00:00:02",
+  "testDuration": "00:00:00",
+  "trackingId": "" 
 }
