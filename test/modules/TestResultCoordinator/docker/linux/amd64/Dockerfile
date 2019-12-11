@@ -15,6 +15,9 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
+# Expose HTTP port
+EXPOSE 5001/tcp
+
 # Add an unprivileged user account for running the module
 RUN adduser -Ds /bin/sh moduleuser 
 USER moduleuser
