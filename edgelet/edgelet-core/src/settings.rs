@@ -914,24 +914,35 @@ mod tests {
         }
     }
 
-    #[test_case("tls" , Protocol::Tls10; "when tls provided")]
-    #[test_case("TLS" , Protocol::Tls10; "when uppercase TLS provided")]
-    #[test_case("tls1" , Protocol::Tls10; "when tls1 provided")]
-    #[test_case("TLS1" , Protocol::Tls10; "when uppercase TLS1 provided")]
+    #[test_case("tls", Protocol::Tls10; "when tls provided")]
+    #[test_case("TLS", Protocol::Tls10; "when uppercase TLS provided")]
+    #[test_case("tls1", Protocol::Tls10; "when tls1 provided")]
+    #[test_case("TLS1", Protocol::Tls10; "when uppercase TLS1 provided")]
     #[test_case("tls10", Protocol::Tls10; "when tls10 provided")]
     #[test_case("TLS10", Protocol::Tls10; "when uppercase TLS10 Provided")]
     #[test_case("tlsv10" , Protocol::Tls10; "when tlsv10 provided")]
     #[test_case("TLSv10" , Protocol::Tls10; "when uppercase TLSv10 Provided")]
     #[test_case("tls11", Protocol::Tls11; "when tls11 provided")]
     #[test_case("TLS11", Protocol::Tls11; "when uppercase TLS11 Provided")]
-    #[test_case("tlsv11" , Protocol::Tls11; "when tlsv11 Provided")]
-    #[test_case("TLSv11" , Protocol::Tls11; "when uppercase TLSv11 provided")]
+    #[test_case("tlsv11", Protocol::Tls11; "when tlsv11 Provided")]
+    #[test_case("TLSv11", Protocol::Tls11; "when uppercase TLSv11 provided")]
     #[test_case("tls12", Protocol::Tls12; "when tls12 provided")]
     #[test_case("TLS12", Protocol::Tls12; "when uppercase TLS12 provided")]
-    #[test_case("tlsv12" , Protocol::Tls12; "when tlsv12 provided")]
-    #[test_case("TLSv12" , Protocol::Tls12; "when uppercase TLSv12 provided")]
+    #[test_case("tlsv12", Protocol::Tls12; "when tlsv12 provided")]
+    #[test_case("TLSv12", Protocol::Tls12; "when uppercase TLSv12 provided")]
     fn it_parses_protocol(value: &str, expected: Protocol) {
-        let actual = value.parse();
+        let actual = Protocol::from_str(value);
         assert_eq!(actual, Ok(expected));
+    }
+
+    #[test_case(""; "when empty string provided")]
+    #[test_case("Sslv3"; "when unsupported version provided")]
+    #[test_case("TLS2"; "when non-existing version provided")]
+    fn it_fails_to_parse_protocol(value: &str) {
+        let actual = Protocol::from_str(value);
+        assert_eq!(
+            actual,
+            Err(format!("Unsupported TLS protocol version: {}", value))
+        )
     }
 }
