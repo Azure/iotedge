@@ -5,6 +5,9 @@ ARG EXE_DIR=.
 
 WORKDIR /app
 
+# Expose HTTP port
+EXPOSE 5001/tcp
+
 COPY $EXE_DIR/ ./
 
 CMD ["dotnet", "TestResultCoordinator.dll"]
