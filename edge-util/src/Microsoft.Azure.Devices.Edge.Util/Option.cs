@@ -154,7 +154,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         public Task ForEachAsync(Func<T, Task> action) => this.HasValue ? action(this.Value) : Task.CompletedTask;
 
-        public Task ForEachAsync(Func<T, Task> action, Func<Task> none = null) => this.HasValue ? action(this.Value) : none?.Invoke();
+        public Task ForEachAsync(Func<T, Task> action, Func<Task> none) => this.HasValue ? action(this.Value) : none();
 
         /// <summary>
         /// If this option has a value then it transforms it into a new option instance by
