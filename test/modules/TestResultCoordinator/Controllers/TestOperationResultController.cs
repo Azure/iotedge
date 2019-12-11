@@ -17,7 +17,7 @@ namespace TestResultCoordinator.Controllers
         {
             try
             {
-                await TestOperationResultStorage.AddTestOperationResultAsync(result);
+                await TestOperationResultStorage.AddResultAsync(result);
             }
             catch (InvalidDataException)
             {
