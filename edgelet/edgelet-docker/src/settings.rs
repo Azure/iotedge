@@ -360,6 +360,8 @@ mod tests {
     #[cfg(windows)]
     static BAD_SETTINGS_DYNAMIC_REPROVISIONING: &str =
         "test/windows/bad_sample_settings.dyn.repro.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_TLS: &str = "test/windows/sample_settings.tls.yaml";
 
     fn unwrap_manual_provisioning(p: &ProvisioningType) -> String {
         match p {
