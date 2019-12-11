@@ -348,16 +348,14 @@ impl HyperExt for Http {
                 let cert_identity = Identity::from_pkcs12(&cert, "")
                     .context(ErrorKind::TlsIdentityCreationError)?;
 
-                let min_protocol_version = tls_params.as_ref().and_then(|params| {
-                    params
-                        .min_protocol_version
+                let min_protocol_version =
+                    tls_params
                         .as_ref()
-                        .map(|protocol| match protocol {
+                        .map(|params| match params.min_protocol_version {
                             Protocol::Tls10 => native_tls::Protocol::Tlsv10,
                             Protocol::Tls11 => native_tls::Protocol::Tlsv11,
                             Protocol::Tls12 => native_tls::Protocol::Tlsv12,
-                        })
-                });
+                        });
 
                 let tls_acceptor = TlsAcceptor::builder(cert_identity)
                     .min_protocol_version(min_protocol_version)
@@ -442,17 +440,14 @@ where
     C: CreateCertificate + Clone,
 {
     cert_manager: &'a CertificateManager<C>,
-    min_protocol_version: Option<Protocol>,
+    min_protocol_version: Protocol,
 }
 
 impl<'a, C> TlsAcceptorParams<'a, C>
 where
     C: CreateCertificate + Clone,
 {
-    pub fn new(
-        cert_manager: &'a CertificateManager<C>,
-        min_protocol_version: Option<Protocol>,
-    ) -> Self {
+    pub fn new(cert_manager: &'a CertificateManager<C>, min_protocol_version: Protocol) -> Self {
         Self {
             cert_manager,
             min_protocol_version,

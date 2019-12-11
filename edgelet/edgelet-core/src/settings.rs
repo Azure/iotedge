@@ -452,8 +452,8 @@ pub struct Listen {
     workload_uri: Url,
     #[serde(with = "url_serde")]
     management_uri: Url,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    min_tls_version: Option<Protocol>,
+    #[serde(default = "Protocol::default")]
+    min_tls_version: Protocol,
 }
 
 impl Listen {
@@ -465,7 +465,7 @@ impl Listen {
         &self.management_uri
     }
 
-    pub fn min_tls_version(&self) -> Option<Protocol> {
+    pub fn min_tls_version(&self) -> Protocol {
         self.min_tls_version
     }
 }
@@ -475,6 +475,12 @@ pub enum Protocol {
     Tls10,
     Tls11,
     Tls12,
+}
+
+impl Default for Protocol {
+    fn default() -> Self {
+        Protocol::Tls10
+    }
 }
 
 impl Display for Protocol {

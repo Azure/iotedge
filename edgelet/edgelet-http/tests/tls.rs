@@ -5,7 +5,9 @@
 use std::env;
 
 use edgelet_core::crypto::CreateCertificate;
-use edgelet_core::{CertificateIssuer, CertificateProperties, CertificateType, IOTEDGED_CA_ALIAS};
+use edgelet_core::{
+    CertificateIssuer, CertificateProperties, CertificateType, Protocol, IOTEDGED_CA_ALIAS,
+};
 use edgelet_hsm::{Crypto, HsmLock};
 use edgelet_http::certificate_manager::CertificateManager;
 use edgelet_http::route::{Builder, Parameters, RegexRoutesBuilder, Router};
@@ -91,7 +93,7 @@ pub fn configure_test(address: &str) -> (Run, u16) {
         .finish();
     let router = Router::from(recognizer);
 
-    let tls_params = TlsAcceptorParams::new(&manager, None);
+    let tls_params = TlsAcceptorParams::new(&manager, Protocol::Tls12);
 
     let server = Http::new()
         .bind_url(Url::parse(address).unwrap(), router, Some(tls_params))
