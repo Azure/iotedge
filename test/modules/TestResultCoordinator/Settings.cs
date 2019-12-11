@@ -41,7 +41,7 @@ namespace TestResultCoordinator
         List<ResultSource> ParseResultSources()
         {
             // TODO: Remove this hardcoded list and use environment variables once we've decided on how exactly to set the configuration
-            List<string> sourceNames = new List<string> { "loadGen1.send", "relayer1.receive", "relayer1.send", "loadGen1.eventHub", "loadGen2.send", "relayer2.receive", "relayer2.send", "loadGen2.eventHub" };
+            List<string> sourceNames = new List<string> { "loadGen1.send", "relayer1.receive", "relayer1.send", "relayer1.eventHub", "loadGen2.send", "relayer2.receive", "relayer2.send", "relayer2.eventHub" };
             string resultType = "messages";
             List<ResultSource> resultSources = new List<ResultSource>();
             foreach (string sourceName in sourceNames)
