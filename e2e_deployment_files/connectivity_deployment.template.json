@@ -119,7 +119,9 @@
               },
               "inputName": {
                 "value": "input2"
-              }
+              },
+              "image": "<Container_Registry>/microsoft/azureiotedge-relayer:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
             },
             "networkController": {
               "version": "1.0",
