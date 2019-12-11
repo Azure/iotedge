@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.21.2" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.21.3-private-drop" />
   </ItemGroup>
 
   <ItemGroup>
