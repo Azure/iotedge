@@ -14,8 +14,7 @@ namespace TestResultCoordinator
     class Settings
     {
         const string DefaultStoragePath = "";
-        const string DefaultWebhostPort = "5001";
-        const string DefaultResultSources = "";
+        const ushort DefaultWebhostPort = 5001;
 
         static readonly Lazy<Settings> DefaultSettings = new Lazy<Settings>(
             () =>
@@ -29,40 +28,37 @@ namespace TestResultCoordinator
                 return new Settings(
                     configuration.GetValue("WebhostPort", DefaultWebhostPort),
                     configuration.GetValue<string>("StoragePath", DefaultStoragePath),
-                    configuration.GetValue<bool>("StorageOptimizeForPerformance", true),
-                    configuration.GetValue<string>("ResultSources", DefaultResultSources));
+                    configuration.GetValue<bool>("StorageOptimizeForPerformance", true));
             });
-        Settings(string webhostPort, string storagePath, bool optimizeForPerformance, string resultSources)
+        Settings(ushort webhostPort, string storagePath, bool optimizeForPerformance)
         {
-            this.WebhostPort = Preconditions.CheckNonWhiteSpace(webhostPort, nameof(webhostPort));
+            this.WebhostPort = Preconditions.CheckNotNull(webhostPort);
             this.StoragePath = storagePath;
             this.OptimizeForPerformance = Preconditions.CheckNotNull(optimizeForPerformance);
-            this.ResultSources = this.ParseResultSources(Preconditions.CheckNonWhiteSpace(resultSources, nameof(resultSources)));
+            this.ResultSources = this.ParseResultSources();
         }
 
-        private List<ResultSource> ParseResultSources(string resultSourceString)
+        List<ResultSource> ParseResultSources()
         {
-            List<ResultSource> resultSourceList = new List<ResultSource>();
-            string[] sourceTypePairs = resultSourceString.Split(";");
-            foreach (string sourceTypePair in sourceTypePairs)
+            // TODO: Remove this hardcoded list and use environment variables once we've decided on how exactly to set the configuration
+            List<string> sourceNames = new List<string> { "loadGen1.send", "relayer1.receive", "relayer1.send", "loadGen1.eventHub", "loadGen2.send", "relayer2.receive", "relayer2.send", "loadGen2.eventHub" };
+            string resultType = "messages";
+            List<ResultSource> resultSources = new List<ResultSource>();
+            foreach (string sourceName in sourceNames)
             {
-                string[] sourceAndType = sourceTypePair.Split(",");
-                if (sourceAndType.Length == 2)
+                resultSources.Add(new ResultSource
                 {
-                    resultSourceList.Add(new ResultSource
-                    {
-                        Source = Preconditions.CheckNotNull(sourceAndType[0]),
-                        Type = Preconditions.CheckNotNull(sourceAndType[1])
-                    });
-                }
+                    Source = sourceName,
+                    Type = resultType
+                });
             }
 
-            return resultSourceList;
+            return resultSources;
         }
 
         public static Settings Current => DefaultSettings.Value;
 
-        public string WebhostPort { get; }
+        public ushort WebhostPort { get; }
 
         public string StoragePath { get; }
 

@@ -19,13 +19,12 @@ namespace TestResultCoordinator
         {
             Logger.LogInformation($"Starting load gen with the following settings:\r\n{Settings.Current}");
 
-            // TODO: Add Coordinator logic
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
-            await TestOperationResultStorage.Instance.InitAsync(Settings.Current.StoragePath, new SystemEnvironment(), Settings.Current.OptimizeForPerformance, Settings.Current.ResultSources);
-            Console.WriteLine("TestOperationResultStorage fired up");
+            await TestOperationResultStorage.InitAsync(Settings.Current.StoragePath, new SystemEnvironment(), Settings.Current.OptimizeForPerformance, Settings.Current.ResultSources);
+            Logger.LogInformation("TestOperationResultStorage created successfully");
+            Logger.LogInformation("Creating WebHostBuilder...");
             await CreateWebHostBuilder(args).Build().RunAsync(cts.Token);
-            Console.WriteLine("WebHostBuilder fired up");
 
             await cts.Token.WhenCanceled();
             completed.Set();
