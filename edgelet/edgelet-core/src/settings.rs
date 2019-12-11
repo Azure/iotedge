@@ -465,12 +465,12 @@ impl Listen {
         &self.management_uri
     }
 
-    pub fn min_tls_version(&self) -> Option<&Protocol> {
-        self.min_tls_version.as_ref()
+    pub fn min_tls_version(&self) -> Option<Protocol> {
+        self.min_tls_version
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Protocol {
     Tls10,
     Tls11,
@@ -506,7 +506,7 @@ impl<'de> Deserialize<'de> for Protocol {
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        FromStr::from_str(&s).map_err(de::Error::custom)
+        s.parse().map_err(de::Error::custom)
     }
 }
 
@@ -925,7 +925,7 @@ mod tests {
     #[test_case("tlsv12" , Protocol::Tls12; "when tlsv12 provided")]
     #[test_case("TLSv12" , Protocol::Tls12; "when uppercase TLSv12 provided")]
     fn it_parses_protocol(value: &str, expected: Protocol) {
-        let actual = Protocol::from_str(value);
+        let actual = value.parse();
         assert_eq!(actual, Ok(expected));
     }
 }

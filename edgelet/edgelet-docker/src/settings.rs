@@ -1033,7 +1033,7 @@ mod tests {
         let settings = Settings::new(Path::new(GOOD_SETTINGS_TLS)).unwrap();
         assert_eq!(
             settings.listen().min_tls_version(),
-            Some(&edgelet_core::Protocol::Tls12)
+            Some(edgelet_core::Protocol::Tls12)
         );
     }
 

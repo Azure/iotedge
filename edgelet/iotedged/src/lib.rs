@@ -2069,7 +2069,7 @@ where
 
     let label = "mgmt".to_string();
     let url = settings.listen().management_uri().clone();
-    let min_protocol_version = settings.listen().min_tls_version().cloned();
+    let min_protocol_version = settings.listen().min_tls_version();
 
     ManagementService::new(runtime, id_man, initiate_shutdown_and_reprovision)
         .then(move |service| -> Result<_, Error> {
@@ -2130,7 +2130,7 @@ where
 
     let label = "work".to_string();
     let url = settings.listen().workload_uri().clone();
-    let min_protocol_version = settings.listen().min_tls_version().cloned();
+    let min_protocol_version = settings.listen().min_tls_version();
 
     WorkloadService::new(key_store, crypto.clone(), runtime, config)
         .then(move |service| -> Result<_, Error> {
