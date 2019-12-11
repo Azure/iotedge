@@ -48,7 +48,7 @@ namespace Modules.Test.TestResultCoordinator
                 1000);
 
             Assert.Equal("actualSource", reportGenerator.ActualSource);
-            Assert.Equal(mockActualStore.Object, reportGenerator.AcutalStore);
+            Assert.Equal(mockActualStore.Object, reportGenerator.ActualStore);
             Assert.Equal("expectedSource", reportGenerator.ExpectedSource);
             Assert.Equal(mockExpectedStore.Object, reportGenerator.ExpectedStore);
             Assert.Equal("resultType1", reportGenerator.ResultType);
@@ -194,7 +194,7 @@ namespace Modules.Test.TestResultCoordinator
             Assert.Equal(0, report.TotalExpectCount);
             Assert.Equal(0, report.TotalMatchCount);
             Assert.Equal(0, report.TotalDuplicateResultCount);
-            Assert.Equal(0, report.MissingResults.Count);
+            Assert.Equal(0, report.UnmatchedResults.Count);
         }
 
         [Theory]
@@ -242,7 +242,7 @@ namespace Modules.Test.TestResultCoordinator
             Assert.Equal(expectedTotalExpectedCount, report.TotalExpectCount);
             Assert.Equal(expectedTotalMatchCount, report.TotalMatchCount);
             Assert.Equal(expectedTotalDuplicateResultCount, report.TotalDuplicateResultCount);
-            Assert.Equal(expectedMissingResultsCount, report.MissingResults.Count);
+            Assert.Equal(expectedMissingResultsCount, report.UnmatchedResults.Count);
         }
 
         static List<(long, TestOperationResult)> GetStoreData(string source, string resultType, IEnumerable<string> resultValues, int start = 0)

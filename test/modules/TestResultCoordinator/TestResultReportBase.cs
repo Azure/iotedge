@@ -3,6 +3,9 @@ namespace TestResultCoordinator
 {
     using Microsoft.Azure.Devices.Edge.Util;
 
+    /// <summary>
+    /// This is basic test result report implementation.
+    /// </summary>
     abstract class TestResultReportBase : ITestResultReport
     {
         protected TestResultReportBase(string expectSource, string actualSource, string resultType)

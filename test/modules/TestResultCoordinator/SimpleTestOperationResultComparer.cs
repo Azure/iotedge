@@ -3,6 +3,9 @@ namespace TestResultCoordinator
 {
     using System;
 
+    /// <summary>
+    /// This test result comparer is used to determine if 2 TestOperationResult instances matches.
+    /// </summary>
     sealed class SimpleTestOperationResultComparer : ITestResultComparer<TestOperationResult>
     {
         public bool Matches(TestOperationResult value1, TestOperationResult value2)

@@ -11,6 +11,10 @@ namespace TestResultCoordinator
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
+    /// <summary>
+    /// This is used to create counting report based on 2 different sources/stores; it will use given test result comparer to determine whether it matches or not.
+    /// It also filter out consecutive duplicate results when loading results from actual store.  The default batch size is 500; which is used to control total size of test data loaded into memory.
+    /// </summary>
     sealed class CountingReportGenerator : ITestResultReportGenerator
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(CountingReportGenerator));
@@ -23,7 +27,10 @@ namespace TestResultCoordinator
         readonly ITestResultComparer<TestOperationResult> testResultComparer;
         readonly int batchSize;
 
-        CountingReport<TestOperationResult> report;
+        long totalExpectCount = 0;
+        long totalMatchCount = 0;
+        long totalDuplicateResultCount = 0;
+        List<TestOperationResult> unmatchedResults;
 
         public CountingReportGenerator(
             string expectedSource,
@@ -43,20 +50,26 @@ namespace TestResultCoordinator
             this.batchSize = batchSize;
         }
 
-        public string ActualSource => this.actualSource;
+        internal string ActualSource => this.actualSource;
 
-        public ISequentialStore<TestOperationResult> AcutalStore => this.actualStore;
+        internal ISequentialStore<TestOperationResult> ActualStore => this.actualStore;
 
-        public string ExpectedSource => this.expectedSource;
+        internal string ExpectedSource => this.expectedSource;
 
-        public ISequentialStore<TestOperationResult> ExpectedStore => this.expectedStore;
+        internal ISequentialStore<TestOperationResult> ExpectedStore => this.expectedStore;
 
-        public string ResultType => this.resultType;
+        internal string ResultType => this.resultType;
 
-        public ITestResultComparer<TestOperationResult> TestResultComparer => this.testResultComparer;
+        internal ITestResultComparer<TestOperationResult> TestResultComparer => this.testResultComparer;
 
-        public int BatchSize => this.batchSize;
+        internal int BatchSize => this.batchSize;
 
+        /// <summary>
+        /// Compare 2 data stores and counting expect, match, and duplicate results; and return a counting report.
+        /// It will remove consecutive duplicate results when loading from actual store.
+        /// It will log fail if actual store has more results than expect store.
+        /// </summary>
+        /// <returns></returns>
         public async Task<ITestResultReport> CreateReportAsync()
         {
             Logger.LogInformation($"Start to generate report by {nameof(CountingReportGenerator)} for Sources [{this.expectedSource}] and [{this.actualSource}]");
@@ -65,9 +78,12 @@ namespace TestResultCoordinator
             long lastLoadedKeyFromActualStore = -1;
             TestOperationResult lastLoadedResult = default(TestOperationResult);
 
-            this.report = new CountingReport<TestOperationResult>(this.expectedSource, this.actualSource, this.resultType);
             var expectQueue = new Queue<TestOperationResult>();
             var actualQueue = new Queue<TestOperationResult>();
+            totalExpectCount = 0;
+            totalMatchCount = 0;
+            totalDuplicateResultCount = 0;
+            unmatchedResults = new List<TestOperationResult>();
 
             (lastLoadedKeyFromExpectStore, _) = await this.LoadBatchIntoQueueAsync(this.expectedSource, this.expectedStore, lastLoadedKeyFromExpectStore, expectQueue);
             (lastLoadedKeyFromActualStore, lastLoadedResult) = await this.LoadBatchIntoQueueAsync(this.actualSource, this.actualStore, lastLoadedKeyFromActualStore, actualQueue, lastLoadedResult);
@@ -77,16 +93,16 @@ namespace TestResultCoordinator
                 TestOperationResult expectedResult = expectQueue.Dequeue();
                 TestOperationResult actualResult = actualQueue.Peek();
 
-                this.report.TotalExpectCount++;
+                this.totalExpectCount++;
 
                 if (this.testResultComparer.Matches(expectedResult, actualResult))
                 {
                     actualQueue.Dequeue();
-                    this.report.TotalMatchCount++;
+                    this.totalMatchCount++;
                 }
                 else
                 {
-                    this.report.AddMissingResult(expectedResult);
+                    this.unmatchedResults.Add(expectedResult);
                 }
 
                 if (expectQueue.Count == 0 || actualQueue.Count == 0)
@@ -98,8 +114,8 @@ namespace TestResultCoordinator
 
             while (expectQueue.Count > 0)
             {
-                this.report.AddMissingResult(expectQueue.Dequeue());
-                this.report.TotalExpectCount++;
+                this.unmatchedResults.Add(expectQueue.Dequeue());
+                this.totalExpectCount++;
 
                 if (expectQueue.Count == 0)
                 {
@@ -125,7 +141,15 @@ namespace TestResultCoordinator
                 }
             }
 
-            return this.report;
+            return new CountingReport<TestOperationResult>(
+                this.expectedSource,
+                this.actualSource,
+                this.resultType,
+                this.totalExpectCount,
+                this.totalMatchCount,
+                this.totalDuplicateResultCount,
+                this.unmatchedResults.AsReadOnly()
+                );
         }
 
         async Task<(long, TestOperationResult)> LoadBatchIntoQueueAsync(
@@ -155,7 +179,7 @@ namespace TestResultCoordinator
                     if (lastLoadedResult != null && this.testResultComparer.Matches(lastLoadedResult, values.Item2))
                     {
                         // Skip for duplicate result
-                        this.report.TotalDuplicateResultCount++;
+                        this.totalDuplicateResultCount++;
                         continue;
                     }
 
