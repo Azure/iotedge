@@ -12,7 +12,6 @@ namespace LoadGen
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
-    using TestOperationResult = Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient.TestOperationResult;
     class Program
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("LoadGen");
@@ -55,6 +54,7 @@ namespace LoadGen
                                 trcUrl,
                                 UriKind.Absolute);
                             TestResultCoordinatorClient trcClient = new TestResultCoordinatorClient { BaseUrl = testResultCoordinatorUrl.AbsoluteUri };
+
                             await ModuleUtil.ReportStatus(
                                 trcClient,
                                 Logger,

@@ -14,8 +14,6 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
     using ExponentialBackoff = Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.ExponentialBackoff;
     using ILogger = Microsoft.Extensions.Logging.ILogger;
 
-    using TestOperationResultAlias = Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient.TestOperationResult;
-    using TestResultCoordinatorClientAlias = Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient.TestResultCoordinatorClient;
     public static class ModuleUtil
     {
         public static readonly ITransientErrorDetectionStrategy DefaultTimeoutErrorDetectionStrategy =
@@ -62,11 +60,11 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
             return string.Join(';', values);
         }
 
-        public static async Task ReportStatus(TestResultCoordinatorClientAlias trcClient, ILogger logger, string source, string result, string format)
+        public static async Task ReportStatus(TestResultCoordinatorClient.TestResultCoordinatorClient trcClient, ILogger logger, string source, string result, string format)
         {
             try
             {
-                await trcClient.ReportResultAsync(new TestOperationResultAlias { Source = source, Result = result, CreatedAt = DateTime.UtcNow, Type = format });
+                await trcClient.ReportResultAsync(new TestResultCoordinatorClient.TestOperationResult { Source = source, Result = result, CreatedAt = DateTime.UtcNow, Type = format });
             }
             catch (Exception e)
             {

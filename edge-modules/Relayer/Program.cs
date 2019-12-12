@@ -10,12 +10,13 @@ namespace Relayer
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+
     /*
      * Module for relaying messages. It receives a message and passes it on.
      */
     class Program
     {
-        static readonly ILogger Logger = ModuleUtil.CreateLogger(Settings.Current.ModuleId);
+        static readonly ILogger Logger = ModuleUtil.CreateLogger("Relayer");
 
         static async Task Main(string[] args)
         {
