@@ -114,7 +114,7 @@ function process_args() {
             LOADGEN_MESSAGE_FREQUENCY="$arg"
             saveNextArg=0   
         elif [ $saveNextArg -eq 12 ]; then
-            NETWORK_CONTROLLER_FREQUENCIES="${arg[@]}"
+            NETWORK_CONTROLLER_FREQUENCIES=($arg)
             saveNextArg=0
         elif [ $saveNextArg -eq 13 ]; then
             NETWORK_CONTROLLER_MODE="$arg"
@@ -249,6 +249,12 @@ function usage() {
     echo ' -containerRegistryPassword      Password of given username for container registory.'
     echo ' -iotHubConnectionString         IoT hub connection string for creating edge device.'
     echo ' -eventHubConnectionString       Event hub connection string for receive D2C messages.'
+    echo ' -eventHubConsumerGroupId        Event hub consumer group for receive D2C messages.'
+    echo ' -testDuration                   Connectivity test duration'
+    echo ' -loadGenMessageFrequency        Message frequency sent by load gen' 
+    echo ' -networkControllerFrequency     Frequency for controlling the network with offlineFrequence, onlineFrequence, runsCount. Example "00:05:00 00:05:00 6"' 
+    echo ' -networkControllerMode          OfflineNetworkInterface, OfflineTrafficController or SatelliteTrafficController' 
+
     echo ' -cleanAll                       Do docker prune for containers, logs and volumes.'
     exit 1;
 }

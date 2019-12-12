@@ -46,7 +46,7 @@
                 "value": "<LoadGen.MessageFrequency>"
               },
               "testRunDuration": {
-                "value": "<LoadGen.TestDuration>"
+                "value": "<TestDuration>"
               },
               "trackingId": {
                 "value": "<TrackingId>"
@@ -76,7 +76,7 @@
                 "value": "<LoadGen.MessageFrequency>"
               },
               "testRunDuration": {
-                "value": "<LoadGen.TestDuration>"
+                "value": "<TestDuration>"
               },
               "trackingId": {
                 "value": "<TrackingId>"
@@ -136,67 +136,72 @@
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-relayer:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
-            },
-            "testResultCoordinator": {
-              "version": "1.0",
-              "type": "docker",
-              "status": "running",
-              "restartPolicy": "always",
-              "env": {
-                "trackingId": {
-                  "value": "<TrackingId>"
-                }
-              },
-              "settings": {
-                "image": "<Container_Registry>/microsoft/azureiotedge-test-result-coordinator:<Build.BuildNumber>-linux-<Architecture>",
-                "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"5001/tcp\": [{\"HostPort\": \"5001\"}]}}}"
-              },
-              "networkController": {
-                "version": "1.0",
-                "type": "docker",
-                "status": "running",
-                "restartPolicy": "always",
-                "env": {
-                  "trackingId": {
-                    "value": "<TrackingId>"
-                  },
-                  "testResultCoordinatorUrl": {
-                    "value": "http://testResultCoordinator:5001/api/testoperationresult"
-                  },
-                  "RunFrequencies:0:OfflineFrequency": {
-                    "value": "<NetworkController.OfflineFrequency0>"
-                  },
-                  "RunFrequencies:0:OnlineFrequency": {
-                    "value": "<NetworkController.OnlineFrequency0>"
-                  },
-                  "RunFrequencies:0:RunsCount": {
-                    "value": "<NetworkController.RunsCount0>"
-                  },
-                  "NetworkControllerMode": {
-                    "value": "<NetworkController.Mode>"
-                  }
-                },
-                "settings": {
-                  "image": "<Container_Registry>/microsoft/azureiotedge-network-controller:<Build.BuildNumber>-linux-<Architecture>",
-                  "createOptions": "{\"HostConfig\":{\"Privileged\":\"true\",\"NetworkMode\":\"host\",\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\"]},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
-                }
-              }
             }
-          }
-        },
-        "$edgeHub": {
-          "properties.desired": {
-            "schemaVersion": "1.0",
-            "routes": {
-              "loadGen1ToRelayer1": "FROM /messages/modules/loadGen1/outputs/output1 INTO BrokeredEndpoint(\"/modules/relayer1/inputs/input1\")",
-              "relayer1ToCloud": "FROM /messages/modules/relayer1/outputs/output1 INTO $upstream",
-              "loadGen2ToRelayer2": "FROM /messages/modules/loadGen2/outputs/output2 INTO BrokeredEndpoint(\"/modules/relayer2/inputs/input2\")",
-              "relayer2ToCloud": "FROM /messages/modules/relayer2/outputs/output2 INTO $upstream"
+          },
+          "testResultCoordinator": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "trackingId": {
+                "value": "<TrackingId>"
+              },
+              "testDuration": {
+                "value": "<TestDuration>"
+              }
             },
-            "storeAndForwardConfiguration": {
-              "timeToLiveSecs": 86400
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-test-result-coordinator:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"5001/tcp\": [{\"HostPort\": \"5001\"}]}}}"
+            }
+          },
+          "networkController": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "trackingId": {
+                "value": "<TrackingId>"
+              },
+              "testResultCoordinatorUrl": {
+                "value": "http://testResultCoordinator:5001/api/testoperationresult"
+              },
+              "RunFrequencies:0:OfflineFrequency": {
+                "value": "<NetworkController.OfflineFrequency0>"
+              },
+              "RunFrequencies:0:OnlineFrequency": {
+                "value": "<NetworkController.OnlineFrequency0>"
+              },
+              "RunFrequencies:0:RunsCount": {
+                "value": "<NetworkController.RunsCount0>"
+              },
+              "NetworkControllerMode": {
+                "value": "<NetworkController.Mode>"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-network-controller:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"Privileged\":\"true\",\"NetworkMode\":\"host\",\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\"]},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           }
         }
       }
+    },
+    "$edgeHub": {
+      "properties.desired": {
+        "schemaVersion": "1.0",
+        "routes": {
+          "loadGen1ToRelayer1": "FROM /messages/modules/loadGen1/outputs/output1 INTO BrokeredEndpoint(\"/modules/relayer1/inputs/input1\")",
+          "relayer1ToCloud": "FROM /messages/modules/relayer1/outputs/output1 INTO $upstream",
+          "loadGen2ToRelayer2": "FROM /messages/modules/loadGen2/outputs/output2 INTO BrokeredEndpoint(\"/modules/relayer2/inputs/input2\")",
+          "relayer2ToCloud": "FROM /messages/modules/relayer2/outputs/output2 INTO $upstream"
+        },
+        "storeAndForwardConfiguration": {
+          "timeToLiveSecs": 86400
+        }
+      }
     }
+  }
+}
