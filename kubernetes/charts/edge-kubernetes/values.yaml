@@ -2,7 +2,7 @@
 iotedged:
   image:
     repository: azureiotedge/azureiotedge-iotedged
-    tag: 0.1.0-beta1
+    tag: 0.1.0-beta2
     pullPolicy: Always
   service:
     name: iotedged
@@ -36,15 +36,27 @@ iotedged:
   # are auto generated for quick start scenarios which are not intended for
   # production environments.
   #
+  # Please create a secret containing 3 items, the Device CA cert, the Device CA private key, and
+  # the root CA. Then give the chart the secret name and the item names. For example, if a secret 
+  # is created like this:
+  # `kubectl create secret generic -n device-namespace edge-certs --from-file=certs/iot-edge-device-ca-MyEdgeDeviceCA-full-chain.cert.pem --from-file=private/iot-edge-device-ca-MyEdgeDeviceCA.key.pem --from-file=certs/azure-iot-test-only.root.ca.cert.pem`
+  # The YAML would look like:
   # certificates:
-  #   device_ca_cert: "<ADD PATH TO DEVICE CA CERTIFICATE HERE>"
-  #   device_ca_pk: "<ADD PATH TO DEVICE CA PRIVATE KEY HERE>"
-  #   trusted_ca_certs: "<ADD PATH TO TRUSTED CA CERTIFICATES HERE>"
+  #   secret: "edge-certs"
+  #   device_ca_cert: "iot-edge-device-ca-MyEdgeDeviceCA-full-chain.cert.pem"
+  #   device_ca_pk: "iot-edge-device-ca-MyEdgeDeviceCA.key.pem"
+  #   trusted_ca_certs: "azure-iot-test-only.root.ca.cert.pem"
+  #
+  # certificates:
+  #   secret: "<Name of secret>"
+  #   device_ca_cert: "<ADD SECRET ITEM NAME FOR DEVICE CA CERTIFICATE HERE>"
+  #   device_ca_pk: "<ADD SECRET ITEM NAME FOR CA PRIVATE KEY HERE>"
+  #   trusted_ca_certs: "<ADD SECRET ITEM NAME FOR CA CERTIFICATES HERE>"
 
 iotedgedProxy:
   image:
     repository: azureiotedge/azureiotedge-proxy
-    tag: 0.1.0-beta1
+    tag: 0.1.0-beta2
     pullPolicy: Always
 
 # Edge Agent image configuration
@@ -52,7 +64,7 @@ edgeAgent:
   containerName: edgeagent
   image:
     repository: azureiotedge/azureiotedge-agent
-    tag: 0.1.0-beta1
+    tag: 0.1.0-beta2
     pullPolicy: Always
   hostname: "localhost"
   env:
