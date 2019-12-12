@@ -33,10 +33,10 @@ namespace LoadGen
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                     ModuleUtil.DefaultTransientRetryStrategy,
                     Logger);
-                
+
                 Logger.LogInformation($"Load gen delay start for {Settings.Current.TestStartDelay}.");
                 await Task.Delay(Settings.Current.TestStartDelay);
-                
+
                 DateTime testStartAt = DateTime.UtcNow;
                 long messageIdCounter = 1;
                 while (!cts.IsCancellationRequested &&
