@@ -2,7 +2,6 @@
 namespace TestResultCoordinator
 {
     using System;
-    using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore;
@@ -23,6 +22,12 @@ namespace TestResultCoordinator
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
+            await SetupEventReceiveHandlerAsync(Settings.Current, DateTime.UtcNow);
+
+            // Continue after delay to report test results
+            Task.Delay(Settings.Current.TestDuration + Settings.Current.DurationBeforeVerification, cts.Token)
+                .ContinueWith(async _ => await ReportTestResultsAsync(), cts.Token);
+
             await TestOperationResultStorage.InitAsync(Settings.Current.StoragePath, new SystemEnvironment(), Settings.Current.OptimizeForPerformance, Settings.Current.ResultSources);
             Logger.LogInformation("TestOperationResultStorage created successfully");
             Logger.LogInformation("Creating WebHostBuilder...");
@@ -34,24 +39,30 @@ namespace TestResultCoordinator
             Console.WriteLine("TestResultCoordinator Main() exited.");
         }
 
+        static Task ReportTestResultsAsync()
+        {
+            // TODO: Generate report and report to Log Analytic
+            return Task.CompletedTask;
+        }
+
         static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
             WebHost.CreateDefaultBuilder(args)
-                .UseUrls($"http://*:{Settings.Current.WebhostPort}")
+                .UseUrls($"http://*:{Settings.Current.WebHostPort}")
                 .UseStartup<Startup>();
-        
-        static async Task SetupEventReceiveHandlerAsync(string trackingId, string deviceId, string eventHubsConnectionString, string consumerGroupId, DateTime eventEnqueuedFrom)
+
+        static async Task SetupEventReceiveHandlerAsync(Settings settings, DateTime eventEnqueuedFrom)
         {
-            var builder = new EventHubsConnectionStringBuilder(eventHubsConnectionString);
-            Logger.LogInformation($"Receiving events from device '{deviceId}' on Event Hub '{builder.EntityPath}' enqueued at or after {eventEnqueuedFrom}");
+            var builder = new EventHubsConnectionStringBuilder(settings.EventHubConnectionString);
+            Logger.LogInformation($"Receiving events from device '{settings.DeviceId}' on Event Hub '{builder.EntityPath}' enqueued at or after {eventEnqueuedFrom}");
 
             EventHubClient eventHubClient = EventHubClient.CreateFromConnectionString(builder.ToString());
 
             PartitionReceiver eventHubReceiver = eventHubClient.CreateReceiver(
-                consumerGroupId,
-                EventHubPartitionKeyResolver.ResolveToPartition(deviceId, (await eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
+                settings.ConsumerGroupName,
+                EventHubPartitionKeyResolver.ResolveToPartition(settings.DeviceId, (await eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
                 EventPosition.FromEnqueuedTime(eventEnqueuedFrom));
 
-            eventHubReceiver.SetReceiveHandler(new PartitionReceiveHandler(trackingId, deviceId));
+            eventHubReceiver.SetReceiveHandler(new PartitionReceiveHandler(settings.TrackingId, settings.DeviceId));
         }
     }
 }
