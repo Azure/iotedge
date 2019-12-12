@@ -28,11 +28,16 @@ namespace TestResultCoordinator
                 return new Settings(
                     configuration.GetValue("WebhostPort", DefaultWebhostPort),
                     configuration.GetValue<string>("StoragePath", DefaultStoragePath),
-                    configuration.GetValue<bool>("StorageOptimizeForPerformance", true));
+                    configuration.GetValue<bool>("StorageOptimizeForPerformance", true),
+                    configuration.GetValue("testDuration", TimeSpan.FromHours(1)));
             });
-        Settings(ushort webhostPort, string storagePath, bool optimizeForPerformance)
+        Settings(
+            ushort webHostPort,
+            string storagePath,
+            bool optimizeForPerformance,
+            TimeSpan testDuration)
         {
-            this.WebhostPort = Preconditions.CheckNotNull(webhostPort);
+            this.WebhostPort = Preconditions.CheckNotNull(webHostPort);
             this.StoragePath = storagePath;
             this.OptimizeForPerformance = Preconditions.CheckNotNull(optimizeForPerformance);
             this.ResultSources = this.GetResultSources();

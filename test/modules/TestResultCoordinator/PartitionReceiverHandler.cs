@@ -13,10 +13,7 @@ namespace TestResultCoordinator
     {
         const string DeviceIdPropertyName = "iothub-connection-device-id";
         const string ModuleIdPropertyName = "iothub-connection-module-id";
-        const string SequenceNumberPropertyName = "sequenceNumber";
         const string EnqueuedTimePropertyName = "iothub-enqueuedtime";
-        const string BatchIdPropertyName = "batchId";
-        const string TrackingIdPropertyName = "trackingId";
 
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(PartitionReceiveHandler));
 
@@ -37,7 +34,7 @@ namespace TestResultCoordinator
             {
                 foreach (EventData eventData in events)
                 {
-                    eventData.SystemProperties.TryGetValue(TrackingIdPropertyName, out object trackingIdFromEvent);
+                    eventData.SystemProperties.TryGetValue(TestConstants.Message.TrackingIdPropertyName, out object trackingIdFromEvent);
                     eventData.SystemProperties.TryGetValue(DeviceIdPropertyName, out object deviceIdFromEvent);
                     eventData.SystemProperties.TryGetValue(ModuleIdPropertyName, out object moduleIdFromEvent);
 
@@ -47,8 +44,8 @@ namespace TestResultCoordinator
                         string.Equals(deviceIdFromEvent.ToString(), this.deviceId, StringComparison.OrdinalIgnoreCase) &&
                         !string.IsNullOrWhiteSpace((string)moduleIdFromEvent))
                     {
-                        eventData.Properties.TryGetValue(SequenceNumberPropertyName, out object sequenceNumberFromEvent);
-                        eventData.Properties.TryGetValue(BatchIdPropertyName, out object batchIdFromEvent);
+                        eventData.Properties.TryGetValue(TestConstants.Message.SequenceNumberPropertyName, out object sequenceNumberFromEvent);
+                        eventData.Properties.TryGetValue(TestConstants.Message.BatchIdPropertyName, out object batchIdFromEvent);
 
                         if (!string.IsNullOrWhiteSpace((string)sequenceNumberFromEvent) &&
                             !string.IsNullOrWhiteSpace((string)batchIdFromEvent))
