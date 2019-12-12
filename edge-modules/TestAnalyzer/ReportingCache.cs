@@ -186,10 +186,4 @@ namespace TestAnalyzer
             }
         }
     }
-
-    //static class TestOperationResultType
-    //{
-    //    //internal const string AnalyzerDirectMethod = "LegacyDirectMethod";
-    //    //internal const string AnalyzerTwin = "LegacyTwin";
-    //}
 }
