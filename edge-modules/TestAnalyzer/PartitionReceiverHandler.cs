@@ -12,9 +12,7 @@ namespace TestAnalyzer
     {
         const string DeviceIdPropertyName = "iothub-connection-device-id";
         const string ModuleIdPropertyName = "iothub-connection-module-id";
-        const string SequenceNumberPropertyName = "sequenceNumber";
         const string EnqueuedTimePropertyName = "iothub-enqueuedtime";
-        const string BatchIdPropertyName = "batchId";
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(PartitionReceiveHandler));
         readonly string deviceId;
         readonly IList<string> excludedModulesIds;
@@ -39,8 +37,8 @@ namespace TestAnalyzer
                     if (devId != null && devId.ToString() == this.deviceId &&
                         modId != null && !this.excludedModulesIds.Contains(modId.ToString()))
                     {
-                        eventData.Properties.TryGetValue(SequenceNumberPropertyName, out object sequence);
-                        eventData.Properties.TryGetValue(BatchIdPropertyName, out object batchId);
+                        eventData.Properties.TryGetValue(TestConstants.Message.SequenceNumberPropertyName, out object sequence);
+                        eventData.Properties.TryGetValue(TestConstants.Message.BatchIdPropertyName, out object batchId);
 
                         if (sequence != null && batchId != null)
                         {
