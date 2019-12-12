@@ -8,6 +8,8 @@ parameters:
   iotHub.connectionString: ''
   eventHub.connectionString: ''
   loadGen.message.frequency: ''
+  networkController.frequencies: ''
+  networkController.mode: ''
 
 steps:
   - task: CopyFiles@2
@@ -41,5 +43,7 @@ steps:
           -iotHubConnectionString "${{ parameters['iotHub.connectionString'] }}" \
           -eventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" \
           -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" \
+          -networkControllerFrequency "${{ parameters['networkController.frequencies'] }}" \
+          -networkControllerMode "${{ parameters['networkController.mode'] }}" \
           -cleanAll
       workingDirectory: "$(Agent.HomeDirectory)/.."
