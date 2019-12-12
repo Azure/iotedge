@@ -435,7 +435,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             IDbStoreProvider dbStoreProvider = await container.Resolve<Task<IDbStoreProvider>>();
             await dbStoreProvider.CloseAsync();
         }
-        
+
         static Option<ulong> GetStorageMaxTotalWalSizeIfExists(IConfiguration configuration)
         {
             ulong storageMaxTotalWalSize = 0;
