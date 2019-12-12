@@ -28,11 +28,6 @@ namespace TestResultCoordinator
         readonly ITestResultComparer<TestOperationResult> testResultComparer;
         readonly int batchSize;
 
-        ulong totalExpectCount = 0;
-        ulong totalMatchCount = 0;
-        ulong totalDuplicateResultCount = 0;
-        List<TestOperationResult> unmatchedResults;
-
         public CountingReportGenerator(
             string trackingId,
             string expectedSource,
@@ -83,46 +78,49 @@ namespace TestResultCoordinator
 
             var expectQueue = new Queue<TestOperationResult>();
             var actualQueue = new Queue<TestOperationResult>();
-            totalExpectCount = 0;
-            totalMatchCount = 0;
-            totalDuplicateResultCount = 0;
-            unmatchedResults = new List<TestOperationResult>();
+            ulong totalExpectCount = 0;
+            ulong totalMatchCount = 0;
+            ulong totalDuplicateResultCount = 0;
+            List<TestOperationResult> unmatchedResults = new List<TestOperationResult>();
+            ulong duplicatesFound = 0;
 
-            (lastLoadedKeyFromExpectStore, _) = await this.LoadBatchIntoQueueAsync(this.expectedSource, this.expectedStore, lastLoadedKeyFromExpectStore, expectQueue);
-            (lastLoadedKeyFromActualStore, lastLoadedResult) = await this.LoadBatchIntoQueueAsync(this.actualSource, this.actualStore, lastLoadedKeyFromActualStore, actualQueue, lastLoadedResult);
+            (lastLoadedKeyFromExpectStore, _, _) = await this.LoadBatchIntoQueueAsync(this.expectedSource, this.expectedStore, lastLoadedKeyFromExpectStore, expectQueue);
+            (lastLoadedKeyFromActualStore, lastLoadedResult, duplicatesFound) = await this.LoadBatchIntoQueueAsync(this.actualSource, this.actualStore, lastLoadedKeyFromActualStore, actualQueue, lastLoadedResult);
+            totalDuplicateResultCount += duplicatesFound;
 
             while (expectQueue.Count > 0 && actualQueue.Count > 0)
             {
                 TestOperationResult expectedResult = expectQueue.Dequeue();
                 TestOperationResult actualResult = actualQueue.Peek();
 
-                this.totalExpectCount++;
+                totalExpectCount++;
 
                 if (this.testResultComparer.Matches(expectedResult, actualResult))
                 {
                     actualQueue.Dequeue();
-                    this.totalMatchCount++;
+                    totalMatchCount++;
                 }
                 else
                 {
-                    this.unmatchedResults.Add(expectedResult);
+                    unmatchedResults.Add(expectedResult);
                 }
 
                 if (expectQueue.Count == 0 || actualQueue.Count == 0)
                 {
-                    (lastLoadedKeyFromExpectStore, _) = await this.LoadBatchIntoQueueAsync(this.expectedSource, this.expectedStore, lastLoadedKeyFromExpectStore, expectQueue);
-                    (lastLoadedKeyFromActualStore, lastLoadedResult) = await this.LoadBatchIntoQueueAsync(this.actualSource, this.actualStore, lastLoadedKeyFromActualStore, actualQueue, lastLoadedResult);
+                    (lastLoadedKeyFromExpectStore, _, _) = await this.LoadBatchIntoQueueAsync(this.expectedSource, this.expectedStore, lastLoadedKeyFromExpectStore, expectQueue);
+                    (lastLoadedKeyFromActualStore, lastLoadedResult, duplicatesFound) = await this.LoadBatchIntoQueueAsync(this.actualSource, this.actualStore, lastLoadedKeyFromActualStore, actualQueue, lastLoadedResult);
+                    totalDuplicateResultCount += duplicatesFound;
                 }
             }
 
             while (expectQueue.Count > 0)
             {
-                this.unmatchedResults.Add(expectQueue.Dequeue());
-                this.totalExpectCount++;
+                unmatchedResults.Add(expectQueue.Dequeue());
+                totalExpectCount++;
 
                 if (expectQueue.Count == 0)
                 {
-                    (lastLoadedKeyFromExpectStore, _) = await this.LoadBatchIntoQueueAsync(this.expectedSource, this.expectedStore, lastLoadedKeyFromExpectStore, expectQueue);
+                    (lastLoadedKeyFromExpectStore, _, _) = await this.LoadBatchIntoQueueAsync(this.expectedSource, this.expectedStore, lastLoadedKeyFromExpectStore, expectQueue);
                 }
             }
 
@@ -139,7 +137,8 @@ namespace TestResultCoordinator
 
                     if (actualQueue.Count == 0)
                     {
-                        (lastLoadedKeyFromActualStore, lastLoadedResult) = await this.LoadBatchIntoQueueAsync(this.actualSource, this.actualStore, lastLoadedKeyFromActualStore, actualQueue, lastLoadedResult);
+                        (lastLoadedKeyFromActualStore, lastLoadedResult, duplicatesFound) = await this.LoadBatchIntoQueueAsync(this.actualSource, this.actualStore, lastLoadedKeyFromActualStore, actualQueue, lastLoadedResult);
+                        totalDuplicateResultCount += duplicatesFound;
                     }
                 }
             }
@@ -149,14 +148,14 @@ namespace TestResultCoordinator
                 this.expectedSource,
                 this.actualSource,
                 this.resultType,
-                this.totalExpectCount,
-                this.totalMatchCount,
-                this.totalDuplicateResultCount,
-                this.unmatchedResults.AsReadOnly()
+                totalExpectCount,
+                totalMatchCount,
+                totalDuplicateResultCount,
+                unmatchedResults.AsReadOnly()
                 );
         }
 
-        async Task<(long, TestOperationResult)> LoadBatchIntoQueueAsync(
+        async Task<(long, TestOperationResult, ulong)> LoadBatchIntoQueueAsync(
             string source,
             ISequentialStore<TestOperationResult> store,
             long lastLoadedPosition,
@@ -165,6 +164,7 @@ namespace TestResultCoordinator
         {
             IEnumerable<(long, TestOperationResult)> batch = await store.GetBatch(lastLoadedPosition + 1, this.batchSize);
             long lastLoadedKey = lastLoadedPosition;
+            ulong duplicatesFound = 0;
 
             while (batch.Any())
             {
@@ -183,7 +183,7 @@ namespace TestResultCoordinator
                     if (lastLoadedResult != null && this.testResultComparer.Matches(lastLoadedResult, values.Item2))
                     {
                         // Skip for duplicate result
-                        this.totalDuplicateResultCount++;
+                        duplicatesFound++;
                         continue;
                     }
 
@@ -201,7 +201,7 @@ namespace TestResultCoordinator
                 batch = await store.GetBatch(lastLoadedKey + 1, this.batchSize);
             }
 
-            return (lastLoadedKey, lastLoadedResult);
+            return (lastLoadedKey, lastLoadedResult, duplicatesFound);
         }
     }
 }

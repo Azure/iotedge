@@ -43,7 +43,7 @@ namespace Modules.Test.TestResultCoordinator
             Assert.Equal("734", report.UnmatchedResults[1].Result);
             Assert.Equal(new DateTime(2019, 12, 4, 10, 15, 18), report.UnmatchedResults[1].CreatedAt);
         }
-    
+
         [Theory]
         [InlineData(null)]
         [InlineData("")]
