@@ -224,7 +224,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                     proxy,
                     metricsConfig,
                     storeAndForward.useBackupAndRestore,
-                    storeAndForward.storageBackupPath));
+                    storeAndForward.storageBackupPath,
                     storeAndForward.storageMaxTotalWalSize));
         }
 
@@ -260,7 +260,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             }
 
             var storeAndForwardConfiguration = new StoreAndForwardConfiguration(timeToLiveSecs);
-            return (storeAndForwardEnabled, usePersistentStorage, storeAndForwardConfiguration, storagePath, storageMaxTotalWalSize, storageBackupPath);
+            return (storeAndForwardEnabled, usePersistentStorage, storeAndForwardConfiguration, storagePath, useBackupAndRestore, storageBackupPath, storageMaxTotalWalSize);
         }
 
         Option<ulong> GetStorageMaxTotalWalSizeIfExists()
