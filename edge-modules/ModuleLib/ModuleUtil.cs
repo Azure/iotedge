@@ -55,6 +55,23 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
             return new LoggerFactory().AddSerilog().CreateLogger(categoryName);
         }
 
+        public static string FormatTestResultValue(params string[] values)
+        {
+            return string.Join(';', values);
+        }
+
+        public static async Task ReportStatus(TestResultCoordinatorClient.TestResultCoordinatorClient trcClient, ILogger logger, string source, string result, string format)
+        {
+            try
+            {
+                await trcClient.ReportResultAsync(new TestResultCoordinatorClient.TestOperationResult { Source = source, Result = result, CreatedAt = DateTime.UtcNow, Type = format });
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Failed call to report status to TestResultCoordinator");
+            }
+        }
+
         static async Task<ModuleClient> InitializeModuleClientAsync(TransportType transportType, ILogger logger)
         {
             ITransportSettings[] GetTransportSettings()
