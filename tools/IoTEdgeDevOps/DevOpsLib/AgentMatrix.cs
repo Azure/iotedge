@@ -7,67 +7,59 @@ namespace DevOpsLib
 
     public class AgentMatrix
     {
-        class CapabilityKeys
-        {
-            public const string AgentOS = "Agent.OS";
-            public const string AgentOSArchitecture = "Agent.OSArchitecture";
-            public const string AgentOSName = "agent-os-name";
-            public const string AgentOSBits = "agent-osbits";
-            public const string RunnerOSName = "runner-os-name";
-        }
-
+        //TODO: consider to create OS Platform and architecture enum to replace below values
         readonly IList<AgentDemandSet> rows = new List<AgentDemandSet>()
         {
             new AgentDemandSet(
                 "Linux AMD64",
                 new HashSet<AgentCapability>
                 {
-                    new AgentCapability(CapabilityKeys.AgentOS, "Linux"),
-                    new AgentCapability(CapabilityKeys.AgentOSArchitecture, "X64"),
+                    new AgentCapability(AgentCapabilityKeys.AgentOS, "Linux"),
+                    new AgentCapability(AgentCapabilityKeys.AgentOSArchitecture, "X64"),
                 }),
             new AgentDemandSet(
                 "Linux ARM32",
                 new HashSet<AgentCapability>
                 {
-                    new AgentCapability(CapabilityKeys.AgentOS, "Linux"),
-                    new AgentCapability(CapabilityKeys.AgentOSArchitecture, "ARM"),
-                    new AgentCapability(CapabilityKeys.AgentOSBits, "32"),
+                    new AgentCapability(AgentCapabilityKeys.AgentOS, "Linux"),
+                    new AgentCapability(AgentCapabilityKeys.AgentOSArchitecture, "ARM"),
+                    new AgentCapability(AgentCapabilityKeys.AgentOSBits, "32"),
                 }),
             new AgentDemandSet(
                 "Linux ARM64",
                 new HashSet<AgentCapability>
                 {
-                    new AgentCapability(CapabilityKeys.AgentOS, "Linux"),
-                    new AgentCapability(CapabilityKeys.AgentOSArchitecture, "ARM"),
-                    new AgentCapability(CapabilityKeys.AgentOSBits, "64"),
+                    new AgentCapability(AgentCapabilityKeys.AgentOS, "Linux"),
+                    new AgentCapability(AgentCapabilityKeys.AgentOSArchitecture, "ARM"),
+                    new AgentCapability(AgentCapabilityKeys.AgentOSBits, "64"),
                 }),
             new AgentDemandSet(
                 "Windows AMD64",
                 new HashSet<AgentCapability>
                 {
-                    new AgentCapability(CapabilityKeys.AgentOS, "Windows_NT"),
-                    new AgentCapability(CapabilityKeys.AgentOSArchitecture, "X64"),
-                    new AgentCapability(CapabilityKeys.AgentOSName, "WinPro_x64"),
+                    new AgentCapability(AgentCapabilityKeys.AgentOS, "Windows_NT"),
+                    new AgentCapability(AgentCapabilityKeys.AgentOSArchitecture, "X64"),
+                    new AgentCapability(AgentCapabilityKeys.AgentOSName, "WinPro_x64"),
                 }),
             new AgentDemandSet(
                 "Windows Server Core AMD64",
                 new HashSet<AgentCapability>
                 {
-                    new AgentCapability(CapabilityKeys.AgentOS, "Windows_NT"),
-                    new AgentCapability(CapabilityKeys.AgentOSArchitecture, "X64"),
-                    new AgentCapability(CapabilityKeys.AgentOSName, "WinServerCore_x64"),
+                    new AgentCapability(AgentCapabilityKeys.AgentOS, "Windows_NT"),
+                    new AgentCapability(AgentCapabilityKeys.AgentOSArchitecture, "X64"),
+                    new AgentCapability(AgentCapabilityKeys.AgentOSName, "WinServerCore_x64"),
                 }),
             new AgentDemandSet(
                 "Windows IoT Core AMD64",
                 new HashSet<AgentCapability>
                 {
-                    new AgentCapability(CapabilityKeys.RunnerOSName, "WinIoTCore_x64"),
+                    new AgentCapability(AgentCapabilityKeys.RunnerOSName, "WinIoTCore_x64"),
                 }),
             new AgentDemandSet(
                 "Windows IoT Core ARM32",
                 new HashSet<AgentCapability>
                 {
-                    new AgentCapability(CapabilityKeys.RunnerOSName, "WinIoTCore_arm32"),
+                    new AgentCapability(AgentCapabilityKeys.RunnerOSName, "WinIoTCore_arm32"),
                 }),
         };
 
@@ -93,27 +85,27 @@ namespace DevOpsLib
                 }),
         };
 
-        Dictionary<AgentDemandSet, Dictionary<AgentDemandSet, HashSet<IoTEdgeVstsAgent>>> matrix;
-        Dictionary<IoTEdgeVstsAgent, bool> agents;
+        Dictionary<AgentDemandSet, Dictionary<AgentDemandSet, HashSet<IoTEdgeAgent>>> matrix;
+        Dictionary<IoTEdgeAgent, bool> agents;
 
         public ImmutableList<AgentDemandSet> Rows => this.rows.ToImmutableList();
 
         public ImmutableList<AgentDemandSet> Columns => this.columns.ToImmutableList();
 
-        public ImmutableDictionary<AgentDemandSet, Dictionary<AgentDemandSet, HashSet<IoTEdgeVstsAgent>>> Matrix =>
+        public ImmutableDictionary<AgentDemandSet, Dictionary<AgentDemandSet, HashSet<IoTEdgeAgent>>> Matrix =>
             this.matrix.ToImmutableDictionary();
 
-        public void Update(HashSet<IoTEdgeVstsAgent> agents)
+        public void Update(HashSet<IoTEdgeAgent> agents)
         {
             this.InitializeDimensions();
 
-            this.agents = new Dictionary<IoTEdgeVstsAgent, bool>(agents.Select(a => new KeyValuePair<IoTEdgeVstsAgent, bool>((IoTEdgeVstsAgent)a.Clone(), false)));
+            this.agents = new Dictionary<IoTEdgeAgent, bool>(agents.Select(a => new KeyValuePair<IoTEdgeAgent, bool>((IoTEdgeAgent)a.Clone(), false)));
 
             foreach (AgentDemandSet platform in this.rows)
             {
                 foreach (AgentDemandSet testType in this.columns)
                 {
-                    foreach (IoTEdgeVstsAgent agent in this.GetUnmatchedAgents())
+                    foreach (IoTEdgeAgent agent in this.GetUnmatchedAgents())
                     {
                         if (agent.Match(platform.Capabilities) && agent.Match(testType.Capabilities))
                         {
@@ -125,22 +117,22 @@ namespace DevOpsLib
             }
         }
 
-        public IoTEdgeVstsAgent[] GetUnmatchedAgents()
+        public IoTEdgeAgent[] GetUnmatchedAgents()
         {
             return this.agents.Where(kvp => !kvp.Value).Select(kvp => kvp.Key).ToArray();
         }
 
         void InitializeDimensions()
         {
-            this.matrix = new Dictionary<AgentDemandSet, Dictionary<AgentDemandSet, HashSet<IoTEdgeVstsAgent>>>();
+            this.matrix = new Dictionary<AgentDemandSet, Dictionary<AgentDemandSet, HashSet<IoTEdgeAgent>>>();
 
             foreach (AgentDemandSet rowGroup in this.rows)
             {
-                this.matrix.Add(rowGroup, new Dictionary<AgentDemandSet, HashSet<IoTEdgeVstsAgent>>());
+                this.matrix.Add(rowGroup, new Dictionary<AgentDemandSet, HashSet<IoTEdgeAgent>>());
 
                 foreach (AgentDemandSet colGroup in this.columns)
                 {
-                    this.matrix[rowGroup].Add(colGroup, new HashSet<IoTEdgeVstsAgent>());
+                    this.matrix[rowGroup].Add(colGroup, new HashSet<IoTEdgeAgent>());
                 }
             }
         }

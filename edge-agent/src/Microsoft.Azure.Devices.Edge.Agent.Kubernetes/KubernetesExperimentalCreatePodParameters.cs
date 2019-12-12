@@ -17,14 +17,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
 
         public Option<IReadOnlyList<KubernetesModuleVolumeSpec>> Volumes { get; }
 
+        public Option<V1PodSecurityContext> SecurityContext { get; }
+
         KubernetesExperimentalCreatePodParameters(
             Option<IDictionary<string, string>> nodeSelector,
             Option<V1ResourceRequirements> resources,
-            Option<IReadOnlyList<KubernetesModuleVolumeSpec>> volumes)
+            Option<IReadOnlyList<KubernetesModuleVolumeSpec>> volumes,
+            Option<V1PodSecurityContext> securityContext)
         {
             this.NodeSelector = nodeSelector;
             this.Resources = resources;
             this.Volumes = volumes;
+            this.SecurityContext = securityContext;
         }
 
         static class ExperimentalParameterNames
@@ -33,6 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             public const string NodeSelector = "NodeSelector";
             public const string Resources = "Resources";
             public const string Volumes = "Volumes";
+            public const string SecurityContext = "SecurityContext";
         }
 
         public static Option<KubernetesExperimentalCreatePodParameters> Parse(IDictionary<string, JToken> other)
@@ -61,7 +66,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
             var volumes = options.Get(ExperimentalParameterNames.Volumes)
                 .FlatMap(option => Option.Maybe(option.ToObject<IReadOnlyList<KubernetesModuleVolumeSpec>>()));
 
-            return new KubernetesExperimentalCreatePodParameters(nodeSelector, resources, volumes);
+            var securityContext = options.Get(ExperimentalParameterNames.SecurityContext)
+                .FlatMap(option => Option.Maybe(option.ToObject<V1PodSecurityContext>()));
+
+            return new KubernetesExperimentalCreatePodParameters(nodeSelector, resources, volumes, securityContext);
         }
 
         static Dictionary<string, JToken> PrepareSupportedOptionsStore(JObject experimental)
@@ -85,7 +93,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         {
             ExperimentalParameterNames.NodeSelector,
             ExperimentalParameterNames.Resources,
-            ExperimentalParameterNames.Volumes
+            ExperimentalParameterNames.Volumes,
+            ExperimentalParameterNames.SecurityContext
         };
 
         static class Events

@@ -12,13 +12,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
     [Integration]
     [Collection("Microsoft.Azure.Devices.Edge.Hub.E2E.Test")]
-    public class TwinDiffE2ETest : EdgeHubTest
+    public class TwinDiffE2ETest
     {
-        public TwinDiffE2ETest(EdgeHubFixture edgeHubFixture)
-            : base(edgeHubFixture)
-        {
-        }
-
         const string DeviceNamePrefix = "E2E_twin_";
 
         [Theory]
@@ -429,7 +424,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             Twin updatedCloudTwin = await deviceClient.GetTwinAsync();
 
             // replicate the patch operation locally
-            var delayTask = Task.Delay(TimeSpan.FromSeconds(10));
+            var delayTask = Task.Delay(TimeSpan.FromSeconds(60));
             while (!desiredPropertiesUpdateCallbackTriggered && !delayTask.IsCompleted)
             {
                 await Task.Delay(TimeSpan.FromMilliseconds(500));

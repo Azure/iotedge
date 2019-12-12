@@ -6,8 +6,9 @@
     clippy::doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
     clippy::module_name_repetitions,
     clippy::shadow_unrelated,
+    clippy::too_many_lines,
     clippy::type_complexity,
-    clippy::use_self,
+    clippy::use_self
 )]
 
 pub mod app;

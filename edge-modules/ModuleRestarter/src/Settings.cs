@@ -7,7 +7,6 @@ namespace ModuleRestarter
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
-    using Newtonsoft.Json.Converters;
     using Newtonsoft.Json.Serialization;
 
     [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
@@ -35,8 +34,8 @@ namespace ModuleRestarter
             string desiredModulesToRestartCSV,
             int restartIntervalInMins)
         {
-            this.ServiceClientConnectionString = Preconditions.CheckNonWhiteSpace(serviceClientConnectionString, "ServiceClientConnectionString");
-            this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, "DeviceId");
+            this.ServiceClientConnectionString = Preconditions.CheckNonWhiteSpace(serviceClientConnectionString, nameof(serviceClientConnectionString));
+            this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.RestartIntervalInMins = Preconditions.CheckRange(restartIntervalInMins, 0);
 
             // mitigate unintended repeated commas
