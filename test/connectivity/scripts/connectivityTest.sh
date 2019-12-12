@@ -38,7 +38,12 @@ function prepare_test_from_artifacts() {
 
     sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
     sed -i -e "s@<LoadGen.TestDuration>@$TEST_DURATION@g" "$deployment_working_file"
-    sed -i -e "s@<LoadGen.TrackingId>@$tracking_Id@g" "$deployment_working_file"
+    sed -i -e "s@<TrackingId>@$tracking_Id@g" "$deployment_working_file"
+
+    sed -i -e "s@<NetworkController.OfflineFrequency0>@$"${NETWORK_CONTROLLER_FREQUENCIES[0]}"@g" "$deployment_working_file"
+    sed -i -e "s@<NetworkController.OnlineFrequency0>@$"${NETWORK_CONTROLLER_FREQUENCIES[1]}"@g" "$deployment_working_file"
+    sed -i -e "s@<NetworkController.RunsCount0>@$"${NETWORK_CONTROLLER_FREQUENCIES[2]}"@g" "$deployment_working_file"
+    sed -i -e "s@<NetworkController.Mode>@$"${NETWORK_CONTROLLER_MODE}"@g" "$deployment_working_file"
 }
 
 function print_logs() {
@@ -107,7 +112,13 @@ function process_args() {
             saveNextArg=0 
         elif [ $saveNextArg -eq 11 ]; then
             LOADGEN_MESSAGE_FREQUENCY="$arg"
-            saveNextArg=0            
+            saveNextArg=0   
+        elif [ $saveNextArg -eq 12 ]; then
+            NETWORK_CONTROLLER_FREQUENCIES="${arg[@]}"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 13 ]; then
+            NETWORK_CONTROLLER_MODE="$arg"
+            saveNextArg=0              
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -122,6 +133,8 @@ function process_args() {
                 '-eventHubConsumerGroupId' ) saveNextArg=9;;
                 '-testDuration' ) saveNextArg=10;;
                 '-loadGenMessageFrequency' ) saveNextArg=11;;
+                '-networkControllerFrequency' ) saveNextArg=12;;
+                '-networkControllerMode' ) saveNextArg=13;;
 
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
@@ -247,6 +260,8 @@ E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
 TEST_DURATION="${TEST_DURATION:-01:00:00}"
 EVENT_HUB_CONSUMER_GROUP_ID=${EVENT_HUB_CONSUMER_GROUP_ID:-\$Default}
 LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:01}"
+NETWORK_CONTROLLER_FREQUENCIES="${NETWORK_CONTROLLER_FREQUENCIES:(null)}"
+NETWORK_CONTROLLER_MODE="${NETWORK_CONTROLLER_MODE:-OfflineTrafficController}"
 
 working_folder="$E2E_TEST_DIR/working"
 quickstart_working_folder="$working_folder/quickstart"
