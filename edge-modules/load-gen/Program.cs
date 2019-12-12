@@ -7,12 +7,12 @@ namespace LoadGen
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
-    using TestResultCoordinator.Client;
 
-    using TestOperationResult = TestResultCoordinator.Client.TestOperationResult;
+    using TestOperationResult = Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient.TestOperationResult;
     class Program
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("LoadGen");
@@ -94,9 +94,11 @@ namespace LoadGen
                 message.Properties.Add("trackingId", trackingId);
 
                 // send a copy of message to the Test Result Coordinator if applicable
-                if (Settings.Current.TestResultCoordinatorUrl != null)
+                if (Settings.Current.TestResultCoordinatorUrl.HasValue)
                 {
-                    Uri testResultCoordinatorUrl = Settings.Current.TestResultCoordinatorUrl;
+                    Uri testResultCoordinatorUrl = new Uri( Settings.Current.TestResultCoordinatorUrl
+                            .Expect(() => new ArgumentException("TestResultCoordinatorUrl must be provided")),
+                        UriKind.Absolute );
                     TestResultCoordinatorClient trcClient = new TestResultCoordinatorClient { BaseUrl = testResultCoordinatorUrl.AbsoluteUri };
                     await ReportStatus(trcClient, Settings.Current.TrackingId, message.ToString());
                 }

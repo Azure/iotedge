@@ -7,11 +7,11 @@ namespace Relayer
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using TestResultCoordinator.Client;
 
-    using TestOperationResult = TestResultCoordinator.Client.TestOperationResult;
+    using TestOperationResult = Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient.TestOperationResult;
     /*
      * Module for relaying messages. It receives a message and passes it on.
      */

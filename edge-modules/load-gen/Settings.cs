@@ -32,7 +32,7 @@ namespace LoadGen
                     configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
                     configuration.GetValue("testDuration", TimeSpan.Zero),
                     configuration.GetValue("trackingId", string.Empty),
-                    configuration.GetValue("testResultCoordinatorUrl", string.Empty));
+                    Option.Maybe(configuration.GetValue("testResultCoordinatorUrl", string.Empty)));
             });
 
         Settings(
@@ -43,7 +43,7 @@ namespace LoadGen
             TimeSpan testStartDelay,
             TimeSpan testDuration,
             string trackingId,
-            string testResultCoordinatorUrl)
+            Option<string> testResultCoordinatorUrl)
         {
             Preconditions.CheckRange(messageFrequency.Ticks, 0);
             Preconditions.CheckRange(testStartDelay.Ticks, 0);
@@ -57,7 +57,7 @@ namespace LoadGen
             this.TestStartDelay = testStartDelay;
             this.TrackingId = trackingId ?? string.Empty;
             this.TransportType = transportType;
-            this.TestResultCoordinatorUrl = string.IsNullOrWhiteSpace(testResultCoordinatorUrl) ? null : new Uri(testResultCoordinatorUrl, UriKind.Absolute);
+            this.TestResultCoordinatorUrl = testResultCoordinatorUrl;
         }
 
         public static Settings Current => DefaultSettings.Value;
@@ -77,7 +77,7 @@ namespace LoadGen
 
         public string TrackingId { get; }
 
-        public Uri TestResultCoordinatorUrl { get; }
+        public Option<string> TestResultCoordinatorUrl { get; }
 
         public override string ToString()
         {
@@ -91,7 +91,7 @@ namespace LoadGen
                 { nameof(this.TestDuration), this.TestDuration.ToString() },
                 { nameof(this.TrackingId), this.TrackingId },
                 { nameof(this.TransportType), Enum.GetName(typeof(TransportType), this.TransportType) },
-                { nameof(this.TestResultCoordinatorUrl), (this.TestResultCoordinatorUrl == null) ? "null" : this.TestResultCoordinatorUrl.ToString() },
+                { nameof(this.TestResultCoordinatorUrl), this.TestResultCoordinatorUrl.ToString() },
             };
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
