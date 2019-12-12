@@ -17,21 +17,13 @@ namespace TestResultCoordinator.Controllers
         {
             try
             {
-                if (Enum.TryParse(result.Type, out Microsoft.Azure.Devices.Edge.ModuleUtil.ResultType resultType))
-                {
-                    await TestOperationResultStorage.AddResultAsync(result);
-                }
-                else
-                {
-                    return this.StatusCode((int)HttpStatusCode.BadRequest);
-                }
+                bool success = await TestOperationResultStorage.AddResultAsync(result);
+                return success ? this.StatusCode((int)HttpStatusCode.NoContent) : this.StatusCode((int)HttpStatusCode.BadRequest);
             }
-            catch (InvalidDataException)
+            catch (Exception)
             {
-                return this.StatusCode((int)HttpStatusCode.BadRequest);
+                return this.StatusCode((int)HttpStatusCode.InternalServerError);
             }
-
-            return this.StatusCode((int)HttpStatusCode.NoContent);
         }
     }
 }

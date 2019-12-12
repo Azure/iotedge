@@ -35,10 +35,10 @@ namespace TestResultCoordinator
             this.WebhostPort = Preconditions.CheckNotNull(webhostPort);
             this.StoragePath = storagePath;
             this.OptimizeForPerformance = Preconditions.CheckNotNull(optimizeForPerformance);
-            this.ResultSources = this.ParseResultSources();
+            this.ResultSources = this.GetResultSources();
         }
 
-        List<string> ParseResultSources()
+        List<string> GetResultSources()
         {
             // TODO: Remove this hardcoded list and use environment variables once we've decided on how exactly to set the configuration
             return new List<string> { "loadGen1.send", "relayer1.receive", "relayer1.send", "relayer1.eventHub", "loadGen2.send", "relayer2.receive", "relayer2.send", "relayer2.eventHub" };

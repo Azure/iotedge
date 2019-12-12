@@ -68,16 +68,28 @@ namespace TestResultCoordinator
 
         public static async Task<bool> AddResultAsync(TestOperationResult testOperationResult)
         {
-            if (resultStores.TryGetValue(testOperationResult.Source, out ISequentialStore<TestOperationResult> resultStore))
+            try
             {
-                    await resultStore.Append(testOperationResult);
-                    return true;
+                if (!Enum.TryParse(testOperationResult.Type, out TestOperationResultType resultType))
+                {
+                    Logger.LogWarning($"Test result has unsupported result type '{testOperationResult.Type}'. Test result: {testOperationResult.Source}, {testOperationResult.CreatedAt}, {testOperationResult.Result}");
+                    return false;
+                }
+
+                if (!resultStores.TryGetValue(testOperationResult.Source, out ISequentialStore<TestOperationResult> resultStore))
+                {
+                    string message = $"Source {testOperationResult.Source} is not valid.";
+                    Logger.LogError(message);
+                    return false;
+                }
+
+                await resultStore.Append(testOperationResult);
+                return true;
             }
-            else
+            catch (Exception e)
             {
-                string message = $"Source {testOperationResult.Source} is not valid.";
-                Logger.LogError(message);
-                throw new InvalidDataException(message);
+                Logger.LogError(e, "Unexpected Exception when adding test result to store");
+                throw;
             }
         }
     }
