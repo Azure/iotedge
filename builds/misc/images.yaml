@@ -243,6 +243,13 @@ jobs:
           name: Relayer
           imageName: azureiotedge-relayer
           project: Relayer
+          
+    # Network Controller
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Network Controller
+          imageName: azureiotedge-network-controller
+          project: NetworkController
 
      # TestResultCoordinator
       - template: templates/image-linux.yaml
