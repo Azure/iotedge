@@ -26,7 +26,7 @@ namespace TestResultCoordinator
 
             // Continue after delay to report test results
             Task.Delay(Settings.Current.TestDuration + Settings.Current.DurationBeforeVerification, cts.Token)
-                .ContinueWith(async _ => await ReportTestResultsAsync());
+                .ContinueWith(async _ => await ReportTestResultsAsync(), cts.Token);
 
             await TestOperationResultStorage.InitAsync(Settings.Current.StoragePath, new SystemEnvironment(), Settings.Current.OptimizeForPerformance, Settings.Current.ResultSources);
             Logger.LogInformation("TestOperationResultStorage created successfully");
