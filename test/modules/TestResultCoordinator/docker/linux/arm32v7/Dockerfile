@@ -9,6 +9,9 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
+# Expose HTTP port
+EXPOSE 5001/tcp
+
 USER moduleuser
 
 CMD echo "$(date --utc +"[%Y-%m-%d %H:%M:%S %:z]"): Starting Module" && \

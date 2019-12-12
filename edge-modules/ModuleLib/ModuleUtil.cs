@@ -55,6 +55,11 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
             return new LoggerFactory().AddSerilog().CreateLogger(categoryName);
         }
 
+        public static string FormatTestResultValue(params string[] values)
+        {
+            return string.Join(';', values);
+        }
+
         static async Task<ModuleClient> InitializeModuleClientAsync(TransportType transportType, ILogger logger)
         {
             ITransportSettings[] GetTransportSettings()

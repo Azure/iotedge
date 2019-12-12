@@ -8,6 +8,7 @@ namespace TestAnalyzer
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
 
     class ReportingCache
     {
@@ -43,11 +44,12 @@ namespace TestAnalyzer
 
         public async Task AddResultAsync(TestOperationResult result)
         {
-            bool isAnalyzerDirectMethodResultType = result.Type.Equals(TestOperationResultType.AnalyzerDirectMethod, StringComparison.OrdinalIgnoreCase);
+            bool isAnalyzerDirectMethodResultType = result.Type.Equals(Enum.GetName(typeof(TestOperationResultType), TestOperationResultType.LegacyDirectMethod), StringComparison.OrdinalIgnoreCase);
             if (!isAnalyzerDirectMethodResultType &&
-                !result.Type.Equals(TestOperationResultType.AnalyzerTwin, StringComparison.OrdinalIgnoreCase))
+                !result.Type.Equals(Enum.GetName(typeof(TestOperationResultType), TestOperationResultType.LegacyTwin), StringComparison.OrdinalIgnoreCase))
             {
-                throw new InvalidDataException($"result type should be either {TestOperationResultType.AnalyzerDirectMethod} or {TestOperationResultType.AnalyzerTwin}. Current is '{result.Type}'.");
+                throw new InvalidDataException(
+                    $"Result type should be either {Enum.GetName(typeof(TestOperationResultType), TestOperationResultType.LegacyDirectMethod)} or {Enum.GetName(typeof(TestOperationResultType), TestOperationResultType.LegacyTwin)}. Current is '{result.Type}'.");
             }
 
             bool isAdded = false;
@@ -59,13 +61,13 @@ namespace TestAnalyzer
             {
                 isAdded = await this.storage.AddTwinResultAsync(result);
             }
-            
+
             if (isAdded)
             {
                 this.AddResult(result, isAnalyzerDirectMethodResultType ? this.directMethodsReportCache : this.twinsReportCache);
             }
         }
-        
+
         void AddResult(TestOperationResult result, ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> cache)
         {
             ConcurrentDictionary<string, Tuple<int, DateTime>> batch = cache.GetOrAdd(result.Source, key => new ConcurrentDictionary<string, Tuple<int, DateTime>>());
@@ -184,11 +186,4 @@ namespace TestAnalyzer
             }
         }
     }
-    
-    static class TestOperationResultType
-    {
-        internal const string AnalyzerDirectMethod = "LegacyDirectMethod";
-        internal const string AnalyzerTwin = "LegacyTwin";
-    }
-    
 }

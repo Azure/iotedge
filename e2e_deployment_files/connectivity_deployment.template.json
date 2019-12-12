@@ -82,7 +82,7 @@
                 "value": "mqtt"
               },
               "outputName": {
-                "value":  "output2"
+                "value": "output2"
               }
             },
             "settings": {
@@ -118,30 +118,37 @@
                 "value": "mqtt"
               },
               "inputName": {
-                "value":  "input2"
-              }
-            },
-            "settings": {
+                "value": "input2"
+              },
               "image": "<Container_Registry>/microsoft/azureiotedge-relayer:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
+            },
+            "networkController": {
+              "version": "1.0",
+              "type": "docker",
+              "status": "running",
+              "restartPolicy": "always",
+              "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-network-controller:<Build.BuildNumber>-linux-<Architecture>",
+                "createOptions": "{\"HostConfig\":{\"Privileged\":\"true\",\"NetworkMode\":\"host\",\"Binds\":[\"/var/run/docker.sock:/var/run/docker.sock\"]},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+              }
             }
           }
         }
-      }
-    },
-    "$edgeHub": {
-      "properties.desired": {
-        "schemaVersion": "1.0",
-        "routes": {
+      },
+      "$edgeHub": {
+        "properties.desired": {
+          "schemaVersion": "1.0",
+          "routes": {
           "loadGen1ToRelayer1": "FROM /messages/modules/loadGen1/outputs/output1 INTO BrokeredEndpoint(\"/modules/relayer1/inputs/input1\")",
-          "relayer1ToCloud": "FROM /messages/modules/relayer1/outputs/output1 INTO $upstream",
-          "loadGen2ToRelayer2": "FROM /messages/modules/loadGen2/outputs/output2 INTO BrokeredEndpoint(\"/modules/relayer2/inputs/input2\")",
-          "relayer2ToCloud": "FROM /messages/modules/relayer2/outputs/output2 INTO $upstream"
-        },
-        "storeAndForwardConfiguration": {
-          "timeToLiveSecs": 86400
+            "relayer1ToCloud": "FROM /messages/modules/relayer1/outputs/output1 INTO $upstream",
+            "loadGen2ToRelayer2": "FROM /messages/modules/loadGen2/outputs/output2 INTO BrokeredEndpoint(\"/modules/relayer2/inputs/input2\")",
+            "relayer2ToCloud": "FROM /messages/modules/relayer2/outputs/output2 INTO $upstream"
+          },
+          "storeAndForwardConfiguration": {
+            "timeToLiveSecs": 86400
+          }
         }
       }
     }
   }
-}
