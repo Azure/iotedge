@@ -32,7 +32,8 @@ namespace LoadGen
                     configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
                     configuration.GetValue("testDuration", TimeSpan.Zero),
                     configuration.GetValue("trackingId", string.Empty),
-                    Option.Maybe(configuration.GetValue("testResultCoordinatorUrl", string.Empty)));
+                    Option.Maybe(configuration.GetValue("testResultCoordinatorUrl", string.Empty)),
+                    configuration.GetValue<string>("IOTEDGE_MODULEID"));
             });
 
         Settings(
@@ -43,7 +44,8 @@ namespace LoadGen
             TimeSpan testStartDelay,
             TimeSpan testDuration,
             string trackingId,
-            Option<string> testResultCoordinatorUrl)
+            Option<string> testResultCoordinatorUrl,
+            string moduleId)
         {
             Preconditions.CheckRange(messageFrequency.Ticks, 0);
             Preconditions.CheckRange(testStartDelay.Ticks, 0);
@@ -58,6 +60,7 @@ namespace LoadGen
             this.TrackingId = trackingId ?? string.Empty;
             this.TransportType = transportType;
             this.TestResultCoordinatorUrl = testResultCoordinatorUrl;
+            this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
         }
 
         public static Settings Current => DefaultSettings.Value;
@@ -77,6 +80,8 @@ namespace LoadGen
 
         public string TrackingId { get; }
 
+        public string ModuleId { get; }
+
         public Option<string> TestResultCoordinatorUrl { get; }
 
         public override string ToString()
@@ -84,6 +89,7 @@ namespace LoadGen
             // serializing in this pattern so that secrets don't accidentally get added anywhere in the future
             var fields = new Dictionary<string, string>
             {
+                { nameof(this.ModuleId), this.ModuleId },
                 { nameof(this.MessageFrequency), this.MessageFrequency.ToString() },
                 { nameof(this.MessageSizeInBytes), this.MessageSizeInBytes.ToString() },
                 { nameof(this.OutputName), this.OutputName },

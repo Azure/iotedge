@@ -47,7 +47,25 @@ namespace LoadGen
                     try
                     {
                         await SendEventAsync(moduleClient, batchId, Settings.Current.TrackingId, messageIdCounter);
-                        //TODO: Report sending message successfully to Test Result Coordinator
+
+                        // Report sending message successfully to Test Result Coordinator
+                        await Settings.Current.TestResultCoordinatorUrl.ForEachAsync(async trcUrl =>
+                        {
+                            Uri testResultCoordinatorUrl = new Uri(
+                                trcUrl,
+                                UriKind.Absolute);
+                            TestResultCoordinatorClient trcClient = new TestResultCoordinatorClient { BaseUrl = testResultCoordinatorUrl.AbsoluteUri };
+                            await ModuleUtil.ReportStatus(
+                                trcClient,
+                                Logger,
+                                Settings.Current.ModuleId + ".send",
+                                ModuleUtil.FormatTestResultValue(
+                                    Settings.Current.TrackingId,
+                                    batchId.ToString(),
+                                    messageIdCounter.ToString()),
+                                TestOperationResultType.Messages.ToString());
+                        });
+
                         messageIdCounter++;
                         await Task.Delay(Settings.Current.MessageFrequency);
 
@@ -96,29 +114,8 @@ namespace LoadGen
                 message.Properties.Add(TestConstants.Message.BatchIdPropertyName, batchId.ToString());
                 message.Properties.Add(TestConstants.Message.TrackingIdPropertyName, trackingId);
 
-                // send a copy of message to the Test Result Coordinator if applicable
-                if (Settings.Current.TestResultCoordinatorUrl.HasValue)
-                {
-                    Uri testResultCoordinatorUrl = new Uri( Settings.Current.TestResultCoordinatorUrl
-                            .Expect(() => new ArgumentException("TestResultCoordinatorUrl must be provided")),
-                        UriKind.Absolute );
-                    TestResultCoordinatorClient trcClient = new TestResultCoordinatorClient { BaseUrl = testResultCoordinatorUrl.AbsoluteUri };
-                    await ReportStatus(trcClient, Settings.Current.TrackingId, message.ToString());
-                }
-
+                // sending the result via edgeHub
                 await client.SendEventAsync(Settings.Current.OutputName, message);
-            }
-        }
-
-        static async Task ReportStatus(TestResultCoordinatorClient trcClient, string source, string message)
-        {
-            try
-            {
-                await trcClient.ReportResultAsync(new TestOperationResult { Source = source, Result = message, CreatedAt = DateTime.UtcNow, Type = "LoadGen" });
-            }
-            catch (Exception e)
-            {
-                Logger.LogError(e, "Failed call to report status to TestResultCoordinator");
             }
         }
     }

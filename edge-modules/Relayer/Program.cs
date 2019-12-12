@@ -10,15 +10,12 @@ namespace Relayer
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-
-    using TestOperationResult = Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient.TestOperationResult;
     /*
      * Module for relaying messages. It receives a message and passes it on.
      */
     class Program
     {
-        const string ModuleId = "Relayer";
-        static readonly ILogger Logger = ModuleUtil.CreateLogger(ModuleId);
+        static readonly ILogger Logger = ModuleUtil.CreateLogger(Settings.Current.ModuleId);
 
         static async Task Main(string[] args)
         {
@@ -96,8 +93,9 @@ namespace Relayer
 
                 // Report receiving message successfully to Test Result Coordinator
                 TestResultCoordinatorClient trcClient = new TestResultCoordinatorClient { BaseUrl = testResultCoordinatorUrl.AbsoluteUri };
-                await ReportStatus(
+                await ModuleUtil.ReportStatus(
                     trcClient,
+                    Logger,
                     Settings.Current.ModuleId + ".receive",
                     ModuleUtil.FormatTestResultValue(trackingId, batchId, sequenceNumber),
                     TestOperationResultType.Messages.ToString());
@@ -108,8 +106,9 @@ namespace Relayer
                 await moduleClient.SendEventAsync(Settings.Current.OutputName, messageCopy);
 
                 // Report sending message successfully to Test Result Coordinator
-                await ReportStatus(
+                await ModuleUtil.ReportStatus(
                     trcClient,
+                    Logger,
                     Settings.Current.ModuleId + ".send",
                     ModuleUtil.FormatTestResultValue(trackingId, batchId, sequenceNumber),
                     TestOperationResultType.Messages.ToString());
@@ -122,18 +121,6 @@ namespace Relayer
             }
 
             return MessageResponse.Completed;
-        }
-
-        static async Task ReportStatus(TestResultCoordinatorClient trcClient, string source, string result, string format)
-        {
-            try
-            {
-                await trcClient.ReportResultAsync(new TestOperationResult { Source = source, Result = result, CreatedAt = DateTime.UtcNow, Type = format });
-            }
-            catch (Exception e)
-            {
-                Logger.LogError(e, "Failed call to report status to TestResultCoordinator");
-            }
         }
     }
 }
