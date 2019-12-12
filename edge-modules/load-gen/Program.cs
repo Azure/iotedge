@@ -7,6 +7,7 @@ namespace LoadGen
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
@@ -45,7 +46,26 @@ namespace LoadGen
                     try
                     {
                         await SendEventAsync(moduleClient, batchId, Settings.Current.TrackingId, messageIdCounter);
-                        //TODO: Report sending message successfully to Test Result Coordinator
+
+                        // Report sending message successfully to Test Result Coordinator
+                        await Settings.Current.TestResultCoordinatorUrl.ForEachAsync(async trcUrl =>
+                        {
+                            Uri testResultCoordinatorUrl = new Uri(
+                                trcUrl,
+                                UriKind.Absolute);
+                            TestResultCoordinatorClient trcClient = new TestResultCoordinatorClient { BaseUrl = testResultCoordinatorUrl.AbsoluteUri };
+
+                            await ModuleUtil.ReportStatus(
+                                trcClient,
+                                Logger,
+                                Settings.Current.ModuleId + ".send",
+                                ModuleUtil.FormatTestResultValue(
+                                    Settings.Current.TrackingId,
+                                    batchId.ToString(),
+                                    messageIdCounter.ToString()),
+                                TestOperationResultType.Messages.ToString());
+                        });
+
                         messageIdCounter++;
                         await Task.Delay(Settings.Current.MessageFrequency);
 
@@ -94,6 +114,7 @@ namespace LoadGen
                 message.Properties.Add(TestConstants.Message.BatchIdPropertyName, batchId.ToString());
                 message.Properties.Add(TestConstants.Message.TrackingIdPropertyName, trackingId);
 
+                // sending the result via edgeHub
                 await client.SendEventAsync(Settings.Current.OutputName, message);
             }
         }

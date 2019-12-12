@@ -7,6 +7,7 @@ namespace Relayer
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -53,6 +54,7 @@ namespace Relayer
 
         static async Task<MessageResponse> ProcessAndSendMessageAsync(Message message, object userContext)
         {
+            Uri testResultCoordinatorUrl = Settings.Current.TestResultCoordinatorUrl;
             try
             {
                 if (!(userContext is ModuleClient moduleClient))
@@ -90,14 +92,27 @@ namespace Relayer
                     return MessageResponse.Completed;
                 }
 
-                //TODO: Report receiving message successfully to Test Result Coordinator
+                // Report receiving message successfully to Test Result Coordinator
+                TestResultCoordinatorClient trcClient = new TestResultCoordinatorClient { BaseUrl = testResultCoordinatorUrl.AbsoluteUri };
+                await ModuleUtil.ReportStatus(
+                    trcClient,
+                    Logger,
+                    Settings.Current.ModuleId + ".receive",
+                    ModuleUtil.FormatTestResultValue(trackingId, batchId, sequenceNumber),
+                    TestOperationResultType.Messages.ToString());
 
                 byte[] messageBytes = message.GetBytes();
                 var messageCopy = new Message(messageBytes);
                 messageProperties.ForEach(kvp => messageCopy.Properties.Add(kvp));
                 await moduleClient.SendEventAsync(Settings.Current.OutputName, messageCopy);
 
-                //TODO: Report sending message successfully to Test Result Coordinator
+                // Report sending message successfully to Test Result Coordinator
+                await ModuleUtil.ReportStatus(
+                    trcClient,
+                    Logger,
+                    Settings.Current.ModuleId + ".send",
+                    ModuleUtil.FormatTestResultValue(trackingId, batchId, sequenceNumber),
+                    TestOperationResultType.Messages.ToString());
 
                 Logger.LogInformation("Successfully sent a message");
             }
