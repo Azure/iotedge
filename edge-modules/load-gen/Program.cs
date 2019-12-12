@@ -45,6 +45,7 @@ namespace LoadGen
                     try
                     {
                         await SendEventAsync(moduleClient, batchId, Settings.Current.TrackingId, messageIdCounter);
+                        //TODO: Report sending message successfully to Test Result Coordinator
                         messageIdCounter++;
                         await Task.Delay(Settings.Current.MessageFrequency);
 
@@ -59,15 +60,17 @@ namespace LoadGen
                     }
                 }
 
-                Logger.LogInformation("Closing connection to Edge Hub.");
-                await moduleClient.CloseAsync();
-
                 completed.Set();
                 handler.ForEach(h => GC.KeepAlive(h));
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error occurred during load gen.");
+            }
+            finally
+            {
+                Logger.LogInformation("Closing connection to Edge Hub.");
+                moduleClient?.CloseAsync();
                 moduleClient?.Dispose();
             }
 
@@ -87,9 +90,9 @@ namespace LoadGen
                 // build message
                 var messageBody = new { data = data.Data };
                 var message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)));
-                message.Properties.Add("sequenceNumber", messageId.ToString());
-                message.Properties.Add("batchId", batchId.ToString());
-                message.Properties.Add("trackingId", trackingId);
+                message.Properties.Add(TestConstants.Message.SequenceNumberPropertyName, messageId.ToString());
+                message.Properties.Add(TestConstants.Message.BatchIdPropertyName, batchId.ToString());
+                message.Properties.Add(TestConstants.Message.TrackingIdPropertyName, trackingId);
 
                 await client.SendEventAsync(Settings.Current.OutputName, message);
             }
