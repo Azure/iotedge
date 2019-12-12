@@ -17,7 +17,14 @@ namespace TestResultCoordinator.Controllers
         {
             try
             {
-                await TestOperationResultStorage.AddResultAsync(result);
+                if (Enum.TryParse(result.Type, out Microsoft.Azure.Devices.Edge.ModuleUtil.ResultType resultType))
+                {
+                    await TestOperationResultStorage.AddResultAsync(result);
+                }
+                else
+                {
+                    return this.StatusCode((int)HttpStatusCode.BadRequest);
+                }
             }
             catch (InvalidDataException)
             {

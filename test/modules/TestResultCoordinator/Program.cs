@@ -17,7 +17,7 @@ namespace TestResultCoordinator
 
         static async Task Main(string[] args)
         {
-            Logger.LogInformation($"Starting load gen with the following settings:\r\n{Settings.Current}");
+            Logger.LogInformation($"Starting TestResultCoordinator with the following settings:\r\n{Settings.Current}");
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 

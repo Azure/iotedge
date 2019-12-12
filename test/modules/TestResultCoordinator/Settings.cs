@@ -38,22 +38,10 @@ namespace TestResultCoordinator
             this.ResultSources = this.ParseResultSources();
         }
 
-        List<ResultSource> ParseResultSources()
+        List<string> ParseResultSources()
         {
             // TODO: Remove this hardcoded list and use environment variables once we've decided on how exactly to set the configuration
-            List<string> sourceNames = new List<string> { "loadGen1.send", "relayer1.receive", "relayer1.send", "relayer1.eventHub", "loadGen2.send", "relayer2.receive", "relayer2.send", "relayer2.eventHub" };
-            string resultType = "messages";
-            List<ResultSource> resultSources = new List<ResultSource>();
-            foreach (string sourceName in sourceNames)
-            {
-                resultSources.Add(new ResultSource
-                {
-                    Source = sourceName,
-                    Type = resultType
-                });
-            }
-
-            return resultSources;
+            return new List<string> { "loadGen1.send", "relayer1.receive", "relayer1.send", "relayer1.eventHub", "loadGen2.send", "relayer2.receive", "relayer2.send", "relayer2.eventHub" };
         }
 
         public static Settings Current => DefaultSettings.Value;
@@ -64,7 +52,7 @@ namespace TestResultCoordinator
 
         public bool OptimizeForPerformance { get; }
 
-        public List<ResultSource> ResultSources { get; }
+        public List<string> ResultSources { get; }
 
         public override string ToString()
         {

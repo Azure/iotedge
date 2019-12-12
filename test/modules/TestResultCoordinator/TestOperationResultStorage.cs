@@ -15,17 +15,20 @@ namespace TestResultCoordinator
     class TestOperationResultStorage
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("TestResultCoordinator");
-        static Dictionary<string, (string, ISequentialStore<TestOperationResult>)> resultStores;
+        static Dictionary<string, ISequentialStore<TestOperationResult>> resultStores;
 
-        public static async Task InitAsync(string storagePath, ISystemEnvironment systemEnvironment, bool optimizeForPerformance, List<ResultSource> resultSources)
+        public static async Task InitAsync(string storagePath, ISystemEnvironment systemEnvironment, bool optimizeForPerformance, List<string> resultSources)
         {
             StoreProvider storeProvider;
+            Preconditions.CheckNotNull(systemEnvironment);
+            Preconditions.CheckNotNull(optimizeForPerformance);
+            Preconditions.CheckNotNull(resultSources);
             try
             {
                 IDbStoreProvider dbStoreprovider = DbStoreProvider.Create(
                     new RocksDbOptionsProvider(systemEnvironment, optimizeForPerformance),
                     GetStoragePath(storagePath),
-                    resultSources.Select(r => r.Source));
+                    resultSources);
 
                 storeProvider = new StoreProvider(dbStoreprovider);
             }
@@ -38,12 +41,14 @@ namespace TestResultCoordinator
             resultStores = await InitializeStoresAsync(storeProvider, resultSources);
         }
 
-        static async Task<Dictionary<string, (string, ISequentialStore<TestOperationResult>)>> InitializeStoresAsync(StoreProvider storeProvider, List<ResultSource> resultSources)
+        static async Task<Dictionary<string, ISequentialStore<TestOperationResult>>> InitializeStoresAsync(StoreProvider storeProvider, List<string> resultSources)
         {
-            Dictionary<string, (string, ISequentialStore<TestOperationResult>)> resultSourcesToStores = new Dictionary<string, (string, ISequentialStore<TestOperationResult>)>();
-            foreach (ResultSource resultSource in resultSources)
+            Preconditions.CheckNotNull(storeProvider);
+            Preconditions.CheckNotNull(resultSources);
+            Dictionary<string, ISequentialStore<TestOperationResult>> resultSourcesToStores = new Dictionary<string, ISequentialStore<TestOperationResult>>();
+            foreach (string resultSource in resultSources)
             {
-                resultSourcesToStores.Add(resultSource.Source, (resultSource.Type, await storeProvider.GetSequentialStore<TestOperationResult>(resultSource.Source)));
+                resultSourcesToStores.Add(resultSource, await storeProvider.GetSequentialStore<TestOperationResult>(resultSource));
             }
 
             return resultSourcesToStores;
@@ -63,20 +68,10 @@ namespace TestResultCoordinator
 
         public static async Task<bool> AddResultAsync(TestOperationResult testOperationResult)
         {
-            (string, ISequentialStore<TestOperationResult>) typeAndResultStore;
-            if (resultStores.TryGetValue(testOperationResult.Source, out typeAndResultStore))
+            if (resultStores.TryGetValue(testOperationResult.Source, out ISequentialStore<TestOperationResult> resultStore))
             {
-                if (string.Equals(testOperationResult.Type, typeAndResultStore.Item1, StringComparison.OrdinalIgnoreCase))
-                {
-                    await typeAndResultStore.Item2.Append(testOperationResult);
+                    await resultStore.Append(testOperationResult);
                     return true;
-                }
-                else
-                {
-                    string message = $"Result type should be 'messages', 'directMethod', or 'twin'. Current is '{testOperationResult.Type}'.";
-                    Logger.LogError(message);
-                    throw new InvalidDataException(message);
-                }
             }
             else
             {
