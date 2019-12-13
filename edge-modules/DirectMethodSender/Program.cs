@@ -21,15 +21,16 @@ namespace DirectMethodSender
         {
             Logger.LogInformation($"Starting DirectMethodSender with the following settings:\r\n{Settings.Current}");
 
+            ModuleClient moduleClient = null;
             try
             {
-                ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
+                (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
+
+                moduleClient = await ModuleUtil.CreateModuleClientAsync(
                     Settings.Current.TransportType,
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                     ModuleUtil.DefaultTransientRetryStrategy,
                     Logger);
-
-                (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
                 string analyzerUrl = Settings.Current.AnalyzerUrl;
                 if (analyzerUrl != string.Empty)
@@ -55,6 +56,10 @@ namespace DirectMethodSender
             catch (Exception e)
             {
                 Logger.LogError(e, "Error occurred during direct method sender test setup");
+            }
+            finally
+            {
+                moduleClient?.Dispose();
             }
 
             return 0;
