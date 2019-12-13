@@ -100,7 +100,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             public override void ExitFuncEndpoint(RouteParser.FuncEndpointContext context)
             {
                 string funcName = context.func.Text;
-                string address = context.endpoint.Text.Trim('"');
+                string address = context.endpoint.Text.Substring(1, context.endpoint.Text.Length - 2);
                 Endpoint endpoint = this.endpointFactory.CreateFunctionEndpoint(funcName, address);
                 this.Endpoint = endpoint;
             }

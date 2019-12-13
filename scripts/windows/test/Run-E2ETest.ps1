@@ -38,17 +38,26 @@
     .PARAMETER ContainerRegistryPassword
         Password of given username for container registory
 
+    .PARAMETER DesiredModulesToRestartCSV
+        Optional CSV string of module names for long haul specifying what modules to restart. If specified, then "RestartIntervalInMins" must be specified as well.
+
     .PARAMETER IoTHubConnectionString
         IoT hub connection string for creating edge device
 
     .PARAMETER EventHubConnectionString
         Event hub connection string for receive D2C messages
 
+    .PARAMETER EventHubConsumerGroupId
+        Event hub consumer group id used by the Analyzer module to subscribe to events from the Event Hub endpoint.
+
     .PARAMETER ProxyUri
         (Optional) The URI of an HTTPS proxy server; if specified, all communications to IoT Hub will go through this proxy.
 
     .PARAMETER LoadGenMessageFrequency
         Frequency to send messages in LoadGen module for long haul and stress test. Default is 00.00.01 for long haul and 00:00:00.03 for stress test.
+
+    .PARAMETER RestartIntervalInMins
+        Optional value for long haul specifying how often a random module will restart. If specified, then "desiredModulesToRestartJsonPath" must be specified as well.
 
     .PARAMETER SnitchAlertUrl
         Alert Url pointing to Azure Logic App for email preparation and sending for long haul and stress test.
@@ -68,17 +77,17 @@
     .PARAMETER SnitchTestDurationInSecs
         Test duration in seconds for long haul and stress test.
 
-    .PARAMETER LoadGen1TransportType
-        Transport type for LoadGen1 for stress test. Default is amqp.
+    .PARAMETER TransportType1
+        Transport type for LoadGen1 and TwinTester1 for stress test. Default is amqp.
 
-    .PARAMETER LoadGen2TransportType
-        Transport type for LoadGen2 for stress test. Default is amqp.
+    .PARAMETER TransportType2
+        Transport type for LoadGen2 and TwinTester2 for stress test. Default is amqp.
 
-    .PARAMETER LoadGen3TransportType
-        Transport type for LoadGen3 for stress test. Default is mqtt.
+    .PARAMETER TransportType3
+        Transport type for LoadGen3 and TwinTester3 for stress test. Default is mqtt.
 
-    .PARAMETER LoadGen4TransportType
-        Transport type for LoadGen4 for stress test. Default is mqtt.
+    .PARAMETER TransportType4
+        Transport type for LoadGen4 and TwinTester4 for stress test. Default is mqtt.
 
     .PARAMETER AmqpSettingsEnabled
         Enable amqp protocol head in Edge Hub.
@@ -91,6 +100,27 @@
 
     .PARAMETER DpsMasterSymmetricKey
         DPS master symmetric key. Required only when using DPS symmetric key to provision the Edge device.
+    
+    .PARAMETER LogAnalyticsEnabled
+        Optional Log Analytics enable string for the Analyzer module. If LogAnalyticsEnabled is set to enable (true), the rest of Log Analytics parameters must be provided.
+
+    .PARAMETER LogAnalyticsWorkspaceId
+        Optional Log Analytics workspace ID for metrics collection and reporting.
+
+    .PARAMETER LogAnalyticsSharedKey
+        Optional Log Analytics shared key for metrics collection and reporting.
+
+    .PARAMETER LogAnalyticsLogType
+        Optional Log Analytics log type for the Analyzer module.
+
+    .PARAMETER TwinUpdateSize
+        Specifies the char count (i.e. size) of each twin update. Default is 1 for long haul and 100 for stress test.
+
+    .PARAMETER TwinUpdateFrequency
+        Frequency to make twin updates. This should be specified in DateTime format. Default is 00:00:15 for long haul and 00:00:05 for stress test.
+
+    .PARAMETER TwinUpdateFailureThreshold
+        Specifies the longest period of time a twin update can take before being marked as a failure. This should be specified in DateTime format. Default is 00:01:00
 
     .EXAMPLE
         .\Run-E2ETest.ps1
@@ -197,6 +227,8 @@ Param (
     [ValidateNotNullOrEmpty()]
     [string] $ContainerRegistryPassword = $(Throw "Container registry password is required"),
 
+    [string] $DesiredModulesToRestartCSV = $null,
+
     [ValidateNotNullOrEmpty()]
     [string] $DpsScopeId = $null,
 
@@ -205,6 +237,8 @@ Param (
 
     [ValidateNotNullOrEmpty()]
     [string] $EventHubConnectionString = $(Throw "Event hub connection string is required"),
+
+    [string] $EventHubConsumerGroupId = '$Default',
 
     [string] $EdgeE2ERootCACertRSAFile = $null,
 
@@ -221,6 +255,8 @@ Param (
     [ValidateScript({($_ -as [System.Uri]).AbsoluteUri -ne $null})]
     [string] $ProxyUri = $null,
 
+    [string] $RestartIntervalInMins = $null,
+
     [ValidateNotNullOrEmpty()]
     [string] $SnitchAlertUrl = $null,
 
@@ -236,13 +272,13 @@ Param (
 
     [string] $SnitchTestDurationInSecs = $null,
 
-    [string] $LoadGen1TransportType = "amqp",
+    [string] $TransportType1 = "amqp",
 
-    [string] $LoadGen2TransportType = "amqp",
+    [string] $TransportType2 = "amqp",
 
-    [string] $LoadGen3TransportType = "mqtt",
+    [string] $TransportType3 = "mqtt",
 
-    [string] $LoadGen4TransportType = "mqtt",
+    [string] $TransportType4 = "mqtt",
 
     [ValidateSet("true", "false")]
     [string] $AmqpSettingsEnabled = "true",
@@ -250,8 +286,22 @@ Param (
     [ValidateSet("true", "false")]
     [string] $MqttSettingsEnabled = "true",
 
-    [switch] $BypassEdgeInstallation
+    [ValidateSet("true", "false")]
+    [string] $LogAnalyticsEnabled = "false",
 
+    [string] $LogAnalyticsWorkspaceId = $null,
+
+    [string] $LogAnalyticsSharedKey = $null,
+
+    [string] $LogAnalyticsLogType = $null,
+
+    [string] $TwinUpdateSize = $null,
+
+    [string] $TwinUpdateFrequency = $null,
+
+    [string] $TwinUpdateFailureThreshold = $null,
+
+    [switch] $BypassEdgeInstallation
 )
 
 Add-Type -TypeDefinition @"
@@ -416,23 +466,30 @@ Function PrepareTestFromArtifacts
                 {
                     Write-Host "Copy deployment file from $LongHaulDeploymentArtifactFilePath"
                     Copy-Item $LongHaulDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
-                    (Get-Content $DeploymentWorkingFilePath).replace('<ServiceClientConnectionString>',$IoTHubConnectionString) | Set-Content $DeploymentWorkingFilePath
+                    (Get-Content $DeploymentWorkingFilePath).replace('<DesiredModulesToRestartCSV>',$DesiredModulesToRestartCSV) | Set-Content $DeploymentWorkingFilePath
+                    (Get-Content $DeploymentWorkingFilePath).replace('<RestartIntervalInMins>',$RestartIntervalInMins) | Set-Content $DeploymentWorkingFilePath
                 }
                 Else
                 {
                     Write-Host "Copy deployment file from $StressDeploymentArtifactFilePath"
                     Copy-Item $StressDeploymentArtifactFilePath -Destination $DeploymentWorkingFilePath -Force
-                    (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen1.TransportType>',$LoadGen1TransportType) | Set-Content $DeploymentWorkingFilePath
-                    (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen2.TransportType>',$LoadGen2TransportType) | Set-Content $DeploymentWorkingFilePath
-                    (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen3.TransportType>',$LoadGen3TransportType) | Set-Content $DeploymentWorkingFilePath
-                    (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen4.TransportType>',$LoadGen4TransportType) | Set-Content $DeploymentWorkingFilePath
+                    (Get-Content $DeploymentWorkingFilePath).replace('<TransportType1>',$TransportType1) | Set-Content $DeploymentWorkingFilePath
+                    (Get-Content $DeploymentWorkingFilePath).replace('<TransportType2>',$TransportType2) | Set-Content $DeploymentWorkingFilePath
+                    (Get-Content $DeploymentWorkingFilePath).replace('<TransportType3>',$TransportType3) | Set-Content $DeploymentWorkingFilePath
+                    (Get-Content $DeploymentWorkingFilePath).replace('<TransportType4>',$TransportType4) | Set-Content $DeploymentWorkingFilePath
                     (Get-Content $DeploymentWorkingFilePath).replace('<amqpSettings__enabled>',$AmqpSettingsEnabled) | Set-Content $DeploymentWorkingFilePath
                     (Get-Content $DeploymentWorkingFilePath).replace('<mqttSettings__enabled>',$MqttSettingsEnabled) | Set-Content $DeploymentWorkingFilePath
                 }
 
+                (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.ConsumerGroupId>',$EventHubConsumerGroupId) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.EventHubConnectionString>',$EventHubConnectionString) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.LogAnalyticsEnabled>',$LogAnalyticsEnabled) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.LogAnalyticsLogType>',$LogAnalyticsLogType) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<LogAnalyticsWorkspaceId>',$LogAnalyticsWorkspaceId) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<LogAnalyticsSharedKey>',$LogAnalyticsSharedKey) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen.MessageFrequency>',$LoadGenMessageFrequency) | Set-Content $DeploymentWorkingFilePath
                 $escapedBuildId= $ArtifactImageBuildNumber -replace "\.",""
+                (Get-Content $DeploymentWorkingFilePath).replace('<ServiceClientConnectionString>',$IoTHubConnectionString) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.AlertUrl>',$SnitchAlertUrl) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildNumber>',$SnitchBuildNumber) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildId>',"$ReleaseLabel-$(GetImageArchitectureLabel)-windows-$escapedBuildId") | Set-Content $DeploymentWorkingFilePath
@@ -444,6 +501,9 @@ Function PrepareTestFromArtifacts
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.Binds>',$SnitcherBinds) | Set-Content $DeploymentWorkingFilePath
                 $ManagementUri = "unix:///$($env:ProgramData.Replace("\", "/"))/iotedge/mgmt/sock"
                 (Get-Content $DeploymentWorkingFilePath).replace('<Management.Uri>',$ManagementUri) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<TwinUpdateSize>',$TwinUpdateSize) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<TwinUpdateFrequency>',$TwinUpdateFrequency) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<TwinUpdateFailureThreshold>',$TwinUpdateFailureThreshold) | Set-Content $DeploymentWorkingFilePath
             }
             "TempFilter"
             {
@@ -926,7 +986,6 @@ Function RunLongHaulTest
 
     $testStartAt = Get-Date
     $deviceId = "${ReleaseLabel}-Windows-${Architecture}-longHaul"
-    (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.DeviceID>',$deviceId) | Set-Content $DeploymentWorkingFilePath
     PrintHighlightedMessage "Run Long Haul test with -d ""$deviceId"" started at $testStartAt"
 
     $testCommand = "&$IotEdgeQuickstartExeTestPath ``
@@ -958,7 +1017,6 @@ Function RunStressTest
 
     $testStartAt = Get-Date
     $deviceId = "${ReleaseLabel}-Windows-${Architecture}-stress"
-    (Get-Content $DeploymentWorkingFilePath).replace('<Analyzer.DeviceID>',$deviceId) | Set-Content $DeploymentWorkingFilePath
     PrintHighlightedMessage "Run Stress test with -d ""$deviceId"" started at $testStartAt"
 
     $testCommand = "&$IotEdgeQuickstartExeTestPath ``
@@ -1100,6 +1158,11 @@ Function RunLeafDeviceTest
     [bool]$useSecondaryCredential = $False
 )
 {
+
+    if ($leafDeviceId.Length -gt 64) {
+        throw "can't generate cert. asn1 device name length of 64 exceeded. $leafDeviceId"
+    }
+    
     $testCommand = $null
     switch ($authType) {
         "sas"
@@ -1246,23 +1309,25 @@ Function RunTransparentGatewayTest
     # run the various leaf device tests
     $deviceId = "e2e-${ReleaseLabel}-Win-${Architecture}"
 
-    RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-noscope-leaf" $null
-    RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-noscope-leaf" $null
+    # NOTE: device name cannot be > 64 chars because of asn1 limits for certs
+    # thus we're abbreviating noscope/inscope as no/in and leaf as lf, x509ca as x5c, x509th as x5t, pri as p, sec as s.
+    RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-no-lf" $null
+    RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-no-lf" $null
 
-    RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-inscope-leaf" $edgeDeviceId
-    RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-inscope-leaf" $edgeDeviceId
+    RunLeafDeviceTest "sas" "Mqtt" "$deviceId-mqtt-sas-in-lf" $edgeDeviceId
+    RunLeafDeviceTest "sas" "Amqp" "$deviceId-amqp-sas-in-lf" $edgeDeviceId
 
-    RunLeafDeviceTest "x509CA" "Mqtt" "$deviceId-mqtt-x509ca-inscope-leaf" $edgeDeviceId
-    RunLeafDeviceTest "x509CA" "Amqp" "$deviceId-amqp-x509ca-inscope-leaf" $edgeDeviceId
+    RunLeafDeviceTest "x509CA" "Mqtt" "$deviceId-mqtt-x5c-in-lf" $edgeDeviceId
+    RunLeafDeviceTest "x509CA" "Amqp" "$deviceId-amqp-x5c-in-lf" $edgeDeviceId
 
     # run thumbprint test using primary cert with MQTT
-    RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-pri-x509th-inscope-leaf" $edgeDeviceId
+    RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-p-x5t-in-lf" $edgeDeviceId
     # run thumbprint test using secondary cert with MQTT
-    RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-sec-x509th-inscope-leaf" $edgeDeviceId $True
+    RunLeafDeviceTest "x509Thumprint" "Mqtt" "$deviceId-mqtt-s-x5t-in-lf" $edgeDeviceId $True
     # run thumbprint test using primary cert with AMQP
-    RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-pri-x509th-inscope-leaf" $edgeDeviceId
+    RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-p-x5t-in-lf" $edgeDeviceId
     # run thumbprint test using secondary cert with AMQP
-    RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-sec-x509th-inscope-leaf" $edgeDeviceId $True
+    RunLeafDeviceTest "x509Thumprint" "Amqp" "$deviceId-amqp-s-x5t-in-lf" $edgeDeviceId $True
 
     Return $testExitCode
 }
@@ -1479,11 +1544,20 @@ If ([string]::IsNullOrWhiteSpace($EdgeE2ERootCAKeyRSAFile))
     $EdgeE2ERootCAKeyRSAFile=$DefaultInstalledRSARootCAKey
 }
 
+If ([string]::IsNullOrWhiteSpace($TwinUpdateFailureThreshold))
+{
+    $TwinUpdateFailureThreshold="00:00:01"
+}
+
 If ($TestName -eq "LongHaul")
 {
+    If ([string]::IsNullOrEmpty($DesiredModulesToRestartCSV)) {$DesiredModulesToRestartCSV = ","}
     If ([string]::IsNullOrEmpty($LoadGenMessageFrequency)) {$LoadGenMessageFrequency = "00:00:01"}
+    If ([string]::IsNullOrEmpty($RestartIntervalInMins)) {$RestartIntervalInMins = "10"}
     If ([string]::IsNullOrEmpty($SnitchReportingIntervalInSecs)) {$SnitchReportingIntervalInSecs = "86400"}
     If ([string]::IsNullOrEmpty($SnitchTestDurationInSecs)) {$SnitchTestDurationInSecs = "604800"}
+    If ([string]::IsNullOrEmpty($TwinUpdateFrequency)) {$TwinUpdateSize = "00:00:15"}
+    If ([string]::IsNullOrEmpty($TwinUpdateSize)) {$TwinUpdateSize = "1"}
 }
 
 If ($TestName -eq "Stress")
@@ -1491,6 +1565,8 @@ If ($TestName -eq "Stress")
     If ([string]::IsNullOrEmpty($LoadGenMessageFrequency)) {$LoadGenMessageFrequency = "00:00:00.03"}
     If ([string]::IsNullOrEmpty($SnitchReportingIntervalInSecs)) {$SnitchReportingIntervalInSecs = "1700000"}
     If ([string]::IsNullOrEmpty($SnitchTestDurationInSecs)) {$SnitchTestDurationInSecs = "14400"}
+    If ([string]::IsNullOrEmpty($TwinUpdateFrequency)) {$TwinUpdateSize = "00:00:01"}
+    If ([string]::IsNullOrEmpty($TwinUpdateSize)) {$TwinUpdateSize = "100"}
 }
 
 If ($BypassEdgeInstallation)

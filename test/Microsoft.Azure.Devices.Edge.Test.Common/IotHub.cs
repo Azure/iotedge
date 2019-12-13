@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Azure.EventHubs;
     using Newtonsoft.Json;
+    using Serilog;
     using DeviceTransportType = Microsoft.Azure.Devices.TransportType;
     using EventHubTransportType = Microsoft.Azure.EventHubs.TransportType;
 
@@ -148,8 +149,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         {
             return Retry.Do(
                 () => this.ServiceClient.InvokeDeviceMethodAsync(deviceId, moduleId, method, token),
-                result => result.Status == 200,
-                e => true,
+                result =>
+                {
+                    Log.Verbose($"Method '{method.MethodName}' on '{deviceId}/{moduleId}' returned: " +
+                        $"{result.Status}\n{result.GetPayloadAsJson()}");
+                    return result.Status == 200;
+                },
+                e =>
+                    {
+                        Log.Verbose($"Exception: {e}");
+                        return true;
+                    },
                 TimeSpan.FromSeconds(5),
                 token);
         }

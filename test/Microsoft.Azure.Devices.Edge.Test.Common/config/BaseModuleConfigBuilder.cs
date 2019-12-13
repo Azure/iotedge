@@ -75,7 +75,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                         {
                             string message = $"Setting \"UpstreamProtocol\" to \"{proxyProtocol}\"" +
                                              $"would overwrite incompatible value \"{existing}\"";
-                            throw new ArgumentException(message);
+                            throw new InvalidOperationException(message);
                         }
 
                         proxyProtocol = existing;

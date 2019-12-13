@@ -11,10 +11,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
     public class BaseFixture
     {
+        CancellationTokenSource cts;
         Profiler profiler;
         DateTime testStartTime;
 
-        protected CancellationTokenSource cts;
+        protected CancellationToken TestToken
+        {
+            get
+            {
+                return this.cts.Token;
+            }
+        }
 
         [SetUp]
         protected void BeforeEachTest()

@@ -19,6 +19,7 @@ steps:
     }
   displayName: Run tests
   env:
+    E2E_DPS_GROUP_KEY: $(TestDpsGroupKeySymmetric)
     E2E_EVENT_HUB_ENDPOINT: $(TestEventHubCompatibleEndpoint)
     E2E_IOT_HUB_CONNECTION_STRING: $(TestIotHubConnectionString)
     E2E_REGISTRIES__0__PASSWORD: $(TestContainerRegistryPassword)

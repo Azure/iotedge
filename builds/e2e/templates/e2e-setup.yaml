@@ -10,6 +10,7 @@ steps:
     keyVaultName: $(kv.name)
     secretsFilter: >-
       TestContainerRegistryPassword,
+      TestDpsGroupKeySymmetric,
       TestEventHubCompatibleEndpoint,
       TestIotedgedPackageRootSigningCert,
       TestIotHubConnectionString,
@@ -107,8 +108,11 @@ steps:
     $imageId = ($imageId -split '=')[1]
     $imageTag = "$imageId-$(os)-$(arch)"
     $context = @{
+      dpsIdScope = '$(dps.idScope)'
       edgeAgentImage = "$imagePrefix-agent:$imageTag";
       edgeHubImage = "$imagePrefix-hub:$imageTag";
+      tempFilterFuncImage = "$imagePrefix-functions-filter:$imageTag";
+      tempFilterImage = "$imagePrefix-temperature-filter:$imageTag";
       tempSensorImage = "$imagePrefix-simulated-temperature-sensor:$imageTag";
       methodSenderImage = "$imagePrefix-direct-method-sender:$imageTag";
       methodReceiverImage = "$imagePrefix-direct-method-receiver:$imageTag";

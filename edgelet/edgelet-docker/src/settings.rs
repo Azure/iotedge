@@ -56,21 +56,10 @@ pub struct Settings {
 }
 
 impl Settings {
-    pub fn new(filename: Option<&Path>) -> Result<Self, LoadSettingsError> {
-        let filename = filename.map(|filename| {
-            filename.to_str().unwrap_or_else(|| {
-                panic!(
-                    "cannot load config from {} because it is not a utf-8 path",
-                    filename.display()
-                )
-            })
-        });
+    pub fn new(filename: &Path) -> Result<Self, LoadSettingsError> {
         let mut config = Config::default();
         config.merge(YamlFileSource::String(DEFAULTS))?;
-        if let Some(file) = filename {
-            config.merge(YamlFileSource::File(file.into()))?;
-        }
-
+        config.merge(YamlFileSource::File(filename.into()))?;
         config.merge(Environment::with_prefix("iotedge"))?;
 
         let mut settings: Self = config.try_into()?;
@@ -116,7 +105,7 @@ impl RuntimeSettings for Settings {
         self.base.homedir()
     }
 
-    fn certificates(&self) -> Option<&Certificates> {
+    fn certificates(&self) -> &Certificates {
         self.base.certificates()
     }
 
@@ -241,7 +230,9 @@ mod tests {
     use serde_json::json;
     use tempdir::TempDir;
 
-    use edgelet_core::{AttestationMethod, IpamConfig, ManualAuthMethod, DEFAULT_NETWORKID};
+    use edgelet_core::{
+        AttestationMethod, IpamConfig, ManualAuthMethod, ProvisioningType, DEFAULT_NETWORKID,
+    };
 
     #[cfg(unix)]
     static GOOD_SETTINGS: &str = "test/linux/sample_settings.yaml";
@@ -294,9 +285,18 @@ mod tests {
     #[cfg(unix)]
     static BAD_SETTINGS_MANUAL_X509_AUTH5: &str = "test/linux/bad_settings.manual.x509.5.yaml";
     #[cfg(unix)]
-    static GOOD_SETTINGS_EXTERNAL: &str = "test/linux/sample_settings.external.yaml";
+    static GOOD_SETTINGS_EXTERNAL1: &str = "test/linux/sample_settings.external.1.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_EXTERNAL2: &str = "test/linux/sample_settings.external.2.yaml";
     #[cfg(unix)]
     static GOOD_SETTINGS_NETWORK: &str = "test/linux/sample_settings.network.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_DYNAMIC_REPROVISIONING: &str = "test/linux/sample_settings.dyn.repro.yaml";
+    #[cfg(unix)]
+    static BAD_SETTINGS_DYNAMIC_REPROVISIONING: &str =
+        "test/linux/bad_sample_settings.dyn.repro.yaml";
+    #[cfg(unix)]
+    static GOOD_SETTINGS_TLS: &str = "test/linux/sample_settings.tls.yaml";
 
     #[cfg(windows)]
     static GOOD_SETTINGS: &str = "test/windows/sample_settings.yaml";
@@ -349,13 +349,23 @@ mod tests {
     #[cfg(windows)]
     static BAD_SETTINGS_MANUAL_X509_AUTH5: &str = "test/windows/bad_settings.manual.x509.5.yaml";
     #[cfg(windows)]
-    static GOOD_SETTINGS_EXTERNAL: &str = "test/windows/sample_settings.external.yaml";
+    static GOOD_SETTINGS_EXTERNAL1: &str = "test/windows/sample_settings.external.1.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_EXTERNAL2: &str = "test/windows/sample_settings.external.2.yaml";
     #[cfg(windows)]
     static GOOD_SETTINGS_NETWORK: &str = "test/windows/sample_settings.network.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_DYNAMIC_REPROVISIONING: &str =
+        "test/windows/sample_settings.dyn.repro.yaml";
+    #[cfg(windows)]
+    static BAD_SETTINGS_DYNAMIC_REPROVISIONING: &str =
+        "test/windows/bad_sample_settings.dyn.repro.yaml";
+    #[cfg(windows)]
+    static GOOD_SETTINGS_TLS: &str = "test/windows/sample_settings.tls.yaml";
 
-    fn unwrap_manual_provisioning(p: &Provisioning) -> String {
+    fn unwrap_manual_provisioning(p: &ProvisioningType) -> String {
         match p {
-            Provisioning::Manual(manual) => {
+            ProvisioningType::Manual(manual) => {
                 if let ManualAuthMethod::DeviceConnectionString(cs) = manual.authentication_method()
                 {
                     cs.device_connection_string().to_string()
@@ -384,7 +394,7 @@ mod tests {
 
     #[test]
     fn network_get_settings() {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_NETWORK)));
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_NETWORK));
         assert!(settings.is_ok());
         let s = settings.unwrap();
         let moby_runtime = s.moby_runtime();
@@ -420,68 +430,73 @@ mod tests {
 
     #[test]
     fn no_file_gets_error() {
-        let settings = Settings::new(Some(Path::new("garbage")));
+        let settings = Settings::new(Path::new("garbage"));
         assert!(settings.is_err());
     }
 
     #[test]
     fn bad_file_gets_error() {
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS));
         assert!(settings.is_err());
 
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_CS2)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_MANUAL_CS2));
         assert!(settings.is_err());
 
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_DPS_DEFAULT)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_DPS_DEFAULT));
         assert!(settings.is_err());
 
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_DPS_TPM)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_DPS_TPM));
         assert!(settings.is_err());
 
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_DPS_SYM_KEY)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_DPS_SYM_KEY));
         assert!(settings.is_err());
 
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_DPS_X5091)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_DPS_X5091));
         assert!(settings.is_err());
 
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_DPS_X5092)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_DPS_X5092));
         assert!(settings.is_err());
 
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_DPS_X5093)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_DPS_X5093));
         assert!(settings.is_err());
 
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_DPS_X5094)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_DPS_X5094));
         assert!(settings.is_err());
 
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_X509_AUTH1)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_MANUAL_X509_AUTH1));
         assert!(settings.is_err());
 
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_X509_AUTH2)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_MANUAL_X509_AUTH2));
         assert!(settings.is_err());
 
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_X509_AUTH3)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_MANUAL_X509_AUTH3));
         assert!(settings.is_err());
 
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_X509_AUTH4)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_MANUAL_X509_AUTH4));
         assert!(settings.is_err());
 
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_X509_AUTH5)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_MANUAL_X509_AUTH5));
         assert!(settings.is_err());
 
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_CS_AUTH1)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_MANUAL_CS_AUTH1));
         assert!(settings.is_err());
 
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_CS_AUTH3)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_MANUAL_CS_AUTH3));
+        assert!(settings.is_err());
+
+        let settings = Settings::new(Path::new(BAD_SETTINGS_DYNAMIC_REPROVISIONING));
         assert!(settings.is_err());
     }
 
     #[test]
     fn manual_file_gets_sample_connection_string() {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS)));
+        let settings = Settings::new(Path::new(GOOD_SETTINGS));
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        let p = s.provisioning();
+
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), false);
+        let p = s.provisioning().provisioning_type();
         let connection_string = unwrap_manual_provisioning(p);
         assert_eq!(
             connection_string,
@@ -491,11 +506,13 @@ mod tests {
 
     #[test]
     fn manual_authentication_connection_string() {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_MANUAL_CS_AUTH)));
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_MANUAL_CS_AUTH));
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        let p = s.provisioning();
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), false);
+
+        let p = s.provisioning().provisioning_type();
         let connection_string = unwrap_manual_provisioning(p);
         assert_eq!(
             connection_string,
@@ -505,12 +522,12 @@ mod tests {
 
     #[test]
     fn manual_empty_connection_string_fails() {
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_CS3)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_MANUAL_CS3));
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        match s.provisioning() {
-            Provisioning::Manual(manual) => match manual.authentication_method() {
+        match s.provisioning().provisioning_type() {
+            ProvisioningType::Manual(manual) => match manual.authentication_method() {
                 ManualAuthMethod::DeviceConnectionString(cs) => {
                     assert_eq!(cs.device_connection_string(), "");
                     cs.parse_device_connection_string().unwrap_err();
@@ -523,12 +540,12 @@ mod tests {
 
     #[test]
     fn manual_authentication_bad_connection_string_fails() {
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_CS_AUTH2)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_MANUAL_CS_AUTH2));
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        match s.provisioning() {
-            Provisioning::Manual(manual) => match manual.authentication_method() {
+        match s.provisioning().provisioning_type() {
+            ProvisioningType::Manual(manual) => match manual.authentication_method() {
                 ManualAuthMethod::DeviceConnectionString(cs) => {
                     assert_eq!(cs.device_connection_string(), "blah");
                     cs.parse_device_connection_string().unwrap_err();
@@ -541,12 +558,12 @@ mod tests {
 
     #[test]
     fn manual_authentication_empty_connection_string_fails() {
-        let settings = Settings::new(Some(Path::new(BAD_SETTINGS_MANUAL_CS_AUTH4)));
+        let settings = Settings::new(Path::new(BAD_SETTINGS_MANUAL_CS_AUTH4));
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        match s.provisioning() {
-            Provisioning::Manual(manual) => match manual.authentication_method() {
+        match s.provisioning().provisioning_type() {
+            ProvisioningType::Manual(manual) => match manual.authentication_method() {
                 ManualAuthMethod::DeviceConnectionString(cs) => {
                     assert_eq!(cs.device_connection_string(), "");
                     cs.parse_device_connection_string().unwrap_err();
@@ -663,9 +680,9 @@ mod tests {
             &trust_bundle_path,
             false,
         );
-        let settings = Settings::new(Some(&settings_path)).expect("Settings create failed");
+        let settings = Settings::new(&settings_path).expect("Settings create failed");
         println!("{:?}", settings);
-        let certificates = settings.certificates();
+        let certificates = settings.certificates().device_cert();
         certificates
             .map(|c| {
                 let path = c.device_ca_cert().expect("Did not obtain device CA cert");
@@ -694,9 +711,9 @@ mod tests {
             &trust_bundle_path,
             true,
         );
-        let settings = Settings::new(Some(&settings_path)).unwrap();
+        let settings = Settings::new(&settings_path).unwrap();
         println!("{:?}", settings);
-        let certificates = settings.certificates();
+        let certificates = settings.certificates().device_cert();
         certificates
             .map(|c| {
                 let path = c.device_ca_cert().expect("Did not obtain device CA cert");
@@ -722,10 +739,10 @@ mod tests {
             &id_cert_path,
             &id_key_path,
         );
-        let settings = Settings::new(Some(&settings_path)).unwrap();
+        let settings = Settings::new(&settings_path).unwrap();
         println!("{:?}", settings);
-        match settings.provisioning() {
-            Provisioning::Manual(manual) => match manual.authentication_method() {
+        match settings.provisioning().provisioning_type() {
+            ProvisioningType::Manual(manual) => match manual.authentication_method() {
                 ManualAuthMethod::X509(x509) => {
                     assert_eq!(x509.iothub_hostname(), "something.something.com");
                     assert_eq!(x509.device_id(), "something");
@@ -754,11 +771,12 @@ mod tests {
 
     #[test]
     fn dps_prov_default_get_settings() {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_DEFAULT)));
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_DPS_DEFAULT));
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        match s.provisioning() {
-            Provisioning::Dps(ref dps) => {
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), false);
+        match s.provisioning().provisioning_type() {
+            ProvisioningType::Dps(ref dps) => {
                 assert_eq!(dps.global_endpoint().scheme(), "scheme");
                 assert_eq!(dps.global_endpoint().host_str().unwrap(), "jibba-jabba.net");
                 assert_eq!(dps.scope_id(), "i got no time for the jibba-jabba");
@@ -775,12 +793,13 @@ mod tests {
 
     #[test]
     fn dps_prov_tpm_get_settings() {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_TPM)));
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_DPS_TPM));
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        match s.provisioning() {
-            Provisioning::Dps(ref dps) => {
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), false);
+        match s.provisioning().provisioning_type() {
+            ProvisioningType::Dps(ref dps) => {
                 assert_eq!(dps.global_endpoint().scheme(), "scheme");
                 assert_eq!(dps.global_endpoint().host_str().unwrap(), "jibba-jabba.net");
                 assert_eq!(dps.scope_id(), "i got no time for the jibba-jabba");
@@ -797,12 +816,13 @@ mod tests {
 
     #[test]
     fn dps_prov_symmetric_key_get_settings() {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_DPS_SYM_KEY)));
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_DPS_SYM_KEY));
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        match s.provisioning() {
-            Provisioning::Dps(ref dps) => {
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), true);
+        match s.provisioning().provisioning_type() {
+            ProvisioningType::Dps(ref dps) => {
                 assert_eq!(dps.global_endpoint().scheme(), "scheme");
                 assert_eq!(dps.global_endpoint().host_str().unwrap(), "jibba-jabba.net");
                 assert_eq!(dps.scope_id(), "i got no time for the jibba-jabba");
@@ -862,10 +882,10 @@ mod tests {
         let key_path = tmp_dir.path().join("test_key");
         let settings_path = tmp_dir.path().join("test_settings.yaml");
         prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
-        let settings = Settings::new(Some(&settings_path)).unwrap();
+        let settings = Settings::new(&settings_path).unwrap();
         println!("{:?}", settings);
-        match settings.provisioning() {
-            Provisioning::Dps(ref dps) => {
+        match settings.provisioning().provisioning_type() {
+            ProvisioningType::Dps(ref dps) => {
                 assert_eq!(dps.global_endpoint().scheme(), "scheme");
                 assert_eq!(dps.global_endpoint().host_str().unwrap(), "jibba-jabba.net");
                 assert_eq!(dps.scope_id(), "i got no time for the jibba-jabba");
@@ -904,10 +924,10 @@ mod tests {
         let key_path = tmp_dir.path().join("test_key");
         let settings_path = tmp_dir.path().join("test_settings.yaml");
         prepare_test_dps_x509_settings_yaml(&settings_path, &cert_path, &key_path);
-        let settings = Settings::new(Some(&settings_path)).unwrap();
+        let settings = Settings::new(&settings_path).unwrap();
         println!("{:?}", settings);
-        match settings.provisioning() {
-            Provisioning::Dps(ref dps) => {
+        match settings.provisioning().provisioning_type() {
+            ProvisioningType::Dps(ref dps) => {
                 assert_eq!(dps.global_endpoint().scheme(), "scheme");
                 assert_eq!(dps.global_endpoint().host_str().unwrap(), "jibba-jabba.net");
                 assert_eq!(dps.scope_id(), "i got no time for the jibba-jabba");
@@ -941,12 +961,13 @@ mod tests {
 
     #[test]
     fn external_prov_get_settings() {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_EXTERNAL)));
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_EXTERNAL1));
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
-        match s.provisioning() {
-            Provisioning::External(ref external) => {
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), false);
+        match s.provisioning().provisioning_type() {
+            ProvisioningType::External(ref external) => {
                 assert_eq!(external.endpoint().as_str(), "http://localhost:9999/");
             }
             _ => unreachable!(),
@@ -954,8 +975,40 @@ mod tests {
     }
 
     #[test]
+    fn external_prov_get_settings_with_dynamic_reprovisioning() {
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_EXTERNAL2));
+        println!("{:?}", settings);
+        assert!(settings.is_ok());
+        let s = settings.unwrap();
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), true);
+
+        match s.provisioning().provisioning_type() {
+            ProvisioningType::External(ref external) => {
+                assert_eq!(external.endpoint().as_str(), "http://localhost:9999/");
+            }
+            _ => unreachable!(),
+        };
+    }
+
+    #[test]
+    fn manual_provisioning_settings_with_dynamic_reprovisioning() {
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_DYNAMIC_REPROVISIONING));
+        println!("{:?}", settings);
+        assert!(settings.is_ok());
+        let s = settings.unwrap();
+
+        assert_eq!(s.provisioning().dynamic_reprovisioning(), true);
+        let p = s.provisioning().provisioning_type();
+        let connection_string = unwrap_manual_provisioning(p);
+        assert_eq!(
+            connection_string,
+            "HostName=something.something.com;DeviceId=something;SharedAccessKey=QXp1cmUgSW9UIEVkZ2U="
+        );
+    }
+
+    #[test]
     fn case_of_names_of_keys_is_preserved() {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS_CASE_SENSITIVE))).unwrap();
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_CASE_SENSITIVE)).unwrap();
 
         let env = settings.agent().env();
         assert_eq!(env.get("AbC").map(AsRef::as_ref), Some("VAluE1"));
@@ -967,11 +1020,29 @@ mod tests {
 
     #[test]
     fn watchdog_settings_are_read() {
-        let settings = Settings::new(Some(Path::new(GOOD_SETTINGS)));
+        let settings = Settings::new(Path::new(GOOD_SETTINGS));
         println!("{:?}", settings);
         assert!(settings.is_ok());
         let s = settings.unwrap();
         let watchdog_settings = s.watchdog();
         assert_eq!(watchdog_settings.max_retries().compare(3), Ordering::Equal);
+    }
+
+    #[test]
+    fn tls_settings_are_read() {
+        let settings = Settings::new(Path::new(GOOD_SETTINGS_TLS)).unwrap();
+        assert_eq!(
+            settings.listen().min_tls_version(),
+            edgelet_core::Protocol::Tls12
+        );
+    }
+
+    #[test]
+    fn tls_settings_are_none_by_default() {
+        let settings = Settings::new(Path::new(GOOD_SETTINGS)).unwrap();
+        assert_eq!(
+            settings.listen().min_tls_version(),
+            edgelet_core::Protocol::Tls10
+        );
     }
 }

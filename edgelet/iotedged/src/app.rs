@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-use std::path::Path;
+use std::ffi::{OsStr, OsString};
+use std::path::PathBuf;
 
 use clap::{crate_authors, crate_description, crate_name, App, Arg};
 use failure::ResultExt;
@@ -15,7 +16,8 @@ use edgelet_kube::Settings;
 use crate::error::{Error, ErrorKind, InitializeErrorReason};
 use crate::logging;
 
-fn create_app() -> App<'static, 'static> {
+#[allow(deprecated)]
+fn create_app(default_config_file: &OsStr) -> App<'_, '_> {
     let app = App::new(crate_name!())
         .version(edgelet_core::version_with_source_version())
         .author(crate_authors!("\n"))
@@ -26,7 +28,8 @@ fn create_app() -> App<'static, 'static> {
                 .long("config-file")
                 .value_name("FILE")
                 .help("Sets daemon configuration file")
-                .takes_value(true),
+                .takes_value(true)
+                .default_value_os(default_config_file),
         );
 
     if cfg!(windows) {
@@ -45,7 +48,19 @@ fn create_app() -> App<'static, 'static> {
 }
 
 fn init_common(running_as_windows_service: bool) -> Result<Settings, Error> {
-    let matches = create_app().get_matches();
+    let default_config_file = if cfg!(windows) {
+        let program_data: PathBuf =
+            std::env::var_os("PROGRAMDATA").map_or_else(|| r"C:\ProgramData".into(), Into::into);
+
+        let mut default_config_file = program_data;
+        default_config_file.push("iotedge");
+        default_config_file.push("config.yaml");
+        default_config_file.into()
+    } else {
+        OsString::from("/etc/iotedge/config.yaml")
+    };
+
+    let matches = create_app(&default_config_file).get_matches();
 
     // If running as a Windows service, logging was already initialized by init_win_svc_logging(), so don't do it again.
     if !running_as_windows_service {
@@ -64,19 +79,15 @@ fn init_common(running_as_windows_service: bool) -> Result<Settings, Error> {
     };
     info!("Version - {}", edgelet_core::version_with_source_version());
 
-    let config_file = matches
+    let config_file: PathBuf = matches
         .value_of_os("config-file")
-        .and_then(|name| {
-            let name = Path::new(name);
-            info!("Using config file: {}", name.display());
-            Some(name)
-        })
-        .or_else(|| {
-            info!("Using default configuration");
-            None
-        });
+        .expect("arg has a default value")
+        .to_os_string()
+        .into();
 
-    let settings = Settings::new(config_file)
+    info!("Using config file: {}", config_file.display());
+
+    let settings = Settings::new(&config_file)
         .context(ErrorKind::Initialize(InitializeErrorReason::LoadSettings))?;
 
     Ok(settings)

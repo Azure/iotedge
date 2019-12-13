@@ -1,0 +1,126 @@
+swagger: "2.0"
+info:
+  description: "analyzer API"
+  version: "1.0.0"
+  title: "Analyzer API swagger"
+schemes:
+- "https"
+paths:
+  /api/testoperationresult:
+    post:
+      tags:
+      - "twinStatus"
+      summary: "Report test operation result"
+      description: ""
+      operationId: "reportResult"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "Test result details"
+        required: true
+        schema:
+          $ref: "#/definitions/TestOperationResult"
+      responses:
+        204:
+          description: "Ok"
+  /api/report:
+    get:
+      tags:
+      - "report"
+      summary: "Get report"
+      operationId: "getReport"
+      produces:
+      - "application/json"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/DeviceReport"
+        400:
+          description: "Invalid status value"
+definitions:
+  DeviceReport:
+    type: "object"
+    properties:
+      messagesReport:
+          type: "array"
+          items:
+            $ref: "#/definitions/MessagesReport"
+      directMethodsReport:
+          type: "array"
+          items:
+            $ref: "#/definitions/ResponseOrientedReport"
+      twinsReport:
+          type: "array"
+          items:
+            $ref: "#/definitions/ResponseOrientedReport"
+  MessagesReport:
+    type: "object"
+    properties:
+      moduleId:
+        type: "string"
+      statusCode:
+        type: "string"
+      statusMessage:
+        type: "string"
+      receivedMessagesCount:
+        type: "number"
+      lastMessageReceivedAt:
+        type: "string"
+        format: date-time
+      missedMessages:
+        type: "array"
+        items:
+          $ref: "#/definitions/MissingMessagesReport"
+  MissingMessagesReport:
+    type: "object"
+    properties:
+      MissedMessagesCount:
+        type: "number"
+      StartDateTime:
+        type: "string"
+        format: date-time
+      EndDateTime:
+        type: "string"
+        format: date-time
+  ResponseOrientedReport:
+    type: "object"
+    properties:
+      moduleId:
+        type: "string"
+      statuses:
+        type: "array"
+        items:
+          $ref: "#/definitions/ResponseStatusReport"
+  ResponseStatusReport:
+    type: "object"
+    properties:
+      statusCode:
+        type: "string"
+      count:
+        type: "number"
+      lastReceivedAt:
+        type: "string"
+        format: date-time
+  TestOperationResult:
+    type: "object"
+    required:
+    - "source"
+    - "result"
+    - "type"
+    - "createdAt"
+    properties:
+      source:
+        type: "string"
+      result:
+        type: "string"
+      type:
+        type: "string"
+      createdAt:
+        type: "string"
+        format: date-time
+        

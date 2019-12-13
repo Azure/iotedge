@@ -200,5 +200,53 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
             Task completedTask = await Task.WhenAny(assertTask, delayTask);
             Assert.Equal(assertTask, completedTask);
         }
+
+        [Fact]
+        [Unit]
+        public async Task MayThrow_ConvertsToSome_When_NoException()
+        {
+            var value = 10;
+            var result = await Task.Factory
+                                  .StartNew(() => value)
+                                  .MayThrow(typeof(ExpectedException1), typeof(ExpectedException2));
+
+            Assert.Equal(Option.Some(value), result);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task MayThrow_ConvertsToNone_When_ExpectedException()
+        {
+            var result = await Task.Factory
+                                  .StartNew<int>(() => throw new ExpectedException2())
+                                  .MayThrow(typeof(ExpectedException1), typeof(ExpectedException2));
+
+            Assert.Equal(Option.None<int>(), result);
+        }
+
+        [Fact]
+        [Unit]
+        public async Task MayThrow_LetsExceptionThrough_When_NotExpected()
+        {
+            await Assert.ThrowsAsync<UnexpectedException>(
+                    async () =>
+                    {
+                        var result = await Task.Factory
+                                            .StartNew<int>(() => throw new UnexpectedException())
+                                            .MayThrow(typeof(ExpectedException1));
+                    });
+        }
+
+        private class ExpectedException1 : Exception
+        {
+        }
+
+        private class ExpectedException2 : Exception
+        {
+        }
+
+        private class UnexpectedException : Exception
+        {
+        }
     }
 }

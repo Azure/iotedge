@@ -28,6 +28,9 @@ pub enum ErrorKind {
     #[fail(display = "The certificate management expiration timer encountered a failure.")]
     CertificateExpirationManagement,
 
+    #[fail(display = "The device has been de-provisioned")]
+    DeviceDeprovisioned,
+
     #[fail(display = "The daemon could not start up successfully: {}", _0)]
     Initialize(InitializeErrorReason),
 
@@ -36,6 +39,9 @@ pub enum ErrorKind {
 
     #[fail(display = "The management service encountered an error")]
     ManagementService,
+
+    #[fail(display = "The reprovisioning operation failed")]
+    ReprovisionFailure,
 
     #[fail(display = "The symmetric key string is malformed")]
     SymmetricKeyMalformed,
@@ -144,7 +150,8 @@ impl From<&ErrorKind> for i32 {
             ErrorKind::Initialize(InitializeErrorReason::InvalidDeviceConfig) => 150,
             ErrorKind::Initialize(InitializeErrorReason::InvalidHubConfig) => 151,
             ErrorKind::InvalidSignedToken => 152,
-            ErrorKind::Initialize(InitializeErrorReason::NotConfigured) => 153,
+            ErrorKind::Initialize(InitializeErrorReason::LoadSettings) => 153,
+            ErrorKind::DeviceDeprovisioned => 154,
             _ => 1,
         }
     }
@@ -182,7 +189,6 @@ pub enum InitializeErrorReason {
     ManagementService,
     ManualProvisioningClient,
     ModuleRuntime,
-    NotConfigured,
     PrepareWorkloadCa,
     #[cfg(windows)]
     RegisterWindowsService,
@@ -321,18 +327,6 @@ impl fmt::Display for InitializeErrorReason {
             InitializeErrorReason::ModuleRuntime => {
                 write!(f, "Could not initialize module runtime")
             }
-
-            InitializeErrorReason::NotConfigured => write!(
-                f,
-                "Edge device information is required.\n\
-                 Please update the config.yaml and provide the IoTHub connection information.\n\
-                 See {} for more details.",
-                if cfg!(windows) {
-                    "https://aka.ms/iot-edge-configure-windows"
-                } else {
-                    "https://aka.ms/iot-edge-configure-linux"
-                }
-            ),
 
             InitializeErrorReason::PrepareWorkloadCa => {
                 write!(f, "Could not prepare workload CA certificate")

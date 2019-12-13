@@ -1,15 +1,19 @@
 // Copyright (c) Microsoft. All rights reserved.
 
 use std::cmp::Ordering;
+use std::fmt::Display;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 use regex::Regex;
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use url::Url;
 use url_serde;
 
 use crate::crypto::MemoryKey;
 use crate::error::{Error, ErrorKind};
 use crate::module::ModuleSpec;
+use crate::DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS;
 
 const DEVICEID_KEY: &str = "DeviceId";
 const HOSTNAME_KEY: &str = "HostName";
@@ -17,6 +21,9 @@ const SHAREDACCESSKEY_KEY: &str = "SharedAccessKey";
 
 const DEVICEID_REGEX: &str = r"^[A-Za-z0-9\-:.+%_#*?!(),=@;$']{1,128}$";
 const HOSTNAME_REGEX: &str = r"^[a-zA-Z0-9_\-\.]+$";
+
+/// This is the default connection string
+pub const DEFAULT_CONNECTION_STRING: &str = "<ADD DEVICE CONNECTION STRING HERE>";
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -92,6 +99,16 @@ impl ManualDeviceConnectionString {
     pub fn parse_device_connection_string(&self) -> Result<(MemoryKey, String, String), Error> {
         if self.device_connection_string.is_empty() {
             return Err(Error::from(ErrorKind::ConnectionStringEmpty));
+        }
+
+        if self.device_connection_string == DEFAULT_CONNECTION_STRING {
+            return Err(Error::from(ErrorKind::ConnectionStringNotConfigured(
+                if cfg!(windows) {
+                    "https://aka.ms/iot-edge-configure-windows"
+                } else {
+                    "https://aka.ms/iot-edge-configure-linux"
+                },
+            )));
         }
 
         let mut key = None;
@@ -383,9 +400,29 @@ impl External {
 }
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+#[serde(rename_all = "lowercase")]
+pub struct Provisioning {
+    #[serde(flatten)]
+    provisioning: ProvisioningType,
+
+    #[serde(default)]
+    dynamic_reprovisioning: bool,
+}
+
+impl Provisioning {
+    pub fn provisioning_type(&self) -> &ProvisioningType {
+        &self.provisioning
+    }
+
+    pub fn dynamic_reprovisioning(&self) -> bool {
+        self.dynamic_reprovisioning
+    }
+}
+
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 #[serde(tag = "source")]
 #[serde(rename_all = "lowercase")]
-pub enum Provisioning {
+pub enum ProvisioningType {
     Manual(Box<Manual>),
     Dps(Box<Dps>),
     External(External),
@@ -415,6 +452,8 @@ pub struct Listen {
     workload_uri: Url,
     #[serde(with = "url_serde")]
     management_uri: Url,
+    #[serde(default = "Protocol::default")]
+    min_tls_version: Protocol,
 }
 
 impl Listen {
@@ -425,10 +464,76 @@ impl Listen {
     pub fn management_uri(&self) -> &Url {
         &self.management_uri
     }
+
+    pub fn min_tls_version(&self) -> Protocol {
+        self.min_tls_version
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Protocol {
+    Tls10,
+    Tls11,
+    Tls12,
+}
+
+impl Default for Protocol {
+    fn default() -> Self {
+        Protocol::Tls10
+    }
+}
+
+impl Display for Protocol {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Protocol::Tls10 => write!(f, "TLS 1.0"),
+            Protocol::Tls11 => write!(f, "TLS 1.1"),
+            Protocol::Tls12 => write!(f, "TLS 1.2"),
+        }
+    }
+}
+
+impl FromStr for Protocol {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_ref() {
+            "tls" | "tls1" | "tls10" | "tlsv10" => Ok(Protocol::Tls10),
+            "tls11" | "tlsv11" => Ok(Protocol::Tls11),
+            "tls12" | "tlsv12" => Ok(Protocol::Tls12),
+            _ => Err(format!("Unsupported TLS protocol version: {}", s)),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for Protocol {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        s.parse().map_err(de::Error::custom)
+    }
+}
+
+impl Serialize for Protocol {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&format!("{}", self))
+    }
 }
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Certificates {
+    #[serde(flatten)]
+    device_cert: Option<DeviceCertificate>,
+    auto_generated_ca_lifetime_days: u16,
+}
+
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+pub struct DeviceCertificate {
     device_ca_cert: String,
     device_ca_pk: String,
     trusted_ca_certs: String,
@@ -500,7 +605,7 @@ fn convert_to_uri(maybe_uri: &str, setting_name: &'static str) -> Result<Url, Er
     }
 }
 
-impl Certificates {
+impl DeviceCertificate {
     pub fn device_ca_cert(&self) -> Result<PathBuf, Error> {
         convert_to_path(&self.device_ca_cert, "certificates.device_ca_cert")
     }
@@ -523,6 +628,17 @@ impl Certificates {
 
     pub fn trusted_ca_certs_uri(&self) -> Result<Url, Error> {
         convert_to_uri(&self.trusted_ca_certs, "certificates.trusted_ca_certs")
+    }
+}
+
+impl Certificates {
+    pub fn device_cert(&self) -> Option<&DeviceCertificate> {
+        self.device_cert.as_ref()
+    }
+
+    pub fn auto_generated_ca_lifetime_seconds(&self) -> u64 {
+        // Convert days to seconds (86,400 seconds per day)
+        u64::from(self.auto_generated_ca_lifetime_days) * 86_400
     }
 }
 
@@ -570,7 +686,7 @@ pub trait RuntimeSettings {
     fn connect(&self) -> &Connect;
     fn listen(&self) -> &Listen;
     fn homedir(&self) -> &Path;
-    fn certificates(&self) -> Option<&Certificates>;
+    fn certificates(&self) -> &Certificates;
     fn watchdog(&self) -> &WatchdogSettings;
 }
 
@@ -621,8 +737,15 @@ where
         &self.homedir
     }
 
-    fn certificates(&self) -> Option<&Certificates> {
-        self.certificates.as_ref()
+    // Certificates is left as an option for backward compat
+    fn certificates(&self) -> &Certificates {
+        match &self.certificates {
+            None => &Certificates {
+                device_cert: None,
+                auto_generated_ca_lifetime_days: DEFAULT_AUTO_GENERATED_CA_LIFETIME_DAYS,
+            },
+            Some(c) => c,
+        }
     }
 
     fn watchdog(&self) -> &WatchdogSettings {
@@ -632,6 +755,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use test_case::test_case;
+
     use super::*;
 
     #[test]
@@ -787,5 +912,37 @@ mod tests {
             convert_to_uri("file://deadhost/tmp/sample.txt", "test")
                 .expect_err("Non localhost host specified");
         }
+    }
+
+    #[test_case("tls", Protocol::Tls10; "when tls provided")]
+    #[test_case("TLS", Protocol::Tls10; "when uppercase TLS provided")]
+    #[test_case("tls1", Protocol::Tls10; "when tls1 provided")]
+    #[test_case("TLS1", Protocol::Tls10; "when uppercase TLS1 provided")]
+    #[test_case("tls10", Protocol::Tls10; "when tls10 provided")]
+    #[test_case("TLS10", Protocol::Tls10; "when uppercase TLS10 Provided")]
+    #[test_case("tlsv10" , Protocol::Tls10; "when tlsv10 provided")]
+    #[test_case("TLSv10" , Protocol::Tls10; "when uppercase TLSv10 Provided")]
+    #[test_case("tls11", Protocol::Tls11; "when tls11 provided")]
+    #[test_case("TLS11", Protocol::Tls11; "when uppercase TLS11 Provided")]
+    #[test_case("tlsv11", Protocol::Tls11; "when tlsv11 Provided")]
+    #[test_case("TLSv11", Protocol::Tls11; "when uppercase TLSv11 provided")]
+    #[test_case("tls12", Protocol::Tls12; "when tls12 provided")]
+    #[test_case("TLS12", Protocol::Tls12; "when uppercase TLS12 provided")]
+    #[test_case("tlsv12", Protocol::Tls12; "when tlsv12 provided")]
+    #[test_case("TLSv12", Protocol::Tls12; "when uppercase TLSv12 provided")]
+    fn it_parses_protocol(value: &str, expected: Protocol) {
+        let actual = Protocol::from_str(value);
+        assert_eq!(actual, Ok(expected));
+    }
+
+    #[test_case(""; "when empty string provided")]
+    #[test_case("Sslv3"; "when unsupported version provided")]
+    #[test_case("TLS2"; "when non-existing version provided")]
+    fn it_fails_to_parse_protocol(value: &str) {
+        let actual = Protocol::from_str(value);
+        assert_eq!(
+            actual,
+            Err(format!("Unsupported TLS protocol version: {}", value))
+        )
     }
 }

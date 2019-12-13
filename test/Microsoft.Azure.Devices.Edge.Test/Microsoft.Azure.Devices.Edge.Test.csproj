@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup Condition="'$(DotNet_Runtime)' != 'netcoreapp3.0'">
     <TargetFramework>netcoreapp2.1</TargetFramework>

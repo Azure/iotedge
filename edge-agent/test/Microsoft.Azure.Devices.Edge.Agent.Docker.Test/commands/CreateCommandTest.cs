@@ -162,7 +162,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test.Commands
                     Assert.False(container.HostConfig.PortBindings.ContainsKey("443/tcp"));
                     // logging
                     Assert.Equal("json-file", container.HostConfig.LogConfig.Type);
-                    Assert.True(container.HostConfig.LogConfig.Config.Count == 1);
+
+                    // While we only set one log config for max-size, there may be other log-configs in docker's daemon.json that the container will inherit.
+                    // So there can be more than one.
+                    Assert.True(container.HostConfig.LogConfig.Config.Count >= 1);
+
                     Assert.Equal("100M", container.HostConfig.LogConfig.Config["max-size"]);
                 }
             }

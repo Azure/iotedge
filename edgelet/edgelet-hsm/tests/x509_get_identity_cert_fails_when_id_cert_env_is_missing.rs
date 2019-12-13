@@ -37,5 +37,5 @@ fn x509_get_conf_x509_identity_missing_cert_env_fails() {
     setup_configured_id_cert(home_dir.get_path());
 
     let hsm_lock = HsmLock::new();
-    assert!(X509::new(hsm_lock).is_err());
+    assert!(X509::new(hsm_lock, 1000).is_err());
 }

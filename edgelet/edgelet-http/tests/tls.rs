@@ -5,12 +5,14 @@
 use std::env;
 
 use edgelet_core::crypto::CreateCertificate;
-use edgelet_core::{CertificateIssuer, CertificateProperties, CertificateType, IOTEDGED_CA_ALIAS};
+use edgelet_core::{
+    CertificateIssuer, CertificateProperties, CertificateType, Protocol, IOTEDGED_CA_ALIAS,
+};
 use edgelet_hsm::{Crypto, HsmLock};
 use edgelet_http::certificate_manager::CertificateManager;
 use edgelet_http::route::{Builder, Parameters, RegexRoutesBuilder, Router};
-use edgelet_http::Error as HttpError;
 use edgelet_http::HyperExt;
+use edgelet_http::{Error as HttpError, TlsAcceptorParams};
 use edgelet_http::{Run, Version};
 
 use futures::{future, Future};
@@ -63,7 +65,7 @@ pub fn configure_test(address: &str) -> (Run, u16) {
     println!("IOTEDGE_HOMEDIR set to {:#?}", home_dir.path());
 
     let hsm_lock = HsmLock::new();
-    let crypto = Crypto::new(hsm_lock).unwrap();
+    let crypto = Crypto::new(hsm_lock, 1000).unwrap();
 
     // create the default issuing CA cert properties
     let edgelet_ca_props = CertificateProperties::new(
@@ -91,8 +93,10 @@ pub fn configure_test(address: &str) -> (Run, u16) {
         .finish();
     let router = Router::from(recognizer);
 
+    let tls_params = TlsAcceptorParams::new(&manager, Protocol::Tls12);
+
     let server = Http::new()
-        .bind_url(Url::parse(address).unwrap(), router, Some(&manager))
+        .bind_url(Url::parse(address).unwrap(), router, Some(tls_params))
         .unwrap();
     let port = server.port().expect("HTTP server must have port");
     (server.run(), port)

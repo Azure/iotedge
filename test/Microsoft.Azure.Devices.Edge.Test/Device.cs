@@ -11,16 +11,17 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
 
-    class Device : RuntimeFixture
+    class Device : ManualProvisioningFixture
     {
         [Test]
         public async Task QuickstartCerts()
         {
-            CancellationToken token = this.cts.Token;
+            CancellationToken token = this.TestToken;
 
             await this.runtime.DeployConfigurationAsync(token);
 
-            string leafDeviceId = $"{Context.Current.DeviceId}-quickstart-certs";
+            string leafDeviceId =
+                IdentityLimits.CheckLeafId($"{Context.Current.DeviceId}-quickstart-certs");
 
             var leaf = await LeafDevice.CreateAsync(
                 leafDeviceId,
