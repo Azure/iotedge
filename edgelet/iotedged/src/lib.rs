@@ -64,7 +64,7 @@ use edgelet_hsm::{Crypto, HsmLock, X509};
 use edgelet_http::certificate_manager::CertificateManager;
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http::logging::LoggingService;
-use edgelet_http::{HyperExt, MaybeProxyClient, PemCertificate, API_VERSION};
+use edgelet_http::{HyperExt, MaybeProxyClient, PemCertificate, TlsAcceptorParams, API_VERSION};
 use edgelet_http_external_provisioning::ExternalProvisioningClient;
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
@@ -2069,6 +2069,8 @@ where
 
     let label = "mgmt".to_string();
     let url = settings.listen().management_uri().clone();
+    let min_protocol_version = settings.listen().min_tls_version();
+
     ManagementService::new(runtime, id_man, initiate_shutdown_and_reprovision)
         .then(move |service| -> Result<_, Error> {
             let service = service.context(ErrorKind::Initialize(
@@ -2076,8 +2078,10 @@ where
             ))?;
             let service = LoggingService::new(label, service);
 
+            let tls_params = TlsAcceptorParams::new(&cert_manager, min_protocol_version);
+
             let run = Http::new()
-                .bind_url(url.clone(), service, Some(&cert_manager))
+                .bind_url(url.clone(), service, Some(tls_params))
                 .map_err(|err| {
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::ManagementService,
@@ -2126,6 +2130,7 @@ where
 
     let label = "work".to_string();
     let url = settings.listen().workload_uri().clone();
+    let min_protocol_version = settings.listen().min_tls_version();
 
     WorkloadService::new(key_store, crypto.clone(), runtime, config)
         .then(move |service| -> Result<_, Error> {
@@ -2134,8 +2139,10 @@ where
             ))?;
             let service = LoggingService::new(label, service);
 
+            let tls_params = TlsAcceptorParams::new(&cert_manager, min_protocol_version);
+
             let run = Http::new()
-                .bind_url(url.clone(), service, Some(&cert_manager))
+                .bind_url(url.clone(), service, Some(tls_params))
                 .map_err(|err| {
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::WorkloadService,
