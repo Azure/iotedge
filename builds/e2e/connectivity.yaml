@@ -27,7 +27,7 @@ jobs:
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString'
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,EdgeConnectivityLogAnalyticsKey'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -71,7 +71,7 @@ jobs:
           networkController.frequencies: '$(networkController.frequencies)'
           networkController.mode: '$(networkController.mode)'
           testResultCoordinator.logAnalyticsWorkspaceId: '$(testResultCoordinator.logAnalyticsWorkspaceId)'
-          testResultCoordinator.logAnalyticsSharedKey: '$(testResultCoordinator.logAnalyticsSharedKey)'
+          testResultCoordinator.logAnalyticsSharedKey: '$(EdgeConnectivityLogAnalyticsKey)'
           testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
 
 ################################################################################
@@ -96,7 +96,7 @@ jobs:
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString'
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,EdgeConnectivityLogAnalyticsKey'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -140,5 +140,5 @@ jobs:
           networkController.frequencies: '$(networkController.frequencies)'
           networkController.mode: '$(networkController.mode)'
           testResultCoordinator.logAnalyticsWorkspaceId: '$(testResultCoordinator.logAnalyticsWorkspaceId)'
-          testResultCoordinator.logAnalyticsSharedKey: '$(testResultCoordinator.logAnalyticsSharedKey)'
+          testResultCoordinator.logAnalyticsSharedKey: '$(EdgeConnectivityLogAnalyticsKey)'
           testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
