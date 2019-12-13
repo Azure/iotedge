@@ -28,6 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             public const string EdgeHubDevServerPrivateKeyFile = "EdgeHubDevServerPrivateKeyFile";
             public const string EdgeHubDevTrustBundleFile = "EdgeHubDevTrustBundleFile";
             public const string EdgeHubClientCertAuthEnabled = "ClientCertAuthEnabled";
+            public const string SslProtocols = "SslProtocols";
         }
     }
 }
