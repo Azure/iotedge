@@ -20,29 +20,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             var messages = new List<EventData>();
 
-            // Retry a few times to make sure we get all expected messages.
-            for (int i = 0; i < 3; i++)
+            EventHubClient eventHubClient = EventHubClient.CreateFromConnectionString(this.eventHubConnectionString);
+            PartitionReceiver partitionReceiver = eventHubClient.CreateReceiver(
+                PartitionReceiver.DefaultConsumerGroupName,
+                EventHubPartitionKeyResolver.ResolveToPartition(deviceId, (await eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
+                EventPosition.FromEnqueuedTime(startTime));
+
+            IEnumerable<EventData> events = await partitionReceiver.ReceiveAsync(maxPerPartition, TimeSpan.FromSeconds(waitTimeSecs));
+            if (events != null)
             {
-                EventHubClient eventHubClient = EventHubClient.CreateFromConnectionString(this.eventHubConnectionString);
-                PartitionReceiver partitionReceiver = eventHubClient.CreateReceiver(
-                    PartitionReceiver.DefaultConsumerGroupName,
-                    EventHubPartitionKeyResolver.ResolveToPartition(deviceId, (await eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
-                    EventPosition.FromEnqueuedTime(startTime));
-
-                IEnumerable<EventData> events = await partitionReceiver.ReceiveAsync(maxPerPartition, TimeSpan.FromSeconds(waitTimeSecs));
-                if (events != null)
-                {
-                    messages.AddRange(events);
-                }
-
-                await partitionReceiver.CloseAsync();
-                await eventHubClient.CloseAsync();
-
-                if (i < 3)
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(20));
-                }
+                messages.AddRange(events);
             }
+
+            await partitionReceiver.CloseAsync();
+            await eventHubClient.CloseAsync();
 
             return messages;
         }

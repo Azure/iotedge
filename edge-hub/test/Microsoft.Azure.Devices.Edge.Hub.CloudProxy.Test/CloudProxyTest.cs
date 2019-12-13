@@ -27,6 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         const string Device2ConnStrKey = "device2ConnStrKey";
         const string Device3ConnStrKey = "device3ConnStrKey";
         static readonly TimeSpan ClockSkew = TimeSpan.FromMinutes(5);
+        static readonly int EventHubMessageReceivedRetry = 10;
 
         [Fact]
         [TestPriority(401)]
@@ -252,17 +253,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var receivedMessagesByDevice = new Dictionary<string, List<EventData>>();
 
             bool messagesFound = false;
-            foreach (string deviceId in sentMessagesByDevice.Keys)
+            for (int i = 0; i < EventHubMessageReceivedRetry; i++)
             {
-                if (!receivedMessagesByDevice.ContainsKey(deviceId))
+                foreach (string deviceId in sentMessagesByDevice.Keys)
                 {
-                    receivedMessagesByDevice.Add(deviceId, new List<EventData>());
+                    if (!receivedMessagesByDevice.ContainsKey(deviceId))
+                    {
+                        receivedMessagesByDevice.Add(deviceId, new List<EventData>());
+                    }
+
+                    receivedMessagesByDevice[deviceId].AddRange(await eventHubReceiver.GetMessagesForDevice(deviceId, startTime));
                 }
 
-                receivedMessagesByDevice[deviceId].AddRange(await eventHubReceiver.GetMessagesForDevice(deviceId, startTime));
-            }
+                messagesFound = MessageHelper.CompareMessagesAndEventData(sentMessagesByDevice, receivedMessagesByDevice);
 
-            messagesFound = MessageHelper.CompareMessagesAndEventData(sentMessagesByDevice, receivedMessagesByDevice);
+                if (messagesFound)
+                {
+                    break;
+                }
+            }
 
             foreach (string device in receivedMessagesByDevice.Keys)
             {
