@@ -2,7 +2,7 @@
 namespace TestResultCoordinator
 {
     /// <summary>
-    /// This defines methods for a test result report generator.
+    /// This is used to create an instance of test report generator based on given report-related parameters.
     /// </summary>
     interface ITestReportGeneratorFactory
     {
