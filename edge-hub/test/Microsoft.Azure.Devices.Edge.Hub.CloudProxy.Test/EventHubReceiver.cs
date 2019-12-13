@@ -16,13 +16,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             this.eventHubConnectionString = eventHubConnectionString;
         }
 
-        public async Task<IList<EventData>> GetMessagesForDevice(string deviceId, DateTime startTime, int maxPerPartition = 10, int waitTimeSecs = 5)
+        public async Task<IList<EventData>> GetMessagesForDevice(string deviceId, DateTime startTime, int maxPerPartition = 100, int waitTimeSecs = 5)
         {
             var messages = new List<EventData>();
 
             EventHubClient eventHubClient = EventHubClient.CreateFromConnectionString(this.eventHubConnectionString);
             PartitionReceiver partitionReceiver = eventHubClient.CreateReceiver(
-                PartitionReceiver.DefaultConsumerGroupName,
+                "ci-tests",
                 EventHubPartitionKeyResolver.ResolveToPartition(deviceId, (await eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
                 EventPosition.FromEnqueuedTime(startTime));
 
