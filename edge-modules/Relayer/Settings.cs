@@ -28,7 +28,7 @@ namespace Relayer
                     configuration.GetValue("transportType", TransportType.Amqp_Tcp_Only),
                     configuration.GetValue("inputName", "input1"),
                     configuration.GetValue("outputName", "output1"),
-                    configuration.GetValue<Uri>("testResultCoordinatorUrl", new Uri("http://testresultcoordinator:5001/api/testoperationresult")),
+                    configuration.GetValue<Uri>("testResultCoordinatorUrl", new Uri("http://testresultcoordinator:5001")),
                     configuration.GetValue<string>("IOTEDGE_MODULEID"));
             });
 
