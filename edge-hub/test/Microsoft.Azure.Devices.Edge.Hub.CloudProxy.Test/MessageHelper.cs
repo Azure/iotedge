@@ -55,6 +55,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             foreach (string deviceId in sentMessagesByDevice.Keys)
             {
+                if (!receivedMessagesByDevice.ContainsKey(deviceId))
+                {
+                    return false;
+                }
+
                 foreach (IMessage message in sentMessagesByDevice[deviceId])
                 {
                     EventData eventData = receivedMessagesByDevice[deviceId].FirstOrDefault(
