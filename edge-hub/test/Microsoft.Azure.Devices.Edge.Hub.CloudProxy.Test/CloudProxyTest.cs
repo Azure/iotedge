@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             IMessage message = MessageHelper.GenerateMessages(1)[0];
             DateTime startTime = DateTime.UtcNow.Subtract(ClockSkew);
-            ICloudProxy cloudProxy = await this.GetCloudProxyFromConnectionStringKey("device2ConnStrKey");
+            ICloudProxy cloudProxy = await this.GetCloudProxyFromConnectionStringKey(Device2ConnStrKey);
             await cloudProxy.SendMessageAsync(message);
 
             Dictionary<string, IList<IMessage>> sentMessagesByDevice = new Dictionary<string, IList<IMessage>>();
@@ -99,7 +99,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             IList<IMessage> messages = MessageHelper.GenerateMessages(4);
             DateTime startTime = DateTime.UtcNow.Subtract(ClockSkew);
-            ICloudProxy cloudProxy = await this.GetCloudProxyFromConnectionStringKey("device2ConnStrKey");
+            ICloudProxy cloudProxy = await this.GetCloudProxyFromConnectionStringKey(Device2ConnStrKey);
             await cloudProxy.SendMessageBatchAsync(messages);
 
             Dictionary<string, IList<IMessage>> sentMessagesByDevice = new Dictionary<string, IList<IMessage>>();
@@ -115,7 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [TestPriority(404)]
         public async Task CanGetTwin()
         {
-            ICloudProxy cloudProxy = await this.GetCloudProxyFromConnectionStringKey("device2ConnStrKey");
+            ICloudProxy cloudProxy = await this.GetCloudProxyFromConnectionStringKey(Device2ConnStrKey);
             IMessage result = await cloudProxy.GetTwinAsync();
             string actualString = Encoding.UTF8.GetString(result.Body);
             Assert.StartsWith("{", actualString);
@@ -127,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [TestPriority(405)]
         public async Task CanUpdateReportedProperties()
         {
-            ICloudProxy cloudProxy = await this.GetCloudProxyFromConnectionStringKey("device2ConnStrKey");
+            ICloudProxy cloudProxy = await this.GetCloudProxyFromConnectionStringKey(Device2ConnStrKey);
             IMessage message = await cloudProxy.GetTwinAsync();
 
             JObject twin = JObject.Parse(Encoding.UTF8.GetString(message.Body));
@@ -155,7 +155,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             var update = new TaskCompletionSource<IMessage>();
             var edgeHub = new Mock<IEdgeHub>();
-            string deviceConnectionStringKey = "device2ConnStrKey";
+            string deviceConnectionStringKey = Device2ConnStrKey;
             edgeHub.Setup(x => x.UpdateDesiredPropertiesAsync(It.IsAny<string>(), It.IsAny<IMessage>()))
                 .Callback((string _, IMessage m) => update.TrySetResult(m))
                 .Returns(TaskEx.Done);
@@ -188,7 +188,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public async Task CloudProxyNullReceiverTest()
         {
             // Arrange
-            string deviceConnectionStringKey = "device2ConnStrKey";
+            string deviceConnectionStringKey = Device2ConnStrKey;
             ICloudProxy cloudProxy = await this.GetCloudProxyFromConnectionStringKey(deviceConnectionStringKey);
 
             // Act/assert
