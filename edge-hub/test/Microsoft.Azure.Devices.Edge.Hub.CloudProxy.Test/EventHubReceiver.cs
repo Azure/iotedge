@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Common;
     using Microsoft.Azure.EventHubs;
 
     public class EventHubReceiver
@@ -15,7 +16,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             this.eventHubClient = EventHubClient.CreateFromConnectionString(eventHubConnectionString);
         }
 
-        public async Task<IList<EventData>> GetMessagesFromAllPartitions(DateTime startTime, int maxPerPartition = 10, int waitTimeSecs = 5)
+        public async Task<IList<EventData>> GetMessagesForDevice(string deviceId, DateTime startTime, int maxPerPartition = 10, int waitTimeSecs = 5)
         {
             var messages = new List<EventData>();
             EventHubRuntimeInformation rtInfo = await this.eventHubClient.GetRuntimeInformationAsync();
@@ -23,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             {
                 PartitionReceiver partitionReceiver = this.eventHubClient.CreateReceiver(
                     PartitionReceiver.DefaultConsumerGroupName,
-                    partition,
+                    EventHubPartitionKeyResolver.ResolveToPartition(deviceId, (await this.eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
                     EventPosition.FromEnqueuedTime(startTime));
 
                 // Retry a few times to make sure we get all expected messages.

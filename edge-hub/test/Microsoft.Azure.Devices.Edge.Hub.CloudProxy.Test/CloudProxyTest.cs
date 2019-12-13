@@ -24,22 +24,31 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     [TestCaseOrderer("Microsoft.Azure.Devices.Edge.Util.Test.PriorityOrderer", "Microsoft.Azure.Devices.Edge.Util.Test")]
     public class CloudProxyTest
     {
+        const string Device2ConnStrKey = "device2ConnStrKey";
+        const string Device3ConnStrKey = "device3ConnStrKey";
         static readonly TimeSpan ClockSkew = TimeSpan.FromMinutes(5);
-
         static readonly int EventHubMessageReceivedRetry = 10;
 
         [Fact]
         [TestPriority(401)]
         public async Task SendMessageTest()
         {
+            string device2ConnectionString = await SecretsHelper.GetSecretFromConfigKey(Device2ConnStrKey);
+            string deviceId2 = IotHubConnectionStringBuilder.Create(device2ConnectionString).DeviceId;
+
             IMessage message = MessageHelper.GenerateMessages(1)[0];
             DateTime startTime = DateTime.UtcNow.Subtract(ClockSkew);
-            ICloudProxy cloudProxy = await this.GetCloudProxyWithConnectionStringKey("device2ConnStrKey");
+            ICloudProxy cloudProxy = await this.GetCloudProxyFromConnectionStringKey("device2ConnStrKey");
             await cloudProxy.SendMessageAsync(message);
+
+            Dictionary<string, IList<IMessage>> sentMessagesByDevice = new Dictionary<string, IList<IMessage>>();
+            sentMessagesByDevice.Add(deviceId2, new List<IMessage>());
+            sentMessagesByDevice[deviceId2].Add(message);
+
             bool disconnectResult = await cloudProxy.CloseAsync();
             Assert.True(disconnectResult);
 
-            await CheckMessageInEventHub(new List<IMessage> { message }, startTime);
+            await CheckMessageInEventHub(sentMessagesByDevice, startTime);
         }
 
         [Fact]
@@ -49,43 +58,64 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             IList<IMessage> messages = MessageHelper.GenerateMessages(4);
             DateTime startTime = DateTime.UtcNow.Subtract(ClockSkew);
 
-            ICloudProxy cloudProxy1 = await this.GetCloudProxyWithConnectionStringKey("device2ConnStrKey");
+            string device2ConnectionString = await SecretsHelper.GetSecretFromConfigKey(Device2ConnStrKey);
+            string device3ConnectionString = await SecretsHelper.GetSecretFromConfigKey(Device3ConnStrKey);
+            string deviceId2 = IotHubConnectionStringBuilder.Create(device2ConnectionString).DeviceId;
+            string deviceId3 = IotHubConnectionStringBuilder.Create(device3ConnectionString).DeviceId;
 
-            ICloudProxy cloudProxy2 = await this.GetCloudProxyWithConnectionStringKey("device3ConnStrKey");
+            ICloudProxy cloudProxy2 = await this.GetCloudProxyFromConnectionStringKey(Device2ConnStrKey);
+            ICloudProxy cloudProxy3 = await this.GetCloudProxyFromConnectionStringKey(Device3ConnStrKey);
+
+            Dictionary<string, IList<IMessage>> sentMessagesByDevice = new Dictionary<string, IList<IMessage>>();
+            sentMessagesByDevice.Add(deviceId2, new List<IMessage>());
+            sentMessagesByDevice.Add(deviceId3, new List<IMessage>());
 
             for (int i = 0; i < messages.Count; i = i + 2)
             {
-                await cloudProxy1.SendMessageAsync(messages[i]);
-                await cloudProxy2.SendMessageAsync(messages[i + 1]);
+                IMessage device2Message = messages[i];
+                IMessage device3Message = messages[i + 1];
+
+                await cloudProxy2.SendMessageAsync(device2Message);
+                await cloudProxy3.SendMessageAsync(device3Message);
+
+                sentMessagesByDevice[deviceId2].Add(device2Message);
+                sentMessagesByDevice[deviceId3].Add(device3Message);
             }
 
-            bool disconnectResult = await cloudProxy1.CloseAsync();
+            bool disconnectResult = await cloudProxy2.CloseAsync();
             Assert.True(disconnectResult);
-            disconnectResult = await cloudProxy2.CloseAsync();
+            disconnectResult = await cloudProxy3.CloseAsync();
             Assert.True(disconnectResult);
 
-            await CheckMessageInEventHub(messages, startTime);
+            await CheckMessageInEventHub(sentMessagesByDevice, startTime);
         }
 
         [Fact]
         [TestPriority(403)]
         public async Task SendMessageBatchTest()
         {
+            string device2ConnectionString = await SecretsHelper.GetSecretFromConfigKey(Device2ConnStrKey);
+            string deviceId2 = IotHubConnectionStringBuilder.Create(device2ConnectionString).DeviceId;
+
             IList<IMessage> messages = MessageHelper.GenerateMessages(4);
             DateTime startTime = DateTime.UtcNow.Subtract(ClockSkew);
-            ICloudProxy cloudProxy = await this.GetCloudProxyWithConnectionStringKey("device2ConnStrKey");
+            ICloudProxy cloudProxy = await this.GetCloudProxyFromConnectionStringKey("device2ConnStrKey");
             await cloudProxy.SendMessageBatchAsync(messages);
+
+            Dictionary<string, IList<IMessage>> sentMessagesByDevice = new Dictionary<string, IList<IMessage>>();
+            sentMessagesByDevice.Add(deviceId2, messages);
+
             bool disconnectResult = await cloudProxy.CloseAsync();
             Assert.True(disconnectResult);
 
-            await CheckMessageInEventHub(messages, startTime);
+            await CheckMessageInEventHub(sentMessagesByDevice, startTime);
         }
 
         [Fact]
         [TestPriority(404)]
         public async Task CanGetTwin()
         {
-            ICloudProxy cloudProxy = await this.GetCloudProxyWithConnectionStringKey("device2ConnStrKey");
+            ICloudProxy cloudProxy = await this.GetCloudProxyFromConnectionStringKey("device2ConnStrKey");
             IMessage result = await cloudProxy.GetTwinAsync();
             string actualString = Encoding.UTF8.GetString(result.Body);
             Assert.StartsWith("{", actualString);
@@ -97,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         [TestPriority(405)]
         public async Task CanUpdateReportedProperties()
         {
-            ICloudProxy cloudProxy = await this.GetCloudProxyWithConnectionStringKey("device2ConnStrKey");
+            ICloudProxy cloudProxy = await this.GetCloudProxyFromConnectionStringKey("device2ConnStrKey");
             IMessage message = await cloudProxy.GetTwinAsync();
 
             JObject twin = JObject.Parse(Encoding.UTF8.GetString(message.Body));
@@ -130,7 +160,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 .Callback((string _, IMessage m) => update.TrySetResult(m))
                 .Returns(TaskEx.Done);
 
-            ICloudProxy cloudProxy = await this.GetCloudProxyWithConnectionStringKey(deviceConnectionStringKey, edgeHub.Object);
+            ICloudProxy cloudProxy = await this.GetCloudProxyFromConnectionStringKey(deviceConnectionStringKey, edgeHub.Object);
 
             await cloudProxy.SetupDesiredPropertyUpdatesAsync();
 
@@ -159,7 +189,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             // Arrange
             string deviceConnectionStringKey = "device2ConnStrKey";
-            ICloudProxy cloudProxy = await this.GetCloudProxyWithConnectionStringKey(deviceConnectionStringKey);
+            ICloudProxy cloudProxy = await this.GetCloudProxyFromConnectionStringKey(deviceConnectionStringKey);
 
             // Act/assert
             // Without setting up the CloudListener, the following methods should not throw.
@@ -216,17 +246,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             client.VerifyAll();
         }
 
-        static async Task CheckMessageInEventHub(IList<IMessage> sentMessages, DateTime startTime)
+        static async Task CheckMessageInEventHub(Dictionary<string, IList<IMessage>> sentMessagesByDevice, DateTime startTime)
         {
             string eventHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey");
             var eventHubReceiver = new EventHubReceiver(eventHubConnectionString);
-            var cloudMessages = new List<EventData>();
-            bool messagesFound = false;
+            var receivedMessagesByDevice = new Dictionary<string, List<EventData>>();
+
             // Add retry mechanism to make sure all the messages sent reached Event Hub.
+            bool messagesFound = false;
             for (int i = 0; i < EventHubMessageReceivedRetry; i++)
             {
-                cloudMessages.AddRange(await eventHubReceiver.GetMessagesFromAllPartitions(startTime));
-                messagesFound = MessageHelper.CompareMessagesAndEventData(sentMessages, cloudMessages);
+                foreach (string deviceId in sentMessagesByDevice.Keys)
+                {
+                    if (!receivedMessagesByDevice.ContainsKey(deviceId))
+                    {
+                        receivedMessagesByDevice.Add(deviceId, new List<EventData>());
+                    }
+
+                    receivedMessagesByDevice[deviceId].AddRange(await eventHubReceiver.GetMessagesForDevice(deviceId, startTime));
+                }
+
+                messagesFound = MessageHelper.CompareMessagesAndEventData(sentMessagesByDevice, receivedMessagesByDevice);
                 if (messagesFound)
                 {
                     break;
@@ -236,8 +276,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             }
 
             await eventHubReceiver.Close();
-            Assert.NotNull(cloudMessages);
-            Assert.NotEmpty(cloudMessages);
+
+            foreach (string device in receivedMessagesByDevice.Keys)
+            {
+                Assert.NotNull(receivedMessagesByDevice[device]);
+                Assert.NotEmpty(receivedMessagesByDevice[device]);
+            }
+
             Assert.True(messagesFound);
         }
 
@@ -251,10 +296,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             desired["$version"] = twin.Properties.Desired.Version;
         }
 
-        Task<ICloudProxy> GetCloudProxyWithConnectionStringKey(string connectionStringConfigKey) =>
-            this.GetCloudProxyWithConnectionStringKey(connectionStringConfigKey, Mock.Of<IEdgeHub>());
+        Task<ICloudProxy> GetCloudProxyFromConnectionStringKey(string connectionStringConfigKey) =>
+            this.GetCloudProxyFromConnectionStringKey(connectionStringConfigKey, Mock.Of<IEdgeHub>());
 
-        async Task<ICloudProxy> GetCloudProxyWithConnectionStringKey(string connectionStringConfigKey, IEdgeHub edgeHub)
+        async Task<ICloudProxy> GetCloudProxyFromConnectionStringKey(string connectionStringConfigKey, IEdgeHub edgeHub)
         {
             const int ConnectionPoolSize = 10;
             string deviceConnectionString = await SecretsHelper.GetSecretFromConfigKey(connectionStringConfigKey);
