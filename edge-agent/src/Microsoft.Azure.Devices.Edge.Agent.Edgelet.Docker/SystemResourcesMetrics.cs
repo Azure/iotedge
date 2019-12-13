@@ -111,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
         {
             if (ApiVersion.ParseVersion(this.apiVersion).Value >= ApiVersion.Version20191105.Value)
             {
-                this.updateResources = new PeriodicTask(this.Update, TimeSpan.FromSeconds(15), TimeSpan.FromSeconds(30), logger, "Get system resources");
+                this.updateResources = new PeriodicTask(this.Update, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(1), logger, "Get system resources", false);
             }
             else
             {

@@ -2,6 +2,7 @@
 namespace TestResultCoordinator
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore;
@@ -9,8 +10,10 @@ namespace TestResultCoordinator
     using Microsoft.Azure.Devices.Common;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics;
     using Microsoft.Azure.EventHubs;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json;
 
     class Program
     {
@@ -39,10 +42,35 @@ namespace TestResultCoordinator
             Console.WriteLine("TestResultCoordinator Main() exited.");
         }
 
-        static Task ReportTestResultsAsync()
+        static async Task ReportTestResultsAsync()
         {
-            // TODO: Generate report and report to Log Analytic
-            return Task.CompletedTask;
+            Logger.LogInformation($"Starting report generation for {Settings.Current.ReportMetadataList.Count} reports");
+            try
+            {
+                TestReportGeneratorFactory testReportGeneratorFactory = new TestReportGeneratorFactory();
+                List<Task<ITestResultReport>> testResultReportList = new List<Task<ITestResultReport>>();
+                foreach (IReportMetadata reportMetadata in Settings.Current.ReportMetadataList)
+                {
+                    ITestResultReportGenerator testResultReportGenerator = testReportGeneratorFactory.Create(Settings.Current.TrackingId, reportMetadata);
+                    testResultReportList.Add(testResultReportGenerator.CreateReportAsync());
+                }
+
+                ITestResultReport[] testResultReports = await Task.WhenAll(testResultReportList);
+
+                Logger.LogInformation("Successfully generated all reports");
+
+                await AzureLogAnalytics.Instance.PostAsync(
+                    Settings.Current.LogAnalyticsWorkspaceId,
+                    Settings.Current.LogAnalyticsSharedKey,
+                    JsonConvert.SerializeObject(testResultReports),
+                    Settings.Current.LogAnalyticsLogType);
+
+                Logger.LogInformation("Successfully send reports to LogAnalytics");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError("TestResultCoordinator failed during report generation", ex);
+            }
         }
 
         static IWebHostBuilder CreateWebHostBuilder(string[] args) =>

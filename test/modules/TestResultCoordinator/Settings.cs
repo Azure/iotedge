@@ -5,6 +5,7 @@ namespace TestResultCoordinator
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
@@ -30,6 +31,9 @@ namespace TestResultCoordinator
                     configuration.GetValue<string>("eventHubConnectionString"),
                     configuration.GetValue<string>("IOTEDGE_DEVICEID"),
                     configuration.GetValue("webhostPort", DefaultWebHostPort),
+                    configuration.GetValue<string>("logAnalyticsWorkspaceId"),
+                    configuration.GetValue<string>("logAnalyticsSharedKey"),
+                    configuration.GetValue<string>("logAnalyticsLogType"),
                     configuration.GetValue("storagePath", DefaultStoragePath),
                     configuration.GetValue<bool>("optimizeForPerformance", true),
                     configuration.GetValue("testDuration", TimeSpan.FromHours(1)));
@@ -40,6 +44,9 @@ namespace TestResultCoordinator
             string eventHubConnectionString,
             string deviceId,
             ushort webHostPort,
+            string logAnalyticsWorkspaceId,
+            string logAnalyticsSharedKey,
+            string logAnalyticsLogType,
             string storagePath,
             bool optimizeForPerformance,
             TimeSpan testDuration)
@@ -50,18 +57,31 @@ namespace TestResultCoordinator
             this.EventHubConnectionString = Preconditions.CheckNonWhiteSpace(eventHubConnectionString, nameof(eventHubConnectionString));
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.WebHostPort = Preconditions.CheckNotNull(webHostPort, nameof(webHostPort));
+            this.LogAnalyticsWorkspaceId = Preconditions.CheckNonWhiteSpace(logAnalyticsWorkspaceId, nameof(logAnalyticsWorkspaceId));
+            this.LogAnalyticsSharedKey = Preconditions.CheckNonWhiteSpace(logAnalyticsSharedKey, nameof(logAnalyticsSharedKey));
+            this.LogAnalyticsLogType = Preconditions.CheckNonWhiteSpace(logAnalyticsLogType, nameof(logAnalyticsLogType));
             this.StoragePath = storagePath;
             this.OptimizeForPerformance = Preconditions.CheckNotNull(optimizeForPerformance);
             this.TestDuration = testDuration;
             this.ResultSources = this.GetResultSources();
-
             this.DurationBeforeVerification = TimeSpan.FromMinutes(15);
             this.ConsumerGroupName = "$Default";
+            this.ReportMetadataList = this.InitializeReportMetadataList();
+        }
+
+        List<IReportMetadata> InitializeReportMetadataList()
+        {
+            // TODO: Remove this hardcoded list and use twin update instead
+            return new List<IReportMetadata>
+            {
+                new CountingReportMetadata("loadGen1.send", "relayer1.receive", TestOperationResultType.Messages, TestReportType.CountingReport),
+                new CountingReportMetadata("relayer1.send", "relayer1.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport),
+                new CountingReportMetadata("loadGen2.send", "relayer2.receive", TestOperationResultType.Messages, TestReportType.CountingReport),
+                new CountingReportMetadata("relayer2.send", "relayer2.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport)
+            };
         }
 
         public static Settings Current => DefaultSettings.Value;
-
-        public string TrackingId { get; }
 
         public string EventHubConnectionString { get; }
 
@@ -69,7 +89,15 @@ namespace TestResultCoordinator
 
         public ushort WebHostPort { get; }
 
+        public string TrackingId { get; }
+
         public string StoragePath { get; }
+
+        public string LogAnalyticsWorkspaceId { get; }
+
+        public string LogAnalyticsSharedKey { get; }
+
+        public string LogAnalyticsLogType { get; }
 
         public bool OptimizeForPerformance { get; }
 
@@ -79,7 +107,9 @@ namespace TestResultCoordinator
 
         public TimeSpan DurationBeforeVerification { get; }
 
-        public string ConsumerGroupName { get; set; }
+        public string ConsumerGroupName { get; }
+
+        public List<IReportMetadata> ReportMetadataList { get; }
 
         public override string ToString()
         {
@@ -94,6 +124,8 @@ namespace TestResultCoordinator
                 { nameof(this.TestDuration), this.TestDuration.ToString() },
                 { nameof(this.ResultSources), string.Join("\n", this.ResultSources) },
                 { nameof(this.DurationBeforeVerification), this.DurationBeforeVerification.ToString() },
+                { nameof(this.ConsumerGroupName), this.ConsumerGroupName },
+                { nameof(this.ReportMetadataList), this.ReportMetadataList.ToString() }
             };
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
