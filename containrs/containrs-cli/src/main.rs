@@ -152,7 +152,7 @@ async fn true_main() -> Result<(), failure::Error> {
         )
         .subcommand(
             SubCommand::with_name("download")
-                .about("Downloads an image, and lays it out according to the OCI Image Layout standard")
+                .about("Downloads an image, dumping it to disk according to the OCI Image Layout standard")
                 .arg(
                     Arg::with_name("image")
                         .help("Image reference")

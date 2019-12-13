@@ -1,15 +1,44 @@
 # shellrt Specification
 
-Until things stabilize, the `shellrt-api` crate will be the source of truth for valid message format.
+**Until the API stabilizes, the `shellrt-api` should be used as the source of truth for valid message format.**
+
+This document is an _informal specification_, acting as a quick overview of the protocol.
 
 ## Informal Spec
 
-Requests are accepted via stdin.
-Responses are returned via stdout.
+### Terminology:
+
+- "shellrt server": an application which spawns a "shellrt plugin", sending it requests via stdin, and receiving output via stdout.
+- "shellrt plugin": an application which is able to send/receive shellrt requests/responses
+
+### Protocol Overview
+
+Requests are accepted via a plugin's stdin.
+Responses are returned via a plugin's stdout.
+The plugin's stderr can be used to output logs / debug information. The server MUST NOT use stderr to communicate with the plugin.
 
 Payloads are top-level JSON objects, with shellrt-api metadata inline as top-level keys with a leading `_` character. Payloads are not allowed to use top-level keys with a leading `_`, as it may result in a collision.
 
-### Request
+While most responses are "one-shot", with the plugin outputting JSON via stdout and immediately terminating, the "logs" method uses a "streaming" response, structured as follows:
+
+- Just like "one-shot" responses, the plugin will output a well-formed JSON response indicating that the request has been received (along with any associated metadata, if required).
+- The plugin will output a **single null byte ('\0')** to delimit the end of the "one-shot" response, and the start of streaming data
+- The plugin will then output stream of _raw, unstructured data_ (i.e: raw bytes, which may or may not be valid UTF-8) over stdout.
+
+### Error Handling
+
+Error codes 0-99 are reserved for well-known errors (see below). Values of 100+ can be freely used for plugin specific errors.
+
+`"details"` is an optional field, and may contain arbitrary JSON data.
+
+#### Well-Known Errors
+
+* 1 - Incompatible api version
+* 2 - Invalid request
+
+### Examples
+
+#### Request
 
 ```json
 {
@@ -22,9 +51,7 @@ Payloads are top-level JSON objects, with shellrt-api metadata inline as top-lev
 }
 ```
 
-### Response
-
-On success:
+#### Successful Response
 
 ```json
 {
@@ -37,7 +64,7 @@ On success:
 }
 ```
 
-On error:
+#### Error Response
 
 ```json
 {
@@ -51,12 +78,3 @@ On error:
     }
 }
 ```
-
-Error codes 0-99 are reserved for well-known errors (see below). Values of 100+ can be freely used for plugin specific errors.
-
-`"details"` is an optional field, and may contain arbitrary JSON data.
-
-## Well-Known Errors
-
-* 1 - Incompatible api version
-* 2 - Invalid request

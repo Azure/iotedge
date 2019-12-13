@@ -5,12 +5,16 @@
 //! ## Simple
 //!
 //! ```
-//! use docker_reference::{Reference, ReferenceKind};
+//! let reference = "iotedgeresources.azurecr.io/samplemodule:0.0.2-amd64".parse::<Reference>().unwrap();
+//! assert_eq!(reference.repo(), "samplemodule");
+//! assert_eq!(reference.registry(), "iotedgeresources.azurecr.io");
+//! assert_eq!(reference.kind(), &ReferenceKind::Tag("0.0.2-amd64".to_string()));
 //!
-//! let reference = "ubuntu:19.04".parse::<Reference>().unwrap();
-//! assert_eq!(reference.repo(), "library/ubuntu");
-//! assert_eq!(reference.registry(), "registry-1.docker.io");
-//! assert_eq!(reference.kind(), &ReferenceKind::Tag("19.04".to_string()));
+//! // example of docker-style canonicalization
+//! let reference = "ubuntu".parse::<Reference>().unwrap();
+//! assert_eq!(reference.repo(), "library/ubuntu"); // automatically adds "library/" to bare name
+//! assert_eq!(reference.registry(), "registry-1.docker.io"); // infers default docker registry
+//! assert_eq!(reference.kind(), &ReferenceKind::Tag("latest".to_string())); // adds "latest" tag automatically
 //! ```
 //!
 //! ## RawReference
