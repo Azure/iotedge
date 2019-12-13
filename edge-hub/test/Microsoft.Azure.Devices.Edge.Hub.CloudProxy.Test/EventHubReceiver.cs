@@ -23,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             // Retry a few times to make sure we get all expected messages.
             for (int i = 0; i < 3; i++)
             {
-                EventHubClient eventHubClient = EventHubClient.CreateFromConnectionString(eventHubConnectionString);
+                EventHubClient eventHubClient = EventHubClient.CreateFromConnectionString(this.eventHubConnectionString);
                 PartitionReceiver partitionReceiver = eventHubClient.CreateReceiver(
                     PartitionReceiver.DefaultConsumerGroupName,
                     EventHubPartitionKeyResolver.ResolveToPartition(deviceId, (await eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
@@ -40,7 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
                 if (i < 3)
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(5));
+                    await Task.Delay(TimeSpan.FromSeconds(20));
                 }
             }
 

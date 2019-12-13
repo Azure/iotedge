@@ -27,7 +27,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         const string Device2ConnStrKey = "device2ConnStrKey";
         const string Device3ConnStrKey = "device3ConnStrKey";
         static readonly TimeSpan ClockSkew = TimeSpan.FromMinutes(5);
-        static readonly int EventHubMessageReceivedRetry = 10;
 
         [Fact]
         [TestPriority(401)]
@@ -252,28 +251,18 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var eventHubReceiver = new EventHubReceiver(eventHubConnectionString);
             var receivedMessagesByDevice = new Dictionary<string, List<EventData>>();
 
-            // Add retry mechanism to make sure all the messages sent reached Event Hub.
             bool messagesFound = false;
-            for (int i = 0; i < EventHubMessageReceivedRetry; i++)
+            foreach (string deviceId in sentMessagesByDevice.Keys)
             {
-                foreach (string deviceId in sentMessagesByDevice.Keys)
+                if (!receivedMessagesByDevice.ContainsKey(deviceId))
                 {
-                    if (!receivedMessagesByDevice.ContainsKey(deviceId))
-                    {
-                        receivedMessagesByDevice.Add(deviceId, new List<EventData>());
-                    }
-
-                    receivedMessagesByDevice[deviceId].AddRange(await eventHubReceiver.GetMessagesForDevice(deviceId, startTime));
+                    receivedMessagesByDevice.Add(deviceId, new List<EventData>());
                 }
 
-                messagesFound = MessageHelper.CompareMessagesAndEventData(sentMessagesByDevice, receivedMessagesByDevice);
-                if (messagesFound)
-                {
-                    break;
-                }
-
-                await Task.Delay(TimeSpan.FromSeconds(20));
+                receivedMessagesByDevice[deviceId].AddRange(await eventHubReceiver.GetMessagesForDevice(deviceId, startTime));
             }
+
+            messagesFound = MessageHelper.CompareMessagesAndEventData(sentMessagesByDevice, receivedMessagesByDevice);
 
             foreach (string device in receivedMessagesByDevice.Keys)
             {
