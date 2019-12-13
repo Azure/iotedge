@@ -25,7 +25,7 @@ namespace DirectMethodSender
                     configuration.GetValue<string>("TargetModuleId", "DirectMethodReceiver"),
                     configuration.GetValue<TransportType>("TransportType", TransportType.Amqp_Tcp_Only),
                     configuration.GetValue<TimeSpan>("DirectMethodDelay", TimeSpan.FromSeconds(5)),
-                    configuration.GetValue<Uri>("AnalyzerUrl", new Uri("http://analyzer:15000")));
+                    configuration.GetValue<string>("AnalyzerUrl", string.Empty));
             });
 
         Settings(
@@ -33,7 +33,7 @@ namespace DirectMethodSender
             string targetModuleId,
             TransportType transportType,
             TimeSpan directMethodDelay,
-            Uri analyzerUrl)
+            string analyzerUrl)
         {
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.TargetModuleId = Preconditions.CheckNonWhiteSpace(targetModuleId, nameof(targetModuleId));
@@ -53,7 +53,7 @@ namespace DirectMethodSender
 
         public TimeSpan DirectMethodDelay { get; }
 
-        public Uri AnalyzerUrl { get; }
+        public string AnalyzerUrl { get; }
 
         public override string ToString()
         {
@@ -64,7 +64,7 @@ namespace DirectMethodSender
                 { nameof(this.TargetModuleId), this.TargetModuleId },
                 { nameof(this.TransportType), Enum.GetName(typeof(TransportType), this.TransportType) },
                 { nameof(this.DirectMethodDelay), this.DirectMethodDelay.ToString() },
-                { nameof(this.AnalyzerUrl), this.AnalyzerUrl.AbsoluteUri },
+                { nameof(this.AnalyzerUrl), this.AnalyzerUrl },
             };
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
