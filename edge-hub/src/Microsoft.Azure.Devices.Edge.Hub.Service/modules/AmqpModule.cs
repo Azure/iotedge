@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 {
+    using System.Security.Authentication;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Autofac;
@@ -25,19 +26,22 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly X509Certificate2 tlsCertificate;
         readonly string iotHubHostName;
         readonly bool clientCertAuthAllowed;
+        readonly SslProtocols sslProtocols;
 
         public AmqpModule(
             string scheme,
             int port,
             X509Certificate2 tlsCertificate,
             string iotHubHostName,
-            bool clientCertAuthAllowed)
+            bool clientCertAuthAllowed,
+            SslProtocols sslProtocols)
         {
             this.scheme = Preconditions.CheckNonWhiteSpace(scheme, nameof(scheme));
             this.port = Preconditions.CheckRange(port, 0, ushort.MaxValue, nameof(port));
             this.tlsCertificate = Preconditions.CheckNotNull(tlsCertificate, nameof(tlsCertificate));
             this.iotHubHostName = Preconditions.CheckNonWhiteSpace(iotHubHostName, nameof(iotHubHostName));
             this.clientCertAuthAllowed = clientCertAuthAllowed;
+            this.sslProtocols = sslProtocols;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -48,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                     {
                         IClientCredentialsFactory clientCredentialsProvider = c.Resolve<IClientCredentialsFactory>();
                         IAuthenticator authenticator = await c.Resolve<Task<IAuthenticator>>();
-                        ITransportSettings settings = new DefaultTransportSettings(this.scheme, HostName, this.port, this.tlsCertificate, this.clientCertAuthAllowed, authenticator, clientCredentialsProvider);
+                        ITransportSettings settings = new DefaultTransportSettings(this.scheme, HostName, this.port, this.tlsCertificate, this.clientCertAuthAllowed, authenticator, clientCredentialsProvider, this.sslProtocols);
                         return settings;
                     })
                 .As<Task<ITransportSettings>>()

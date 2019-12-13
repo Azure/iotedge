@@ -29,7 +29,11 @@ namespace LoadGen
                     configuration.GetValue<ulong>("messageSizeInBytes", 1024),
                     configuration.GetValue("transportType", TransportType.Amqp_Tcp_Only),
                     configuration.GetValue("outputName", "output1"),
-                    configuration.GetValue("startDelay", TimeSpan.FromSeconds(2)));
+                    configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
+                    configuration.GetValue("testDuration", TimeSpan.Zero),
+                    configuration.GetValue("trackingId", string.Empty),
+                    Option.Maybe(configuration.GetValue("testResultCoordinatorUrl", string.Empty)),
+                    configuration.GetValue<string>("IOTEDGE_MODULEID"));
             });
 
         Settings(
@@ -37,13 +41,26 @@ namespace LoadGen
             ulong messageSizeInBytes,
             TransportType transportType,
             string outputName,
-            TimeSpan startDelay)
+            TimeSpan testStartDelay,
+            TimeSpan testDuration,
+            string trackingId,
+            Option<string> testResultCoordinatorUrl,
+            string moduleId)
         {
-            this.MessageFrequency = Preconditions.CheckNotNull(messageFrequency);
+            Preconditions.CheckRange(messageFrequency.Ticks, 0);
+            Preconditions.CheckRange(testStartDelay.Ticks, 0);
+            Preconditions.CheckRange(testDuration.Ticks, 0);
+
             this.MessageSizeInBytes = Preconditions.CheckRange<ulong>(messageSizeInBytes, 1);
             this.OutputName = Preconditions.CheckNonWhiteSpace(outputName, nameof(outputName));
-            this.StartDelay = startDelay;
+
+            this.MessageFrequency = messageFrequency;
+            this.TestDuration = testDuration;
+            this.TestStartDelay = testStartDelay;
+            this.TrackingId = trackingId ?? string.Empty;
             this.TransportType = transportType;
+            this.TestResultCoordinatorUrl = testResultCoordinatorUrl;
+            this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
         }
 
         public static Settings Current => DefaultSettings.Value;
@@ -57,18 +74,30 @@ namespace LoadGen
 
         public string OutputName { get; }
 
-        public TimeSpan StartDelay { get; }
+        public TimeSpan TestStartDelay { get; }
+
+        public TimeSpan TestDuration { get; }
+
+        public string TrackingId { get; }
+
+        public string ModuleId { get; }
+
+        public Option<string> TestResultCoordinatorUrl { get; }
 
         public override string ToString()
         {
             // serializing in this pattern so that secrets don't accidentally get added anywhere in the future
-            var fields = new Dictionary<string, string>()
+            var fields = new Dictionary<string, string>
             {
+                { nameof(this.ModuleId), this.ModuleId },
                 { nameof(this.MessageFrequency), this.MessageFrequency.ToString() },
                 { nameof(this.MessageSizeInBytes), this.MessageSizeInBytes.ToString() },
-                { nameof(this.TransportType), Enum.GetName(typeof(TransportType), this.TransportType) },
                 { nameof(this.OutputName), this.OutputName },
-                { nameof(this.StartDelay), this.StartDelay.ToString() },
+                { nameof(this.TestStartDelay), this.TestStartDelay.ToString() },
+                { nameof(this.TestDuration), this.TestDuration.ToString() },
+                { nameof(this.TrackingId), this.TrackingId },
+                { nameof(this.TransportType), Enum.GetName(typeof(TransportType), this.TransportType) },
+                { nameof(this.TestResultCoordinatorUrl), this.TestResultCoordinatorUrl.ToString() },
             };
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";

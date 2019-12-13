@@ -27,17 +27,23 @@ namespace Relayer
                 return new Settings(
                     configuration.GetValue("transportType", TransportType.Amqp_Tcp_Only),
                     configuration.GetValue("inputName", "input1"),
-                    configuration.GetValue("outputName", "output1"));
+                    configuration.GetValue("outputName", "output1"),
+                    configuration.GetValue<Uri>("testResultCoordinatorUrl", new Uri("http://testresultcoordinator:5001/api/testoperationresult")),
+                    configuration.GetValue<string>("IOTEDGE_MODULEID"));
             });
 
         Settings(
             TransportType transportType,
             string inputName,
-            string outputName)
+            string outputName,
+            Uri testResultCoordinatorUrl,
+            string moduleId)
         {
             this.InputName = Preconditions.CheckNonWhiteSpace(inputName, nameof(inputName));
             this.OutputName = Preconditions.CheckNonWhiteSpace(outputName, nameof(outputName));
             this.TransportType = transportType;
+            this.TestResultCoordinatorUrl = Preconditions.CheckNotNull(testResultCoordinatorUrl, nameof(testResultCoordinatorUrl));
+            this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
         }
 
         public static Settings Current => DefaultSettings.Value;
@@ -49,6 +55,10 @@ namespace Relayer
 
         public string OutputName { get; }
 
+        public Uri TestResultCoordinatorUrl { get; }
+
+        public string ModuleId { get; }
+
         public override string ToString()
         {
             // serializing in this pattern so that secrets don't accidentally get added anywhere in the future
@@ -56,7 +66,9 @@ namespace Relayer
             {
                 { nameof(this.InputName), this.InputName },
                 { nameof(this.OutputName), this.OutputName },
+                { nameof(this.ModuleId), this.ModuleId },
                 { nameof(this.TransportType), Enum.GetName(typeof(TransportType), this.TransportType) },
+                { nameof(this.TestResultCoordinatorUrl), this.TestResultCoordinatorUrl.ToString() },
             };
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
