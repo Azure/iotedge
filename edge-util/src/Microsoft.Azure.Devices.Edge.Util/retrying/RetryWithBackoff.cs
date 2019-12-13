@@ -19,18 +19,19 @@ namespace Microsoft.Azure.Devices.Edge.Util.Retrying
         readonly Func<TParam, CancellationToken, Task<TResult>> doWorkAsync;
         readonly Func<TResult, bool> shouldRetry;
         readonly IBackoff backoff;
+        readonly IDictionary<Guid, TParam> thingsToRetry;
         readonly double maxRetries;
 
-        readonly DefaultDictionary<TParam, int> numRetries = new DefaultDictionary<TParam, int>(_ => 1);
-        readonly List<TParam> thingsToRetry = new List<TParam>();
+        readonly DefaultDictionary<Guid, int> numRetries = new DefaultDictionary<Guid, int>(_ => 1);
         readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
         Task retryTask;
 
-        public RetryWithBackoff(Func<TParam, CancellationToken, Task<TResult>> doWorkAsync, Func<TResult, bool> shouldRetry, IBackoff backoff, double maxRetries = 20)
+        public RetryWithBackoff(Func<TParam, CancellationToken, Task<TResult>> doWorkAsync, Func<TResult, bool> shouldRetry, IBackoff backoff, IDictionary<Guid, TParam> retryStorage, double maxRetries = 20)
         {
             this.doWorkAsync = doWorkAsync;
             this.shouldRetry = shouldRetry;
             this.backoff = backoff;
+            this.thingsToRetry = retryStorage;
             this.maxRetries = maxRetries;
         }
 
@@ -50,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Retrying
 
             if (this.shouldRetry(result))
             {
-                this.thingsToRetry.Add(@params);
+                this.thingsToRetry.Add(Guid.NewGuid(), @params);
                 this.SignalRetry();
             }
 
@@ -58,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Retrying
         }
 
         /// <summary>
-        /// Stary retry process if not already retrying.
+        /// Start retry process if not already retrying.
         /// </summary>
         void SignalRetry()
         {
@@ -84,6 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Retrying
 
                 if (await this.RetryAll())
                 {
+                    // All compleated successfully
                     return;
                 }
             }
@@ -98,16 +100,16 @@ namespace Microsoft.Azure.Devices.Edge.Util.Retrying
         async Task<bool> RetryAll()
         {
             bool allCompleatedSuccesfully = true;
-            foreach (TParam @params in this.thingsToRetry)
+            foreach (var paramToRetry in this.thingsToRetry)
             {
-                TResult result = await this.doWorkAsync(@params, this.cancellationTokenSource.Token);
-                if (this.numRetries[@params]++ < this.maxRetries && this.shouldRetry(result))
+                TResult result = await this.doWorkAsync(paramToRetry.Value, this.cancellationTokenSource.Token);
+                if (this.numRetries[paramToRetry.Key]++ < this.maxRetries && this.shouldRetry(result))
                 {
                     allCompleatedSuccesfully = false;
                 }
                 else
                 {
-                    this.thingsToRetry.Remove(@params);
+                    this.thingsToRetry.Remove(paramToRetry.Key);
                 }
             }
 

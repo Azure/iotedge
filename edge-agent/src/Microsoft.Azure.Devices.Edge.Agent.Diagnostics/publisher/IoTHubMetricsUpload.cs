@@ -5,7 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Runtime.InteropServices.WindowsRuntime;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
@@ -26,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             this.edgeAgentConnection = Preconditions.CheckNotNull(edgeAgentConnection, nameof(edgeAgentConnection));
 
             IBackoff backoff = new Util.Retrying.ExponentialBackoff(TimeSpan.FromMinutes(1), 1.5, TimeSpan.FromMinutes(30));
-            this.retryHandler = new RetryWithBackoff<byte[], Option<Exception>>(this.SendMessage, this.ShouldRetry, backoff);
+            this.retryHandler = new RetryWithBackoff<byte[], Option<Exception>>(this.SendMessage, this.ShouldRetry, backoff, new Dictionary<Guid, byte[]>());
         }
 
         public async Task PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
@@ -78,14 +77,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
         public void Dispose()
         {
             this.retryHandler.Dispose();
-        }
-
-        Message BuildMessage(byte[] data)
-        {
-            Message message = new Message(data);
-            message.ContentType = "application/x-azureiot-edgeruntimediagnostics";
-
-            return message;
         }
     }
 }

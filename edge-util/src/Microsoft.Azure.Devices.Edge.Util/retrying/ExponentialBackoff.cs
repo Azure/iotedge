@@ -19,6 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Retrying
             Preconditions.CheckArgument(multiplier > 1, "Multiplier must be > 1");
             this.current = start;
             this.multiplier = multiplier;
+            this.max = max;
         }
 
         public IEnumerable<TimeSpan> GetBackoff()
