@@ -36,11 +36,13 @@ namespace DirectMethodSender
                 {
                     Uri analyzerUri = new Uri(analyzerUrl);
                     AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = analyzerUri.AbsoluteUri };
-                    await StartDirectMethdTestsForAnalyzer(moduleClient, analyzerClient, Settings.Current.DirectMethodDelay, cts);
+                    Action<MethodResponse> reportResult = async (response) => await ReportStatus(Settings.Current.TargetModuleId, response, analyzerClient);
+                    await StartDirectMethdTests(moduleClient, reportResult, Settings.Current.DirectMethodDelay, cts);
                 }
                 else
                 {
-                    await StartDirectMethdTestsForE2E(moduleClient, cts);
+                    Action<MethodResponse> reportResult = async (response) => await moduleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method Call succeeded.")));
+                    await StartDirectMethdTests(moduleClient, reportResult, Settings.Current.DirectMethodDelay, cts);
                 }
 
                 await moduleClient.CloseAsync();
@@ -58,38 +60,9 @@ namespace DirectMethodSender
             return 0;
         }
 
-        static async Task StartDirectMethdTestsForE2E(
+        static async Task StartDirectMethdTests(
             ModuleClient moduleClient,
-            CancellationTokenSource cts)
-        {
-            var request = new MethodRequest("HelloWorldMethod", Encoding.UTF8.GetBytes("{ \"Message\": \"Hello\" }"));
-
-            while (!cts.Token.IsCancellationRequested)
-            {
-                Logger.LogInformation($"Calling Direct Method for E2E test.");
-
-                try
-                {
-                    MethodResponse response = await moduleClient.InvokeMethodAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId, request);
-
-                    if (response.Status == (int)HttpStatusCode.OK)
-                    {
-                        await moduleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method Call succeeded.")));
-                        break;
-                    }
-                }
-                catch (Exception e)
-                {
-                    Logger.LogError(e, "Exception caught");
-                }
-
-                await Task.Delay(TimeSpan.FromSeconds(5), cts.Token);
-            }
-        }
-
-        static async Task StartDirectMethdTestsForAnalyzer(
-            ModuleClient moduleClient,
-            AnalyzerClient analyzerClient,
+            Action<MethodResponse> reportResult,
             TimeSpan delay,
             CancellationTokenSource cts)
         {
@@ -116,7 +89,7 @@ namespace DirectMethodSender
                         Logger.LogError(statusMessage);
                     }
 
-                    await ReportStatus(targetModuleId, response, analyzerClient);
+                    reportResult.Invoke(response);
                     directMethodCount++;
                 }
                 catch (Exception e)
