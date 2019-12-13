@@ -10,11 +10,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 
     public class ReportedPropertiesValidator : IValidator<TwinCollection>
     {
-        const int TwinPropertyMaxDepth = 5; // taken from IoTHub
+        const int TwinPropertyMaxDepth = 10; // taken from IoTHub
         const int TwinPropertyValueMaxLength = 4096; // bytes. taken from IoTHub
+        const int TwinPropertyNameMaxLength = 1024; // taken from IoTHub
         const long TwinPropertyMaxSafeValue = 4503599627370495; // (2^52) - 1. taken from IoTHub
         const long TwinPropertyMinSafeValue = -4503599627370496; // -2^52. taken from IoTHub
-        const int TwinPropertyDocMaxLength = 8 * 1024; // 8K bytes. taken from IoTHub
+        const int TwinPropertyDocMaxLength = 32 * 1024; // 32KB. taken from IoTHub
 
         public void Validate(TwinCollection reportedProperties)
         {
@@ -32,15 +33,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
 
                 ValidateValueType(kvp.Name, kvp.Value);
 
-                string s = kvp.Value.ToString();
-                ValidatePropertyValueLength(kvp.Name, s);
-
-                if ((kvp.Value is JValue) && (kvp.Value.Type is JTokenType.Integer))
+                if (kvp.Value is JValue)
                 {
-                    ValidateIntegerValue(kvp.Name, (long)kvp.Value);
+                    if (kvp.Value.Type is JTokenType.Integer)
+                    {
+                        ValidateIntegerValue(kvp.Name, (long)kvp.Value);
+                    }
+                    else
+                    {
+                        string s = kvp.Value.ToString();
+                        ValidatePropertyValueLength(kvp.Name, s);
+                    }
                 }
 
-                if ((kvp.Value != null) && (kvp.Value is JObject))
+                if (kvp.Value != null && kvp.Value is JObject)
                 {
                     if (currentDepth > TwinPropertyMaxDepth)
                     {
@@ -60,10 +66,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Twin
                 throw new ArgumentNullException(nameof(name));
             }
 
-            if (Encoding.UTF8.GetByteCount(name) > TwinPropertyValueMaxLength)
+            if (Encoding.UTF8.GetByteCount(name) > TwinPropertyNameMaxLength)
             {
                 string truncated = name.Substring(0, 10);
-                throw new InvalidOperationException($"Length of property name {truncated}.. exceeds maximum length of {TwinPropertyValueMaxLength}");
+                throw new InvalidOperationException($"Length of property name {truncated}.. exceeds maximum length of {TwinPropertyNameMaxLength}");
             }
 
             for (int index = 0; index < name.Length; index++)

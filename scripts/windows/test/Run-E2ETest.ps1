@@ -1317,6 +1317,15 @@ Function SetEnvironmentVariable
     $env:Path="$env:Path;C:\Program Files\iotedge-moby;C:\Program Files\iotedge"
 }
 
+Function SetupMountedStorage
+{
+    If (!(Test-Path $MountedStoragePath))
+    {
+        New-Item -ItemType directory -Path $MountedStoragePath | Out-Null
+    }
+    icacls $MountedStoragePath /grant Everyone:F | Out-Null
+}
+
 Function TestSetup
 {
     Write-Host "Environment setup..."
@@ -1330,6 +1339,7 @@ Function TestSetup
 
         Invoke-Expression $testCommand | Out-Host
     }
+    SetupMountedStorage
     InitializeWorkingFolder
     PrepareTestFromArtifacts
     SetEnvironmentVariable
@@ -1430,6 +1440,7 @@ If ($Architecture -eq "arm32v7")
 $E2ETestFolder = (Resolve-Path $E2ETestFolder).Path
 $DefaultOpensslInstallPath = "C:\vcpkg\installed\x64-windows\tools\openssl"
 $EnvSetupScriptPath = Join-Path $E2ETestFolder "artifacts\core-windows\scripts\windows\test\Setup-Env.ps1"
+$MountedStoragePath = "C:\data\edgehub"
 $InstallationScriptPath = Join-Path $E2ETestFolder "artifacts\core-windows\scripts\windows\setup\IotEdgeSecurityDaemon.ps1"
 $EdgeCertGenScriptDir = Join-Path $E2ETestFolder "artifacts\core-windows\CACertificates"
 $EdgeCertGenScript = Join-Path $EdgeCertGenScriptDir "ca-certs.ps1"
