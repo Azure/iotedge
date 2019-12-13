@@ -61,7 +61,7 @@
                 "value": "output1"
               },
               "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001/api/testoperationresult"
+                "value": "http://testResultCoordinator:5001"
               }
             },
             "settings": {
@@ -94,7 +94,7 @@
                 "value": "output2"
               },
               "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001/api/testoperationresult"
+                "value": "http://testResultCoordinator:5001"
               }
             },
             "settings": {
@@ -115,7 +115,7 @@
                 "value": "input1"
               },
               "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001/api/testoperationresult"
+                "value": "http://testResultCoordinator:5001"
               }
             },
             "settings": {
@@ -136,7 +136,7 @@
                 "value": "input2"
               },
               "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001/api/testoperationresult"
+                "value": "http://testResultCoordinator:5001"
               }
             },
             "settings": {
@@ -190,7 +190,7 @@
                 "value": "<TrackingId>"
               },
               "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001/api/testoperationresult"
+                "value": "http://testResultCoordinator:5001"
               },
               "RunFrequencies:0:OfflineFrequency": {
                 "value": "<NetworkController.OfflineFrequency0>"
