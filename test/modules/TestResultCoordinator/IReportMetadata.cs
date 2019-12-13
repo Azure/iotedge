@@ -11,5 +11,7 @@ namespace TestResultCoordinator
         ReportType ReportType { get; }
 
         TestOperationResultType TestOperationResultType { get; }
+
+        public string ToString();
     }
 }

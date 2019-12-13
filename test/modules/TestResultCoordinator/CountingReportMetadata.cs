@@ -12,5 +12,10 @@ namespace TestResultCoordinator
         public TestOperationResultType TestOperationResultType { get; set; }
 
         public ReportType ReportType { get; set; }
+
+        public override string ToString()
+        {
+            return $"ExpectedSource: {this.ExpectedSource}, ActualSource: {this.ActualSource}, TestOperationResultType: {this.TestOperationResultType.ToString()}, ReportType: {this.ReportType.ToString()}";
+        }
     }
 }

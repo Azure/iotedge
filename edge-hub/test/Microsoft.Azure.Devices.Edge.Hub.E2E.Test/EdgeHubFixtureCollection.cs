@@ -2,13 +2,14 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 {
     using System.Collections.Generic;
+    using System.Security.Authentication;
 
     public static class EdgeHubFixtureCollection
     {
         static readonly object UpdateLock = new object();
         static readonly IList<ProtocolHeadFixture> Fixtures = new List<ProtocolHeadFixture>();
 
-        internal static ProtocolHeadFixture GetFixture()
+        internal static ProtocolHeadFixture GetFixture(SslProtocols? sslProtocols = null)
         {
             lock (UpdateLock)
             {
@@ -24,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     }
                 }
 
-                ProtocolHeadFixture newFixture = new ProtocolHeadFixture();
+                ProtocolHeadFixture newFixture = new ProtocolHeadFixture(sslProtocols);
                 Fixtures.Add(newFixture);
                 return newFixture;
             }

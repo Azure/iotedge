@@ -1,0 +1,34 @@
+# Configures the provisioning mode
+provisioning:
+  source: "manual"
+  device_connection_string: "HostName=something.something.com;DeviceId=something;SharedAccessKey=QXp1cmUgSW9UIEVkZ2U="
+agent:
+  name: "edgeAgent"
+  type: "docker"
+  env:
+    abc: "value1"
+    acd: "value2"
+  config:
+    image: "microsoft/azureiotedge-agent:1.0"
+    auth: {}
+hostname: "localhost"
+
+watchdog:
+  max_retries: 3
+
+# Sets the connection uris for clients
+connect:
+  workload_uri: "https://localhost:8081"
+  management_uri: "https://localhost:8080"
+
+# Sets the uris to listen on
+# These can be different than the connect uris.
+# For instance, when using the fd:// scheme for systemd
+listen:
+  workload_uri: "https://0.0.0.0:8081"
+  management_uri: "https://0.0.0.0:8080"
+  min_tls_version: Tlsv12
+homedir: "/tmp"
+moby_runtime:
+  uri: "http://localhost:2375"
+  network: "azure-iot-edge"
