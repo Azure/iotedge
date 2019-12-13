@@ -44,6 +44,7 @@ namespace TestResultCoordinator
 
         static async Task ReportTestResultsAsync()
         {
+            Logger.LogInformation($"Starting report generation for {Settings.Current.ReportMetadataList.Count} reports");
             try
             {
                 TestReportGeneratorFactory testReportGeneratorFactory = new TestReportGeneratorFactory();
@@ -56,11 +57,15 @@ namespace TestResultCoordinator
 
                 ITestResultReport[] testResultReports = await Task.WhenAll(testResultReportList);
 
+                Logger.LogInformation("Successfully generated all reports");
+
                 await AzureLogAnalytics.Instance.PostAsync(
                     Settings.Current.LogAnalyticsWorkspaceId,
                     Settings.Current.LogAnalyticsSharedKey,
                     JsonConvert.SerializeObject(testResultReports),
                     Settings.Current.LogAnalyticsLogType);
+
+                Logger.LogInformation("Successfully send reports to LogAnalytics");
             }
             catch (Exception ex)
             {
