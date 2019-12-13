@@ -65,30 +65,10 @@ namespace TestResultCoordinator
             // TODO: Remove this hardcoded list and use twin update instead
             return new List<IReportMetadata>
             {
-                new CountingReportMetadata
-                {
-                    ExpectedSource = "loadGen1.send",
-                    ActualSource = "relayer1.receive",
-                    TestOperationResultType = TestOperationResultType.Messages
-                },
-                new CountingReportMetadata
-                {
-                    ExpectedSource = "relayer1.send",
-                    ActualSource = "relayer1.eventHub",
-                    TestOperationResultType = TestOperationResultType.Messages
-                },
-                new CountingReportMetadata
-                {
-                    ExpectedSource = "loadGen2.send",
-                    ActualSource = "relayer2.receive",
-                    TestOperationResultType = TestOperationResultType.Messages
-                },
-                new CountingReportMetadata
-                {
-                    ExpectedSource = "relayer2.send",
-                    ActualSource = "relayer2.eventHub",
-                    TestOperationResultType = TestOperationResultType.Messages
-                }
+                new CountingReportMetadata("loadGen1.send", "relayer1.receive", TestOperationResultType.Messages, ReportType.CountingReport),
+                new CountingReportMetadata("relayer1.send", "relayer1.eventHub", TestOperationResultType.Messages, ReportType.CountingReport),
+                new CountingReportMetadata("loadGen2.send", "relayer2.receive", TestOperationResultType.Messages, ReportType.CountingReport),
+                new CountingReportMetadata("relayer2.send", "relayer2.eventHub", TestOperationResultType.Messages, ReportType.CountingReport)
             };
         }
 
@@ -112,7 +92,7 @@ namespace TestResultCoordinator
 
         public TimeSpan DurationBeforeVerification { get; }
 
-        public string ConsumerGroupName { get; set; }
+        public string ConsumerGroupName { get; }
 
         public List<IReportMetadata> ReportMetadataList { get; }
 
@@ -129,6 +109,7 @@ namespace TestResultCoordinator
                 { nameof(this.TestDuration), this.TestDuration.ToString() },
                 { nameof(this.ResultSources), string.Join("\n", this.ResultSources) },
                 { nameof(this.DurationBeforeVerification), this.DurationBeforeVerification.ToString() },
+                { nameof(this.ConsumerGroupName), this.ConsumerGroupName },
                 { nameof(this.ReportMetadataList), this.ReportMetadataList.ToString() }
             };
 

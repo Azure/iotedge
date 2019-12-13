@@ -10,7 +10,6 @@ namespace TestResultCoordinator
 
         public ITestResultReportGenerator Create(
             string trackingId,
-            ITestResultComparer<TestOperationResult> testResultComparer,
             IReportMetadata reportMetadata)
         {
             switch (reportMetadata.ReportType)
@@ -25,7 +24,7 @@ namespace TestResultCoordinator
                             reportMetadata.ActualSource,
                             TestOperationResultStorage.GetStoreFromSource(reportMetadata.ActualSource),
                             reportMetadata.TestOperationResultType.ToString(),
-                            testResultComparer);
+                            new SimpleTestOperationResultComparer());
                 }
 
                 default:

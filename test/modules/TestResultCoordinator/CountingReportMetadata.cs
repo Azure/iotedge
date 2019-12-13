@@ -5,13 +5,21 @@ namespace TestResultCoordinator
 
     class CountingReportMetadata : IReportMetadata
     {
-        public string ExpectedSource { get; set; }
+        public CountingReportMetadata(string expectedSource, string actualSource, TestOperationResultType testOperationResultType, ReportType reportType)
+        {
+            this.ExpectedSource = expectedSource;
+            this.ActualSource = actualSource;
+            this.TestOperationResultType = testOperationResultType;
+            this.ReportType = reportType;
+        }
 
-        public string ActualSource { get; set; }
+        public string ExpectedSource { get; }
 
-        public TestOperationResultType TestOperationResultType { get; set; }
+        public string ActualSource { get; }
 
-        public ReportType ReportType { get; set; }
+        public TestOperationResultType TestOperationResultType { get; }
+
+        public ReportType ReportType { get; }
 
         public override string ToString()
         {

@@ -8,7 +8,6 @@ namespace TestResultCoordinator
     {
         ITestResultReportGenerator Create(
             string trackingId,
-            ITestResultComparer<TestOperationResult> testResultComparer,
             IReportMetadata reportMetadata);
     }
 }

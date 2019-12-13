@@ -25,7 +25,7 @@ namespace TestResultCoordinator
             await SetupEventReceiveHandlerAsync(Settings.Current, DateTime.UtcNow);
 
             // Continue after delay to report test results
-            await Task.Delay(Settings.Current.TestDuration + Settings.Current.DurationBeforeVerification, cts.Token)
+            Task.Delay(Settings.Current.TestDuration + Settings.Current.DurationBeforeVerification, cts.Token)
                 .ContinueWith(async _ => await ReportTestResultsAsync(), cts.Token);
 
             await TestOperationResultStorage.InitAsync(Settings.Current.StoragePath, new SystemEnvironment(), Settings.Current.OptimizeForPerformance, Settings.Current.ResultSources);
