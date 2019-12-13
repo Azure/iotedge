@@ -116,8 +116,10 @@ impl MakeModuleRuntime
             .map_err(|err| Error::from(err.context(ErrorKind::Initialization)))
             .map(|(config, mut client)| {
                 client
-                    .is_subject_allowed(Some("nodes".to_string()), Some("list".to_string()))
-                    .map(|is_allowed| settings.with_nodes_rbac(is_allowed))
+                    .is_subject_allowed("nodes".to_string(), "list".to_string())
+                    .map(|subject_review_status| {
+                        settings.with_nodes_rbac(subject_review_status.allowed)
+                    })
                     .map_err(|err| Error::from(err.context(ErrorKind::Initialization)))
                     .map(|settings| KubeModuleRuntime::new(KubeClient::new(config), settings))
                     .and_then(move |runtime| init_trust_bundle(&runtime, crypto).map(|_| runtime))

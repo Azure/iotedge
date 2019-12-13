@@ -4,6 +4,10 @@ kind: PersistentVolumeClaim
 metadata:
   name: {{ .Values.iotedged.data.persistentVolumeClaim.name | quote }}
   namespace: {{ include "edge-kubernetes.namespace" . | quote }}
+  labels:
+    app.kubernetes.io/managed-by: {{.Release.Service | quote }}
+    app.kubernetes.io/instance: {{.Release.Name | quote }}
+    helm.sh/chart: {{ include "edge-kubernetes.chart" . }}
 spec:
   resources:
     requests:

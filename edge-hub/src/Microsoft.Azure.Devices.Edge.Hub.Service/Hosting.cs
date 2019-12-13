@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 {
     using System.Net;
     using System.Net.Sockets;
+    using System.Security.Authentication;
     using System.Security.Cryptography.X509Certificates;
     using Autofac;
     using Microsoft.AspNetCore.Hosting;
@@ -27,7 +28,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             IConfigurationRoot configuration,
             X509Certificate2 serverCertificate,
             IDependencyManager dependencyManager,
-            bool clientCertAuthEnabled)
+            bool clientCertAuthEnabled,
+            SslProtocols sslProtocols)
         {
             int port = configuration.GetValue("httpSettings:port", 443);
             var certificateMode = clientCertAuthEnabled ? ClientCertificateMode.AllowCertificate : ClientCertificateMode.NoCertificate;
@@ -45,7 +47,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                                     {
                                         ServerCertificate = serverCertificate,
                                         ClientCertificateValidation = (clientCert, chain, policyErrors) => true,
-                                        ClientCertificateMode = certificateMode
+                                        ClientCertificateMode = certificateMode,
+                                        SslProtocols = sslProtocols
                                     });
                             });
                     })
@@ -53,8 +56,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 .ConfigureServices(
                     serviceCollection =>
                     {
-                        serviceCollection.AddSingleton<IConfigurationRoot>(configuration);
-                        serviceCollection.AddSingleton<IDependencyManager>(dependencyManager);
+                        serviceCollection.AddSingleton(configuration);
+                        serviceCollection.AddSingleton(dependencyManager);
                     })
                 .UseStartup<Startup>();
             IWebHost webHost = webHostBuilder.Build();
