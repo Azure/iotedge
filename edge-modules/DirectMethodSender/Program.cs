@@ -33,7 +33,7 @@ namespace DirectMethodSender
                     Logger);
 
                 string analyzerUrl = Settings.Current.AnalyzerUrl;
-                if (analyzerUrl != string.Empty)
+                if (!string.IsNullOrWhiteSpace(analyzerUrl))
                 {
                     Uri analyzerUri = new Uri(analyzerUrl);
                     AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = analyzerUri.AbsoluteUri };
