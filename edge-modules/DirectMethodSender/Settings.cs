@@ -26,7 +26,8 @@ namespace DirectMethodSender
                     configuration.GetValue<string>("TargetModuleId", "DirectMethodReceiver"),
                     configuration.GetValue<TransportType>("TransportType", TransportType.Amqp_Tcp_Only),
                     configuration.GetValue<TimeSpan>("DirectMethodDelay", TimeSpan.FromSeconds(5)),
-                    configuration.GetValue<Uri>("AnalyzerUrl", new Uri("http://analyzer:15000")));
+                    configuration.GetValue<Uri>("AnalyzerUrl", new Uri("http://analyzer:15000")),
+                    configuration.GetValue<string>("RoutingAgency", "EdgeHub"));
             });
 
         Settings(
@@ -34,7 +35,8 @@ namespace DirectMethodSender
             string targetModuleId,
             TransportType transportType,
             TimeSpan directMethodDelay,
-            Uri analyzerUrl)
+            Uri analyzerUrl,
+            string routingAgency)
         {
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.TargetModuleId = Preconditions.CheckNonWhiteSpace(targetModuleId, nameof(targetModuleId));
@@ -42,6 +44,17 @@ namespace DirectMethodSender
             this.TransportType = transportType;
             this.DirectMethodDelay = Preconditions.CheckNotNull(directMethodDelay);
             this.AnalyzerUrl = Preconditions.CheckNotNull(analyzerUrl);
+
+            Object parsedRoutingAgency;
+            Preconditions.CheckNonWhiteSpace(routingAgency, nameof(routingAgency));
+            if( Enum.TryParse(typeof(RoutingAgency), routingAgency, true, out parsedRoutingAgency) )
+            {
+                this.RoutingAgency = (RoutingAgency) parsedRoutingAgency;
+            }
+            else
+            {
+                throw new ArgumentException("Invalid RoutingAgency type");
+            }
         }
 
         public static Settings Current => DefaultSettings.Value;
@@ -68,6 +81,7 @@ namespace DirectMethodSender
                 { nameof(this.TransportType), Enum.GetName(typeof(TransportType), this.TransportType) },
                 { nameof(this.DirectMethodDelay), this.DirectMethodDelay.ToString() },
                 { nameof(this.AnalyzerUrl), this.AnalyzerUrl.AbsoluteUri },
+                { nameof(this.RoutingAgency), this.RoutingAgency.ToString() },
             };
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
