@@ -27,7 +27,7 @@ jobs:
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,EdgeConnectivityLogAnalyticsKey'
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,kvLogAnalyticWorkspaceId'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -70,8 +70,8 @@ jobs:
           testStartDelay: '$(testStartDelay)'
           networkController.frequencies: '$(networkController.frequencies)'
           networkController.mode: '$(networkController.mode)'
-          testResultCoordinator.logAnalyticsWorkspaceId: '$(testResultCoordinator.logAnalyticsWorkspaceId)'
-          testResultCoordinator.logAnalyticsSharedKey: '$(EdgeConnectivityLogAnalyticsKey)'
+          testResultCoordinator.logAnalyticsWorkspaceId: '$(kvLogAnalyticWorkspaceId)'
+          testResultCoordinator.logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
           testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
 
 ################################################################################
@@ -96,7 +96,7 @@ jobs:
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,EdgeConnectivityLogAnalyticsKey'
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,kvLogAnalyticSharedKey'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -139,6 +139,6 @@ jobs:
           testStartDelay: '$(testStartDelay)'
           networkController.frequencies: '$(networkController.frequencies)'
           networkController.mode: '$(networkController.mode)'
-          testResultCoordinator.logAnalyticsWorkspaceId: '$(testResultCoordinator.logAnalyticsWorkspaceId)'
-          testResultCoordinator.logAnalyticsSharedKey: '$(EdgeConnectivityLogAnalyticsKey)'
+          testResultCoordinator.logAnalyticsWorkspaceId: '$(kvLogAnalyticWorkspaceId)'
+          testResultCoordinator.logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
           testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
