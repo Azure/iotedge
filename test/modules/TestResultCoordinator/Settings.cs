@@ -5,6 +5,7 @@ namespace TestResultCoordinator
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
@@ -41,15 +42,50 @@ namespace TestResultCoordinator
             this.StoragePath = storagePath;
             this.OptimizeForPerformance = Preconditions.CheckNotNull(optimizeForPerformance);
             this.ResultSources = this.GetResultSources();
+            this.ReportMetadataList = this.InitializeReportMetadataList();
+        }
+
+        List<IReportMetadata> InitializeReportMetadataList()
+        {
+            // TODO: Remove this hardcoded list and use twin update instead
+            return new List<IReportMetadata>
+            {
+                new CountingReportMetadata
+                {
+                    ExpectedSource = "loadGen1.send",
+                    ActualSource = "relayer1.receive",
+                    TestOperationResultType = TestOperationResultType.Messages
+                },
+                new CountingReportMetadata
+                {
+                    ExpectedSource = "relayer1.send",
+                    ActualSource = "relayer1.eventHub",
+                    TestOperationResultType = TestOperationResultType.Messages
+                },
+                new CountingReportMetadata
+                {
+                    ExpectedSource = "loadGen2.send",
+                    ActualSource = "relayer2.receive",
+                    TestOperationResultType = TestOperationResultType.Messages
+                },
+                new CountingReportMetadata
+                {
+                    ExpectedSource = "relayer2.send",
+                    ActualSource = "relayer2.eventHub",
+                    TestOperationResultType = TestOperationResultType.Messages
+                }
+            };
         }
 
         List<string> GetResultSources()
         {
-            // TODO: Remove this hardcoded list and use environment variables once we've decided on how exactly to set the configuration
+            // TODO: Build ResultSources from twin instead of hard coded list
             return new List<string> { "loadGen1.send", "relayer1.receive", "relayer1.send", "relayer1.eventHub", "loadGen2.send", "relayer2.receive", "relayer2.send", "relayer2.eventHub" };
         }
 
         public static Settings Current => DefaultSettings.Value;
+
+        public List<IReportMetadata> ReportMetadataList { get; }
 
         public ushort WebhostPort { get; }
 

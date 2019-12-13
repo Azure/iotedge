@@ -41,6 +41,11 @@ namespace TestResultCoordinator
             resultStores = await InitializeStoresAsync(storeProvider, resultSources);
         }
 
+        public static ISequentialStore<TestOperationResult> GetStoreFromSource(string source)
+        {
+            return resultStores.TryGetValue(source, out ISequentialStore<TestOperationResult> store) ? store : throw new InvalidDataException($"Source {source} not found.");
+        }
+
         static async Task<Dictionary<string, ISequentialStore<TestOperationResult>>> InitializeStoresAsync(StoreProvider storeProvider, List<string> resultSources)
         {
             Preconditions.CheckNotNull(storeProvider);

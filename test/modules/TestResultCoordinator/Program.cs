@@ -38,7 +38,7 @@ namespace TestResultCoordinator
             WebHost.CreateDefaultBuilder(args)
                 .UseUrls($"http://*:{Settings.Current.WebhostPort}")
                 .UseStartup<Startup>();
-        
+
         static async Task SetupEventReceiveHandlerAsync(string trackingId, string deviceId, string eventHubsConnectionString, string consumerGroupId, DateTime eventEnqueuedFrom)
         {
             var builder = new EventHubsConnectionStringBuilder(eventHubsConnectionString);

@@ -19,7 +19,7 @@ namespace TestResultCoordinator
 
         readonly string deviceId;
         readonly string trackingId;
-        
+
         public PartitionReceiveHandler(string trackingId, string deviceId)
         {
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
@@ -54,7 +54,16 @@ namespace TestResultCoordinator
                             {
                                 DateTime enqueuedtime = GetEnqueuedTime(deviceIdFromEvent.ToString(), moduleIdFromEvent.ToString(), eventData);
 
-                                //TODO: Persist this result in corresponding store.
+                                // TODO: remove hardcoded eventHub string in next line
+                                TestOperationResult result = new TestOperationResult(
+                                    moduleIdFromEvent.ToString() + ".eventHub",
+                                    "Messages",
+                                    ModuleUtil.FormatTestResultValue(
+                                        (string)trackingIdFromEvent,
+                                        (string)batchIdFromEvent,
+                                        (string)sequenceNumberFromEvent),
+                                    DateTime.UtcNow);
+                                await TestOperationResultStorage.AddResultAsync(result);
                             }
                             else
                             {
