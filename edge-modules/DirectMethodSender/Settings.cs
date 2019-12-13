@@ -6,6 +6,7 @@ namespace DirectMethodSender
     using System.IO;
     using System.Linq;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
 
@@ -52,6 +53,8 @@ namespace DirectMethodSender
         public TransportType TransportType { get; }
 
         public TimeSpan DirectMethodDelay { get; }
+
+        public RoutingAgency RoutingAgency { get; }
 
         public Uri AnalyzerUrl { get; }
 

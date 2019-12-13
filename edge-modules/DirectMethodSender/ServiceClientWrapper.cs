@@ -50,7 +50,7 @@ namespace DirectMethodSender
 
             while (!cts.Token.IsCancellationRequested)
             {
-                Logger.LogInformation($"Calling Direct Method from cloud on device {Settings.Current.DeviceId} targeting module [{Settings.Current.TargetModuleId}] with count {directMethodCount}.");
+                Logger.LogInformation($"Calling Direct Method from cloud on device {deviceId} targeting module [{targetModuleId}] with count {this.DirectMethodCount}.");
 
                 try
                 {
