@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Runtime.InteropServices.WindowsRuntime;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
@@ -12,17 +13,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Retrying;
     using Microsoft.Extensions.Logging.Abstractions;
 
     public sealed class IoTHubMetricsUpload : IMetricsPublisher, IDisposable
     {
         readonly IEdgeAgentConnection edgeAgentConnection;
-        readonly RetryHandler<byte[]> retryHandler;
+        readonly RetryWithBackoff<byte[], Option<Exception>> retryHandler;
 
         public IoTHubMetricsUpload(IEdgeAgentConnection edgeAgentConnection, IStoreProvider storeProvider)
         {
             this.edgeAgentConnection = Preconditions.CheckNotNull(edgeAgentConnection, nameof(edgeAgentConnection));
-            this.retryHandler = new RetryHandler<byte[]>(this.SendMessage, storeProvider, "Diagnostic Messages");
+
+            IBackoff backoff = new Util.Retrying.ExponentialBackoff(TimeSpan.FromMinutes(1), 1.5, TimeSpan.FromMinutes(30));
+            this.retryHandler = new RetryWithBackoff<byte[], Option<Exception>>(this.SendMessage, this.ShouldRetry, backoff);
         }
 
         public async Task PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
@@ -33,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             // TODO: add check for too big of a message
             if (data.Length > 0)
             {
-                await this.retryHandler.Send(data);
+                await this.retryHandler.DoWorkAsync(data, cancellationToken);
             }
         }
 
@@ -41,8 +45,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
         /// Sends the given bytes to IoT Hub.
         /// </summary>
         /// <param name="data">Metrics in binary form.</param>
-        /// <returns>Whether the message should be retried.</returns>
-        async Task<bool> SendMessage(byte[] data, CancellationToken cancellationToken)
+        /// <returns>Option containing possible exception.</returns>
+        async Task<Option<Exception>> SendMessage(byte[] data, CancellationToken cancellationToken)
         {
             Message message = this.BuildMessage(data);
             try
@@ -51,12 +55,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             }
             catch (Exception ex)
             {
-                // should retry
-                return ex.HasTimeoutException();
+                return Option.Some(ex);
             }
 
             // no retry
-            return false;
+            return Option.None<Exception>();
+        }
+
+        bool ShouldRetry(Option<Exception> result)
+        {
+            return result.Exists(ex => ex.HasTimeoutException());
         }
 
         Message BuildMessage(byte[] data)

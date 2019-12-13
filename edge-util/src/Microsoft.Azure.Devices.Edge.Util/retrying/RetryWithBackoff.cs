@@ -14,15 +14,25 @@ namespace Microsoft.Azure.Devices.Edge.Util.Retrying
     /// </summary>
     /// <typeparam name="TParam">Parameter of the wrapped function. Use tupples if multiple inputs are desired.</typeparam>
     /// <typeparam name="TResult">Result of wrapped function.</typeparam>
-    public class Retry<TParam, TResult>
+    public class RetryWithBackoff<TParam, TResult> : IDisposable
     {
-        readonly Func<TParam, CancellationToken, Task<TResult>> doAsyncWork;
+        readonly Func<TParam, CancellationToken, Task<TResult>> doWorkAsync;
         readonly Func<TResult, bool> shouldRetry;
         readonly IBackoff backoff;
+        readonly double maxRetries;
 
+        readonly DefaultDictionary<TParam, int> numRetries = new DefaultDictionary<TParam, int>(_ => 1);
         readonly List<TParam> thingsToRetry = new List<TParam>();
         readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
         Task retryTask;
+
+        public RetryWithBackoff(Func<TParam, CancellationToken, Task<TResult>> doWorkAsync, Func<TResult, bool> shouldRetry, IBackoff backoff, double maxRetries = 20)
+        {
+            this.doWorkAsync = doWorkAsync;
+            this.shouldRetry = shouldRetry;
+            this.backoff = backoff;
+            this.maxRetries = maxRetries;
+        }
 
         /// <summary>
         /// Calls the wrapped function using the given parameters.
@@ -36,7 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Retrying
         {
             CancellationToken ct = CancellationTokenSource.CreateLinkedTokenSource(this.cancellationTokenSource.Token, cancellationToken).Token;
 
-            TResult result = await this.doAsyncWork(@params, ct);
+            TResult result = await this.doWorkAsync(@params, ct);
 
             if (this.shouldRetry(result))
             {
@@ -77,6 +87,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Retrying
                     return;
                 }
             }
+
+            throw new Exception("Backoff strategy should never finish");
         }
 
         /// <summary>
@@ -88,8 +100,8 @@ namespace Microsoft.Azure.Devices.Edge.Util.Retrying
             bool allCompleatedSuccesfully = true;
             foreach (TParam @params in this.thingsToRetry)
             {
-                TResult result = await this.doAsyncWork(@params, this.cancellationTokenSource.Token);
-                if (this.shouldRetry(result))
+                TResult result = await this.doWorkAsync(@params, this.cancellationTokenSource.Token);
+                if (this.numRetries[@params]++ < this.maxRetries && this.shouldRetry(result))
                 {
                     allCompleatedSuccesfully = false;
                 }
@@ -100,6 +112,11 @@ namespace Microsoft.Azure.Devices.Edge.Util.Retrying
             }
 
             return allCompleatedSuccesfully;
+        }
+
+        public void Dispose()
+        {
+            this.cancellationTokenSource.Cancel();
         }
     }
 }
