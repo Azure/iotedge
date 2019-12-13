@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             }
         }
 
-        IEnumerable<Metric> RemoveDuplicateMetrics(IEnumerable<Metric> metrics)
+        internal IEnumerable<Metric> RemoveDuplicateMetrics(IEnumerable<Metric> metrics)
         {
             Dictionary<int, Metric> previousValues = new Dictionary<int, Metric>();
 
@@ -75,16 +75,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                 // Get the previous value for this metric. If unchanged, return old
                 if (previousValues.TryGetValue(key, out Metric oldMetric) && oldMetric.Value != newMetric.Value)
                 {
-                    yield return previousValues[key];
+                    yield return oldMetric;
                 }
 
                 // update previous
                 previousValues[key] = newMetric;
             }
 
-            foreach (var remainingMetric in previousValues)
+            foreach (Metric remainingMetric in previousValues.Values)
             {
-                yield return remainingMetric.Value;
+                yield return remainingMetric;
             }
         }
 
