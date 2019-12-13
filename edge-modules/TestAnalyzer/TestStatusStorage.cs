@@ -19,8 +19,8 @@ namespace TestAnalyzer
         const string TwinsStorePartitionKey = "TwinsCache";
         static readonly ILogger Logger = ModuleUtil.CreateLogger("Analyzer");
         ISequentialStore<MessageDetails> messagesStore;
-        ISequentialStore<CloudOperationStatus> directMethodsStore;
-        ISequentialStore<CloudOperationStatus> twinsStore;
+        ISequentialStore<TestOperationResult> directMethodsStore;
+        ISequentialStore<TestOperationResult> twinsStore;
 
         public async Task InitAsync(string storagePath, ISystemEnvironment systemEnvironment, bool optimizeForPerformance)
         {
@@ -42,8 +42,8 @@ namespace TestAnalyzer
             }
 
             this.messagesStore = await storeProvider.GetSequentialStore<MessageDetails>(MessageStorePartitionKey);
-            this.directMethodsStore = await storeProvider.GetSequentialStore<CloudOperationStatus>(DirectMethodsStorePartitionKey);
-            this.twinsStore = await storeProvider.GetSequentialStore<CloudOperationStatus>(TwinsStorePartitionKey);
+            this.directMethodsStore = await storeProvider.GetSequentialStore<TestOperationResult>(DirectMethodsStorePartitionKey);
+            this.twinsStore = await storeProvider.GetSequentialStore<TestOperationResult>(TwinsStorePartitionKey);
         }
 
         string GetStoragePath(string baseStoragePath)
@@ -63,16 +63,15 @@ namespace TestAnalyzer
             await this.messagesStore.Append(message);
             return true;
         }
-
-        public async Task<bool> AddDirectMethodAsync(CloudOperationStatus dmStatus)
+        public async Task<bool> AddDirectMethodResultAsync(TestOperationResult result)
         {
-            await this.directMethodsStore.Append(dmStatus);
+            await this.directMethodsStore.Append(result);
             return true;
         }
 
-        public async Task<bool> AddTwinAsync(CloudOperationStatus dmStatus)
+        public async Task<bool> AddTwinResultAsync(TestOperationResult result)
         {
-            await this.twinsStore.Append(dmStatus);
+            await this.twinsStore.Append(result);
             return true;
         }
 
@@ -81,12 +80,12 @@ namespace TestAnalyzer
             await this.ProcessAllAsync(this.messagesStore, callback);
         }
 
-        public async Task ProcessAllDirectMethodsAsync(Action<CloudOperationStatus> callback)
+        public async Task ProcessAllDirectMethodsAsync(Action<TestOperationResult> callback)
         {
             await this.ProcessAllAsync(this.directMethodsStore, callback);
         }
 
-        public async Task ProcessAllTwinsAsync(Action<CloudOperationStatus> callback)
+        public async Task ProcessAllTwinsAsync(Action<TestOperationResult> callback)
         {
             await this.ProcessAllAsync(this.twinsStore, callback);
         }

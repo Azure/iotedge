@@ -7,13 +7,13 @@ namespace TestAnalyzer.Controllers
 
     [Route("api/[controller]")]
     [ApiController]
-    public class DirectMethodStatusController : Controller
+    public class TestOperationResultController : Controller
     {
-        // POST api/directmethodstatus
+        // POST api/TestOperationResult
         [HttpPost]
-        public async Task<StatusCodeResult> PostAsync(CloudOperationStatus methodCallStatus)
+        public async Task<StatusCodeResult> PostAsync(TestOperationResult result)
         {
-            await ReportingCache.Instance.AddDirectMethodStatusAsync(methodCallStatus);
+            await ReportingCache.Instance.AddResultAsync(result);
             return this.StatusCode((int)HttpStatusCode.NoContent);
         }
     }
