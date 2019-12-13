@@ -55,9 +55,9 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
             return new LoggerFactory().AddSerilog().CreateLogger(categoryName);
         }
 
-        public static string FormatTestResultValue(params string[] values)
+        public static string FormatTestResultValue(string trackingId, string batchId, string sequenceNumber)
         {
-            return string.Join(';', values);
+            return $"{trackingId};{batchId};{sequenceNumber}";
         }
 
         public static async Task ReportStatus(TestResultCoordinatorClient.TestResultCoordinatorClient trcClient, ILogger logger, string source, string result, string format)

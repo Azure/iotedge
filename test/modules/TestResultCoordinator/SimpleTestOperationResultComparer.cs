@@ -10,8 +10,8 @@ namespace TestResultCoordinator
     {
         public bool Matches(TestOperationResult value1, TestOperationResult value2)
         {
-            return (string.Equals(value1.Type, value2.Type, StringComparison.OrdinalIgnoreCase) &&
-                string.Equals(value1.Result, value2.Result, StringComparison.OrdinalIgnoreCase));
+            return string.Equals(value1.Type, value2.Type, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(value1.Result, value2.Result, StringComparison.OrdinalIgnoreCase);
         }
     }
 }
