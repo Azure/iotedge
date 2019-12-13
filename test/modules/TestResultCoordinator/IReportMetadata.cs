@@ -8,10 +8,8 @@ namespace TestResultCoordinator
 
         string ActualSource { get; }
 
-        ReportType ReportType { get; }
+        TestReportType TestReportType { get; }
 
         TestOperationResultType TestOperationResultType { get; }
-
-        public string ToString();
     }
 }

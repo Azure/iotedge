@@ -2,9 +2,9 @@
 namespace TestResultCoordinator
 {
     using System;
-    class ReportGeneratorFactory : IReportGeneratorFactory
+    class TestReportGeneratorFactory : ITestReportGeneratorFactory
     {
-        public ReportGeneratorFactory()
+        public TestReportGeneratorFactory()
         {
         }
 
@@ -12,9 +12,9 @@ namespace TestResultCoordinator
             string trackingId,
             IReportMetadata reportMetadata)
         {
-            switch (reportMetadata.ReportType)
+            switch (reportMetadata.TestReportType)
             {
-                case ReportType.CountingReport:
+                case TestReportType.CountingReport:
                 {
                         return new CountingReportGenerator(
                             trackingId,
@@ -29,7 +29,7 @@ namespace TestResultCoordinator
 
                 default:
                 {
-                        throw new NotSupportedException($"Report type {reportMetadata.ReportType} is not supported.");
+                        throw new NotSupportedException($"Report type {reportMetadata.TestReportType} is not supported.");
                 }
             }
         }

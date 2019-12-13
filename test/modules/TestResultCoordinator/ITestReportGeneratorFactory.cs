@@ -4,7 +4,7 @@ namespace TestResultCoordinator
     /// <summary>
     /// This defines methods for a test result report generator.
     /// </summary>
-    interface IReportGeneratorFactory
+    interface ITestReportGeneratorFactory
     {
         ITestResultReportGenerator Create(
             string trackingId,
