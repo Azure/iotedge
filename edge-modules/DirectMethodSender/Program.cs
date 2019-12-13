@@ -23,24 +23,47 @@ namespace DirectMethodSender
 
             try
             {
-                ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
-                    Settings.Current.TransportType,
-                    ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                    ModuleUtil.DefaultTransientRetryStrategy,
-                    Logger);
+                IDirectMethodClient client;
+                switch (Settings.Current.RoutingAgency)
+                {
+                    case RoutingAgency.EdgeHub:
+                        client = new ModuleClientWrapper();
+                        await client.OpenClientAsync(
+                            new OpenModuleClientAsyncArgs(
+                                Settings.Current.TransportType,
+                                ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
+                                ModuleUtil.DefaultTransientRetryStrategy,
+                                Logger));
+                        break;
+                    case RoutingAgency.Upstream:
+                        client = new ServiceClientWrapper();
+                        await client.OpenClientAsync(
+                            new OpenServiceClientAsyncArgs(
+                                Settings.Current.ServiceClientConnectionString.Expect(() => new ArgumentException("ServiceClientConnectionString is null")),
+                                (Microsoft.Azure.Devices.TransportType) Settings.Current.TransportType,
+                                Logger));
+                        break;
+                }
 
-                Uri analyzerUrl = Settings.Current.AnalyzerUrl;
-                AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = analyzerUrl.AbsoluteUri };
+                
+                // ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
+                //     Settings.Current.TransportType,
+                //     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
+                //     ModuleUtil.DefaultTransientRetryStrategy,
+                //     Logger);
 
-                (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
+                // Uri analyzerUrl = Settings.Current.AnalyzerUrl;
+                // AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = analyzerUrl.AbsoluteUri };
 
-                await CallDirectMethod(moduleClient, analyzerClient, Settings.Current.DirectMethodDelay, cts);
-                await moduleClient.CloseAsync();
-                await cts.Token.WhenCanceled();
+                // (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
-                completed.Set();
-                handler.ForEach(h => GC.KeepAlive(h));
-                Logger.LogInformation("DirectMethodSender Main() finished.");
+                // await CallDirectMethod(moduleClient, analyzerClient, Settings.Current.DirectMethodDelay, cts);
+                // await moduleClient.CloseAsync();
+                // await cts.Token.WhenCanceled();
+
+                // completed.Set();
+                // handler.ForEach(h => GC.KeepAlive(h));
+                // Logger.LogInformation("DirectMethodSender Main() finished.");
             }
             catch (Exception e)
             {

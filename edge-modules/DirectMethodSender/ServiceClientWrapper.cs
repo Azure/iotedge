@@ -8,6 +8,7 @@ namespace DirectMethodSender
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using TransportType = Microsoft.Azure.Devices.TransportType;
 
     public class OpenServiceClientAsyncArgs : IOpenClientAsyncArgs
     {
@@ -15,7 +16,7 @@ namespace DirectMethodSender
         public readonly TransportType TransportType;
         public readonly ILogger Logger;
 
-        OpenServiceClientAsyncArgs(
+        public OpenServiceClientAsyncArgs(
             string connectionString,
             TransportType transportType,
             ILogger logger)

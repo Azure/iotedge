@@ -27,7 +27,8 @@ namespace DirectMethodSender
                     configuration.GetValue<TransportType>("TransportType", TransportType.Amqp_Tcp_Only),
                     configuration.GetValue<TimeSpan>("DirectMethodDelay", TimeSpan.FromSeconds(5)),
                     configuration.GetValue<Uri>("AnalyzerUrl", new Uri("http://analyzer:15000")),
-                    configuration.GetValue<string>("RoutingAgency", "EdgeHub"));
+                    configuration.GetValue<string>("RoutingAgency", "EdgeHub"),
+                    Option.Maybe<string>(configuration.GetValue<string>("ServiceClientConnectionString"))); //BEARWASHERE -- Test this if it returns Null when ServiceClientConnectionString is not defined
             });
 
         Settings(
@@ -36,7 +37,8 @@ namespace DirectMethodSender
             TransportType transportType,
             TimeSpan directMethodDelay,
             Uri analyzerUrl,
-            string routingAgency)
+            string routingAgency,
+            Option<string> serviceClientConnectionString)
         {
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.TargetModuleId = Preconditions.CheckNonWhiteSpace(targetModuleId, nameof(targetModuleId));
@@ -44,6 +46,7 @@ namespace DirectMethodSender
             this.TransportType = transportType;
             this.DirectMethodDelay = Preconditions.CheckNotNull(directMethodDelay);
             this.AnalyzerUrl = Preconditions.CheckNotNull(analyzerUrl);
+            this.ServiceClientConnectionString = serviceClientConnectionString;
 
             Object parsedRoutingAgency;
             Preconditions.CheckNonWhiteSpace(routingAgency, nameof(routingAgency));
@@ -68,6 +71,8 @@ namespace DirectMethodSender
         public TimeSpan DirectMethodDelay { get; }
 
         public RoutingAgency RoutingAgency { get; }
+
+        public Option<string> ServiceClientConnectionString { get; }
 
         public Uri AnalyzerUrl { get; }
 

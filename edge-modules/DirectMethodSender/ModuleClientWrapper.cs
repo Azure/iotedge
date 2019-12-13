@@ -19,7 +19,7 @@ namespace DirectMethodSender
         public readonly RetryStrategy RetryStrategy;
         public readonly ILogger Logger;
 
-        OpenModuleClientAsyncArgs(
+        public OpenModuleClientAsyncArgs(
             TransportType transportType,
             ITransientErrorDetectionStrategy transientErrorDetectionStrategy,
             RetryStrategy retryStrategy,
