@@ -1,17 +1,18 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace DirectMethodSender
 {
+    using System;
+    using System.Threading;
     using System.Threading.Tasks;
 
     public interface IDirectMethodClient
     {
-        // BEARWASHERE -- TODO
-        // BAsically returns nothing
         Task CloseClientAsync();
 
-        // Ret: either MethodResponse.Status or CloudToDeviceMethodResult.Status both are int
-        int InvokeDirectMethodAsync();
+        // Invoke direct method using a client
+        Task InvokeDirectMethodAsync(CancellationTokenSource cts);
 
+        // Create a client and open an instance
         Task OpenClientAsync(IOpenClientAsyncArgs args);
     }
 
