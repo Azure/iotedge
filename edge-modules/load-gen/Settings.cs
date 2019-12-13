@@ -32,7 +32,7 @@ namespace LoadGen
                     configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
                     configuration.GetValue("testDuration", TimeSpan.Zero),
                     configuration.GetValue("trackingId", string.Empty),
-                    Option.Maybe(configuration.GetValue("testResultCoordinatorUrl", string.Empty)),
+                    configuration.GetValue("testResultCoordinatorUrl", Option.None<string>()),
                     configuration.GetValue<string>("IOTEDGE_MODULEID"));
             });
 
