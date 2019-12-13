@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
     public class EventHubReceiver
     {
+        const string EventHubConsumerGroup = "ci-tests";
         readonly string eventHubConnectionString;
 
         public EventHubReceiver(string eventHubConnectionString)
@@ -22,7 +23,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
             EventHubClient eventHubClient = EventHubClient.CreateFromConnectionString(this.eventHubConnectionString);
             PartitionReceiver partitionReceiver = eventHubClient.CreateReceiver(
-                "ci-tests",
+                EventHubConsumerGroup,
                 EventHubPartitionKeyResolver.ResolveToPartition(deviceId, (await eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
                 EventPosition.FromEnqueuedTime(startTime));
 
