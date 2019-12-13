@@ -46,10 +46,10 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<TestResultCoordinator.LogAnalyticsSharedKey>@$LOG_ANALYTICS_SHAREDKEY@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.LogAnalyticsLogType>@$LOG_ANALYTICS_LOGTYPE@g" "$deployment_working_file"
 
-    sed -i -e "s@<NetworkController.OfflineFrequency0>@$"${NETWORK_CONTROLLER_FREQUENCIES[0]}"@g" "$deployment_working_file"
-    sed -i -e "s@<NetworkController.OnlineFrequency0>@$"${NETWORK_CONTROLLER_FREQUENCIES[1]}"@g" "$deployment_working_file"
-    sed -i -e "s@<NetworkController.RunsCount0>@$"${NETWORK_CONTROLLER_FREQUENCIES[2]}"@g" "$deployment_working_file"
-    sed -i -e "s@<NetworkController.Mode>@$"${NETWORK_CONTROLLER_MODE}"@g" "$deployment_working_file"
+    sed -i -e "s@<NetworkController.OfflineFrequency0>@$"$NETWORK_CONTROLLER_FREQUENCIES[0]"@g" "$deployment_working_file"
+    sed -i -e "s@<NetworkController.OnlineFrequency0>@$"$NETWORK_CONTROLLER_FREQUENCIES[1]"@g" "$deployment_working_file"
+    sed -i -e "s@<NetworkController.RunsCount0>@$"$NETWORK_CONTROLLER_FREQUENCIES[2]"@g" "$deployment_working_file"
+    sed -i -e "s@<NetworkController.Mode>@$"$NETWORK_CONTROLLER_MODE"@g" "$deployment_working_file"
 }
 
 function print_logs() {
