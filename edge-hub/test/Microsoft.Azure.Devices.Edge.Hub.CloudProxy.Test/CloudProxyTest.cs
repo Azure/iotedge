@@ -265,7 +265,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                     receivedMessagesByDevice[deviceId].AddRange(await eventHubReceiver.GetMessagesForDevice(deviceId, startTime));
                 }
 
-                messagesFound = MessageHelper.CompareMessagesAndEventData(sentMessagesByDevice, receivedMessagesByDevice);
+                messagesFound = MessageHelper.ValidateSentMessagesWereReceived(sentMessagesByDevice, receivedMessagesByDevice);
 
                 if (messagesFound)
                 {
