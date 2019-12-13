@@ -111,6 +111,6 @@ foreach($testDll in $testProjectDllsRunSerially)
 $testCommand = $testCommandPrefix + $testProjectsDlls
 $testCommand = $testCommand.Replace("result.trx", "result.$([System.IO.Path]::GetRandomFileName()).trx")
 Write-Host "Run test command: $testCommand"
-Invoke-Expression "$testCommand"
+Invoke-Expression "$testCommand 2> $null"
 
 Write-Host "Done!"
