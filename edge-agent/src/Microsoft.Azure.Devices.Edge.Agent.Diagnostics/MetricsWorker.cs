@@ -14,10 +14,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
 
     public class MetricsWorker : IDisposable
     {
+        public static RetryStrategy RetryStrategy = new ExponentialBackoff(20, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(30), TimeSpan.FromMinutes(1), false);
+
         readonly IMetricsScraper scraper;
         readonly IMetricsStorage storage;
         readonly IMetricsPublisher uploader;
@@ -54,14 +57,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
 
         internal async Task Upload(CancellationToken cancellationToken)
         {
+            if (!await this.TryUploadAndClear(cancellationToken))
+            {
+                await this.BeginUploadRetry(cancellationToken);
+            }
+        }
+
+        async Task<bool> TryUploadAndClear(CancellationToken cancellationToken)
+        {
             using (await this.scrapeUploadLock.LockAsync(cancellationToken))
             {
                 Log.LogInformation($"Uploading Metrics");
                 IEnumerable<Metric> metricsToUpload = await this.storage.GetAllMetricsAsync();
                 metricsToUpload = this.RemoveDuplicateMetrics(metricsToUpload);
-                await this.uploader.PublishAsync(metricsToUpload, cancellationToken);
-                Log.LogInformation($"Uploaded Metrics");
-                await this.storage.RemoveAllReturnedMetricsAsync();
+
+                if (await this.uploader.PublishAsync(metricsToUpload, cancellationToken))
+                {
+                    Log.LogInformation($"Published metrics");
+                    await this.storage.RemoveAllReturnedMetricsAsync();
+                    return true;
+                }
+                else
+                {
+                    Log.LogInformation($"Failed to publish metrics");
+                    return false;
+                }
             }
         }
 
@@ -85,6 +105,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             foreach (var remainingMetric in previousValues)
             {
                 yield return remainingMetric.Value;
+            }
+        }
+
+        async Task BeginUploadRetry(CancellationToken cancellationToken)
+        {
+            int retryNum = 0;
+            var shouldRetry = RetryStrategy.GetShouldRetry();
+            while (shouldRetry(retryNum++, null, out TimeSpan backoffDelay))
+            {
+                Log.LogInformation($"Metric publish set to retry in {backoffDelay.Humanize()}");
+                await Task.Delay(backoffDelay, cancellationToken);
+                if (await this.TryUploadAndClear(cancellationToken))
+                {
+                    return;
+                }
+            }
+
+            Log.LogInformation($"Upload retries exeeded {retryNum} allowed attempts. Deleting stored metrics.");
+            using (await this.scrapeUploadLock.LockAsync(cancellationToken))
+            {
+                await this.storage.RemoveAllReturnedMetricsAsync();
+                Log.LogInformation($"Deleted stored metrics.");
             }
         }
 

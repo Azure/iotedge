@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             this.edgeAgentConnection = Preconditions.CheckNotNull(edgeAgentConnection, nameof(edgeAgentConnection));
         }
 
-        public async Task PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
+        public async Task<bool> PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(metrics, nameof(metrics));
             byte[] data = MetricsSerializer.MetricsToBytes(metrics).ToArray();
@@ -30,8 +30,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             if (data.Length > 0)
             {
                 Message message = this.BuildMessage(data);
-                await this.edgeAgentConnection.SendEventAsync(message);
+
+                try
+                {
+                    await this.edgeAgentConnection.SendEventAsync(message);
+                }
+                catch (Exception ex) when (ex.HasTimeoutException())
+                {
+                    return false;
+                }
             }
+
+            return true;
         }
 
         Message BuildMessage(byte[] data)
