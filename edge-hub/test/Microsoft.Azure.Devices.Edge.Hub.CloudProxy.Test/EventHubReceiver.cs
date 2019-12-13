@@ -9,24 +9,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
     public class EventHubReceiver
     {
-        readonly EventHubClient eventHubClient;
+        readonly string eventHubConnectionString;
 
         public EventHubReceiver(string eventHubConnectionString)
         {
-            this.eventHubClient = EventHubClient.CreateFromConnectionString(eventHubConnectionString);
+            this.eventHubConnectionString = eventHubConnectionString;
         }
 
         public async Task<IList<EventData>> GetMessagesForDevice(string deviceId, DateTime startTime, int maxPerPartition = 10, int waitTimeSecs = 5)
         {
             var messages = new List<EventData>();
 
-
             // Retry a few times to make sure we get all expected messages.
             for (int i = 0; i < 3; i++)
             {
-                PartitionReceiver partitionReceiver = this.eventHubClient.CreateReceiver(
+                EventHubClient eventHubClient = EventHubClient.CreateFromConnectionString(eventHubConnectionString);
+                PartitionReceiver partitionReceiver = eventHubClient.CreateReceiver(
                     PartitionReceiver.DefaultConsumerGroupName,
-                    EventHubPartitionKeyResolver.ResolveToPartition(deviceId, (await this.eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
+                    EventHubPartitionKeyResolver.ResolveToPartition(deviceId, (await eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
                     EventPosition.FromEnqueuedTime(startTime));
 
                 IEnumerable<EventData> events = await partitionReceiver.ReceiveAsync(maxPerPartition, TimeSpan.FromSeconds(waitTimeSecs));
@@ -35,21 +35,16 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                     messages.AddRange(events);
                 }
 
+                await partitionReceiver.CloseAsync();
+                await eventHubClient.CloseAsync();
+
                 if (i < 3)
                 {
                     await Task.Delay(TimeSpan.FromSeconds(5));
                 }
-
-                await partitionReceiver.CloseAsync();
             }
 
-
             return messages;
-        }
-
-        public async Task Close()
-        {
-            await this.eventHubClient.CloseAsync();
         }
     }
 }

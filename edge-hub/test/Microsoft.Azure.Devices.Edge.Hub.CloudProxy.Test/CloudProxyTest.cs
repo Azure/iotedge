@@ -275,8 +275,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 await Task.Delay(TimeSpan.FromSeconds(20));
             }
 
-            await eventHubReceiver.Close();
-
             foreach (string device in receivedMessagesByDevice.Keys)
             {
                 Assert.NotNull(receivedMessagesByDevice[device]);
