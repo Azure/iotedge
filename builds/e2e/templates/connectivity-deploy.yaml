@@ -42,6 +42,8 @@ steps:
           -containerRegistryPassword "${{ parameters['container.registry.password'] }}" \
           -iotHubConnectionString "${{ parameters['iotHub.connectionString'] }}" \
           -eventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" \
+          -testDuration "${{ parameters['testDuration'] }}" \
+          -testStartDelay "${{ parameters['testStartDelay'] }}" \
           -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" \
           -networkControllerFrequency "${{ parameters['networkController.frequencies'] }}" \
           -networkControllerMode "${{ parameters['networkController.mode'] }}" \
