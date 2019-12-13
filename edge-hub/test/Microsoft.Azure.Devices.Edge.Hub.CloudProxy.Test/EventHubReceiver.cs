@@ -20,14 +20,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             var messages = new List<EventData>();
 
-            PartitionReceiver partitionReceiver = this.eventHubClient.CreateReceiver(
-                PartitionReceiver.DefaultConsumerGroupName,
-                EventHubPartitionKeyResolver.ResolveToPartition(deviceId, (await this.eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
-                EventPosition.FromEnqueuedTime(startTime));
 
             // Retry a few times to make sure we get all expected messages.
             for (int i = 0; i < 3; i++)
             {
+                PartitionReceiver partitionReceiver = this.eventHubClient.CreateReceiver(
+                    PartitionReceiver.DefaultConsumerGroupName,
+                    EventHubPartitionKeyResolver.ResolveToPartition(deviceId, (await this.eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
+                    EventPosition.FromEnqueuedTime(startTime));
+
                 IEnumerable<EventData> events = await partitionReceiver.ReceiveAsync(maxPerPartition, TimeSpan.FromSeconds(waitTimeSecs));
                 if (events != null)
                 {
@@ -38,9 +39,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 {
                     await Task.Delay(TimeSpan.FromSeconds(5));
                 }
+
+                await partitionReceiver.CloseAsync();
             }
 
-            await partitionReceiver.CloseAsync();
 
             return messages;
         }
