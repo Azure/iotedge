@@ -41,6 +41,11 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<TestStartDelay>@$TEST_START_DELAY@g" "$deployment_working_file"
     sed -i -e "s@<TrackingId>@$tracking_Id@g" "$deployment_working_file"
 
+    sed -i -e "s@<TestResultCoordinator.OptimizeForPerformance>@$optimize_for_performance@g" "$deployment_working_file"
+    sed -i -e "s@<TestResultCoordinator.LogAnalyticsWorkspaceId>@$LOG_ANALYTICS_WORKSPACEID@g" "$deployment_working_file"
+    sed -i -e "s@<TestResultCoordinator.LogAnalyticsSharedKey>@$LOG_ANALYTICS_SHAREDKEY@g" "$deployment_working_file"
+    sed -i -e "s@<TestResultCoordinator.LogAnalyticsLogType>@$LOG_ANALYTICS_LOGTYPE@g" "$deployment_working_file"
+
     sed -i -e "s@<NetworkController.OfflineFrequency0>@$"${NETWORK_CONTROLLER_FREQUENCIES[0]}"@g" "$deployment_working_file"
     sed -i -e "s@<NetworkController.OnlineFrequency0>@$"${NETWORK_CONTROLLER_FREQUENCIES[1]}"@g" "$deployment_working_file"
     sed -i -e "s@<NetworkController.RunsCount0>@$"${NETWORK_CONTROLLER_FREQUENCIES[2]}"@g" "$deployment_working_file"
@@ -122,7 +127,16 @@ function process_args() {
             saveNextArg=0
         elif [ $saveNextArg -eq 14 ]; then
             NETWORK_CONTROLLER_MODE="$arg"
-            saveNextArg=0              
+            saveNextArg=0    
+        elif [ $saveNextArg -eq 15 ]; then
+            LOG_ANALYTICS_WORKSPACEID="$arg"
+            saveNextArg=0 
+        elif [ $saveNextArg -eq 16 ]; then
+            LOG_ANALYTICS_SHAREDKEY="$arg"
+            saveNextArg=0 
+        elif [ $saveNextArg -eq 17 ]; then
+            LOG_ANALYTICS_LOGTYPE="$arg"
+            saveNextArg=0         
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -140,6 +154,9 @@ function process_args() {
                 '-loadGenMessageFrequency' ) saveNextArg=12;;
                 '-networkControllerFrequency' ) saveNextArg=13;;
                 '-networkControllerMode' ) saveNextArg=14;;
+                '-logAnalyticsWorkspaceId' ) saveNextArg=15;;
+                '-logAnalyticsSharedKey' ) saveNextArg=16;;
+                '-logAnalyticsLogType' ) saveNextArg=17;;
 
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
@@ -153,7 +170,8 @@ function process_args() {
     [[ -z "$CONTAINER_REGISTRY_USERNAME" ]] && { print_error 'Container registry username is required'; exit 1; }
     [[ -z "$CONTAINER_REGISTRY_PASSWORD" ]] && { print_error 'Container registry password is required'; exit 1; }
     [[ -z "$IOTHUB_CONNECTION_STRING" ]] && { print_error 'IoT hub connection string is required'; exit 1; }
-    [[ -z "$EVENTHUB_CONNECTION_STRING" ]] && { print_error 'Event hub connection string is required'; exit 1; }
+    [[ -z "$LOG_ANALYTICS_WORKSPACEID" ]] && { print_error 'Log analytics workspace id is required'; exit 1; }
+    [[ -z "$LOG_ANALYTICS_SHAREDKEY" ]] && { print_error 'Log analytics shared key is required'; exit 1; }
 
     echo 'Required parameters are provided'
 }
@@ -260,6 +278,9 @@ function usage() {
     echo ' -loadGenMessageFrequency        Message frequency sent by load gen' 
     echo ' -networkControllerFrequency     Frequency for controlling the network with offlineFrequence, onlineFrequence, runsCount. Example "00:05:00 00:05:00 6"' 
     echo ' -networkControllerMode          OfflineNetworkInterface, OfflineTrafficController or SatelliteTrafficController' 
+    echo ' -logAnalyticsWorkspaceId        Log Analytics Workspace Id'
+    echo ' -logAnalyticsSharedKey          Log Analytics shared key'
+    echo ' -logAnalyticsLogType            Log Analytics log type'
 
     echo ' -cleanAll                       Do docker prune for containers, logs and volumes.'
     exit 1;
@@ -272,9 +293,10 @@ E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
 TEST_DURATION="${TEST_DURATION:-01:00:00}"
 EVENT_HUB_CONSUMER_GROUP_ID=${EVENT_HUB_CONSUMER_GROUP_ID:-\$Default}
 LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:01}"
-NETWORK_CONTROLLER_FREQUENCIES="${NETWORK_CONTROLLER_FREQUENCIES:(null)}"
-NETWORK_CONTROLLER_MODE="${NETWORK_CONTROLLER_MODE:-OfflineTrafficController}"
+NETWORK_CONTROLLER_FREQUENCIES=${NETWORK_CONTROLLER_FREQUENCIES:(null)}
+NETWORK_CONTROLLER_MODE=${NETWORK_CONTROLLER_MODE:-OfflineTrafficController}
 TEST_START_DELAY="${TEST_START_DELAY:-00:02:00}"
+LOG_ANALYTICS_LOGTYPE="${TEST_START_DELAY:-connectivity}"
 
 working_folder="$E2E_TEST_DIR/working"
 quickstart_working_folder="$working_folder/quickstart"

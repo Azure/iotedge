@@ -66,11 +66,13 @@ jobs:
           iotHub.connectionString: '$(EdgeConnectivityTestHubConnString)'
           eventHub.connectionString: '$(EdgeConnectivityEventHubConnString)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
+          testDuration: '$(testStartDelay)'
           testStartDelay: '$(testStartDelay)'
-          testStartDelay: '$(testStartDelay)'
-          optimizeForPerformance: 'true'
           networkController.frequencies: '$(networkController.frequencies)'
           networkController.mode: '$(networkController.mode)'
+          testResultCoordinator.logAnalyticsWorkspaceId: '$(testResultCoordinator.logAnalyticsWorkspaceId)'
+          testResultCoordinator.logAnalyticsSharedKey: '$(testResultCoordinator.logAnalyticsSharedKey)'
+          testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
 
 ################################################################################
   - job: linux_arm32v7_moby
@@ -134,8 +136,10 @@ jobs:
           eventHub.connectionString: '$(EdgeConnectivityEventHubConnString)'
           loadGen.message.frequency: '$(loadGen.message.frequency.arm32)'
           testDuration: '$(testDuration)'
+          testDuration: '$(testStartDelay)'
           testStartDelay: '$(testStartDelay)'
-          testStartDelay: '$(testStartDelay)'
-          optimizeForPerformance: 'false'
           networkController.frequencies: '$(networkController.frequencies)'
           networkController.mode: '$(networkController.mode)'
+          testResultCoordinator.logAnalyticsWorkspaceId: '$(testResultCoordinator.logAnalyticsWorkspaceId)'
+          testResultCoordinator.logAnalyticsSharedKey: '$(testResultCoordinator.logAnalyticsSharedKey)'
+          testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'

@@ -164,6 +164,15 @@
               },
               "optimizeForPerformance": {
                 "value": "<TestResultCoordinator.OptimizeForPerformance>"
+              },
+              "logAnalyticsWorkspaceId": {
+                "value": "<TestResultCoordinator.LogAnalyticsWorkspaceId>"
+              },
+              "logAnalyticsSharedKey": {
+                "value": "<TestResultCoordinator.LogAnalyticsSharedKey>"
+              },
+              "logAnalyticsLogType": {
+                "value": "<TestResultCoordinator.LogAnalyticsLogType>"
               }
             },
             "settings": {
