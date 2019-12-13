@@ -149,6 +149,12 @@
               },
               "testDuration": {
                 "value": "<TestDuration>"
+              },
+              "eventHubConnectionString": {
+                "value": "<TestResultCoordinator.EventHubConnectionString>"
+              },
+              "ConsumerGroupName": {
+                "value": "TestResultCoordinator.ConsumerGroupId"
               }
             },
             "settings": {
