@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Retrying
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Extensions.Logging;
 
     /// <summary>
     /// Wraps an async function and attempts to retry the wrapped function if it fails
@@ -20,18 +21,21 @@ namespace Microsoft.Azure.Devices.Edge.Util.Retrying
         readonly Func<TResult, bool> shouldRetry;
         readonly IBackoff backoff;
         readonly IDictionary<Guid, TParam> thingsToRetry;
+        readonly string name;
         readonly double maxRetries;
 
+        readonly ILogger log = Logger.Factory.CreateLogger<RetryWithBackoff<TParam, TResult>>();
         readonly DefaultDictionary<Guid, int> numRetries = new DefaultDictionary<Guid, int>(_ => 1);
         readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
         Task retryTask;
 
-        public RetryWithBackoff(Func<TParam, CancellationToken, Task<TResult>> doWorkAsync, Func<TResult, bool> shouldRetry, IBackoff backoff, IDictionary<Guid, TParam> retryStorage, double maxRetries = 20)
+        public RetryWithBackoff(Func<TParam, CancellationToken, Task<TResult>> doWorkAsync, Func<TResult, bool> shouldRetry, IBackoff backoff, IDictionary<Guid, TParam> retryStorage, string name, double maxRetries = 20)
         {
             this.doWorkAsync = doWorkAsync;
             this.shouldRetry = shouldRetry;
             this.backoff = backoff;
             this.thingsToRetry = retryStorage;
+            this.name = name;
             this.maxRetries = maxRetries;
         }
 
@@ -51,6 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Retrying
 
             if (this.shouldRetry(result))
             {
+                this.log.LogInformation($"{this.name} task failed. Adding to retry queue.");
                 this.thingsToRetry.Add(Guid.NewGuid(), @params);
                 this.SignalRetry();
             }
@@ -81,16 +86,17 @@ namespace Microsoft.Azure.Devices.Edge.Util.Retrying
         {
             foreach (TimeSpan sleepTime in this.backoff.GetBackoff())
             {
+                this.log.LogInformation($"{this.name} retry initiated. Delaying {sleepTime.Humanize()}");
                 await Task.Delay(sleepTime, this.cancellationTokenSource.Token);
 
                 if (await this.RetryAll())
                 {
-                    // All compleated successfully
+                    this.log.LogInformation($"All {this.name} retrys succeded");
                     return;
                 }
             }
 
-            throw new Exception("Backoff strategy should never finish");
+            this.log.LogError("Backoff strategy should never finish");
         }
 
         /// <summary>

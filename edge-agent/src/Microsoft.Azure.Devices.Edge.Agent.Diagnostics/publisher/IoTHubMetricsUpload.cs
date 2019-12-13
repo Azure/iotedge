@@ -25,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             this.edgeAgentConnection = Preconditions.CheckNotNull(edgeAgentConnection, nameof(edgeAgentConnection));
 
             IBackoff backoff = new Util.Retrying.ExponentialBackoff(TimeSpan.FromMinutes(1), 1.5, TimeSpan.FromMinutes(30));
-            this.retryHandler = new RetryWithBackoff<byte[], Option<Exception>>(this.SendMessage, this.ShouldRetry, backoff, new Dictionary<Guid, byte[]>());
+            this.retryHandler = new RetryWithBackoff<byte[], Option<Exception>>(this.SendMessage, this.ShouldRetry, backoff, new Dictionary<Guid, byte[]>(), "IoTHub Diagnostics Upload");
         }
 
         public async Task PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
@@ -61,6 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             return Option.None<Exception>();
         }
 
+        // Only retry if there is a timeout exception.
         bool ShouldRetry(Option<Exception> result)
         {
             return result.Exists(ex => ex.HasTimeoutException());
