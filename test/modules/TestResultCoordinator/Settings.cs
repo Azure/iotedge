@@ -31,6 +31,9 @@ namespace TestResultCoordinator
                     configuration.GetValue<string>("eventHubConnectionString"),
                     configuration.GetValue<string>("IOTEDGE_DEVICEID"),
                     configuration.GetValue("webhostPort", DefaultWebHostPort),
+                    configuration.GetValue<string>("logAnalyticsWorkspaceId"),
+                    configuration.GetValue<string>("logAnalyticsSharedKey"),
+                    configuration.GetValue<string>("logAnalyticsLogType"),
                     configuration.GetValue("storagePath", DefaultStoragePath),
                     configuration.GetValue<bool>("optimizeForPerformance", true),
                     configuration.GetValue("testDuration", TimeSpan.FromHours(1)));
@@ -41,6 +44,9 @@ namespace TestResultCoordinator
             string eventHubConnectionString,
             string deviceId,
             ushort webHostPort,
+            string logAnalyticsWorkspaceId,
+            string logAnalyticsSharedKey,
+            string logAnalyticsLogType,
             string storagePath,
             bool optimizeForPerformance,
             TimeSpan testDuration)
@@ -51,6 +57,9 @@ namespace TestResultCoordinator
             this.EventHubConnectionString = Preconditions.CheckNonWhiteSpace(eventHubConnectionString, nameof(eventHubConnectionString));
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.WebHostPort = Preconditions.CheckNotNull(webHostPort, nameof(webHostPort));
+            this.LogAnalyticsWorkspaceId = Preconditions.CheckNonWhiteSpace(logAnalyticsWorkspaceId, nameof(logAnalyticsWorkspaceId));
+            this.LogAnalyticsSharedKey = Preconditions.CheckNonWhiteSpace(logAnalyticsSharedKey, nameof(logAnalyticsSharedKey));
+            this.LogAnalyticsLogType = Preconditions.CheckNonWhiteSpace(logAnalyticsLogType, nameof(logAnalyticsLogType));
             this.StoragePath = storagePath;
             this.OptimizeForPerformance = Preconditions.CheckNotNull(optimizeForPerformance);
             this.TestDuration = testDuration;
@@ -83,6 +92,12 @@ namespace TestResultCoordinator
         public string TrackingId { get; }
 
         public string StoragePath { get; }
+
+        public string LogAnalyticsWorkspaceId { get; }
+
+        public string LogAnalyticsSharedKey { get; }
+
+        public string LogAnalyticsLogType { get; }
 
         public bool OptimizeForPerformance { get; }
 
