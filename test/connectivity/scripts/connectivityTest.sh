@@ -41,6 +41,7 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<TestStartDelay>@$TEST_START_DELAY@g" "$deployment_working_file"
     sed -i -e "s@<TrackingId>@$tracking_Id@g" "$deployment_working_file"
 
+    sed -i -e "s@<TestResultCoordinator.VerificationDelay>@$VERIFICATION_DELAY@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.OptimizeForPerformance>@$optimize_for_performance@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.LogAnalyticsWorkspaceId>@$LOG_ANALYTICS_WORKSPACEID@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.LogAnalyticsSharedKey>@$LOG_ANALYTICS_SHAREDKEY@g" "$deployment_working_file"
@@ -136,7 +137,10 @@ function process_args() {
             saveNextArg=0 
         elif [ $saveNextArg -eq 17 ]; then
             LOG_ANALYTICS_LOGTYPE="$arg"
-            saveNextArg=0         
+            saveNextArg=0
+        elif [ $saveNextArg -eq 18 ]; then
+            VERIFICATION_DELAY="$arg"
+            saveNextArg=0        
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -157,6 +161,7 @@ function process_args() {
                 '-logAnalyticsWorkspaceId' ) saveNextArg=15;;
                 '-logAnalyticsSharedKey' ) saveNextArg=16;;
                 '-logAnalyticsLogType' ) saveNextArg=17;;
+                '-verificationDelay' ) saveNextArg=18;;
 
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
@@ -281,6 +286,7 @@ function usage() {
     echo ' -logAnalyticsWorkspaceId        Log Analytics Workspace Id'
     echo ' -logAnalyticsSharedKey          Log Analytics shared key'
     echo ' -logAnalyticsLogType            Log Analytics log type'
+    echo ' -verificationDelay              Delay before starting the verification after test finished'
 
     echo ' -cleanAll                       Do docker prune for containers, logs and volumes.'
     exit 1;
@@ -296,7 +302,8 @@ LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:01}"
 NETWORK_CONTROLLER_FREQUENCIES=${NETWORK_CONTROLLER_FREQUENCIES:(null)}
 NETWORK_CONTROLLER_MODE=${NETWORK_CONTROLLER_MODE:-OfflineTrafficController}
 TEST_START_DELAY="${TEST_START_DELAY:-00:02:00}"
-LOG_ANALYTICS_LOGTYPE="${TEST_START_DELAY:-connectivity}"
+LOG_ANALYTICS_LOGTYPE="${LOG_ANALYTICS_LOGTYPE:-connectivity}"
+VERIFICATION_DELAY="${VERIFICATION_DELAY:-00:15:00}"
 
 working_folder="$E2E_TEST_DIR/working"
 quickstart_working_folder="$working_folder/quickstart"
