@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
         readonly IEdgeAgentConnection edgeAgentConnection;
         readonly RetryWithBackoff<byte[], Option<Exception>> retryHandler;
 
-        public IoTHubMetricsUpload(IEdgeAgentConnection edgeAgentConnection, IStoreProvider storeProvider)
+        public IoTHubMetricsUpload(IEdgeAgentConnection edgeAgentConnection)
         {
             this.edgeAgentConnection = Preconditions.CheckNotNull(edgeAgentConnection, nameof(edgeAgentConnection));
 
