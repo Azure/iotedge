@@ -7,6 +7,7 @@ namespace LoadGen
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
@@ -33,10 +34,10 @@ namespace LoadGen
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                     ModuleUtil.DefaultTransientRetryStrategy,
                     Logger);
-                
+
                 Logger.LogInformation($"Load gen delay start for {Settings.Current.TestStartDelay}.");
                 await Task.Delay(Settings.Current.TestStartDelay);
-                
+
                 DateTime testStartAt = DateTime.UtcNow;
                 long messageIdCounter = 1;
                 while (!cts.IsCancellationRequested &&
@@ -45,6 +46,26 @@ namespace LoadGen
                     try
                     {
                         await SendEventAsync(moduleClient, batchId, Settings.Current.TrackingId, messageIdCounter);
+
+                        // Report sending message successfully to Test Result Coordinator
+                        await Settings.Current.TestResultCoordinatorUrl.ForEachAsync(async trcUrl =>
+                        {
+                            Uri testResultCoordinatorUrl = new Uri(
+                                trcUrl,
+                                UriKind.Absolute);
+                            TestResultCoordinatorClient trcClient = new TestResultCoordinatorClient { BaseUrl = testResultCoordinatorUrl.AbsoluteUri };
+
+                            await ModuleUtil.ReportStatus(
+                                trcClient,
+                                Logger,
+                                Settings.Current.ModuleId + ".send",
+                                ModuleUtil.FormatTestResultValue(
+                                    Settings.Current.TrackingId,
+                                    batchId.ToString(),
+                                    messageIdCounter.ToString()),
+                                TestOperationResultType.Messages.ToString());
+                        });
+
                         messageIdCounter++;
                         await Task.Delay(Settings.Current.MessageFrequency);
 
@@ -59,15 +80,17 @@ namespace LoadGen
                     }
                 }
 
-                Logger.LogInformation("Closing connection to Edge Hub.");
-                await moduleClient.CloseAsync();
-
                 completed.Set();
                 handler.ForEach(h => GC.KeepAlive(h));
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error occurred during load gen.");
+            }
+            finally
+            {
+                Logger.LogInformation("Closing connection to Edge Hub.");
+                moduleClient?.CloseAsync();
                 moduleClient?.Dispose();
             }
 
@@ -87,10 +110,11 @@ namespace LoadGen
                 // build message
                 var messageBody = new { data = data.Data };
                 var message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)));
-                message.Properties.Add("sequenceNumber", messageId.ToString());
-                message.Properties.Add("batchId", batchId.ToString());
-                message.Properties.Add("trackingId", trackingId);
+                message.Properties.Add(TestConstants.Message.SequenceNumberPropertyName, messageId.ToString());
+                message.Properties.Add(TestConstants.Message.BatchIdPropertyName, batchId.ToString());
+                message.Properties.Add(TestConstants.Message.TrackingIdPropertyName, trackingId);
 
+                // sending the result via edgeHub
                 await client.SendEventAsync(Settings.Current.OutputName, message);
             }
         }

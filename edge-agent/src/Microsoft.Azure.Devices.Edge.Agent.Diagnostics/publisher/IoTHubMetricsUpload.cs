@@ -79,5 +79,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
         {
             this.retryHandler.Dispose();
         }
+
+        Message BuildMessage(byte[] data)
+        {
+            Message message = new Message(data);
+            message.ContentType = "application/x-azureiot-edgeruntimediagnostics";
+
+            return message;
+        }
     }
 }

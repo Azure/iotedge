@@ -87,7 +87,7 @@ impl Settings {
         self.has_nodes_rbac
     }
 
-    pub fn default_nodes_rbac() -> bool {
+    fn default_nodes_rbac() -> bool {
         true
     }
 }
