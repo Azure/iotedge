@@ -19,31 +19,28 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public async Task<IList<EventData>> GetMessagesForDevice(string deviceId, DateTime startTime, int maxPerPartition = 10, int waitTimeSecs = 5)
         {
             var messages = new List<EventData>();
-            EventHubRuntimeInformation rtInfo = await this.eventHubClient.GetRuntimeInformationAsync();
-            foreach (string partition in rtInfo.PartitionIds)
+
+            PartitionReceiver partitionReceiver = this.eventHubClient.CreateReceiver(
+                PartitionReceiver.DefaultConsumerGroupName,
+                EventHubPartitionKeyResolver.ResolveToPartition(deviceId, (await this.eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
+                EventPosition.FromEnqueuedTime(startTime));
+
+            // Retry a few times to make sure we get all expected messages.
+            for (int i = 0; i < 3; i++)
             {
-                PartitionReceiver partitionReceiver = this.eventHubClient.CreateReceiver(
-                    PartitionReceiver.DefaultConsumerGroupName,
-                    EventHubPartitionKeyResolver.ResolveToPartition(deviceId, (await this.eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
-                    EventPosition.FromEnqueuedTime(startTime));
-
-                // Retry a few times to make sure we get all expected messages.
-                for (int i = 0; i < 3; i++)
+                IEnumerable<EventData> events = await partitionReceiver.ReceiveAsync(maxPerPartition, TimeSpan.FromSeconds(waitTimeSecs));
+                if (events != null)
                 {
-                    IEnumerable<EventData> events = await partitionReceiver.ReceiveAsync(maxPerPartition, TimeSpan.FromSeconds(waitTimeSecs));
-                    if (events != null)
-                    {
-                        messages.AddRange(events);
-                    }
-
-                    if (i < 3)
-                    {
-                        await Task.Delay(TimeSpan.FromSeconds(5));
-                    }
+                    messages.AddRange(events);
                 }
 
-                await partitionReceiver.CloseAsync();
+                if (i < 3)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(5));
+                }
             }
+
+            await partitionReceiver.CloseAsync();
 
             return messages;
         }
