@@ -59,10 +59,13 @@ namespace TestResultCoordinator
 
                 Logger.LogInformation("Successfully generated all reports");
 
+                string reportsContent = JsonConvert.SerializeObject(testResultReports);
+                Logger.LogInformation(reportsContent);
+
                 await AzureLogAnalytics.Instance.PostAsync(
                     Settings.Current.LogAnalyticsWorkspaceId,
                     Settings.Current.LogAnalyticsSharedKey,
-                    JsonConvert.SerializeObject(testResultReports),
+                    reportsContent,
                     Settings.Current.LogAnalyticsLogType);
 
                 Logger.LogInformation("Successfully send reports to LogAnalytics");
