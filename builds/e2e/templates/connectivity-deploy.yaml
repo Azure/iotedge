@@ -52,6 +52,6 @@ steps:
           -networkControllerMode "${{ parameters['networkController.mode'] }}" \
           -logAnalyticsWorkspaceId "${{ parameters['testResultCoordinator.logAnalyticsWorkspaceId'] }}" \
           -logAnalyticsSharedKey "${{ parameters['testResultCoordinator.logAnalyticsSharedKey'] }}" \
-          -logAnalyticsLogType "${{ parameters['networkController.logAnalyticsLogType'] }}" \
+          -logAnalyticsLogType "${{ parameters['testResultCoordinator.logAnalyticsLogType'] }}" \
           -cleanAll
       workingDirectory: "$(Agent.HomeDirectory)/.."
