@@ -41,7 +41,7 @@ namespace DirectMethodSender
                         await client.OpenClientAsync(
                             new OpenServiceClientAsyncArgs(
                                 Settings.Current.ServiceClientConnectionString.Expect(() => new ArgumentException("ServiceClientConnectionString is null")),
-                                (Microsoft.Azure.Devices.TransportType) Settings.Current.TransportType,
+                                (Microsoft.Azure.Devices.TransportType)Settings.Current.TransportType,
                                 Logger));
                         break;
 

@@ -28,7 +28,7 @@ namespace DirectMethodSender
                     configuration.GetValue<TimeSpan>("DirectMethodDelay", TimeSpan.FromSeconds(5)),
                     configuration.GetValue<Uri>("AnalyzerUrl", new Uri("http://analyzer:15000")),
                     configuration.GetValue<string>("RoutingAgency", "EdgeHub"),
-                    Option.Maybe<string>(configuration.GetValue<string>("ServiceClientConnectionString"))); //BEARWASHERE -- Test this if it returns Null when ServiceClientConnectionString is not defined
+                    Option.Maybe<string>(configuration.GetValue<string>("ServiceClientConnectionString")));
             });
 
         Settings(
@@ -48,11 +48,11 @@ namespace DirectMethodSender
             this.AnalyzerUrl = Preconditions.CheckNotNull(analyzerUrl);
             this.ServiceClientConnectionString = serviceClientConnectionString;
 
-            Object parsedRoutingAgency;
+            object parsedRoutingAgency;
             Preconditions.CheckNonWhiteSpace(routingAgency, nameof(routingAgency));
-            if( Enum.TryParse(typeof(RoutingAgency), routingAgency, true, out parsedRoutingAgency) )
+            if (Enum.TryParse(typeof(RoutingAgency), routingAgency, true, out parsedRoutingAgency))
             {
-                this.RoutingAgency = (RoutingAgency) parsedRoutingAgency;
+                this.RoutingAgency = (RoutingAgency)parsedRoutingAgency;
             }
             else
             {

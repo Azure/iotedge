@@ -31,7 +31,7 @@ namespace DirectMethodSender
     {
         ServiceClient serviceClient = null;
         OpenServiceClientAsyncArgs initInfo = null;
-        int DirectMethodCount = 1;
+        int directMethodCount = 1;
 
         public async Task CloseClientAsync()
         {
@@ -41,50 +41,54 @@ namespace DirectMethodSender
 
         public async Task<HttpStatusCode> InvokeDirectMethodAsync(CancellationTokenSource cts)
         {
-            ILogger Logger = this.initInfo.Logger;
-            Logger.LogInformation("Invoke DirectMethod from cloud: started.");
+            ILogger logger = this.initInfo.Logger;
+            logger.LogInformation("Invoke DirectMethod from cloud: started.");
 
             string deviceId = Settings.Current.DeviceId;
             string targetModuleId = Settings.Current.TargetModuleId;
 
-            Logger.LogInformation($"Calling Direct Method from cloud on device {deviceId} targeting module [{targetModuleId}] with count {this.DirectMethodCount}.");
+            logger.LogInformation($"Calling Direct Method from cloud on device {deviceId} targeting module [{targetModuleId}] with count {this.directMethodCount}.");
 
             try
             {
                 CloudToDeviceMethod cloudToDeviceMethod = new CloudToDeviceMethod("HelloWorldMethod").SetPayloadJson("{ \"Message\": \"Hello\" }");
                 CloudToDeviceMethodResult result = await this.serviceClient.InvokeDeviceMethodAsync(deviceId, targetModuleId, cloudToDeviceMethod, CancellationToken.None);
 
-                string statusMessage = $"Calling Direct Method from cloud with count {this.DirectMethodCount} returned with status code {result.Status}";
+                string statusMessage = $"Calling Direct Method from cloud with count {this.directMethodCount} returned with status code {result.Status}";
                 if (result.Status == (int)HttpStatusCode.OK)
                 {
-                    Logger.LogDebug(statusMessage);
+                    logger.LogDebug(statusMessage);
                 }
                 else
                 {
-                    Logger.LogError(statusMessage);
+                    logger.LogError(statusMessage);
                 }
 
-                this.DirectMethodCount++;
-                Logger.LogInformation("Invoke DirectMethod from cloud: finished.");
-                return (HttpStatusCode) result.Status;
+                this.directMethodCount++;
+                logger.LogInformation("Invoke DirectMethod from cloud: finished.");
+                return (HttpStatusCode)result.Status;
             }
             catch (Exception e)
             {
-                Logger.LogError($"Exception caught with count {this.DirectMethodCount}: {e}");
+                logger.LogError($"Exception caught with count {this.directMethodCount}: {e}");
                 return HttpStatusCode.InternalServerError;
             }
         }
 
         public async Task OpenClientAsync(IOpenClientAsyncArgs args)
         {
-            if (args == null) throw new ArgumentException();
+            if (args == null)
+            {
+                throw new ArgumentException();
+            }
+
             var info = args as OpenServiceClientAsyncArgs;
 
             this.serviceClient = ServiceClient.CreateFromConnectionString(
                 info.ConnectionString,
                 info.TransportType);
 
-            await serviceClient.OpenAsync();
+            await this.serviceClient.OpenAsync();
             this.initInfo = info;
         }
     }
