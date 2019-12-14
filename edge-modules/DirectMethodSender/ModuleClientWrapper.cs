@@ -44,48 +44,40 @@ namespace DirectMethodSender
             await this.moduleClient.CloseAsync();
         }
 
-        public async Task InvokeDirectMethodAsync(CancellationTokenSource cts)
+        public async Task<HttpStatusCode> InvokeDirectMethodAsync(CancellationTokenSource cts)
         {
             ILogger Logger = this.initInfo.Logger;
             Logger.LogInformation("Invoke DirectMethod from module: started.");
 
             string deviceId = Settings.Current.DeviceId;
             string targetModuleId = Settings.Current.TargetModuleId;
-            TimeSpan delay = Settings.Current.DirectMethodDelay;
-            var request = new MethodRequest("HelloWorldMethod", Encoding.UTF8.GetBytes("{ \"Message\": \"Hello\" }"));
+            
+            Logger.LogInformation($"Calling Direct Method from module {deviceId} targeting module {targetModuleId}.");
 
-            while (!cts.Token.IsCancellationRequested)
+            try
             {
-                Logger.LogInformation($"Calling Direct Method on device {deviceId} targeting module {targetModuleId}.");
+                MethodRequest request = new MethodRequest("HelloWorldMethod", Encoding.UTF8.GetBytes("{ \"Message\": \"Hello\" }"));
+                MethodResponse response = await moduleClient.InvokeMethodAsync(deviceId, targetModuleId, request);
 
-                try
+                string statusMessage = $"Calling Direct Method from module with count {this.DirectMethodCount} returned with status code {response.Status}";
+                if (response.Status == (int)HttpStatusCode.OK)
                 {
-                    MethodResponse response = await moduleClient.InvokeMethodAsync(deviceId, targetModuleId, request);
-
-                    string statusMessage = $"Calling Direct Method from module with count {this.DirectMethodCount} returned with status code {response.Status}";
-                    if (response.Status == (int)HttpStatusCode.OK)
-                    {
-                        Logger.LogDebug(statusMessage);
-                    }
-                    else
-                    {
-                        Logger.LogError(statusMessage);
-                    }
-
-                    // TODO: this needs to be on the caller
-                    //await ReportStatus(targetModuleId, response, analyzerClient);
-
-                    this.DirectMethodCount++;
+                    Logger.LogDebug(statusMessage);
                 }
-                catch (Exception e)
+                else
                 {
-                    Logger.LogError($"Exception caught with count {this.DirectMethodCount}: {e}");
+                    Logger.LogError(statusMessage);
                 }
 
-                await Task.Delay(delay, cts.Token);
+                this.DirectMethodCount++;
+                Logger.LogInformation("Invoke DirectMethod from module: finished.");
+                return (HttpStatusCode) response.Status;
             }
-
-            Logger.LogInformation("Invoke DirectMethod from module: finished.");
+            catch (Exception e)
+            {
+                Logger.LogError($"Exception caught with count {this.DirectMethodCount}: {e}");
+                return HttpStatusCode.InternalServerError;
+            }
         }
 
         public async Task OpenClientAsync(IOpenClientAsyncArgs args)

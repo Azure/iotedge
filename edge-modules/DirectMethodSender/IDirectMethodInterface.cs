@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace DirectMethodSender
 {
-    using System;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -10,7 +10,7 @@ namespace DirectMethodSender
         Task CloseClientAsync();
 
         // Invoke direct method using a client
-        Task InvokeDirectMethodAsync(CancellationTokenSource cts);
+        Task<HttpStatusCode> InvokeDirectMethodAsync(CancellationTokenSource cts);
 
         // Create a client and open an instance
         Task OpenClientAsync(IOpenClientAsyncArgs args);
