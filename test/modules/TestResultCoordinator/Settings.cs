@@ -36,7 +36,8 @@ namespace TestResultCoordinator
                     configuration.GetValue<string>("logAnalyticsLogType"),
                     configuration.GetValue("storagePath", DefaultStoragePath),
                     configuration.GetValue<bool>("optimizeForPerformance", true),
-                    configuration.GetValue("testDuration", TimeSpan.FromHours(1)));
+                    configuration.GetValue("testDuration", TimeSpan.FromHours(1)),
+                    configuration.GetValue("verificationDelay", TimeSpan.FromMinutes(15)));
             });
 
         Settings(
@@ -49,7 +50,8 @@ namespace TestResultCoordinator
             string logAnalyticsLogType,
             string storagePath,
             bool optimizeForPerformance,
-            TimeSpan testDuration)
+            TimeSpan testDuration,
+            TimeSpan verificationDelay)
         {
             Preconditions.CheckRange(testDuration.Ticks, 1);
 
@@ -64,7 +66,7 @@ namespace TestResultCoordinator
             this.OptimizeForPerformance = Preconditions.CheckNotNull(optimizeForPerformance);
             this.TestDuration = testDuration;
             this.ResultSources = this.GetResultSources();
-            this.DurationBeforeVerification = TimeSpan.FromMinutes(15);
+            this.DurationBeforeVerification = verificationDelay;
             this.ConsumerGroupName = "$Default";
             this.ReportMetadataList = this.InitializeReportMetadataList();
         }

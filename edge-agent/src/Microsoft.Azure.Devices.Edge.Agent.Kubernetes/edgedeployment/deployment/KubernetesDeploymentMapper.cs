@@ -105,7 +105,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Deploymen
             var podSpec = this.GetPod(name, identity, module, labels);
 
             var selector = new V1LabelSelector(matchLabels: labels);
-            var deploymentSpec = new V1DeploymentSpec(replicas: 1, selector: selector, template: podSpec);
+            // Desired status in Deployment should only be Running or Stopped. Assume Running if not Stopped
+            int replicas = (module.DesiredStatus != ModuleStatus.Stopped) ? 1 : 0;
+            var deploymentSpec = new V1DeploymentSpec(replicas: replicas, selector: selector, template: podSpec);
 
             var deploymentMeta = new V1ObjectMeta(
                 name: name,
