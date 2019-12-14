@@ -156,6 +156,9 @@
               "testDuration": {
                 "value": "<TestDuration>"
               },
+              "verificationDelay": {
+                "value": "<TestResultCoordinator.VerificationDelay>"
+              },
               "eventHubConnectionString": {
                 "value": "<TestResultCoordinator.EventHubConnectionString>"
               },
@@ -192,13 +195,13 @@
               "testResultCoordinatorUrl": {
                 "value": "http://testResultCoordinator:5001"
               },
-              "RunFrequencies:0:OfflineFrequency": {
+              "RunFrequencies__0__OfflineFrequency": {
                 "value": "<NetworkController.OfflineFrequency0>"
               },
-              "RunFrequencies:0:OnlineFrequency": {
+              "RunFrequencies__0__OnlineFrequency": {
                 "value": "<NetworkController.OnlineFrequency0>"
               },
-              "RunFrequencies:0:RunsCount": {
+              "RunFrequencies__0__RunsCount": {
                 "value": "<NetworkController.RunsCount0>"
               },
               "NetworkControllerMode": {

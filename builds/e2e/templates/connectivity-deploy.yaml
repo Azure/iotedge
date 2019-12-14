@@ -13,6 +13,7 @@ parameters:
   testResultCoordinator.logAnalyticsWorkspaceId: ''
   testResultCoordinator.logAnalyticsSharedKey: ''
   testResultCoordinator.logAnalyticsLogType: ''
+  testResultCoordinator.verificationDelay: ''
 
 steps:
   - task: CopyFiles@2
@@ -52,6 +53,7 @@ steps:
           -networkControllerMode "${{ parameters['networkController.mode'] }}" \
           -logAnalyticsWorkspaceId "${{ parameters['testResultCoordinator.logAnalyticsWorkspaceId'] }}" \
           -logAnalyticsSharedKey "${{ parameters['testResultCoordinator.logAnalyticsSharedKey'] }}" \
-          -logAnalyticsLogType "${{ parameters['networkController.logAnalyticsLogType'] }}" \
+          -logAnalyticsLogType "${{ parameters['testResultCoordinator.logAnalyticsLogType'] }}" \
+          -verificationDelay "${{ parameters['testResultCoordinator.verificationDelay'] }}" \
           -cleanAll
       workingDirectory: "$(Agent.HomeDirectory)/.."

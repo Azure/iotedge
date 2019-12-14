@@ -73,6 +73,7 @@ jobs:
           testResultCoordinator.logAnalyticsWorkspaceId: '$(kvLogAnalyticWorkspaceId)'
           testResultCoordinator.logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
           testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
+          testResultCoordinator.verificationDelay: '$(testResultCoordinator.verificationDelay)'
 
 ################################################################################
   - job: linux_arm32v7_moby
@@ -142,3 +143,4 @@ jobs:
           testResultCoordinator.logAnalyticsWorkspaceId: '$(kvLogAnalyticWorkspaceId)'
           testResultCoordinator.logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
           testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
+          testResultCoordinator.verificationDelay: '$(testResultCoordinator.verificationDelay)'
