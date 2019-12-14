@@ -27,7 +27,7 @@ jobs:
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString'
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -66,6 +66,13 @@ jobs:
           iotHub.connectionString: '$(EdgeConnectivityTestHubConnString)'
           eventHub.connectionString: '$(EdgeConnectivityEventHubConnString)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
+          testDuration: '$(testDuration)'
+          testStartDelay: '$(testStartDelay)'
+          networkController.frequencies: '$(networkController.frequencies)'
+          networkController.mode: '$(networkController.mode)'
+          testResultCoordinator.logAnalyticsWorkspaceId: '$(kvLogAnalyticWorkspaceId)'
+          testResultCoordinator.logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
+          testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
 
 ################################################################################
   - job: linux_arm32v7_moby
@@ -89,7 +96,7 @@ jobs:
         inputs:
           azureSubscription: $(azure.subscription)
           KeyVaultName: $(azure.keyVault)
-          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString'
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey'
       - task: DownloadBuildArtifacts@0
         displayName: 'Download Edgelet Artifacts'
         inputs:
@@ -128,3 +135,10 @@ jobs:
           iotHub.connectionString: '$(EdgeConnectivityTestHubConnString)'
           eventHub.connectionString: '$(EdgeConnectivityEventHubConnString)'
           loadGen.message.frequency: '$(loadGen.message.frequency.arm32)'
+          testDuration: '$(testDuration)'
+          testStartDelay: '$(testStartDelay)'
+          networkController.frequencies: '$(networkController.frequencies)'
+          networkController.mode: '$(networkController.mode)'
+          testResultCoordinator.logAnalyticsWorkspaceId: '$(kvLogAnalyticWorkspaceId)'
+          testResultCoordinator.logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
+          testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
