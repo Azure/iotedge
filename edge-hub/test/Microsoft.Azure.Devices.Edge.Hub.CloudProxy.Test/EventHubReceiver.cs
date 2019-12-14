@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             this.eventHubConnectionString = eventHubConnectionString;
         }
 
-        public async Task<IList<EventData>> GetMessagesForDevice(string deviceId, DateTime startTime, int maxPerPartition = 100, int waitTimeSecs = 5)
+        public async Task<List<EventData>> GetMessagesForDevice(string deviceId, DateTime startTime, int maxPerPartition = 100, int waitTimeSecs = 5)
         {
             var messages = new List<EventData>();
 

@@ -260,7 +260,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                         receivedMessagesByDevice.Add(deviceId, new List<EventData>());
                     }
 
-                    receivedMessagesByDevice[deviceId].AddRange(await eventHubReceiver.GetMessagesForDevice(deviceId, startTime));
+                    receivedMessagesByDevice[deviceId] = await eventHubReceiver.GetMessagesForDevice(deviceId, startTime);
                 }
 
                 messagesFound = MessageHelper.ValidateSentMessagesWereReceived(sentMessagesByDevice, receivedMessagesByDevice);
@@ -270,7 +270,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                     break;
                 }
 
-                await Task.Delay(TimeSpan.FromSeconds(20));
+                await Task.Delay(TimeSpan.FromSeconds(10));
             }
 
             foreach (string device in receivedMessagesByDevice.Keys)
