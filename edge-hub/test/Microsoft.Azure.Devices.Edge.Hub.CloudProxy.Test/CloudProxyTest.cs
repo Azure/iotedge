@@ -155,12 +155,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             var update = new TaskCompletionSource<IMessage>();
             var edgeHub = new Mock<IEdgeHub>();
-            string deviceConnectionStringKey = Device2ConnStrKey;
             edgeHub.Setup(x => x.UpdateDesiredPropertiesAsync(It.IsAny<string>(), It.IsAny<IMessage>()))
                 .Callback((string _, IMessage m) => update.TrySetResult(m))
                 .Returns(TaskEx.Done);
 
-            ICloudProxy cloudProxy = await this.GetCloudProxyFromConnectionStringKey(deviceConnectionStringKey, edgeHub.Object);
+            ICloudProxy cloudProxy = await this.GetCloudProxyFromConnectionStringKey(Device2ConnStrKey, edgeHub.Object);
 
             await cloudProxy.SetupDesiredPropertyUpdatesAsync();
 
@@ -169,7 +168,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 ["desiredPropertyTest"] = Guid.NewGuid().ToString()
             };
 
-            await UpdateDesiredProperty(ConnectionStringHelper.GetDeviceId(await SecretsHelper.GetSecretFromConfigKey(deviceConnectionStringKey)), desired);
+            await UpdateDesiredProperty(ConnectionStringHelper.GetDeviceId(await SecretsHelper.GetSecretFromConfigKey(Device2ConnStrKey)), desired);
             await update.Task;
             await cloudProxy.RemoveDesiredPropertyUpdatesAsync();
 
@@ -188,8 +187,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         public async Task CloudProxyNullReceiverTest()
         {
             // Arrange
-            string deviceConnectionStringKey = Device2ConnStrKey;
-            ICloudProxy cloudProxy = await this.GetCloudProxyFromConnectionStringKey(deviceConnectionStringKey);
+            ICloudProxy cloudProxy = await this.GetCloudProxyFromConnectionStringKey(Device2ConnStrKey);
 
             // Act/assert
             // Without setting up the CloudListener, the following methods should not throw.
@@ -271,6 +269,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 {
                     break;
                 }
+
+                await Task.Delay(TimeSpan.FromSeconds(20));
             }
 
             foreach (string device in receivedMessagesByDevice.Keys)
