@@ -51,10 +51,15 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         /// Checks if the events have items corresponding to all messages, and
         /// returns false if it doesn't.
         /// </summary>
-        public static bool CompareMessagesAndEventData(IDictionary<string, IList<IMessage>> sentMessagesByDevice, IDictionary<string, List<EventData>> receivedMessagesByDevice)
+        public static bool ValidateSentMessagesWereReceived(IDictionary<string, IList<IMessage>> sentMessagesByDevice, IDictionary<string, List<EventData>> receivedMessagesByDevice)
         {
             foreach (string deviceId in sentMessagesByDevice.Keys)
             {
+                if (!receivedMessagesByDevice.ContainsKey(deviceId))
+                {
+                    return false;
+                }
+
                 foreach (IMessage message in sentMessagesByDevice[deviceId])
                 {
                     EventData eventData = receivedMessagesByDevice[deviceId].FirstOrDefault(
