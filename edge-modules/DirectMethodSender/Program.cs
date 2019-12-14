@@ -32,13 +32,15 @@ namespace DirectMethodSender
                     ModuleUtil.DefaultTransientRetryStrategy,
                     Logger);
 
-                string analyzerUrl = Settings.Current.AnalyzerUrl;
-                if (!string.IsNullOrWhiteSpace(analyzerUrl))
+                Option<Uri> analyzerUrl = Settings.Current.AnalyzerUrl;
+                if (analyzerUrl.HasValue)
                 {
-                    Uri analyzerUri = new Uri(analyzerUrl);
-                    AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = analyzerUri.AbsoluteUri };
-                    Action<MethodResponse> reportResult = async (response) => await ReportStatus(Settings.Current.TargetModuleId, response, analyzerClient);
-                    await StartDirectMethdTests(moduleClient, reportResult, Settings.Current.DirectMethodDelay, cts);
+                    analyzerUrl.ForEach(async (uri) =>
+                    {
+                        AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = uri.AbsoluteUri };
+                        Action<MethodResponse> reportResult = async (response) => await ReportStatus(Settings.Current.TargetModuleId, response, analyzerClient);
+                        await StartDirectMethdTests(moduleClient, reportResult, Settings.Current.DirectMethodDelay, cts);
+                    });
                 }
                 else
                 {

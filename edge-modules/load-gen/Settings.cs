@@ -96,9 +96,13 @@ namespace LoadGen
                 { nameof(this.TestStartDelay), this.TestStartDelay.ToString() },
                 { nameof(this.TestDuration), this.TestDuration.ToString() },
                 { nameof(this.TrackingId), this.TrackingId },
-                { nameof(this.TransportType), Enum.GetName(typeof(TransportType), this.TransportType) },
-                { nameof(this.TestResultCoordinatorUrl), this.TestResultCoordinatorUrl.ToString() },
+                { nameof(this.TransportType), Enum.GetName(typeof(TransportType), this.TransportType) }
             };
+
+            this.TestResultCoordinatorUrl.ForEach((url) =>
+            {
+                fields.Add(nameof(this.TestResultCoordinatorUrl), url);
+            });
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
         }
