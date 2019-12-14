@@ -58,14 +58,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             {
                 Log.LogInformation($"Uploading Metrics");
                 IEnumerable<Metric> metricsToUpload = await this.storage.GetAllMetricsAsync();
-                metricsToUpload = this.RemoveDuplicateMetrics(metricsToUpload);
+                metricsToUpload = RemoveDuplicateMetrics(metricsToUpload);
                 await this.uploader.PublishAsync(metricsToUpload, cancellationToken);
                 Log.LogInformation($"Uploaded Metrics");
                 await this.storage.RemoveAllReturnedMetricsAsync();
             }
         }
 
-        internal IEnumerable<Metric> RemoveDuplicateMetrics(IEnumerable<Metric> metrics)
+        internal static IEnumerable<Metric> RemoveDuplicateMetrics(IEnumerable<Metric> metrics)
         {
             Dictionary<int, Metric> previousValues = new Dictionary<int, Metric>();
 

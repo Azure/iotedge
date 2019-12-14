@@ -194,6 +194,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
         [Fact]
         public void TestRemoveDuplicateMetrics()
         {
+            Metric[] scrape1 = Enumerable.Range(1, 100).Select(i => new Metric(new DateTime(this.rand.Next(1000, 10000), DateTimeKind.Utc), $"Test Metric {i}", i, $"{i}")).ToArray();
+
+            // all odd values are changed, so they should be removed.
+            Metric[] scrape2 = scrape1.Select(m => new Metric(new DateTime(this.rand.Next(1000, 10000), DateTimeKind.Utc), m.Name, m.Value + m.Value % 2, m.Tags)).ToArray();
+
+            Metric[] result = MetricsWorker.RemoveDuplicateMetrics(scrape1.Concat(scrape2)).ToArray();
+            Assert.Equal(150, result.Length);
+
+            string[] expected = scrape1.Select(m => m.Name).Concat(scrape2.Where(m => int.Parse(m.Tags) % 2 == 1).Select(m => m.Name)).OrderBy(n => n).ToArray();
+            string[] actual = result.Select(m => m.Name).OrderBy(n => n).ToArray();
+            Assert.Equal(expected, actual);
         }
 
         [Fact]
