@@ -80,6 +80,7 @@ namespace LoadGen
                     }
                 }
 
+                await cts.Token.WhenCanceled();
                 completed.Set();
                 handler.ForEach(h => GC.KeepAlive(h));
             }

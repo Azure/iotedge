@@ -27,53 +27,17 @@ namespace TestResultCoordinator
 
             await SetupEventReceiveHandlerAsync(Settings.Current, DateTime.UtcNow);
 
-            // Continue after delay to report test results
-            Task.Delay(Settings.Current.TestDuration + Settings.Current.DurationBeforeVerification, cts.Token)
-                .ContinueWith(async _ => await ReportTestResultsAsync(), cts.Token);
-
             await TestOperationResultStorage.InitAsync(Settings.Current.StoragePath, new SystemEnvironment(), Settings.Current.OptimizeForPerformance, Settings.Current.ResultSources);
             Logger.LogInformation("TestOperationResultStorage created successfully");
-            Logger.LogInformation("Creating WebHostBuilder...");
-            await CreateWebHostBuilder(args).Build().RunAsync(cts.Token);
 
-            await cts.Token.WhenCanceled();
+            Logger.LogInformation("Creating WebHostBuilder...");
+            Task webHost = CreateWebHostBuilder(args).Build().RunAsync(cts.Token);
+
+            await Task.WhenAny(cts.Token.WhenCanceled(), webHost);
+
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
-            Console.WriteLine("TestResultCoordinator Main() exited.");
-        }
-
-        static async Task ReportTestResultsAsync()
-        {
-            Logger.LogInformation($"Starting report generation for {Settings.Current.ReportMetadataList.Count} reports");
-            try
-            {
-                TestReportGeneratorFactory testReportGeneratorFactory = new TestReportGeneratorFactory();
-                List<Task<ITestResultReport>> testResultReportList = new List<Task<ITestResultReport>>();
-                foreach (IReportMetadata reportMetadata in Settings.Current.ReportMetadataList)
-                {
-                    ITestResultReportGenerator testResultReportGenerator = testReportGeneratorFactory.Create(Settings.Current.TrackingId, reportMetadata);
-                    testResultReportList.Add(testResultReportGenerator.CreateReportAsync());
-                }
-
-                ITestResultReport[] testResultReports = await Task.WhenAll(testResultReportList);
-
-                Logger.LogInformation("Successfully generated all reports");
-
-                string reportsContent = JsonConvert.SerializeObject(testResultReports);
-                Logger.LogInformation(reportsContent);
-
-                await AzureLogAnalytics.Instance.PostAsync(
-                    Settings.Current.LogAnalyticsWorkspaceId,
-                    Settings.Current.LogAnalyticsSharedKey,
-                    reportsContent,
-                    Settings.Current.LogAnalyticsLogType);
-
-                Logger.LogInformation("Successfully send reports to LogAnalytics");
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError("TestResultCoordinator failed during report generation", ex);
-            }
+            Logger.LogInformation("TestResultCoordinator Main() exited.");
         }
 
         static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
