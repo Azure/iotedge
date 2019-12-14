@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace TestResultCoordinator
+namespace TestResultCoordinator.Service
 {
     using System;
     using System.Collections.Generic;
@@ -10,6 +10,7 @@ namespace TestResultCoordinator
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
+    using TestResultCoordinator.Report;
 
     // Reference from https://docs.microsoft.com/en-us/aspnet/core/fundamentals/host/hosted-services?view=aspnetcore-3.1&tabs=visual-studio
     class TestResultReportingService : IHostedService, IDisposable

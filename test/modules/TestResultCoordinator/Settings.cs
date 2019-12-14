@@ -10,6 +10,7 @@ namespace TestResultCoordinator
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Serialization;
+    using TestResultCoordinator.Report;
 
     [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
     class Settings
