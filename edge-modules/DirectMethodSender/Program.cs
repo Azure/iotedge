@@ -44,7 +44,7 @@ namespace DirectMethodSender
                 }
                 else
                 {
-                    Action<MethodResponse> reportResult = async (response) => await moduleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method Call succeeded.")));
+                    Action<MethodResponse> reportResult = async (response) => await moduleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method call succeeded.")));
                     await StartDirectMethdTests(moduleClient, reportResult, Settings.Current.DirectMethodDelay, cts);
                 }
 
@@ -53,7 +53,6 @@ namespace DirectMethodSender
 
                 completed.Set();
                 handler.ForEach(h => GC.KeepAlive(h));
-                Logger.LogInformation("DirectMethodSender Main() finished.");
             }
             catch (Exception e)
             {
@@ -64,6 +63,7 @@ namespace DirectMethodSender
                 moduleClient?.Dispose();
             }
 
+            Logger.LogInformation("DirectMethodSender Main() finished.");
             return 0;
         }
 
