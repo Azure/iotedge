@@ -245,27 +245,23 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
         static async Task CheckMessageInEventHub(Dictionary<string, IList<IMessage>> sentMessagesByDevice, DateTime startTime)
         {
+            // Wait a fixed time for the messages to reach event hub, rather than deal with retry logic.
+            await Task.Delay(TimeSpan.FromSeconds(30));
+
             string eventHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey");
             var eventHubReceiver = new EventHubReceiver(eventHubConnectionString);
-            var receivedMessagesByDevice = new Dictionary<string, List<EventData>>();
-
-            await Task.Delay(TimeSpan.FromSeconds(30));
+            var receivedMessagesByPartition = new Dictionary<string, List<EventData>>();
             foreach (string deviceId in sentMessagesByDevice.Keys)
             {
-                if (!receivedMessagesByDevice.ContainsKey(deviceId))
-                {
-                    receivedMessagesByDevice.Add(deviceId, new List<EventData>());
-                }
-
-                receivedMessagesByDevice[deviceId] = await eventHubReceiver.GetMessagesForDevice(deviceId, startTime);
+                receivedMessagesByPartition[deviceId] = await eventHubReceiver.GetMessagesForDevice(deviceId, startTime);
             }
 
-            Assert.True(MessageHelper.ValidateSentMessagesWereReceived(sentMessagesByDevice, receivedMessagesByDevice));
+            Assert.True(MessageHelper.ValidateSentMessagesWereReceived(sentMessagesByDevice, receivedMessagesByPartition));
 
-            foreach (string device in receivedMessagesByDevice.Keys)
+            foreach (string device in receivedMessagesByPartition.Keys)
             {
-                Assert.NotNull(receivedMessagesByDevice[device]);
-                Assert.NotEmpty(receivedMessagesByDevice[device]);
+                Assert.NotNull(receivedMessagesByPartition[device]);
+                Assert.NotEmpty(receivedMessagesByPartition[device]);
             }
         }
 

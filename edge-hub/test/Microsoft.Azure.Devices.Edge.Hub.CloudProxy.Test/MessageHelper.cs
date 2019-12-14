@@ -48,21 +48,20 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         }
 
         /// <summary>
-        /// Checks if the events have items corresponding to all messages, and
-        /// returns false if it doesn't.
+        /// Checks if sent messages are a subset of messages received for each device.
         /// </summary>
-        public static bool ValidateSentMessagesWereReceived(IDictionary<string, IList<IMessage>> sentMessagesByDevice, IDictionary<string, List<EventData>> receivedMessagesByDevice)
+        public static bool ValidateSentMessagesWereReceived(IDictionary<string, IList<IMessage>> sentMessagesByDevice, IDictionary<string, List<EventData>> receivedMessagesByPartition)
         {
             foreach (string deviceId in sentMessagesByDevice.Keys)
             {
-                if (!receivedMessagesByDevice.ContainsKey(deviceId))
+                if (!receivedMessagesByPartition.ContainsKey(deviceId))
                 {
                     return false;
                 }
 
                 foreach (IMessage message in sentMessagesByDevice[deviceId])
                 {
-                    EventData eventData = receivedMessagesByDevice[deviceId].FirstOrDefault(
+                    EventData eventData = receivedMessagesByPartition[deviceId].FirstOrDefault(
                         m =>
                             m.Properties.ContainsKey("id") &&
                             m.Properties["id"] as string == message.Properties["id"]);
