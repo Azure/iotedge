@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             this.eventHubConnectionString = eventHubConnectionString;
         }
 
-        public async Task<List<EventData>> GetMessagesForDevice(string deviceId, DateTime startTime, int maxPerPartition = 100, int waitTimeSecs = 5)
+        public async Task<List<EventData>> GetMessagesForDevice(string deviceId, DateTime startTime, int messagesToRead = 100, int waitTimeSecs = 5)
         {
             var messages = new List<EventData>();
 
@@ -27,7 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 EventHubPartitionKeyResolver.ResolveToPartition(deviceId, (await eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
                 EventPosition.FromEnqueuedTime(startTime));
 
-            IEnumerable<EventData> events = await partitionReceiver.ReceiveAsync(maxPerPartition, TimeSpan.FromSeconds(waitTimeSecs));
+            IEnumerable<EventData> events = await partitionReceiver.ReceiveAsync(messagesToRead, TimeSpan.FromSeconds(waitTimeSecs));
             if (events != null)
             {
                 messages.AddRange(events);
