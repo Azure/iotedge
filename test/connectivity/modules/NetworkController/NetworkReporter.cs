@@ -11,10 +11,10 @@ namespace NetworkController
 
     class NetworkReporter : INetworkStatusReporter
     {
+        static readonly ILogger Log = Logger.Factory.CreateLogger<NetworkReporter>();
         readonly TestResultCoordinatorClient trcClient;
         readonly string moduleId;
         readonly string trackingId;
-        static readonly ILogger Log = Logger.Factory.CreateLogger<NetworkReporter>();
 
         public NetworkReporter(Uri testResultCoordinatorEndpoint, string moduleId, string trackingId)
         {

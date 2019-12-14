@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace NetworkController
 {
-    using System;
-    using System.Net.NetworkInformation;
     using System.Runtime.InteropServices;
     using System.Threading;
     using System.Threading.Tasks;
@@ -13,7 +11,7 @@ namespace NetworkController
     {
         static readonly ILogger Log = Logger.Factory.CreateLogger<NetworkInterfaceOfflineController>();
 
-        readonly INetworkInterfaceCommands networkCommands;
+        readonly IController underlyingConroller;
         readonly string networkInterfaceName;
 
         public NetworkInterfaceOfflineController(string dockerInterfaceName)
@@ -23,11 +21,11 @@ namespace NetworkController
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                this.networkCommands = new WindowsNetworkInterfaceCommands();
+                this.underlyingConroller = new WindowsNetworkInterfaceOfflineController();
             }
             else
             {
-                this.networkCommands = new LinuxNetworkInterfaceCommands(this.networkInterfaceName);
+                this.underlyingConroller = new LinuxNetworkInterfaceOfflineController(this.networkInterfaceName);
             }
         }
 
@@ -35,61 +33,16 @@ namespace NetworkController
 
         public Task<NetworkStatus> GetStatus(CancellationToken cs)
         {
-            OperationalStatus status = this.GetNetworkInterfaceStatus();
-            switch (status)
-            {
-                case OperationalStatus.Up:
-                    return Task.FromResult(NetworkStatus.Default);
-                case OperationalStatus.Unknown:
-                    return Task.FromResult(NetworkStatus.Unknown);
-                default:
-                    return Task.FromResult(NetworkStatus.Restricted);
-            }
+            return this.underlyingConroller.GetStatus(cs);
         }
 
-        public async Task<bool> AddNetworkControllingRule(CancellationToken cs)
+        public async Task<bool> SetStatus(NetworkStatus status, CancellationToken cs)
         {
-            bool result = await this.networkCommands.Disable(cs);
-            NetworkStatus status = await this.GetStatus(cs);
-            Log.LogInformation($"Command AddNetworkControllingRule success {result}, network status {status}");
+            bool result = await this.underlyingConroller.SetStatus(status, cs);
+            NetworkStatus reportedStatus = await this.GetStatus(cs);
+            Log.LogInformation($"Command SetStatus {status} success {result}, network status {reportedStatus}");
 
-            return result && status == NetworkStatus.Restricted;
-        }
-
-        public async Task<bool> RemoveNetworkControllingRule(CancellationToken cs)
-        {
-            bool result = await this.networkCommands.Enable(cs);
-            NetworkStatus status = await this.GetStatus(cs);
-            Log.LogInformation($"Command RemoveNetworkControllingRule execution success {result}, network status {status}");
-
-            return result && status == NetworkStatus.Default;
-        }
-
-        public Task<bool> SetStatus(NetworkStatus status, CancellationToken cs)
-        {
-            switch (status)
-            {
-                case NetworkStatus.Restricted:
-                    return this.AddNetworkControllingRule(cs);
-                case NetworkStatus.Default:
-                    return this.RemoveNetworkControllingRule(cs);
-                default:
-                    Log.LogDebug($"Status not set {status}");
-                    throw new NotSupportedException($"Status '{status}' is not supported.");
-            }
-        }
-
-        OperationalStatus GetNetworkInterfaceStatus()
-        {
-            foreach (NetworkInterface item in NetworkInterface.GetAllNetworkInterfaces())
-            {
-                if (item.Name.Equals(this.networkInterfaceName))
-                {
-                    return item.OperationalStatus;
-                }
-            }
-
-            return OperationalStatus.Unknown;
+            return result && reportedStatus == status;
         }
     }
 }

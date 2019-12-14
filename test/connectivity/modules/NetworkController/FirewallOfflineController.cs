@@ -11,7 +11,7 @@ namespace NetworkController
     class FirewallOfflineController : IController
     {
         static readonly ILogger Log = Logger.Factory.CreateLogger<FirewallOfflineController>();
-        readonly IFirewallCommands networkCommands;
+        readonly IController underlyingController;
 
         public FirewallOfflineController(string networkInterfaceName)
         {
@@ -19,45 +19,35 @@ namespace NetworkController
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                this.networkCommands = new WindowsFirewallCommands(networkInterfaceName);
+                this.underlyingController = new WindowsFirewallOfflineController(networkInterfaceName);
             }
             else
             {
-                this.networkCommands = new LinuxFirewallCommands(networkInterfaceName);
+                this.underlyingController = new LinuxFirewallOfflineController(networkInterfaceName);
             }
         }
 
         public string Description => "FirewallOffline";
 
-        public async Task<NetworkStatus> GetStatus(CancellationToken cs) => await this.networkCommands.GetStatus(cs);
+        public async Task<NetworkStatus> GetStatus(CancellationToken cs) => await this.underlyingController.GetStatus(cs);
 
-        public Task<bool> SetStatus(NetworkStatus status, CancellationToken cs)
+        Task<bool> IController.SetStatus(NetworkStatus status, CancellationToken cs)
         {
-            switch (status)
-            {
-                case NetworkStatus.Restricted:
-                    return this.AddNetworkControllingRule(cs);
-                case NetworkStatus.Default:
-                    return this.RemoveNetworkControllingRule(cs);
-                default:
-                    Log.LogDebug($"Status not set {status}");
-                    throw new NotSupportedException($"Status is not supported {status}");
-            }
+            throw new NotImplementedException();
         }
 
-        async Task<bool> AddNetworkControllingRule(CancellationToken cs)
+        async Task<bool> SetStatus(NetworkStatus status, CancellationToken cs)
         {
-            bool result = await this.networkCommands.AddDropRule(cs);
+            bool result = await this.underlyingController.SetStatus(status, cs);
+            Log.LogInformation($"Command SetStatus {NetworkStatus.Restricted} execution success {result}, network status {status}");
 
-            NetworkStatus status = await this.GetStatus(cs);
-            Log.LogInformation($"Command AddDropRule execution success {result}, network status {status}");
-
-            return result && status == NetworkStatus.Restricted;
+            NetworkStatus reportedStatus = await this.GetStatus(cs);
+            return result && reportedStatus == NetworkStatus.Restricted;
         }
 
         async Task<bool> RemoveNetworkControllingRule(CancellationToken cs)
         {
-            bool result = await this.networkCommands.RemoveDropRule(cs);
+            bool result = await this.underlyingController.SetStatus(NetworkStatus.Default, cs);
 
             NetworkStatus status = await this.GetStatus(cs);
             Log.LogInformation($"Command RemoveDropRule execution success {result}, network status {status}");

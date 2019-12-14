@@ -7,15 +7,17 @@ namespace NetworkController
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    class LinuxFirewallCommands : IFirewallCommands
+    class LinuxFirewallOfflineController : IController
     {
-        static readonly ILogger Log = Logger.Factory.CreateLogger<LinuxFirewallCommands>();
+        static readonly ILogger Log = Logger.Factory.CreateLogger<LinuxFirewallOfflineController>();
         readonly string networkInterfaceName;
 
-        public LinuxFirewallCommands(string networkInterfaceName)
+        public LinuxFirewallOfflineController(string networkInterfaceName)
         {
             this.networkInterfaceName = networkInterfaceName;
         }
+
+        public string Description => "LinuxFirewallOffline";
 
         public async Task<NetworkStatus> GetStatus(CancellationToken cs)
         {
@@ -43,7 +45,20 @@ namespace NetworkController
             }
         }
 
-        public async Task<bool> RemoveDropRule(CancellationToken cs)
+        public Task<bool> SetStatus(NetworkStatus status, CancellationToken cs)
+        {
+            switch (status)
+            {
+                case NetworkStatus.Restricted:
+                    return this.AddDropRule(cs);
+                case NetworkStatus.Default:
+                    return this.RemoveDropRule(cs);
+                default:
+                    throw new NotSupportedException($"Set status '{status}' is not supported.");
+            }
+        }
+
+        async Task<bool> RemoveDropRule(CancellationToken cs)
         {
             try
             {
@@ -61,7 +76,7 @@ namespace NetworkController
             }
         }
 
-        public async Task<bool> AddDropRule(CancellationToken cs)
+        async Task<bool> AddDropRule(CancellationToken cs)
         {
             try
             {
