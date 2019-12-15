@@ -30,6 +30,8 @@ namespace TestResultCoordinator
 
         public async Task ProcessEventsAsync(IEnumerable<EventData> events)
         {
+            Logger.LogInformation("Processing events from event hub.");
+
             if (events != null)
             {
                 foreach (EventData eventData in events)
@@ -52,17 +54,18 @@ namespace TestResultCoordinator
                         {
                             if (long.TryParse(sequenceNumberFromEvent.ToString(), out long sequenceNumber))
                             {
+                                Logger.LogInformation($"Recieved event hub event: tracking Id={(string)trackingIdFromEvent}, deviceId={(string)deviceIdFromEvent}, moduleId={(string)moduleIdFromEvent}");
                                 DateTime enqueuedtime = GetEnqueuedTime(deviceIdFromEvent.ToString(), moduleIdFromEvent.ToString(), eventData);
 
                                 // TODO: remove hardcoded eventHub string in next line
-                                TestOperationResult result = new TestOperationResult(
-                                    moduleIdFromEvent.ToString() + ".eventHub",
+                                var result = new TestOperationResult(
+                                    (string)moduleIdFromEvent + ".eventHub",
                                     "Messages",
                                     ModuleUtil.FormatTestResultValue(
                                         (string)trackingIdFromEvent,
                                         (string)batchIdFromEvent,
                                         (string)sequenceNumberFromEvent),
-                                    DateTime.UtcNow);
+                                    enqueuedtime);
                                 await TestOperationResultStorage.AddResultAsync(result);
                             }
                             else

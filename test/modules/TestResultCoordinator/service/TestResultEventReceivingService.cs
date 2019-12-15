@@ -6,7 +6,6 @@ namespace TestResultCoordinator.Service
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Common;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.EventHubs;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
@@ -37,7 +36,12 @@ namespace TestResultCoordinator.Service
                 EventPosition.FromEnqueuedTime(eventEnqueuedFrom));
             eventHubReceiver.SetReceiveHandler(new PartitionReceiveHandler(Settings.Current.TrackingId, Settings.Current.DeviceId));
 
-            await stoppingToken.WhenCanceled();
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(5), stoppingToken);
+            }
+
+            this.logger.LogInformation($"Finish ExecuteAsync method in {nameof(TestResultEventReceivingService)}");
         }
     }
 }
