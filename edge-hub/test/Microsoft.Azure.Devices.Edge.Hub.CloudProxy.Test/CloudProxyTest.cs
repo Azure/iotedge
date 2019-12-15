@@ -246,7 +246,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         static async Task CheckMessageInEventHub(Dictionary<string, IList<IMessage>> sentMessagesByDevice, DateTime startTime)
         {
             // Wait a fixed time for the messages to reach event hub, rather than deal with retry logic.
-            await Task.Delay(TimeSpan.FromSeconds(30));
+            await Task.Delay(TimeSpan.FromSeconds(200));
 
             string eventHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey");
             var eventHubReceiver = new EventHubReceiver(eventHubConnectionString);
