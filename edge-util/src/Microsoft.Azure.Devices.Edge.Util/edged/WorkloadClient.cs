@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Edged
 
             if (clientVersion == ApiVersion.VersionUnknown)
             {
-                throw new InvalidOperationException("Client version is not supported.");
+                throw new InvalidOperationException($"Client version {clientSupportedApiVersion} is not supported.");
             }
 
             if (serverVersion == ApiVersion.VersionUnknown)

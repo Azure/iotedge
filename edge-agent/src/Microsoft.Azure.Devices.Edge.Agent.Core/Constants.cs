@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string NetworkIdKey = "NetworkId";
 
-        public const string EdgeletClientApiVersion = "2019-10-22";
+        public const string EdgeletClientApiVersion = "2019-11-05";
 
         public const string EdgeletInitializationVectorFileName = "IOTEDGE_BACKUP_IV";
 
@@ -92,6 +92,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public const string IdleTimeoutSecs = "CloudConnectionIdleTimeoutSecs";
 
         public const string IoTEdgeAgentProductInfoIdentifier = "EdgeAgent";
+
+        public const string StorageMaxTotalWalSize = "RocksDB_MaxTotalWalSize";
 
         public static class Labels
         {
