@@ -27,6 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         const string Device2ConnStrKey = "device2ConnStrKey";
         const string Device3ConnStrKey = "device3ConnStrKey";
         static readonly TimeSpan ClockSkew = TimeSpan.FromMinutes(5);
+        static readonly int EventHubMessageReceivedRetry = 10;
 
         [Fact]
         [TestPriority(401)]
@@ -245,24 +246,35 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
 
         static async Task CheckMessageInEventHub(Dictionary<string, IList<IMessage>> sentMessagesByDevice, DateTime startTime)
         {
-            // Wait a fixed time for the messages to reach event hub, rather than deal with retry logic.
-            await Task.Delay(TimeSpan.FromSeconds(30));
-
             string eventHubConnectionString = await SecretsHelper.GetSecretFromConfigKey("eventHubConnStrKey");
             var eventHubReceiver = new EventHubReceiver(eventHubConnectionString);
             var receivedMessagesByPartition = new Dictionary<string, List<EventData>>();
-            foreach (string deviceId in sentMessagesByDevice.Keys)
-            {
-                receivedMessagesByPartition[deviceId] = await eventHubReceiver.GetMessagesForDevice(deviceId, startTime);
-            }
 
-            Assert.True(MessageHelper.ValidateSentMessagesWereReceived(sentMessagesByDevice, receivedMessagesByPartition));
+            bool messagesFound = false;
+            for (int i = 0; i < EventHubMessageReceivedRetry; i++)
+            {
+                foreach (string deviceId in sentMessagesByDevice.Keys)
+                {
+                    receivedMessagesByPartition[deviceId] = await eventHubReceiver.GetMessagesForDevice(deviceId, startTime);
+                }
+
+                messagesFound = MessageHelper.ValidateSentMessagesWereReceived(sentMessagesByDevice, receivedMessagesByPartition);
+
+                if (messagesFound)
+                {
+                    break;
+                }
+
+                await Task.Delay(TimeSpan.FromSeconds(20));
+            }
 
             foreach (string device in receivedMessagesByPartition.Keys)
             {
                 Assert.NotNull(receivedMessagesByPartition[device]);
                 Assert.NotEmpty(receivedMessagesByPartition[device]);
             }
+
+            Assert.True(messagesFound);
         }
 
         static async Task UpdateDesiredProperty(string deviceId, TwinCollection desired)
