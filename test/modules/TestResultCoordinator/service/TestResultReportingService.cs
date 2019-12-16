@@ -12,7 +12,8 @@ namespace TestResultCoordinator.Service
     using Newtonsoft.Json;
     using TestResultCoordinator.Report;
 
-    // Reference from https://docs.microsoft.com/en-us/aspnet/core/fundamentals/host/hosted-services?view=aspnetcore-3.1&tabs=visual-studio
+    // This class implementation is copied from https://docs.microsoft.com/en-us/aspnet/core/fundamentals/host/hosted-services?view=aspnetcore-3.1&tabs=visual-studio
+    // And then implement our own DoWorkAsync for reporting generation.
     class TestResultReportingService : IHostedService, IDisposable
     {
         readonly ILogger logger = ModuleUtil.CreateLogger(nameof(TestResultReportingService));

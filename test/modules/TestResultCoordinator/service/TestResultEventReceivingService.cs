@@ -22,13 +22,13 @@ namespace TestResultCoordinator.Service
             await Task.CompletedTask;
         }
 
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        protected override async Task ExecuteAsync(CancellationToken cancellationToken)
         {
             this.logger.LogInformation("Test Result Event Receiving Service running.");
 
             DateTime eventEnqueuedFrom = DateTime.UtcNow;
             var builder = new EventHubsConnectionStringBuilder(Settings.Current.EventHubConnectionString);
-            this.logger.LogInformation($"Receiving events from device '{Settings.Current.DeviceId}' on Event Hub '{builder.EntityPath}' enqueued at or after {eventEnqueuedFrom}");
+            this.logger.LogDebug($"Receiving events from device '{Settings.Current.DeviceId}' on Event Hub '{builder.EntityPath}' enqueued on or after {eventEnqueuedFrom}");
 
             EventHubClient eventHubClient = EventHubClient.CreateFromConnectionString(builder.ToString());
             PartitionReceiver eventHubReceiver = eventHubClient.CreateReceiver(
@@ -37,7 +37,7 @@ namespace TestResultCoordinator.Service
                 EventPosition.FromEnqueuedTime(eventEnqueuedFrom));
             eventHubReceiver.SetReceiveHandler(new PartitionReceiveHandler(Settings.Current.TrackingId, Settings.Current.DeviceId));
 
-            await stoppingToken.WhenCanceled();
+            await cancellationToken.WhenCanceled();
 
             this.logger.LogInformation($"Finish ExecuteAsync method in {nameof(TestResultEventReceivingService)}");
         }

@@ -23,7 +23,7 @@ namespace TestResultCoordinator.Controllers
             try
             {
                 bool success = await TestOperationResultStorage.AddResultAsync(result);
-                Logger.LogInformation($"Received test result: {result.Source}, {result.Type}, {success}");
+                Logger.LogDebug($"Received test result: {result.Source}, {result.Type}, {success}");
                 return success ? this.StatusCode((int)HttpStatusCode.NoContent) : this.StatusCode((int)HttpStatusCode.BadRequest);
             }
             catch (Exception)
