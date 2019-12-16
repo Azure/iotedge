@@ -72,7 +72,20 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                 IEnumerable<Metric> metricsToUpload = await this.storage.GetAllMetricsAsync();
                 metricsToUpload = MetricsDeDuplication.RemoveDuplicateMetrics(metricsToUpload);
 
-                if (await this.uploader.PublishAsync(metricsToUpload, cancellationToken))
+                bool uploaded;
+                try
+                {
+                    uploaded = await this.uploader.PublishAsync(metricsToUpload, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    // If unexpected error publishing metrics, delete stored ones to prevent storage buildup.
+                    Log.LogError($"Unexpected error publishing metrics. Deleting stored metrics.");
+                    await this.storage.RemoveAllReturnedMetricsAsync();
+                    throw ex;
+                }
+
+                if (uploaded)
                 {
                     Log.LogInformation($"Published metrics");
                     await this.storage.RemoveAllReturnedMetricsAsync();
