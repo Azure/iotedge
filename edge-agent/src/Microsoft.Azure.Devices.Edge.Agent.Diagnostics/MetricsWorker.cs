@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher;
+    using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
@@ -20,25 +21,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
         readonly IMetricsScraper scraper;
         readonly IMetricsStorage storage;
         readonly IMetricsPublisher uploader;
-        readonly ISystemTime systemTime;
         readonly AsyncLock scrapeUploadLock = new AsyncLock();
         static readonly ILogger Log = Logger.Factory.CreateLogger<MetricsScraper>();
-
-        DateTime lastUploadTime = DateTime.MinValue;
-
-        // This acts as a local buffer. It stores the previous value of every metric.
-        // If the new value for that metric is unchanged, it doesn't write the duplicate value to disk.
-        Dictionary<int, Metric> metrics = new Dictionary<int, Metric>();
 
         PeriodicTask scrape;
         PeriodicTask upload;
 
-        public MetricsWorker(IMetricsScraper scraper, IMetricsStorage storage, IMetricsPublisher uploader, ISystemTime systemTime = null)
+        public MetricsWorker(IMetricsScraper scraper, IMetricsStorage storage, IMetricsPublisher uploader)
         {
             this.scraper = Preconditions.CheckNotNull(scraper, nameof(scraper));
             this.storage = Preconditions.CheckNotNull(storage, nameof(storage));
             this.uploader = Preconditions.CheckNotNull(uploader, nameof(uploader));
-            this.systemTime = systemTime ?? SystemTime.Instance;
         }
 
         public void Start(TimeSpan scrapingInterval, TimeSpan uploadInterval)
@@ -52,34 +45,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             using (await this.scrapeUploadLock.LockAsync(cancellationToken))
             {
                 Log.LogInformation("Scraping Metrics");
-                List<Metric> metricsToPersist = new List<Metric>();
-                int numScrapedMetrics = 0;
-                foreach (Metric scrapedMetric in await this.scraper.ScrapeEndpointsAsync(cancellationToken))
-                {
-                    numScrapedMetrics++;
-                    // Get the previous scrape for this metric
-                    if (this.metrics.TryGetValue(scrapedMetric.GetMetricKey(), out Metric oldMetric))
-                    {
-                        // If the metric is unchanged, do nothing
-                        if (oldMetric.Value.Equals(scrapedMetric.Value))
-                        {
-                            continue;
-                        }
-                    }
-
-                    // if new metric or metric changed, save to local buffer and disk.
-                    metricsToPersist.Add(scrapedMetric);
-                    this.metrics[scrapedMetric.GetMetricKey()] = scrapedMetric;
-                }
-
-                Log.LogInformation($"Scraped {numScrapedMetrics} Metrics");
-
-                if (metricsToPersist.Any())
-                {
-                    Log.LogInformation("Storing Metrics");
-                    this.storage.WriteData(Newtonsoft.Json.JsonConvert.SerializeObject(metricsToPersist));
-                    Log.LogInformation("Stored Metrics");
-                }
+                IEnumerable<Metric> scrapedMetrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
+                Log.LogInformation("Storing Metrics");
+                await this.storage.StoreMetricsAsync(scrapedMetrics);
+                Log.LogInformation("Scraped and Stored Metrics");
             }
         }
 
@@ -87,33 +56,35 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
         {
             using (await this.scrapeUploadLock.LockAsync(cancellationToken))
             {
-                Log.LogInformation($"Uploading Metrics. Last upload was at {this.lastUploadTime}");
-                DateTime currentUploadTime = this.systemTime.UtcNow;
-                int numMetricsUploaded = 0;
-                IEnumerable<Metric> metricsToUpload = this.GetMetricsToUpload(this.lastUploadTime).Select(metric =>
-                {
-                    numMetricsUploaded++;
-                    return metric;
-                });
+                Log.LogInformation($"Uploading Metrics");
+                IEnumerable<Metric> metricsToUpload = await this.storage.GetAllMetricsAsync();
+                metricsToUpload = RemoveDuplicateMetrics(metricsToUpload);
                 await this.uploader.PublishAsync(metricsToUpload, cancellationToken);
-                Log.LogInformation($"Uploaded {numMetricsUploaded} Metrics");
-
-                this.storage.RemoveOldEntries(currentUploadTime);
-                this.metrics.Clear();
-                this.lastUploadTime = currentUploadTime;
+                Log.LogInformation($"Uploaded Metrics");
+                await this.storage.RemoveAllReturnedMetricsAsync();
             }
         }
 
-        IEnumerable<Metric> GetMetricsToUpload(DateTime lastUploadTime)
+        internal static IEnumerable<Metric> RemoveDuplicateMetrics(IEnumerable<Metric> metrics)
         {
-            // Get all metrics that have been stored since the last upload
-            foreach (KeyValuePair<DateTime, Func<string>> data in this.storage.GetData(lastUploadTime))
+            Dictionary<int, Metric> previousValues = new Dictionary<int, Metric>();
+
+            foreach (Metric newMetric in metrics)
             {
-                var fileMetrics = Newtonsoft.Json.JsonConvert.DeserializeObject<Metric[]>(data.Value()) ?? Enumerable.Empty<Metric>();
-                foreach (Metric metric in fileMetrics)
+                int key = newMetric.GetMetricKey();
+                // Get the previous value for this metric. If unchanged, return old
+                if (previousValues.TryGetValue(key, out Metric oldMetric) && oldMetric.Value != newMetric.Value)
                 {
-                    yield return metric;
+                    yield return oldMetric;
                 }
+
+                // update previous
+                previousValues[key] = newMetric;
+            }
+
+            foreach (Metric remainingMetric in previousValues.Values)
+            {
+                yield return remainingMetric;
             }
         }
 
