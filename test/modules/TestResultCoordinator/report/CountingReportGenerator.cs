@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace TestResultCoordinator
+namespace TestResultCoordinator.Report
 {
     using System;
     using System.Collections.Generic;
@@ -10,6 +10,7 @@ namespace TestResultCoordinator
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using TestOperationResult = TestResultCoordinator.TestOperationResult;
 
     /// <summary>
     /// This is used to create counting report based on 2 different sources/stores; it will use given test result comparer to determine whether it matches or not.

@@ -5,6 +5,7 @@ namespace TestResultCoordinator
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
+    using TestResultCoordinator.Service;
 
     public class Startup
     {
@@ -19,6 +20,8 @@ namespace TestResultCoordinator
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc();
+            services.AddHostedService<TestResultReportingService>();
+            services.AddHostedService<TestResultEventReceivingService>();
         }
 
         // TODO: Remove warning disable for Obsolete when project is moved to dotnetcore 3.0
