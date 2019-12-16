@@ -58,6 +58,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage
             {
                 File.Delete(filename);
             }
+
+            this.filesToDelete.Clear();
         }
 
         Task WriteData(string data)

@@ -208,6 +208,38 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
         }
 
         [Fact]
+        public void TestRemoveDuplicateKeepsLine()
+        {
+            DateTime baseTime = new DateTime(10000000, DateTimeKind.Utc);
+
+            Metric[] testMetrics = new Metric[]
+            {
+                new Metric(baseTime, "Test", 1, "Tags"),
+                new Metric(baseTime.AddMinutes(1), "Test", 1, "Tags"),
+                new Metric(baseTime.AddMinutes(2), "Test", 1, "Tags"),
+                new Metric(baseTime.AddMinutes(3), "Test", 1, "Tags"),
+                new Metric(baseTime.AddMinutes(4), "Test", 2, "Tags"),
+                new Metric(baseTime.AddMinutes(5), "Test", 3, "Tags"),
+                new Metric(baseTime.AddMinutes(6), "Test", 3, "Tags"),
+                new Metric(baseTime.AddMinutes(7), "Test", 3, "Tags"),
+                new Metric(baseTime.AddMinutes(8), "Test", 3, "Tags"),
+                new Metric(baseTime.AddMinutes(9), "Test", 3, "Tags"),
+            };
+
+            Metric[] expected = new Metric[]
+            {
+                new Metric(baseTime, "Test", 1, "Tags"),
+                new Metric(baseTime.AddMinutes(3), "Test", 1, "Tags"),
+                new Metric(baseTime.AddMinutes(4), "Test", 2, "Tags"),
+                new Metric(baseTime.AddMinutes(5), "Test", 3, "Tags"),
+                new Metric(baseTime.AddMinutes(9), "Test", 3, "Tags"),
+            };
+
+            Metric[] result = MetricsWorker.RemoveDuplicateMetrics(testMetrics).ToArray();
+            Assert.Equal(expected, result);
+    }
+
+        [Fact]
         public async Task TestNoOverlap()
         {
             /* Setup mocks */
