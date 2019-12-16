@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
     using System.Runtime.InteropServices;
     using System.Text;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Docker.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -18,6 +19,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
 
     public class SystemResourcesMetrics : IDisposable
     {
+        static readonly string[] EdgeRuntimeModules = { Constants.EdgeAgentModuleName, Constants.EdgeHubModuleName };
+
         Func<Task<SystemResources>> getSystemResources;
         PeriodicTask updateResources;
         string apiVersion;
@@ -49,62 +52,62 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             this.hostUptime = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
                 "host_uptime_seconds",
                 "How long the host has been on",
-                new List<string> { }));
+                new List<string> { MetricsConstants.MsTelemetry }));
 
             this.iotedgedUptime = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
                 "iotedged_uptime_seconds",
                 "How long iotedged has been running",
-                new List<string> { }));
+                new List<string> { MetricsConstants.MsTelemetry }));
 
             this.usedSpace = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
                 "available_disk_space_bytes",
                 "Amount of space left on the disk",
-                new List<string> { "disk_name", "disk_filesystem", "disk_filetype" }));
+                new List<string> { "disk_name", "disk_filesystem", "disk_filetype", MetricsConstants.MsTelemetry }));
 
             this.totalSpace = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
                 "total_disk_space_bytes",
                 "Size of the disk",
-                new List<string> { "disk_name", "disk_filesystem", "disk_filetype" }));
+                new List<string> { "disk_name", "disk_filesystem", "disk_filetype", MetricsConstants.MsTelemetry }));
 
             this.usedMemory = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
                 "used_memory_bytes",
                 "Amount of RAM used by all processes",
-                new List<string> { "module" }));
+                new List<string> { "module", MetricsConstants.MsTelemetry }));
 
             this.totalMemory = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
                 "total_memory_bytes",
                 "RAM available",
-                new List<string> { "module" }));
+                new List<string> { "module", MetricsConstants.MsTelemetry }));
 
             this.cpuPercentage = Preconditions.CheckNotNull(metricsProvider.CreateHistogram(
                 "used_cpu_percent",
                 "Percent of cpu used by all processes",
-                new List<string> { "module" }));
+                new List<string> { "module", MetricsConstants.MsTelemetry }));
 
             this.createdPids = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
                 "created_pids_total",
                 "The number of processes or threads the container has created",
-                new List<string> { "module" }));
+                new List<string> { "module", MetricsConstants.MsTelemetry }));
 
             this.networkIn = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
                 "total_network_in_bytes",
                 "The amount of bytes recieved from the network",
-                new List<string> { "module" }));
+                new List<string> { "module", MetricsConstants.MsTelemetry }));
 
             this.networkOut = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
                 "total_network_out_bytes",
                 "The amount of bytes sent to network",
-                new List<string> { "module" }));
+                new List<string> { "module", MetricsConstants.MsTelemetry }));
 
             this.diskRead = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
                 "total_disk_read_bytes",
                 "The amount of bytes read from the disk",
-                new List<string> { "module" }));
+                new List<string> { "module", MetricsConstants.MsTelemetry }));
 
             this.diskWrite = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
                 "total_disk_write_bytes",
                 "The amount of bytes written to disk",
-                new List<string> { "module" }));
+                new List<string> { "module", MetricsConstants.MsTelemetry }));
         }
 
         public void Start(ILogger logger)
@@ -128,10 +131,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
         {
             SystemResources systemResources = await this.getSystemResources();
 
-            this.hostUptime.Set(systemResources.HostUptime, new string[] { });
-            this.iotedgedUptime.Set(systemResources.IotEdgedUptime, new string[] { });
+            var uptimeTags = new string[] { true.ToString() };
+            this.hostUptime.Set(systemResources.HostUptime, uptimeTags);
+            this.iotedgedUptime.Set(systemResources.IotEdgedUptime, uptimeTags);
 
-            var hostTags = new string[] { "host" };
+            var hostTags = new string[] { "host", true.ToString() };
             // edgelet sets used cpu to -1 on error
             if (systemResources.UsedCpu > 0)
             {
@@ -143,8 +147,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
 
             foreach (Disk disk in systemResources.Disks)
             {
-                this.usedSpace.Set(disk.AvailableSpace, new string[] { disk.Name, disk.FileSystem, disk.FileType });
-                this.totalSpace.Set(disk.TotalSpace, new string[] { disk.Name, disk.FileSystem, disk.FileType });
+                var diskTags = new string[] { disk.Name, disk.FileSystem, disk.FileType, true.ToString() };
+                this.usedSpace.Set(disk.AvailableSpace, diskTags);
+                this.totalSpace.Set(disk.TotalSpace, diskTags);
             }
 
             this.SetModuleStats(systemResources);
@@ -156,7 +161,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             foreach (DockerStats module in modules)
             {
                 string name = module.Name.Substring(1); // remove '/' from start of name
-                var tags = new string[] { name };
+                var tags = new string[] { name, EdgeRuntimeModules.Contains(name).ToString() };
 
                 this.cpuPercentage.Update(this.GetCpuUsage(module), tags);
                 this.totalMemory.Set(module.MemoryStats.Limit, tags);
