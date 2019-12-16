@@ -13,6 +13,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Routing.Core;
     using Microsoft.Azure.Devices.Routing.Core.Checkpointers;
+    using Microsoft.Azure.Devices.Routing.Core.MessageSources;
+    using Microsoft.Azure.Devices.Routing.Core.Query.Types;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using static System.FormattableString;
@@ -72,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             }
         }
 
-        public async Task<long> Add(string endpointId, IMessage message)
+        public async Task<IMessage> Add(string endpointId, IMessage message)
         {
             Preconditions.CheckNotNull(message, nameof(message));
             if (!this.endpointSequentialStores.TryGetValue(Preconditions.CheckNonWhiteSpace(endpointId, nameof(endpointId)), out ISequentialStore<MessageRef> sequentialStore))
@@ -110,7 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 {
                     long offset = await sequentialStore.Append(new MessageRef(edgeMessageId));
                     Events.MessageAdded(offset, edgeMessageId, endpointId, this.messageCount);
-                    return offset;
+                    return new MessageWithOffset(message, offset);
                 }
             }
             catch (Exception)
@@ -164,7 +166,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
 
             public MessageWrapper(IMessage message, DateTime timeStamp, int refCount)
             {
-                Preconditions.CheckArgument(timeStamp != default(DateTime));
+                Preconditions.CheckArgument(timeStamp != default);
                 this.Message = Preconditions.CheckNotNull(message, nameof(message));
                 this.TimeStamp = timeStamp;
                 this.RefCount = Preconditions.CheckRange(refCount, 0, nameof(refCount));
@@ -469,7 +471,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                             else
                             {
                                 messageWrapper
-                                    .Map(m => this.AddMessageOffset(m.Message, item.offset))
+                                    .Map(m => new MessageWithOffset(m.Message, item.offset))
                                     .ForEach(m => messageList.Add(m));
                             }
                         }
@@ -485,18 +487,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
                 }
 
                 return messageList;
-            }
-
-            IMessage AddMessageOffset(IMessage message, long offset)
-            {
-                return new Message(
-                    message.MessageSource,
-                    message.Body,
-                    message.Properties.ToDictionary(),
-                    message.SystemProperties.ToDictionary(),
-                    offset,
-                    message.EnqueuedTime,
-                    message.DequeuedTime);
             }
         }
 
@@ -521,6 +511,37 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             public string EdgeMessageId { get; }
 
             public DateTime TimeStamp { get; }
+        }
+
+        class MessageWithOffset : IMessage
+        {
+            readonly IMessage message;
+
+            public MessageWithOffset(IMessage message, long offset)
+            {
+                this.message = Preconditions.CheckNotNull(message, nameof(message));
+                this.Offset = Preconditions.CheckRange(offset, 0, nameof(offset));
+            }
+
+            public void Dispose() => this.message.Dispose();
+
+            public IMessageSource MessageSource => this.message.MessageSource;
+
+            public byte[] Body => this.message.Body;
+
+            public IReadOnlyDictionary<string, string> Properties => this.message.Properties;
+
+            public IReadOnlyDictionary<string, string> SystemProperties => this.message.SystemProperties;
+
+            public long Offset { get; }
+
+            public DateTime EnqueuedTime => this.message.EnqueuedTime;
+
+            public DateTime DequeuedTime => this.message.DequeuedTime;
+
+            public QueryValue GetQueryValue(string queryString) => this.message.GetQueryValue(queryString);
+
+            public long Size() => this.message.Size();
         }
 
         static class MetricsV0
