@@ -15,6 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Azure.EventHubs;
+    using Microsoft.Extensions.Logging;
     using Moq;
     using Newtonsoft.Json.Linq;
     using Xunit;
@@ -28,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         const string Device3ConnStrKey = "device3ConnStrKey";
         static readonly TimeSpan ClockSkew = TimeSpan.FromMinutes(5);
         static readonly int EventHubMessageReceivedRetry = 10;
+        static readonly ILogger logger = Logger.Factory.CreateLogger(nameof(CloudProxyTest));
 
         [Fact]
         [TestPriority(401)]
@@ -251,7 +253,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var receivedMessagesByPartition = new Dictionary<string, List<EventData>>();
 
             bool messagesFound = false;
-            for (int i = 0; i < EventHubMessageReceivedRetry; i++)
+            // If this test becomes flaky, use PartitionReceiver as a background Task to continuously retrieve messages.
+            for (int i = 0; i < EventHubMessageReceivedRetry; i++) // Retry for event hub being slow to process messages.
             {
                 foreach (string deviceId in sentMessagesByDevice.Keys)
                 {
@@ -263,6 +266,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 if (messagesFound)
                 {
                     break;
+                }
+                else
+                {
+                    logger.LogInformation($"Messages not found in event hub for attempt {i}");
                 }
 
                 await Task.Delay(TimeSpan.FromSeconds(20));
