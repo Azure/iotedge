@@ -6,6 +6,7 @@ namespace TestResultCoordinator.Service
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
@@ -25,7 +26,7 @@ namespace TestResultCoordinator.Service
         public TestResultReportingService(ITestOperationResultStorage storage)
         {
             this.delayBeforeWork = Settings.Current.TestStartDelay + Settings.Current.TestDuration + Settings.Current.DurationBeforeVerification;
-            this.storage = storage;
+            this.storage = Preconditions.CheckNotNull(storage);
         }
 
         public Task StartAsync(CancellationToken ct)
