@@ -26,7 +26,7 @@ namespace DirectMethodSender
                     configuration.GetValue<string>("TargetModuleId", "DirectMethodReceiver"),
                     configuration.GetValue<TransportType>("TransportType", TransportType.Amqp_Tcp_Only),
                     configuration.GetValue<TimeSpan>("DirectMethodDelay", TimeSpan.FromSeconds(5)),
-                    configuration.GetValue<Uri>("AnalyzerUrl", new Uri("http://analyzer:15000")),
+                    Option.Maybe(configuration.GetValue<Uri>("AnalyzerUrl")),
                     configuration.GetValue<string>("RoutingAgency", "EdgeHub"),
                     Option.Maybe<string>(configuration.GetValue<string>("ServiceClientConnectionString")));
             });
@@ -36,7 +36,7 @@ namespace DirectMethodSender
             string targetModuleId,
             TransportType transportType,
             TimeSpan directMethodDelay,
-            Uri analyzerUrl,
+            Option<Uri> analyzerUrl,
             string routingAgency,
             Option<string> serviceClientConnectionString)
         {
@@ -74,7 +74,7 @@ namespace DirectMethodSender
 
         public Option<string> ServiceClientConnectionString { get; }
 
-        public Uri AnalyzerUrl { get; }
+        public Option<Uri> AnalyzerUrl { get; }
 
         public override string ToString()
         {
@@ -85,9 +85,13 @@ namespace DirectMethodSender
                 { nameof(this.TargetModuleId), this.TargetModuleId },
                 { nameof(this.TransportType), Enum.GetName(typeof(TransportType), this.TransportType) },
                 { nameof(this.DirectMethodDelay), this.DirectMethodDelay.ToString() },
-                { nameof(this.AnalyzerUrl), this.AnalyzerUrl.AbsoluteUri },
                 { nameof(this.RoutingAgency), this.RoutingAgency.ToString() },
             };
+
+            this.AnalyzerUrl.ForEach((url) =>
+            {
+                fields.Add(nameof(this.AnalyzerUrl), url.AbsoluteUri);
+            });
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
         }

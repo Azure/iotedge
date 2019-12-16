@@ -80,6 +80,8 @@ namespace LoadGen
                     }
                 }
 
+                Logger.LogInformation("Finish sending messages.");
+                await cts.Token.WhenCanceled();
                 completed.Set();
                 handler.ForEach(h => GC.KeepAlive(h));
             }

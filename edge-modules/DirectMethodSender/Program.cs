@@ -21,6 +21,7 @@ namespace DirectMethodSender
         {
             Logger.LogInformation($"Starting DirectMethodSender with the following settings:\r\n{Settings.Current}");
 
+            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
             try
             {
                 IDirectMethodClient client;
@@ -49,15 +50,22 @@ namespace DirectMethodSender
                         throw new NotImplementedException("Invalid RoutingAgency type");
                 }
 
-                Uri analyzerUrl = Settings.Current.AnalyzerUrl;
-                AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = analyzerUrl.AbsoluteUri };
-
-                (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
-
                 while (!cts.Token.IsCancellationRequested)
                 {
                     HttpStatusCode result = await client.InvokeDirectMethodAsync(cts);
-                    await ReportStatus(Settings.Current.TargetModuleId, result, analyzerClient);
+
+                    Option<Uri> analyzerUrl = Settings.Current.AnalyzerUrl;
+                    await analyzerUrl.ForEachAsync(
+                        async (Uri uri) =>
+                        {
+                            AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = uri.AbsoluteUri };
+                            await ReportStatus(Settings.Current.TargetModuleId, result, analyzerClient);
+                        },
+                        async () =>
+                        {
+                            await client.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method call succeeded.")));
+                        });
+
                     await Task.Delay(Settings.Current.DirectMethodDelay, cts.Token);
                 }
 
@@ -66,13 +74,17 @@ namespace DirectMethodSender
 
                 completed.Set();
                 handler.ForEach(h => GC.KeepAlive(h));
-                Logger.LogInformation("DirectMethodSender Main() finished.");
             }
             catch (Exception e)
             {
                 Logger.LogError(e, "Error occurred during direct method sender test setup");
             }
+            finally
+            {
+                moduleClient?.Dispose();
+            }
 
+            Logger.LogInformation("DirectMethodSender Main() finished.");
             return 0;
         }
 
