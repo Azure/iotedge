@@ -24,6 +24,10 @@ namespace LoadGen
                     .AddEnvironmentVariables()
                     .Build();
 
+                string testResultCoordinatorUrl = string.IsNullOrWhiteSpace(configuration.GetValue<string>("testResultCoordinatorUrl"))
+                    ? null
+                    : configuration.GetValue<string>("testResultCoordinatorUrl");
+
                 return new Settings(
                     configuration.GetValue("messageFrequency", TimeSpan.FromMilliseconds(20)),
                     configuration.GetValue<ulong>("messageSizeInBytes", 1024),
@@ -32,7 +36,7 @@ namespace LoadGen
                     configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
                     configuration.GetValue("testDuration", TimeSpan.Zero),
                     configuration.GetValue("trackingId", string.Empty),
-                    Option.Maybe(configuration.GetValue<string>("testResultCoordinatorUrl")),
+                    Option.Maybe(testResultCoordinatorUrl),
                     configuration.GetValue<string>("IOTEDGE_MODULEID"));
             });
 
