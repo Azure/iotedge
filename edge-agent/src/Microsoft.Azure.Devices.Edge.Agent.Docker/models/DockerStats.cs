@@ -8,6 +8,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
 
     public class DockerStats
     {
+        [JsonConstructor]
+        public DockerStats(string name, Dictionary<string, DiskIO[]> block_io_stats, DockerCpuStats cpu_stats, MemoryStats memory_stats, Dictionary<string, NetworkInfo> networks, int? num_processes, PidsStats pids_stats, DateTime? read)
+        {
+            this.Name = name ?? "error_name";
+            this.BlockIoStats = block_io_stats ?? new Dictionary<string, DiskIO[]>();
+            this.CpuStats = cpu_stats ?? new DockerCpuStats(null, null, null);
+            this.MemoryStats = memory_stats ?? new MemoryStats(null, null, null);
+            this.Networks = networks ?? new Dictionary<string, NetworkInfo>();
+            this.NumProcesses = num_processes ?? 0;
+            this.PidsStats = pids_stats ?? new PidsStats(null);
+            this.Read = read ?? DateTime.MinValue;
+        }
+
         [JsonProperty("name", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public string Name { get; set; }
 
@@ -35,6 +48,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
 
     public class DiskIO
     {
+        [JsonConstructor]
+        public DiskIO(long? major, long? minor, string op, long? value)
+        {
+            this.Major = major ?? 0;
+            this.Minor = minor ?? 0;
+            this.Op = op ?? "Error";
+            this.Value = value ?? 0;
+        }
+
         [JsonProperty("major", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public long Major { get; set; }
 
@@ -50,6 +72,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
 
     public class DockerCpuStats
     {
+        [JsonConstructor]
+        public DockerCpuStats(CpuUsage cpu_usage, int? online_cpus, ulong? system_cpu_usage)
+        {
+            this.CpuUsage = cpu_usage ?? new CpuUsage(null, null, null);
+            this.OnlineCpus = online_cpus ?? 0;
+            this.SystemCpuUsage = system_cpu_usage ?? 0;
+        }
+
         [JsonProperty("cpu_usage", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public CpuUsage CpuUsage { get; set; }
 
@@ -62,6 +92,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
 
     public class CpuUsage
     {
+        [JsonConstructor]
+        public CpuUsage(ulong? total_usage, ulong? usage_in_kernelmode, ulong? usage_in_usermode)
+        {
+            this.TotalUsage = total_usage ?? 0;
+            this.UsageInKernelmode = usage_in_kernelmode ?? 0;
+            this.UsageInUsermode = usage_in_usermode ?? 0;
+        }
+
         [JsonProperty("total_usage", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public ulong TotalUsage { get; set; }
 
@@ -74,6 +112,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
 
     public class MemoryStats
     {
+        [JsonConstructor]
+        public MemoryStats(ulong? limit, ulong? max_usage, ulong? usage)
+        {
+            this.Limit = limit ?? 0;
+            this.MaxUsage = max_usage ?? 0;
+            this.Usage = usage ?? 0;
+        }
+
         [JsonProperty("limit", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public ulong Limit { get; set; }
 
@@ -86,6 +132,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
 
     public class NetworkInfo
     {
+        [JsonConstructor]
+        public NetworkInfo(int? rx_bytes, int? tx_bytes)
+        {
+            this.RxBytes = rx_bytes ?? 0;
+            this.TxBytes = tx_bytes ?? 0;
+        }
+
         [JsonProperty("rx_bytes", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public int RxBytes { get; set; }
 
@@ -95,6 +148,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
 
     public class PidsStats
     {
+        [JsonConstructor]
+        public PidsStats(int? current)
+        {
+            this.Current = current ?? 0;
+        }
+
         [JsonProperty("current", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public int Current { get; set; }
     }
