@@ -33,20 +33,18 @@ namespace DirectMethodSender
                     Logger);
 
                 Option<Uri> analyzerUrl = Settings.Current.AnalyzerUrl;
-                if (analyzerUrl.HasValue)
-                {
-                    analyzerUrl.ForEach(async (uri) =>
+                analyzerUrl.ForEach(
+                    async (Uri uri) =>
                     {
                         AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = uri.AbsoluteUri };
-                        Func<MethodResponse, Task> reportResult = async (response) => await ReportStatus(Settings.Current.TargetModuleId, response, analyzerClient);
-                        await StartDirectMethodTests(moduleClient, reportResult, Settings.Current.DirectMethodDelay, cts);
+                        Func<MethodResponse, Task> reportResultToAnalyzer = async (response) => await ReportStatus(Settings.Current.TargetModuleId, response, analyzerClient);
+                        await StartDirectMethodTests(moduleClient, reportResultToAnalyzer, Settings.Current.DirectMethodDelay, cts);
+                    },
+                    async () =>
+                    {
+                        Func<MethodResponse, Task> reportResultToEventHub = async (response) => await moduleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method call succeeded.")));
+                        await StartDirectMethodTests(moduleClient, reportResultToEventHub, Settings.Current.DirectMethodDelay, cts);
                     });
-                }
-                else
-                {
-                    Func<MethodResponse, Task> reportResult = async (response) => await moduleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method call succeeded.")));
-                    await StartDirectMethodTests(moduleClient, reportResult, Settings.Current.DirectMethodDelay, cts);
-                }
 
                 await moduleClient.CloseAsync();
                 await cts.Token.WhenCanceled();
