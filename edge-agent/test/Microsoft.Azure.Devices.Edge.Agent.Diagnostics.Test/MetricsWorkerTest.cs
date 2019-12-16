@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage;
+    using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -199,7 +200,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             // all odd values are changed, so they should be removed.
             Metric[] scrape2 = scrape1.Select(m => new Metric(new DateTime(this.rand.Next(1000, 10000), DateTimeKind.Utc), m.Name, m.Value + m.Value % 2, m.Tags)).ToArray();
 
-            Metric[] result = MetricsWorker.RemoveDuplicateMetrics(scrape1.Concat(scrape2)).ToArray();
+            Metric[] result = MetricsDeDuplication.RemoveDuplicateMetrics(scrape1.Concat(scrape2)).ToArray();
             Assert.Equal(150, result.Length);
 
             string[] expected = scrape1.Select(m => m.Name).Concat(scrape2.Where(m => int.Parse(m.Tags) % 2 == 1).Select(m => m.Name)).OrderBy(n => n).ToArray();
@@ -235,7 +236,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
                 new Metric(baseTime.AddMinutes(9), "Test", 3, "Tags"),
             };
 
-            Metric[] result = MetricsWorker.RemoveDuplicateMetrics(testMetrics).ToArray();
+            Metric[] result = MetricsDeDuplication.RemoveDuplicateMetrics(testMetrics).ToArray();
             Assert.Equal(expected, result);
     }
 
