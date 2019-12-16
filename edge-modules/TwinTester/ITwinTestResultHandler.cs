@@ -4,7 +4,7 @@ namespace TwinTester
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Shared;
 
-    interface IResultHandler
+    interface ITwinTestResultHandler
     {
         Task HandleDesiredPropertyUpdateAsync(string propertyKey);
 
