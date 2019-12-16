@@ -14,6 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Extensions.Logging;
 
     public class MetricsWorker : IDisposable
@@ -23,6 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
         readonly IMetricsPublisher uploader;
         readonly AsyncLock scrapeUploadLock = new AsyncLock();
         static readonly ILogger Log = Logger.Factory.CreateLogger<MetricsScraper>();
+        readonly MetricFilter metricFilter;
 
         PeriodicTask scrape;
         PeriodicTask upload;
@@ -32,6 +34,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             this.scraper = Preconditions.CheckNotNull(scraper, nameof(scraper));
             this.storage = Preconditions.CheckNotNull(storage, nameof(storage));
             this.uploader = Preconditions.CheckNotNull(uploader, nameof(uploader));
+
+            this.metricFilter = new MetricFilter(
+                tagsWhitelist: new Dictionary<string, string> { { MetricsConstants.MsTelemetry, "true" } },
+                tagsToRemove: new List<string> { MetricsConstants.MsTelemetry, MetricsConstants.IotHubLabel, MetricsConstants.DeviceIdLabel });
         }
 
         public void Start(TimeSpan scrapingInterval, TimeSpan uploadInterval)
@@ -46,6 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             {
                 Log.LogInformation("Scraping Metrics");
                 IEnumerable<Metric> scrapedMetrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
+                scrapedMetrics = this.metricFilter.FilterMetrics(scrapedMetrics);
                 Log.LogInformation("Storing Metrics");
                 await this.storage.StoreMetricsAsync(scrapedMetrics);
                 Log.LogInformation("Scraped and Stored Metrics");

@@ -20,12 +20,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
         readonly Dictionary<string, string> tagsToAdd;
         readonly List<string> tagsToRemove;
 
-        public MetricFilter(Dictionary<string, string> tagsWhitelist, Dictionary<string, string> tagsBlacklist, Dictionary<string, string> tagsToAdd, List<string> tagsToRemove)
+        public MetricFilter(Dictionary<string, string> tagsWhitelist = null, Dictionary<string, string> tagsBlacklist = null, Dictionary<string, string> tagsToAdd = null, List<string> tagsToRemove = null)
         {
-            this.tagsWhitelist = tagsWhitelist ?? throw new ArgumentNullException(nameof(tagsWhitelist));
-            this.tagsBlacklist = tagsBlacklist ?? throw new ArgumentNullException(nameof(tagsBlacklist));
-            this.tagsToAdd = tagsToAdd ?? throw new ArgumentNullException(nameof(tagsToAdd));
-            this.tagsToRemove = tagsToRemove ?? throw new ArgumentNullException(nameof(tagsToRemove));
+            this.tagsWhitelist = tagsWhitelist;
+            this.tagsBlacklist = tagsBlacklist;
+            this.tagsToAdd = tagsToAdd;
+            this.tagsToRemove = tagsToRemove;
         }
 
         public IEnumerable<Metric> FilterMetrics(IEnumerable<Metric> metrics)
@@ -35,23 +35,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                 Dictionary<string, string> tags = JsonConvert.DeserializeObject<Dictionary<string, string>>(metric.Tags);
 
                 // Skip if the blacklist has any or the whitelist does not contain it.
-                if (this.tagsBlacklist.Any(tags.Contains) || (this.tagsWhitelist.Any() && !this.tagsWhitelist.Any(tags.Contains)))
+                if ((this.tagsBlacklist != null && this.tagsBlacklist.Any(tags.Contains)) || (this.tagsWhitelist != null && !this.tagsWhitelist.Any(tags.Contains)))
                 {
                     continue;
                 }
 
                 // Add or remove tags if needed.
-                if (this.tagsToAdd.Any() || this.tagsToRemove.Any())
+                if ((this.tagsToAdd != null && this.tagsToAdd.Any()) || (this.tagsToRemove != null && this.tagsToRemove.Any()))
                 {
-                    foreach (var toAdd in this.tagsToAdd)
-                    {
-                        tags.Add(toAdd.Key, toAdd.Value);
-                    }
-
-                    foreach (var toRemove in this.tagsToRemove)
-                    {
-                        tags.Remove(toRemove);
-                    }
+                    this.tagsToAdd?.ToList().ForEach(toAdd => tags.Add(toAdd.Key, toAdd.Value));
+                    this.tagsToRemove?.ForEach(toRemove => tags.Remove(toRemove));
 
                     string newTags = JsonConvert.SerializeObject(tags);
                     yield return new Metric(metric.TimeGeneratedUtc, metric.Name, metric.Value, newTags);
