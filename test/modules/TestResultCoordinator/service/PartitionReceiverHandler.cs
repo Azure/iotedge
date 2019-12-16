@@ -52,7 +52,7 @@ namespace TestResultCoordinator.Service
                         eventData.Properties.TryGetValue(TestConstants.Message.SequenceNumberPropertyName, out object sequenceNumberFromEvent);
                         eventData.Properties.TryGetValue(TestConstants.Message.BatchIdPropertyName, out object batchIdFromEvent);
 
-                        Logger.LogInformation($"Recieved event from Event Hub: sequenceNumber={(string)sequenceNumberFromEvent}, batchId={(string)batchIdFromEvent}");
+                        Logger.LogInformation($"Received event from Event Hub: sequenceNumber={(string)sequenceNumberFromEvent}, batchId={(string)batchIdFromEvent}");
 
                         if (!string.IsNullOrWhiteSpace((string)sequenceNumberFromEvent) &&
                             !string.IsNullOrWhiteSpace((string)batchIdFromEvent))
