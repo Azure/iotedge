@@ -11,6 +11,7 @@ namespace TestResultCoordinator.Service
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using TestResultCoordinator.Report;
+    using TestResultCoordinator.Storage;
 
     // This class implementation is copied from https://docs.microsoft.com/en-us/aspnet/core/fundamentals/host/hosted-services?view=aspnetcore-3.1&tabs=visual-studio
     // And then implement our own DoWorkAsync for reporting generation.
@@ -18,11 +19,13 @@ namespace TestResultCoordinator.Service
     {
         readonly ILogger logger = ModuleUtil.CreateLogger(nameof(TestResultReportingService));
         readonly TimeSpan delayBeforeWork;
+        readonly ITestOperationResultStorage storage;
         Timer timer;
 
-        public TestResultReportingService()
+        public TestResultReportingService(ITestOperationResultStorage storage)
         {
             this.delayBeforeWork = Settings.Current.TestStartDelay + Settings.Current.TestDuration + Settings.Current.DurationBeforeVerification;
+            this.storage = storage;
         }
 
         public Task StartAsync(CancellationToken ct)
@@ -63,7 +66,7 @@ namespace TestResultCoordinator.Service
                 var testResultReportList = new List<Task<ITestResultReport>>();
                 foreach (IReportMetadata reportMetadata in Settings.Current.ReportMetadataList)
                 {
-                    ITestResultReportGenerator testResultReportGenerator = testReportGeneratorFactory.Create(Settings.Current.TrackingId, reportMetadata);
+                    ITestResultReportGenerator testResultReportGenerator = testReportGeneratorFactory.Create(Settings.Current.TrackingId, reportMetadata, this.storage);
                     testResultReportList.Add(testResultReportGenerator.CreateReportAsync());
                 }
 

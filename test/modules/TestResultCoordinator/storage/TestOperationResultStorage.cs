@@ -1,23 +1,21 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace TestResultCoordinator
+namespace TestResultCoordinator.Storage
 {
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Storage.RocksDb;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    class TestOperationResultStorage
+    public class TestOperationResultStorage : ITestOperationResultStorage
     {
-        static readonly ILogger Logger = ModuleUtil.CreateLogger("TestResultCoordinator");
-        static Dictionary<string, ISequentialStore<TestOperationResult>> resultStores;
+        static readonly ILogger Logger = Microsoft.Azure.Devices.Edge.ModuleUtil.ModuleUtil.CreateLogger(nameof(TestOperationResultStorage));
+        private Dictionary<string, ISequentialStore<TestOperationResult>> ResultStores { get; set; }
 
-        public static async Task InitAsync(string storagePath, ISystemEnvironment systemEnvironment, bool optimizeForPerformance, List<string> resultSources)
+        public static async Task<TestOperationResultStorage> Create(string storagePath, ISystemEnvironment systemEnvironment, bool optimizeForPerformance, List<string> resultSources)
         {
             StoreProvider storeProvider;
             Preconditions.CheckNotNull(systemEnvironment);
@@ -38,12 +36,17 @@ namespace TestResultCoordinator
                 storeProvider = new StoreProvider(new InMemoryDbStoreProvider());
             }
 
-            resultStores = await InitializeStoresAsync(storeProvider, resultSources);
+            return new TestOperationResultStorage(await InitializeStoresAsync(storeProvider, resultSources));
         }
 
-        public static ISequentialStore<TestOperationResult> GetStoreFromSource(string source)
+        private TestOperationResultStorage(Dictionary<string, ISequentialStore<TestOperationResult>> resultStores)
         {
-            return resultStores.TryGetValue(source, out ISequentialStore<TestOperationResult> store) ? store : throw new InvalidDataException($"Source {source} not found.");
+            this.ResultStores = resultStores;
+        }
+
+        public ISequentialStore<TestOperationResult> GetStoreFromSource(string source)
+        {
+            return this.ResultStores.TryGetValue(source, out ISequentialStore<TestOperationResult> store) ? store : throw new InvalidDataException($"Source {source} not found.");
         }
 
         static async Task<Dictionary<string, ISequentialStore<TestOperationResult>>> InitializeStoresAsync(StoreProvider storeProvider, List<string> resultSources)
@@ -71,17 +74,17 @@ namespace TestResultCoordinator
             return storagePath;
         }
 
-        public static async Task<bool> AddResultAsync(TestOperationResult testOperationResult)
+        public async Task<bool> AddResultAsync(TestOperationResult testOperationResult)
         {
             try
             {
-                if (!Enum.TryParse(testOperationResult.Type, out TestOperationResultType resultType))
+                if (!Enum.TryParse(testOperationResult.Type, out Microsoft.Azure.Devices.Edge.ModuleUtil.TestOperationResultType resultType))
                 {
                     Logger.LogWarning($"Test result has unsupported result type '{testOperationResult.Type}'. Test result: {testOperationResult.Source}, {testOperationResult.CreatedAt}, {testOperationResult.Result}");
                     return false;
                 }
 
-                if (!resultStores.TryGetValue(testOperationResult.Source, out ISequentialStore<TestOperationResult> resultStore))
+                if (!this.ResultStores.TryGetValue(testOperationResult.Source, out ISequentialStore<TestOperationResult> resultStore))
                 {
                     string message = $"Source {testOperationResult.Source} is not valid.";
                     Logger.LogError(message);

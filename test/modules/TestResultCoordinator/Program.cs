@@ -20,9 +20,6 @@ namespace TestResultCoordinator
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
-            await TestOperationResultStorage.InitAsync(Settings.Current.StoragePath, new SystemEnvironment(), Settings.Current.OptimizeForPerformance, Settings.Current.ResultSources);
-            Logger.LogInformation("TestOperationResultStorage created successfully");
-
             Logger.LogInformation("Creating WebHostBuilder...");
             Task webHost = CreateWebHostBuilder(args).Build().RunAsync(cts.Token);
 
