@@ -31,6 +31,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Storage\Microsoft.Azure.Devices.Edge.Storage.csproj" />
     <ProjectReference Include="..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
     <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Agent.IoTHub\Microsoft.Azure.Devices.Edge.Agent.IoTHub.csproj" />
   </ItemGroup>
