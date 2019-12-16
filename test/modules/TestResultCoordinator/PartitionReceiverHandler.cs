@@ -40,6 +40,8 @@ namespace TestResultCoordinator
                     eventData.SystemProperties.TryGetValue(DeviceIdPropertyName, out object deviceIdFromEvent);
                     eventData.SystemProperties.TryGetValue(ModuleIdPropertyName, out object moduleIdFromEvent);
 
+                    Logger.LogInformation($"Received event from Event Hub: trackingId={(string)trackingIdFromEvent}, deviceId={(string)deviceIdFromEvent}, moduleId={(string)moduleIdFromEvent}");
+
                     if (!string.IsNullOrWhiteSpace((string)trackingIdFromEvent) &&
                         string.Equals(trackingIdFromEvent.ToString(), this.trackingId, StringComparison.OrdinalIgnoreCase) &&
                         !string.IsNullOrWhiteSpace((string)deviceIdFromEvent) &&
@@ -49,12 +51,13 @@ namespace TestResultCoordinator
                         eventData.Properties.TryGetValue(TestConstants.Message.SequenceNumberPropertyName, out object sequenceNumberFromEvent);
                         eventData.Properties.TryGetValue(TestConstants.Message.BatchIdPropertyName, out object batchIdFromEvent);
 
+                        Logger.LogInformation($"Recieved event from Event Hub: sequenceNumber={(string)sequenceNumberFromEvent}, batchId={(string)batchIdFromEvent}");
+
                         if (!string.IsNullOrWhiteSpace((string)sequenceNumberFromEvent) &&
                             !string.IsNullOrWhiteSpace((string)batchIdFromEvent))
                         {
                             if (long.TryParse(sequenceNumberFromEvent.ToString(), out long sequenceNumber))
                             {
-                                Logger.LogInformation($"Recieved event hub event: tracking Id={(string)trackingIdFromEvent}, deviceId={(string)deviceIdFromEvent}, moduleId={(string)moduleIdFromEvent}");
                                 DateTime enqueuedtime = GetEnqueuedTime(deviceIdFromEvent.ToString(), moduleIdFromEvent.ToString(), eventData);
 
                                 // TODO: remove hardcoded eventHub string in next line

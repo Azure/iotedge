@@ -6,10 +6,8 @@ namespace TestResultCoordinator
     using System.Threading.Tasks;
     using Microsoft.AspNetCore;
     using Microsoft.AspNetCore.Hosting;
-    using Microsoft.Azure.Devices.Common;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.EventHubs;
     using Microsoft.Extensions.Logging;
 
     class Program
