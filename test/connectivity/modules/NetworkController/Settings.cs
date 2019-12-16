@@ -57,8 +57,8 @@ namespace NetworkController
             this.NetworkId = Preconditions.CheckNonWhiteSpace(networkId, nameof(networkId));
             this.TestResultCoordinatorEndpoint = Preconditions.CheckNotNull(testResultCoordinatorEndpoint, nameof(testResultCoordinatorEndpoint));
             this.NetworkControllerMode = mode;
-            this.TrackingId = trackingId;
-            this.ModuleId = moduleId;
+            this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
+            this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
         }
 
         public static Settings Current => Setting.Value;

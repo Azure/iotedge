@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace NetworkController
 {
-    using System;
     using System.Runtime.InteropServices;
     using System.Threading;
     using System.Threading.Tasks;
@@ -10,13 +9,11 @@ namespace NetworkController
 
     class FirewallOfflineController : IController
     {
-        static readonly ILogger Log = Logger.Factory.CreateLogger<FirewallOfflineController>();
+        static readonly ILogger Log = Logger.Factory.CreateLogger<LinuxFirewallOfflineController>();
         readonly IController underlyingController;
 
         public FirewallOfflineController(string networkInterfaceName)
         {
-            Preconditions.CheckNonWhiteSpace(networkInterfaceName, nameof(networkInterfaceName));
-
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 this.underlyingController = new WindowsFirewallOfflineController(networkInterfaceName);
@@ -29,14 +26,9 @@ namespace NetworkController
 
         public string Description => "FirewallOffline";
 
-        public async Task<NetworkStatus> GetStatus(CancellationToken cs) => await this.underlyingController.GetStatus(cs);
+        public Task<NetworkStatus> GetStatus(CancellationToken cs) => this.underlyingController.GetStatus(cs);
 
-        Task<bool> IController.SetStatus(NetworkStatus status, CancellationToken cs)
-        {
-            throw new NotImplementedException();
-        }
-
-        async Task<bool> SetStatus(NetworkStatus status, CancellationToken cs)
+        public async Task<bool> SetStatus(NetworkStatus status, CancellationToken cs)
         {
             bool result = await this.underlyingController.SetStatus(status, cs);
             Log.LogInformation($"Command SetStatus {NetworkStatus.Restricted} execution success {result}, network status {status}");
