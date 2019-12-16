@@ -28,22 +28,20 @@ namespace DirectMethodSender
                 switch (Settings.Current.RoutingAgency)
                 {
                     case RoutingAgency.EdgeHub:
-                        client = new ModuleClientWrapper();
-                        await client.OpenClientAsync(
-                            new OpenModuleClientAsyncArgs(
+                        client = ModuleClientWrapper.Create(
                                 Settings.Current.TransportType,
                                 ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                                 ModuleUtil.DefaultTransientRetryStrategy,
-                                Logger));
+                                Logger);
+                        await client.OpenClientAsync();
                         break;
 
                     case RoutingAgency.Upstream:
-                        client = new ServiceClientWrapper();
-                        await client.OpenClientAsync(
-                            new OpenServiceClientAsyncArgs(
+                        client = ServiceClientWrapper.Create(
                                 Settings.Current.ServiceClientConnectionString.Expect(() => new ArgumentException("ServiceClientConnectionString is null")),
                                 (Microsoft.Azure.Devices.TransportType)Settings.Current.TransportType,
-                                Logger));
+                                Logger);
+                        await client.OpenClientAsync();
                         break;
 
                     default:
@@ -78,10 +76,6 @@ namespace DirectMethodSender
             catch (Exception e)
             {
                 Logger.LogError(e, "Error occurred during direct method sender test setup");
-            }
-            finally
-            {
-                moduleClient?.Dispose();
             }
 
             Logger.LogInformation("DirectMethodSender Main() finished.");

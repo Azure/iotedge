@@ -8,18 +8,48 @@ namespace DirectMethodSender
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
 
-    public class OpenModuleClientAsyncArgs : IOpenClientAsyncArgs
+    public class ModuleClientWrapper : IDirectMethodClient
     {
-        public readonly TransportType TransportType;
-        public readonly ITransientErrorDetectionStrategy TransientErrorDetectionStrategy;
-        public readonly RetryStrategy RetryStrategy;
-        public readonly ILogger Logger;
+        TransportType TransportType;
+        ITransientErrorDetectionStrategy TransientErrorDetectionStrategy;
+        RetryStrategy RetryStrategy;
+        ILogger Logger;
+        ModuleClient moduleClient = null;
+        int directMethodCount = 1;
 
-        public OpenModuleClientAsyncArgs(
+        private ModuleClientWrapper() 
+        {
+        }
+
+        public static ModuleClientWrapper Create(
+            TransportType transportType,
+            ITransientErrorDetectionStrategy transientErrorDetectionStrategy,
+            RetryStrategy retryStrategy,
+            ILogger logger) => CreateAsync(
+                    transportType,
+                    transientErrorDetectionStrategy,
+                    retryStrategy,
+                    logger).Result;
+
+        private static async Task<ModuleClientWrapper> CreateAsync(
+            TransportType transportType,
+            ITransientErrorDetectionStrategy transientErrorDetectionStrategy,
+            RetryStrategy retryStrategy,
+            ILogger logger)
+        {
+            ModuleClientWrapper client = new ModuleClientWrapper();
+            await client.Init(
+                transportType,
+                transientErrorDetectionStrategy,
+                retryStrategy,
+                logger);
+            return client;
+        }
+
+        private async Task Init(
             TransportType transportType,
             ITransientErrorDetectionStrategy transientErrorDetectionStrategy,
             RetryStrategy retryStrategy,
@@ -29,27 +59,23 @@ namespace DirectMethodSender
             this.TransientErrorDetectionStrategy = transientErrorDetectionStrategy;
             this.RetryStrategy = retryStrategy;
             this.Logger = logger;
-        }
-    }
 
-    public class ModuleClientWrapper : IDirectMethodClient
-    {
-        ModuleClient moduleClient = null;
-        OpenModuleClientAsyncArgs initInfo = null;
-        int directMethodCount = 1;
+            // implicit OpenAsync()
+            this.moduleClient = await ModuleUtil.CreateModuleClientAsync(
+                    this.TransportType,
+                    this.TransientErrorDetectionStrategy,
+                    this.RetryStrategy,
+                    this.Logger);
+        }
 
         public async Task CloseClientAsync()
         {
-            Preconditions.CheckNotNull(this.moduleClient);
             await this.moduleClient.CloseAsync();
         }
 
         public async Task<HttpStatusCode> InvokeDirectMethodAsync(CancellationTokenSource cts)
         {
-            Preconditions.CheckNotNull(this.moduleClient);
-            Preconditions.CheckNotNull(this.initInfo);
-
-            ILogger logger = this.initInfo.Logger;
+            ILogger logger = this.Logger;
             logger.LogInformation("Invoke DirectMethod from module: started.");
 
             string deviceId = Settings.Current.DeviceId;
@@ -83,22 +109,9 @@ namespace DirectMethodSender
             }
         }
 
-        public async Task OpenClientAsync(IOpenClientAsyncArgs args)
+        public async Task OpenClientAsync()
         {
-            if (args == null)
-            {
-                throw new ArgumentException();
-            }
-
-            var info = args as OpenModuleClientAsyncArgs;
-
-            // implicit OpenAsync()
-            this.moduleClient = await ModuleUtil.CreateModuleClientAsync(
-                    info.TransportType,
-                    info.TransientErrorDetectionStrategy,
-                    info.RetryStrategy,
-                    info.Logger);
-            this.initInfo = info;
+            await this.moduleClient.OpenAsync();
         }
     }
 }

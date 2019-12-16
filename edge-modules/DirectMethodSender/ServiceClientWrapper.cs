@@ -6,45 +6,52 @@ namespace DirectMethodSender
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using TransportType = Microsoft.Azure.Devices.TransportType;
 
-    public class OpenServiceClientAsyncArgs : IOpenClientAsyncArgs
+    public class ServiceClientWrapper : IDirectMethodClient
     {
+
         public readonly string ConnectionString;
         public readonly TransportType TransportType;
         public readonly ILogger Logger;
 
-        public OpenServiceClientAsyncArgs(
+        ServiceClient serviceClient = null;
+        int directMethodCount = 1;
+
+        public static ServiceClientWrapper Create(
+            string connectionString,
+            TransportType transportType,
+            ILogger logger)
+        {
+            return new ServiceClientWrapper(
+                connectionString,
+                transportType,
+                logger);
+        }
+
+        private ServiceClientWrapper(
             string connectionString,
             TransportType transportType,
             ILogger logger)
         {
             this.ConnectionString = connectionString;
-            this.TransportType = transportType;
+            this.TransportType =transportType;
             this.Logger = logger;
-        }
-    }
 
-    public class ServiceClientWrapper : IDirectMethodClient
-    {
-        ServiceClient serviceClient = null;
-        OpenServiceClientAsyncArgs initInfo = null;
-        int directMethodCount = 1;
+            this.serviceClient = ServiceClient.CreateFromConnectionString(
+                this.ConnectionString,
+                this.TransportType);
+        }
 
         public async Task CloseClientAsync()
         {
-            Preconditions.CheckNotNull(this.serviceClient);
             await this.serviceClient.CloseAsync();
         }
 
         public async Task<HttpStatusCode> InvokeDirectMethodAsync(CancellationTokenSource cts)
         {
-            Preconditions.CheckNotNull(this.serviceClient);
-            Preconditions.CheckNotNull(this.initInfo);
-
-            ILogger logger = this.initInfo.Logger;
+            ILogger logger = this.Logger;
             logger.LogInformation("Invoke DirectMethod from cloud: started.");
 
             string deviceId = Settings.Current.DeviceId;
@@ -78,21 +85,9 @@ namespace DirectMethodSender
             }
         }
 
-        public async Task OpenClientAsync(IOpenClientAsyncArgs args)
+        public async Task OpenClientAsync()
         {
-            if (args == null)
-            {
-                throw new ArgumentException();
-            }
-
-            var info = args as OpenServiceClientAsyncArgs;
-
-            this.serviceClient = ServiceClient.CreateFromConnectionString(
-                info.ConnectionString,
-                info.TransportType);
-
             await this.serviceClient.OpenAsync();
-            this.initInfo = info;
         }
     }
 }
