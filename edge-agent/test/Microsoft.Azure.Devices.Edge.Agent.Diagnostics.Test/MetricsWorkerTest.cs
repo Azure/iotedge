@@ -10,6 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -152,7 +153,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             var scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 1.0)));
             scraper.Setup(s => s.ScrapeEndpointsAsync(ct)).ReturnsAsync(() => scrapeResults);
 
-            var storage = new MetricsFileStorage(this.tempDirectory.CreateTempDir());
+            var systemTime = new Mock<ISystemTime>();
+            DateTime fakeTime = DateTime.Now;
+            systemTime.Setup(x => x.UtcNow).Returns(() => fakeTime);
+            var storage = new MetricsFileStorage(this.tempDirectory.CreateTempDir(), systemTime.Object);
 
             var uploader = new Mock<IMetricsPublisher>();
             IEnumerable<Metric> uploadedData = Enumerable.Empty<Metric>();
@@ -163,8 +167,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             /* test without de-duping */
             scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 1.0)));
             await worker.Scrape(ct);
+            fakeTime = fakeTime.AddMinutes(5);
             scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 2.0)));
             await worker.Scrape(ct);
+            fakeTime = fakeTime.AddMinutes(5);
             await worker.Upload(ct);
             Assert.Equal(20, uploadedData.Count());
             await worker.Upload(ct);
@@ -173,7 +179,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             /* test de-duping */
             scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 5.0)));
             await worker.Scrape(ct);
+            fakeTime = fakeTime.AddMinutes(5);
             await worker.Scrape(ct);
+            fakeTime = fakeTime.AddMinutes(5);
             await worker.Upload(ct);
             Assert.Equal(10, uploadedData.Count());
             await worker.Upload(ct);
@@ -182,63 +190,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             /* test mix of de-duping and not */
             scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 7.0)));
             await worker.Scrape(ct);
+            fakeTime = fakeTime.AddMinutes(5);
             scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", i % 2 == 0 ? 7.0 : 8.0)));
             await worker.Scrape(ct);
+            fakeTime = fakeTime.AddMinutes(5);
             scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 7.0)));
             await worker.Scrape(ct);
+            fakeTime = fakeTime.AddMinutes(5);
             await worker.Upload(ct);
             Assert.Equal(20, uploadedData.Count());
             await worker.Upload(ct);
             Assert.Empty(uploadedData);
         }
-
-        [Fact]
-        public void TestRemoveDuplicateMetrics()
-        {
-            Metric[] scrape1 = Enumerable.Range(1, 100).Select(i => new Metric(new DateTime(this.rand.Next(1000, 10000), DateTimeKind.Utc), $"Test Metric {i}", i, $"{i}")).ToArray();
-
-            // all odd values are changed, so they should be removed.
-            Metric[] scrape2 = scrape1.Select(m => new Metric(new DateTime(this.rand.Next(1000, 10000), DateTimeKind.Utc), m.Name, m.Value + m.Value % 2, m.Tags)).ToArray();
-
-            Metric[] result = MetricsDeDuplication.RemoveDuplicateMetrics(scrape1.Concat(scrape2)).ToArray();
-            Assert.Equal(150, result.Length);
-
-            string[] expected = scrape1.Select(m => m.Name).Concat(scrape2.Where(m => int.Parse(m.Tags) % 2 == 1).Select(m => m.Name)).OrderBy(n => n).ToArray();
-            string[] actual = result.Select(m => m.Name).OrderBy(n => n).ToArray();
-            Assert.Equal(expected, actual);
-        }
-
-        [Fact]
-        public void TestRemoveDuplicateKeepsLine()
-        {
-            DateTime baseTime = new DateTime(10000000, DateTimeKind.Utc);
-
-            Metric[] testMetrics = new Metric[]
-            {
-                new Metric(baseTime, "Test", 1, "Tags"),
-                new Metric(baseTime.AddMinutes(1), "Test", 1, "Tags"),
-                new Metric(baseTime.AddMinutes(2), "Test", 1, "Tags"),
-                new Metric(baseTime.AddMinutes(3), "Test", 1, "Tags"),
-                new Metric(baseTime.AddMinutes(4), "Test", 2, "Tags"),
-                new Metric(baseTime.AddMinutes(5), "Test", 3, "Tags"),
-                new Metric(baseTime.AddMinutes(6), "Test", 3, "Tags"),
-                new Metric(baseTime.AddMinutes(7), "Test", 3, "Tags"),
-                new Metric(baseTime.AddMinutes(8), "Test", 3, "Tags"),
-                new Metric(baseTime.AddMinutes(9), "Test", 3, "Tags"),
-            };
-
-            Metric[] expected = new Metric[]
-            {
-                new Metric(baseTime, "Test", 1, "Tags"),
-                new Metric(baseTime.AddMinutes(3), "Test", 1, "Tags"),
-                new Metric(baseTime.AddMinutes(4), "Test", 2, "Tags"),
-                new Metric(baseTime.AddMinutes(5), "Test", 3, "Tags"),
-                new Metric(baseTime.AddMinutes(9), "Test", 3, "Tags"),
-            };
-
-            Metric[] result = MetricsDeDuplication.RemoveDuplicateMetrics(testMetrics).ToArray();
-            Assert.Equal(expected, result);
-    }
 
         [Fact]
         public async Task TestNoOverlap()

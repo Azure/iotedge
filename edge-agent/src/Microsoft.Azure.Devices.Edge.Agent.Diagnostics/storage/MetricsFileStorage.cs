@@ -33,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage
         public Task<IEnumerable<Metric>> GetAllMetricsAsync()
         {
             return Directory.GetFiles(this.directory)
+                .OrderBy(filename => filename)
                 .SelectManyAsync<string, Metric>(async filename =>
                 {
                     Metric[] fileMetrics;
