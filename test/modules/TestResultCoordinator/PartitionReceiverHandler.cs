@@ -36,7 +36,7 @@ namespace TestResultCoordinator
             {
                 foreach (EventData eventData in events)
                 {
-                    eventData.SystemProperties.TryGetValue(TestConstants.Message.TrackingIdPropertyName, out object trackingIdFromEvent);
+                    eventData.Properties.TryGetValue(TestConstants.Message.TrackingIdPropertyName, out object trackingIdFromEvent);
                     eventData.SystemProperties.TryGetValue(DeviceIdPropertyName, out object deviceIdFromEvent);
                     eventData.SystemProperties.TryGetValue(ModuleIdPropertyName, out object moduleIdFromEvent);
 

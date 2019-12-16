@@ -45,7 +45,7 @@
               "messageFrequency": {
                 "value": "<LoadGen.MessageFrequency>"
               },
-              "testRunDuration": {
+              "testDuration": {
                 "value": "<TestDuration>"
               },
               "testStartDelay": {
@@ -78,7 +78,7 @@
               "messageFrequency": {
                 "value": "<LoadGen.MessageFrequency>"
               },
-              "testRunDuration": {
+              "testDuration": {
                 "value": "<TestDuration>"
               },
               "testStartDelay": {
