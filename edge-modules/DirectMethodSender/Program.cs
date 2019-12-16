@@ -33,7 +33,7 @@ namespace DirectMethodSender
                     Logger);
 
                 Option<Uri> analyzerUrl = Settings.Current.AnalyzerUrl;
-                analyzerUrl.ForEach(
+                await analyzerUrl.ForEachAsync(
                     async (Uri uri) =>
                     {
                         AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = uri.AbsoluteUri };
