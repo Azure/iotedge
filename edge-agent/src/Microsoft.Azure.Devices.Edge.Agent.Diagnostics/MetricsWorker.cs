@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             {
                 Log.LogInformation($"Uploading Metrics");
                 IEnumerable<Metric> metricsToUpload = await this.storage.GetAllMetricsAsync();
-                metricsToUpload = this.RemoveDuplicateMetrics(metricsToUpload);
+                metricsToUpload = RemoveDuplicateMetrics(metricsToUpload);
 
                 if (await this.uploader.PublishAsync(metricsToUpload, cancellationToken))
                 {
@@ -85,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             }
         }
 
-        IEnumerable<Metric> RemoveDuplicateMetrics(IEnumerable<Metric> metrics)
+        internal static IEnumerable<Metric> RemoveDuplicateMetrics(IEnumerable<Metric> metrics)
         {
             Dictionary<int, Metric> previousValues = new Dictionary<int, Metric>();
 
@@ -118,6 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                 await Task.Delay(backoffDelay, cancellationToken);
                 if (await this.TryUploadAndClear(cancellationToken))
                 {
+                    // Upload succeded, end loop
                     return;
                 }
             }

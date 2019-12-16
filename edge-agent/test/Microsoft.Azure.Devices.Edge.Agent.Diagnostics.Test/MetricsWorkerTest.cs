@@ -16,20 +16,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
     public class MetricsWorkerTest : IDisposable
     {
         TempDirectory tempDirectory = new TempDirectory();
+        Random rand = new Random();
 
         [Fact]
         public async Task TestScraping()
         {
-            /* test data */
-            Metric[] testData = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 1.0)).ToArray()).ToArray();
-            Metric ReplaceWithNewValue(Metric[] list, int index, double newValue)
-            {
-                return list[index] = new Metric(list[index].TimeGeneratedUtc, list[index].Name, newValue, list[index].Tags);
-            }
-
             /* Setup mocks */
+            Metric[] testData = new Metric[0];
             var scraper = new Mock<IMetricsScraper>();
-            scraper.Setup(s => s.ScrapeEndpointsAsync(CancellationToken.None)).ReturnsAsync(testData);
+            scraper.Setup(s => s.ScrapeEndpointsAsync(CancellationToken.None)).ReturnsAsync(() => testData);
 
             var storage = new Mock<IMetricsStorage>();
             IEnumerable<Metric> storedValues = Enumerable.Empty<Metric>();
@@ -40,36 +35,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
 
             // all values are stored
+            testData = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", this.rand.NextDouble())).ToArray()).ToArray();
             await worker.Scrape(CancellationToken.None);
             Assert.Equal(1, scraper.Invocations.Count);
             Assert.Equal(1, storage.Invocations.Count);
             Assert.Equal(testData, storedValues);
 
-            // duplicates don't get stored
+            testData = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", this.rand.NextDouble())).ToArray()).ToArray();
             await worker.Scrape(CancellationToken.None);
             Assert.Equal(2, scraper.Invocations.Count);
-            Assert.Empty(storedValues);
-
-            Metric newMetric = ReplaceWithNewValue(testData, 1, 2.5);
-            await worker.Scrape(CancellationToken.None);
-            Assert.Equal(3, scraper.Invocations.Count);
-            Assert.Equal(newMetric, storedValues.Single());
-
-            // multiple values get stored
-            Metric[] newMetrics = new Metric[]
-            {
-                ReplaceWithNewValue(testData, 1, 5.5),
-                ReplaceWithNewValue(testData, 5, 6),
-                ReplaceWithNewValue(testData, 7, 7.5),
-            };
-            await worker.Scrape(CancellationToken.None);
-            Assert.Equal(4, scraper.Invocations.Count);
-            Assert.Equal(newMetrics, storedValues);
-
-            // multiple duplicates don't get stored
-            await worker.Scrape(CancellationToken.None);
-            Assert.Equal(5, scraper.Invocations.Count);
-            Assert.Empty(storedValues);
+            Assert.Equal(2, storage.Invocations.Count);
+            Assert.Equal(testData, storedValues);
         }
 
         [Fact]
@@ -81,17 +57,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             var storage = new Mock<IMetricsStorage>();
             storage.Setup(s => s.GetAllMetricsAsync()).ReturnsAsync(Enumerable.Empty<Metric>());
 
+            TaskCompletionSource<object> uploadStarted = new TaskCompletionSource<object>();
+            TaskCompletionSource<bool> finishUpload = new TaskCompletionSource<bool>();
             var uploader = new Mock<IMetricsPublisher>();
             IEnumerable<Metric> uploadedData = Enumerable.Empty<Metric>();
-            uploader.Setup(u => u.PublishAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Callback((Action<IEnumerable<Metric>, CancellationToken>)((data, __) => uploadedData = data)).ReturnsAsync(true);
+            uploader.Setup(u => u.PublishAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Callback((Action<IEnumerable<Metric>, CancellationToken>)((data, __) =>
+            {
+                uploadedData = data;
+                uploadStarted.SetResult(null);
+            })).Returns(finishUpload.Task);
 
             MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
 
             /* test */
-            await worker.Upload(CancellationToken.None);
+            Task workerTask = worker.Upload(CancellationToken.None);
+            await uploadStarted.Task;
             uploadedData.ToList();
-            Assert.Equal(1, storage.Invocations.Count);
             Assert.Equal(1, uploader.Invocations.Count);
+            Assert.Single(storage.Invocations.Where(i => i.Method.Name == "GetAllMetricsAsync"));
+            Assert.Empty(storage.Invocations.Where(i => i.Method.Name == "RemoveAllReturnedMetricsAsync"));
+            finishUpload.SetResult(true);
+            Assert.Single(storage.Invocations.Where(i => i.Method.Name == "GetAllMetricsAsync"));
+            Assert.Single(storage.Invocations.Where(i => i.Method.Name == "RemoveAllReturnedMetricsAsync"));
         }
 
         [Fact]
@@ -114,8 +101,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             /* test */
             await worker.Upload(CancellationToken.None);
             Assert.Equal(metrics.OrderBy(x => x.Tags), uploadedData.OrderBy(x => x.Tags));
-            Assert.Equal(1, storage.Invocations.Count);
-            Assert.Equal(1, uploader.Invocations.Count);
+            Assert.Single(storage.Invocations.Where(i => i.Method.Name == "GetAllMetricsAsync"));
+            Assert.Single(storage.Invocations.Where(i => i.Method.Name == "RemoveAllReturnedMetricsAsync"));
+            Assert.Single(uploader.Invocations);
         }
 
         [Fact]
@@ -149,8 +137,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
                 Assert.Equal(numMetrics++ / 10 + 1, metricsCalls);
             }
 
-            Assert.Equal(1, storage.Invocations.Count);
-            Assert.Equal(1, uploader.Invocations.Count);
+            Assert.Single(storage.Invocations.Where(i => i.Method.Name == "GetAllMetricsAsync"));
+            Assert.Single(storage.Invocations.Where(i => i.Method.Name == "RemoveAllReturnedMetricsAsync"));
+            Assert.Single(uploader.Invocations);
         }
 
         [Fact]
@@ -200,6 +189,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             Assert.Equal(20, uploadedData.Count());
             await worker.Upload(ct);
             Assert.Empty(uploadedData);
+        }
+
+        [Fact]
+        public void TestRemoveDuplicateMetrics()
+        {
+            Metric[] scrape1 = Enumerable.Range(1, 100).Select(i => new Metric(new DateTime(this.rand.Next(1000, 10000), DateTimeKind.Utc), $"Test Metric {i}", i, $"{i}")).ToArray();
+
+            // all odd values are changed, so they should be removed.
+            Metric[] scrape2 = scrape1.Select(m => new Metric(new DateTime(this.rand.Next(1000, 10000), DateTimeKind.Utc), m.Name, m.Value + m.Value % 2, m.Tags)).ToArray();
+
+            Metric[] result = MetricsWorker.RemoveDuplicateMetrics(scrape1.Concat(scrape2)).ToArray();
+            Assert.Equal(150, result.Length);
+
+            string[] expected = scrape1.Select(m => m.Name).Concat(scrape2.Where(m => int.Parse(m.Tags) % 2 == 1).Select(m => m.Name)).OrderBy(n => n).ToArray();
+            string[] actual = result.Select(m => m.Name).OrderBy(n => n).ToArray();
+            Assert.Equal(expected, actual);
         }
 
         [Fact]
