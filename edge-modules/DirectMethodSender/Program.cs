@@ -38,14 +38,14 @@ namespace DirectMethodSender
                     analyzerUrl.ForEach(async (uri) =>
                     {
                         AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = uri.AbsoluteUri };
-                        Action<MethodResponse> reportResult = async (response) => await ReportStatus(Settings.Current.TargetModuleId, response, analyzerClient);
-                        await StartDirectMethdTests(moduleClient, reportResult, Settings.Current.DirectMethodDelay, cts);
+                        Func<MethodResponse, Task> reportResult = async (response) => await ReportStatus(Settings.Current.TargetModuleId, response, analyzerClient);
+                        await StartDirectMethodTests(moduleClient, reportResult, Settings.Current.DirectMethodDelay, cts);
                     });
                 }
                 else
                 {
-                    Action<MethodResponse> reportResult = async (response) => await moduleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method call succeeded.")));
-                    await StartDirectMethdTests(moduleClient, reportResult, Settings.Current.DirectMethodDelay, cts);
+                    Func<MethodResponse, Task> reportResult = async (response) => await moduleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method call succeeded.")));
+                    await StartDirectMethodTests(moduleClient, reportResult, Settings.Current.DirectMethodDelay, cts);
                 }
 
                 await moduleClient.CloseAsync();
@@ -67,9 +67,9 @@ namespace DirectMethodSender
             return 0;
         }
 
-        static async Task StartDirectMethdTests(
+        static async Task StartDirectMethodTests(
             ModuleClient moduleClient,
-            Action<MethodResponse> reportResult,
+            Func<MethodResponse, Task> reportResult,
             TimeSpan delay,
             CancellationTokenSource cts)
         {
@@ -96,7 +96,7 @@ namespace DirectMethodSender
                         Logger.LogError(statusMessage);
                     }
 
-                    reportResult.Invoke(response);
+                    await reportResult(response);
                     directMethodCount++;
                 }
                 catch (Exception e)
