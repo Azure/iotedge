@@ -37,6 +37,7 @@ namespace TestResultCoordinator
                     configuration.GetValue<string>("logAnalyticsLogType"),
                     configuration.GetValue("storagePath", DefaultStoragePath),
                     configuration.GetValue<bool>("optimizeForPerformance", true),
+                    configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
                     configuration.GetValue("testDuration", TimeSpan.FromHours(1)),
                     configuration.GetValue("verificationDelay", TimeSpan.FromMinutes(15)));
             });
@@ -51,6 +52,7 @@ namespace TestResultCoordinator
             string logAnalyticsLogType,
             string storagePath,
             bool optimizeForPerformance,
+            TimeSpan testStartDelay,
             TimeSpan testDuration,
             TimeSpan verificationDelay)
         {
@@ -66,6 +68,7 @@ namespace TestResultCoordinator
             this.StoragePath = storagePath;
             this.OptimizeForPerformance = Preconditions.CheckNotNull(optimizeForPerformance);
             this.TestDuration = testDuration;
+            this.TestStartDelay = testStartDelay;
             this.ResultSources = this.GetResultSources();
             this.DurationBeforeVerification = verificationDelay;
             this.ConsumerGroupName = "$Default";
@@ -106,6 +109,8 @@ namespace TestResultCoordinator
 
         public TimeSpan TestDuration { get; }
 
+        public TimeSpan TestStartDelay { get; }
+
         public List<string> ResultSources { get; }
 
         public TimeSpan DurationBeforeVerification { get; }
@@ -124,6 +129,7 @@ namespace TestResultCoordinator
                 { nameof(this.WebHostPort), this.WebHostPort.ToString() },
                 { nameof(this.StoragePath), this.StoragePath },
                 { nameof(this.OptimizeForPerformance), this.OptimizeForPerformance.ToString() },
+                { nameof(this.TestStartDelay), this.TestDuration.ToString() },
                 { nameof(this.TestDuration), this.TestDuration.ToString() },
                 { nameof(this.ResultSources), string.Join("\n", this.ResultSources) },
                 { nameof(this.DurationBeforeVerification), this.DurationBeforeVerification.ToString() },

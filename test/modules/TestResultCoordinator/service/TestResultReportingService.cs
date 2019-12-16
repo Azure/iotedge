@@ -21,7 +21,7 @@ namespace TestResultCoordinator.Service
 
         public TestResultReportingService()
         {
-            this.delayBeforeWork = Settings.Current.TestDuration + Settings.Current.DurationBeforeVerification;
+            this.delayBeforeWork = Settings.Current.TestStartDelay + Settings.Current.TestDuration + Settings.Current.DurationBeforeVerification;
         }
 
         public Task StartAsync(CancellationToken ct)

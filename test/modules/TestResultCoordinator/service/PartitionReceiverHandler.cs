@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace TestResultCoordinator
+namespace TestResultCoordinator.Service
 {
     using System;
     using System.Collections.Generic;
@@ -8,6 +8,7 @@ namespace TestResultCoordinator
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.EventHubs;
     using Microsoft.Extensions.Logging;
+    using TestOperationResult = TestResultCoordinator.TestOperationResult;
 
     class PartitionReceiveHandler : IPartitionReceiveHandler
     {
