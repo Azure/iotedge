@@ -37,7 +37,7 @@ namespace TwinTester
             }
             catch (Exception ex)
             {
-                Logger.LogError($"Error occurred during twin test setup.\r\n{ex}");
+                Logger.LogError(ex, $"Error occurred during twin test setup.");
             }
         }
 

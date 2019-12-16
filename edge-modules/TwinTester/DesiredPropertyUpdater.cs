@@ -12,10 +12,10 @@ namespace TwinTester
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(DesiredPropertyUpdater));
         readonly RegistryManager registryManager;
-        readonly IResultHandler resultHandler;
+        readonly ITwinTestResultHandler resultHandler;
         readonly TwinState twinState;
 
-        public DesiredPropertyUpdater(RegistryManager registryManager, IResultHandler resultHandler, TwinState twinState)
+        public DesiredPropertyUpdater(RegistryManager registryManager, ITwinTestResultHandler resultHandler, TwinState twinState)
         {
             this.registryManager = registryManager;
             this.resultHandler = resultHandler;
@@ -42,7 +42,7 @@ namespace TwinTester
             }
             catch (Exception e)
             {
-                Logger.LogInformation($"Failed call to desired property update: {e}");
+                Logger.LogError(e, "Failed call to desired property update.");
                 return;
             }
         }
@@ -56,7 +56,7 @@ namespace TwinTester
             }
             catch (Exception e)
             {
-                Logger.LogError($"Failed reporting desired property update for {propertyKey}: {e}");
+                Logger.LogError(e, $"Failed reporting desired property update for {propertyKey}.");
             }
         }
     }

@@ -18,9 +18,9 @@ namespace TwinTester
         readonly TwinState twinState;
         readonly ModuleClient moduleClient;
         readonly TwinEventStorage storage;
-        readonly IResultHandler reporter;
+        readonly ITwinTestResultHandler reporter;
 
-        public ReportedPropertiesValidator(RegistryManager registryManager, ModuleClient moduleClient, TwinEventStorage storage, IResultHandler reporter, TwinState twinState)
+        public ReportedPropertiesValidator(RegistryManager registryManager, ModuleClient moduleClient, TwinEventStorage storage, ITwinTestResultHandler reporter, TwinState twinState)
         {
             this.registryManager = registryManager;
             this.moduleClient = moduleClient;
@@ -41,12 +41,12 @@ namespace TwinTester
             {
                 if (e is IotHubCommunicationException || e is OperationCanceledException) // This is the transient exception case for microsoft.azure.devices.client.deviceclient version 1.21.2
                 {
-                    Logger.LogInformation($"Failed call to registry manager get twin due to transient error: {e}");
+                    Logger.LogError(e, "Failed call to registry manager get twin due to transient error.");
                     this.twinState.LastTimeOffline = DateTime.UtcNow;
                 }
                 else
                 {
-                    Logger.LogInformation($"Failed call to registry manager get twin due to non-transient error: {e}");
+                    Logger.LogError(e, "Failed call to registry manager get twin due to non-transient error.");
                 }
 
                 return;
@@ -68,7 +68,7 @@ namespace TwinTester
                 }
                 catch (Exception e)
                 {
-                    Logger.LogError($"Failed to remove validated reported property id {property.Key} from storage: {e}");
+                    Logger.LogError(e, $"Failed to remove validated reported property id {property.Key} from storage.");
                 }
             }
         }
@@ -81,7 +81,7 @@ namespace TwinTester
             }
             catch (Exception e)
             {
-                Logger.LogInformation($"Failed call to twin property reset: {e}");
+                Logger.LogError(e, "Failed call to twin property reset.");
             }
         }
 
@@ -101,7 +101,7 @@ namespace TwinTester
                     }
                     catch (Exception e)
                     {
-                        Logger.LogError($"Failed to remove validated reported property id {reportedPropertyUpdate.Key} from storage: {e}");
+                        Logger.LogError(e, $"Failed to remove validated reported property id {reportedPropertyUpdate.Key} from storage.");
                         continue;
                     }
 
@@ -111,7 +111,7 @@ namespace TwinTester
                 else if (this.ExceedFailureThreshold(this.twinState, reportedPropertyUpdate.Value))
                 {
                     status = $"{(int)StatusCode.ReportedPropertyUpdateNotInCloudTwin}: Failure receiving reported property update";
-                    Logger.LogError(status + $" for reported property update {reportedPropertyUpdate.Key}");
+                    Logger.LogInformation($"{status} for reported property update {reportedPropertyUpdate.Key}");
                 }
                 else
                 {

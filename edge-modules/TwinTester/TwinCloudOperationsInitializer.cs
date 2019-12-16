@@ -17,12 +17,12 @@ namespace TwinTester
         readonly DesiredPropertyUpdater desiredPropertyUpdater;
         PeriodicTask periodicUpdate;
 
-        TwinCloudOperationsInitializer(RegistryManager registryManager, IResultHandler resultHandler, TwinState twinState)
+        TwinCloudOperationsInitializer(RegistryManager registryManager, ITwinTestResultHandler resultHandler, TwinState twinState)
         {
             this.desiredPropertyUpdater = new DesiredPropertyUpdater(registryManager, resultHandler, twinState);
         }
 
-        public static async Task<TwinCloudOperationsInitializer> CreateAsync(RegistryManager registryManager, IResultHandler resultHandler)
+        public static async Task<TwinCloudOperationsInitializer> CreateAsync(RegistryManager registryManager, ITwinTestResultHandler resultHandler)
         {
             try
             {

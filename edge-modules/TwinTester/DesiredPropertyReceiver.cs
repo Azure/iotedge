@@ -13,9 +13,9 @@ namespace TwinTester
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(DesiredPropertyReceiver));
         readonly RegistryManager registryManager;
         readonly ModuleClient moduleClient;
-        readonly IResultHandler resultHandler;
+        readonly ITwinTestResultHandler resultHandler;
 
-        public DesiredPropertyReceiver(RegistryManager registryManager, ModuleClient moduleClient, IResultHandler resultHandler)
+        public DesiredPropertyReceiver(RegistryManager registryManager, ModuleClient moduleClient, ITwinTestResultHandler resultHandler)
         {
             this.registryManager = registryManager;
             this.moduleClient = moduleClient;

@@ -14,10 +14,10 @@ namespace TwinTester
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(ReportedPropertyUpdater));
         readonly RegistryManager registryManager;
         readonly ModuleClient moduleClient;
-        readonly IResultHandler reporter;
+        readonly ITwinTestResultHandler reporter;
         readonly TwinState twinState;
 
-        public ReportedPropertyUpdater(RegistryManager registryManager, ModuleClient moduleClient, IResultHandler reporter, TwinState twinState)
+        public ReportedPropertyUpdater(RegistryManager registryManager, ModuleClient moduleClient, ITwinTestResultHandler reporter, TwinState twinState)
         {
             this.registryManager = registryManager;
             this.moduleClient = moduleClient;
@@ -41,7 +41,7 @@ namespace TwinTester
             catch (Exception e)
             {
                 string failureStatus = $"{(int)StatusCode.ReportedPropertyUpdateCallFailure}: Failed call to update reported properties";
-                Logger.LogError(failureStatus + $": {e}");
+                Logger.LogError(e, failureStatus);
                 await this.reporter.HandleReportedPropertyUpdateExceptionAsync(this.twinState.ReportedPropertyUpdateCounter.ToString(), failureStatus);
                 return;
             }
@@ -56,7 +56,7 @@ namespace TwinTester
             }
             catch (Exception e)
             {
-                Logger.LogError($"Failed adding reported property update to storage: {e}");
+                Logger.LogError(e, "Failed adding reported property update to storage.");
             }
         }
     }

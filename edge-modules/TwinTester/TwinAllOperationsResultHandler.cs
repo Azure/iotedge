@@ -8,7 +8,7 @@ namespace TwinTester
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
 
-    class TwinAllOperationsResultHandler : IResultHandler
+    class TwinAllOperationsResultHandler : ITwinTestResultHandler
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TwinAllOperationsResultHandler));
         readonly AnalyzerClient analyzerClient;
@@ -34,7 +34,7 @@ namespace TwinTester
             }
             catch (Exception e)
             {
-                Logger.LogError($"Failed call to report status to storage: {e}");
+                Logger.LogError(e, "Failed call to report status to storage.");
             }
         }
 
@@ -46,7 +46,7 @@ namespace TwinTester
             }
             catch (Exception e)
             {
-                Logger.LogError($"Failed call to report status to storage: {e}");
+                Logger.LogError(e, "Failed call to report status to storage");
             }
         }
 
@@ -58,7 +58,7 @@ namespace TwinTester
             }
             catch (Exception e)
             {
-                Logger.LogError($"Failed call to report status to storage: {e}");
+                Logger.LogError(e, "Failed call to report status to storage.");
             }
         }
 
@@ -80,7 +80,7 @@ namespace TwinTester
             }
             catch (Exception e)
             {
-                Logger.LogError($"Failed call to report status to analyzer: {e}");
+                Logger.LogError(e, "Failed call to report status to analyzer.");
             }
         }
     }

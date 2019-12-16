@@ -25,7 +25,7 @@ namespace TwinTester
         PeriodicTask periodicValidation;
         PeriodicTask periodicUpdate;
 
-        TwinAllOperationsInitializer(RegistryManager registryManager, ModuleClient moduleClient, IResultHandler resultHandler, TwinEventStorage storage, TwinState twinState)
+        TwinAllOperationsInitializer(RegistryManager registryManager, ModuleClient moduleClient, ITwinTestResultHandler resultHandler, TwinEventStorage storage, TwinState twinState)
         {
             this.reportedPropertyUpdater = new ReportedPropertyUpdater(registryManager, moduleClient, resultHandler, twinState);
             this.desiredPropertyUpdater = new DesiredPropertyUpdater(registryManager, resultHandler, twinState);
@@ -34,7 +34,7 @@ namespace TwinTester
             this.desiredPropertiesValidator = new DesiredPropertiesValidator(registryManager, moduleClient, storage, resultHandler, twinState);
         }
 
-        public static async Task<TwinAllOperationsInitializer> CreateAsync(RegistryManager registryManager, ModuleClient moduleClient, IResultHandler resultHandler, TwinEventStorage storage)
+        public static async Task<TwinAllOperationsInitializer> CreateAsync(RegistryManager registryManager, ModuleClient moduleClient, ITwinTestResultHandler resultHandler, TwinEventStorage storage)
         {
             try
             {

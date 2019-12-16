@@ -9,7 +9,7 @@ namespace TwinTester
     using Newtonsoft.Json;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient;
 
-    class TwinEdgeOperationsResultHandler : IResultHandler
+    class TwinEdgeOperationsResultHandler : ITwinTestResultHandler
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TwinEdgeOperationsResultHandler));
         readonly TestResultCoordinatorClient trcClient;

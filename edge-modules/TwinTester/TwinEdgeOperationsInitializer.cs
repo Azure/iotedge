@@ -19,13 +19,13 @@ namespace TwinTester
         readonly DesiredPropertyReceiver desiredPropertiesReceiver;
         PeriodicTask periodicUpdate;
 
-        TwinEdgeOperationsInitializer(RegistryManager registryManager, ModuleClient moduleClient, IResultHandler reporter, TwinState initializedState)
+        TwinEdgeOperationsInitializer(RegistryManager registryManager, ModuleClient moduleClient, ITwinTestResultHandler reporter, TwinState initializedState)
         {
             this.reportedPropertyUpdater = new ReportedPropertyUpdater(registryManager, moduleClient, reporter, initializedState);
             this.desiredPropertiesReceiver = new DesiredPropertyReceiver(registryManager, moduleClient, reporter);
         }
 
-        public static async Task<TwinEdgeOperationsInitializer> CreateAsync(RegistryManager registryManager, ModuleClient moduleClient, IResultHandler reporter)
+        public static async Task<TwinEdgeOperationsInitializer> CreateAsync(RegistryManager registryManager, ModuleClient moduleClient, ITwinTestResultHandler reporter)
         {
             try
             {
