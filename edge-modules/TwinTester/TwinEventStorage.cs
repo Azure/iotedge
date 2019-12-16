@@ -28,7 +28,7 @@ namespace TwinTester
             {
                 var partitionsList = new List<string> { "desiredPropertyUpdated", "desiredPropertyReceived", "reportedPropertyUpdated" };
                 IDbStoreProvider dbStoreprovider = DbStoreProvider.Create(
-                    new RocksDbOptionsProvider(systemEnvironment, optimizeForPerformance),
+                    new RocksDbOptionsProvider(systemEnvironment, optimizeForPerformance, Option.None<ulong>()),
                     this.GetStoragePath(storagePath),
                     partitionsList);
 

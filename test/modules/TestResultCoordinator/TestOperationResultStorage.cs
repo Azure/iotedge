@@ -26,7 +26,7 @@ namespace TestResultCoordinator
             try
             {
                 IDbStoreProvider dbStoreprovider = DbStoreProvider.Create(
-                    new RocksDbOptionsProvider(systemEnvironment, optimizeForPerformance),
+                    new RocksDbOptionsProvider(systemEnvironment, optimizeForPerformance, Option.None<ulong>()),
                     GetStoragePath(storagePath),
                     resultSources);
 

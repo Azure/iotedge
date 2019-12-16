@@ -37,7 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
         [Fact]
         public void CreateTest()
         {
-            var options = new RocksDbOptionsProvider(new SystemEnvironment(), true);
+            var options = new RocksDbOptionsProvider(new SystemEnvironment(), true, Option.None<ulong>());
 
             var partitionsList1 = new[]
             {
@@ -73,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb.Test
         [Fact]
         public async Task GetRemoveDefaultPartitionTestAsync()
         {
-            var options = new RocksDbOptionsProvider(new SystemEnvironment(), true);
+            var options = new RocksDbOptionsProvider(new SystemEnvironment(), true, Option.None<ulong>());
 
             var partitionsList = new[]
             {
