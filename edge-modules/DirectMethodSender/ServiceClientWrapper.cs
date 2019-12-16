@@ -41,6 +41,9 @@ namespace DirectMethodSender
 
         public async Task<HttpStatusCode> InvokeDirectMethodAsync(CancellationTokenSource cts)
         {
+            Preconditions.CheckNotNull(this.serviceClient);
+            Preconditions.CheckNotNull(this.initInfo);
+
             ILogger logger = this.initInfo.Logger;
             logger.LogInformation("Invoke DirectMethod from cloud: started.");
 
