@@ -85,19 +85,19 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 case "tls10":
                 case "tls1.0":
                 case "tls1_0":
-                case "tlsv10" :
+                case "tlsv10":
                     sslProtocol = SslProtocols.Tls;
                     return true;
                 case "tls11":
                 case "tls1.1":
                 case "tls1_1":
-                case "tlsv11" :
+                case "tlsv11":
                     sslProtocol = SslProtocols.Tls11;
                     return true;
                 case "tls12":
                 case "tls1.2":
                 case "tls1_2":
-                case "tlsv12" :
+                case "tlsv12":
                     sslProtocol = SslProtocols.Tls12;
                     return true;
             }
