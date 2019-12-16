@@ -23,17 +23,45 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
         [Fact]
         public void TestRemoveDuplicateMetrics()
         {
-            Metric[] scrape1 = Enumerable.Range(1, 100).Select(i => new Metric(new DateTime(this.rand.Next(1000, 10000), DateTimeKind.Utc), $"Test Metric {i}", i, $"{i}")).ToArray();
+            /* fake data */
+            DateTime baseTime = new DateTime(10000000, DateTimeKind.Utc);
+            int start = 10;
+            int n = 100; // Keep this value even
 
-            // all odd values are changed, so they should be removed.
-            Metric[] scrape2 = scrape1.Select(m => new Metric(new DateTime(this.rand.Next(1000, 10000), DateTimeKind.Utc), m.Name, m.Value + m.Value % 2, m.Tags)).ToArray();
+            // baseline
+            Metric[] scrape1 = Enumerable.Range(start, n).Select(i => new Metric(baseTime, $"Test Metric {i}", i, $"Tags")).ToArray();
 
-            Metric[] result = MetricsDeDuplication.RemoveDuplicateMetrics(scrape1.Concat(scrape2)).ToArray();
-            Assert.Equal(150, result.Length);
+            // second half is changed
+            Metric[] scrape2_1 = Enumerable.Range(start, n / 2).Select(i => new Metric(baseTime, $"Test Metric {i}", i, $"Tags")).ToArray();
+            Metric[] scrape2_2 = Enumerable.Range(start + n / 2, n / 2).Select(i => new Metric(baseTime, $"Test Metric {i}", i * 2, $"Tags")).ToArray();
+            Metric[] scrape2 = scrape2_1.Concat(scrape2_2).ToArray();
 
-            string[] expected = scrape1.Select(m => m.Name).Concat(scrape2.Where(m => int.Parse(m.Tags) % 2 == 1).Select(m => m.Name)).OrderBy(n => n).ToArray();
-            string[] actual = result.Select(m => m.Name).OrderBy(n => n).ToArray();
-            Assert.Equal(expected, actual);
+            // everything changed
+            Metric[] scrape3 = Enumerable.Range(start, n).Select(i => new Metric(baseTime, $"Test Metric {i}", i / 2.0, $"Tags")).ToArray();
+
+            /* test */
+            IEnumerable<Metric> test1 = scrape1.Concat(scrape1).Concat(scrape1).Concat(scrape1);
+            IEnumerable<Metric> result1 = MetricsDeDuplication.RemoveDuplicateMetrics(test1);
+            Assert.Equal(n * 2, result1.Count()); // Keeps the first and last results
+
+            IEnumerable<Metric> test2 = scrape1.Concat(scrape1).Concat(scrape1).Concat(scrape2).Concat(scrape2);
+            IEnumerable<Metric> result2 = MetricsDeDuplication.RemoveDuplicateMetrics(test2);
+            Assert.Equal(n * 2 + n, result2.Count()); // Keeps the first and last results of the baseline, and the first and last results of the second half of the second scrape
+
+            IEnumerable<Metric> test3 = scrape1.Concat(scrape1).Concat(scrape1).Concat(scrape1).Concat(scrape3);
+            IEnumerable<Metric> result3 = MetricsDeDuplication.RemoveDuplicateMetrics(test3);
+            Assert.Equal(n * 2 + n, result3.Count()); // Keeps the first and last results of the baseline, and the results of the of the third scrape
+
+            IEnumerable<Metric> test4 = scrape1.Concat(scrape3);
+            IEnumerable<Metric> result4 = MetricsDeDuplication.RemoveDuplicateMetrics(test4);
+            Assert.Equal(n + n, result4.Count()); // Keeps the baseline, and the results of the of the third scrape
+
+            IEnumerable<Metric> test5 = scrape1.Concat(scrape2).Concat(scrape2).Concat(scrape2).Concat(scrape3);
+            IEnumerable<Metric> result5 = MetricsDeDuplication.RemoveDuplicateMetrics(test5);
+            int fromScrape1 = n; // one result from first scrape.
+            int fromScrape2 = n / 2 + n; // initial change catches half, final change gets all
+            int fromScrape3 = n; // Changes all
+            Assert.Equal(fromScrape1 + fromScrape2 + fromScrape3, result5.Count());
         }
 
         [Fact]
