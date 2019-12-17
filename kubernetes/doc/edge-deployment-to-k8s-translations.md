@@ -16,14 +16,14 @@ Edge on K8s will create Namespaces, Deployments, Services, ImagePullSecrets,
 PersistentVolumeClaims, and ServiceAccounts to establish this framework.
 The Edge Docker to K8s object mappings will be described in detail in subsequent sections.
 
-## Namespaces
+## Namespace
 
 Edge on K8s is intended to be installed in a namespace - the `default` namespace is not recommended. 
-The Azure IoT Edge runtime will be installed in that namespace, and there is a 1 to 1 relationship 
-between that namespace and the edge device. Two device may not be installed in the same namespace, 
-but there may be multiple namespaces in the cluster running Edge on K8s. At installation, if the 
-namespace doesn't exist, it will be created. All objects created by Edge on K8s will be 
-namespaced.
+The namespace is provided by the user and must be created before the runtime can be installed. The 
+Azure IoT Edge runtime will be installed in the given namespace, and there is a 1 to 1 relationship 
+between that namespace and the edge device. Two devices may not be installed in the same namespace, 
+but there may be multiple namespaces in the cluster running Edge on K8s. All objects created by 
+Edge on K8s will be namespaced.
 
 ## Common labels
 
@@ -43,21 +43,23 @@ Each Edge Module will create one Deployment. This will run the module's specifie
 ### metadata
 
 - **name**        = Name will be the module name, sanitized to be a K8s identifier.
-- **labels**      = Default label set
+- **namespace**   = The given namespace.
+- **labels**      = Default label set.
 - **annotations** = Deployments will have the original JSON creation string added in the field "net.azure-devices.edge.creationstring".
 
 ### spec (DeploymentSpec)
 
 - **replicas** = Currently set to 1 - only 1 Pod will be created for each module.
 - **selector** = This currently matches the Default label set.
-- **template** = See [PodTemplate](#podtemplate)
+- **template** = See [PodTemplate](#podtemplate).
 
 ### PodTemplate
 
 ##### metadata
 
 - **name**        = Name will be the module name, sanitized to be a K8s identifier.
-- **labels**      = Default label set
+- **namespace**   = The given namespace.
+- **labels**      = Default label set.
 - **annotations** = The pod's metadata will have one fixed annotation:
     - **net.azure-devices.edge.original-moduleid** = unsanitized module id from Edge Deployment Spec.
     - then `settings.createOptions.Labels` will be added to the pod's annotations.
@@ -70,25 +72,25 @@ Each Edge Module will create one Deployment. This will run the module's specifie
         - **name** = Name will be the module name, sanitized to be a K8s identifier.
         - **image** = `settings.image`
         - **env** = env will contain some predefined settings for all modules, then:
-            - Add all environment variables from `env` section in module spec
-            - Add all environment variables from `settings.createOptions.Env`
+            - Add all environment variables from `env` section in module spec.
+            - Add all environment variables from `settings.createOptions.Env`.
         - **securityContext**
-            - privileged = Derived from `settings.createOptions.HostConfig.Privileged`
+            - privileged = Derived from `settings.createOptions.HostConfig.Privileged`.
         - **volumeMounts** = There are 4 sources to volume mounts.
             - bind mounts from `settings.createOptions.HostConfig.Binds` in format "host path:target path[:readwrite mode]".
               *This is not recommended for Edge on K8s.*
-                - Name = Sanitized host path
-                - MountPath = target path
-                - readOnlyProperty = readwrite mode if set, default is false
+                - Name = Sanitized host path.
+                - MountPath = target path.
+                - readOnlyProperty = readwrite mode if set, default is false.
             - bind mounts from `settings.createOptions.HostConfig.Mounts`
               *This is not recommended for Edge on K8s.*
                 - Name = mount.Source
                 - MountPath = mount.Target
-                - readOnlyProperty = readwrite mode if set, default is false
+                - readOnlyProperty = readwrite mode if set, default is false.
             - volume mounts from `settings.createOptions.HostConfig.Mounts`
                 - Name = mount.Source
                 - MountPath = mount.Target
-                - readOnlyProperty = readwrite mode if set, default is false
+                - readOnlyProperty = readwrite mode if set, default is false.
             - volume mounts from `settings.k8s-extensions.volumes[*].volumeMounts`. Placed in spec 
               as provided.
 - **imagePullSecrets**
@@ -99,19 +101,19 @@ Each Edge Module will create one Deployment. This will run the module's specifie
       *This is not recommended for Edge on K8s.*
         - name = Sanitized host path
         - hostPath
-            - path = host path
-            - type = "DirectoryOrCreate"
+            - path = host path.
+            - type = "DirectoryOrCreate".
     - bind mounts from `settings.createOptions.HostConfig.Mounts`
       *This is not recommended for Edge on K8s.*
         - name = mount.Source
         - hostPath
             - path = mount.Source
-            - type = "DirectoryOrCreate"
+            - type = "DirectoryOrCreate".
     - volume mounts from `settings.createOptions.HostConfig.Mounts`
         - name = mount.Source
         - persistentVolumeClaim is assigned if edge runtime is started with `persistentVolumeName` 
-          or `storageClassName` set
-            - claimName = mount.Source
+          or `storageClassName` set.
+            - claimName = module name + mount.Source
             - readOnlyProperty = mount.ReadOnly
         - emptyDir is assigned otherwise.
     - volume mounts from `settings.k8s-extensions.volumes[*].volume`. Placed in spec as provided.
@@ -121,7 +123,8 @@ Each Edge Module will create one Deployment. This will run the module's specifie
 ## Service
 ### metadata
 - **name**        = Name will be the module name, sanitized to be a K8s identifier.
-- **labels**      = Default label set
+- **namespace**   = The given namespace.
+- **labels**      = Default label set.
 - **annotations** = The service's metadata will have one fixed annotation:
     - **net.azure-devices.edge.creationstring** = the original JSON creation string for this object.
     - then `settings.createOptions.Lables` will be added to the service's annotations.
@@ -149,6 +152,7 @@ contain the following fields:
 
 ### metadata
 - **name**        = "<UserName>-<ServerAddress>"
+- **namespace**   = The given namespace.
 ### data
 - **.dockerconfigjson** = Base64 encoding of the pull secret.
 
@@ -165,8 +169,9 @@ gives the Edge Runtime a default claim size as this is not provided by `createOp
 
 ### metadata
 
-- **name**        = mount.Source from `settings.createOptions.HostConfig.Mounts`
-- **labels**      = Default label set
+- **name**        = mount.Source from `settings.createOptions.HostConfig.Mounts`.
+- **namespace**   = The given namespace.
+- **labels**      = Default label set.
 
 ### spec (PersistentVolumeClaimSpec)
 - **accessModes** = list with one element, "ReadOnlyMany" if mount.ReadOnly is true, otherwise, 
