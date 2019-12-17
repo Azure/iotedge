@@ -17,7 +17,7 @@ namespace TestResultCoordinator.Storage
         public static async Task<TestOperationResultStorage> Create(IStoreProvider storeProvider, List<string> resultSources)
         {
             Preconditions.CheckNotNull(storeProvider, nameof(storeProvider));
-            Dictionary<string, ISequentialStore<TestOperationResult>> resultSourcesToStores = new Dictionary<string, ISequentialStore<TestOperationResult>>();
+            var resultSourcesToStores = new Dictionary<string, ISequentialStore<TestOperationResult>>();
             foreach (string resultSource in resultSources)
             {
                 resultSourcesToStores.Add(resultSource, await storeProvider.GetSequentialStore<TestOperationResult>(resultSource));
@@ -34,31 +34,6 @@ namespace TestResultCoordinator.Storage
         public ISequentialStore<TestOperationResult> GetStoreFromSource(string source)
         {
             return this.resultStores.TryGetValue(source, out ISequentialStore<TestOperationResult> store) ? store : throw new InvalidDataException($"Source {source} not found.");
-        }
-
-        static async Task<Dictionary<string, ISequentialStore<TestOperationResult>>> InitializeStoresAsync(StoreProvider storeProvider, List<string> resultSources)
-        {
-            Preconditions.CheckNotNull(storeProvider);
-            Preconditions.CheckNotNull(resultSources);
-            Dictionary<string, ISequentialStore<TestOperationResult>> resultSourcesToStores = new Dictionary<string, ISequentialStore<TestOperationResult>>();
-            foreach (string resultSource in resultSources)
-            {
-                resultSourcesToStores.Add(resultSource, await storeProvider.GetSequentialStore<TestOperationResult>(resultSource));
-            }
-
-            return resultSourcesToStores;
-        }
-
-        static string GetStoragePath(string baseStoragePath)
-        {
-            if (string.IsNullOrWhiteSpace(baseStoragePath) || !Directory.Exists(baseStoragePath))
-            {
-                baseStoragePath = Path.GetTempPath();
-            }
-
-            string storagePath = Path.Combine(baseStoragePath, "TestResultCoordinator");
-            Directory.CreateDirectory(storagePath);
-            return storagePath;
         }
 
         public async Task<bool> AddResultAsync(TestOperationResult testOperationResult)

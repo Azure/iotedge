@@ -27,7 +27,7 @@ namespace TestResultCoordinator.Service
         {
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
-            this.storage = Preconditions.CheckNotNull(storage);
+            this.storage = Preconditions.CheckNotNull(storage, nameof(storage));
         }
 
         public int MaxBatchSize { get; set; }

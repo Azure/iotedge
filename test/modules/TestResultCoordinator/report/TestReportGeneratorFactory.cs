@@ -2,6 +2,7 @@
 namespace TestResultCoordinator.Report
 {
     using System;
+    using Microsoft.Azure.Devices.Edge.Util;
     using TestResultCoordinator.Storage;
 
     class TestReportGeneratorFactory : ITestReportGeneratorFactory
@@ -10,7 +11,7 @@ namespace TestResultCoordinator.Report
 
         public TestReportGeneratorFactory(ITestOperationResultStorage storage)
         {
-            this.storage = storage;
+            this.storage = Preconditions.CheckNotNull(storage, nameof(storage));
         }
 
         public ITestResultReportGenerator Create(

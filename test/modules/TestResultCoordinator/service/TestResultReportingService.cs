@@ -25,8 +25,8 @@ namespace TestResultCoordinator.Service
 
         public TestResultReportingService(ITestOperationResultStorage storage)
         {
-            this.delayBeforeWork = Settings.Current.TestStartDelay + Settings.Current.TestDuration + Settings.Current.DurationBeforeVerification;
             this.storage = Preconditions.CheckNotNull(storage, nameof(storage));
+            this.delayBeforeWork = Settings.Current.TestStartDelay + Settings.Current.TestDuration + Settings.Current.DurationBeforeVerification;
         }
 
         public Task StartAsync(CancellationToken ct)
