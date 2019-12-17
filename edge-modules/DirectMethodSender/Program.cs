@@ -24,11 +24,11 @@ namespace DirectMethodSender
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
             try
             {
-                IDirectMethodClient client;
+                DirectMethodClientBase directMethodClient;
                 switch (Settings.Current.RoutingAgency)
                 {
                     case RoutingAgency.EdgeHub:
-                        client = await ModuleClientWrapper.CreateAsync(
+                        directMethodClient = await ModuleClientWrapper.CreateAsync(
                                 Settings.Current.TransportType,
                                 ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                                 ModuleUtil.DefaultTransientRetryStrategy,
@@ -36,7 +36,7 @@ namespace DirectMethodSender
                         break;
 
                     case RoutingAgency.Upstream:
-                        client = ServiceClientWrapper.Create(
+                        directMethodClient = ServiceClientWrapper.Create(
                                 Settings.Current.ServiceClientConnectionString.Expect(() => new ArgumentException("ServiceClientConnectionString is null")),
                                 (Microsoft.Azure.Devices.TransportType)Settings.Current.TransportType,
                                 Logger);
@@ -46,10 +46,10 @@ namespace DirectMethodSender
                         throw new NotImplementedException("Invalid RoutingAgency type");
                 }
 
-                await client.OpenClientAsync();
+                await directMethodClient.OpenAsync();
                 while (!cts.Token.IsCancellationRequested)
                 {
-                    HttpStatusCode result = await client.InvokeDirectMethodAsync(cts);
+                    HttpStatusCode result = await directMethodClient.InvokeDirectMethodAsync(cts);
 
                     Option<Uri> analyzerUrl = Settings.Current.AnalyzerUrl;
                     await analyzerUrl.ForEachAsync(
@@ -60,13 +60,18 @@ namespace DirectMethodSender
                         },
                         async () =>
                         {
-                            await client.SendEventAsync("AnyOutput", "Direct Method call succeeded.");
+                            ModuleClient  reportClient = await ModuleUtil.CreateModuleClientAsync(
+                                Settings.Current.TransportType,
+                                ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
+                                ModuleUtil.DefaultTransientRetryStrategy,
+                                Logger);
+                            await reportClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method call succeeded.")));
                         });
 
                     await Task.Delay(Settings.Current.DirectMethodDelay, cts.Token);
                 }
 
-                await client.CloseClientAsync();
+                await directMethodClient.CloseAsync();
                 await cts.Token.WhenCanceled();
 
                 completed.Set();

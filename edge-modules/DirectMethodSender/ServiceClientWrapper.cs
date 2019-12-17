@@ -9,17 +9,17 @@ namespace DirectMethodSender
 
     public class ServiceClientWrapper : DirectMethodClientBase
     {
-        readonly ServiceClient ServiceClient;
+        readonly ServiceClient serviceClient;
 
         private ServiceClientWrapper(
             ServiceClient serviceClient,
             ILogger logger)
             : base(logger)
         {
-            this.ServiceClient = serviceClient;
+            this.serviceClient = serviceClient;
         }
 
-        public override Task CloseAsync() => this.ServiceClient.CloseAsync();
+        public override Task CloseAsync() => this.serviceClient.CloseAsync();
 
         public static ServiceClientWrapper Create(
             string connectionString,
@@ -35,10 +35,10 @@ namespace DirectMethodSender
         internal override async Task<int> InvokeDeviceMethodAsync(string deviceId, string targetModuleId, CancellationToken none)
         {
             CloudToDeviceMethod cloudToDeviceMethod = new CloudToDeviceMethod("HelloWorldMethod").SetPayloadJson("{ \"Message\": \"Hello\" }");
-            CloudToDeviceMethodResult result = await this.ServiceClient.InvokeDeviceMethodAsync(deviceId, targetModuleId, cloudToDeviceMethod, CancellationToken.None);
+            CloudToDeviceMethodResult result = await this.serviceClient.InvokeDeviceMethodAsync(deviceId, targetModuleId, cloudToDeviceMethod, CancellationToken.None);
             return result.Status;
         }
 
-        public override Task OpenAsync() => this.ServiceClient.OpenAsync();
+        public override Task OpenAsync() => this.serviceClient.OpenAsync();
     }
 }

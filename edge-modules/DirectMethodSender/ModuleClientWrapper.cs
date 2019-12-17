@@ -11,17 +11,17 @@ namespace DirectMethodSender
 
     public class ModuleClientWrapper : DirectMethodClientBase
     {
-        ModuleClient ModuleClient;
+        ModuleClient moduleClient;
 
         private ModuleClientWrapper(
             ModuleClient moduleClient,
-            ILogger logger) 
+            ILogger logger)
             : base(logger)
         {
-            this.ModuleClient = moduleClient;
+            this.moduleClient = moduleClient;
         }
 
-        public override Task CloseAsync() => this.ModuleClient.CloseAsync();
+        public override Task CloseAsync() => this.moduleClient.CloseAsync();
 
         public static async Task<ModuleClientWrapper> CreateAsync(
             TransportType transportType,
@@ -35,7 +35,7 @@ namespace DirectMethodSender
                     transientErrorDetectionStrategy,
                     retryStrategy,
                     logger);
-            
+
             return new ModuleClientWrapper(
                 moduleClient,
                 logger);
@@ -44,10 +44,10 @@ namespace DirectMethodSender
         internal override async Task<int> InvokeDeviceMethodAsync(string deviceId, string targetModuleId, CancellationToken none)
         {
             MethodRequest request = new MethodRequest("HelloWorldMethod", Encoding.UTF8.GetBytes("{ \"Message\": \"Hello\" }"));
-            MethodResponse result = await this.ModuleClient.InvokeMethodAsync(deviceId, targetModuleId, request);
+            MethodResponse result = await this.moduleClient.InvokeMethodAsync(deviceId, targetModuleId, request);
             return result.Status;
         }
 
-        public override Task OpenAsync() => this.ModuleClient.OpenAsync();
+        public override Task OpenAsync() => this.moduleClient.OpenAsync();
     }
 }

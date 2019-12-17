@@ -14,7 +14,6 @@ namespace DirectMethodSender
 
         // Create a client and open an instance
         Task OpenClientAsync();
-
         Task SendEventAsync(string outputName, string message);
     }
 }
