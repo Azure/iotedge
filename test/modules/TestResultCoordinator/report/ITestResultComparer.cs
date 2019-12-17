@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace TestResultCoordinator
+namespace TestResultCoordinator.Report
 {
     /// <summary>
     /// It is used to compare 2 test results whether they matches or not.

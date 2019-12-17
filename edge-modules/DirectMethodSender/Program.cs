@@ -21,38 +21,53 @@ namespace DirectMethodSender
         {
             Logger.LogInformation($"Starting DirectMethodSender with the following settings:\r\n{Settings.Current}");
 
+            ModuleClient moduleClient = null;
             try
             {
-                ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
+                (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
+
+                moduleClient = await ModuleUtil.CreateModuleClientAsync(
                     Settings.Current.TransportType,
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                     ModuleUtil.DefaultTransientRetryStrategy,
                     Logger);
 
-                Uri analyzerUrl = Settings.Current.AnalyzerUrl;
-                AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = analyzerUrl.AbsoluteUri };
+                Option<Uri> analyzerUrl = Settings.Current.AnalyzerUrl;
+                await analyzerUrl.ForEachAsync(
+                    async (Uri uri) =>
+                    {
+                        AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = uri.AbsoluteUri };
+                        Func<MethodResponse, Task> reportResultToAnalyzer = async (response) => await ReportStatus(Settings.Current.TargetModuleId, response, analyzerClient);
+                        await StartDirectMethodTests(moduleClient, reportResultToAnalyzer, Settings.Current.DirectMethodDelay, cts);
+                    },
+                    async () =>
+                    {
+                        Func<MethodResponse, Task> reportResultToEventHub = async (response) => await moduleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method call succeeded.")));
+                        await StartDirectMethodTests(moduleClient, reportResultToEventHub, Settings.Current.DirectMethodDelay, cts);
+                    });
 
-                (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
-
-                await CallDirectMethod(moduleClient, analyzerClient, Settings.Current.DirectMethodDelay, cts);
                 await moduleClient.CloseAsync();
                 await cts.Token.WhenCanceled();
 
                 completed.Set();
                 handler.ForEach(h => GC.KeepAlive(h));
-                Logger.LogInformation("DirectMethodSender Main() finished.");
             }
             catch (Exception e)
             {
                 Logger.LogError(e, "Error occurred during direct method sender test setup");
             }
+            finally
+            {
+                moduleClient?.Dispose();
+            }
 
+            Logger.LogInformation("DirectMethodSender Main() finished.");
             return 0;
         }
 
-        static async Task CallDirectMethod(
+        static async Task StartDirectMethodTests(
             ModuleClient moduleClient,
-            AnalyzerClient analyzerClient,
+            Func<MethodResponse, Task> reportResult,
             TimeSpan delay,
             CancellationTokenSource cts)
         {
@@ -79,7 +94,7 @@ namespace DirectMethodSender
                         Logger.LogError(statusMessage);
                     }
 
-                    await ReportStatus(targetModuleId, response, analyzerClient);
+                    await reportResult(response);
                     directMethodCount++;
                 }
                 catch (Exception e)
