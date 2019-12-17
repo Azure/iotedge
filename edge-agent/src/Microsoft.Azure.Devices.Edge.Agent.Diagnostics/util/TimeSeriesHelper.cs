@@ -6,9 +6,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util
     using System.Collections.Generic;
     using System.Text;
 
-    public static class MetricsDeDuplication
+    public static class TimeSeriesHelper
     {
-        public static IEnumerable<Metric> RemoveDuplicateMetrics(IEnumerable<Metric> metrics)
+        /// <summary>
+        /// Reduces the points in a timeseries. This removes extra points between metrics of identical value.
+        /// If there are three or more metrics in a row with the same value, this removes all points in the middle, keeping
+        /// only the first and last points.
+        /// </summary>
+        /// <param name="metrics">Points to reduce. Must be in chronological order.</param>
+        /// <returns>Reduced list of points with the same meaning. If graphed, the lines should look identical.</returns>
+        public static IEnumerable<Metric> CondenseTimeSeries(this IEnumerable<Metric> metrics)
         {
             Dictionary<int, (Metric metric, bool)> previousValues = new Dictionary<int, (Metric, bool)>();
 

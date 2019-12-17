@@ -8,12 +8,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util;
     using Xunit;
 
-    public class MetricsDeDuplicationTest
+    public class TimeSeriesHelperTest
     {
         Random rand = new Random();
 
         [Fact]
-        public void TestRemoveDuplicateMetrics()
+        public void TestCondenseTimeSeries()
         {
             /* fake data */
             DateTime baseTime = new DateTime(10000000, DateTimeKind.Utc);
@@ -33,23 +33,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
 
             /* test */
             IEnumerable<Metric> test1 = scrape1.Concat(scrape1).Concat(scrape1).Concat(scrape1);
-            IEnumerable<Metric> result1 = MetricsDeDuplication.RemoveDuplicateMetrics(test1);
+            IEnumerable<Metric> result1 = TimeSeriesHelper.CondenseTimeSeries(test1);
             Assert.Equal(n * 2, result1.Count()); // Keeps the first and last results
 
             IEnumerable<Metric> test2 = scrape1.Concat(scrape1).Concat(scrape1).Concat(scrape2).Concat(scrape2);
-            IEnumerable<Metric> result2 = MetricsDeDuplication.RemoveDuplicateMetrics(test2);
+            IEnumerable<Metric> result2 = TimeSeriesHelper.CondenseTimeSeries(test2);
             Assert.Equal(n * 2 + n, result2.Count()); // Keeps the first and last results of the baseline, and the first and last results of the second half of the second scrape
 
             IEnumerable<Metric> test3 = scrape1.Concat(scrape1).Concat(scrape1).Concat(scrape1).Concat(scrape3);
-            IEnumerable<Metric> result3 = MetricsDeDuplication.RemoveDuplicateMetrics(test3);
+            IEnumerable<Metric> result3 = TimeSeriesHelper.CondenseTimeSeries(test3);
             Assert.Equal(n * 2 + n, result3.Count()); // Keeps the first and last results of the baseline, and the results of the of the third scrape
 
             IEnumerable<Metric> test4 = scrape1.Concat(scrape3);
-            IEnumerable<Metric> result4 = MetricsDeDuplication.RemoveDuplicateMetrics(test4);
+            IEnumerable<Metric> result4 = TimeSeriesHelper.CondenseTimeSeries(test4);
             Assert.Equal(n + n, result4.Count()); // Keeps the baseline, and the results of the of the third scrape
 
             IEnumerable<Metric> test5 = scrape1.Concat(scrape2).Concat(scrape2).Concat(scrape2).Concat(scrape3);
-            IEnumerable<Metric> result5 = MetricsDeDuplication.RemoveDuplicateMetrics(test5);
+            IEnumerable<Metric> result5 = TimeSeriesHelper.CondenseTimeSeries(test5);
             int fromScrape1 = n; // one result from first scrape.
             int fromScrape2 = n / 2 + n; // initial change catches half, final change gets all
             int fromScrape3 = n; // Changes all
@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
         }
 
         [Fact]
-        public void TestRemoveDuplicateKeepsLine()
+        public void TestCondenseTimeSeriesKeepsLine()
         {
             DateTime baseTime = new DateTime(10000000, DateTimeKind.Utc);
 
@@ -84,7 +84,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
                 new Metric(baseTime.AddMinutes(9), "Test", 3, "Tags"),
             };
 
-            Metric[] result = MetricsDeDuplication.RemoveDuplicateMetrics(testMetrics).ToArray();
+            Metric[] result = testMetrics.CondenseTimeSeries().ToArray();
             Assert.Equal(expected, result);
         }
     }

@@ -69,8 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             using (await this.scrapeUploadLock.LockAsync(cancellationToken))
             {
                 Log.LogInformation($"Uploading Metrics");
-                IEnumerable<Metric> metricsToUpload = await this.storage.GetAllMetricsAsync();
-                metricsToUpload = MetricsDeDuplication.RemoveDuplicateMetrics(metricsToUpload);
+                IEnumerable<Metric> metricsToUpload = (await this.storage.GetAllMetricsAsync()).CondenseTimeSeries();
 
                 bool uploaded;
                 try
