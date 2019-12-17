@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
@@ -39,13 +40,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             await worker.Scrape(CancellationToken.None);
             Assert.Equal(1, scraper.Invocations.Count);
             Assert.Equal(1, storage.Invocations.Count);
-            Assert.Equal(testData, storedValues);
+            Assert.Equal(testData.Select(d => (d.TimeGeneratedUtc, d.Name, d.Value)), storedValues.Select(d => (d.TimeGeneratedUtc, d.Name, d.Value)));
 
             testData = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", this.rand.NextDouble())).ToArray()).ToArray();
             await worker.Scrape(CancellationToken.None);
             Assert.Equal(2, scraper.Invocations.Count);
             Assert.Equal(2, storage.Invocations.Count);
-            Assert.Equal(testData, storedValues);
+            Assert.Equal(testData.Select(d => (d.TimeGeneratedUtc, d.Name, d.Value)), storedValues.Select(d => (d.TimeGeneratedUtc, d.Name, d.Value)));
         }
 
         [Fact]
@@ -267,7 +268,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
         private IEnumerable<Metric> PrometheousMetrics(IEnumerable<(string name, double value)> modules)
         {
             string dataPoints = string.Join("\n", modules.Select(module => $@"
-edgeagent_module_start_total{{iothub=""lefitche-hub-3.azure-devices.net"",edge_device=""device4"",instance_number=""1"",module_name=""{module.name}"",module_version=""1.0""}} {module.value}
+edgeagent_module_start_total{{iothub=""lefitche-hub-3.azure-devices.net"",edge_device=""device4"",instance_number=""1"",module_name=""{module.name}"",module_version=""1.0"",{MetricsConstants.MsTelemetry}=""True""}} {module.value}
 "));
             string metricsString = $@"
 # HELP edgeagent_module_start_total Start command sent to module
