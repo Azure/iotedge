@@ -21,30 +21,26 @@ namespace Microsoft.Azure.Devices.Edge.Util
             {
                 return defaultSslProtocols;
             }
-            else
+
+            var sslProtocols = new List<SslProtocols>();
+            foreach (string protocolString in protocols.Split(',').Select(s => s.Trim()))
             {
-                List<string> protocolStrings = protocols.Split(',').Select(s => s.Replace(".", string.Empty).Trim()).ToList();
-                var sslProtocols = new List<SslProtocols>();
-                foreach (string protocolString in protocolStrings)
+                if (!TryParseProtocol(protocolString, out SslProtocols sslProtocol))
                 {
-                    if (!Enum.TryParse(protocolString, true, out SslProtocols sslProtocol))
-                    {
-                        logger?.LogWarning($"Unable to parse SSLProtocol {protocolString}");
-                    }
-                    else
-                    {
-                        sslProtocols.Add(sslProtocol);
-                    }
+                    logger?.LogWarning($"Unable to parse SSLProtocol {protocolString}");
                 }
-
-                if (sslProtocols.Count == 0)
+                else
                 {
-                    return defaultSslProtocols;
+                    sslProtocols.Add(sslProtocol);
                 }
-
-                SslProtocols combinedSslProtocols = sslProtocols.Aggregate(SslProtocols.None, (current, bt) => current | bt);
-                return combinedSslProtocols;
             }
+
+            if (sslProtocols.Count == 0)
+            {
+                return defaultSslProtocols;
+            }
+
+            return sslProtocols.Aggregate(SslProtocols.None, (current, bt) => current | bt);
         }
 
         // Print the SSL protocols included in this value (which is an or of multiple SSL protocol values)
@@ -77,6 +73,37 @@ namespace Microsoft.Azure.Devices.Edge.Util
             }
 
             return sslProtocolsList.Count > 0 ? string.Join(", ", sslProtocolsList) : $"{SslProtocols.None}";
+        }
+
+        // Parses TLS protocol from a text representation.
+        static bool TryParseProtocol(string protocol, out SslProtocols sslProtocol)
+        {
+            switch (protocol.ToLowerInvariant())
+            {
+                case "tls":
+                case "tls1":
+                case "tls10":
+                case "tls1.0":
+                case "tls1_0":
+                case "tlsv10":
+                    sslProtocol = SslProtocols.Tls;
+                    return true;
+                case "tls11":
+                case "tls1.1":
+                case "tls1_1":
+                case "tlsv11":
+                    sslProtocol = SslProtocols.Tls11;
+                    return true;
+                case "tls12":
+                case "tls1.2":
+                case "tls1_2":
+                case "tlsv12":
+                    sslProtocol = SslProtocols.Tls12;
+                    return true;
+            }
+
+            sslProtocol = default(SslProtocols);
+            return false;
         }
     }
 }
