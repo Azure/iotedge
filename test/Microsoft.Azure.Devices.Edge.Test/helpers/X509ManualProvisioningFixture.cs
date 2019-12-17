@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                         DateTime startTime = DateTime.Now;
 
                         IdCertificates certs;
-                        (this.Thumbprint, certs) = await this.CreateDeviceIdCertAsync(Context.Current.DeviceId, token);
+                        (this.Thumbprint, certs) = await this.CreateDeviceIdCertAsync(Context.Current.DeviceId + "-x509", token);
 
                         EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
                             Context.Current.DeviceId + "-x509",
