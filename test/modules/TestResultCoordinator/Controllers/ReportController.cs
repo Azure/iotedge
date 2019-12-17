@@ -24,7 +24,7 @@ namespace TestResultCoordinator.Controllers
 
         // GET api/report
         [HttpGet]
-        public async Task<ContentResult> GetReportAsync()
+        public async Task<ContentResult> GetReportsAsync()
         {
             ITestResultReport[] testResultReports = await TestReportHelper.GenerateTestResultReports(this.storage, Logger);
 
