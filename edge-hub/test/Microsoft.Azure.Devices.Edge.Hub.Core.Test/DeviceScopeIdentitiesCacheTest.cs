@@ -135,7 +135,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.Contains("d2/m4", removedIdentities);
         }
 
-        [Fact(Skip ="Consistently flakey test - bug logged: 5928143")]
+        [Fact(Skip ="Consistently flakey test - bug logged")]
         public async Task RefreshCacheWithRefreshRequestTest()
         {
             // Arrange
