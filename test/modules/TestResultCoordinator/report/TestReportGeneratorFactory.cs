@@ -6,14 +6,16 @@ namespace TestResultCoordinator.Report
 
     class TestReportGeneratorFactory : ITestReportGeneratorFactory
     {
-        public TestReportGeneratorFactory()
+        ITestOperationResultStorage storage;
+
+        public TestReportGeneratorFactory(ITestOperationResultStorage storage)
         {
+            this.storage = storage;
         }
 
         public ITestResultReportGenerator Create(
             string trackingId,
-            IReportMetadata reportMetadata,
-            ITestOperationResultStorage storage)
+            IReportMetadata reportMetadata)
         {
             switch (reportMetadata.TestReportType)
             {
@@ -22,9 +24,9 @@ namespace TestResultCoordinator.Report
                         return new CountingReportGenerator(
                             trackingId,
                             reportMetadata.ExpectedSource,
-                            storage.GetStoreFromSource(reportMetadata.ExpectedSource),
+                            this.storage.GetStoreFromSource(reportMetadata.ExpectedSource),
                             reportMetadata.ActualSource,
-                            storage.GetStoreFromSource(reportMetadata.ActualSource),
+                            this.storage.GetStoreFromSource(reportMetadata.ActualSource),
                             reportMetadata.TestOperationResultType.ToString(),
                             new SimpleTestOperationResultComparer());
                 }

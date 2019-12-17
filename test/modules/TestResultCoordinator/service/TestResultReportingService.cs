@@ -26,7 +26,7 @@ namespace TestResultCoordinator.Service
         public TestResultReportingService(ITestOperationResultStorage storage)
         {
             this.delayBeforeWork = Settings.Current.TestStartDelay + Settings.Current.TestDuration + Settings.Current.DurationBeforeVerification;
-            this.storage = Preconditions.CheckNotNull(storage);
+            this.storage = Preconditions.CheckNotNull(storage, nameof(storage));
         }
 
         public Task StartAsync(CancellationToken ct)
@@ -63,11 +63,11 @@ namespace TestResultCoordinator.Service
 
             try
             {
-                var testReportGeneratorFactory = new TestReportGeneratorFactory();
+                var testReportGeneratorFactory = new TestReportGeneratorFactory(this.storage);
                 var testResultReportList = new List<Task<ITestResultReport>>();
                 foreach (IReportMetadata reportMetadata in Settings.Current.ReportMetadataList)
                 {
-                    ITestResultReportGenerator testResultReportGenerator = testReportGeneratorFactory.Create(Settings.Current.TrackingId, reportMetadata, this.storage);
+                    ITestResultReportGenerator testResultReportGenerator = testReportGeneratorFactory.Create(Settings.Current.TrackingId, reportMetadata);
                     testResultReportList.Add(testResultReportGenerator.CreateReportAsync());
                 }
 

@@ -19,7 +19,7 @@ namespace TestResultCoordinator.Service
 
         public TestResultEventReceivingService(ITestOperationResultStorage storage)
         {
-            this.storage = Preconditions.CheckNotNull(storage);
+            this.storage = Preconditions.CheckNotNull(storage, nameof(storage));
         }
 
         public override async Task StopAsync(CancellationToken stoppingToken)
