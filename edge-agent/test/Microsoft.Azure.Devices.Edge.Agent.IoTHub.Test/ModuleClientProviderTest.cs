@@ -56,6 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             Assert.NotNull(receivedTransportSettings);
             UpstreamProtocol up = upstreamProtocol.GetOrElse(UpstreamProtocol.Amqp);
+            Assert.Equal(up, moduleClient.UpstreamProtocol);
             switch (up)
             {
                 case UpstreamProtocol.Amqp:
@@ -144,6 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub.Test
 
             Assert.NotNull(receivedTransportSettings);
             UpstreamProtocol up = upstreamProtocol.GetOrElse(UpstreamProtocol.Amqp);
+            Assert.Equal(up, moduleClient.UpstreamProtocol);
             switch (up)
             {
                 case UpstreamProtocol.Amqp:

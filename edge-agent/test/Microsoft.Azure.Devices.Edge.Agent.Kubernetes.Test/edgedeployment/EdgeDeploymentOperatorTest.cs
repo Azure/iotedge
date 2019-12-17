@@ -102,26 +102,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment
         }
 
         [Fact]
-        public async void PurgeModulesOnDelete()
-        {
-            var edgeDefinition = new EdgeDeploymentDefinition("v1", "EdgeDeployment", new V1ObjectMeta(name: ResourceName), new List<KubernetesModule>(), null);
-
-            var client = Mock.Of<IKubernetes>();
-            var controller = Mock.Of<IEdgeDeploymentController>(c => c.PurgeModulesAsync() == Task.CompletedTask);
-
-            var edgeOperator = new EdgeDeploymentOperator(
-                ResourceName,
-                DeviceNamespace,
-                client,
-                controller);
-
-            await edgeOperator.EdgeDeploymentOnEventHandlerAsync(WatchEventType.Deleted, edgeDefinition);
-
-            Mock.Get(controller).VerifyAll();
-            Mock.Get(client).VerifyAll();
-        }
-
-        [Fact]
         public async void NoProcessingDeploymentOnError()
         {
             var edgeDefinition = new EdgeDeploymentDefinition("v1", "EdgeDeployment", new V1ObjectMeta(name: ResourceName), new List<KubernetesModule>(), null);

@@ -37,6 +37,7 @@ fn main() {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 fn run() -> Result<(), Error> {
     let (default_mgmt_uri, default_config_path, default_container_engine_config_path) =
         if cfg!(windows) {

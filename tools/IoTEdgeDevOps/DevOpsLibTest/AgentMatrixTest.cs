@@ -13,8 +13,8 @@ namespace DevOpsLibTest
         [Test]
         public void TestUpdate()
         {
-            var agents = new HashSet<IoTEdgeVstsAgent>();
-            var agent1 = new IoTEdgeVstsAgent(
+            var agents = new HashSet<IoTEdgeAgent>();
+            var agent1 = new IoTEdgeAgent(
                 38324,
                 "iotedge-pi-04",
                 "version",
@@ -32,7 +32,7 @@ namespace DevOpsLibTest
                 });
             agents.Add(agent1);
 
-            var agent2 = new IoTEdgeVstsAgent(
+            var agent2 = new IoTEdgeAgent(
                 39472,
                 "iotedge-win5",
                 "version",
@@ -85,7 +85,7 @@ namespace DevOpsLibTest
                     new AgentCapability("run-long-haul", "true"),
                 });
 
-            ImmutableDictionary<AgentDemandSet, Dictionary<AgentDemandSet, HashSet<IoTEdgeVstsAgent>>> updatedMatrix = agentMatrix.Matrix;
+            ImmutableDictionary<AgentDemandSet, Dictionary<AgentDemandSet, HashSet<IoTEdgeAgent>>> updatedMatrix = agentMatrix.Matrix;
 
             foreach (AgentDemandSet row in updatedMatrix.Keys)
             {
@@ -105,6 +105,103 @@ namespace DevOpsLibTest
                     }
                 }
             }
+        }
+
+        [Test]
+        public void TestProperties()
+        {
+            // Rows
+            var linuxAMD64ds = new AgentDemandSet(
+                "Linux AMD64",
+                new HashSet<AgentCapability>
+                {
+                    new AgentCapability(AgentCapabilityKeys.AgentOS, "Linux"),
+                    new AgentCapability(AgentCapabilityKeys.AgentOSArchitecture, "X64"),
+                });
+            var linuxARM32ds = new AgentDemandSet(
+                "Linux ARM32",
+                new HashSet<AgentCapability>
+                {
+                    new AgentCapability(AgentCapabilityKeys.AgentOS, "Linux"),
+                    new AgentCapability(AgentCapabilityKeys.AgentOSArchitecture, "ARM"),
+                    new AgentCapability(AgentCapabilityKeys.AgentOSBits, "32"),
+                });
+            var linuxARM64ds = new AgentDemandSet(
+                "Linux ARM64",
+                new HashSet<AgentCapability>
+                {
+                    new AgentCapability(AgentCapabilityKeys.AgentOS, "Linux"),
+                    new AgentCapability(AgentCapabilityKeys.AgentOSArchitecture, "ARM"),
+                    new AgentCapability(AgentCapabilityKeys.AgentOSBits, "64"),
+                });
+            var windowsARM64ds = new AgentDemandSet(
+                "Windows AMD64",
+                new HashSet<AgentCapability>
+                {
+                    new AgentCapability(AgentCapabilityKeys.AgentOS, "Windows_NT"),
+                    new AgentCapability(AgentCapabilityKeys.AgentOSArchitecture, "X64"),
+                    new AgentCapability(AgentCapabilityKeys.AgentOSName, "WinPro_x64"),
+                });
+            var windowsServerCoreAMD64ds = new AgentDemandSet(
+                "Windows Server Core AMD64",
+                new HashSet<AgentCapability>
+                {
+                    new AgentCapability(AgentCapabilityKeys.AgentOS, "Windows_NT"),
+                    new AgentCapability(AgentCapabilityKeys.AgentOSArchitecture, "X64"),
+                    new AgentCapability(AgentCapabilityKeys.AgentOSName, "WinServerCore_x64"),
+                });
+            var windowsIoTCoreAMD64ds = new AgentDemandSet(
+                "Windows IoT Core AMD64",
+                new HashSet<AgentCapability>
+                {
+                    new AgentCapability(AgentCapabilityKeys.RunnerOSName, "WinIoTCore_x64"),
+                });
+            var windowsIoTCoreARM32ds = new AgentDemandSet(
+                "Windows IoT Core ARM32",
+                new HashSet<AgentCapability>
+                {
+                    new AgentCapability(AgentCapabilityKeys.RunnerOSName, "WinIoTCore_arm32"),
+                });
+
+            // Columns
+            var longHaulds = new AgentDemandSet(
+                "Long Haul",
+                new HashSet<AgentCapability>
+                {
+                    new AgentCapability("run-long-haul", "true"),
+                });
+            var stressTestds = new AgentDemandSet(
+                "Stress Test",
+                new HashSet<AgentCapability>
+                {
+                    new AgentCapability("run-stress", "true"),
+                });
+            var e2eTestsds = new AgentDemandSet(
+                "E2E Tests",
+                new HashSet<AgentCapability>
+                {
+                    new AgentCapability("run-e2e-tests", "true"),
+                });
+
+            var agentMatrix = new AgentMatrix();
+
+            var rows = agentMatrix.Rows;
+            var columns = agentMatrix.Columns;
+
+            Assert.AreEqual(7, rows.Count);
+            Assert.AreEqual(3, columns.Count);
+
+            Assert.True(linuxAMD64ds.Equals(rows[0]));
+            Assert.True(linuxARM32ds.Equals(rows[1]));
+            Assert.True(linuxARM64ds.Equals(rows[2]));
+            Assert.True(windowsARM64ds.Equals(rows[3]));
+            Assert.True(windowsServerCoreAMD64ds.Equals(rows[4]));
+            Assert.True(windowsIoTCoreAMD64ds.Equals(rows[5]));
+            Assert.True(windowsIoTCoreARM32ds.Equals(rows[6]));
+
+            Assert.True(longHaulds.Equals(columns[0]));
+            Assert.True(stressTestds.Equals(columns[1]));
+            Assert.True(e2eTestsds.Equals(columns[2]));
         }
     }
 }

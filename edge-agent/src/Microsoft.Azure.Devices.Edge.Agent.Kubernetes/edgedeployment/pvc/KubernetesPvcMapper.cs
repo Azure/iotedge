@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
         public Option<List<V1PersistentVolumeClaim>> CreatePersistentVolumeClaims(KubernetesModule module, IDictionary<string, string> labels) =>
             module.Config.CreateOptions.HostConfig
                 .FlatMap(hostConfig => Option.Maybe(hostConfig.Mounts))
-                .Map(mounts => mounts.Where(this.ShouldCreatePvc).Select(mount => this.ExtractPvc(mount, labels)).ToList())
+                .Map(mounts => mounts.Where(this.ShouldCreatePvc).Select(mount => this.ExtractPvc(module, mount, labels)).ToList())
                 .Filter(mounts => mounts.Any());
 
         bool ShouldCreatePvc(Mount mount)
@@ -41,10 +41,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
             return this.storageClassName.HasValue || this.persistentVolumeName.HasValue;
         }
 
-        V1PersistentVolumeClaim ExtractPvc(Mount mount, IDictionary<string, string> labels)
+        V1PersistentVolumeClaim ExtractPvc(KubernetesModule module, Mount mount, IDictionary<string, string> labels)
         {
-            string name = KubeUtils.SanitizeK8sValue(mount.Source);
+            string volumeName = KubeUtils.SanitizeK8sValue(mount.Source);
+            string pvcName = KubernetesModule.PvcName(module, mount);
             bool readOnly = mount.ReadOnly;
+
             var persistentVolumeClaimSpec = new V1PersistentVolumeClaimSpec()
             {
                 // What happens if the PV access mode is not compatible with the access we're requesting?
@@ -56,17 +58,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment.Pvc
                     Requests = new Dictionary<string, ResourceQuantity>() { { "storage", new ResourceQuantity($"{this.persistentVolumeClaimSizeMb}Mi") } }
                 },
             };
-            // prefer persistent volume name to storage class name, if both are set.
             if (this.persistentVolumeName.HasValue)
             {
-                this.persistentVolumeName.ForEach(volumeName => persistentVolumeClaimSpec.VolumeName = volumeName);
-            }
-            else if (this.storageClassName.HasValue)
-            {
-                this.storageClassName.ForEach(storageClass => persistentVolumeClaimSpec.StorageClassName = storageClass);
+                string pvName = this.persistentVolumeName.OrDefault();
+                if (pvName != volumeName)
+                {
+                    throw new InvalidModuleException(string.Format("The mount name {0} has to be the same as the PV name {1}", volumeName, pvName));
+                }
+
+                persistentVolumeClaimSpec.VolumeName = volumeName;
             }
 
-            return new V1PersistentVolumeClaim(metadata: new V1ObjectMeta(name: name, labels: labels), spec: persistentVolumeClaimSpec);
+            if (this.storageClassName.HasValue)
+            {
+                persistentVolumeClaimSpec.StorageClassName = this.storageClassName.OrDefault();
+            }
+
+            var pvcMeta = new V1ObjectMeta(
+                name: pvcName,
+                labels: labels,
+                ownerReferences: module.Owner.ToOwnerReferences());
+
+            return new V1PersistentVolumeClaim(metadata: pvcMeta, spec: persistentVolumeClaimSpec);
         }
 
         public void UpdatePersistentVolumeClaim(V1PersistentVolumeClaim to, V1PersistentVolumeClaim from)

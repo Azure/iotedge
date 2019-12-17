@@ -76,8 +76,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
 
         public async Task<IModuleClient> Create(ConnectionStatusChangesHandler statusChangedHandler)
         {
-            ISdkModuleClient sdkModuleClient = await this.CreateSdkModuleClientWithRetry(statusChangedHandler);
-            IModuleClient moduleClient = new ModuleClient(sdkModuleClient, this.idleTimeout, this.closeOnIdleTimeout);
+            (ISdkModuleClient sdkModuleClient, UpstreamProtocol protocol) = await this.CreateSdkModuleClientWithRetry(statusChangedHandler);
+            IModuleClient moduleClient = new ModuleClient(sdkModuleClient, this.idleTimeout, this.closeOnIdleTimeout, protocol);
             return moduleClient;
         }
 
@@ -127,35 +127,50 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
             return transientRetryPolicy.ExecuteAsync(func);
         }
 
-        async Task<ISdkModuleClient> CreateSdkModuleClientWithRetry(ConnectionStatusChangesHandler statusChangedHandler)
+        async Task<(ISdkModuleClient sdkModuleClient, UpstreamProtocol upstreamProtocol)> CreateSdkModuleClientWithRetry(ConnectionStatusChangesHandler statusChangedHandler)
         {
             try
             {
-                ISdkModuleClient moduleClient = await ExecuteWithRetry(
+                (ISdkModuleClient moduleClient, UpstreamProtocol protocol) = await ExecuteWithRetry(
                     () => this.CreateSdkModuleClient(statusChangedHandler),
                     Events.RetryingDeviceClientConnection);
                 Events.DeviceClientCreated();
-                return moduleClient;
+                return (moduleClient, protocol);
             }
             catch (Exception e)
             {
                 Events.DeviceClientSetupFailed(e);
                 Environment.Exit(1);
-                return null;
+                return (null, UpstreamProtocol.Amqp);
             }
         }
 
-        Task<ISdkModuleClient> CreateSdkModuleClient(ConnectionStatusChangesHandler statusChangedHandler)
+        Task<(ISdkModuleClient sdkModuleClient, UpstreamProtocol upstreamProtocol)> CreateSdkModuleClient(ConnectionStatusChangesHandler statusChangedHandler)
             => this.upstreamProtocol
-                .Map(u => this.CreateAndOpenSdkModuleClient(u, statusChangedHandler))
+                .Map(async u =>
+                {
+                    ISdkModuleClient sdkModuleClient = await this.CreateAndOpenSdkModuleClient(u, statusChangedHandler);
+                    return (sdkModuleClient, u);
+                })
                 .GetOrElse(
                     async () =>
                     {
                         // The device SDK doesn't appear to be falling back to WebSocket from TCP,
                         // so we'll do it explicitly until we can get the SDK sorted out.
-                        Try<ISdkModuleClient> result = await Fallback.ExecuteAsync(
-                            () => this.CreateAndOpenSdkModuleClient(UpstreamProtocol.Amqp, statusChangedHandler),
-                            () => this.CreateAndOpenSdkModuleClient(UpstreamProtocol.AmqpWs, statusChangedHandler));
+                        UpstreamProtocol protocol;
+                        Try<(ISdkModuleClient, UpstreamProtocol)> result = await Fallback.ExecuteAsync(
+                            async () =>
+                            {
+                                protocol = UpstreamProtocol.Amqp;
+                                ISdkModuleClient sdkModuleClient = await this.CreateAndOpenSdkModuleClient(protocol, statusChangedHandler);
+                                return (sdkModuleClient, protocol);
+                            },
+                            async () =>
+                            {
+                                protocol = UpstreamProtocol.AmqpWs;
+                                ISdkModuleClient sdkModuleClient = await this.CreateAndOpenSdkModuleClient(protocol, statusChangedHandler);
+                                return (sdkModuleClient, protocol);
+                            });
 
                         if (!result.Success)
                         {

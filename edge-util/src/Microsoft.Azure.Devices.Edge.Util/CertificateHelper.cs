@@ -252,7 +252,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         public static async Task<IEnumerable<X509Certificate2>> GetTrustBundleFromEdgelet(Uri workloadUri, string workloadApiVersion, string workloadClientApiVersion, string moduleId, string moduleGenerationId)
         {
-            string response = await new WorkloadClient(workloadUri, workloadClientApiVersion, workloadApiVersion, moduleId, moduleGenerationId).GetTrustBundleAsync();
+            string response = await new WorkloadClient(workloadUri, workloadApiVersion, workloadClientApiVersion, moduleId, moduleGenerationId).GetTrustBundleAsync();
             return ParseTrustedBundleCerts(response);
         }
 

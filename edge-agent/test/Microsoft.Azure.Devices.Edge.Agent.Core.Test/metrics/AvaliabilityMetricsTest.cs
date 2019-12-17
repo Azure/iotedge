@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using App.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -61,7 +62,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
             DateTime fakeTime = DateTime.Now;
             systemTime.Setup(x => x.UtcNow).Returns(() => fakeTime);
 
-            AvailabilityMetrics availabilityMetrics = new AvailabilityMetrics(metricsProvider.Object, systemTime.Object);
+            AvailabilityMetrics availabilityMetrics = new AvailabilityMetrics(metricsProvider.Object, Path.GetTempPath(), systemTime.Object);
 
             (TestRuntimeModule[] current, TestModule[] desired) = GetTestModules(3);
             ModuleSet currentModuleSet = ModuleSet.Create(current as IModule[]);

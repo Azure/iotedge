@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
     using Microsoft.Azure.Amqp.Framing;
     using Microsoft.Azure.Devices.Common.Exceptions;
     using Microsoft.Azure.Devices.Edge.Hub.Core;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
@@ -35,17 +36,25 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp
             {
                 return edgeHubAmqpException;
             }
-            else if (exception.UnwindAs<UnauthorizedAccessException>() != null)
+
+            if (exception.UnwindAs<UnauthorizedAccessException>() != null)
             {
                 return new EdgeAmqpException("Unauthorized access", ErrorCode.IotHubUnauthorizedAccess, exception);
             }
-            else if (exception is EdgeHubMessageTooLargeException)
+
+            if (exception is EdgeHubMessageTooLargeException)
             {
                 return new EdgeAmqpException(exception.Message, ErrorCode.MessageTooLarge);
             }
-            else if (exception is InvalidOperationException)
+
+            if (exception is InvalidOperationException)
             {
                 return new EdgeAmqpException("Invalid action performed", ErrorCode.InvalidOperation);
+            }
+
+            if (exception is StorageFullException)
+            {
+                return new EdgeAmqpException(exception.Message, ErrorCode.ThrottlingException);
             }
 
             return new EdgeAmqpException("Encountered server error", ErrorCode.ServerError, exception);

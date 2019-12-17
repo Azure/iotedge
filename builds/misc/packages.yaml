@@ -103,10 +103,7 @@ jobs:
 
           echo "##vso[task.setvariable variable=PACKAGE_ARCH;]$(arch)"
           echo "##vso[task.setvariable variable=PACKAGE_OS;]$(os)"
-          echo "##vso[task.setvariable variable=PACKAGE_DOCKER_IMAGE;]$(dockerImage)"
         displayName: Set Version
-      - bash: 'docker login $(registry.address) --username $(registry.user) --password $(registry.password)'
-        displayName: 'Docker Login'
       - script: edgelet/build/linux/package.sh
         displayName: Create libiothsm and iotedged packages
       - task: CopyFiles@2
@@ -136,6 +133,7 @@ jobs:
   - job: windows_amd64
 ################################################################################
     displayName: Windows amd64
+    timeoutInMinutes: 90
     pool:
       vmImage: 'vs2017-win2016'
     steps:
@@ -200,6 +198,7 @@ jobs:
   - job: windows_arm32
 ################################################################################
     displayName: Windows arm32
+    timeoutInMinutes: 90
     pool:
       vmImage: 'vs2017-win2016'
     steps:
@@ -228,18 +227,19 @@ jobs:
       - powershell: edgelet/build/windows/package.ps1 -CreateCab
         displayName: Generate CAB package
       - task: CopyFiles@2
-        displayName: 'Copy package to Artifact Staging'
+        displayName: 'Copy installer script and package to Artifact Staging'
         inputs:
           SourceFolder: .
           Contents: |
             *.cab
+            scripts/windows/setup/IotEdgeSecurityDaemon.ps1
           TargetFolder: '$(build.artifactstagingdirectory)'
       - task: SFP.build-tasks.custom-build-task-1.EsrpCodeSigning@1
-        displayName: 'ESRP Package CodeSigning Internal'
+        displayName: 'ESRP Installer and Package CodeSigning Internal'
         inputs:
           ConnectedServiceName: '$(WINDOWS_CODESIGN_SERVICE_CONNECTION)'
           FolderPath: '$(build.artifactstagingdirectory)'
-          Pattern: '*.cab'
+          Pattern: '*.cab,*.ps1'
           CertificateId: 302
           OpusName: 'Azure IoT Edge'
           OpusInfo: 'https://azure.microsoft.com/en-us/services/iot-edge/'
