@@ -180,12 +180,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
 
                 waitTime = waitTimeComputer(expectedMessageCountAfterRestore);
                 Console.WriteLine($"Waiting {waitTime.TotalSeconds} seconds before validating receipt of messages.");
-                Assert.Equal(afterBackupMessageCount, sentMessagesCount);
 
                 // Validate that all the messages were received (both sent earlier and the new messages).
                 await Task.Delay(waitTime);
                 ISet<int> receivedMessages = receiver.GetReceivedMessageIndices();
 
+                Assert.Equal(afterBackupMessageCount, sentMessagesCount);
                 Assert.Equal(expectedMessageCountAfterRestore, receivedMessages.Count);
             }
             finally
