@@ -37,7 +37,7 @@ namespace DirectMethodSender
             TransportType transportType,
             TimeSpan directMethodDelay,
             Option<Uri> analyzerUrl,
-            string routingAgency,
+            string invocationSource,
             Option<string> serviceClientConnectionString)
         {
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
@@ -49,8 +49,8 @@ namespace DirectMethodSender
             this.ServiceClientConnectionString = serviceClientConnectionString;
 
             object parsedInvocationSource;
-            Preconditions.CheckNonWhiteSpace(routingAgency, nameof(routingAgency));
-            if (Enum.TryParse(typeof(InvocationSource), routingAgency, true, out parsedInvocationSource))
+            Preconditions.CheckNonWhiteSpace(invocationSource, nameof(invocationSource));
+            if (Enum.TryParse(typeof(InvocationSource), invocationSource, true, out parsedInvocationSource))
             {
                 this.InvocationSource = (InvocationSource)parsedInvocationSource;
             }
