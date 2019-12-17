@@ -22,6 +22,10 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test
         [InlineData("Tls, Tls1.1, Tls1.2", SslProtocols.None, SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12)]
         [InlineData("tls, tls11, tls12", SslProtocols.None, SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12)]
         [InlineData("Tls, Tls11, Tls12", SslProtocols.None, SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12)]
+        [InlineData("tls1_0, tls1_1, tls1_2", SslProtocols.None, SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12)]
+        [InlineData("Tls1_0, Tls1_1, Tls1_2", SslProtocols.None, SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12)]
+        [InlineData("tlsv10, tlsv11, tlsv12", SslProtocols.None, SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12)]
+        [InlineData("Tlsv10, Tlsv11, Tlsv12", SslProtocols.None, SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12)]
         [InlineData("TLS12", SslProtocols.None, SslProtocols.Tls12)]
         public void ParseTest(string input, SslProtocols defaultSslProtocols, SslProtocols expectedSslProtocols)
         {
