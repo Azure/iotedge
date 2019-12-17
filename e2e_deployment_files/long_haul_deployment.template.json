@@ -271,7 +271,7 @@
               "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"15000/tcp\":[{\"HostPort\":\"15000\"}]}}}"
             }
           },
-          "DirectMethodCloudSender": {
+          "DirectMethodSender": {
             "version": "1.0",
             "type": "docker",
             "status": "running",
@@ -280,12 +280,15 @@
               "TargetModuleId": {
                 "value": "DirectMethodReceiver"
               },
+              "InvocationSource": {
+                "value": "Cloud"
+              },
               "ServiceClientConnectionString": {
                 "value": "<ServiceClientConnectionString>"
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-cloud-sender:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           },
@@ -304,7 +307,7 @@
               "createOptions": ""
             }
           },
-          "DirectMethodCloudSender2": {
+          "DirectMethodSender2": {
             "version": "1.0",
             "type": "docker",
             "status": "running",
@@ -313,12 +316,15 @@
               "TargetModuleId": {
                 "value": "DirectMethodReceiver2"
               },
+              "InvocationSource": {
+                "value": "Cloud"
+              },
               "ServiceClientConnectionString": {
                 "value": "<ServiceClientConnectionString>"
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-cloud-sender:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           },
@@ -370,8 +376,8 @@
           "TempSensorToTempFilter": "FROM /messages/modules/tempSensor/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/tempFilter/inputs/input1\")",
           "TempFilterToCloud2": "FROM /messages/modules/tempFilter2/outputs/* INTO $upstream",
           "TempSensorToTempFilter2": "FROM /messages/modules/tempSensor2/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/tempFilter2/inputs/input1\")",
-          "upstreamDirectMethodCloudSender1": "FROM /messages/modules/DirectMethodCloudSender/outputs/output1 INTO $upstream",
-          "upstreamDirectMethodCloudSender2": "FROM /messages/modules/DirectMethodCloudSender2/outputs/output1 INTO $upstream"
+          "upstreamDirectMethodSender1": "FROM /messages/modules/DirectMethodSender/outputs/output1 INTO $upstream",
+          "upstreamDirectMethodSender2": "FROM /messages/modules/DirectMethodSender2/outputs/output1 INTO $upstream"
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 86400
