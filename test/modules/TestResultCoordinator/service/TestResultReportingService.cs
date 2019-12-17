@@ -6,11 +6,13 @@ namespace TestResultCoordinator.Service
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.AzureLogAnalytics;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using TestResultCoordinator.Report;
+    using TestResultCoordinator.Storage;
 
     // This class implementation is copied from https://docs.microsoft.com/en-us/aspnet/core/fundamentals/host/hosted-services?view=aspnetcore-3.1&tabs=visual-studio
     // And then implement our own DoWorkAsync for reporting generation.
@@ -18,10 +20,12 @@ namespace TestResultCoordinator.Service
     {
         readonly ILogger logger = ModuleUtil.CreateLogger(nameof(TestResultReportingService));
         readonly TimeSpan delayBeforeWork;
+        readonly ITestOperationResultStorage storage;
         Timer timer;
 
-        public TestResultReportingService()
+        public TestResultReportingService(ITestOperationResultStorage storage)
         {
+            this.storage = Preconditions.CheckNotNull(storage, nameof(storage));
             this.delayBeforeWork = Settings.Current.TestStartDelay + Settings.Current.TestDuration + Settings.Current.DurationBeforeVerification;
         }
 
@@ -59,7 +63,7 @@ namespace TestResultCoordinator.Service
 
             try
             {
-                var testReportGeneratorFactory = new TestReportGeneratorFactory();
+                var testReportGeneratorFactory = new TestReportGeneratorFactory(this.storage);
                 var testResultReportList = new List<Task<ITestResultReport>>();
                 foreach (IReportMetadata reportMetadata in Settings.Current.ReportMetadataList)
                 {
