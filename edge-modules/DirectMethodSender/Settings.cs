@@ -27,7 +27,7 @@ namespace DirectMethodSender
                     configuration.GetValue<TransportType>("TransportType", TransportType.Amqp_Tcp_Only),
                     configuration.GetValue<TimeSpan>("DirectMethodDelay", TimeSpan.FromSeconds(5)),
                     Option.Maybe(configuration.GetValue<Uri>("AnalyzerUrl")),
-                    configuration.GetValue("InvokeEndpoint", "EdgeHub"),
+                    configuration.GetValue("InvocationSource", "Local"),
                     Option.Maybe<string>(configuration.GetValue<string>("ServiceClientConnectionString")));
             });
 
