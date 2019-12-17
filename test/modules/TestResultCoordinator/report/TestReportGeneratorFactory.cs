@@ -7,7 +7,7 @@ namespace TestResultCoordinator.Report
 
     class TestReportGeneratorFactory : ITestReportGeneratorFactory
     {
-        ITestOperationResultStorage storage;
+        readonly ITestOperationResultStorage storage;
 
         public TestReportGeneratorFactory(ITestOperationResultStorage storage)
         {
@@ -22,19 +22,19 @@ namespace TestResultCoordinator.Report
             {
                 case TestReportType.CountingReport:
                 {
-                        return new CountingReportGenerator(
-                            trackingId,
-                            reportMetadata.ExpectedSource,
-                            this.storage.GetStoreFromSource(reportMetadata.ExpectedSource),
-                            reportMetadata.ActualSource,
-                            this.storage.GetStoreFromSource(reportMetadata.ActualSource),
-                            reportMetadata.TestOperationResultType.ToString(),
-                            new SimpleTestOperationResultComparer());
+                    return new CountingReportGenerator(
+                        trackingId,
+                        reportMetadata.ExpectedSource,
+                        this.storage.GetStoreFromSource(reportMetadata.ExpectedSource),
+                        reportMetadata.ActualSource,
+                        this.storage.GetStoreFromSource(reportMetadata.ActualSource),
+                        reportMetadata.TestOperationResultType.ToString(),
+                        new SimpleTestOperationResultComparer());
                 }
 
                 default:
                 {
-                        throw new NotSupportedException($"Report type {reportMetadata.TestReportType} is not supported.");
+                    throw new NotSupportedException($"Report type {reportMetadata.TestReportType} is not supported.");
                 }
             }
         }
