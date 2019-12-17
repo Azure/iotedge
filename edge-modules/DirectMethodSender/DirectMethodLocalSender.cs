@@ -9,11 +9,11 @@ namespace DirectMethodSender
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
 
-    public class ModuleClientWrapper : DirectMethodClientBase
+    public class DirectMethodLocalSender : DirectMethodSenderClient
     {
         ModuleClient moduleClient;
 
-        private ModuleClientWrapper(
+        private DirectMethodLocalSender(
             ModuleClient moduleClient,
             ILogger logger)
             : base(logger)
@@ -23,7 +23,7 @@ namespace DirectMethodSender
 
         public override Task CloseAsync() => this.moduleClient.CloseAsync();
 
-        public static async Task<ModuleClientWrapper> CreateAsync(
+        public static async Task<DirectMethodLocalSender> CreateAsync(
             TransportType transportType,
             ITransientErrorDetectionStrategy transientErrorDetectionStrategy,
             RetryStrategy retryStrategy,
@@ -36,7 +36,7 @@ namespace DirectMethodSender
                     retryStrategy,
                     logger);
 
-            return new ModuleClientWrapper(
+            return new DirectMethodLocalSender(
                 moduleClient,
                 logger);
         }

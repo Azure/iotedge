@@ -27,7 +27,7 @@ namespace DirectMethodSender
                     configuration.GetValue<TransportType>("TransportType", TransportType.Amqp_Tcp_Only),
                     configuration.GetValue<TimeSpan>("DirectMethodDelay", TimeSpan.FromSeconds(5)),
                     Option.Maybe(configuration.GetValue<Uri>("AnalyzerUrl")),
-                    configuration.GetValue<string>("RoutingAgency", "EdgeHub"),
+                    configuration.GetValue("InvokeEndpoint", "EdgeHub"),
                     Option.Maybe<string>(configuration.GetValue<string>("ServiceClientConnectionString")));
             });
 
@@ -48,15 +48,15 @@ namespace DirectMethodSender
             this.AnalyzerUrl = Preconditions.CheckNotNull(analyzerUrl);
             this.ServiceClientConnectionString = serviceClientConnectionString;
 
-            object parsedRoutingAgency;
+            object parsedInvocationSource;
             Preconditions.CheckNonWhiteSpace(routingAgency, nameof(routingAgency));
-            if (Enum.TryParse(typeof(RoutingAgency), routingAgency, true, out parsedRoutingAgency))
+            if (Enum.TryParse(typeof(InvocationSource), routingAgency, true, out parsedInvocationSource))
             {
-                this.RoutingAgency = (RoutingAgency)parsedRoutingAgency;
+                this.InvocationSource = (InvocationSource)parsedInvocationSource;
             }
             else
             {
-                throw new ArgumentException("Invalid RoutingAgency type");
+                throw new ArgumentException("Invalid InvocationSource type");
             }
         }
 
@@ -70,7 +70,7 @@ namespace DirectMethodSender
 
         public TimeSpan DirectMethodDelay { get; }
 
-        public RoutingAgency RoutingAgency { get; }
+        public InvocationSource InvocationSource { get; }
 
         public Option<string> ServiceClientConnectionString { get; }
 
@@ -85,7 +85,7 @@ namespace DirectMethodSender
                 { nameof(this.TargetModuleId), this.TargetModuleId },
                 { nameof(this.TransportType), Enum.GetName(typeof(TransportType), this.TransportType) },
                 { nameof(this.DirectMethodDelay), this.DirectMethodDelay.ToString() },
-                { nameof(this.RoutingAgency), this.RoutingAgency.ToString() },
+                { nameof(this.InvocationSource), this.InvocationSource.ToString() },
             };
 
             this.AnalyzerUrl.ForEach((url) =>

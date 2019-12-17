@@ -24,26 +24,26 @@ namespace DirectMethodSender
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
             try
             {
-                DirectMethodClientBase directMethodClient;
-                switch (Settings.Current.RoutingAgency)
+                DirectMethodSenderClient directMethodClient;
+                switch (Settings.Current.InvocationSource)
                 {
-                    case RoutingAgency.EdgeHub:
-                        directMethodClient = await ModuleClientWrapper.CreateAsync(
+                    case InvocationSource.Local:
+                        directMethodClient = await DirectMethodLocalSender.CreateAsync(
                                 Settings.Current.TransportType,
                                 ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                                 ModuleUtil.DefaultTransientRetryStrategy,
                                 Logger);
                         break;
 
-                    case RoutingAgency.Upstream:
-                        directMethodClient = ServiceClientWrapper.Create(
+                    case InvocationSource.Cloud:
+                        directMethodClient = DirectMethodCloudSender.Create(
                                 Settings.Current.ServiceClientConnectionString.Expect(() => new ArgumentException("ServiceClientConnectionString is null")),
                                 (Microsoft.Azure.Devices.TransportType)Settings.Current.TransportType,
                                 Logger);
                         break;
 
                     default:
-                        throw new NotImplementedException("Invalid RoutingAgency type");
+                        throw new NotImplementedException("Invalid InvocationSource type");
                 }
 
                 await directMethodClient.OpenAsync();
@@ -60,7 +60,7 @@ namespace DirectMethodSender
                         },
                         async () =>
                         {
-                            ModuleClient  reportClient = await ModuleUtil.CreateModuleClientAsync(
+                            ModuleClient reportClient = await ModuleUtil.CreateModuleClientAsync(
                                 Settings.Current.TransportType,
                                 ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                                 ModuleUtil.DefaultTransientRetryStrategy,

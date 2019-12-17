@@ -7,11 +7,11 @@ namespace DirectMethodSender
     using Microsoft.Extensions.Logging;
     using TransportType = Microsoft.Azure.Devices.TransportType;
 
-    public class ServiceClientWrapper : DirectMethodClientBase
+    public class DirectMethodCloudSender : DirectMethodSenderClient
     {
         readonly ServiceClient serviceClient;
 
-        private ServiceClientWrapper(
+        private DirectMethodCloudSender(
             ServiceClient serviceClient,
             ILogger logger)
             : base(logger)
@@ -21,13 +21,13 @@ namespace DirectMethodSender
 
         public override Task CloseAsync() => this.serviceClient.CloseAsync();
 
-        public static ServiceClientWrapper Create(
+        public static DirectMethodCloudSender Create(
             string connectionString,
             TransportType transportType,
             ILogger logger)
         {
             ServiceClient serviceClient = ServiceClient.CreateFromConnectionString(connectionString, transportType);
-            return new ServiceClientWrapper(
+            return new DirectMethodCloudSender(
                 serviceClient,
                 logger);
         }
