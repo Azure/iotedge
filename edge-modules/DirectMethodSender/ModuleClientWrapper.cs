@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace DirectMethodSender
 {
-    using System;
-    using System.Net;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -11,23 +9,19 @@ namespace DirectMethodSender
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
 
-    public class ModuleClientWrapper : IDirectMethodClient
+    public class ModuleClientWrapper : DirectMethodClientBase
     {
-        TransportType TransportType;
-        ITransientErrorDetectionStrategy TransientErrorDetectionStrategy;
-        RetryStrategy RetryStrategy;
-        ILogger Logger;
-        ModuleClient moduleClient = null;
-        int directMethodCount = 1;
+        ModuleClient ModuleClient;
 
-        private ModuleClientWrapper()
+        private ModuleClientWrapper(
+            ModuleClient moduleClient,
+            ILogger logger) 
+            : base(logger)
         {
+            this.ModuleClient = moduleClient;
         }
 
-        public async Task CloseClientAsync()
-        {
-            await this.moduleClient.CloseAsync();
-        }
+        public override Task CloseAsync() => this.ModuleClient.CloseAsync();
 
         public static async Task<ModuleClientWrapper> CreateAsync(
             TransportType transportType,
@@ -35,76 +29,25 @@ namespace DirectMethodSender
             RetryStrategy retryStrategy,
             ILogger logger)
         {
-            ModuleClientWrapper client = new ModuleClientWrapper();
-            await client.Init(
-                transportType,
-                transientErrorDetectionStrategy,
-                retryStrategy,
-                logger);
-            return client;
-        }
-
-        private async Task Init(
-            TransportType transportType,
-            ITransientErrorDetectionStrategy transientErrorDetectionStrategy,
-            RetryStrategy retryStrategy,
-            ILogger logger)
-        {
-            this.TransportType = transportType;
-            this.TransientErrorDetectionStrategy = transientErrorDetectionStrategy;
-            this.RetryStrategy = retryStrategy;
-            this.Logger = logger;
-
             // implicit OpenAsync()
-            this.moduleClient = await ModuleUtil.CreateModuleClientAsync(
-                    this.TransportType,
-                    this.TransientErrorDetectionStrategy,
-                    this.RetryStrategy,
-                    this.Logger);
+            ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
+                    transportType,
+                    transientErrorDetectionStrategy,
+                    retryStrategy,
+                    logger);
+            
+            return new ModuleClientWrapper(
+                moduleClient,
+                logger);
         }
 
-        public async Task<HttpStatusCode> InvokeDirectMethodAsync(CancellationTokenSource cts)
+        internal override async Task<int> InvokeDeviceMethodAsync(string deviceId, string targetModuleId, CancellationToken none)
         {
-            ILogger logger = this.Logger;
-            logger.LogInformation("Invoke DirectMethod from module: started.");
-
-            string deviceId = Settings.Current.DeviceId;
-            string targetModuleId = Settings.Current.TargetModuleId;
-
-            logger.LogInformation($"Calling Direct Method from module {deviceId} targeting module {targetModuleId}.");
-
-            try
-            {
-                MethodRequest request = new MethodRequest("HelloWorldMethod", Encoding.UTF8.GetBytes("{ \"Message\": \"Hello\" }"));
-                MethodResponse response = await this.moduleClient.InvokeMethodAsync(deviceId, targetModuleId, request);
-
-                string statusMessage = $"Calling Direct Method from module with count {this.directMethodCount} returned with status code {response.Status}";
-                if (response.Status == (int)HttpStatusCode.OK)
-                {
-                    logger.LogDebug(statusMessage);
-                }
-                else
-                {
-                    logger.LogError(statusMessage);
-                }
-
-                this.directMethodCount++;
-                logger.LogInformation("Invoke DirectMethod from module: finished.");
-                return (HttpStatusCode)response.Status;
-            }
-            catch (Exception e)
-            {
-                logger.LogError($"Exception caught with count {this.directMethodCount}: {e}");
-                return HttpStatusCode.InternalServerError;
-            }
+            MethodRequest request = new MethodRequest("HelloWorldMethod", Encoding.UTF8.GetBytes("{ \"Message\": \"Hello\" }"));
+            MethodResponse result = await this.ModuleClient.InvokeMethodAsync(deviceId, targetModuleId, request);
+            return result.Status;
         }
 
-        public async Task OpenClientAsync()
-        {
-            await this.moduleClient.OpenAsync();
-        }
-
-        public async Task SendEventAsync(string outputName, string message) =>
-            await this.moduleClient.SendEventAsync(outputName, new Message(Encoding.UTF8.GetBytes(message)));
+        public override Task OpenAsync() => this.ModuleClient.OpenAsync();
     }
 }
