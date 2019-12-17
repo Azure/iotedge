@@ -40,8 +40,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
         Dictionary<string, ulong> previousSystemCpu = new Dictionary<string, ulong>();
         Dictionary<string, DateTime> previousReadTime = new Dictionary<string, DateTime>();
 
-        static readonly ILogger Log = Logger.Factory.CreateLogger<SystemResourcesMetrics>();
-
         public SystemResourcesMetrics(IMetricsProvider metricsProvider, Func<Task<SystemResources>> getSystemResources, string apiVersion)
         {
             Preconditions.CheckNotNull(metricsProvider, nameof(metricsProvider));
@@ -164,17 +162,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
                 this.totalMemory.Set(module.MemoryStats.Limit, tags);
                 this.usedMemory.Set((long)module.MemoryStats.Usage, tags);
                 this.createdPids.Set(module.PidsStats.Current, tags);
-
-                if (module.Networks != null)
-                {
-                    this.networkIn.Set(module.Networks.Sum(n => n.Value.RxBytes), tags);
-                    this.networkOut.Set(module.Networks.Sum(n => n.Value.TxBytes), tags);
-                }
-                else
-                {
-                    Log.LogError("Network host metrics are null");
-                }
-
+                this.networkIn.Set(module.Networks.Sum(n => n.Value.RxBytes), tags);
+                this.networkOut.Set(module.Networks.Sum(n => n.Value.TxBytes), tags);
                 this.diskRead.Set(module.BlockIoStats.Sum(io => io.Value.Where(d => d.Op == "Read").Sum(d => d.Value)), tags);
                 this.diskWrite.Set(module.BlockIoStats.Sum(io => io.Value.Where(d => d.Op == "Write").Sum(d => d.Value)), tags);
             }
