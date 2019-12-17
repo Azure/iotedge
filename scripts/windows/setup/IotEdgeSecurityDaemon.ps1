@@ -188,6 +188,10 @@ function Initialize-IoTEdge {
         [Parameter(ParameterSetName = 'DpsX509')]
         [Switch] $DpsX509,
 
+        # Specified the daemon will be configured using an external provisioning endpoint.
+        [Parameter(ParameterSetName = 'External')]
+        [Switch] $External,
+
         # The device connection string.
         [Parameter(Mandatory = $true, ParameterSetName = 'ManualConnectionString')]
         [String] $DeviceConnectionString,
@@ -255,6 +259,9 @@ function Initialize-IoTEdge {
         [ValidateNotNullOrEmpty()]
         [String] $ExternalProvisioningEndpoint,
 
+        # Specifies whether dynamic reprovisioning should be enabled or not.
+        [Switch] $DynamicReprovisioning,
+
         # The base OS of all the containers that will be run on this device via the security daemon.
         #
         # If set to Linux, a separate installation of Docker for Windows is expected.
@@ -307,9 +314,14 @@ function Initialize-IoTEdge {
         throw
     }
 
+    if (-not (Test-VcRuntimePresent)) {
+        Write-HostRed 'VC Runtime must be installed before IoT Edge can be initialized.'
+        throw
+    }
+
     if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
         Write-HostRed
-        Write-HostRed ('IoT Edge is installed in an invalid location. ' + $ReinstallMessage)
+        Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. There may be an old preview install present. Please run Uninstall-IoTEdge first or reimage the device. ' + $ReinstallMessage)
         throw
     }
 
@@ -494,6 +506,8 @@ function Deploy-IoTEdge {
         [Switch] $SkipBatteryCheck
     )
 
+    Set-StrictMode -Version 5
+
     Install-Packages `
         -ContainerOs $ContainerOs `
         -Proxy $Proxy `
@@ -677,6 +691,9 @@ function Install-IoTEdge {
         [ValidateNotNullOrEmpty()]
         [String] $ExternalProvisioningEndpoint,
 
+        # Specifies whether dynamic reprovisioning should be enabled or not.
+        [Switch] $DynamicReprovisioning,
+
         # The base OS of all the containers that will be run on this device via the security daemon.
         #
         # If set to Linux, a separate installation of Docker for Windows is expected.
@@ -715,6 +732,8 @@ function Install-IoTEdge {
         # Skip battery check.
         [Switch] $SkipBatteryCheck
     )
+
+    Set-StrictMode -Version 5
 
     # Set by Deploy-IoTEdge if it succeeded, so we can abort early in case of failure.
     #
@@ -788,7 +807,8 @@ function Install-IoTEdge {
     if ($AgentImage) { $Params["-AgentImage"] = $AgentImage }
     if ($Username) { $Params["-Username"] = $Username }
     if ($Password) { $Params["-Password"] = $Password }
-
+    $Params["-DynamicReprovisioning"] = $DynamicReprovisioning
+    
     # Used to suppress some messages from Initialize-IoTEdge that have already been emitted by Deploy-IoTEdge
     $initializeCalledFromInstall = $true
 
@@ -885,6 +905,8 @@ function Get-IoTEdgeLog {
         [DateTime] $StartTime = [datetime]::Now.AddMinutes(-5)
     )
 
+    Set-StrictMode -Version 5
+
     Get-WinEvent -ea SilentlyContinue -FilterHashtable @{ProviderName='iotedged';LogName='application';StartTime=$StartTime} |
         Select TimeCreated, Message |
         Sort-Object @{Expression='TimeCreated';Descending=$false} |
@@ -921,7 +943,7 @@ function Install-Packages(
 
         if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
             Write-HostRed
-            Write-HostRed ('IoT Edge is installed in an invalid location. ' + $ReinstallMessage)
+            Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. There may be an old preview install present. Please run Uninstall-IoTEdge first or reimage the device. ' + $ReinstallMessage)
             throw
         }
 
@@ -935,7 +957,7 @@ function Install-Packages(
         if (Test-EdgeAlreadyInstalled) {
             if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
                 Write-HostRed
-                Write-HostRed ('IoT Edge is installed in an invalid location. ' + $ReinstallMessage)
+                Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. There may be an old preview install present. Please run Uninstall-IoTEdge first or reimage the device. ' + $ReinstallMessage)
             }
             else {
                 Write-HostRed
@@ -948,8 +970,7 @@ function Install-Packages(
         if (Test-MobyAlreadyInstalled) {
             if ((Test-MobyNeedsToBeMoved) -or (Test-LegacyInstaller)) {
                 Write-HostRed
-                Write-HostRed ('IoT Edge Moby Engine is installed in an invalid location. ' +
-                    $ReinstallMessage)
+                Write-HostRed ('IoT Edge or the IoT Edge Moby Engine is installed in an invalid location. There may be an old preview install present. Please run Uninstall-IoTEdge first or reimage the device. ' + $ReinstallMessage)
             }
             else {
                 Write-HostRed
@@ -974,8 +995,8 @@ function Install-Packages(
                 }
             }
         }
-        Get-VcRuntime
     }
+    Get-VcRuntime # does nothing if vcruntime already installed
 
     # Download
     Get-IoTEdge -RestartNeeded ([ref] $restartNeeded) -Update $Update
@@ -1564,13 +1585,17 @@ function Reset-SystemPath {
     Write-Verbose 'Removed IoT Edge directories from system PATH'
 }
 
+function Test-VcRuntimePresent {
+    return Test-Path 'C:\Windows\System32\vcruntime140.dll'
+}
+
 function Get-VcRuntime {
     if (Test-IotCore) {
         Write-HostGreen 'Skipping VC Runtime installation on IoT Core.'
         return
     }
 
-    if (Test-Path 'C:\Windows\System32\vcruntime140.dll') {
+    if (Test-VcRuntimePresent) {
         Write-HostGreen 'Skipping VC Runtime installation because it is already installed.'
         return
     }
@@ -1616,10 +1641,10 @@ function Uninstall-Services([ref] $RestartNeeded, [bool] $LegacyInstaller) {
         Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable cmdErr $EdgeServiceName
         if ($?) {
             Start-Sleep -Seconds 7
-            Write-Verbose 'Stopped the IoT Edge service'
+            Write-Verbose "Stopped the IoT Edge service $EdgeServiceName"
         }
         else {
-            Write-Verbose "$cmdErr"
+            Write-Verbose "Stopping IoT Edge service $EdgeServiceName failed. Error: $cmdErr"
         }
     }
 
@@ -1629,10 +1654,10 @@ function Uninstall-Services([ref] $RestartNeeded, [bool] $LegacyInstaller) {
         Stop-Service -NoWait -ErrorAction SilentlyContinue -ErrorVariable cmdErr $MobyServiceName
         if ($?) {
             Start-Sleep -Seconds 7
-            Write-Verbose 'Stopped the IoT Edge Moby Engine service'
+            Write-Verbose "Stopped the IoT Edge Moby Engine service $MobyServiceName"
         }
         else {
-            Write-Verbose "$cmdErr"
+            Write-Verbose "Stopping IoT Edge Moby Engine service $MobyServiceName failed. Error: $cmdErr"
         }
     }
 
@@ -1649,6 +1674,7 @@ function Uninstall-Services([ref] $RestartNeeded, [bool] $LegacyInstaller) {
         }
     }
     else {
+        Write-Verbose 'Uninstalling IoT Edge package.'
         Uninstall-Package -Name $EdgePackage -RestartNeeded $RestartNeeded
     }
 }
@@ -1744,14 +1770,22 @@ function Set-ProvisioningMode {
     Update-ConfigYaml({
         param($configurationYaml)
 
+        if ($DynamicReprovisioning) {
+            $DynamicReprovisioning = 'true'
+        }
+        else {
+            $DynamicReprovisioning = 'false'
+        }
+
         if ($ManualConnectionString -or $ManualX509) {
-            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"'
+            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"\s*#?\s*dynamic_reprovisioning:\s*.*'
             $authenticationMethod = Get-ManualAuthSettings
             if ($authenticationMethod -eq 'device_connection_string') {
                 $replacementContent = @(
                     'provisioning:',
                     '  source: ''manual''',
-                    "  device_connection_string: '$DeviceConnectionString'")
+                    "  device_connection_string: '$DeviceConnectionString'",
+                    "  dynamic_reprovisioning: $DynamicReprovisioning")
             } elseif ($authenticationMethod -eq 'x509') {
                 $certUri = ([System.Uri][System.IO.Path]::GetFullPath($X509IdentityCertificate)).AbsoluteUri
                 $pkUri = ([System.Uri][System.IO.Path]::GetFullPath($X509IdentityPrivateKey)).AbsoluteUri
@@ -1763,19 +1797,26 @@ function Set-ProvisioningMode {
                     "    iothub_hostname: '$IotHubHostName'"
                     "    device_id: '$DeviceId'"
                     "    identity_cert: '$certUri'"
-                    "    identity_pk: '$pkUri'")
+                    "    identity_pk: '$pkUri'",
+                    "  dynamic_reprovisioning: $DynamicReprovisioning")
             }
             $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
             Write-HostGreen 'Configured device for manual provisioning.'
             return $configurationYaml
         }
         elseif ($External -or $ExternalProvisioningEndpoint){
-            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*endpoint:\s*".*"'
+            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*endpoint:\s*".*"\s*#?\s*dynamic_reprovisioning:\s*.*'
             $replacementContent = @(
                 'provisioning:',
                 '  source: ''external''',
-                "  endpoint: '$ExternalProvisioningEndpoint'")
+                "  endpoint: '$ExternalProvisioningEndpoint'",
+                "  dynamic_reprovisioning: $DynamicReprovisioning")
             $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
+
+            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"\s*#?\s*dynamic_reprovisioning:\s*.*'
+            $replacementContent = ''
+            $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
+
             Write-HostGreen 'Configured device for external provisioning.'
             return $configurationYaml
         }
@@ -1788,6 +1829,8 @@ function Set-ProvisioningMode {
             } elseif ($attestationMethod -eq 'x509') {
                 $selectionRegex += '\s*#?\s*identity_cert:\s".*"\s*#?\s*identity_pk:\s".*"'
             }
+
+            $selectionRegex += '\s*#?\s*dynamic_reprovisioning:\s*.*'
             $replacementContent = @(
                 'provisioning:',
                 '  source: ''dps''',
@@ -1809,9 +1852,11 @@ function Set-ProvisioningMode {
                 $uri = ([System.Uri][System.IO.Path]::GetFullPath($X509IdentityPrivateKey)).AbsoluteUri
                 $replacementContent += "    identity_pk: '$uri'"
             }
+
+            $replacementContent += "  dynamic_reprovisioning: $DynamicReprovisioning"
             $configurationYaml = $configurationYaml -replace $selectionRegex, ($replacementContent -join "`n")
 
-            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"'
+            $selectionRegex = '(?:[^\S\n]*#[^\S\n]*)?provisioning:\s*#?\s*source:\s*".*"\s*#?\s*device_connection_string:\s*".*"\s*#?\s*dynamic_reprovisioning:\s*.*'
             $replacementContent = ''
             $configurationYaml = ($configurationYaml -replace $selectionRegex, ($replacementContent -join "`n"))
 

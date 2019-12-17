@@ -7,7 +7,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: {{.Release.Service | quote }}
     app.kubernetes.io/instance: {{.Release.Name | quote }}
-    helm.sh/chart: "{{.Chart.Name}}-{{.Chart.Version}}"
+    helm.sh/chart: {{ include "edge-kubernetes.chart" . }}
 ...
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -15,6 +15,10 @@ kind: ClusterRoleBinding
 metadata:
   name: iotedge:{{ .Release.Name }}:auth-delegator
   namespace: {{ include "edge-kubernetes.namespace" . | quote }}
+  labels:
+    app.kubernetes.io/managed-by: {{.Release.Service | quote }}
+    app.kubernetes.io/instance: {{.Release.Name | quote }}
+    helm.sh/chart: {{ include "edge-kubernetes.chart" . }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -25,11 +29,16 @@ subjects:
     namespace: {{ include "edge-kubernetes.namespace" . | quote }}
 ...
 ---
+{{- if .Values.iotedged.data.enableGetNodesRBAC }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: iotedge:{{ .Release.Name }}:node-observer
   namespace: {{ include "edge-kubernetes.namespace" . | quote }}
+  labels:
+    app.kubernetes.io/managed-by: {{.Release.Service | quote }}
+    app.kubernetes.io/instance: {{.Release.Name | quote }}
+    helm.sh/chart: {{ include "edge-kubernetes.chart" . }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -39,12 +48,17 @@ subjects:
     name: iotedged
     namespace: {{ include "edge-kubernetes.namespace" . | quote }}
 ...
+{{ end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: iotedged
   namespace: {{ include "edge-kubernetes.namespace" . | quote }}
+  labels:
+    app.kubernetes.io/managed-by: {{.Release.Service | quote }}
+    app.kubernetes.io/instance: {{.Release.Name | quote }}
+    helm.sh/chart: {{ include "edge-kubernetes.chart" . }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -55,21 +69,31 @@ subjects:
     namespace: {{ include "edge-kubernetes.namespace" . | quote }}
 ...
 ---
+{{- if .Values.iotedged.data.enableGetNodesRBAC }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: iotedge:{{ .Release.Name }}:node-observer
+  labels:
+    app.kubernetes.io/managed-by: {{.Release.Service | quote }}
+    app.kubernetes.io/instance: {{.Release.Name | quote }}
+    helm.sh/chart: {{ include "edge-kubernetes.chart" . }}
 rules:
   - apiGroups: [""]
     resources: ["nodes"]
     verbs: ["list", "watch", "get"]
 ...
+{{ end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: iotedged
   namespace: {{ include "edge-kubernetes.namespace" . | quote }}
+  labels:
+    app.kubernetes.io/managed-by: {{.Release.Service | quote }}
+    app.kubernetes.io/instance: {{.Release.Name | quote }}
+    helm.sh/chart: {{ include "edge-kubernetes.chart" . }}
 rules:
   - apiGroups: [""]
     resources: ["nodes"]
@@ -79,16 +103,16 @@ rules:
     verbs: ["list", "watch"]
   - apiGroups: [""]
     resources: ["services"]
-    verbs: ["list", "create", "delete"]
+    verbs: ["list", "create", "delete", "update"]
   - apiGroups: ["apps"]
     resources: ["deployments"]
-    verbs: ["list", "create", "delete", "update"]
+    verbs: ["list", "get", "create", "delete", "update"]
   - apiGroups: [""]
     resources: ["secrets", "serviceaccounts", "configmaps"]
     verbs: ["list", "get", "create", "update", "delete"]
   - apiGroups: [""]
     resources: ["persistentvolumeclaims"]
-    verbs: ["list", "create"]
+    verbs: ["list", "create", "update", "delete"]
   - apiGroups: ["rbac.authorization.k8s.io"]
     resources: ["rolebindings"]
     verbs: ["list", "create", "delete", "update"]
@@ -105,22 +129,26 @@ kind: Role
 metadata:
   name: edgeagent
   namespace: {{ include "edge-kubernetes.namespace" . | quote }}
+  labels:
+    app.kubernetes.io/managed-by: {{.Release.Service | quote }}
+    app.kubernetes.io/instance: {{.Release.Name | quote }}
+    helm.sh/chart: {{ include "edge-kubernetes.chart" . }}
 rules:
   - apiGroups: [""]
     resources: ["pods", "pods/log"]
     verbs: ["list", "watch"]
   - apiGroups: [""]
     resources: ["services"]
-    verbs: ["list", "create", "delete"]
+    verbs: ["list", "create", "delete", "update"]
   - apiGroups: ["apps"]
     resources: ["deployments"]
-    verbs: ["list", "create", "delete", "update"]
+    verbs: ["list", "get", "create", "delete", "update"]
   - apiGroups: [""]
     resources: ["secrets", "serviceaccounts"]
     verbs: ["list", "get", "create", "update", "delete"]
   - apiGroups: [""]
     resources: ["persistentvolumeclaims"]
-    verbs: ["list", "create"]
+    verbs: ["list", "create", "update", "delete"]
   - apiGroups: ["microsoft.azure.devices.edge"]
     resources: ["edgedeployments"]
     verbs: ["list", "get", "create", "update", "delete", "watch"]

@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
 {
+    using System.Security.Authentication;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading.Tasks;
     using Autofac;
@@ -28,6 +29,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly X509Certificate2 tlsCertificate;
         readonly bool clientCertAuthAllowed;
         readonly bool optimizeForPerformance;
+        readonly SslProtocols sslProtocols;
 
         public MqttModule(
             IConfiguration mqttSettingsConfiguration,
@@ -35,7 +37,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             X509Certificate2 tlsCertificate,
             bool isStoreAndForwardEnabled,
             bool clientCertAuthAllowed,
-            bool optimizeForPerformance)
+            bool optimizeForPerformance,
+            SslProtocols sslProtocols)
         {
             this.mqttSettingsConfiguration = Preconditions.CheckNotNull(mqttSettingsConfiguration, nameof(mqttSettingsConfiguration));
             this.conversionConfiguration = Preconditions.CheckNotNull(conversionConfiguration, nameof(conversionConfiguration));
@@ -43,6 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.isStoreAndForwardEnabled = isStoreAndForwardEnabled;
             this.clientCertAuthAllowed = clientCertAuthAllowed;
             this.optimizeForPerformance = optimizeForPerformance;
+            this.sslProtocols = sslProtocols;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -134,7 +138,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                             websocketListenerRegistry,
                             byteBufferAllocator,
                             productInfoStore,
-                            this.clientCertAuthAllowed);
+                            this.clientCertAuthAllowed,
+                            this.sslProtocols);
                     })
                 .As<Task<MqttProtocolHead>>()
                 .SingleInstance();

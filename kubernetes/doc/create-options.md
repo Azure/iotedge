@@ -21,6 +21,7 @@ We added CreateOptions for experimental features on Kubernetes. These options "o
     "volumes": [{...}],
     "resources": [{...}],
     "nodeSelector": {...}
+    "securityContext": {...},
   }
 }
 ```
@@ -118,5 +119,25 @@ A `nodeSelector` section of config used for node selection constrain. It specifi
 }
 ```
 
+## Apply Pod Security Context
 
+By default EdgeAgent doesn't make any assumptions about pod security context and allows to run containers under the user this container was built. With this section user can specify exact pod security policy module will run with.
+
+### CreateOptions
+
+A `securityContext` section of config used to apply a pod security context to a module pod spec. The section has the same structure as a Kubernetes [Pod spec](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.12/#podsecuritycontext-v1-core).
  
+`EdgeAgent` doesn't do any translations or interpretations of values but simply assigns value from module deployment to `securityContext` parameter of a pod spec.
+
+```json
+{
+  "k8s-experimental": {
+    "securityContext": {
+      "fsGroup": "1",
+      "runAsGroup": "1001",
+      "runAsUser": "1000",
+      ...
+    }
+  }
+}
+```

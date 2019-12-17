@@ -13,6 +13,7 @@ use failure::ResultExt;
 
 use crate::error::Error;
 use crate::ErrorKind;
+use docker::models::AuthConfig;
 
 #[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 pub struct Settings {
@@ -21,13 +22,10 @@ pub struct Settings {
     namespace: String,
     iot_hub_hostname: Option<String>,
     device_id: Option<String>,
-    proxy_image: String,
-    proxy_config_path: String,
-    proxy_config_map_name: String,
-    proxy_trust_bundle_path: String,
-    proxy_trust_bundle_config_map_name: String,
-    image_pull_policy: String,
     device_hub_selector: String,
+    proxy: ProxySettings,
+    #[serde(default = "Settings::default_nodes_rbac")]
+    has_nodes_rbac: bool,
 }
 
 impl Settings {
@@ -60,6 +58,11 @@ impl Settings {
         self
     }
 
+    pub fn with_nodes_rbac(mut self, has_nodes_rbac: bool) -> Self {
+        self.has_nodes_rbac = has_nodes_rbac;
+        self
+    }
+
     pub fn namespace(&self) -> &str {
         &self.namespace
     }
@@ -68,36 +71,24 @@ impl Settings {
         self.iot_hub_hostname.as_ref().map(String::as_str)
     }
 
+    pub fn proxy(&self) -> &ProxySettings {
+        &self.proxy
+    }
+
     pub fn device_id(&self) -> Option<&str> {
         self.device_id.as_ref().map(String::as_str)
     }
 
-    pub fn proxy_image(&self) -> &str {
-        &self.proxy_image
-    }
-
-    pub fn proxy_config_path(&self) -> &str {
-        &self.proxy_config_path
-    }
-
-    pub fn proxy_config_map_name(&self) -> &str {
-        &self.proxy_config_map_name
-    }
-
-    pub fn proxy_trust_bundle_path(&self) -> &str {
-        &self.proxy_trust_bundle_path
-    }
-
-    pub fn proxy_trust_bundle_config_map_name(&self) -> &str {
-        &self.proxy_trust_bundle_config_map_name
-    }
-
-    pub fn image_pull_policy(&self) -> &str {
-        &self.image_pull_policy
-    }
-
     pub fn device_hub_selector(&self) -> &str {
         &self.device_hub_selector
+    }
+
+    pub fn has_nodes_rbac(&self) -> bool {
+        self.has_nodes_rbac
+    }
+
+    fn default_nodes_rbac() -> bool {
+        true
     }
 }
 
@@ -138,5 +129,46 @@ impl RuntimeSettings for Settings {
 
     fn watchdog(&self) -> &WatchdogSettings {
         self.base.watchdog()
+    }
+}
+
+#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+pub struct ProxySettings {
+    auth: Option<AuthConfig>,
+    image: String,
+    image_pull_policy: String,
+    config_path: String,
+    config_map_name: String,
+    trust_bundle_path: String,
+    trust_bundle_config_map_name: String,
+}
+
+impl ProxySettings {
+    pub fn auth(&self) -> Option<&AuthConfig> {
+        self.auth.as_ref()
+    }
+
+    pub fn image(&self) -> &str {
+        &self.image
+    }
+
+    pub fn config_path(&self) -> &str {
+        &self.config_path
+    }
+
+    pub fn config_map_name(&self) -> &str {
+        &self.config_map_name
+    }
+
+    pub fn trust_bundle_path(&self) -> &str {
+        &self.trust_bundle_path
+    }
+
+    pub fn trust_bundle_config_map_name(&self) -> &str {
+        &self.trust_bundle_config_map_name
+    }
+
+    pub fn image_pull_policy(&self) -> &str {
+        &self.image_pull_policy
     }
 }

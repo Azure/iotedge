@@ -1,8 +1,8 @@
 # iotedged configuration
 iotedged:
   image:
-    repository: azureiotedge/iotedged
-    tag: 0.1.0-alpha
+    repository: azureiotedge/azureiotedge-iotedged
+    tag: 0.1.0-beta3
     pullPolicy: Always
   service:
     name: iotedged
@@ -13,6 +13,7 @@ iotedged:
     management: 35000
     workload: 35001
   data:
+    enableGetNodesRBAC: true
     targetPath: /var/lib/iotedge
     # In order to benefit from HA, at a minimum the data location for iotedged
     # should be backed by a persistent volume. Please setup a persistent volume
@@ -35,15 +36,27 @@ iotedged:
   # are auto generated for quick start scenarios which are not intended for
   # production environments.
   #
+  # Please create a secret containing 3 items, the Device CA cert, the Device CA private key, and
+  # the root CA. Then give the chart the secret name and the item names. For example, if a secret 
+  # is created like this:
+  # `kubectl create secret generic -n device-namespace edge-certs --from-file=certs/iot-edge-device-ca-MyEdgeDeviceCA-full-chain.cert.pem --from-file=private/iot-edge-device-ca-MyEdgeDeviceCA.key.pem --from-file=certs/azure-iot-test-only.root.ca.cert.pem`
+  # The YAML would look like:
   # certificates:
-  #   device_ca_cert: "<ADD PATH TO DEVICE CA CERTIFICATE HERE>"
-  #   device_ca_pk: "<ADD PATH TO DEVICE CA PRIVATE KEY HERE>"
-  #   trusted_ca_certs: "<ADD PATH TO TRUSTED CA CERTIFICATES HERE>"
+  #   secret: "edge-certs"
+  #   device_ca_cert: "iot-edge-device-ca-MyEdgeDeviceCA-full-chain.cert.pem"
+  #   device_ca_pk: "iot-edge-device-ca-MyEdgeDeviceCA.key.pem"
+  #   trusted_ca_certs: "azure-iot-test-only.root.ca.cert.pem"
+  #
+  # certificates:
+  #   secret: "<Name of secret>"
+  #   device_ca_cert: "<ADD SECRET ITEM NAME FOR DEVICE CA CERTIFICATE HERE>"
+  #   device_ca_pk: "<ADD SECRET ITEM NAME FOR CA PRIVATE KEY HERE>"
+  #   trusted_ca_certs: "<ADD SECRET ITEM NAME FOR CA CERTIFICATES HERE>"
 
 iotedgedProxy:
   image:
     repository: azureiotedge/azureiotedge-proxy
-    tag: 0.1.0-alpha
+    tag: 0.1.0-beta3
     pullPolicy: Always
 
 # Edge Agent image configuration
@@ -51,7 +64,7 @@ edgeAgent:
   containerName: edgeagent
   image:
     repository: azureiotedge/azureiotedge-agent
-    tag: 0.1.0-alpha
+    tag: 0.1.0-beta3
     pullPolicy: Always
   hostname: "localhost"
   env:
@@ -59,6 +72,9 @@ edgeAgent:
     # Set this to one of "LoadBalancer", "NodePort", or "ClusterIP" to tell the
     # IoT Edge runtime how you want to expose mapped ports as Services.
     portMappingServiceType: 'ClusterIP'
+    
+    # Set the location of the backup configuration file.
+    backupConfigFilePath: '/tmp/backup.json'
     
     # Set this to false if you want to turn off verbose k8s call tracing
     enableK8sServiceCallTracing: false
@@ -91,13 +107,18 @@ edgeAgent:
     # Set this to true if you wish to turn on experimental features support. Please see 
     # https://github.com/Azure/iotedge/blob/master/kubernetes/doc/create-options.md to
     # find more information about experimental create options feature.
-    # enableExperimentalFeatures: true
+    enableExperimentalFeatures: true
     
     # Create options extensions for Kubernetes
     # The feature allows the user to extend a module's create options with some Kubernetes primitives. 
     # To activate this experimental feature, both "enableExperimentalFeatures" and "enableK8sExtensions" 
     # must be set to "true".
-    # enableK8sExtensions: true
+    enableK8sExtensions: true
+
+    # Configure default pod security context rule. If set true, it will allow kubernetes to run only non-root containers
+    # under the user with uid(1000).
+    # false dy default.
+    # runAsNonRoot: false
 
 # Optional registry credentials for module images
 # registryCredentials:
