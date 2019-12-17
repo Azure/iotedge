@@ -8,6 +8,7 @@ namespace TestResultCoordinator.Service
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.EventHubs;
     using Microsoft.Extensions.Logging;
+    using TestResultCoordinator.Storage;
     using TestOperationResult = TestResultCoordinator.TestOperationResult;
 
     class PartitionReceiveHandler : IPartitionReceiveHandler
@@ -20,11 +21,13 @@ namespace TestResultCoordinator.Service
 
         readonly string deviceId;
         readonly string trackingId;
+        readonly ITestOperationResultStorage storage;
 
-        public PartitionReceiveHandler(string trackingId, string deviceId)
+        public PartitionReceiveHandler(string trackingId, string deviceId, ITestOperationResultStorage storage)
         {
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            this.storage = Preconditions.CheckNotNull(storage, nameof(storage));
         }
 
         public int MaxBatchSize { get; set; }
@@ -70,7 +73,7 @@ namespace TestResultCoordinator.Service
                                         (string)batchIdFromEvent,
                                         (string)sequenceNumberFromEvent),
                                     enqueuedtime);
-                                await TestOperationResultStorage.AddResultAsync(result);
+                                await this.storage.AddResultAsync(result);
                             }
                             else
                             {
