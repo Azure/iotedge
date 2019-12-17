@@ -25,9 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 EventHubPartitionKeyResolver.ResolveToPartition(deviceId, (await eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
                 EventPosition.FromEnqueuedTime(startTime));
 
-            var messages = new List<EventData>();
-            IEnumerable<EventData> events = await partitionReceiver.ReceiveAsync(maxPerPartition, TimeSpan.FromSeconds(waitTimeSecs));
-            messages.AddRange(events);
+            List<EventData> messages = (List<EventData>)await partitionReceiver.ReceiveAsync(maxPerPartition, TimeSpan.FromSeconds(waitTimeSecs));
 
             await partitionReceiver.CloseAsync();
             await eventHubClient.CloseAsync();
