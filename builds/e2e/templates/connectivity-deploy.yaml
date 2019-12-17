@@ -8,6 +8,12 @@ parameters:
   iotHub.connectionString: ''
   eventHub.connectionString: ''
   loadGen.message.frequency: ''
+  networkController.frequencies: ''
+  networkController.mode: ''
+  testResultCoordinator.logAnalyticsWorkspaceId: ''
+  testResultCoordinator.logAnalyticsSharedKey: ''
+  testResultCoordinator.logAnalyticsLogType: ''
+  testResultCoordinator.verificationDelay: ''
 
 steps:
   - task: CopyFiles@2
@@ -40,6 +46,14 @@ steps:
           -containerRegistryPassword "${{ parameters['container.registry.password'] }}" \
           -iotHubConnectionString "${{ parameters['iotHub.connectionString'] }}" \
           -eventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" \
+          -testDuration "${{ parameters['testDuration'] }}" \
+          -testStartDelay "${{ parameters['testStartDelay'] }}" \
           -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" \
+          -networkControllerFrequency "${{ parameters['networkController.frequencies'] }}" \
+          -networkControllerMode "${{ parameters['networkController.mode'] }}" \
+          -logAnalyticsWorkspaceId "${{ parameters['testResultCoordinator.logAnalyticsWorkspaceId'] }}" \
+          -logAnalyticsSharedKey "${{ parameters['testResultCoordinator.logAnalyticsSharedKey'] }}" \
+          -logAnalyticsLogType "${{ parameters['testResultCoordinator.logAnalyticsLogType'] }}" \
+          -verificationDelay "${{ parameters['testResultCoordinator.verificationDelay'] }}" \
           -cleanAll
       workingDirectory: "$(Agent.HomeDirectory)/.."

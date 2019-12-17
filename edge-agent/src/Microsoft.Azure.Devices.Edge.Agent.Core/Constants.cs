@@ -93,6 +93,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string IoTEdgeAgentProductInfoIdentifier = "EdgeAgent";
 
+        public const string StorageMaxTotalWalSize = "RocksDB_MaxTotalWalSize";
+
         public static class Labels
         {
             public const string Version = "net.azure-devices.edge.version";

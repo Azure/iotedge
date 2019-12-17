@@ -7,6 +7,7 @@ namespace LoadGen
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
@@ -15,75 +16,108 @@ namespace LoadGen
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("LoadGen");
 
-        static long messageIdCounter = 0;
-
         static async Task Main()
         {
             Logger.LogInformation($"Starting load gen with the following settings:\r\n{Settings.Current}");
 
+            ModuleClient moduleClient = null;
+
             try
             {
-                ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
+                (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
+
+                Guid batchId = Guid.NewGuid();
+                Logger.LogInformation($"Batch Id={batchId}");
+
+                moduleClient = await ModuleUtil.CreateModuleClientAsync(
                     Settings.Current.TransportType,
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                     ModuleUtil.DefaultTransientRetryStrategy,
                     Logger);
 
-                Guid batchId = Guid.NewGuid();
-                Logger.LogInformation($"Batch Id={batchId}");
+                Logger.LogInformation($"Load gen delay start for {Settings.Current.TestStartDelay}.");
+                await Task.Delay(Settings.Current.TestStartDelay);
 
-                (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
-
-                // setup the message PeriodicTask
-                using (var messageTask = new PeriodicTask(
-                    () => GenerateMessageAsync(moduleClient, batchId),
-                    Settings.Current.MessageFrequency,
-                    Settings.Current.StartDelay,
-                    Logger,
-                    "Generate message"))
+                DateTime testStartAt = DateTime.UtcNow;
+                long messageIdCounter = 1;
+                while (!cts.IsCancellationRequested &&
+                    (Settings.Current.TestDuration == TimeSpan.Zero || DateTime.UtcNow - testStartAt < Settings.Current.TestDuration))
                 {
-                    Logger.LogInformation("Load gen running.");
-                    await cts.Token.WhenCanceled();
+                    try
+                    {
+                        await SendEventAsync(moduleClient, batchId, Settings.Current.TrackingId, messageIdCounter);
+
+                        // Report sending message successfully to Test Result Coordinator
+                        await Settings.Current.TestResultCoordinatorUrl.ForEachAsync(async trcUrl =>
+                        {
+                            Uri testResultCoordinatorUrl = new Uri(
+                                trcUrl,
+                                UriKind.Absolute);
+                            TestResultCoordinatorClient trcClient = new TestResultCoordinatorClient { BaseUrl = testResultCoordinatorUrl.AbsoluteUri };
+
+                            await ModuleUtil.ReportStatus(
+                                trcClient,
+                                Logger,
+                                Settings.Current.ModuleId + ".send",
+                                ModuleUtil.FormatTestResultValue(
+                                    Settings.Current.TrackingId,
+                                    batchId.ToString(),
+                                    messageIdCounter.ToString()),
+                                TestOperationResultType.Messages.ToString());
+                        });
+
+                        messageIdCounter++;
+                        await Task.Delay(Settings.Current.MessageFrequency);
+
+                        if (messageIdCounter % 1000 == 0)
+                        {
+                            Logger.LogInformation($"Sent {messageIdCounter} messages.");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError(ex, $"[SendEventAsync] Sequence number {messageIdCounter}, BatchId: {batchId.ToString()};");
+                    }
                 }
 
-                Logger.LogInformation("Closing connection to Edge Hub.");
-                await moduleClient.CloseAsync();
-
+                Logger.LogInformation("Finish sending messages.");
+                await cts.Token.WhenCanceled();
                 completed.Set();
                 handler.ForEach(h => GC.KeepAlive(h));
-                Logger.LogInformation("Load Gen complete. Exiting.");
             }
             catch (Exception ex)
             {
-                Logger.LogError($"Error occurred during load gen.\r\n{ex}");
+                Logger.LogError(ex, "Error occurred during load gen.");
             }
+            finally
+            {
+                Logger.LogInformation("Closing connection to Edge Hub.");
+                moduleClient?.CloseAsync();
+                moduleClient?.Dispose();
+            }
+
+            Logger.LogInformation("Load Gen complete. Exiting.");
         }
 
-        static async Task GenerateMessageAsync(ModuleClient client, Guid batchId)
+        static async Task SendEventAsync(ModuleClient client, Guid batchId, string trackingId, long messageId)
         {
             var random = new Random();
             var bufferPool = new BufferPool();
 
-            try
+            using (Buffer data = bufferPool.AllocBuffer(Settings.Current.MessageSizeInBytes))
             {
-                using (Buffer data = bufferPool.AllocBuffer(Settings.Current.MessageSizeInBytes))
-                {
-                    // generate some bytes
-                    random.NextBytes(data.Data);
+                // generate some bytes
+                random.NextBytes(data.Data);
 
-                    // build message
-                    var messageBody = new { data = data.Data };
-                    var message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)));
-                    messageIdCounter++;
-                    message.Properties.Add("sequenceNumber", messageIdCounter.ToString());
-                    message.Properties.Add("batchId", batchId.ToString());
+                // build message
+                var messageBody = new { data = data.Data };
+                var message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)));
+                message.Properties.Add(TestConstants.Message.SequenceNumberPropertyName, messageId.ToString());
+                message.Properties.Add(TestConstants.Message.BatchIdPropertyName, batchId.ToString());
+                message.Properties.Add(TestConstants.Message.TrackingIdPropertyName, trackingId);
 
-                    await client.SendEventAsync(Settings.Current.OutputName, message);
-                }
-            }
-            catch (Exception e)
-            {
-                Logger.LogError($"[GenerateMessageAsync] Sequence number {messageIdCounter}, BatchId: {batchId.ToString()};{Environment.NewLine}{e}");
+                // sending the result via edgeHub
+                await client.SendEventAsync(Settings.Current.OutputName, message);
             }
         }
     }

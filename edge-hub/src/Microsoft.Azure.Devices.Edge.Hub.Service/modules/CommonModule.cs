@@ -44,6 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
         readonly MetricsConfig metricsConfig;
         readonly bool useBackupAndRestore;
         readonly Option<string> storageBackupPath;
+        readonly Option<ulong> storageMaxTotalWalSize;
 
         public CommonModule(
             string productInfo,
@@ -65,7 +66,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             string proxy,
             MetricsConfig metricsConfig,
             bool useBackupAndRestore,
-            Option<string> storageBackupPath)
+            Option<string> storageBackupPath,
+            Option<ulong> storageMaxTotalWalSize)
         {
             this.productInfo = productInfo;
             this.iothubHostName = Preconditions.CheckNonWhiteSpace(iothubHostName, nameof(iothubHostName));
@@ -87,6 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
             this.metricsConfig = Preconditions.CheckNotNull(metricsConfig, nameof(metricsConfig));
             this.useBackupAndRestore = useBackupAndRestore;
             this.storageBackupPath = storageBackupPath;
+            this.storageMaxTotalWalSize = storageMaxTotalWalSize;
         }
 
         protected override void Load(ContainerBuilder builder)
@@ -138,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service.Modules
                 .SingleInstance();
 
             // DataBase options
-            builder.Register(c => new RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>(), this.optimizeForPerformance))
+            builder.Register(c => new RocksDbOptionsProvider(c.Resolve<ISystemEnvironment>(), this.optimizeForPerformance, this.storageMaxTotalWalSize))
                 .As<IRocksDbOptionsProvider>()
                 .SingleInstance();
 

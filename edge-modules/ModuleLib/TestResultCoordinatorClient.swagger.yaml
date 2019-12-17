@@ -1,0 +1,50 @@
+swagger: "2.0"
+info:
+  description: "analyzer API"
+  version: "1.0.0"
+  title: "Analyzer API swagger"
+schemes:
+- "https"
+paths:
+  /api/testoperationresult:
+    post:
+      tags:
+      - "TestOperationResult"
+      summary: "Report test operation result"
+      description: ""
+      operationId: "reportResult"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "Test result details"
+        required: true
+        schema:
+          $ref: "#/definitions/TestOperationResult"
+      responses:
+        204:
+          description: "Ok"
+        400:
+          description: "Invalid status value"
+definitions:
+  TestOperationResult:
+    type: "object"
+    required:
+    - "source"
+    - "result"
+    - "type"
+    - "createdAt"
+    properties:
+      source:
+        type: "string"
+      result:
+        type: "string"
+      type:
+        type: "string"
+      createdAt:
+        type: "string"
+        format: date-time
+        
