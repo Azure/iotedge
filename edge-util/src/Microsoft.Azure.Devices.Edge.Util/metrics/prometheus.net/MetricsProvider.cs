@@ -14,22 +14,16 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
     {
         const string CounterNameFormat = "{0}_{1}_total";
         const string NameFormat = "{0}_{1}";
-        const string InstanceFileName = "instance";
-        const string InstanceFolderName = "metrics_instance";
         readonly string namePrefix;
         readonly List<string> defaultLabelNames;
         readonly ILogger logger = Logger.Factory.CreateLogger<MetricsProvider>();
 
-        public MetricsProvider(string namePrefix, string iotHubName, string deviceId, string storagePath)
+        public MetricsProvider(string namePrefix, string iotHubName, string deviceId)
         {
             this.namePrefix = Preconditions.CheckNonWhiteSpace(namePrefix, nameof(namePrefix));
-
-            Preconditions.CheckNonWhiteSpace(storagePath, nameof(storagePath));
-            string instanceNumber = this.GetInstanceNumber(storagePath);
-
             Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
-            this.defaultLabelNames = new List<string> { iotHubName, deviceId, instanceNumber };
+            this.defaultLabelNames = new List<string> { iotHubName, deviceId, Guid.NewGuid().ToString() };
 
             // TODO:
             // By default, the Prometheus.Net library emits some default metrics.
@@ -80,47 +74,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
             };
             allLabelNames.AddRange(labelNames);
             return allLabelNames;
-        }
-
-        /// <summary>
-        /// Reads or creates a file to determine how many times this module has been restarted.
-        /// This is because prometheous metrics are cleared on restart.
-        /// Includung an instance number makes it clear when a counter reset.
-        /// If the time series of metrics goes
-        ///     {instance=1) 500
-        ///     {instance=1) 600
-        ///     {instance=1) 700
-        ///     {instance=2) 90
-        ///     {instance=2) 190
-        /// it is clear what happened.
-        /// </summary>
-        /// <returns>Instance number.</returns>
-        string GetInstanceNumber(string storagePath)
-        {
-            try
-            {
-                string storageDirectory = Path.Combine(storagePath, InstanceFolderName);
-                Directory.CreateDirectory(storageDirectory);
-                string instanceFileAbsolutePath = Path.Combine(storageDirectory, InstanceFileName);
-
-                if (!File.Exists(instanceFileAbsolutePath))
-                {
-                    File.WriteAllText(instanceFileAbsolutePath, "1");
-                    return "1";
-                }
-                else
-                {
-                    string string_num = File.ReadAllText(instanceFileAbsolutePath);
-                    string_num = (int.Parse(string_num) + 1).ToString();
-                    File.WriteAllText(instanceFileAbsolutePath, string_num);
-                    return string_num;
-                }
-            }
-            catch (Exception ex)
-            {
-                this.logger.LogError(ex, "Failed to access metrics instance file");
-                return "0";
-            }
         }
     }
 }

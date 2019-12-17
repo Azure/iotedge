@@ -260,7 +260,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 }
 
                 metricsConfig = new MetricsConfig(experimentalFeatures.EnableMetrics, MetricsListenerConfig.Create(configuration));
-                builder.RegisterModule(new MetricsModule(metricsConfig, iothubHostname, deviceId, EdgeAgentStorageFolder));
+                builder.RegisterModule(new MetricsModule(metricsConfig, iothubHostname, deviceId));
 
                 diagnosticConfig = new DiagnosticConfig(experimentalFeatures.EnableMetricsUpload, storagePath, configuration);
                 builder.RegisterModule(new DiagnosticsModule(diagnosticConfig));
