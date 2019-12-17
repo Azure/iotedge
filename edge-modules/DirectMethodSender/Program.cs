@@ -28,12 +28,11 @@ namespace DirectMethodSender
                 switch (Settings.Current.RoutingAgency)
                 {
                     case RoutingAgency.EdgeHub:
-                        client = ModuleClientWrapper.Create(
+                        client = await ModuleClientWrapper.CreateAsync(
                                 Settings.Current.TransportType,
                                 ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                                 ModuleUtil.DefaultTransientRetryStrategy,
                                 Logger);
-                        await client.OpenClientAsync();
                         break;
 
                     case RoutingAgency.Upstream:
@@ -41,13 +40,13 @@ namespace DirectMethodSender
                                 Settings.Current.ServiceClientConnectionString.Expect(() => new ArgumentException("ServiceClientConnectionString is null")),
                                 (Microsoft.Azure.Devices.TransportType)Settings.Current.TransportType,
                                 Logger);
-                        await client.OpenClientAsync();
                         break;
 
                     default:
                         throw new NotImplementedException("Invalid RoutingAgency type");
                 }
 
+                await client.OpenClientAsync();
                 while (!cts.Token.IsCancellationRequested)
                 {
                     HttpStatusCode result = await client.InvokeDirectMethodAsync(cts);
@@ -61,7 +60,7 @@ namespace DirectMethodSender
                         },
                         async () =>
                         {
-                            await client.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method call succeeded.")));
+                            await client.SendEventAsync("AnyOutput", "Direct Method call succeeded.");
                         });
 
                     await Task.Delay(Settings.Current.DirectMethodDelay, cts.Token);

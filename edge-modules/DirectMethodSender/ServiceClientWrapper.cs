@@ -15,19 +15,11 @@ namespace DirectMethodSender
         public readonly string ConnectionString;
         public readonly TransportType TransportType;
         public readonly ILogger Logger;
-
         ServiceClient serviceClient = null;
         int directMethodCount = 1;
 
-        public static ServiceClientWrapper Create(
-            string connectionString,
-            TransportType transportType,
-            ILogger logger)
+        private ServiceClientWrapper()
         {
-            return new ServiceClientWrapper(
-                connectionString,
-                transportType,
-                logger);
         }
 
         private ServiceClientWrapper(
@@ -47,6 +39,17 @@ namespace DirectMethodSender
         public async Task CloseClientAsync()
         {
             await this.serviceClient.CloseAsync();
+        }
+
+        public static ServiceClientWrapper Create(
+            string connectionString,
+            TransportType transportType,
+            ILogger logger)
+        {
+            return new ServiceClientWrapper(
+                connectionString,
+                transportType,
+                logger);
         }
 
         public async Task<HttpStatusCode> InvokeDirectMethodAsync(CancellationTokenSource cts)
@@ -88,6 +91,11 @@ namespace DirectMethodSender
         public async Task OpenClientAsync()
         {
             await this.serviceClient.OpenAsync();
+        }
+
+        public Task SendEventAsync(string outputName, string message)
+        {
+            return Task.CompletedTask;
         }
     }
 }

@@ -20,21 +20,16 @@ namespace DirectMethodSender
         ModuleClient moduleClient = null;
         int directMethodCount = 1;
 
-        private ModuleClientWrapper() 
+        private ModuleClientWrapper()
         {
         }
 
-        public static ModuleClientWrapper Create(
-            TransportType transportType,
-            ITransientErrorDetectionStrategy transientErrorDetectionStrategy,
-            RetryStrategy retryStrategy,
-            ILogger logger) => CreateAsync(
-                    transportType,
-                    transientErrorDetectionStrategy,
-                    retryStrategy,
-                    logger).Result;
+        public async Task CloseClientAsync()
+        {
+            await this.moduleClient.CloseAsync();
+        }
 
-        private static async Task<ModuleClientWrapper> CreateAsync(
+        public static async Task<ModuleClientWrapper> CreateAsync(
             TransportType transportType,
             ITransientErrorDetectionStrategy transientErrorDetectionStrategy,
             RetryStrategy retryStrategy,
@@ -66,11 +61,6 @@ namespace DirectMethodSender
                     this.TransientErrorDetectionStrategy,
                     this.RetryStrategy,
                     this.Logger);
-        }
-
-        public async Task CloseClientAsync()
-        {
-            await this.moduleClient.CloseAsync();
         }
 
         public async Task<HttpStatusCode> InvokeDirectMethodAsync(CancellationTokenSource cts)
@@ -113,5 +103,8 @@ namespace DirectMethodSender
         {
             await this.moduleClient.OpenAsync();
         }
+
+        public async Task SendEventAsync(string outputName, string message) =>
+            await this.moduleClient.SendEventAsync(outputName, new Message(Encoding.UTF8.GetBytes(message)));
     }
 }
