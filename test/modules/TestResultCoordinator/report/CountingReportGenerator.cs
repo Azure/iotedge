@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace TestResultCoordinator.Report
 {
+    using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -21,9 +23,9 @@ namespace TestResultCoordinator.Report
         public CountingReportGenerator(
             string trackingId,
             string expectedSource,
-            IEnumerable<TestOperationResult> expectedResults,
+            IResults<TestOperationResult> expectedResults,
             string actualSource,
-            IEnumerable<TestOperationResult> actualResults,
+            IResults<TestOperationResult> actualResults,
             string resultType,
             ITestResultComparer<TestOperationResult> testResultComparer)
         {
@@ -38,11 +40,11 @@ namespace TestResultCoordinator.Report
 
         internal string ActualSource { get; }
 
-        internal IEnumerable<TestOperationResult> ActualResults { get; }
+        internal IResults<TestOperationResult> ActualResults { get; }
 
         internal string ExpectedSource { get; }
 
-        internal IEnumerable<TestOperationResult> ExpectedResults { get; }
+        internal IResults<TestOperationResult> ExpectedResults { get; }
 
         internal string ResultType { get; }
 
@@ -54,7 +56,7 @@ namespace TestResultCoordinator.Report
         /// It will log fail if actual store has more results than expect store.
         /// </summary>
         /// <returns>Test Result Report.</returns>
-        public Task<ITestResultReport> CreateReportAsync()
+        public async Task<ITestResultReport> CreateReportAsync()
         {
             TestOperationResult lastLoadedResult = default(TestOperationResult);
             ulong totalExpectCount = 0;
@@ -62,39 +64,40 @@ namespace TestResultCoordinator.Report
             ulong totalDuplicateResultCount = 0;
             List<TestOperationResult> unmatchedResults = new List<TestOperationResult>();
 
-            var expected = this.ExpectedResults.GetEnumerator();
-            var actual = this.ActualResults.GetEnumerator();
-            bool hasExpectedResults = expected.MoveNext();
-            TestOperationResult expectedResult = expected.Current;
-            bool hasActualResults = actual.MoveNext();
-            TestOperationResult actualResult = actual.Current;
+            bool hasExpectedResults = await this.ExpectedResults.MoveNextAsync();
+            TestOperationResult expectedResult = this.ExpectedResults.Current;
+            bool hasActualResults = await this.ActualResults.MoveNextAsync();
+            TestOperationResult actualResult = this.ActualResults.Current;
 
             while (hasExpectedResults && hasActualResults)
             {
-                while (this.TestResultComparer.Matches(lastLoadedResult, actualResult))
+                this.ValidateStoredDataSource(this.ExpectedResults.Current, this.ExpectedSource);
+                this.ValidateStoredDataSource(this.ActualResults.Current, this.ActualSource);
+
+                while (hasActualResults && this.TestResultComparer.Matches(lastLoadedResult, actualResult))
                 {
                     totalDuplicateResultCount++;
-                    hasActualResults = actual.MoveNext();
+                    hasActualResults = await this.ActualResults.MoveNextAsync();
                     lastLoadedResult = actualResult;
-                    actualResult = actual.Current;
+                    actualResult = this.ActualResults.Current;
                 }
 
                 totalExpectCount++;
 
                 if (this.TestResultComparer.Matches(expectedResult, actualResult))
                 {
-                    hasActualResults = actual.MoveNext();
-                    hasExpectedResults = expected.MoveNext();
+                    hasActualResults = await this.ActualResults.MoveNextAsync();
+                    hasExpectedResults = await this.ExpectedResults.MoveNextAsync();
                     lastLoadedResult = actualResult;
-                    actualResult = actual.Current;
-                    expectedResult = expected.Current;
+                    actualResult = this.ActualResults.Current;
+                    expectedResult = this.ExpectedResults.Current;
                     totalMatchCount++;
                 }
                 else
                 {
                     unmatchedResults.Add(expectedResult);
-                    hasExpectedResults = expected.MoveNext();
-                    expectedResult = expected.Current;
+                    hasExpectedResults = await this.ExpectedResults.MoveNextAsync();
+                    expectedResult = this.ExpectedResults.Current;
                 }
             }
 
@@ -110,8 +113,8 @@ namespace TestResultCoordinator.Report
                     unmatchedResults.Add(expectedResult);
                 }
 
-                hasExpectedResults = expected.MoveNext();
-                expectedResult = expected.Current;
+                hasExpectedResults = await this.ExpectedResults.MoveNextAsync();
+                expectedResult = this.ExpectedResults.Current;
                 totalExpectCount++;
             }
 
@@ -120,13 +123,13 @@ namespace TestResultCoordinator.Report
                 // Log message for unexpected case.
                 Logger.LogError($"[{nameof(CountingReportGenerator)}] Actual test result source has unexpected results.");
 
-                actualResult = actual.Current;
-                hasActualResults = actual.MoveNext();
+                actualResult = this.ActualResults.Current;
+                hasActualResults = await this.ActualResults.MoveNextAsync();
                 // Log actual queue items
                 Logger.LogError($"Unexpected actual test result: {actualResult.Source}, {actualResult.Type}, {actualResult.Result} at {actualResult.CreatedAt}");
             }
 
-            var report = new CountingReport<TestOperationResult>(
+            return new CountingReport<TestOperationResult>(
                 this.trackingId,
                 this.ExpectedSource,
                 this.ActualSource,
@@ -135,7 +138,14 @@ namespace TestResultCoordinator.Report
                 totalMatchCount,
                 totalDuplicateResultCount,
                 unmatchedResults.AsReadOnly());
-            return Task.FromResult((ITestResultReport)report);
+        }
+
+        void ValidateStoredDataSource(TestOperationResult current, string expectedSource)
+        {
+            if (!current.Source.Equals(expectedSource, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidDataException($"Result source is '{current.Source}' but expected should be '{expectedSource}'.");
+            }
         }
     }
 }

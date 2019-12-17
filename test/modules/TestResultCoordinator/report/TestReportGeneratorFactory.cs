@@ -8,6 +8,7 @@ namespace TestResultCoordinator.Report
     class TestReportGeneratorFactory : ITestReportGeneratorFactory
     {
         readonly ITestOperationResultStorage storage;
+        const int BatchSize = 500;
 
         public TestReportGeneratorFactory(ITestOperationResultStorage storage)
         {
@@ -23,12 +24,10 @@ namespace TestResultCoordinator.Report
                 case TestReportType.CountingReport:
                 {
                     var expectedResultsLoader = new SimpleResults(
-                        reportMetadata.ExpectedSource,
                         this.storage.GetStoreFromSource(reportMetadata.ExpectedSource),
                         500);
 
                     var actualResultsLoader = new SimpleResults(
-                        reportMetadata.ExpectedSource,
                         this.storage.GetStoreFromSource(reportMetadata.ActualSource),
                         500);
 

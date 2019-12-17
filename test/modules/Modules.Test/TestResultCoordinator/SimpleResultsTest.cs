@@ -34,7 +34,7 @@ namespace Modules.Test.TestResultCoordinator
 
         [Theory]
         [MemberData(nameof(GetCreateReportData))]
-        public void SimpleResultsEnumeration(
+        public async Task SimpleResultsEnumeration(
             string[] expectedStoreValues,
             int batchSize)
         {
@@ -42,7 +42,7 @@ namespace Modules.Test.TestResultCoordinator
             string resultType = "resultType1";
 
             var mockExpectedStore = new Mock<ISequentialStore<TestOperationResult>>();
-            IEnumerable<TestOperationResult> expectedResults = new SimpleResults(expectedSource, mockExpectedStore.Object, batchSize);
+            var expectedResults = new SimpleResults<TestOperationResult>(mockExpectedStore.Object, batchSize);
 
             var expectedStoreData = GetStoreData(expectedSource, resultType, expectedStoreValues);
             for (int i = 0; i < expectedStoreData.Count; i += batchSize)
@@ -51,15 +51,12 @@ namespace Modules.Test.TestResultCoordinator
                 mockExpectedStore.Setup(s => s.GetBatch(startingOffset, batchSize)).ReturnsAsync(expectedStoreData.Skip(startingOffset).Take(batchSize));
             }
 
-            IEnumerator<TestOperationResult> enumerator = expectedResults.GetEnumerator();
             int j = 0;
-            while (enumerator.MoveNext())
+            while (await expectedResults.MoveNextAsync())
             {
-                Assert.Equal(expectedStoreValues[j], enumerator.Current.Result);
+                Assert.Equal(expectedStoreValues[j], expectedResults.Current.Result);
                 j++;
             }
-
-            Assert.Null(enumerator.Current);
         }
 
         static List<(long, TestOperationResult)> GetStoreData(string source, string resultType, IEnumerable<string> resultValues, int start = 0)
