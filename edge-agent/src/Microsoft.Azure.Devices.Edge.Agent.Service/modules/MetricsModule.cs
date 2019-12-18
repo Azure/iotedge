@@ -9,11 +9,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Azure.Devices.Edge.Util.Metrics.NullMetrics;
     using Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net;
-    using Microsoft.Extensions.Logging;
 
     public sealed class MetricsModule : Module
     {
-        readonly ILogger logger = Logger.Factory.CreateLogger<MetricsModule>();
         MetricsConfig metricsConfig;
         string iothubHostname;
         string deviceId;
