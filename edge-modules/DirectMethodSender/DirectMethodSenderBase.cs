@@ -22,18 +22,18 @@ namespace DirectMethodSender
         public async Task<HttpStatusCode> InvokeDirectMethodAsync(CancellationTokenSource cts)
         {
             ILogger logger = this.logger;
-            logger.LogInformation("Invoke DirectMethod from cloud: started.");
+            logger.LogInformation("Invoke DirectMethod: started.");
 
             string deviceId = Settings.Current.DeviceId;
             string targetModuleId = Settings.Current.TargetModuleId;
 
-            logger.LogInformation($"Calling Direct Method from cloud on device {deviceId} targeting module [{targetModuleId}] with count {this.directMethodCount}.");
+            logger.LogInformation($"Calling Direct Method on device {deviceId} targeting module [{targetModuleId}] with count {this.directMethodCount}.");
 
             try
             {
                 int resultStatus = await this.InvokeDeviceMethodAsync(deviceId, targetModuleId, CancellationToken.None);
 
-                string statusMessage = $"Calling Direct Method from cloud with count {this.directMethodCount} returned with status code {resultStatus}";
+                string statusMessage = $"Calling Direct Method with count {this.directMethodCount} returned with status code {resultStatus}";
                 if (resultStatus == (int)HttpStatusCode.OK)
                 {
                     logger.LogDebug(statusMessage);
@@ -44,7 +44,7 @@ namespace DirectMethodSender
                 }
 
                 this.directMethodCount++;
-                logger.LogInformation("Invoke DirectMethod from cloud: finished.");
+                logger.LogInformation("Invoke DirectMethod: finished.");
                 return (HttpStatusCode)resultStatus;
             }
             catch (Exception e)

@@ -6,6 +6,7 @@ namespace DirectMethodSender
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
 
@@ -18,6 +19,7 @@ namespace DirectMethodSender
             ILogger logger)
             : base(logger)
         {
+            this.moduleClient = Preconditions.CheckNotNull(moduleClient, nameof(moduleClient));
             this.moduleClient = moduleClient;
         }
 
