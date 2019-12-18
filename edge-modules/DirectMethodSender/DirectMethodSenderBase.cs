@@ -30,7 +30,7 @@ namespace DirectMethodSender
         public async Task<HttpStatusCode> InvokeDirectMethodAsync(CancellationTokenSource cts)
         {
             ILogger logger = this.logger;
-            logger.LogInformation("Invoke DirectMethod: started.");
+            logger.LogDebug("Invoke DirectMethod: started.");
             logger.LogInformation($"{this.GetType().ToString()} : Calling Direct Method on device {this.deviceId} targeting module [{this.targetModuleId}] with count {this.directMethodCount}.");
 
             try
