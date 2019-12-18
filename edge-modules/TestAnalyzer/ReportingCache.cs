@@ -7,8 +7,8 @@ namespace TestAnalyzer
     using System.IO;
     using System.Linq;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.Util;
 
     class ReportingCache
     {
@@ -65,22 +65,6 @@ namespace TestAnalyzer
             if (isAdded)
             {
                 this.AddResult(result, isAnalyzerDirectMethodResultType ? this.directMethodsReportCache : this.twinsReportCache);
-            }
-        }
-
-        void AddResult(TestOperationResult result, ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> cache)
-        {
-            ConcurrentDictionary<string, Tuple<int, DateTime>> batch = cache.GetOrAdd(result.Source, key => new ConcurrentDictionary<string, Tuple<int, DateTime>>());
-
-            // lock needed for update of concurrent dict
-            lock (batch)
-            {
-                batch.AddOrUpdate(
-                    result.Result,
-                    new Tuple<int, DateTime>(1, result.CreatedAt),
-                    (key, value) => new Tuple<int, DateTime>(
-                        value.Item1 + 1,
-                        result.CreatedAt > value.Item2 ? result.CreatedAt : value.Item2));
             }
         }
 
@@ -146,6 +130,22 @@ namespace TestAnalyzer
             }
 
             return snapshotResult;
+        }
+
+        void AddResult(TestOperationResult result, ConcurrentDictionary<string, ConcurrentDictionary<string, Tuple<int, DateTime>>> cache)
+        {
+            ConcurrentDictionary<string, Tuple<int, DateTime>> batch = cache.GetOrAdd(result.Source, key => new ConcurrentDictionary<string, Tuple<int, DateTime>>());
+
+            // lock needed for update of concurrent dict
+            lock (batch)
+            {
+                batch.AddOrUpdate(
+                    result.Result,
+                    new Tuple<int, DateTime>(1, result.CreatedAt),
+                    (key, value) => new Tuple<int, DateTime>(
+                        value.Item1 + 1,
+                        result.CreatedAt > value.Item2 ? result.CreatedAt : value.Item2));
+            }
         }
 
         void AddMessageDetails(IList<MessageDetails> batchMessages, MessageDetails messageDetails)

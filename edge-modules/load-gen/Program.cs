@@ -48,31 +48,32 @@ namespace LoadGen
                         await SendEventAsync(moduleClient, batchId, Settings.Current.TrackingId, messageIdCounter);
 
                         // Report sending message successfully to Test Result Coordinator
-                        await Settings.Current.TestResultCoordinatorUrl.ForEachAsync(async trcUrl =>
-                        {
-                            Uri testResultCoordinatorUrl = new Uri(
-                                trcUrl,
-                                UriKind.Absolute);
-                            TestResultCoordinatorClient trcClient = new TestResultCoordinatorClient { BaseUrl = testResultCoordinatorUrl.AbsoluteUri };
+                        await Settings.Current.TestResultCoordinatorUrl.ForEachAsync(
+                            async trcUrl =>
+                            {
+                                Uri testResultCoordinatorUrl = new Uri(
+                                    trcUrl,
+                                    UriKind.Absolute);
+                                TestResultCoordinatorClient trcClient = new TestResultCoordinatorClient { BaseUrl = testResultCoordinatorUrl.AbsoluteUri };
 
-                            await ModuleUtil.ReportStatus(
-                                trcClient,
-                                Logger,
-                                Settings.Current.ModuleId + ".send",
-                                ModuleUtil.FormatTestResultValue(
-                                    Settings.Current.TrackingId,
-                                    batchId.ToString(),
-                                    messageIdCounter.ToString()),
-                                TestOperationResultType.Messages.ToString());
-                        });
-
-                        messageIdCounter++;
-                        await Task.Delay(Settings.Current.MessageFrequency);
+                                await ModuleUtil.ReportStatus(
+                                    trcClient,
+                                    Logger,
+                                    Settings.Current.ModuleId + ".send",
+                                    ModuleUtil.FormatTestResultValue(
+                                        Settings.Current.TrackingId,
+                                        batchId.ToString(),
+                                        messageIdCounter.ToString()),
+                                    TestOperationResultType.Messages.ToString());
+                            });
 
                         if (messageIdCounter % 1000 == 0)
                         {
                             Logger.LogInformation($"Sent {messageIdCounter} messages.");
                         }
+
+                        await Task.Delay(Settings.Current.MessageFrequency);
+                        messageIdCounter++;
                     }
                     catch (Exception ex)
                     {
@@ -118,6 +119,7 @@ namespace LoadGen
 
                 // sending the result via edgeHub
                 await client.SendEventAsync(Settings.Current.OutputName, message);
+                Logger.LogInformation($"Sent message successfully: sequenceNumber={messageId}");
             }
         }
     }
