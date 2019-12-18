@@ -359,13 +359,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test.Storage
         [Fact]
         public void MessageWrapperRoundtripTest()
         {
-            var properties = new Dictionary<string, string>
+            IDictionary<string, string> properties = new Dictionary<string, string>
             {
                 ["Prop1"] = "PropVal1",
                 ["Prop2"] = "PropVal2"
             };
 
-            var systemProperties = new Dictionary<string, string>
+            IDictionary<string, string> systemProperties = new Dictionary<string, string>
             {
                 [Devices.Routing.Core.SystemProperties.CorrelationId] = Guid.NewGuid().ToString(),
                 [Devices.Routing.Core.SystemProperties.DeviceId] = "device1",
