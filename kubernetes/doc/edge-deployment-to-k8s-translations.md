@@ -16,6 +16,58 @@ Edge on K8s will create Namespaces, Deployments, Services, ImagePullSecrets,
 PersistentVolumeClaims, and ServiceAccounts to establish this framework.
 The Edge Docker to K8s object mappings will be described in detail in subsequent sections.
 
+## Map of configuration source to Kubernetes objects
+
+The following tables link the critical parts of an edge deployment to the associated Kubernetes 
+objects that will be created.
+
+### EdgeDeployment
+
+| Setting | Affected k8s objects |
+| ------- | -------------------- |
+| runtime.settings.registryCredentials | [Deployment](#podtemplate), [ImagePullSecret](#imagepullsecret) |
+
+#### Module Spec
+
+| Setting | Affected k8s objects |
+| ------- | -------------------- |
+| modules.`<module name>` | [Deployment](#deployment), [Service](#service), [PersistentVolumeClaim](#persistentvolumeclaim) , [ServiceAccount](#serviceaccount) |
+| modules.`<module name>`.settings.image | [Deployment](#podtemplate) |
+| modules.`<module name>`.settings.createOptions | See [Module Spec createOptions](#module-spec-createoptions) |
+| modules.`<module name>`.env | [Deployment](#podtemplate) |
+
+#### Module Spec createOptions
+
+| Setting | Affected k8s objects |
+| ------- | -------------------- |
+| createOptions.Labels | [Deployment](#podtemplate) |
+| createOptions.Env | [Deployment](#podtemplate) |
+| createOptions.HostConfig.Privileged | [Deployment](#podtemplate) |
+| createOptions.HostConfig.Binds | [Deployment](#podtemplate) |
+| createOptions.HostConfig.Mounts | [Deployment](#podtemplate), [PersistentVolumeClaim](#persistentvolumeclaim) |
+| createOptions.HostConfig.ExposedPorts | [Service](#service) |
+| createOptions.HostConfig.PortBindings | [Service](#service) |
+
+### Helm Chart
+
+Some information needed to provision the edge deployment isn't available until the runtime is 
+installed on the cluster. These are the settings which can be assigned in the Helm chart, and how 
+they affect the Kubernetes objects.
+
+| Setting | Affected k8s objects |
+| ------- | -------------------- |
+| edgeAgent.env.portMappingServiceType | [Service](#service) |
+| edgeAgent.env.persistentVolumeClaimDefaultSizeInMb | [Deployment](#podtemplate), [PersistentVolumeClaim](#persistentvolumeclaim) |
+| edgeAgent.env.persistentVolumeName | [Deployment](#podtemplate), [PersistentVolumeClaim](#persistentvolumeclaim) |
+| edgeAgent.env.storageClassName | [Deployment](#podtemplate), [PersistentVolumeClaim](#persistentvolumeclaim) |
+| edgeAgent.env.enableExperimentalFeatures | [Deployment](#podtemplate) - See [K8s Extensions](#k8s-extensions) for details |
+| edgeAgent.env.enableK8sExtensions | [Deployment](#podtemplate) - See [K8s Extensions](#k8s-extensions) for details |
+
+## Conversion details
+
+The following sections describe in detail how the Edge deployment gets translated into Kubernetes
+objects.
+
 ## Namespace
 
 Edge on K8s is intended to be installed in a namespace - the `default` namespace is not recommended. 
@@ -186,45 +238,6 @@ gives the Edge Runtime a default claim size as this is not provided by `createOp
 
 Service accounts are described in the document describing our [Edge RBAC](rbac.md)
 
-## Map of configuration source to Kubernetes objects
-
-### Helm Chart
-
-| Setting | Affected k8s objects |
-| ------- | -------------------- |
-| edgeAgent.env.portMappingServiceType | [Service](#service) |
-| edgeAgent.env.persistentVolumeClaimDefaultSizeInMb | [Deployment](#podtemplate), [PersistentVolumeClaim](#persistentvolumeclaim) |
-| edgeAgent.env.persistentVolumeName | [Deployment](#podtemplate), [PersistentVolumeClaim](#persistentvolumeclaim) |
-| edgeAgent.env.storageClassName | [Deployment](#podtemplate), [PersistentVolumeClaim](#persistentvolumeclaim) |
-| edgeAgent.env.enableExperimentalFeatures | [Deployment](#podtemplate) |
-| edgeAgent.env.enableK8sExtensions | [Deployment](#podtemplate) |
-
-### EdgeDeployment
-
-| Setting | Affected k8s objects |
-| ------- | -------------------- |
-| runtime.settings.registryCredentials | [Deployment](#podtemplate), [ImagePullSecret](#imagepullsecret) |
-
-#### Module Spec
-
-| Setting | Affected k8s objects |
-| ------- | -------------------- |
-| modules.`<module name>` | [Deployment](#deployment), [Service](#service), [PersistentVolumeClaim](#persistentvolumeclaim) , [ServiceAccount](#serviceaccount) |
-| modules.`<module name>`.settings.image | [Deployment](#podtemplate) |
-| modules.`<module name>`.settings.createOptions | See [Module Spec createOptions](#module-spec-createoptions) |
-| modules.`<module name>`.env | [Deployment](#podtemplate) |
-
-#### Module Spec createOptions
-
-| Setting | Affected k8s objects |
-| ------- | -------------------- |
-| createOptions.Labels | [Deployment](#podtemplate) |
-| createOptions.Env | [Deployment](#podtemplate) |
-| createOptions.HostConfig.Privileged | [Deployment](#podtemplate) |
-| createOptions.HostConfig.Binds | [Deployment](#podtemplate) |
-| createOptions.HostConfig.Mounts | [Deployment](#podtemplate), [PersistentVolumeClaim](#persistentvolumeclaim) |
-| createOptions.HostConfig.ExposedPorts | [Service](#service) |
-| createOptions.HostConfig.PortBindings | [Service](#service) |
 
 ### K8s Extensions
 
@@ -232,3 +245,9 @@ Some Kubernetes concepts are not represented in the Docker ContainerCreate struc
 K8s has provided extensions to the createOptions which will give some useful extensions to an 
 IoT Edge application running on Kubernetes. This is described in [Kubernetes createOptions 
 Extensions](create-options.md).
+
+Extensions available:
+- [Kubernetes native volume support](create-options.md#volumes)
+- [Setting CPU and Memory limits](create-options.md#cpu-memory-and-device-resources)
+- [Assigning Modules to Nodes](create-options.md#assigning-modules-to-nodes)
+- [Applying Pod Security Context](create-options.md#apply-pod-securitycontext)
