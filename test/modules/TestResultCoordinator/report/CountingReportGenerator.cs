@@ -68,7 +68,7 @@ namespace TestResultCoordinator.Report
         /// It will remove consecutive duplicate results when loading from actual store.
         /// It will log fail if actual store has more results than expect store.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>Test Result Report.</returns>
         public async Task<ITestResultReport> CreateReportAsync()
         {
             Logger.LogInformation($"Start to generate report by {nameof(CountingReportGenerator)} for Sources [{this.expectedSource}] and [{this.actualSource}]");
@@ -127,7 +127,7 @@ namespace TestResultCoordinator.Report
 
             if (actualQueue.Count > 0)
             {
-                //Log message this is unexpected.
+                // Log message for unexpected case.
                 Logger.LogError($"[{nameof(CountingReportGenerator)}] Actual test result source has unexpected results.");
 
                 while (actualQueue.Count > 0)
@@ -152,8 +152,7 @@ namespace TestResultCoordinator.Report
                 totalExpectCount,
                 totalMatchCount,
                 totalDuplicateResultCount,
-                unmatchedResults.AsReadOnly()
-                );
+                unmatchedResults.AsReadOnly());
         }
 
         async Task<(long, TestOperationResult, ulong)> LoadBatchIntoQueueAsync(
