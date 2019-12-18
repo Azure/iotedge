@@ -11,9 +11,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Extensions.Logging;
 
     public sealed class IoTHubMetricsUpload : IMetricsPublisher
     {
+        static readonly ILogger Log = Logger.Factory.CreateLogger<IoTHubMetricsUpload>();
         readonly IEdgeAgentConnection edgeAgentConnection;
 
         public IoTHubMetricsUpload(IEdgeAgentConnection edgeAgentConnection)
@@ -21,17 +23,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             this.edgeAgentConnection = Preconditions.CheckNotNull(edgeAgentConnection, nameof(edgeAgentConnection));
         }
 
-        public async Task PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
+        public async Task<bool> PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
         {
             Preconditions.CheckNotNull(metrics, nameof(metrics));
             byte[] data = MetricsSerializer.MetricsToBytes(metrics).ToArray();
 
-            // TODO: add check for too big of a message
             if (data.Length > 0)
             {
                 Message message = this.BuildMessage(data);
-                await this.edgeAgentConnection.SendEventAsync(message);
+
+                try
+                {
+                    await this.edgeAgentConnection.SendEventAsync(message);
+                }
+                catch (Exception ex) when (ex.HasTimeoutException())
+                {
+                    Log.LogDebug(ex, "Send message to IoTHub");
+                    return false;
+                }
             }
+
+            return true;
         }
 
         Message BuildMessage(byte[] data)

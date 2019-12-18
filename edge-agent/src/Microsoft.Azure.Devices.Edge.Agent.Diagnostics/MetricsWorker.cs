@@ -12,12 +12,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage;
+    using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
 
     public class MetricsWorker : IDisposable
     {
+        public static RetryStrategy RetryStrategy = new ExponentialBackoff(20, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(30), TimeSpan.FromMinutes(1), false);
+
         readonly IMetricsScraper scraper;
         readonly IMetricsStorage storage;
         readonly IMetricsPublisher uploader;
@@ -54,37 +58,63 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
 
         internal async Task Upload(CancellationToken cancellationToken)
         {
-            using (await this.scrapeUploadLock.LockAsync(cancellationToken))
+            if (!await this.TryUploadAndClear(cancellationToken))
             {
-                Log.LogInformation($"Uploading Metrics");
-                IEnumerable<Metric> metricsToUpload = await this.storage.GetAllMetricsAsync();
-                metricsToUpload = RemoveDuplicateMetrics(metricsToUpload);
-                await this.uploader.PublishAsync(metricsToUpload, cancellationToken);
-                Log.LogInformation($"Uploaded Metrics");
-                await this.storage.RemoveAllReturnedMetricsAsync();
+                await this.BeginUploadRetry(cancellationToken);
             }
         }
 
-        internal static IEnumerable<Metric> RemoveDuplicateMetrics(IEnumerable<Metric> metrics)
+        async Task<bool> TryUploadAndClear(CancellationToken cancellationToken)
         {
-            Dictionary<int, Metric> previousValues = new Dictionary<int, Metric>();
-
-            foreach (Metric newMetric in metrics)
+            using (await this.scrapeUploadLock.LockAsync(cancellationToken))
             {
-                int key = newMetric.GetMetricKey();
-                // Get the previous value for this metric. If unchanged, return old
-                if (previousValues.TryGetValue(key, out Metric oldMetric) && oldMetric.Value != newMetric.Value)
-                {
-                    yield return oldMetric;
-                }
+                Log.LogInformation($"Uploading Metrics");
+                IEnumerable<Metric> metricsToUpload = (await this.storage.GetAllMetricsAsync()).CondenseTimeSeries();
 
-                // update previous
-                previousValues[key] = newMetric;
+                try
+                {
+                    if (await this.uploader.PublishAsync(metricsToUpload, cancellationToken))
+                    {
+                        Log.LogInformation($"Published metrics");
+                        await this.storage.RemoveAllReturnedMetricsAsync();
+                        return true;
+                    }
+                    else
+                    {
+                        Log.LogInformation($"Failed to publish metrics");
+                        return false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // If unexpected error publishing metrics, delete stored ones to prevent storage buildup.
+                    Log.LogError($"Unexpected error publishing metrics. Deleting stored metrics.");
+                    await this.storage.RemoveAllReturnedMetricsAsync();
+                    throw ex;
+                }
+            }
+        }
+
+        async Task BeginUploadRetry(CancellationToken cancellationToken)
+        {
+            int retryNum = 0;
+            var shouldRetry = RetryStrategy.GetShouldRetry();
+            while (shouldRetry(retryNum++, null, out TimeSpan backoffDelay))
+            {
+                Log.LogInformation($"Metric publish set to retry in {backoffDelay.Humanize()}");
+                await Task.Delay(backoffDelay, cancellationToken);
+                if (await this.TryUploadAndClear(cancellationToken))
+                {
+                    // Upload succeded, end loop
+                    return;
+                }
             }
 
-            foreach (Metric remainingMetric in previousValues.Values)
+            Log.LogInformation($"Upload retries exeeded {retryNum} allowed attempts. Deleting stored metrics.");
+            using (await this.scrapeUploadLock.LockAsync(cancellationToken))
             {
-                yield return remainingMetric;
+                await this.storage.RemoveAllReturnedMetricsAsync();
+                Log.LogInformation($"Deleted stored metrics.");
             }
         }
 

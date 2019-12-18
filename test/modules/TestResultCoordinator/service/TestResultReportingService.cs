@@ -59,37 +59,24 @@ namespace TestResultCoordinator.Service
 
         async void DoWorkAsync(object state)
         {
-            this.logger.LogInformation($"Starting report generation for {Settings.Current.ReportMetadataList.Count} reports");
+            ITestResultReport[] testResultReports = await TestReportHelper.GenerateTestResultReports(this.storage, this.logger);
 
-            try
+            if (testResultReports.Length == 0)
             {
-                var testReportGeneratorFactory = new TestReportGeneratorFactory(this.storage);
-                var testResultReportList = new List<Task<ITestResultReport>>();
-                foreach (IReportMetadata reportMetadata in Settings.Current.ReportMetadataList)
-                {
-                    ITestResultReportGenerator testResultReportGenerator = testReportGeneratorFactory.Create(Settings.Current.TrackingId, reportMetadata);
-                    testResultReportList.Add(testResultReportGenerator.CreateReportAsync());
-                }
-
-                ITestResultReport[] testResultReports = await Task.WhenAll(testResultReportList);
-
-                this.logger.LogInformation("Successfully generated all reports");
-
-                string reportsContent = JsonConvert.SerializeObject(testResultReports);
-                this.logger.LogInformation(reportsContent);
-
-                await AzureLogAnalytics.Instance.PostAsync(
-                    Settings.Current.LogAnalyticsWorkspaceId,
-                    Settings.Current.LogAnalyticsSharedKey,
-                    reportsContent,
-                    Settings.Current.LogAnalyticsLogType);
-
-                this.logger.LogInformation("Successfully send reports to LogAnalytics");
+                this.logger.LogInformation("No test result report is generated.");
+                return;
             }
-            catch (Exception ex)
-            {
-                this.logger.LogError("TestResultCoordinator failed during report generation", ex);
-            }
+
+            string reportsContent = JsonConvert.SerializeObject(testResultReports, Formatting.Indented);
+            this.logger.LogInformation($"Test result report{Environment.NewLine}{reportsContent}");
+
+            await AzureLogAnalytics.Instance.PostAsync(
+                Settings.Current.LogAnalyticsWorkspaceId,
+                Settings.Current.LogAnalyticsSharedKey,
+                reportsContent,
+                Settings.Current.LogAnalyticsLogType);
+
+            this.logger.LogInformation("Successfully send reports to LogAnalytics");
         }
     }
 }
