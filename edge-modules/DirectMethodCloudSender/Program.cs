@@ -96,7 +96,7 @@ namespace DirectMethodCloudSender
         {
             try
             {
-                await analyzerClient.ReportResultAsync(new TestOperationResult { Source = moduleId, Result = result.Status.ToString(), CreatedAt = DateTime.UtcNow, Type = "LegacyDirectMethod" });
+                await analyzerClient.ReportResultAsync(new TestOperationResult { Source = moduleId, Result = result.Status.ToString(), CreatedAt = DateTime.UtcNow, Type = Enum.GetName(typeof(TestOperationResultType), TestOperationResultType.LegacyDirectMethod) });
             }
             catch (Exception e)
             {

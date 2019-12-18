@@ -113,7 +113,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
         {
             if (ApiVersion.ParseVersion(this.apiVersion).Value >= ApiVersion.Version20191105.Value)
             {
-                this.updateResources = new PeriodicTask(this.Update, TimeSpan.FromSeconds(15), TimeSpan.FromSeconds(30), logger, "Get system resources");
+                this.updateResources = new PeriodicTask(this.Update, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(1), logger, "Get system resources", false);
             }
             else
             {
@@ -164,17 +164,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
                 this.totalMemory.Set(module.MemoryStats.Limit, tags);
                 this.usedMemory.Set((long)module.MemoryStats.Usage, tags);
                 this.createdPids.Set(module.PidsStats.Current, tags);
-
-                if (module.Networks != null)
-                {
-                    this.networkIn.Set(module.Networks.Sum(n => n.Value.RxBytes), tags);
-                    this.networkOut.Set(module.Networks.Sum(n => n.Value.TxBytes), tags);
-                }
-                else
-                {
-                    Log.LogError("Network host metrics are null");
-                }
-
+                this.networkOut.Set(module.Networks.Sum(n => n.Value.TxBytes), tags);
                 this.diskRead.Set(module.BlockIoStats.Sum(io => io.Value.Where(d => d.Op == "Read").Sum(d => d.Value)), tags);
                 this.diskWrite.Set(module.BlockIoStats.Sum(io => io.Value.Where(d => d.Op == "Write").Sum(d => d.Value)), tags);
             }
@@ -185,10 +175,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
                 double result = 0;
-                if (this.previousModuleCpu.TryGetValue(module.Name, out ulong prevModule) && this.previousSystemCpu.TryGetValue(module.Name, out ulong prevSystem))
-                {
-                    double moduleDiff = module.CpuStats.CpuUsage.TotalUsage - prevModule;
-                    double systemDiff = module.CpuStats.SystemCpuUsage - prevSystem;
                     result = moduleDiff / systemDiff;
                 }
 

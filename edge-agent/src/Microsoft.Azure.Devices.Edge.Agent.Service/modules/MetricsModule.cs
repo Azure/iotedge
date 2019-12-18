@@ -17,11 +17,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
         MetricsConfig metricsConfig;
         string iothubHostname;
         string deviceId;
-        string edgeAgentStorageFolder;
 
-        public MetricsModule(MetricsConfig metricsConfig, string iothubHostname, string deviceId, string edgeAgentStorageFolder)
+        public MetricsModule(MetricsConfig metricsConfig, string iothubHostname, string deviceId)
         {
-            this.edgeAgentStorageFolder = Preconditions.CheckNotNull(edgeAgentStorageFolder, nameof(edgeAgentStorageFolder));
             this.metricsConfig = Preconditions.CheckNotNull(metricsConfig, nameof(metricsConfig));
             this.iothubHostname = Preconditions.CheckNonWhiteSpace(iothubHostname, nameof(iothubHostname));
             this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
@@ -30,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
         protected override void Load(ContainerBuilder builder)
         {
             builder.Register(c => this.metricsConfig.Enabled ?
-                                new MetricsProvider(Constants.EdgeAgentModuleName, this.iothubHostname, this.deviceId, this.edgeAgentStorageFolder) :
+                                new MetricsProvider(Constants.EdgeAgentModuleName, this.iothubHostname, this.deviceId) :
                                 new NullMetricsProvider() as IMetricsProvider)
                 .As<IMetricsProvider>()
                 .SingleInstance();

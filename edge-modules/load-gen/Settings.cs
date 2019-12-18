@@ -24,6 +24,10 @@ namespace LoadGen
                     .AddEnvironmentVariables()
                     .Build();
 
+                string testResultCoordinatorUrl = string.IsNullOrWhiteSpace(configuration.GetValue<string>("testResultCoordinatorUrl"))
+                    ? null
+                    : configuration.GetValue<string>("testResultCoordinatorUrl");
+
                 return new Settings(
                     configuration.GetValue("messageFrequency", TimeSpan.FromMilliseconds(20)),
                     configuration.GetValue<ulong>("messageSizeInBytes", 1024),
@@ -31,7 +35,9 @@ namespace LoadGen
                     configuration.GetValue("outputName", "output1"),
                     configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
                     configuration.GetValue("testDuration", TimeSpan.Zero),
-                    configuration.GetValue("trackingId", string.Empty));
+                    configuration.GetValue("trackingId", string.Empty),
+                    Option.Maybe(testResultCoordinatorUrl),
+                    configuration.GetValue<string>("IOTEDGE_MODULEID"));
             });
 
         Settings(
@@ -41,7 +47,9 @@ namespace LoadGen
             string outputName,
             TimeSpan testStartDelay,
             TimeSpan testDuration,
-            string trackingId)
+            string trackingId,
+            Option<string> testResultCoordinatorUrl,
+            string moduleId)
         {
             Preconditions.CheckRange(messageFrequency.Ticks, 0);
             Preconditions.CheckRange(testStartDelay.Ticks, 0);
@@ -55,6 +63,8 @@ namespace LoadGen
             this.TestStartDelay = testStartDelay;
             this.TrackingId = trackingId ?? string.Empty;
             this.TransportType = transportType;
+            this.TestResultCoordinatorUrl = testResultCoordinatorUrl;
+            this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
         }
 
         public static Settings Current => DefaultSettings.Value;
@@ -74,11 +84,16 @@ namespace LoadGen
 
         public string TrackingId { get; }
 
+        public string ModuleId { get; }
+
+        public Option<string> TestResultCoordinatorUrl { get; }
+
         public override string ToString()
         {
             // serializing in this pattern so that secrets don't accidentally get added anywhere in the future
             var fields = new Dictionary<string, string>
             {
+                { nameof(this.ModuleId), this.ModuleId },
                 { nameof(this.MessageFrequency), this.MessageFrequency.ToString() },
                 { nameof(this.MessageSizeInBytes), this.MessageSizeInBytes.ToString() },
                 { nameof(this.OutputName), this.OutputName },
@@ -86,6 +101,7 @@ namespace LoadGen
                 { nameof(this.TestDuration), this.TestDuration.ToString() },
                 { nameof(this.TrackingId), this.TrackingId },
                 { nameof(this.TransportType), Enum.GetName(typeof(TransportType), this.TransportType) },
+                { nameof(this.TestResultCoordinatorUrl), this.TestResultCoordinatorUrl.ToString() },
             };
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";

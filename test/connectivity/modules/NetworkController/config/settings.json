@@ -1,0 +1,13 @@
+{
+  "StartAfter": "00:05:00",
+  "DockerUri": "unix:///var/run/docker.sock",
+  "NetworkId": "azure-iot-edge",
+  "NetworkControllerMode": "OfflineTrafficController",
+  "RunFrequencies": [
+    {
+      "OfflineFrequency": "00:05:00",
+      "OnlineFrequency": "00:05:00",
+      "RunsCount": "6"
+    }
+  ]
+}
