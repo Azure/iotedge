@@ -250,4 +250,4 @@ Extensions available:
 - [Kubernetes native volume support](create-options.md#volumes)
 - [Setting CPU and Memory limits](create-options.md#cpu-memory-and-device-resources)
 - [Assigning Modules to Nodes](create-options.md#assigning-modules-to-nodes)
-- [Applying Pod Security Context](create-options.md#apply-pod-securitycontext)
+- [Applying Pod Security Context](create-options.md#apply-pod-security-context)
