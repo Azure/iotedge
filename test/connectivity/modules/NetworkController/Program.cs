@@ -25,7 +25,7 @@ namespace NetworkController
                     async name =>
                     {
                         var nic = new NetworkInterfaceOfflineController(name);
-                        var firewall = new FirewallOfflineController(name);
+                        var firewall = new FirewallOfflineController(name, Settings.Current.IotHubHostname);
                         var satellite = new SatelliteController(name);
                         var controllers = new List<IController>() { nic, firewall, satellite };
                         await RemoveAllControllingRules(controllers, cts.Token);

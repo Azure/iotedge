@@ -2,6 +2,7 @@
 namespace NetworkController
 {
     using System;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -11,10 +12,12 @@ namespace NetworkController
     {
         static readonly ILogger Log = Logger.Factory.CreateLogger<LinuxFirewallOfflineController>();
         readonly string networkInterfaceName;
+        readonly string iotHubHostname;
 
-        public LinuxFirewallOfflineController(string networkInterfaceName)
+        public LinuxFirewallOfflineController(string networkInterfaceName, string iotHubHostname)
         {
             this.networkInterfaceName = networkInterfaceName;
+            this.iotHubHostname = iotHubHostname;
         }
 
         public string Description => "LinuxFirewallOffline";
@@ -62,10 +65,20 @@ namespace NetworkController
         {
             try
             {
-                string output = await CommandExecutor.Execute(
+                await CommandExecutor.Execute(
+                   "tc",
+                   $"filter delete dev {this.networkInterfaceName} parent 1:0",
+                   cs);
+
+                await CommandExecutor.Execute(
                     "tc",
-                    $"qdisc delete dev {this.networkInterfaceName} root netem loss 100%",
+                    $"qdisc delete dev {this.networkInterfaceName} parent 1:2 handle 20: netem loss 100%",
                     cs);
+
+                await CommandExecutor.Execute(
+                   "tc",
+                   $"qdisc delete dev {this.networkInterfaceName} root handle 1: prio priomap 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0",
+                   cs);
 
                 return true;
             }
@@ -80,10 +93,32 @@ namespace NetworkController
         {
             try
             {
-                string output = await CommandExecutor.Execute(
+                IPAddress[] iothubAddresses = await Dns.GetHostAddressesAsync(iotHubHostname);
+                if (iothubAddresses.Length == 0)
+                {
+                    throw new CommandExecutionException("No IP found for iothub hostname");
+                }
+
+                foreach (var item in iothubAddresses)
+                {
+                    Log.LogInformation($"Found iotHub IP { item  }");
+                }
+
+
+                await CommandExecutor.Execute(
                     "tc",
-                    $"qdisc add dev {this.networkInterfaceName} root netem loss 100%",
+                    $"qdisc add dev {this.networkInterfaceName} root handle 1: prio priomap 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0",
                     cs);
+
+                await CommandExecutor.Execute(
+                    "tc",
+                    $"qdisc add dev {this.networkInterfaceName} parent 1:2 handle 20: netem loss 100%",
+                    cs);
+
+                await CommandExecutor.Execute(
+                   "tc",
+                   $"filter add dev {this.networkInterfaceName} parent 1:0 protocol ip u32 match ip src {iothubAddresses[0]} flowid 1:2",
+                   cs);
 
                 return true;
             }

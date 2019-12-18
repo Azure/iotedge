@@ -12,7 +12,7 @@ namespace NetworkController
         static readonly ILogger Log = Logger.Factory.CreateLogger<FirewallOfflineController>();
         readonly IController underlyingController;
 
-        public FirewallOfflineController(string networkInterfaceName)
+        public FirewallOfflineController(string networkInterfaceName, string iothubHosname)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -20,7 +20,7 @@ namespace NetworkController
             }
             else
             {
-                this.underlyingController = new LinuxFirewallOfflineController(networkInterfaceName);
+                this.underlyingController = new LinuxFirewallOfflineController(networkInterfaceName, iothubHosname);
             }
         }
 

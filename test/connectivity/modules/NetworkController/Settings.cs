@@ -17,6 +17,7 @@ namespace NetworkController
         const string TestResultCoordinatorEndpointPropertyName = "TestResultCoordinatorEndpoint";
         const string TrackingIdPropertyName = "TrackingId";
         const string ModuleIdPropertyName = "IOTEDGE_MODULEID";
+        const string iotHubHostnamePropertyName = "IOTEDGE_IOTHUBHOSTNAME";
 
         static readonly Lazy<Settings> Setting = new Lazy<Settings>(
             () =>
@@ -38,7 +39,8 @@ namespace NetworkController
                     configuration.GetValue<NetworkControllerMode>(NetworkControllerModePropertyName),
                     configuration.GetValue<Uri>(TestResultCoordinatorEndpointPropertyName),
                     configuration.GetValue<string>(TrackingIdPropertyName),
-                    configuration.GetValue<string>(ModuleIdPropertyName));
+                    configuration.GetValue<string>(ModuleIdPropertyName),
+                    configuration.GetValue<string>(iotHubHostnamePropertyName));
             });
 
         Settings(
@@ -49,7 +51,8 @@ namespace NetworkController
             NetworkControllerMode mode,
             Uri testResultCoordinatorEndpoint,
             string trackingId,
-            string moduleId)
+            string moduleId,
+            string iothubHostname)
         {
             this.StartAfter = startAfter;
             this.Frequencies = frequencies;
@@ -59,6 +62,7 @@ namespace NetworkController
             this.NetworkControllerMode = mode;
             this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
+            this.IotHubHostname = Preconditions.CheckNonWhiteSpace(iothubHostname, nameof(iothubHostname));
         }
 
         public static Settings Current => Setting.Value;
@@ -78,6 +82,8 @@ namespace NetworkController
         public string TrackingId { get; }
 
         public string ModuleId { get; }
+
+        public string IotHubHostname { get; }
     }
 
     class Frequency
