@@ -58,7 +58,7 @@ namespace NetworkController
         {
             var delay = Settings.Current.StartAfter;
 
-            INetworkStatusReporter reporter = new NetworkReporter(Settings.Current.TestResultCoordinatorEndpoint, Settings.Current.ModuleId, Settings.Current.TrackingId);
+            INetworkStatusReporter reporter = new NetworkStatusReporter(Settings.Current.TestResultCoordinatorEndpoint, Settings.Current.ModuleId, Settings.Current.TrackingId);
             foreach (Frequency item in Settings.Current.Frequencies)
             {
                 Log.LogInformation($"Schedule task with {controller.Description} to start after {delay} Offline frequency {item.OfflineFrequency} Online frequency {item.OnlineFrequency} Run times {item.RunsCount}");
@@ -92,7 +92,7 @@ namespace NetworkController
 
         static async Task RemoveAllControllingRules(IList<IController> controllerList, CancellationToken cancellationToken)
         {
-            var reporter = new NetworkReporter(Settings.Current.TestResultCoordinatorEndpoint, Settings.Current.ModuleId, Settings.Current.TrackingId);
+            var reporter = new NetworkStatusReporter(Settings.Current.TestResultCoordinatorEndpoint, Settings.Current.ModuleId, Settings.Current.TrackingId);
 
             foreach (var controller in controllerList)
             {

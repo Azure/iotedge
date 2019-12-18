@@ -9,7 +9,7 @@ namespace NetworkController
 
     class FirewallOfflineController : IController
     {
-        static readonly ILogger Log = Logger.Factory.CreateLogger<LinuxFirewallOfflineController>();
+        static readonly ILogger Log = Logger.Factory.CreateLogger<FirewallOfflineController>();
         readonly IController underlyingController;
 
         public FirewallOfflineController(string networkInterfaceName)
@@ -31,7 +31,9 @@ namespace NetworkController
         public async Task<bool> SetStatus(NetworkStatus status, CancellationToken cs)
         {
             bool result = await this.underlyingController.SetStatus(status, cs);
-            Log.LogInformation($"Command SetStatus {NetworkStatus.Restricted} execution success {result}, network status {status}");
+
+            string resultMessage = result ? "succeded" : "failed";
+            Log.LogInformation($"Command SetStatus {NetworkStatus.Restricted} execution {resultMessage}, network status {status}");
 
             NetworkStatus reportedStatus = await this.GetStatus(cs);
             return result && reportedStatus == NetworkStatus.Restricted;
@@ -42,7 +44,8 @@ namespace NetworkController
             bool result = await this.underlyingController.SetStatus(NetworkStatus.Default, cs);
 
             NetworkStatus status = await this.GetStatus(cs);
-            Log.LogInformation($"Command RemoveDropRule execution success {result}, network status {status}");
+            string resultMessage = result ? "succeded" : "failed";
+            Log.LogInformation($"Command RemoveDropRule execution {resultMessage}, network status {status}");
 
             return result && status == NetworkStatus.Default;
         }

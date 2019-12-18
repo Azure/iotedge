@@ -83,7 +83,7 @@ namespace NetworkController
         {
             foreach (NetworkInterface item in NetworkInterface.GetAllNetworkInterfaces())
             {
-                if (item.Name.Equals(this.interfaceName))
+                if (item.Name.Equals(this.interfaceName, StringComparison.OrdinalIgnoreCase))
                 {
                     return item.OperationalStatus;
                 }

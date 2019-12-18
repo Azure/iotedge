@@ -40,7 +40,8 @@ namespace NetworkController
         {
             bool result = await this.underlyingConroller.SetStatus(status, cs);
             NetworkStatus reportedStatus = await this.GetStatus(cs);
-            Log.LogInformation($"Command SetStatus {status} success {result}, network status {reportedStatus}");
+            string resultMessage = result ? "succeded" : "failed";
+            Log.LogInformation($"Command SetStatus {status} {resultMessage}, network status {reportedStatus}");
 
             return result && reportedStatus == status;
         }

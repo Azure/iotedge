@@ -9,14 +9,14 @@ namespace NetworkController
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
-    class NetworkReporter : INetworkStatusReporter
+    class NetworkStatusReporter : INetworkStatusReporter
     {
-        static readonly ILogger Log = Logger.Factory.CreateLogger<NetworkReporter>();
+        static readonly ILogger Log = Logger.Factory.CreateLogger<NetworkStatusReporter>();
         readonly TestResultCoordinatorClient trcClient;
         readonly string moduleId;
         readonly string trackingId;
 
-        public NetworkReporter(Uri testResultCoordinatorEndpoint, string moduleId, string trackingId)
+        public NetworkStatusReporter(Uri testResultCoordinatorEndpoint, string moduleId, string trackingId)
         {
             this.trcClient = new TestResultCoordinatorClient() { BaseUrl = testResultCoordinatorEndpoint.AbsoluteUri };
             this.moduleId = moduleId;
@@ -25,7 +25,7 @@ namespace NetworkController
 
         public Task ReportNetworkStatus(NetworkControllerOperation operation, NetworkStatus status, string description, bool success = true)
         {
-            NetworkControllerResult networkController = new NetworkControllerResult() { Operation = operation.ToString(), OperationStatus = success ? "Success" : "Failed", Description = description, NetworkStatus = status.ToString(), TrackingId = this.trackingId };
+            var networkController = new NetworkControllerResult() { Operation = operation.ToString(), OperationStatus = success ? "Success" : "Failed", Description = description, NetworkStatus = status.ToString(), TrackingId = this.trackingId };
             return ModuleUtil.ReportStatus(this.trcClient, Log, this.moduleId, networkController.ToString(), TestOperationResultType.Network.ToString());
         }
 
