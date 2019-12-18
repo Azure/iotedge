@@ -513,35 +513,36 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Storage
             public DateTime TimeStamp { get; }
         }
 
+        // Wrapper to allow adding offset to an existing IMessage object
         class MessageWithOffset : IMessage
         {
-            readonly IMessage message;
+            readonly IMessage inner;
 
             public MessageWithOffset(IMessage message, long offset)
             {
-                this.message = Preconditions.CheckNotNull(message, nameof(message));
+                this.inner = Preconditions.CheckNotNull(message, nameof(message));
                 this.Offset = Preconditions.CheckRange(offset, 0, nameof(offset));
             }
 
-            public void Dispose() => this.message.Dispose();
+            public void Dispose() => this.inner.Dispose();
 
-            public IMessageSource MessageSource => this.message.MessageSource;
+            public IMessageSource MessageSource => this.inner.MessageSource;
 
-            public byte[] Body => this.message.Body;
+            public byte[] Body => this.inner.Body;
 
-            public IReadOnlyDictionary<string, string> Properties => this.message.Properties;
+            public IReadOnlyDictionary<string, string> Properties => this.inner.Properties;
 
-            public IReadOnlyDictionary<string, string> SystemProperties => this.message.SystemProperties;
+            public IReadOnlyDictionary<string, string> SystemProperties => this.inner.SystemProperties;
 
             public long Offset { get; }
 
-            public DateTime EnqueuedTime => this.message.EnqueuedTime;
+            public DateTime EnqueuedTime => this.inner.EnqueuedTime;
 
-            public DateTime DequeuedTime => this.message.DequeuedTime;
+            public DateTime DequeuedTime => this.inner.DequeuedTime;
 
-            public QueryValue GetQueryValue(string queryString) => this.message.GetQueryValue(queryString);
+            public QueryValue GetQueryValue(string queryString) => this.inner.GetQueryValue(queryString);
 
-            public long Size() => this.message.Size();
+            public long Size() => this.inner.Size();
         }
 
         static class MetricsV0
