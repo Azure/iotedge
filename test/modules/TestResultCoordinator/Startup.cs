@@ -27,9 +27,12 @@ namespace TestResultCoordinator
         public IConfiguration Configuration { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
-        public async void ConfigureServices(IServiceCollection services)
+        public void ConfigureServices(IServiceCollection services)
         {
+            Logger.LogInformation("Calling Startup.ConfigureServices");
+
             services.AddMvc();
+
             IStoreProvider storeProvider;
             try
             {
@@ -49,11 +52,15 @@ namespace TestResultCoordinator
                 storeProvider = new StoreProvider(new InMemoryDbStoreProvider());
             }
 
-            services.AddSingleton<ITestOperationResultStorage>(await TestOperationResultStorage.Create(
-                storeProvider,
-                Settings.Current.ResultSources));
+            services.AddSingleton<ITestOperationResultStorage>(
+                TestOperationResultStorage.Create(
+                    storeProvider,
+                    Settings.Current.ResultSources).Result);
+
             services.AddHostedService<TestResultReportingService>();
             services.AddHostedService<TestResultEventReceivingService>();
+
+            Logger.LogInformation("Calling Startup.ConfigureServices Completed.");
         }
 
         // TODO: Remove warning disable for Obsolete when project is moved to dotnetcore 3.0
