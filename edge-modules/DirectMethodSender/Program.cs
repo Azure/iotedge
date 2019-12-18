@@ -62,6 +62,8 @@ namespace DirectMethodSender
             finally
             {
                 await directMethodClient?.CleanUpAsync();
+
+                await reportClient?.CloseAsync();
                 reportClient?.Dispose();
             }
 

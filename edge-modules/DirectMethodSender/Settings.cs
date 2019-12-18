@@ -48,7 +48,6 @@ namespace DirectMethodSender
             this.AnalyzerUrl = analyzerUrl;
             this.ServiceClientConnectionString = serviceClientConnectionString;
             this.InvocationSource = invocationSource;
-
         }
 
         public static Settings Current => DefaultSettings.Value;
