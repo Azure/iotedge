@@ -22,9 +22,9 @@ namespace DirectMethodSender
             Logger.LogInformation($"Starting DirectMethodSender with the following settings:\r\n{Settings.Current}");
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
+            DirectMethodSenderBase directMethodClient = null;
             try
             {
-                DirectMethodSenderBase directMethodClient;
                 switch (Settings.Current.InvocationSource)
                 {
                     case InvocationSource.Local:
@@ -72,17 +72,20 @@ namespace DirectMethodSender
                     await Task.Delay(Settings.Current.DirectMethodDelay, cts.Token);
                 }
 
-                await directMethodClient.CloseAsync();
+                await directMethodClient.CleanUpAsync();
                 await cts.Token.WhenCanceled();
-
-                completed.Set();
-                handler.ForEach(h => GC.KeepAlive(h));
             }
             catch (Exception e)
             {
                 Logger.LogError(e, "Error occurred during direct method sender test setup");
             }
+            finally
+            {
+                await directMethodClient?.CleanUpAsync();
+            }
 
+            completed.Set();
+            handler.ForEach(h => GC.KeepAlive(h));
             Logger.LogInformation("DirectMethodSender Main() finished.");
             return 0;
         }

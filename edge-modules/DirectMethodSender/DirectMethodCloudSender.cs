@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace DirectMethodSender
 {
+    using System;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
@@ -8,7 +9,7 @@ namespace DirectMethodSender
     using Microsoft.Extensions.Logging;
     using TransportType = Microsoft.Azure.Devices.TransportType;
 
-    public class DirectMethodCloudSender : DirectMethodSenderBase
+    public sealed class DirectMethodCloudSender : DirectMethodSenderBase, IDisposable
     {
         readonly ServiceClient serviceClient;
 
@@ -21,10 +22,15 @@ namespace DirectMethodSender
                 Settings.Current.TargetModuleId)
         {
             this.serviceClient = Preconditions.CheckNotNull(serviceClient, nameof(serviceClient));
-            this.serviceClient = serviceClient;
         }
 
-        public override Task CloseAsync() => this.serviceClient.CloseAsync();
+        public override async Task CleanUpAsync()
+        {
+            await this.serviceClient.CloseAsync();
+            this.Dispose();
+        }
+
+        public void Dispose() => this.serviceClient.Dispose();
 
         public static async Task<DirectMethodCloudSender> CreateAsync(
             string connectionString,
