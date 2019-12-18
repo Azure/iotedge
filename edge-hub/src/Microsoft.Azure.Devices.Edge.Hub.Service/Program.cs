@@ -47,7 +47,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
                 Routing.LoggerFactory = Logger.Factory;
             }
 
-            EdgeHubCertificates certificates = await EdgeHubCertificates.LoadAsync(configuration);
+            ILogger logger = Logger.Factory.CreateLogger("EdgeHub");
+
+            EdgeHubCertificates certificates = await EdgeHubCertificates.LoadAsync(configuration, logger);
             bool clientCertAuthEnabled = configuration.GetValue(Constants.ConfigKey.EdgeHubClientCertAuthEnabled, false);
             Hosting hosting = Hosting.Initialize(configuration, certificates.ServerCertificate, new DependencyManager(configuration, certificates.ServerCertificate, certificates.TrustBundle), clientCertAuthEnabled);
             IContainer container = hosting.Container;
