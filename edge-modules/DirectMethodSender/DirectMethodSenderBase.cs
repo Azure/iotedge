@@ -24,7 +24,7 @@ namespace DirectMethodSender
             this.targetModuleId = targetModuleId;
         }
 
-        public abstract Task CloseAsync();
+        public abstract Task CleanUpAsync();
 
         public async Task<HttpStatusCode> InvokeDirectMethodAsync(CancellationTokenSource cts)
         {

@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace DirectMethodSender
 {
+    using System;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -10,7 +11,7 @@ namespace DirectMethodSender
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
 
-    public class DirectMethodLocalSender : DirectMethodSenderBase
+    public sealed class DirectMethodLocalSender : DirectMethodSenderBase, IDisposable
     {
         ModuleClient moduleClient;
 
@@ -26,7 +27,13 @@ namespace DirectMethodSender
             this.moduleClient = moduleClient;
         }
 
-        public override Task CloseAsync() => this.moduleClient.CloseAsync();
+        public override async Task CleanUpAsync()
+        {
+            await this.moduleClient.CloseAsync();
+            this.Dispose();
+        }
+
+        public void Dispose() => this.moduleClient.Dispose();
 
         public static async Task<DirectMethodLocalSender> CreateAsync(
             TransportType transportType,
