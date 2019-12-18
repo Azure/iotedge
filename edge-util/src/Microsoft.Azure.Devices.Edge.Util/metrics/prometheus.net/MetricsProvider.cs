@@ -8,7 +8,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
     using System.Threading;
     using System.Threading.Tasks;
     using global::Prometheus;
-    using Microsoft.Extensions.Logging;
 
     public class MetricsProvider : IMetricsProvider
     {
@@ -16,7 +15,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
         const string NameFormat = "{0}_{1}";
         readonly string namePrefix;
         readonly List<string> defaultLabelNames;
-        readonly ILogger logger = Logger.Factory.CreateLogger<MetricsProvider>();
 
         public MetricsProvider(string namePrefix, string iotHubName, string deviceId)
         {
