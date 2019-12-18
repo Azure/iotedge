@@ -40,8 +40,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
         Dictionary<string, ulong> previousSystemCpu = new Dictionary<string, ulong>();
         Dictionary<string, DateTime> previousReadTime = new Dictionary<string, DateTime>();
 
-        static readonly ILogger Log = Logger.Factory.CreateLogger<SystemResourcesMetrics>();
-
         public SystemResourcesMetrics(IMetricsProvider metricsProvider, Func<Task<SystemResources>> getSystemResources, string apiVersion)
         {
             Preconditions.CheckNotNull(metricsProvider, nameof(metricsProvider));
