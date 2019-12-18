@@ -60,7 +60,7 @@ namespace TwinTester
                 string status;
                 if (hasTwinUpdate && hasModuleReceivedCallback)
                 {
-                    status = $"{(int)StatusCode.Success}: Successfully validated desired property update";
+                    status = $"{(int)StatusCode.ValidationSuccess}: Successfully validated desired property update";
                     Logger.LogInformation(status + $" {desiredPropertyUpdate.Key}");
                 }
                 else if (this.ExceedFailureThreshold(this.twinState, desiredPropertyUpdate.Value))

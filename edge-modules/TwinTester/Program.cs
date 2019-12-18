@@ -16,9 +16,9 @@ namespace TwinTester
 
         static async Task Main()
         {
-            Logger.LogInformation($"Starting twin tester with the following settings:\r\n{Settings.Current}");
+            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
-            Console.WriteLine(StatusCode.DesiredPropertyReceived.ToString());
+            Logger.LogInformation($"Starting twin tester with the following settings:\r\n{Settings.Current}");
 
             try
             {
@@ -28,7 +28,6 @@ namespace TwinTester
                 {
                     await twinOperator.Start();
 
-                    (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
                     await cts.Token.WhenCanceled();
                     completed.Set();
                     handler.ForEach(h => GC.KeepAlive(h));
@@ -45,8 +44,6 @@ namespace TwinTester
         {
             switch (Settings.Current.TestMode)
             {
-                case TestMode.TwinAllOperations:
-                    return await GetTwinAllOperationsInitializer(registryManager, analyzerClientUri);
                 case TestMode.TwinCloudOperations:
                     return await TwinCloudOperationsInitializer.CreateAsync(registryManager, new TwinEdgeOperationsResultHandler(analyzerClientUri, Settings.Current.ModuleId));
                 case TestMode.TwinEdgeOperations:

@@ -105,7 +105,7 @@ namespace TwinTester
                         continue;
                     }
 
-                    status = $"{(int)StatusCode.Success}: Successfully validated reported property update";
+                    status = $"{(int)StatusCode.ValidationSuccess}: Successfully validated reported property update";
                     Logger.LogInformation(status + $" {reportedPropertyUpdate.Key}");
                 }
                 else if (this.ExceedFailureThreshold(this.twinState, reportedPropertyUpdate.Value))

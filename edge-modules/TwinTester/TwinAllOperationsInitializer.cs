@@ -89,7 +89,6 @@ namespace TwinTester
             {
                 await this.operationLock.WaitAsync();
                 await this.reportedPropertyUpdater.UpdateAsync();
-                await this.desiredPropertyUpdater.UpdateAsync();
             }
             finally
             {

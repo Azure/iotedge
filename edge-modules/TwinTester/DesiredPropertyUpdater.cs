@@ -26,7 +26,7 @@ namespace TwinTester
         {
             try
             {
-                string desiredPropertyUpdateValue = new string('1', Settings.Current.TwinUpdateSize); // dummy twin update can to be any char
+                string desiredPropertyUpdateValue = new string('1', Settings.Current.TwinUpdateSize); // dummy twin update can be any character
 
                 var desiredProperties = new TwinProperties();
                 string propertyKey = this.twinState.DesiredPropertyUpdateCounter.ToString();
@@ -43,7 +43,6 @@ namespace TwinTester
             catch (Exception e)
             {
                 Logger.LogError(e, "Failed call to desired property update.");
-                return;
             }
         }
 
