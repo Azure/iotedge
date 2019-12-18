@@ -364,7 +364,7 @@ namespace IotEdgeQuickstart.Details
                 EventPosition.FromEnd());
 
             var result = new TaskCompletionSource<bool>();
-            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(20)))
+            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(20))) // This long timeout is needed in case event hub is slow to process messages
             {
                 using (cts.Token.Register(() => result.TrySetCanceled()))
                 {
