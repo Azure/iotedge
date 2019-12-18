@@ -24,7 +24,6 @@ namespace DirectMethodSender
                 Settings.Current.TargetModuleId)
         {
             this.moduleClient = Preconditions.CheckNotNull(moduleClient, nameof(moduleClient));
-            this.moduleClient = moduleClient;
         }
 
         public override async Task CleanUpAsync()

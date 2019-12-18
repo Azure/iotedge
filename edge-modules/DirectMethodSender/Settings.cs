@@ -44,8 +44,8 @@ namespace DirectMethodSender
             this.TargetModuleId = Preconditions.CheckNonWhiteSpace(targetModuleId, nameof(targetModuleId));
             Preconditions.CheckArgument(TransportType.IsDefined(typeof(TransportType), transportType));
             this.TransportType = transportType;
-            this.DirectMethodDelay = Preconditions.CheckNotNull(directMethodDelay);
-            this.AnalyzerUrl = Preconditions.CheckNotNull(analyzerUrl);
+            this.DirectMethodDelay = directMethodDelay;
+            this.AnalyzerUrl = analyzerUrl;
             this.ServiceClientConnectionString = serviceClientConnectionString;
 
             object parsedInvocationSource;
