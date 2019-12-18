@@ -33,21 +33,10 @@ namespace NetworkController
             bool result = await this.underlyingController.SetStatus(status, cs);
 
             string resultMessage = result ? "succeded" : "failed";
-            Log.LogInformation($"Command SetStatus {NetworkStatus.Restricted} execution {resultMessage}, network status {status}");
+            Log.LogInformation($"Command SetStatus {status} execution {resultMessage}, network status {status}");
 
             NetworkStatus reportedStatus = await this.GetStatus(cs);
-            return result && reportedStatus == NetworkStatus.Restricted;
-        }
-
-        async Task<bool> RemoveNetworkControllingRule(CancellationToken cs)
-        {
-            bool result = await this.underlyingController.SetStatus(NetworkStatus.Default, cs);
-
-            NetworkStatus status = await this.GetStatus(cs);
-            string resultMessage = result ? "succeded" : "failed";
-            Log.LogInformation($"Command RemoveDropRule execution {resultMessage}, network status {status}");
-
-            return result && status == NetworkStatus.Default;
+            return result && reportedStatus == status;
         }
     }
 }

@@ -17,7 +17,7 @@ namespace NetworkController
         const string TestResultCoordinatorEndpointPropertyName = "TestResultCoordinatorEndpoint";
         const string TrackingIdPropertyName = "TrackingId";
         const string ModuleIdPropertyName = "IOTEDGE_MODULEID";
-        const string iotHubHostnamePropertyName = "IOTEDGE_IOTHUBHOSTNAME";
+        const string IotHubHostnamePropertyName = "IOTEDGE_IOTHUBHOSTNAME";
 
         static readonly Lazy<Settings> Setting = new Lazy<Settings>(
             () =>
@@ -40,7 +40,7 @@ namespace NetworkController
                     configuration.GetValue<Uri>(TestResultCoordinatorEndpointPropertyName),
                     configuration.GetValue<string>(TrackingIdPropertyName),
                     configuration.GetValue<string>(ModuleIdPropertyName),
-                    configuration.GetValue<string>(iotHubHostnamePropertyName));
+                    configuration.GetValue<string>(IotHubHostnamePropertyName));
             });
 
         Settings(

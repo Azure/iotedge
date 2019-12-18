@@ -65,19 +65,10 @@ namespace NetworkController
         {
             try
             {
+                // Delete the root rules cleans the chilldren rules
                 await CommandExecutor.Execute(
                    "tc",
-                   $"filter delete dev {this.networkInterfaceName} parent 1:0",
-                   cs);
-
-                await CommandExecutor.Execute(
-                    "tc",
-                    $"qdisc delete dev {this.networkInterfaceName} parent 1:2 handle 20: netem loss 100%",
-                    cs);
-
-                await CommandExecutor.Execute(
-                   "tc",
-                   $"qdisc delete dev {this.networkInterfaceName} root handle 1: prio priomap 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0",
+                   $"qdisc delete dev {this.networkInterfaceName} root",
                    cs);
 
                 return true;
@@ -93,7 +84,7 @@ namespace NetworkController
         {
             try
             {
-                IPAddress[] iothubAddresses = await Dns.GetHostAddressesAsync(iotHubHostname);
+                IPAddress[] iothubAddresses = await Dns.GetHostAddressesAsync(this.iotHubHostname);
                 if (iothubAddresses.Length == 0)
                 {
                     throw new CommandExecutionException("No IP found for iothub hostname");
@@ -101,9 +92,8 @@ namespace NetworkController
 
                 foreach (var item in iothubAddresses)
                 {
-                    Log.LogInformation($"Found iotHub IP { item  }");
+                    Log.LogInformation($"Found iotHub IP {item}");
                 }
-
 
                 await CommandExecutor.Execute(
                     "tc",
