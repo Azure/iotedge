@@ -1,19 +1,23 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 {
     using System;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
-    using NUnit.Framework;
 
+    // NUnit's [Timeout] attribute isn't supported in .NET Standard
+    // and even if it were, it doesn't run the teardown method when
+    // a test times out. We need teardown to run, to remove the
+    // device registration from IoT Hub and stop the daemon. So
+    // we have our own timeout mechanism.
     public class ManualProvisioningFixture : BaseFixture
     {
         protected readonly IEdgeDaemon daemon;
         protected readonly IotHub iotHub;
         protected EdgeRuntime runtime;
 
-        public ManualProvisioningFixture()
+        public ManualProvisioningFixture(string deviceIdSuffix)
         {
             this.daemon = OsPlatform.Current.CreateEdgeDaemon(Context.Current.InstallerPath);
             this.iotHub = new IotHub(
@@ -21,7 +25,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 Context.Current.EventHubEndpoint,
                 Context.Current.Proxy);
             this.runtime = new EdgeRuntime(
-                Context.Current.DeviceId,
+                Context.Current.DeviceId + deviceIdSuffix,
                 Context.Current.EdgeAgentImage,
                 Context.Current.EdgeHubImage,
                 Context.Current.Proxy,
@@ -30,63 +34,61 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 this.iotHub);
         }
 
-        [OneTimeSetUp]
-        public async Task ManuallyProvisionEdgeAsync()
+        public async Task ManuallyProvisionEdgeSasAsync(EdgeDevice device, DateTime startTime, CancellationToken token)
         {
-            await Profiler.Run(
-                async () =>
+            IotHubConnectionStringBuilder builder =
+                IotHubConnectionStringBuilder.Create(device.ConnectionString);
+
+            await this.daemon.ConfigureAsync(
+                config =>
                 {
-                    using (var cts = new CancellationTokenSource(Context.Current.SetupTimeout))
-                    {
-                        // NUnit's [Timeout] attribute isn't supported in .NET Standard
-                        // and even if it were, it doesn't run the teardown method when
-                        // a test times out. We need teardown to run, to remove the
-                        // device registration from IoT Hub and stop the daemon. So
-                        // we have our own timeout mechanism.
-                        DateTime startTime = DateTime.Now;
-                        CancellationToken token = cts.Token;
-
-                        EdgeDevice device = await EdgeDevice.GetOrCreateIdentityAsync(
-                            Context.Current.DeviceId,
-                            this.iotHub,
-                            token);
-                        Context.Current.DeleteList.TryAdd(device.Id, device);
-
-                        IotHubConnectionStringBuilder builder =
-                            IotHubConnectionStringBuilder.Create(device.ConnectionString);
-
-                        await this.daemon.ConfigureAsync(
-                            config =>
-                            {
-                                config.SetDeviceConnectionString(device.ConnectionString);
-                                config.Update();
-                                return Task.FromResult((
-                                    "with connection string for device '{Identity}'",
-                                    new object[] { builder.DeviceId }));
-                            },
-                            token);
-
-                        try
-                        {
-                            await this.daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
-
-                            var agent = new EdgeAgent(device.Id, this.iotHub);
-                            await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
-                            await agent.PingAsync(token);
-                        }
-
-                        // ReSharper disable once RedundantCatchClause
-                        catch
-                        {
-                            throw;
-                        }
-                        finally
-                        {
-                            await NUnitLogs.CollectAsync(startTime, token);
-                        }
-                    }
+                    config.SetDeviceConnectionString(device.ConnectionString);
+                    config.Update();
+                    return Task.FromResult((
+                        "with connection string for device '{Identity}'",
+                        new object[] { builder.DeviceId }));
                 },
-                "Completed edge manual provisioning");
+                token);
+
+            await this.WaitForConfiguredStatusAsync(device, startTime, token);
+        }
+
+        public async Task ManuallyProvisionEdgeX509Async(EdgeDevice device, string certPath, string keyPath, DateTime startTime, CancellationToken token)
+        {
+            await this.daemon.ConfigureAsync(
+                config =>
+                {
+                    config.SetDeviceManualX509(device.HubHostname, device.Id, certPath, keyPath);
+                    config.Update();
+                    return Task.FromResult((
+                        "with x509 certificate for device '{Identity}'",
+                        new object[] { device.Id }));
+                },
+                token);
+
+            await this.WaitForConfiguredStatusAsync(device, startTime, token);
+        }
+
+        private async Task WaitForConfiguredStatusAsync(EdgeDevice device, DateTime startTime, CancellationToken token)
+        {
+            try
+            {
+                await this.daemon.WaitForStatusAsync(EdgeDaemonStatus.Running, token);
+
+                var agent = new EdgeAgent(device.Id, this.iotHub);
+                await agent.WaitForStatusAsync(EdgeModuleStatus.Running, token);
+                await agent.PingAsync(token);
+            }
+
+            // ReSharper disable once RedundantCatchClause
+            catch
+            {
+                throw;
+            }
+            finally
+            {
+                await NUnitLogs.CollectAsync(startTime, token);
+            }
         }
     }
 }
