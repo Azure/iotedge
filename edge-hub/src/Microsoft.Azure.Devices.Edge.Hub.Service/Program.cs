@@ -51,7 +51,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
             ILogger logger = Logger.Factory.CreateLogger("EdgeHub");
 
-            EdgeHubCertificates certificates = await EdgeHubCertificates.LoadAsync(configuration);
+            EdgeHubCertificates certificates = await EdgeHubCertificates.LoadAsync(configuration, logger);
             bool clientCertAuthEnabled = configuration.GetValue(Constants.ConfigKey.EdgeHubClientCertAuthEnabled, false);
 
             string sslProtocolsConfig = configuration.GetValue(Constants.ConfigKey.SslProtocols, string.Empty);
