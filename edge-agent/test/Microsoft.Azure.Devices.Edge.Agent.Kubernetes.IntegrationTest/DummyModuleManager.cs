@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -27,9 +28,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.IntegrationTest
 
         public Task UpdateAndStartModuleAsync(ModuleSpec moduleSpec) => throw new NotImplementedException();
 
-        public Task<SystemInfo> GetSystemInfoAsync() => Task.FromResult(new SystemInfo("kubernetes", "amd64", "v1"));
-
         public Task<SystemInfo> GetSystemInfoAsync(CancellationToken token) => Task.FromResult(new SystemInfo("kubernetes", "amd64", "v1"));
+
+        public Task<SystemResources> GetSystemResourcesAsync() => throw new NotImplementedException();
 
         public Task<IEnumerable<ModuleRuntimeInfo>> GetModules<T>(CancellationToken token) => throw new NotImplementedException();
 

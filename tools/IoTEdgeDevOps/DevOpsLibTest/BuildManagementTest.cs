@@ -48,7 +48,7 @@ namespace DevOpsLibTest
         public async Task TestGetLatestBuildsAsyncWithEmptyBranchName()
         {
             ArgumentException ex = Assert.ThrowsAsync<ArgumentException>(
-                async () => { await this.buildManagement.GetLatestBuildsAsync(BuildDefinitionExtension.MasterBranchReporting, " ").ConfigureAwait(false); });
+                async () => { await this.buildManagement.GetLatestBuildsAsync(BuildExtension.MasterBranchReporting, " ").ConfigureAwait(false); });
 
             Assert.True(ex.Message.StartsWith("Cannot be null or white space."));
             Assert.That(ex.ParamName, Is.EqualTo("branchName"));
@@ -173,7 +173,7 @@ namespace DevOpsLibTest
                 .WithBasicAuth(string.Empty, PersonalAccessToken)
                 .Times(1);
 
-            Assert.AreEqual(latestBuilds.Count, 2);
+            Assert.AreEqual( 2, latestBuilds.Count);
             VerifyEmptyBuildResult(latestBuilds.First(b => b.DefinitionId == BuildDefinitionId.BuildImages));
             VerifyEmptyBuildResult(latestBuilds.First(b => b.DefinitionId == BuildDefinitionId.CI));
         }
@@ -198,7 +198,7 @@ namespace DevOpsLibTest
                 .WithBasicAuth(string.Empty, PersonalAccessToken)
                 .Times(1);
 
-            Assert.AreEqual(latestBuilds.Count, 2);
+            Assert.AreEqual(2, latestBuilds.Count);
             VerifyEmptyBuildResult(latestBuilds.First(b => b.DefinitionId == BuildDefinitionId.BuildImages));
             VerifyEmptyBuildResult(latestBuilds.First(b => b.DefinitionId == BuildDefinitionId.CI));
         }
