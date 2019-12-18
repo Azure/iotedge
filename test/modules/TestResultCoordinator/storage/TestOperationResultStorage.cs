@@ -14,6 +14,9 @@ namespace TestResultCoordinator.Storage
         static readonly ILogger Logger = Microsoft.Azure.Devices.Edge.ModuleUtil.ModuleUtil.CreateLogger(nameof(TestOperationResultStorage));
         private Dictionary<string, ISequentialStore<TestOperationResult>> resultStores;
 
+        // HACK: unblock testing due to controller dependency injection issue
+        internal static ITestOperationResultStorage Instance { get; private set; }
+
         public static async Task<TestOperationResultStorage> Create(IStoreProvider storeProvider, List<string> resultSources)
         {
             Preconditions.CheckNotNull(storeProvider, nameof(storeProvider));
@@ -23,7 +26,10 @@ namespace TestResultCoordinator.Storage
                 resultSourcesToStores.Add(resultSource, await storeProvider.GetSequentialStore<TestOperationResult>(resultSource));
             }
 
-            return new TestOperationResultStorage(resultSourcesToStores);
+            var testOperationResultStorage = new TestOperationResultStorage(resultSourcesToStores);
+            Instance = testOperationResultStorage;
+
+            return testOperationResultStorage;
         }
 
         private TestOperationResultStorage(Dictionary<string, ISequentialStore<TestOperationResult>> resultStores)
