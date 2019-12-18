@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
     /// </summary>
     public sealed class MetricsFileWriter : IMetricsPublisher
     {
-        public async Task PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
+        public async Task<bool> PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
         {
             Directory.CreateDirectory("shared");
             using (FileStream file = File.Open(@"shared/MetricsUpload.txt", FileMode.Append))
@@ -28,6 +28,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
                     await file.WriteAsync(buffer, 0, buffer.Length, cancellationToken);
                 }
             }
+
+            return true;
         }
     }
 }
