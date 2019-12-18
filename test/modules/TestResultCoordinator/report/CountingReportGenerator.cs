@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace TestResultCoordinator
+namespace TestResultCoordinator.Report
 {
     using System;
     using System.Collections.Generic;
@@ -10,6 +10,7 @@ namespace TestResultCoordinator
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using TestOperationResult = TestResultCoordinator.TestOperationResult;
 
     /// <summary>
     /// This is used to create counting report based on 2 different sources/stores; it will use given test result comparer to determine whether it matches or not.
@@ -67,7 +68,7 @@ namespace TestResultCoordinator
         /// It will remove consecutive duplicate results when loading from actual store.
         /// It will log fail if actual store has more results than expect store.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>Test Result Report.</returns>
         public async Task<ITestResultReport> CreateReportAsync()
         {
             Logger.LogInformation($"Start to generate report by {nameof(CountingReportGenerator)} for Sources [{this.expectedSource}] and [{this.actualSource}]");
@@ -126,7 +127,7 @@ namespace TestResultCoordinator
 
             if (actualQueue.Count > 0)
             {
-                //Log message this is unexpected.
+                // Log message for unexpected case.
                 Logger.LogError($"[{nameof(CountingReportGenerator)}] Actual test result source has unexpected results.");
 
                 while (actualQueue.Count > 0)
@@ -151,8 +152,7 @@ namespace TestResultCoordinator
                 totalExpectCount,
                 totalMatchCount,
                 totalDuplicateResultCount,
-                unmatchedResults.AsReadOnly()
-                );
+                unmatchedResults.AsReadOnly());
         }
 
         async Task<(long, TestOperationResult, ulong)> LoadBatchIntoQueueAsync(

@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace TestResultCoordinator
+namespace TestResultCoordinator.Report
 {
     /// <summary>
     /// This defines the basic properties of a test result report.
