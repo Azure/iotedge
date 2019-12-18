@@ -60,7 +60,7 @@ namespace Microsoft.Azure.Devices.Routing.Core
             this.Body = Preconditions.CheckNotNull(body);
             this.Properties = Preconditions.CheckNotNull(properties);
             this.SystemProperties = Preconditions.CheckNotNull(systemProperties);
-            this.Offset = offset;
+             this.Offset = Preconditions.CheckRange(offset, 0, nameof(offset));
             this.EnqueuedTime = enqueuedTime;
             this.DequeuedTime = dequeuedTime;
 
