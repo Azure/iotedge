@@ -10,10 +10,17 @@ namespace TestResultCoordinator.Service
     using Microsoft.Azure.EventHubs;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
+    using TestResultCoordinator.Storage;
 
     class TestResultEventReceivingService : BackgroundService
     {
         readonly ILogger logger = ModuleUtil.CreateLogger(nameof(TestResultEventReceivingService));
+        readonly ITestOperationResultStorage storage;
+
+        public TestResultEventReceivingService(ITestOperationResultStorage storage)
+        {
+            this.storage = Preconditions.CheckNotNull(storage, nameof(storage));
+        }
 
         public override async Task StopAsync(CancellationToken stoppingToken)
         {
@@ -35,7 +42,7 @@ namespace TestResultCoordinator.Service
                 Settings.Current.ConsumerGroupName,
                 EventHubPartitionKeyResolver.ResolveToPartition(Settings.Current.DeviceId, (await eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
                 EventPosition.FromEnqueuedTime(eventEnqueuedFrom));
-            eventHubReceiver.SetReceiveHandler(new PartitionReceiveHandler(Settings.Current.TrackingId, Settings.Current.DeviceId));
+            eventHubReceiver.SetReceiveHandler(new PartitionReceiveHandler(Settings.Current.TrackingId, Settings.Current.DeviceId, this.storage));
 
             await cancellationToken.WhenCanceled();
 
