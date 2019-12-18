@@ -280,18 +280,18 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "TargetModuleId": {
-                "value": "DirectMethodReceiver"
-              },
-              "InvocationSource": {
-                "value": "Cloud"
-              },
               "AnalyzerUrl":
               {
                 "value": "http://analyzer:15000/api/report"
               },
+              "InvocationSource": {
+                "value": "Cloud"
+              },
               "ServiceClientConnectionString": {
                 "value": "<ServiceClientConnectionString>"
+              },
+              "TargetModuleId": {
+                "value": "DirectMethodReceiver"
               }
             },
             "settings": {
@@ -320,18 +320,18 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "TargetModuleId": {
-                "value": "DirectMethodReceiver2"
-              },
-              "InvocationSource": {
-                "value": "Cloud"
-              },
               "AnalyzerUrl":
               {
                 "value": "http://analyzer:15000/api/report"
               },
+              "InvocationSource": {
+                "value": "Cloud"
+              },
               "ServiceClientConnectionString": {
                 "value": "<ServiceClientConnectionString>"
+              },
+              "TargetModuleId": {
+                "value": "DirectMethodReceiver2"
               }
             },
             "settings": {
