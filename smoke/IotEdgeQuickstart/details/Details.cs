@@ -363,6 +363,7 @@ namespace IotEdgeQuickstart.Details
                     (await eventHubClient.GetRuntimeInformationAsync()).PartitionCount),
                 EventPosition.FromEnd());
 
+            // TODO: Don't rely on eventhub to verify module to module direct methods. The module sending the direct method should report success / failure directly.
             var result = new TaskCompletionSource<bool>();
             using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(20))) // This long timeout is needed in case event hub is slow to process messages
             {
