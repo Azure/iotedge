@@ -5,6 +5,7 @@ namespace DirectMethodSender
     using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
     public abstract class DirectMethodSenderBase
@@ -19,9 +20,9 @@ namespace DirectMethodSender
             string deviceId,
             string targetModuleId)
         {
-            this.logger = logger;
-            this.deviceId = deviceId;
-            this.targetModuleId = targetModuleId;
+            this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
+            this.deviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
+            this.targetModuleId = Preconditions.CheckNonWhiteSpace(targetModuleId, nameof(targetModuleId));
         }
 
         public abstract Task CleanUpAsync();
@@ -30,7 +31,7 @@ namespace DirectMethodSender
         {
             ILogger logger = this.logger;
             logger.LogInformation("Invoke DirectMethod: started.");
-            logger.LogInformation($"Calling Direct Method on device {this.deviceId} targeting module [{this.targetModuleId}] with count {this.directMethodCount}.");
+            logger.LogInformation($"{this.GetType().ToString()} : Calling Direct Method on device {this.deviceId} targeting module [{this.targetModuleId}] with count {this.directMethodCount}.");
 
             try
             {

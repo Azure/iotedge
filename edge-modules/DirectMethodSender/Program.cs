@@ -25,28 +25,7 @@ namespace DirectMethodSender
             DirectMethodSenderBase directMethodClient = null;
             try
             {
-                switch (Settings.Current.InvocationSource)
-                {
-                    case InvocationSource.Local:
-                        // Implicit OpenAsync()
-                        directMethodClient = await DirectMethodLocalSender.CreateAsync(
-                                Settings.Current.TransportType,
-                                ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                                ModuleUtil.DefaultTransientRetryStrategy,
-                                Logger);
-                        break;
-
-                    case InvocationSource.Cloud:
-                        // Implicit OpenAsync()
-                        directMethodClient = await DirectMethodCloudSender.CreateAsync(
-                                Settings.Current.ServiceClientConnectionString.Expect(() => new ArgumentException("ServiceClientConnectionString is null")),
-                                (Microsoft.Azure.Devices.TransportType)Settings.Current.TransportType,
-                                Logger);
-                        break;
-
-                    default:
-                        throw new NotImplementedException("Invalid InvocationSource type");
-                }
+                directMethodClient = await CreateClientAsync(Settings.Current.InvocationSource);
 
                 Option<Uri> analyzerUrl = Settings.Current.AnalyzerUrl;
                 ModuleClient reportClient = await ModuleUtil.CreateModuleClientAsync(
@@ -88,6 +67,34 @@ namespace DirectMethodSender
             handler.ForEach(h => GC.KeepAlive(h));
             Logger.LogInformation("DirectMethodSender Main() finished.");
             return 0;
+        }
+
+        public static async Task<DirectMethodSenderBase> CreateClientAsync(InvocationSource invocationSource)
+        {
+            DirectMethodSenderBase directMethodClient = null;
+            switch (invocationSource)
+            {
+                case InvocationSource.Local:
+                    // Implicit OpenAsync()
+                    directMethodClient = await DirectMethodLocalSender.CreateAsync(
+                            Settings.Current.TransportType,
+                            ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
+                            ModuleUtil.DefaultTransientRetryStrategy,
+                            Logger);
+                    break;
+
+                case InvocationSource.Cloud:
+                    // Implicit OpenAsync()
+                    directMethodClient = await DirectMethodCloudSender.CreateAsync(
+                            Settings.Current.ServiceClientConnectionString.Expect(() => new ArgumentException("ServiceClientConnectionString is null")),
+                            (Microsoft.Azure.Devices.TransportType)Settings.Current.TransportType,
+                            Logger);
+                    break;
+
+                default:
+                    throw new NotImplementedException("Invalid InvocationSource type");
+            }
+            return directMethodClient;
         }
 
         static async Task ReportStatus(string moduleId, HttpStatusCode result, AnalyzerClient analyzerClient)
