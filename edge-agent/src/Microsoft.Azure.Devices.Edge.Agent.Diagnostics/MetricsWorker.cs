@@ -71,10 +71,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                 Log.LogInformation($"Uploading Metrics");
                 IEnumerable<Metric> metricsToUpload = (await this.storage.GetAllMetricsAsync()).CondenseTimeSeries();
 
-                bool uploaded;
                 try
                 {
-                    uploaded = await this.uploader.PublishAsync(metricsToUpload, cancellationToken);
+                    if (await this.uploader.PublishAsync(metricsToUpload, cancellationToken))
+                    {
+                        Log.LogInformation($"Published metrics");
+                        await this.storage.RemoveAllReturnedMetricsAsync();
+                        return true;
+                    }
+                    else
+                    {
+                        Log.LogInformation($"Failed to publish metrics");
+                        return false;
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -82,18 +91,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                     Log.LogError($"Unexpected error publishing metrics. Deleting stored metrics.");
                     await this.storage.RemoveAllReturnedMetricsAsync();
                     throw ex;
-                }
-
-                if (uploaded)
-                {
-                    Log.LogInformation($"Published metrics");
-                    await this.storage.RemoveAllReturnedMetricsAsync();
-                    return true;
-                }
-                else
-                {
-                    Log.LogInformation($"Failed to publish metrics");
-                    return false;
                 }
             }
         }
