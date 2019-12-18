@@ -25,13 +25,7 @@ namespace DirectMethodSender
             this.targetModuleId = Preconditions.CheckNonWhiteSpace(targetModuleId, nameof(targetModuleId));
         }
 
-        public async Task CleanUpAsync()
-        {
-            await this.CloseAsync();
-            this.Dispose();
-        }
-
-        protected abstract Task CloseAsync();
+        public abstract Task CloseAsync();
 
         public abstract void Dispose();
 

@@ -26,7 +26,7 @@ namespace DirectMethodSender
             this.moduleClient = Preconditions.CheckNotNull(moduleClient, nameof(moduleClient));
         }
 
-        protected override async Task CloseAsync() => await this.moduleClient.CloseAsync();
+        public override async Task CloseAsync() => await this.moduleClient.CloseAsync();
 
         public override void Dispose() => this.moduleClient.Dispose();
 
