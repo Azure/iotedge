@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using Microsoft.Azure.Devices.Edge.Test.Common.Certs;
     using NUnit.Framework;
 
-    public class CustomCertificatesFixture : ManualProvisioningFixture
+    public class CustomCertificatesFixture : SasManualProvisioningFixture
     {
         protected CertificateAuthority ca;
 

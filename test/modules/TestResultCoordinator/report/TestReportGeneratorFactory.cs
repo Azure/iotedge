@@ -2,10 +2,16 @@
 namespace TestResultCoordinator.Report
 {
     using System;
+    using Microsoft.Azure.Devices.Edge.Util;
+    using TestResultCoordinator.Storage;
+
     class TestReportGeneratorFactory : ITestReportGeneratorFactory
     {
-        public TestReportGeneratorFactory()
+        readonly ITestOperationResultStorage storage;
+
+        public TestReportGeneratorFactory(ITestOperationResultStorage storage)
         {
+            this.storage = Preconditions.CheckNotNull(storage, nameof(storage));
         }
 
         public ITestResultReportGenerator Create(
@@ -16,20 +22,19 @@ namespace TestResultCoordinator.Report
             {
                 case TestReportType.CountingReport:
                 {
-                        return new CountingReportGenerator(
-                            trackingId,
-                            reportMetadata.ExpectedSource,
-                            // TODO: Change the storage to be passed in when it becomes non-static
-                            TestOperationResultStorage.GetStoreFromSource(reportMetadata.ExpectedSource),
-                            reportMetadata.ActualSource,
-                            TestOperationResultStorage.GetStoreFromSource(reportMetadata.ActualSource),
-                            reportMetadata.TestOperationResultType.ToString(),
-                            new SimpleTestOperationResultComparer());
+                    return new CountingReportGenerator(
+                        trackingId,
+                        reportMetadata.ExpectedSource,
+                        this.storage.GetStoreFromSource(reportMetadata.ExpectedSource),
+                        reportMetadata.ActualSource,
+                        this.storage.GetStoreFromSource(reportMetadata.ActualSource),
+                        reportMetadata.TestOperationResultType.ToString(),
+                        new SimpleTestOperationResultComparer());
                 }
 
                 default:
                 {
-                        throw new NotSupportedException($"Report type {reportMetadata.TestReportType} is not supported.");
+                    throw new NotSupportedException($"Report type {reportMetadata.TestReportType} is not supported.");
                 }
             }
         }
