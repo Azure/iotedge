@@ -53,7 +53,6 @@ namespace DirectMethodSender
                     await Task.Delay(Settings.Current.DirectMethodDelay, cts.Token);
                 }
 
-                await directMethodClient.CloseAsync();
                 await cts.Token.WhenCanceled();
             }
             catch (Exception e)
@@ -62,6 +61,7 @@ namespace DirectMethodSender
             }
             finally
             {
+                // Implicit CloseAsync()
                 directMethodClient?.Dispose();
                 reportClient?.Dispose();
             }

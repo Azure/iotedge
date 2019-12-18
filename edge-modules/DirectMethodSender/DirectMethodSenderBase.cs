@@ -25,8 +25,6 @@ namespace DirectMethodSender
             this.targetModuleId = Preconditions.CheckNonWhiteSpace(targetModuleId, nameof(targetModuleId));
         }
 
-        public abstract Task CloseAsync();
-
         public abstract void Dispose();
 
         public async Task<HttpStatusCode> InvokeDirectMethodAsync(CancellationTokenSource cts)
