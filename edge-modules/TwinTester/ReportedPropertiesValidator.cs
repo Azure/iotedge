@@ -119,7 +119,7 @@ namespace TwinTester
                 }
 
                 propertiesToRemoveFromTwin[reportedPropertyUpdate.Key] = null; // will later be serialized as a twin update
-                await this.CallAnalyzerToReportStatusAsync(Settings.Current.ModuleId, status);
+                await this.HandleReportStatusAsync(Settings.Current.ModuleId, status);
             }
 
             return propertiesToRemoveFromTwin;
@@ -131,7 +131,7 @@ namespace TwinTester
             return DateTime.UtcNow - comparisonPoint > Settings.Current.TwinUpdateFailureThreshold;
         }
 
-        async Task CallAnalyzerToReportStatusAsync(string moduleId, string status)
+        async Task HandleReportStatusAsync(string moduleId, string status)
         {
             await this.reporter.HandleTwinValidationStatusAsync(status);
         }
