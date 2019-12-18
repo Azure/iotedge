@@ -22,17 +22,20 @@ namespace TwinTester
 
             try
             {
+                await Task.Delay(Settings.Current.TestStartDelay);
+
                 RegistryManager registryManager = RegistryManager.CreateFromConnectionString(Settings.Current.ServiceClientConnectionString);
 
-                using (ITwinTestInitializer twinOperator = await GetTwinOperatorAsync(registryManager, Settings.Current.AnalyzerUrl))
+                using (ITwinTestInitializer twinOperator = await GetTwinOperatorAsync(registryManager))
                 {
                     await twinOperator.Start();
-
-                    await cts.Token.WhenCanceled();
-                    completed.Set();
-                    handler.ForEach(h => GC.KeepAlive(h));
-                    Logger.LogInformation("TwinTester exiting.");
+                    await Task.Delay(Settings.Current.TestDuration, cts.Token);
                 }
+
+                await cts.Token.WhenCanceled();
+                completed.Set();
+                handler.ForEach(h => GC.KeepAlive(h));
+                Logger.LogInformation("TwinTester exiting.");
             }
             catch (Exception ex)
             {
@@ -40,21 +43,21 @@ namespace TwinTester
             }
         }
 
-        static async Task<ITwinTestInitializer> GetTwinOperatorAsync(RegistryManager registryManager, Uri analyzerClientUri)
+        static async Task<ITwinTestInitializer> GetTwinOperatorAsync(RegistryManager registryManager)
         {
-            switch (Settings.Current.TestMode)
+            switch (Settings.Current.TwinTestMode)
             {
-                case TestMode.TwinCloudOperations:
-                    return await TwinCloudOperationsInitializer.CreateAsync(registryManager, new TwinEdgeOperationsResultHandler(analyzerClientUri, Settings.Current.ModuleId));
-                case TestMode.TwinEdgeOperations:
+                case TwinTestMode.TwinCloudOperations:
+                    return await TwinCloudOperationsInitializer.CreateAsync(registryManager, new TwinEdgeOperationsResultHandler(Settings.Current.ReporterUrl, Settings.Current.ModuleId, Settings.Current.TrackingId));
+                case TwinTestMode.TwinEdgeOperations:
                     ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
                         Settings.Current.TransportType,
                         ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                         ModuleUtil.DefaultTransientRetryStrategy,
                         Logger);
-                    return await TwinEdgeOperationsInitializer.CreateAsync(registryManager, moduleClient, new TwinEdgeOperationsResultHandler(analyzerClientUri, Settings.Current.ModuleId));
+                    return await TwinEdgeOperationsInitializer.CreateAsync(registryManager, moduleClient, new TwinEdgeOperationsResultHandler(Settings.Current.ReporterUrl, Settings.Current.ModuleId, Settings.Current.TrackingId));
                 default:
-                    return await GetTwinAllOperationsInitializer(registryManager, analyzerClientUri);
+                    return await GetTwinAllOperationsInitializer(registryManager, Settings.Current.ReporterUrl);
             }
         }
 

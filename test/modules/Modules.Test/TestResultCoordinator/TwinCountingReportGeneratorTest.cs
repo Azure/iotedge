@@ -11,58 +11,30 @@ namespace Modules.Test.TestResultCoordinator
     using Moq;
     using Xunit;
 
-    public class CountingReportGeneratorTest
+    public class TwinCountingReportGeneratorTest
     {
         public static IEnumerable<object[]> GetCreateReportData =>
             new List<object[]>
             {
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), Enumerable.Range(1, 7).Select(v => v.ToString()), 10, 7, 7, 0, 0 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "2", "3", "4", "5", "6" }, 10, 7, 6, 0, 1 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "2", "3", "4", "5", "6", "7" }, 10, 7, 6, 0, 1 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "5", "6", "7" }, 10, 7, 6, 0, 1 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "6", "7" }, 10, 7, 5, 0, 2 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "5", "6" }, 10, 7, 5, 0, 2 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "2", "3", "4", "5", "7" }, 10, 7, 5, 0, 2 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "2", "2", "3", "4", "4", "5", "6" }, 10, 7, 6, 2, 1 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "2", "2", "2", "3", "4", "4", "5", "6" }, 10, 7, 6, 3, 1 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "1", "2", "3", "4", "5", "6", "6" }, 10, 7, 6, 2, 1 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "2", "3", "4", "5", "6" }, 4, 7, 6, 0, 1 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "2", "3", "4", "5", "6", "7" }, 4, 7, 6, 0, 1 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "5", "6", "7" }, 4, 7, 6, 0, 1 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "6", "7" }, 4, 7, 5, 0, 2 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "5", "6" }, 4, 7, 5, 0, 2 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "2", "3", "4", "5", "7" }, 4, 7, 5, 0, 2 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), Enumerable.Range(1, 7).Select(v => v.ToString()), 10, 7, 7, 7, 0 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "2", "3", "4", "5", "6" }, 10, 7, 6, 6, 1 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "2", "3", "4", "5", "6", "7" }, 10, 7, 6, 6, 1 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "5", "6", "7" }, 10, 7, 6, 6, 1 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "6", "7" }, 10, 7, 5, 5, 2 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "5", "6" }, 10, 7, 5, 5, 2 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "2", "3", "4", "5", "7" }, 10, 7, 5, 5, 2 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1;2;3", "4", "5", "6" }, 10, 7, 6, 4, 1 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "2;3", "4", "5", "6" }, 10, 7, 6, 5, 1 },
+                new object[] { new[] { "1;2;3;4;5", "6" }, new[] { "1", "2", "3", "4", "5", "6" }, 10, 6, 6, 6, 0 },
+                new object[] { new[] { "1;2;3;4;5", "6" }, new[] { "1", "2", "3;4;5", "6" }, 10, 6, 6, 4, 0 },
+                new object[] { new[] { "1;2;3;4;5", "6" }, new[] { "1", "2", "5;4", "6" }, 10, 6, 5, 4, 1 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "2", "3", "4", "5", "6" }, 4, 7, 6, 6, 1 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "2", "3", "4", "5", "6", "7" }, 4, 7, 6, 6, 1 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "5", "6", "7" }, 4, 7, 6, 6, 1 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "6", "7" }, 4, 7, 5, 5, 2 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "5", "6" }, 4, 7, 5, 5, 2 },
+                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "2", "3", "4", "5", "7" }, 4, 7, 5, 5, 2 },
             };
-
-        [Fact]
-        public void TestConstructorSuccess()
-        {
-            string expectedSource = "expectedSource";
-            string actualSource = "actualSource";
-            int batchSize = 10;
-            string resultType = "resultType1";
-
-            var mockExpectedStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var expectedResults = new StoreTestResultCollection<TestOperationResult>(mockExpectedStore.Object, batchSize);
-            var mockActualStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var actualResults = new StoreTestResultCollection<TestOperationResult>(mockActualStore.Object, batchSize);
-
-            var reportGenerator = new CountingReportGenerator(
-                Guid.NewGuid().ToString(),
-                expectedSource,
-                expectedResults,
-                actualSource,
-                actualResults,
-                resultType,
-                new SimpleTestOperationResultComparer());
-
-            Assert.Equal(actualSource, reportGenerator.ActualSource);
-            Assert.Equal(actualResults, reportGenerator.ActualTestResults);
-            Assert.Equal(expectedSource, reportGenerator.ExpectedSource);
-            Assert.Equal(expectedResults, reportGenerator.ExpectedTestResults);
-            Assert.Equal(resultType, reportGenerator.ResultType);
-            Assert.Equal(typeof(SimpleTestOperationResultComparer), reportGenerator.TestResultComparer.GetType());
-        }
 
         [Theory]
         [InlineData(null)]
@@ -73,7 +45,7 @@ namespace Modules.Test.TestResultCoordinator
             var mockActualStore = new Mock<ITestResultCollection<TestOperationResult>>();
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
-                () => new CountingReportGenerator(
+                () => new TwinCountingReportGenerator(
                     trackingId,
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -94,7 +66,7 @@ namespace Modules.Test.TestResultCoordinator
             var mockActualStore = new Mock<ITestResultCollection<TestOperationResult>>();
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
-                () => new CountingReportGenerator(
+                () => new TwinCountingReportGenerator(
                     Guid.NewGuid().ToString(),
                     expectedSource,
                     mockExpectedResults.Object,
@@ -112,7 +84,7 @@ namespace Modules.Test.TestResultCoordinator
             var mockActualStore = new Mock<ITestResultCollection<TestOperationResult>>();
 
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
-                () => new CountingReportGenerator(
+                () => new TwinCountingReportGenerator(
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     null,
@@ -133,7 +105,7 @@ namespace Modules.Test.TestResultCoordinator
             var mockActualStore = new Mock<ITestResultCollection<TestOperationResult>>();
 
             ArgumentException ex = Assert.Throws<ArgumentException>(
-                () => new CountingReportGenerator(
+                () => new TwinCountingReportGenerator(
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -151,7 +123,7 @@ namespace Modules.Test.TestResultCoordinator
             var mockExpectedResults = new Mock<ITestResultCollection<TestOperationResult>>();
 
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
-                () => new CountingReportGenerator(
+                () => new TwinCountingReportGenerator(
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -191,7 +163,7 @@ namespace Modules.Test.TestResultCoordinator
             var mockActualStore = new Mock<ITestResultCollection<TestOperationResult>>();
 
             ArgumentNullException ex = Assert.Throws<ArgumentNullException>(
-                () => new CountingReportGenerator(
+                () => new TwinCountingReportGenerator(
                     Guid.NewGuid().ToString(),
                     "expectedSource",
                     mockExpectedResults.Object,
@@ -240,19 +212,19 @@ namespace Modules.Test.TestResultCoordinator
             int batchSize,
             ulong expectedTotalExpectedCount,
             ulong expectedTotalMatchCount,
-            ulong expectedTotalDuplicateResultCount,
+            ulong expectedTotalPatches,
             int expectedMissingResultsCount)
         {
             string expectedSource = "expectedSource";
             string actualSource = "actualSource";
-            string resultType = Microsoft.Azure.Devices.Edge.ModuleUtil.TestOperationResultType.Twin.ToString();
+            string resultType = "resultType1";
 
             var mockExpectedStore = new Mock<ISequentialStore<TestOperationResult>>();
             var expectedResults = new StoreTestResultCollection<TestOperationResult>(mockExpectedStore.Object, batchSize);
             var mockActualStore = new Mock<ISequentialStore<TestOperationResult>>();
             var actualResults = new StoreTestResultCollection<TestOperationResult>(mockActualStore.Object, batchSize);
 
-            var reportGenerator = new CountingReportGenerator(
+            var reportGenerator = new TwinCountingReportGenerator(
                 Guid.NewGuid().ToString(),
                 expectedSource,
                 expectedResults,
@@ -275,11 +247,11 @@ namespace Modules.Test.TestResultCoordinator
                 mockActualStore.Setup(s => s.GetBatch(startingOffset, batchSize)).ReturnsAsync(actualStoreData.Skip(startingOffset).Take(batchSize));
             }
 
-            var report = (CountingReport<TestOperationResult>)await reportGenerator.CreateReportAsync();
+            var report = (TwinCountingReport<TestOperationResult>)await reportGenerator.CreateReportAsync();
 
             Assert.Equal(expectedTotalExpectedCount, report.TotalExpectCount);
             Assert.Equal(expectedTotalMatchCount, report.TotalMatchCount);
-            Assert.Equal(expectedTotalDuplicateResultCount, report.TotalDuplicateResultCount);
+            Assert.Equal(expectedTotalPatches, report.TotalPatches);
             Assert.Equal(expectedMissingResultsCount, report.UnmatchedResults.Count);
         }
 
@@ -290,7 +262,15 @@ namespace Modules.Test.TestResultCoordinator
 
             foreach (string value in resultValues)
             {
-                storeData.Add((count, new TestOperationResult(source, resultType, value, DateTime.UtcNow)));
+                var tc = new Microsoft.Azure.Devices.Shared.TwinCollection();
+                var values = value.Split(";");
+                foreach (var item in values)
+                {
+                    tc[item] = "1";
+                }
+
+                var twinTestResult = new Microsoft.Azure.Devices.Edge.ModuleUtil.TwinTestResult() { Properties = tc };
+                storeData.Add((count, new TestOperationResult(source, resultType, twinTestResult.ToString(), DateTime.UtcNow)));
                 count++;
             }
 

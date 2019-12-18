@@ -1,13 +1,12 @@
 {
-  "jitterFactor": 0.5,
-  "twinUpdateSize": 1,
-  "twinUpdateFrequency": "00:00:10",
-  "twinUpdateFailureThreshold": "00:01:00",
-  "transportType": "amqp",
-  "analyzerURL": "http://analyzer:15000",
-  "serviceClientConnectionString": "",
-  "StoragePath": "",
-  "StorageOptimizeForPerformance": true,
-  "TestMode": "TwinAllOperations",
-  "TargetModuleId": ""
+    "jitterFactor": 0.5,
+    "twinUpdateSize": 1,
+    "twinUpdateFrequency": "00:00:10",
+    "twinUpdateFailureThreshold": "00:01:00",
+    "transportType": "amqp",
+    "analyzerURL": "http://analyzer:15000",
+    "serviceClientConnectionString": "",
+    "StoragePath": "",
+    "StorageOptimizeForPerformance": true,
+    "TwinTestMode": "TwinAllOperations"
 }
