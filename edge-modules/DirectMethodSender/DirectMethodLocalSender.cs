@@ -9,7 +9,7 @@ namespace DirectMethodSender
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
 
-    public class DirectMethodLocalSender : DirectMethodSenderClient
+    public class DirectMethodLocalSender : DirectMethodSenderBase
     {
         ModuleClient moduleClient;
 
@@ -47,7 +47,5 @@ namespace DirectMethodSender
             MethodResponse result = await this.moduleClient.InvokeMethodAsync(deviceId, targetModuleId, request);
             return result.Status;
         }
-
-        public override Task OpenAsync() => this.moduleClient.OpenAsync();
     }
 }
