@@ -38,6 +38,7 @@ namespace DirectMethodSender
                 {
                     HttpStatusCode result = await directMethodClient.InvokeDirectMethodAsync(cts);
 
+                    // TODO: Create an abstract class to handle the reporting client generation
                     await analyzerUrl.ForEachAsync(
                         async (Uri uri) =>
                         {
@@ -52,7 +53,6 @@ namespace DirectMethodSender
                     await Task.Delay(Settings.Current.DirectMethodDelay, cts.Token);
                 }
 
-                await directMethodClient.CleanUpAsync();
                 await cts.Token.WhenCanceled();
             }
             catch (Exception e)
@@ -61,9 +61,8 @@ namespace DirectMethodSender
             }
             finally
             {
-                await directMethodClient?.CleanUpAsync();
-
-                await reportClient?.CloseAsync();
+                // Implicit CloseAsync()
+                directMethodClient?.Dispose();
                 reportClient?.Dispose();
             }
 

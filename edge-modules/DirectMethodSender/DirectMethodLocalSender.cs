@@ -11,7 +11,7 @@ namespace DirectMethodSender
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
 
-    public sealed class DirectMethodLocalSender : DirectMethodSenderBase, IDisposable
+    public sealed class DirectMethodLocalSender : DirectMethodSenderBase
     {
         ModuleClient moduleClient;
 
@@ -26,13 +26,7 @@ namespace DirectMethodSender
             this.moduleClient = Preconditions.CheckNotNull(moduleClient, nameof(moduleClient));
         }
 
-        public override async Task CleanUpAsync()
-        {
-            await this.moduleClient.CloseAsync();
-            this.Dispose();
-        }
-
-        public void Dispose() => this.moduleClient.Dispose();
+        public override void Dispose() => this.moduleClient.Dispose();
 
         public static async Task<DirectMethodLocalSender> CreateAsync(
             TransportType transportType,

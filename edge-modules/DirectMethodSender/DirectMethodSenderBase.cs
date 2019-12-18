@@ -8,7 +8,7 @@ namespace DirectMethodSender
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public abstract class DirectMethodSenderBase
+    public abstract class DirectMethodSenderBase : IDisposable
     {
         readonly ILogger logger;
         readonly string deviceId;
@@ -25,7 +25,7 @@ namespace DirectMethodSender
             this.targetModuleId = Preconditions.CheckNonWhiteSpace(targetModuleId, nameof(targetModuleId));
         }
 
-        public abstract Task CleanUpAsync();
+        public abstract void Dispose();
 
         public async Task<HttpStatusCode> InvokeDirectMethodAsync(CancellationTokenSource cts)
         {

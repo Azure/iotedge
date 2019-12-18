@@ -1,21 +1,16 @@
 // Copyright (c) Microsoft. All rights reserved.
 
-namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
+namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Reflection;
-    using System.Threading;
-    using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
-    using Microsoft.Extensions.Logging.Abstractions;
-    using Moq;
+    using System.Text;
+    using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util;
     using Newtonsoft.Json;
     using Xunit;
 
-    public class PrometheousParserTest
+    public class PrometheousMetricsParserTest
     {
         [Fact]
         public void TestParsesBasicMetrics()

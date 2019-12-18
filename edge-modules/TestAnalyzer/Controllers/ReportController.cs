@@ -38,10 +38,18 @@ namespace TestAnalyzer.Controllers
                 await this.PublishToLogAnalyticsAsync(deviceAnalysis);
             }
 
-            return new ContentResult { Content = JsonConvert.SerializeObject(deviceAnalysis.MessagesReport, Formatting.Indented) }; // explicit serialization needed due to the wrapping list
+            return new ContentResult
+            {
+                Content = this.AddManualRunReportingHeading(JsonConvert.SerializeObject(deviceAnalysis.MessagesReport, Formatting.Indented)) // explicit serialization needed due to the wrapping list
+            };
         }
 
-        private async Task PublishToLogAnalyticsAsync(TestResultAnalysis deviceAnalysis)
+        string AddManualRunReportingHeading(string reportContent)
+        {
+            return $"Run manually at {DateTime.UtcNow}{Environment.NewLine}Report result is not complete as testing is still running.{Environment.NewLine}{reportContent}";
+        }
+
+        async Task PublishToLogAnalyticsAsync(TestResultAnalysis deviceAnalysis)
         {
             string messagesJson = JsonConvert.SerializeObject(deviceAnalysis.MessagesReport, Formatting.Indented);
             string twinsJson = JsonConvert.SerializeObject(deviceAnalysis.TwinsReport, Formatting.Indented);
@@ -74,7 +82,7 @@ namespace TestAnalyzer.Controllers
             }
             catch (Exception e)
             {
-                Logger.LogError($"Failed uploading reports to log analytics:",  e);
+                Logger.LogError($"Failed uploading reports to log analytics:", e);
             }
         }
     }
