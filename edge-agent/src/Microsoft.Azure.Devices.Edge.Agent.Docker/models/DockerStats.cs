@@ -4,10 +4,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
 {
     using System;
     using System.Collections.Generic;
-    using System.ComponentModel;
     using Newtonsoft.Json;
 
-    // TODO: update defaults
     public class DockerStats
     {
         [JsonProperty("name", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
@@ -22,7 +20,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
         [JsonProperty("memory_stats", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public MemoryStats MemoryStats { get; set; }
 
-        [DefaultValue("{}")]
         [JsonProperty("networks", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         public Dictionary<string, NetworkInfo> Networks { get; set; }
 
