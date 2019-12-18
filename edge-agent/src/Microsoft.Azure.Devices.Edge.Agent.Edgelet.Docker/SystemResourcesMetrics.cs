@@ -162,6 +162,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
                 this.totalMemory.Set(module.MemoryStats.Limit, tags);
                 this.usedMemory.Set((long)module.MemoryStats.Usage, tags);
                 this.createdPids.Set(module.PidsStats.Current, tags);
+
                 this.networkIn.Set(module.Networks.Sum(n => n.Value.RxBytes), tags);
                 this.networkOut.Set(module.Networks.Sum(n => n.Value.TxBytes), tags);
                 this.diskRead.Set(module.BlockIoStats.Sum(io => io.Value.Where(d => d.Op == "Read").Sum(d => d.Value)), tags);
