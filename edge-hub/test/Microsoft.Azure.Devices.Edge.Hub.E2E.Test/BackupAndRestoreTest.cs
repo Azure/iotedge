@@ -181,6 +181,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 // Send more messages after the receiver is registered.
                 Task<int> task2 = sender.SendMessagesByCountAsync("output1", beforeBackupMessageCount, afterBackupMessageCount, TimeSpan.FromMinutes(2));
                 sentMessagesCount = await task2;
+                Assert.Equal(afterBackupMessageCount, sentMessagesCount);
 
                 waitTime = waitTimeComputer(expectedMessageCountAfterRestore);
                 Console.WriteLine($"Waiting {waitTime.TotalSeconds} seconds before validating receipt of messages.");
@@ -189,7 +190,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 await Task.Delay(waitTime);
                 ISet<int> receivedMessages = receiver.GetReceivedMessageIndices();
 
-                Assert.Equal(afterBackupMessageCount, sentMessagesCount);
                 Assert.Equal(expectedMessageCountAfterRestore, receivedMessages.Count);
             }
             finally
