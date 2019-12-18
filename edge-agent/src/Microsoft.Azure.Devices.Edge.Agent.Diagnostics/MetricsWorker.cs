@@ -35,9 +35,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             this.storage = Preconditions.CheckNotNull(storage, nameof(storage));
             this.uploader = Preconditions.CheckNotNull(uploader, nameof(uploader));
 
-            this.metricFilter = new MetricFilter(
-                tagsWhitelist: new Dictionary<string, string> { { MetricsConstants.MsTelemetry, true.ToString() } },
-                tagsToRemove: new List<string> { MetricsConstants.MsTelemetry, MetricsConstants.IotHubLabel, MetricsConstants.DeviceIdLabel });
+            this.metricFilter = new MetricFilter();
+            this.metricFilter.AddToWhitelist(new KeyValuePair<string, string>(MetricsConstants.MsTelemetry, true.ToString()));
+            this.metricFilter.AddTagsToRemove(MetricsConstants.MsTelemetry, MetricsConstants.IotHubLabel, MetricsConstants.DeviceIdLabel);
         }
 
         public void Start(TimeSpan scrapingInterval, TimeSpan uploadInterval)

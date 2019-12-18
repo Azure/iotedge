@@ -97,9 +97,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                     availability.NoPoint();
                 }
 
-                bool msTelemetry = availability.Name == Constants.EdgeHubModuleName;
-                this.running.Set(availability.RunningTime.TotalSeconds, new[] { availability.Name, msTelemetry.ToString() });
-                this.expectedRunning.Set(availability.ExpectedTime.TotalSeconds, new[] { availability.Name, msTelemetry.ToString() });
+                string[] tags = new string[] { availability.Name, (availability.Name == Constants.EdgeHubModuleName).ToString() };
+                this.running.Set(availability.RunningTime.TotalSeconds, tags);
+                this.expectedRunning.Set(availability.ExpectedTime.TotalSeconds, tags);
             }
 
             /* Add new modules to track */

@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
     using System.Collections.Generic;
     using System.Linq;
     using System.Text;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
     /// <summary>
@@ -15,18 +16,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
     /// </summary>
     public class MetricFilter
     {
-        readonly Dictionary<string, string> tagsWhitelist;
-        readonly Dictionary<string, string> tagsBlacklist;
-        readonly Dictionary<string, string> tagsToAdd;
-        readonly List<string> tagsToRemove;
-
-        public MetricFilter(Dictionary<string, string> tagsWhitelist = null, Dictionary<string, string> tagsBlacklist = null, Dictionary<string, string> tagsToAdd = null, List<string> tagsToRemove = null)
-        {
-            this.tagsWhitelist = tagsWhitelist;
-            this.tagsBlacklist = tagsBlacklist;
-            this.tagsToAdd = tagsToAdd;
-            this.tagsToRemove = tagsToRemove;
-        }
+        Option<List<KeyValuePair<string, string>>> tagsWhitelist = Option.None<List<KeyValuePair<string, string>>>();
+        Option<List<KeyValuePair<string, string>>> tagsBlacklist = Option.None<List<KeyValuePair<string, string>>>();
+        Option<List<KeyValuePair<string, string>>> tagsToAdd = Option.None<List<KeyValuePair<string, string>>>();
+        Option<List<string>> tagsToRemove = Option.None<List<string>>();
 
         public IEnumerable<Metric> FilterMetrics(IEnumerable<Metric> metrics)
         {
@@ -35,16 +28,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                 Dictionary<string, string> tags = JsonConvert.DeserializeObject<Dictionary<string, string>>(metric.Tags);
 
                 // Skip if the blacklist has any or the whitelist does not contain it.
-                if ((this.tagsBlacklist != null && this.tagsBlacklist.Any(tags.Contains)) || (this.tagsWhitelist != null && !this.tagsWhitelist.Any(tags.Contains)))
+                if (this.tagsBlacklist.Exists(bl => bl.Any(tags.Contains)) || this.tagsWhitelist.Exists(wl => !wl.Any(tags.Contains)))
                 {
                     continue;
                 }
 
                 // Add or remove tags if needed.
-                if ((this.tagsToAdd != null && this.tagsToAdd.Any()) || (this.tagsToRemove != null && this.tagsToRemove.Any()))
+                if (this.tagsToAdd.HasValue || this.tagsToRemove.HasValue)
                 {
-                    this.tagsToAdd?.ToList().ForEach(toAdd => tags.Add(toAdd.Key, toAdd.Value));
-                    this.tagsToRemove?.ForEach(toRemove => tags.Remove(toRemove));
+                    this.tagsToAdd.ForEach(tta => tta.ForEach(toAdd => tags.Add(toAdd.Key, toAdd.Value)));
+                    this.tagsToRemove.ForEach(ttr => ttr.ForEach(toRemove => tags.Remove(toRemove)));
 
                     string newTags = JsonConvert.SerializeObject(tags);
                     yield return new Metric(metric.TimeGeneratedUtc, metric.Name, metric.Value, newTags);
@@ -53,6 +46,54 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                 {
                     yield return metric;
                 }
+            }
+        }
+
+        public void AddToWhitelist(params KeyValuePair<string, string>[] pairs)
+        {
+            if (this.tagsWhitelist.HasValue)
+            {
+                this.tagsWhitelist.ForEach(wl => wl.AddRange(pairs));
+            }
+            else
+            {
+                this.tagsWhitelist = Option.Some(new List<KeyValuePair<string, string>>(pairs));
+            }
+        }
+
+        public void AddToBlacklist(params KeyValuePair<string, string>[] pairs)
+        {
+            if (this.tagsBlacklist.HasValue)
+            {
+                this.tagsBlacklist.ForEach(wl => wl.AddRange(pairs));
+            }
+            else
+            {
+                this.tagsBlacklist = Option.Some(new List<KeyValuePair<string, string>>(pairs));
+            }
+        }
+
+        public void AddTagsToAdd(params KeyValuePair<string, string>[] pairs)
+        {
+            if (this.tagsToAdd.HasValue)
+            {
+                this.tagsToAdd.ForEach(wl => wl.AddRange(pairs));
+            }
+            else
+            {
+                this.tagsToAdd = Option.Some(new List<KeyValuePair<string, string>>(pairs));
+            }
+        }
+
+        public void AddTagsToRemove(params string[] keys)
+        {
+            if (this.tagsToRemove.HasValue)
+            {
+                this.tagsToRemove.ForEach(wl => wl.AddRange(keys));
+            }
+            else
+            {
+                this.tagsToRemove = Option.Some(new List<string>(keys));
             }
         }
     }
