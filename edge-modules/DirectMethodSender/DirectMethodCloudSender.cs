@@ -4,6 +4,7 @@ namespace DirectMethodSender
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using TransportType = Microsoft.Azure.Devices.TransportType;
 
@@ -16,6 +17,7 @@ namespace DirectMethodSender
             ILogger logger)
             : base(logger)
         {
+            this.serviceClient = Preconditions.CheckNotNull(serviceClient, nameof(serviceClient));
             this.serviceClient = serviceClient;
         }
 
