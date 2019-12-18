@@ -82,13 +82,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return await this.RegistryManager.AddDeviceAsync(device, token);
         }
 
-        public Task<Device> CreateEdgeDeviceIdentityAsync(string deviceId, CancellationToken token)
+        public Task<Device> CreateEdgeDeviceIdentityAsync(string deviceId, AuthenticationType authType, X509Thumbprint x509Thumbprint, CancellationToken token)
         {
             Device edge = new Device(deviceId)
             {
                 Authentication = new AuthenticationMechanism()
                 {
-                    Type = AuthenticationType.Sas
+                    Type = authType,
+                    X509Thumbprint = x509Thumbprint
                 },
                 Capabilities = new DeviceCapabilities()
                 {
