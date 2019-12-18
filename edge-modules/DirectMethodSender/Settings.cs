@@ -27,7 +27,7 @@ namespace DirectMethodSender
                     configuration.GetValue<TransportType>("TransportType", TransportType.Amqp_Tcp_Only),
                     configuration.GetValue<TimeSpan>("DirectMethodDelay", TimeSpan.FromSeconds(5)),
                     Option.Maybe(configuration.GetValue<Uri>("AnalyzerUrl")),
-                    configuration.GetValue("InvocationSource", "Local"),
+                    configuration.GetValue<InvocationSource>("InvocationSource", InvocationSource.Local),
                     Option.Maybe<string>(configuration.GetValue<string>("ServiceClientConnectionString")));
             });
 
@@ -37,7 +37,7 @@ namespace DirectMethodSender
             TransportType transportType,
             TimeSpan directMethodDelay,
             Option<Uri> analyzerUrl,
-            string invocationSource,
+            InvocationSource invocationSource,
             Option<string> serviceClientConnectionString)
         {
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
@@ -47,17 +47,8 @@ namespace DirectMethodSender
             this.DirectMethodDelay = directMethodDelay;
             this.AnalyzerUrl = analyzerUrl;
             this.ServiceClientConnectionString = serviceClientConnectionString;
+            this.InvocationSource = invocationSource;
 
-            object parsedInvocationSource;
-            Preconditions.CheckNonWhiteSpace(invocationSource, nameof(invocationSource));
-            if (Enum.TryParse(typeof(InvocationSource), invocationSource, true, out parsedInvocationSource))
-            {
-                this.InvocationSource = (InvocationSource)parsedInvocationSource;
-            }
-            else
-            {
-                throw new ArgumentException("Invalid InvocationSource type");
-            }
         }
 
         public static Settings Current => DefaultSettings.Value;

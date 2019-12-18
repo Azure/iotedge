@@ -17,6 +17,7 @@ namespace TestResultCoordinator.Controllers
     public class TestOperationResultController : Controller
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TestOperationResultController));
+
         readonly ITestOperationResultStorage storage;
 
         public TestOperationResultController(ITestOperationResultStorage storage)

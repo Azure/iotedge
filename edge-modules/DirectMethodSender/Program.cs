@@ -23,12 +23,13 @@ namespace DirectMethodSender
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
             DirectMethodSenderBase directMethodClient = null;
+            ModuleClient reportClient = null;
             try
             {
                 directMethodClient = await CreateClientAsync(Settings.Current.InvocationSource);
 
                 Option<Uri> analyzerUrl = Settings.Current.AnalyzerUrl;
-                ModuleClient reportClient = await ModuleUtil.CreateModuleClientAsync(
+                reportClient = await ModuleUtil.CreateModuleClientAsync(
                     Settings.Current.TransportType,
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                     ModuleUtil.DefaultTransientRetryStrategy,
@@ -61,6 +62,7 @@ namespace DirectMethodSender
             finally
             {
                 await directMethodClient?.CleanUpAsync();
+                reportClient?.Dispose();
             }
 
             completed.Set();
