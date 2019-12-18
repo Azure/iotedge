@@ -15,7 +15,10 @@ namespace DirectMethodSender
         DirectMethodCloudSender(
             ServiceClient serviceClient,
             ILogger logger)
-            : base(logger)
+            : base(
+                logger,
+                Settings.Current.DeviceId,
+                Settings.Current.TargetModuleId)
         {
             this.serviceClient = Preconditions.CheckNotNull(serviceClient, nameof(serviceClient));
             this.serviceClient = serviceClient;

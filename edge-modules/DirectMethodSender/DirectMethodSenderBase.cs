@@ -10,11 +10,18 @@ namespace DirectMethodSender
     public abstract class DirectMethodSenderBase
     {
         readonly ILogger logger;
+        readonly string deviceId;
+        readonly string targetModuleId;
         long directMethodCount = 1;
 
-        protected DirectMethodSenderBase(ILogger logger)
+        protected DirectMethodSenderBase(
+            ILogger logger,
+            string deviceId,
+            string targetModuleId)
         {
             this.logger = logger;
+            this.deviceId = deviceId;
+            this.targetModuleId = targetModuleId;
         }
 
         public abstract Task CloseAsync();
@@ -23,15 +30,11 @@ namespace DirectMethodSender
         {
             ILogger logger = this.logger;
             logger.LogInformation("Invoke DirectMethod: started.");
-
-            string deviceId = Settings.Current.DeviceId;
-            string targetModuleId = Settings.Current.TargetModuleId;
-
-            logger.LogInformation($"Calling Direct Method on device {deviceId} targeting module [{targetModuleId}] with count {this.directMethodCount}.");
+            logger.LogInformation($"Calling Direct Method on device {this.deviceId} targeting module [{this.targetModuleId}] with count {this.directMethodCount}.");
 
             try
             {
-                int resultStatus = await this.InvokeDeviceMethodAsync(deviceId, targetModuleId, CancellationToken.None);
+                int resultStatus = await this.InvokeDeviceMethodAsync(this.deviceId, this.targetModuleId, CancellationToken.None);
 
                 string statusMessage = $"Calling Direct Method with count {this.directMethodCount} returned with status code {resultStatus}";
                 if (resultStatus == (int)HttpStatusCode.OK)
@@ -43,13 +46,13 @@ namespace DirectMethodSender
                     logger.LogError(statusMessage);
                 }
 
+                logger.LogInformation($"Invoke DirectMethod with count {this.directMethodCount}: finished.");
                 this.directMethodCount++;
-                logger.LogInformation("Invoke DirectMethod: finished.");
                 return (HttpStatusCode)resultStatus;
             }
             catch (Exception e)
             {
-                logger.LogError($"Exception caught with count {this.directMethodCount}: {e}");
+                logger.LogError(e, $"Exception caught with count {this.directMethodCount}");
                 return HttpStatusCode.InternalServerError;
             }
         }
