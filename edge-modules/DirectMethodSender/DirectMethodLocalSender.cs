@@ -17,7 +17,10 @@ namespace DirectMethodSender
         private DirectMethodLocalSender(
             ModuleClient moduleClient,
             ILogger logger)
-            : base(logger)
+            : base(
+                logger,
+                Settings.Current.DeviceId,
+                Settings.Current.TargetModuleId)
         {
             this.moduleClient = Preconditions.CheckNotNull(moduleClient, nameof(moduleClient));
             this.moduleClient = moduleClient;
