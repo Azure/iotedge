@@ -94,6 +94,7 @@ namespace DirectMethodSender
                 default:
                     throw new NotImplementedException("Invalid InvocationSource type");
             }
+
             return directMethodClient;
         }
 
