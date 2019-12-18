@@ -7,12 +7,12 @@ namespace DirectMethodSender
     using System.Threading.Tasks;
     using Microsoft.Extensions.Logging;
 
-    public abstract class DirectMethodSenderClient
+    public abstract class DirectMethodSenderBase
     {
         readonly ILogger logger;
         long directMethodCount = 1;
 
-        protected DirectMethodSenderClient(ILogger logger)
+        protected DirectMethodSenderBase(ILogger logger)
         {
             this.logger = logger;
         }
@@ -53,8 +53,6 @@ namespace DirectMethodSender
                 return HttpStatusCode.InternalServerError;
             }
         }
-
-        public abstract Task OpenAsync();
 
         internal abstract Task<int> InvokeDeviceMethodAsync(string deviceId, string targetModuleId, CancellationToken none);
     }
