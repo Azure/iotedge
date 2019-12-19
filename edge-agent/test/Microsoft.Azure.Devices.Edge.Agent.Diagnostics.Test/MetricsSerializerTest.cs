@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             Metric[] reconstructedValues = MetricsSerializer.BytesToMetrics(data).ToArray();
 
             Assert.Single(reconstructedValues);
-            Assert.Equal(testMetric, reconstructedValues[0]);
+            Assert.Equal(testMetric, reconstructedValues.Single());
         }
 
         [Fact]
@@ -35,9 +35,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             byte[] data = MetricsSerializer.MetricsToBytes(testMetrics).ToArray();
             Metric[] reconstructedValues = MetricsSerializer.BytesToMetrics(data).ToArray();
 
-            var expected = testMetrics.OrderBy(m => m.Name).ThenBy(m => m.Tags).ThenBy(m => m.TimeGeneratedUtc);
-            var actual = reconstructedValues.OrderBy(m => m.Name).ThenBy(m => m.Tags).ThenBy(m => m.TimeGeneratedUtc);
-            Assert.Equal(expected, actual);
+            TestUtilities.OrderlessCompare(testMetrics, reconstructedValues);
         }
 
         [Fact]
@@ -48,9 +46,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             byte[] data = MetricsSerializer.MetricsToBytes(testMetrics).ToArray();
             Metric[] reconstructedValues = MetricsSerializer.BytesToMetrics(data).ToArray();
 
-            var expected = testMetrics.OrderBy(m => m.Name).ThenBy(m => m.Tags).ThenBy(m => m.TimeGeneratedUtc).ToArray();
-            var actual = reconstructedValues.OrderBy(m => m.Name).ThenBy(m => m.Tags).ThenBy(m => m.TimeGeneratedUtc).ToArray();
-            Assert.Equal(expected, actual);
+            TestUtilities.OrderlessCompare(testMetrics, reconstructedValues);
         }
 
         [Fact]

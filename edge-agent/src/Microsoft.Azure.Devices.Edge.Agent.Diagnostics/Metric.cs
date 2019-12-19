@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
         {
             if (this.metricKey == null)
             {
-                this.metricKey = Temp.CombineHash(this.Name, this.Tags.OrderIndependentHash());
+                this.metricKey = Temp.CombineHash(this.Name.GetHashCode(), this.Tags.OrderIndependentHash());
             }
 
             return this.metricKey.Value;
@@ -52,17 +52,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
     {
         public static int OrderIndependentHash<T1, T2>(this IEnumerable<KeyValuePair<T1, T2>> dictionary)
         {
-            return CombineHash(dictionary.Select(o => CombineHash(o.Key, o.Value)).OrderBy(h => h));
+            return CombineHash(dictionary.Select(o => CombineHash(o.Key.GetHashCode(), o.Value.GetHashCode())).OrderBy(h => h).ToArray());
         }
 
         // TODO: replace with "return HashCode.Combine(Name.GetHashCode(), Tags.GetHashCode());"
         // when upgraded to .net standard 2.1: https://docs.microsoft.com/en-us/dotnet/api/system.hashcode.combine?view=netstandard-2.1
-        public static int CombineHash(params object[] objects)
+        public static int CombineHash(params int[] hashes)
         {
             int hash = 17;
-            foreach (object o in objects)
+            foreach (int h in hashes)
             {
-                hash = hash * 31 + o.GetHashCode();
+                hash = hash * 31 + h;
             }
 
             return hash;

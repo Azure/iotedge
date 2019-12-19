@@ -101,7 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
 
             /* test */
             await worker.Upload(CancellationToken.None);
-            Assert.Equal(metrics.OrderBy(x => x.Tags), uploadedData.OrderBy(x => x.Tags));
+            TestUtilities.OrderlessCompare(metrics, uploadedData);
             Assert.Single(storage.Invocations.Where(i => i.Method.Name == "GetAllMetricsAsync"));
             Assert.Single(storage.Invocations.Where(i => i.Method.Name == "RemoveAllReturnedMetricsAsync"));
             Assert.Single(uploader.Invocations);
