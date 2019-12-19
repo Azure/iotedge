@@ -91,7 +91,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
         [JsonProperty(Required = Required.Always, PropertyName = "imagePullPolicy")]
         public virtual ImagePullPolicy ImagePullPolicy { get; }
 
-        [JsonProperty(Required = Required.Always, PropertyName = "priority")]
+        [JsonProperty(
+            PropertyName = "priority",
+            Required = Required.DisallowNull,
+            DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [DefaultValue(Constants.DefaultPriority)]
         public virtual uint Priority { get; }
 
         [JsonProperty(Required = Required.Always, PropertyName = "status")]
@@ -186,7 +190,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
     public class TestAgentModule : TestModule, IEdgeAgentModule
     {
         public TestAgentModule(string name, string type, TestConfig config, ImagePullPolicy imagePullPolicy, ConfigurationInfo configuration, IDictionary<string, EnvVal> env)
-            : base(name ?? Constants.EdgeAgentModuleName, string.Empty, type, ModuleStatus.Running, config, RestartPolicy.Always, imagePullPolicy, 0, configuration, env)
+            : base(name ?? Constants.EdgeAgentModuleName, string.Empty, type, ModuleStatus.Running, config, RestartPolicy.Always, imagePullPolicy, Constants.HighestPriority, configuration, env)
         {
             this.Version = string.Empty;
             this.RestartPolicy = RestartPolicy.Always;
