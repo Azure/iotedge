@@ -7,11 +7,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Akka.Streams.Implementation.Fusing;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage;
+    using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Test.Common;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Moq;
     using Xunit;
+    using Xunit.Sdk;
 
     public class MetricsWorkerTest : IDisposable
     {
@@ -53,12 +58,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
         {
             /* Setup mocks */
             var scraper = new Mock<IMetricsScraper>();
-
             var storage = new Mock<IMetricsStorage>();
             storage.Setup(s => s.GetAllMetricsAsync()).ReturnsAsync(Enumerable.Empty<Metric>());
 
             TaskCompletionSource<object> uploadStarted = new TaskCompletionSource<object>();
-            TaskCompletionSource<object> finishUpload = new TaskCompletionSource<object>();
+            TaskCompletionSource<bool> finishUpload = new TaskCompletionSource<bool>();
             var uploader = new Mock<IMetricsPublisher>();
             IEnumerable<Metric> uploadedData = Enumerable.Empty<Metric>();
             uploader.Setup(u => u.PublishAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Callback((Action<IEnumerable<Metric>, CancellationToken>)((data, __) =>
@@ -76,7 +80,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             Assert.Equal(1, uploader.Invocations.Count);
             Assert.Single(storage.Invocations.Where(i => i.Method.Name == "GetAllMetricsAsync"));
             Assert.Empty(storage.Invocations.Where(i => i.Method.Name == "RemoveAllReturnedMetricsAsync"));
-            finishUpload.SetResult(null);
+            finishUpload.SetResult(true);
             Assert.Single(storage.Invocations.Where(i => i.Method.Name == "GetAllMetricsAsync"));
             Assert.Single(storage.Invocations.Where(i => i.Method.Name == "RemoveAllReturnedMetricsAsync"));
         }
@@ -94,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             storage.Setup(s => s.GetAllMetricsAsync()).ReturnsAsync(metrics);
             var uploader = new Mock<IMetricsPublisher>();
             IEnumerable<Metric> uploadedData = Enumerable.Empty<Metric>();
-            uploader.Setup(u => u.PublishAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Callback((Action<IEnumerable<Metric>, CancellationToken>)((d, _) => uploadedData = d)).Returns(Task.CompletedTask);
+            uploader.Setup(u => u.PublishAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Callback((Action<IEnumerable<Metric>, CancellationToken>)((d, _) => uploadedData = d)).ReturnsAsync(true);
 
             MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
 
@@ -125,7 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
 
             var uploader = new Mock<IMetricsPublisher>();
             IEnumerable<Metric> uploadedData = Enumerable.Empty<Metric>();
-            uploader.Setup(u => u.PublishAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Callback((Action<IEnumerable<Metric>, CancellationToken>)((d, _) => uploadedData = d)).Returns(Task.CompletedTask);
+            uploader.Setup(u => u.PublishAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).Callback((Action<IEnumerable<Metric>, CancellationToken>)((d, _) => uploadedData = d)).ReturnsAsync(true);
 
             MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
 
@@ -140,71 +144,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             Assert.Single(storage.Invocations.Where(i => i.Method.Name == "GetAllMetricsAsync"));
             Assert.Single(storage.Invocations.Where(i => i.Method.Name == "RemoveAllReturnedMetricsAsync"));
             Assert.Single(uploader.Invocations);
-        }
-
-        [Fact]
-        public async Task TestScrapeAndUpload()
-        {
-            CancellationToken ct = CancellationToken.None;
-
-            var scraper = new Mock<IMetricsScraper>();
-            var scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 1.0)));
-            scraper.Setup(s => s.ScrapeEndpointsAsync(ct)).ReturnsAsync(() => scrapeResults);
-
-            var storage = new MetricsFileStorage(this.tempDirectory.CreateTempDir());
-
-            var uploader = new Mock<IMetricsPublisher>();
-            IEnumerable<Metric> uploadedData = Enumerable.Empty<Metric>();
-            uploader.Setup(u => u.PublishAsync(It.IsAny<IEnumerable<Metric>>(), ct)).Callback((Action<IEnumerable<Metric>, CancellationToken>)((d, _) => uploadedData = d.ToArray())).Returns(Task.CompletedTask);
-
-            MetricsWorker worker = new MetricsWorker(scraper.Object, storage, uploader.Object);
-
-            /* test without de-duping */
-            scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 1.0)));
-            await worker.Scrape(ct);
-            scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 2.0)));
-            await worker.Scrape(ct);
-            await worker.Upload(ct);
-            Assert.Equal(20, uploadedData.Count());
-            await worker.Upload(ct);
-            Assert.Empty(uploadedData);
-
-            /* test de-duping */
-            scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 5.0)));
-            await worker.Scrape(ct);
-            await worker.Scrape(ct);
-            await worker.Upload(ct);
-            Assert.Equal(10, uploadedData.Count());
-            await worker.Upload(ct);
-            Assert.Empty(uploadedData);
-
-            /* test mix of de-duping and not */
-            scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 7.0)));
-            await worker.Scrape(ct);
-            scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", i % 2 == 0 ? 7.0 : 8.0)));
-            await worker.Scrape(ct);
-            scrapeResults = this.PrometheousMetrics(Enumerable.Range(1, 10).Select(i => ($"module_{i}", 7.0)));
-            await worker.Scrape(ct);
-            await worker.Upload(ct);
-            Assert.Equal(20, uploadedData.Count());
-            await worker.Upload(ct);
-            Assert.Empty(uploadedData);
-        }
-
-        [Fact]
-        public void TestRemoveDuplicateMetrics()
-        {
-            Metric[] scrape1 = Enumerable.Range(1, 100).Select(i => new Metric(new DateTime(this.rand.Next(1000, 10000), DateTimeKind.Utc), $"Test Metric {i}", i, $"{i}")).ToArray();
-
-            // all odd values are changed, so they should be removed.
-            Metric[] scrape2 = scrape1.Select(m => new Metric(new DateTime(this.rand.Next(1000, 10000), DateTimeKind.Utc), m.Name, m.Value + m.Value % 2, m.Tags)).ToArray();
-
-            Metric[] result = MetricsWorker.RemoveDuplicateMetrics(scrape1.Concat(scrape2)).ToArray();
-            Assert.Equal(150, result.Length);
-
-            string[] expected = scrape1.Select(m => m.Name).Concat(scrape2.Where(m => int.Parse(m.Tags) % 2 == 1).Select(m => m.Name)).OrderBy(n => n).ToArray();
-            string[] actual = result.Select(m => m.Name).OrderBy(n => n).ToArray();
-            Assert.Equal(expected, actual);
         }
 
         [Fact]
@@ -262,6 +201,72 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             await Task.Delay(1);
 
             await Task.WhenAll(scrapeTask, uploadTask);
+        }
+
+        [Fact]
+        public async Task TestRetry()
+        {
+            int targetRetries = 10;
+            /* Setup mocks */
+            var scraper = new Mock<IMetricsScraper>();
+            var storage = new Mock<IMetricsStorage>();
+            storage.Setup(s => s.GetAllMetricsAsync()).ReturnsAsync(Enumerable.Empty<Metric>());
+
+            var uploader = new Mock<IMetricsPublisher>();
+            int actualRetries = 0;
+            uploader.Setup(u => u.PublishAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).ReturnsAsync(() => ++actualRetries == targetRetries);
+
+            MetricsWorker.RetryStrategy = new FakeRetryStrategy();
+            MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
+
+            /* test */
+            await worker.Upload(CancellationToken.None);
+            Assert.Equal(targetRetries, actualRetries);
+            Assert.Equal(targetRetries, uploader.Invocations.Count);
+            Assert.Single(storage.Invocations.Where(i => i.Method.Name == "RemoveAllReturnedMetricsAsync"));
+        }
+
+        [Fact]
+        public async Task TestRetryFail()
+        {
+            int maxRetries = 5;
+            /* Setup mocks */
+            var scraper = new Mock<IMetricsScraper>();
+            var storage = new Mock<IMetricsStorage>();
+            storage.Setup(s => s.GetAllMetricsAsync()).ReturnsAsync(Enumerable.Empty<Metric>());
+
+            var uploader = new Mock<IMetricsPublisher>();
+            uploader.Setup(u => u.PublishAsync(It.IsAny<IEnumerable<Metric>>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+
+            MetricsWorker.RetryStrategy = new FakeRetryStrategy(maxRetries);
+            MetricsWorker worker = new MetricsWorker(scraper.Object, storage.Object, uploader.Object);
+
+            /* test */
+            await worker.Upload(CancellationToken.None);
+            Assert.Equal(maxRetries + 1, uploader.Invocations.Count); // It tries once, then retries maxRetryTimes.
+            Assert.Single(storage.Invocations.Where(i => i.Method.Name == "RemoveAllReturnedMetricsAsync"));
+        }
+
+        class FakeRetryStrategy : RetryStrategy
+        {
+            int maxRetries;
+
+            public FakeRetryStrategy(int maxRetries = int.MaxValue)
+                : base(true)
+            {
+                this.maxRetries = maxRetries;
+            }
+
+            public override ShouldRetry GetShouldRetry()
+            {
+                return this.ShouldRetry;
+            }
+
+            bool ShouldRetry(int i, Exception ex, out TimeSpan delay)
+            {
+                delay = TimeSpan.Zero;
+                return i < this.maxRetries;
+            }
         }
 
         private IEnumerable<Metric> PrometheousMetrics(IEnumerable<(string name, double value)> modules)

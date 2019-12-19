@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 

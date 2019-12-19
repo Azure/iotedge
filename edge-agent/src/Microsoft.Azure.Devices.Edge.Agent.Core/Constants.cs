@@ -95,6 +95,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         public const string StorageMaxTotalWalSize = "RocksDB_MaxTotalWalSize";
 
+        public const string WorkloadApiVersion = "2019-01-30";
+
         public static class Labels
         {
             public const string Version = "net.azure-devices.edge.version";
