@@ -143,7 +143,7 @@ namespace TestResultCoordinator
         List<string> GetResultSources()
         {
             // TODO: Remove this hardcoded list and use environment variables once we've decided on how exactly to set the configuration
-            return new List<string> { "loadGen1.send", "relayer1.receive", "relayer1.send", "relayer1.eventHub", "loadGen2.send", "relayer2.receive", "relayer2.send", "relayer2.eventHub" };
+            return new List<string> { "loadGen1.send", "relayer1.receive", "relayer1.send", "relayer1.eventHub", "loadGen2.send", "relayer2.receive", "relayer2.send", "relayer2.eventHub", "networkController" };
         }
     }
 }
