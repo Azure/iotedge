@@ -25,10 +25,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
         {
             foreach (Metric metric in metrics)
             {
-                Dictionary<string, string> tags = JsonConvert.DeserializeObject<Dictionary<string, string>>(metric.Tags);
-
                 // Skip if the blacklist has any or the whitelist does not contain it.
-                if (this.tagsBlacklist.Exists(bl => bl.Any(tags.Contains)) || this.tagsWhitelist.Exists(wl => !wl.Any(tags.Contains)))
+                if (this.tagsBlacklist.Exists(bl => bl.Any(metric.Tags.Contains)) || this.tagsWhitelist.Exists(wl => !wl.Any(metric.Tags.Contains)))
                 {
                     continue;
                 }
@@ -36,10 +34,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                 // Add or remove tags if needed.
                 if (this.tagsToAdd.HasValue || this.tagsToRemove.HasValue)
                 {
-                    this.tagsToAdd.ForEach(tta => tta.ForEach(toAdd => tags.Add(toAdd.Key, toAdd.Value)));
-                    this.tagsToRemove.ForEach(ttr => ttr.ForEach(toRemove => tags.Remove(toRemove)));
+                    Dictionary<string, string> newTags = metric.Tags.ToDictionary(t => t.Key, t => t.Value);
 
-                    string newTags = JsonConvert.SerializeObject(tags);
+                    this.tagsToAdd.ForEach(tta => tta.ForEach(toAdd => newTags.Add(toAdd.Key, toAdd.Value)));
+                    this.tagsToRemove.ForEach(ttr => ttr.ForEach(toRemove => newTags.Remove(toRemove)));
+
                     yield return new Metric(metric.TimeGeneratedUtc, metric.Name, metric.Value, newTags);
                 }
                 else

@@ -4,7 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
 {
     using System;
     using System.Collections.Generic;
-    using System.Text;
+    using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public sealed class Metric : IEquatable<Metric>
@@ -12,9 +12,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
         public DateTime TimeGeneratedUtc { get; }
         public string Name { get; }
         public double Value { get; }
-        public string Tags { get; }
+        public IReadOnlyDictionary<string, string> Tags { get; }
 
-        public Metric(DateTime timeGeneratedUtc, string name, double value, string tags)
+        int? metricKey;
+
+        public Metric(DateTime timeGeneratedUtc, string name, double value, IReadOnlyDictionary<string, string> tags)
         {
             Preconditions.CheckArgument(timeGeneratedUtc.Kind == DateTimeKind.Utc, $"Metric {nameof(timeGeneratedUtc)} parameter only supports in UTC.");
             this.TimeGeneratedUtc = timeGeneratedUtc;
@@ -29,13 +31,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
         /// <returns>Hash of name and tags.</returns>
         public int GetMetricKey()
         {
-            // TODO: replace with "return HashCode.Combine(Name.GetHashCode(), Tags.GetHashCode());"
-            // when upgraded to .net standard 2.1: https://docs.microsoft.com/en-us/dotnet/api/system.hashcode.combine?view=netstandard-2.1
-            int hash = 17;
-            hash = hash * 31 + this.Name.GetHashCode();
-            hash = hash * 31 + this.Tags.GetHashCode();
+            if (this.metricKey == null)
+            {
+                this.metricKey = Temp.CombineHash(this.Name, this.Tags.OrderIndependentHash());
+            }
 
-            return hash;
+            return this.metricKey.Value;
         }
 
         public bool Equals(Metric other)
@@ -43,7 +44,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             return this.TimeGeneratedUtc == other.TimeGeneratedUtc &&
                 this.Name == other.Name &&
                 this.Value == other.Value &&
-                this.Tags == other.Tags;
+                this.Tags.OrderIndependentHash() == other.Tags.OrderIndependentHash();
+        }
+    }
+
+    public static class Temp
+    {
+        public static int OrderIndependentHash<T1, T2>(this IEnumerable<KeyValuePair<T1, T2>> dictionary)
+        {
+            return CombineHash(dictionary.Select(o => CombineHash(o.Key, o.Value)).OrderBy(h => h));
+        }
+
+        // TODO: replace with "return HashCode.Combine(Name.GetHashCode(), Tags.GetHashCode());"
+        // when upgraded to .net standard 2.1: https://docs.microsoft.com/en-us/dotnet/api/system.hashcode.combine?view=netstandard-2.1
+        public static int CombineHash(params object[] objects)
+        {
+            int hash = 17;
+            foreach (object o in objects)
+            {
+                hash = hash * 31 + o.GetHashCode();
+            }
+
+            return hash;
         }
     }
 }

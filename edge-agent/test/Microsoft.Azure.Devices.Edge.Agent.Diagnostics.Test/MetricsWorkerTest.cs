@@ -86,7 +86,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
         public async Task TestUploadContent()
         {
             /* test data */
-            var metrics = Enumerable.Range(1, 10).Select(i => new Metric(DateTime.UtcNow, "test_metric", 3, $"tag_{i}")).ToList();
+            var metrics = Enumerable.Range(1, 10).Select(i => new Metric(DateTime.UtcNow, "test_metric", 3, new Dictionary<string, string> { { "id", $"{i}" } })).ToList();
 
             /* Setup mocks */
             var scraper = new Mock<IMetricsScraper>();
@@ -115,7 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             IEnumerable<Metric> Metrics()
             {
                 metricsCalls++;
-                return Enumerable.Range(1, 10).Select(i => new Metric(DateTime.UtcNow, "1", 3, $"{i}"));
+                return Enumerable.Range(1, 10).Select(i => new Metric(DateTime.UtcNow, "1", 3, new Dictionary<string, string> { { "id", $"{i}" } }));
             }
 
             /* Setup mocks */
@@ -195,7 +195,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
         [Fact]
         public void TestRemoveDuplicateMetrics()
         {
-            Metric[] scrape1 = Enumerable.Range(1, 100).Select(i => new Metric(new DateTime(this.rand.Next(1000, 10000), DateTimeKind.Utc), $"Test Metric {i}", i, $"{i}")).ToArray();
+            Metric[] scrape1 = Enumerable.Range(1, 100).Select(i => new Metric(new DateTime(this.rand.Next(1000, 10000), DateTimeKind.Utc), $"Test Metric {i}", i, new Dictionary<string, string> { { "id", $"{i}" } })).ToArray();
 
             // all odd values are changed, so they should be removed.
             Metric[] scrape2 = scrape1.Select(m => new Metric(new DateTime(this.rand.Next(1000, 10000), DateTimeKind.Utc), m.Name, m.Value + m.Value % 2, m.Tags)).ToArray();
@@ -203,7 +203,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test
             Metric[] result = MetricsWorker.RemoveDuplicateMetrics(scrape1.Concat(scrape2)).ToArray();
             Assert.Equal(150, result.Length);
 
-            string[] expected = scrape1.Select(m => m.Name).Concat(scrape2.Where(m => int.Parse(m.Tags) % 2 == 1).Select(m => m.Name)).OrderBy(n => n).ToArray();
+            string[] expected = scrape1.Select(m => m.Name).Concat(scrape2.Where(m => int.Parse(m.Tags["id"]) % 2 == 1).Select(m => m.Name)).OrderBy(n => n).ToArray();
             string[] actual = result.Select(m => m.Name).OrderBy(n => n).ToArray();
             Assert.Equal(expected, actual);
         }
