@@ -140,9 +140,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 
         static readonly TestConfig Config1 = new TestConfig("image1");
 
-        static readonly IModule ValidModule1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.Never, ConfigurationInfo, EnvVars);
+        static readonly IModule ValidModule1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.Never, Constants.DefaultPriority, ConfigurationInfo, EnvVars);
 
-        static readonly IEdgeHubModule EdgeHubModule = new TestHubModule("edgeHub", "test", ModuleStatus.Running, new TestConfig("edge-hub:latest"), RestartPolicy.Always, ImagePullPolicy.OnCreate, ConfigurationInfo, EnvVars);
+        static readonly IEdgeHubModule EdgeHubModule = new TestHubModule("edgeHub", "test", ModuleStatus.Running, new TestConfig("edge-hub:latest"), RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.DefaultPriority, ConfigurationInfo, EnvVars);
 
         static readonly IEdgeAgentModule EdgeAgentModule = new TestAgentModule("edgeAgent", "test", new TestConfig("edge-agent"), ImagePullPolicy.OnCreate, ConfigurationInfo, null);
 
@@ -150,9 +150,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 
         static readonly ModuleSet ValidSet1 = new ModuleSet(new Dictionary<string, IModule>(Modules1) { [EdgeHubModule.Name] = EdgeHubModule, [EdgeAgentModule.Name] = EdgeAgentModule });
 
-        static readonly IModule UpdatedModule1 = new TestModule("mod1", "version1", "test", ModuleStatus.Stopped, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.Never, ConfigurationInfo, EnvVars);
+        static readonly IModule UpdatedModule1 = new TestModule("mod1", "version1", "test", ModuleStatus.Stopped, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.Never, Constants.DefaultPriority, ConfigurationInfo, EnvVars);
 
-        static readonly IModule ValidModule2 = new TestModule("mod2", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, ConfigurationInfo, EnvVars);
+        static readonly IModule ValidModule2 = new TestModule("mod2", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, Constants.DefaultPriority, ConfigurationInfo, EnvVars);
 
         static readonly IDictionary<string, IModule> Modules2 = new Dictionary<string, IModule> { ["mod1"] = UpdatedModule1, ["mod2"] = ValidModule2 };
 

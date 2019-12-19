@@ -145,6 +145,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                         DateTime.MinValue,
                         ModuleStatus.Running,
                         ImagePullPolicy.OnCreate,
+                        Constants.DefaultPriority,
                         null,
                         envVars),
                 new TestModule(
@@ -155,6 +156,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Metrics
                         Config,
                         RestartPolicy.Always,
                         ImagePullPolicy.OnCreate,
+                        Constants.DefaultPriority,
                         DefaultConfigurationInfo,
                         envVars)
              );

@@ -28,6 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 DateTime.MinValue,
                 ModuleStatus.Running,
                 ImagePullPolicy.Never,
+                Constants.DefaultPriority,
                 new ConfigurationInfo("1"),
                 new Dictionary<string, EnvVal>());
 
@@ -100,6 +101,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 DateTime.MinValue,
                 ModuleStatus.Running,
                 ImagePullPolicy.Never,
+                Constants.DefaultPriority,
                 null,
                 new Dictionary<string, EnvVal>());
 
@@ -118,6 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 RestartPolicy.Always,
                 new DockerConfig(image),
                 ImagePullPolicy.OnCreate,
+                Constants.DefaultPriority,
                 new ConfigurationInfo("1"),
                 new Dictionary<string, EnvVal>());
 
@@ -133,6 +136,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 DateTime.MinValue,
                 ModuleStatus.Running,
                 ImagePullPolicy.OnCreate,
+                Constants.DefaultPriority,
                 new ConfigurationInfo("1"),
                 new Dictionary<string, EnvVal>());
 
@@ -159,6 +163,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
                 DateTime.MinValue,
                 ModuleStatus.Running,
                 ImagePullPolicy.OnCreate,
+                Constants.DefaultPriority,
                 new ConfigurationInfo("1"),
                 new Dictionary<string, EnvVal>());
             var updatedModule1 = (EdgeHubDockerRuntimeModule)module.WithRuntimeStatus(ModuleStatus.Running);

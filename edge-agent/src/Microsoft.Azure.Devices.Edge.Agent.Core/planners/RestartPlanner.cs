@@ -52,13 +52,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             IEnumerable<ICommand> stop = await Task.WhenAll(stopTasks);
             IEnumerable<Task<ICommand>> removeTasks = diff.Removed.Select(name => this.commandFactory.RemoveAsync(current.Modules[name]));
             IEnumerable<ICommand> remove = await Task.WhenAll(removeTasks);
-            IEnumerable<Task<ICommand>> startTasks = desired.Modules
-                .Where(m => m.Value.DesiredStatus == ModuleStatus.Running)
-                .Select(m => this.commandFactory.StartAsync(m.Value));
+            IEnumerable<Task<ICommand>> startTasks = desired.Modules.Values
+                .OrderBy(m => m.Priority)
+                .Where(m => m.DesiredStatus == ModuleStatus.Running)
+                .Select(m => this.commandFactory.StartAsync(m));
             IEnumerable<ICommand> start = await Task.WhenAll(startTasks);
 
             // Only update changed modules
             IList<Task<ICommand>> updateTasks = diff.AddedOrUpdated
+                .OrderBy(m => m.Priority)
                 .Select(m => this.CreateOrUpdate(current, m, runtimeInfo, moduleIdentities))
                 .ToList();
             IEnumerable<ICommand> update = await Task.WhenAll(updateTasks);

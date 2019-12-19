@@ -139,7 +139,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
         async Task<IList<(ICommand command, string module)>> ProcessDesiredStatusChangedModules(IList<IModule> desiredStatusChanged, ModuleSet current)
         {
             var commands = new List<(ICommand command, string module)>();
-            foreach (IModule module in desiredStatusChanged)
+            foreach (IModule module in desiredStatusChanged.OrderBy(m => m.Priority))
             {
                 if (current.TryGetModule(module.Name, out IModule currentModule))
                 {
@@ -183,7 +183,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             IEnumerable<IRuntimeModule> modulesToStart = updateStateChangedModules
                 .Where(
                     m => m.DesiredStatus == ModuleStatus.Running && m.RuntimeStatus == ModuleStatus.Stopped &&
-                         (m.RestartPolicy > RestartPolicy.Never || m.LastStartTimeUtc == DateTime.MinValue));
+                         (m.RestartPolicy > RestartPolicy.Never || m.LastStartTimeUtc == DateTime.MinValue))
+                .OrderBy(m => m.Priority);
 
             tasks.AddRange(modulesToStop.Select(this.commandFactory.StopAsync));
             tasks.AddRange(modulesToStart.Select(this.commandFactory.StartAsync));
@@ -196,7 +197,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
 
         IEnumerable<Task<ICommand>> ApplyRestartPolicy(IEnumerable<IRuntimeModule> modules)
         {
-            IEnumerable<IRuntimeModule> modulesToBeRestarted = this.restartManager.ApplyRestartPolicy(modules);
+            IEnumerable<IRuntimeModule> modulesToBeRestarted = this.restartManager.ApplyRestartPolicy(modules).OrderBy(m => m.Priority);
             IEnumerable<Task<ICommand>> restart = modulesToBeRestarted.Select(
                 async module =>
                 {
@@ -226,7 +227,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             //   create followed by a start command if the desired
             //   status is "running"
             var addedTasks = new List<Task<ICommand[]>>();
-            foreach (IModule module in modules)
+            var priorityOrderedModules = modules.OrderBy(x => x.Priority);
+
+            foreach (IModule module in priorityOrderedModules)
             {
                 if (moduleIdentities.TryGetValue(module.Name, out IModuleIdentity moduleIdentity))
                 {
