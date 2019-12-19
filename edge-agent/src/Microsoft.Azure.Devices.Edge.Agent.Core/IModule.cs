@@ -123,8 +123,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
 
         bool IsOnlyModuleStatusChanged(IModule other);
     }
-    public interface IModule<TConfig> : IModule, IEquatable<IModule<TConfig>>
 
+    public interface IModule<TConfig> : IModule, IEquatable<IModule<TConfig>>
     {
         [JsonProperty(PropertyName = "settings")]
         TConfig Config { get; }
