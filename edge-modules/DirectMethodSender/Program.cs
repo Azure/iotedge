@@ -21,36 +21,39 @@ namespace DirectMethodSender
         {
             Logger.LogInformation($"Starting DirectMethodSender with the following settings:\r\n{Settings.Current}");
 
-            ModuleClient moduleClient = null;
+            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
+            DirectMethodSenderBase directMethodClient = null;
+            ModuleClient reportClient = null;
             try
             {
-                (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
+                directMethodClient = await CreateClientAsync(Settings.Current.InvocationSource);
 
-                moduleClient = await ModuleUtil.CreateModuleClientAsync(
+                Option<Uri> analyzerUrl = Settings.Current.AnalyzerUrl;
+                reportClient = await ModuleUtil.CreateModuleClientAsync(
                     Settings.Current.TransportType,
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                     ModuleUtil.DefaultTransientRetryStrategy,
                     Logger);
+                while (!cts.Token.IsCancellationRequested)
+                {
+                    HttpStatusCode result = await directMethodClient.InvokeDirectMethodAsync(cts);
 
-                Option<Uri> analyzerUrl = Settings.Current.AnalyzerUrl;
-                await analyzerUrl.ForEachAsync(
-                    async (Uri uri) =>
-                    {
-                        AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = uri.AbsoluteUri };
-                        Func<MethodResponse, Task> reportResultToAnalyzer = async (response) => await ReportStatus(Settings.Current.TargetModuleId, response, analyzerClient);
-                        await StartDirectMethodTests(moduleClient, reportResultToAnalyzer, Settings.Current.DirectMethodDelay, cts);
-                    },
-                    async () =>
-                    {
-                        Func<MethodResponse, Task> reportResultToEventHub = async (response) => await moduleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method call succeeded.")));
-                        await StartDirectMethodTests(moduleClient, reportResultToEventHub, Settings.Current.DirectMethodDelay, cts);
-                    });
+                    // TODO: Create an abstract class to handle the reporting client generation
+                    await analyzerUrl.ForEachAsync(
+                        async (Uri uri) =>
+                        {
+                            AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = uri.AbsoluteUri };
+                            await ReportStatus(Settings.Current.TargetModuleId, result, analyzerClient);
+                        },
+                        async () =>
+                        {
+                            await reportClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method call succeeded.")));
+                        });
 
-                await moduleClient.CloseAsync();
+                    await Task.Delay(Settings.Current.DirectMethodDelay, cts.Token);
+                }
+
                 await cts.Token.WhenCanceled();
-
-                completed.Set();
-                handler.ForEach(h => GC.KeepAlive(h));
             }
             catch (Exception e)
             {
@@ -58,59 +61,51 @@ namespace DirectMethodSender
             }
             finally
             {
-                moduleClient?.Dispose();
+                // Implicit CloseAsync()
+                directMethodClient?.Dispose();
+                reportClient?.Dispose();
             }
 
+            completed.Set();
+            handler.ForEach(h => GC.KeepAlive(h));
             Logger.LogInformation("DirectMethodSender Main() finished.");
             return 0;
         }
 
-        static async Task StartDirectMethodTests(
-            ModuleClient moduleClient,
-            Func<MethodResponse, Task> reportResult,
-            TimeSpan delay,
-            CancellationTokenSource cts)
+        public static async Task<DirectMethodSenderBase> CreateClientAsync(InvocationSource invocationSource)
         {
-            var request = new MethodRequest("HelloWorldMethod", Encoding.UTF8.GetBytes("{ \"Message\": \"Hello\" }"));
-            string deviceId = Settings.Current.DeviceId;
-            string targetModuleId = Settings.Current.TargetModuleId;
-            int directMethodCount = 1;
-
-            while (!cts.Token.IsCancellationRequested)
+            DirectMethodSenderBase directMethodClient = null;
+            switch (invocationSource)
             {
-                Logger.LogInformation($"Calling Direct Method on device {deviceId} targeting module {targetModuleId}.");
+                case InvocationSource.Local:
+                    // Implicit OpenAsync()
+                    directMethodClient = await DirectMethodLocalSender.CreateAsync(
+                            Settings.Current.TransportType,
+                            ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
+                            ModuleUtil.DefaultTransientRetryStrategy,
+                            Logger);
+                    break;
 
-                try
-                {
-                    MethodResponse response = await moduleClient.InvokeMethodAsync(deviceId, targetModuleId, request);
+                case InvocationSource.Cloud:
+                    // Implicit OpenAsync()
+                    directMethodClient = await DirectMethodCloudSender.CreateAsync(
+                            Settings.Current.ServiceClientConnectionString.Expect(() => new ArgumentException("ServiceClientConnectionString is null")),
+                            (Microsoft.Azure.Devices.TransportType)Settings.Current.TransportType,
+                            Logger);
+                    break;
 
-                    string statusMessage = $"Calling Direct Method with count {directMethodCount} returned with status code {response.Status}";
-                    if (response.Status == (int)HttpStatusCode.OK)
-                    {
-                        Logger.LogDebug(statusMessage);
-                    }
-                    else
-                    {
-                        Logger.LogError(statusMessage);
-                    }
-
-                    await reportResult(response);
-                    directMethodCount++;
-                }
-                catch (Exception e)
-                {
-                    Logger.LogError(e, "Exception caught");
-                }
-
-                await Task.Delay(delay, cts.Token);
+                default:
+                    throw new NotImplementedException("Invalid InvocationSource type");
             }
+
+            return directMethodClient;
         }
 
-        static async Task ReportStatus(string moduleId, MethodResponse response, AnalyzerClient analyzerClient)
+        static async Task ReportStatus(string moduleId, HttpStatusCode result, AnalyzerClient analyzerClient)
         {
             try
             {
-                await analyzerClient.ReportResultAsync(new TestOperationResult { Source = moduleId, Result = response.Status.ToString(), CreatedAt = DateTime.UtcNow, Type = Enum.GetName(typeof(TestOperationResultType), TestOperationResultType.LegacyDirectMethod) });
+                await analyzerClient.ReportResultAsync(new TestOperationResult { Source = moduleId, Result = result.ToString(), CreatedAt = DateTime.UtcNow, Type = Enum.GetName(typeof(TestOperationResultType), TestOperationResultType.LegacyDirectMethod) });
             }
             catch (Exception e)
             {

@@ -2,7 +2,6 @@
 namespace TestResultCoordinator.Controllers
 {
     using System;
-    using System.IO;
     using System.Net;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Mvc;
@@ -17,13 +16,13 @@ namespace TestResultCoordinator.Controllers
     public class TestOperationResultController : Controller
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TestOperationResultController));
-        // readonly ITestOperationResultStorage storage;
 
-        // TODO: uncomment this when dependency injection is fixed
-        // public TestOperationResultController(ITestOperationResultStorage storage)
-        // {
-        //    this.storage = Preconditions.CheckNotNull(storage);
-        // }
+        readonly ITestOperationResultStorage storage;
+
+        public TestOperationResultController(ITestOperationResultStorage storage)
+        {
+            this.storage = Preconditions.CheckNotNull(storage);
+        }
 
         // POST api/TestOperationResult
         [HttpPost]
@@ -31,7 +30,7 @@ namespace TestResultCoordinator.Controllers
         {
             try
             {
-                bool success = await TestOperationResultStorage.Instance.AddResultAsync(result);
+                bool success = await this.storage.AddResultAsync(result);
                 Logger.LogDebug($"Received test result: {result.Source}, {result.Type}, {success}");
                 return success ? this.StatusCode((int)HttpStatusCode.NoContent) : this.StatusCode((int)HttpStatusCode.BadRequest);
             }

@@ -26,27 +26,33 @@ namespace MetricsCollector
 
             MqttTransportSettings mqttSetting = new MqttTransportSettings(TransportType.Mqtt_Tcp_Only);
             ITransportSettings[] transportSettings = { mqttSetting };
-            ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(transportSettings);
-
-            MetricsScraper scraper = new MetricsScraper(Settings.Current.Endpoints);
-            IMetricsPublisher publisher;
-            if (Settings.Current.UploadTarget == UploadTarget.AzureLogAnalytics)
+            ModuleClient moduleClient = null;
+            try
             {
-                publisher = new LogAnalyticsUpload(Settings.Current.AzMonWorkspaceId, Settings.Current.AzMonWorkspaceKey, Settings.Current.AzMonLogType);
+                moduleClient = await ModuleClient.CreateFromEnvironmentAsync(transportSettings);
+                MetricsScraper scraper = new MetricsScraper(Settings.Current.Endpoints);
+                IMetricsPublisher publisher;
+                if (Settings.Current.UploadTarget == UploadTarget.AzureLogAnalytics)
+                {
+                    publisher = new LogAnalyticsUpload(Settings.Current.AzMonWorkspaceId, Settings.Current.AzMonWorkspaceKey, Settings.Current.AzMonLogType);
+                }
+                else
+                {
+                    publisher = new EventHubMetricsUpload(moduleClient);
+                }
+
+                using (MetricsScrapeAndUpload metricsScrapeAndUpload = new MetricsScrapeAndUpload(scraper, publisher, Guid.NewGuid()))
+                {
+                    TimeSpan scrapeAndUploadInterval = TimeSpan.FromSeconds(Settings.Current.ScrapeFrequencySecs);
+                    metricsScrapeAndUpload.Start(scrapeAndUploadInterval);
+                    await cts.Token.WhenCanceled();
+                }
             }
-            else
+            finally
             {
-                publisher = new EventHubMetricsUpload(moduleClient);
+                moduleClient?.Dispose();
             }
 
-            using (MetricsScrapeAndUpload metricsScrapeAndUpload = new MetricsScrapeAndUpload(scraper, publisher, Guid.NewGuid()))
-            {
-                TimeSpan scrapeAndUploadInterval = TimeSpan.FromSeconds(Settings.Current.ScrapeFrequencySecs);
-                metricsScrapeAndUpload.Start(scrapeAndUploadInterval);
-                await cts.Token.WhenCanceled();
-            }
-
-            moduleClient?.Dispose();
             completed.Set();
             handler.ForEach(h => GC.KeepAlive(h));
 

@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             this.moduleClient = Preconditions.CheckNotNull(moduleClient, nameof(moduleClient));
         }
 
-        public async Task PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
+        public async Task<bool> PublishAsync(IEnumerable<Metric> metrics, CancellationToken cancellationToken)
         {
             try
             {
@@ -33,10 +33,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
                 await this.moduleClient.SendEventAsync(metricsMessage);
 
                 Log.LogInformation("Successfully sent metrics to Event Hub via IoT Hub");
+                return true;
             }
             catch (Exception e)
             {
                 Log.LogError(e, "Error uploading metrics to Event Hub via IoTHub");
+                return false;
             }
         }
     }
