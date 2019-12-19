@@ -68,7 +68,7 @@ namespace TestResultCoordinator.Service
                                 var result = new TestOperationResult(
                                     (string)moduleIdFromEvent + ".eventHub",
                                     "Messages",
-                                    ModuleUtil.FormatTestResultValue(
+                                    ModuleUtil.FormatMessagesTestResultValue(
                                         (string)trackingIdFromEvent,
                                         (string)batchIdFromEvent,
                                         (string)sequenceNumberFromEvent),
