@@ -119,6 +119,13 @@ jobs:
           filePath: scripts/linux/buildImage.sh
           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-relayer -n microsoft -P Relayer --target-arch aarch64
 
+      # Metrics Collector - Not Using Template for ARM64 because we have 2 different .NET Core.
+      - task: Bash@3
+        displayName: Build Image - Metrics Collector - aarch64
+        inputs:
+           filePath: scripts/linux/buildImage.sh
+           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-metrics-collector -n microsoft -P MetricsCollector --target-arch aarch64
+
       # TestResultCoordinator - Not Using Template for ARM64 because we have 2 different .NET Core.
       - task: Bash@3
         displayName: Build Image - Test Result Coordinator - aarch64
@@ -257,6 +264,13 @@ jobs:
           name: TestResultCoordinator
           imageName: azureiotedge-test-result-coordinator
           project: TestResultCoordinator
+
+     # Metrics Collector
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Metrics Collector
+          imageName: azureiotedge-metrics-collector
+          project: MetricsCollector
 
 ################################################################################
 # linux - Rust amd64
@@ -418,6 +432,13 @@ jobs:
           name: Relayer
           imageName: azureiotedge-relayer
           project: Relayer
+
+     # Metrics Collector
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Metrics Collector
+          imageName: azureiotedge-metrics-collector
+          project: MetricsCollector
 
      # TestResultCoordinator
       - template: templates/image-windows.yaml
