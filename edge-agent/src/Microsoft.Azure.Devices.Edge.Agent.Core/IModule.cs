@@ -112,11 +112,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         [JsonProperty(PropertyName = "imagePullPolicy")]
         ImagePullPolicy ImagePullPolicy { get; }
 
-        [JsonProperty(
-            PropertyName = "priority",
-            Required = Required.DisallowNull,
-            DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        [DefaultValue(Constants.DefaultPriority)]
+        [JsonProperty(PropertyName = "priority")]
         uint Priority { get; }
 
         [JsonIgnore]

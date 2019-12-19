@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
 {
     using System.Collections.Generic;
     using System.Collections.Immutable;
+    using System.ComponentModel;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
@@ -48,7 +49,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
         [JsonProperty(PropertyName = "imagePullPolicy")]
         public virtual ImagePullPolicy ImagePullPolicy { get; }
 
-        [JsonProperty(PropertyName = "priority")]
+        [JsonProperty(
+            PropertyName = "priority",
+            Required = Required.DisallowNull,
+            DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [DefaultValue(Core.Constants.DefaultPriority)]
         public virtual uint Priority { get; }
 
         [JsonProperty(Required = Required.Always, PropertyName = "type")]
