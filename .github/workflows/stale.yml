@@ -16,3 +16,4 @@ jobs:
         exempt-issue-label:
           - 'enhancement'
           - 'needinfo'
+          - 'bug'
