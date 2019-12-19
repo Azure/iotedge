@@ -2,17 +2,11 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Service
 {
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Text;
     using Autofac;
-    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Logging;
 
     public sealed class DiagnosticsModule : Module
     {
@@ -36,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 .SingleInstance();
 
             // IMetricsPublisher
-            builder.RegisterType<IoTHubMetricsUpload>()
+            builder.RegisterType<EdgeRuntimeDiagnosticsUpload>()
                 .As<IMetricsPublisher>()
                 .SingleInstance();
 

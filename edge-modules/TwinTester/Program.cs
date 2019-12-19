@@ -16,37 +16,60 @@ namespace TwinTester
 
         static async Task Main()
         {
+            (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
+
             Logger.LogInformation($"Starting twin tester with the following settings:\r\n{Settings.Current}");
 
             try
             {
                 RegistryManager registryManager = RegistryManager.CreateFromConnectionString(Settings.Current.ServiceClientConnectionString);
 
-                ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
-                    Settings.Current.TransportType,
-                    ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                    ModuleUtil.DefaultTransientRetryStrategy,
-                    Logger);
-                await moduleClient.OpenAsync();
+                using (ITwinTestInitializer twinOperator = await GetTwinOperatorAsync(registryManager, Settings.Current.AnalyzerUrl))
+                {
+                    await twinOperator.Start();
 
-                AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = Settings.Current.AnalyzerUrl.AbsoluteUri };
-
-                TwinEventStorage storage = new TwinEventStorage();
-                storage.Init(Settings.Current.StoragePath, new SystemEnvironment(), Settings.Current.StorageOptimizeForPerformance);
-
-                TwinOperator twinOperator = await TwinOperator.CreateAsync(registryManager, moduleClient, analyzerClient, storage);
-                twinOperator.Start();
-
-                (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
-                await cts.Token.WhenCanceled();
-                completed.Set();
-                handler.ForEach(h => GC.KeepAlive(h));
-                Logger.LogInformation("TwinTester exiting.");
+                    await cts.Token.WhenCanceled();
+                    completed.Set();
+                    handler.ForEach(h => GC.KeepAlive(h));
+                    Logger.LogInformation("TwinTester exiting.");
+                }
             }
             catch (Exception ex)
             {
-                Logger.LogError($"Error occurred during twin test setup.\r\n{ex}");
+                Logger.LogError(ex, $"Error occurred during twin test setup.");
             }
+        }
+
+        static async Task<ITwinTestInitializer> GetTwinOperatorAsync(RegistryManager registryManager, Uri analyzerClientUri)
+        {
+            switch (Settings.Current.TestMode)
+            {
+                case TestMode.TwinCloudOperations:
+                    return await TwinCloudOperationsInitializer.CreateAsync(registryManager, new TwinEdgeOperationsResultHandler(analyzerClientUri, Settings.Current.ModuleId));
+                case TestMode.TwinEdgeOperations:
+                    ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
+                        Settings.Current.TransportType,
+                        ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
+                        ModuleUtil.DefaultTransientRetryStrategy,
+                        Logger);
+                    return await TwinEdgeOperationsInitializer.CreateAsync(registryManager, moduleClient, new TwinEdgeOperationsResultHandler(analyzerClientUri, Settings.Current.ModuleId));
+                default:
+                    return await GetTwinAllOperationsInitializer(registryManager, analyzerClientUri);
+            }
+        }
+
+        static async Task<ITwinTestInitializer> GetTwinAllOperationsInitializer(RegistryManager registryManager, Uri analyzerClientUri)
+        {
+            ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
+                Settings.Current.TransportType,
+                ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
+                ModuleUtil.DefaultTransientRetryStrategy,
+                Logger);
+
+            TwinEventStorage storage = new TwinEventStorage();
+            storage.Init(Settings.Current.StoragePath, new SystemEnvironment(), Settings.Current.StorageOptimizeForPerformance);
+            var resultHandler = new TwinAllOperationsResultHandler(analyzerClientUri, storage, Settings.Current.ModuleId);
+            return await TwinAllOperationsInitializer.CreateAsync(registryManager, moduleClient, resultHandler, storage);
         }
     }
 }
