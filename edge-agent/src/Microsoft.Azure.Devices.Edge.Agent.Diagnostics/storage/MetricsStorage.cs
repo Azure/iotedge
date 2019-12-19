@@ -15,10 +15,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage
         readonly Task<ISequentialStore<IEnumerable<Metric>>> dataStore;
         readonly HashSet<long> entriesToRemove = new HashSet<long>();
 
-        public MetricsStorage(IStoreProvider storeProvider)
+        public MetricsStorage(Task<IStoreProvider> storeProvider)
         {
             Preconditions.CheckNotNull(storeProvider, nameof(storeProvider));
-            this.dataStore = Preconditions.CheckNotNull(storeProvider.GetSequentialStore<IEnumerable<Metric>>("Metrics"), "dataStore");
+            this.dataStore = Task.Run(async () => await (await storeProvider).GetSequentialStore<IEnumerable<Metric>>("Metrics"));
         }
 
         public async Task StoreMetricsAsync(IEnumerable<Metric> metrics)
