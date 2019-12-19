@@ -3,7 +3,10 @@ namespace TwinTester
 {
     enum StatusCode
     {
-        Success = 200,
+        ValidationSuccess = 200,
+        DesiredPropertyUpdated = 201,
+        DesiredPropertyReceived = 202,
+        ReportedPropertyReceived = 203,
         DesiredPropertyUpdateNoCallbackReceived = 501,
         DesiredPropertyUpdateNotInEdgeTwin = 502,
         DesiredPropertyUpdateTotalFailure = 503,

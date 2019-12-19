@@ -25,9 +25,9 @@ namespace NetworkController
                     async name =>
                     {
                         var nic = new NetworkInterfaceOfflineController(name);
-                        var firewall = new FirewallOfflineController(name);
+                        var firewall = new FirewallOfflineController(name, Settings.Current.IotHubHostname);
                         var satellite = new SatelliteController(name);
-                        var controllers = new List<IController>() { nic, firewall, satellite };
+                        var controllers = new List<INetworkController>() { nic, firewall, satellite };
                         await RemoveAllControllingRules(controllers, cts.Token);
 
                         switch (Settings.Current.NetworkControllerMode)
@@ -54,11 +54,11 @@ namespace NetworkController
             }
         }
 
-        static async Task StartAsync(IController controller, CancellationToken cancellationToken)
+        static async Task StartAsync(INetworkController controller, CancellationToken cancellationToken)
         {
             var delay = Settings.Current.StartAfter;
 
-            INetworkStatusReporter reporter = new NetworkReporter();
+            INetworkStatusReporter reporter = new NetworkStatusReporter(Settings.Current.TestResultCoordinatorEndpoint, Settings.Current.ModuleId, Settings.Current.TrackingId);
             foreach (Frequency item in Settings.Current.Frequencies)
             {
                 Log.LogInformation($"Schedule task with {controller.Description} to start after {delay} Offline frequency {item.OfflineFrequency} Online frequency {item.OnlineFrequency} Run times {item.RunsCount}");
@@ -83,24 +83,26 @@ namespace NetworkController
             }
         }
 
-        static async Task SetNetworkStatus(IController controller, NetworkStatus status, INetworkStatusReporter reporter, CancellationToken cs)
+        static async Task SetNetworkStatus(INetworkController controller, NetworkStatus status, INetworkStatusReporter reporter, CancellationToken cs)
         {
             await reporter.ReportNetworkStatus(NetworkControllerOperation.SettingRule, status, controller.Description);
-            bool success = await controller.SetStatus(status, cs);
+            bool success = await controller.SetStatusAsync(status, cs);
+            success = await CheckSetStatusAsyncResult(success, NetworkStatus.Default, controller, cs);
             await reporter.ReportNetworkStatus(NetworkControllerOperation.RuleSet, status, controller.Description, success);
         }
 
-        static async Task RemoveAllControllingRules(IList<IController> controllerList, CancellationToken cancellationToken)
+        static async Task RemoveAllControllingRules(IList<INetworkController> controllerList, CancellationToken cancellationToken)
         {
-            var reporter = new NetworkReporter();
+            var reporter = new NetworkStatusReporter(Settings.Current.TestResultCoordinatorEndpoint, Settings.Current.ModuleId, Settings.Current.TrackingId);
 
             foreach (var controller in controllerList)
             {
-                NetworkStatus status = await controller.GetStatus(cancellationToken);
+                NetworkStatus status = await controller.GetStatusAsync(cancellationToken);
                 if (status != NetworkStatus.Default)
                 {
                     Log.LogInformation($"Network is {status} with {controller.Description}, setting default");
-                    bool online = await controller.SetStatus(NetworkStatus.Default, cancellationToken);
+                    bool online = await controller.SetStatusAsync(NetworkStatus.Default, cancellationToken);
+                    online = await CheckSetStatusAsyncResult(online, NetworkStatus.Default, controller, cancellationToken);
                     if (!online)
                     {
                         Log.LogError($"Failed to ensure it starts with default values.");
@@ -111,6 +113,16 @@ namespace NetworkController
 
             Log.LogInformation($"Network is online");
             await reporter.ReportNetworkStatus(NetworkControllerOperation.RuleSet, NetworkStatus.Default, "All", true);
+        }
+
+        static async Task<bool> CheckSetStatusAsyncResult(bool success, NetworkStatus status, INetworkController controller, CancellationToken cs)
+        {
+            NetworkStatus reportedStatus = await controller.GetStatusAsync(cs);
+
+            string resultMessage = success ? "succeded" : "failed";
+            Log.LogInformation($"Command SetStatusAsync {status} execution {resultMessage}, network status {reportedStatus}");
+
+            return success && reportedStatus == status;
         }
     }
 }
