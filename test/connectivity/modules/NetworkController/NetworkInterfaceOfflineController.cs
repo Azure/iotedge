@@ -31,14 +31,11 @@ namespace NetworkController
 
         public string Description => "NetworkInterfaceOffline";
 
-        public Task<NetworkStatus> GetStatus(CancellationToken cs)
+        public Task<NetworkStatus> GetStatusAsync(CancellationToken cs)
         {
-            return this.underlyingConroller.GetStatus(cs);
+            return this.underlyingConroller.GetStatusAsync(cs);
         }
 
-        public Task<bool> SetStatus(NetworkStatus status, CancellationToken cs)
-        {
-            return this.underlyingConroller.SetStatus(status, cs);
-        }
+        public Task<bool> SetStatusAsync(NetworkStatus status, CancellationToken cs) => this.underlyingConroller.SetStatusAsync(status, cs);
     }
 }

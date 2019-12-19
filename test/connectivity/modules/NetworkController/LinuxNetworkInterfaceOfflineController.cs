@@ -22,7 +22,7 @@ namespace NetworkController
 
         public string Description => "LinuxNetworkInterfaceOffline";
 
-        public Task<NetworkStatus> GetStatus(CancellationToken cs)
+        public Task<NetworkStatus> GetStatusAsync(CancellationToken cs)
         {
             OperationalStatus status = this.GetNetworkInterfaceStatus();
             switch (status)
@@ -36,7 +36,7 @@ namespace NetworkController
             }
         }
 
-        public Task<bool> SetStatus(NetworkStatus status, CancellationToken cs)
+        public Task<bool> SetStatusAsync(NetworkStatus status, CancellationToken cs)
         {
             switch (status)
             {

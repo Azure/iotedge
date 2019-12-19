@@ -18,12 +18,12 @@ namespace NetworkController
 
         public string Description => throw new NotImplementedException();
 
-        public Task<NetworkStatus> GetStatus(CancellationToken cs)
+        public Task<NetworkStatus> GetStatusAsync(CancellationToken cs)
         {
             throw new NotImplementedException();
         }
 
-        public Task<bool> SetStatus(NetworkStatus status, CancellationToken cs)
+        public Task<bool> SetStatusAsync(NetworkStatus status, CancellationToken cs)
         {
             throw new NotImplementedException();
         }

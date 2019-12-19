@@ -22,7 +22,7 @@ namespace NetworkController
 
         public string Description => "LinuxFirewallOffline";
 
-        public async Task<NetworkStatus> GetStatus(CancellationToken cs)
+        public async Task<NetworkStatus> GetStatusAsync(CancellationToken cs)
         {
             try
             {
@@ -48,7 +48,7 @@ namespace NetworkController
             }
         }
 
-        public Task<bool> SetStatus(NetworkStatus status, CancellationToken cs)
+        public Task<bool> SetStatusAsync(NetworkStatus status, CancellationToken cs)
         {
             switch (status)
             {
