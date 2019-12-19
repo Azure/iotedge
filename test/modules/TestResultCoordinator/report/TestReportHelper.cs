@@ -20,6 +20,8 @@ namespace TestResultCoordinator.Report
                 foreach (IReportMetadata reportMetadata in Settings.Current.ReportMetadataList)
                 {
                     ITestResultReportGenerator testResultReportGenerator = testReportGeneratorFactory.Create(Settings.Current.TrackingId, reportMetadata);
+
+                    logger.LogInformation($"Start to generate report by {nameof(CountingReportGenerator)} for Sources [{reportMetadata.ExpectedSource}] and [{reportMetadata.ActualSource}]");
                     testResultReportList.Add(testResultReportGenerator.CreateReportAsync());
                 }
 

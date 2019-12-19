@@ -23,18 +23,18 @@ namespace TestResultCoordinator.Report
             {
                 case TestReportType.CountingReport:
                 {
-                    var expectedResultsLoader = new SimpleResults<TestOperationResult>(
+                    var expectedTestResults = new SimpleTestResults<TestOperationResult>(
                         this.storage.GetStoreFromSource(reportMetadata.ExpectedSource),
                         500);
 
-                    var actualResultsLoader = new SimpleResults<TestOperationResult>(
+                    var actualResultsLoader = new SimpleTestResults<TestOperationResult>(
                         this.storage.GetStoreFromSource(reportMetadata.ActualSource),
                         500);
 
                     return new CountingReportGenerator(
                         trackingId,
                         reportMetadata.ExpectedSource,
-                        expectedResultsLoader,
+                        expectedTestResults,
                         reportMetadata.ActualSource,
                         actualResultsLoader,
                         reportMetadata.TestOperationResultType.ToString(),

@@ -42,7 +42,7 @@ namespace Modules.Test.TestResultCoordinator
             string resultType = "resultType1";
 
             var mockExpectedStore = new Mock<ISequentialStore<TestOperationResult>>();
-            var expectedResults = new SimpleResults<TestOperationResult>(mockExpectedStore.Object, batchSize);
+            var expectedResults = new SimpleTestResults<TestOperationResult>(mockExpectedStore.Object, batchSize);
 
             var expectedStoreData = GetStoreData(expectedSource, resultType, expectedStoreValues);
             for (int i = 0; i < expectedStoreData.Count; i += batchSize)
