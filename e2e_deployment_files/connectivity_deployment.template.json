@@ -107,6 +107,89 @@
               "createOptions": ""
             }
           },
+          "DirectMethodSender": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "ClientTransportType" : {
+                "value": "Amqp_Tcp_Only"
+              },
+              "testResultCoordinatorUrl":
+              {
+                "value": "http://testResultCoordinator:5001"
+              },
+              "InvocationSource": {
+                "value": "Cloud"
+              },
+              "ServiceClientConnectionString": {
+                "value": "<ServiceClientConnectionString>"
+              },
+              "TargetModuleId": {
+                "value": "DirectMethodReceiver"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
+          },
+          "DirectMethodReceiver": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "ClientTransportType": {
+                "value": "Amqp_Tcp_Only"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
+          },
+          "DirectMethodSender2": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "ClientTransportType" : {
+                "value": "Amqp_Tcp_Only"
+              },
+              "testResultCoordinatorUrl":
+              {
+                "value": "http://testResultCoordinator:5001"
+              },
+              "InvocationSource": {
+                "value": "Local"
+              },
+              "TargetModuleId": {
+                "value": "DirectMethodReceiver2"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
+          },
+          "DirectMethodReceiver2": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "ClientTransportType": {
+                "value": "Amqp_Tcp_Only"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
+          },
           "relayer1": {
             "version": "1.0",
             "type": "docker",
@@ -240,7 +323,8 @@
           "loadGen1ToRelayer1": "FROM /messages/modules/loadGen1/outputs/output1 INTO BrokeredEndpoint(\"/modules/relayer1/inputs/input1\")",
           "relayer1ToCloud": "FROM /messages/modules/relayer1/outputs/output1 INTO $upstream",
           "loadGen2ToRelayer2": "FROM /messages/modules/loadGen2/outputs/output2 INTO BrokeredEndpoint(\"/modules/relayer2/inputs/input2\")",
-          "relayer2ToCloud": "FROM /messages/modules/relayer2/outputs/output2 INTO $upstream"
+          "relayer2ToCloud": "FROM /messages/modules/relayer2/outputs/output2 INTO $upstream",
+          "directMethodSender1ToUpstream": "FROM /messages/modules/DirectMethodSender/outputs/output1 INTO $upstream"
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 86400
