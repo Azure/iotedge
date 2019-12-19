@@ -81,7 +81,6 @@ namespace TestAnalyzer.Controllers
                     logType);
 
                 await Task.WhenAll(reportMessages, reportTwins, reportDirectMethods);
-            
             }
             catch (Exception e)
             {
