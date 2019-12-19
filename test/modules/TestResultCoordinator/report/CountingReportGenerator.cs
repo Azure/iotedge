@@ -8,6 +8,7 @@ namespace TestResultCoordinator.Report
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+
     using TestOperationResult = TestResultCoordinator.TestOperationResult;
 
     /// <summary>
