@@ -282,7 +282,7 @@
             "env": {
               "AnalyzerUrl":
               {
-                "value": "http://analyzer:15000/api/report"
+                "value": "http://analyzer:15000"
               },
               "InvocationSource": {
                 "value": "Cloud"
@@ -322,7 +322,7 @@
             "env": {
               "AnalyzerUrl":
               {
-                "value": "http://analyzer:15000/api/report"
+                "value": "http://analyzer:15000"
               },
               "InvocationSource": {
                 "value": "Cloud"
