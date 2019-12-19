@@ -27,7 +27,7 @@ namespace NetworkController
                         var nic = new NetworkInterfaceOfflineController(name);
                         var firewall = new FirewallOfflineController(name, Settings.Current.IotHubHostname);
                         var satellite = new SatelliteController(name);
-                        var controllers = new List<IController>() { nic, firewall, satellite };
+                        var controllers = new List<INetworkController>() { nic, firewall, satellite };
                         await RemoveAllControllingRules(controllers, cts.Token);
 
                         switch (Settings.Current.NetworkControllerMode)
@@ -54,7 +54,7 @@ namespace NetworkController
             }
         }
 
-        static async Task StartAsync(IController controller, CancellationToken cancellationToken)
+        static async Task StartAsync(INetworkController controller, CancellationToken cancellationToken)
         {
             var delay = Settings.Current.StartAfter;
 
@@ -83,14 +83,15 @@ namespace NetworkController
             }
         }
 
-        static async Task SetNetworkStatus(IController controller, NetworkStatus status, INetworkStatusReporter reporter, CancellationToken cs)
+        static async Task SetNetworkStatus(INetworkController controller, NetworkStatus status, INetworkStatusReporter reporter, CancellationToken cs)
         {
             await reporter.ReportNetworkStatus(NetworkControllerOperation.SettingRule, status, controller.Description);
             bool success = await controller.SetStatus(status, cs);
+            success = await CheckSetStatusResult(success, NetworkStatus.Default, controller, cs);
             await reporter.ReportNetworkStatus(NetworkControllerOperation.RuleSet, status, controller.Description, success);
         }
 
-        static async Task RemoveAllControllingRules(IList<IController> controllerList, CancellationToken cancellationToken)
+        static async Task RemoveAllControllingRules(IList<INetworkController> controllerList, CancellationToken cancellationToken)
         {
             var reporter = new NetworkStatusReporter(Settings.Current.TestResultCoordinatorEndpoint, Settings.Current.ModuleId, Settings.Current.TrackingId);
 
@@ -101,6 +102,7 @@ namespace NetworkController
                 {
                     Log.LogInformation($"Network is {status} with {controller.Description}, setting default");
                     bool online = await controller.SetStatus(NetworkStatus.Default, cancellationToken);
+                    online = await CheckSetStatusResult(online, NetworkStatus.Default, controller, cancellationToken);
                     if (!online)
                     {
                         Log.LogError($"Failed to ensure it starts with default values.");
@@ -111,6 +113,16 @@ namespace NetworkController
 
             Log.LogInformation($"Network is online");
             await reporter.ReportNetworkStatus(NetworkControllerOperation.RuleSet, NetworkStatus.Default, "All", true);
+        }
+
+        static async Task<bool> CheckSetStatusResult(bool success, NetworkStatus status, INetworkController controller, CancellationToken cs)
+        {
+            NetworkStatus reportedStatus = await controller.GetStatus(cs);
+
+            string resultMessage = success ? "succeded" : "failed";
+            Log.LogInformation($"Command SetStatus {status} execution {resultMessage}, network status {reportedStatus}");
+
+            return success && reportedStatus == status;
         }
     }
 }

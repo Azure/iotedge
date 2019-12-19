@@ -7,17 +7,17 @@ namespace NetworkController
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    class NetworkInterfaceOfflineController : IController
+    class NetworkInterfaceOfflineController : INetworkController
     {
         static readonly ILogger Log = Logger.Factory.CreateLogger<NetworkInterfaceOfflineController>();
 
-        readonly IController underlyingConroller;
+        readonly INetworkController underlyingConroller;
         readonly string networkInterfaceName;
 
-        public NetworkInterfaceOfflineController(string dockerInterfaceName)
+        public NetworkInterfaceOfflineController(string networkInterfaceName)
         {
             this.networkInterfaceName =
-                Preconditions.CheckNonWhiteSpace(dockerInterfaceName, nameof(dockerInterfaceName));
+                Preconditions.CheckNonWhiteSpace(networkInterfaceName, nameof(networkInterfaceName));
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -36,14 +36,9 @@ namespace NetworkController
             return this.underlyingConroller.GetStatus(cs);
         }
 
-        public async Task<bool> SetStatus(NetworkStatus status, CancellationToken cs)
+        public Task<bool> SetStatus(NetworkStatus status, CancellationToken cs)
         {
-            bool result = await this.underlyingConroller.SetStatus(status, cs);
-            NetworkStatus reportedStatus = await this.GetStatus(cs);
-            string resultMessage = result ? "succeded" : "failed";
-            Log.LogInformation($"Command SetStatus {status} {resultMessage}, network status {reportedStatus}");
-
-            return result && reportedStatus == status;
+            return this.underlyingConroller.SetStatus(status, cs);
         }
     }
 }

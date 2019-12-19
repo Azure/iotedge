@@ -8,7 +8,9 @@ namespace NetworkController
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    class LinuxNetworkInterfaceOfflineController : IController
+    // TODO: This class is disabling the network interface which causes connection drop between all containers
+    // should be changed to use a different method
+    class LinuxNetworkInterfaceOfflineController : INetworkController
     {
         static readonly ILogger Log = Logger.Factory.CreateLogger<LinuxNetworkInterfaceOfflineController>();
         readonly string interfaceName;
@@ -52,7 +54,7 @@ namespace NetworkController
         {
             try
             {
-                string output = await CommandExecutor.Execute("ifconfig", $"{this.interfaceName} down", token);
+                await CommandExecutor.Execute("ifconfig", $"{this.interfaceName} down", token);
                 Log.LogInformation($"Disabled {this.interfaceName}");
 
                 return true;
@@ -68,7 +70,7 @@ namespace NetworkController
         {
             try
             {
-                var exitCode = await CommandExecutor.Execute("ifconfig", $"{this.interfaceName} up", token);
+                await CommandExecutor.Execute("ifconfig", $"{this.interfaceName} up", token);
                 Log.LogInformation($"Enabled {this.interfaceName}");
                 return true;
             }

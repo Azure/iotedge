@@ -6,7 +6,7 @@ namespace NetworkController
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
 
-    class WindowsFirewallOfflineController : IController
+    class WindowsFirewallOfflineController : INetworkController
     {
         readonly string networkInterfaceName;
 

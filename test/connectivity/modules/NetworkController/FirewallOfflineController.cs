@@ -7,12 +7,12 @@ namespace NetworkController
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    class FirewallOfflineController : IController
+    class FirewallOfflineController : INetworkController
     {
         static readonly ILogger Log = Logger.Factory.CreateLogger<FirewallOfflineController>();
-        readonly IController underlyingController;
+        readonly INetworkController underlyingController;
 
-        public FirewallOfflineController(string networkInterfaceName, string iothubHosname)
+        public FirewallOfflineController(string networkInterfaceName, string iotHubHostname)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -20,7 +20,7 @@ namespace NetworkController
             }
             else
             {
-                this.underlyingController = new LinuxFirewallOfflineController(networkInterfaceName, iothubHosname);
+                this.underlyingController = new LinuxFirewallOfflineController(networkInterfaceName, iotHubHostname);
             }
         }
 
@@ -28,15 +28,9 @@ namespace NetworkController
 
         public Task<NetworkStatus> GetStatus(CancellationToken cs) => this.underlyingController.GetStatus(cs);
 
-        public async Task<bool> SetStatus(NetworkStatus status, CancellationToken cs)
+        public Task<bool> SetStatus(NetworkStatus status, CancellationToken cs)
         {
-            bool result = await this.underlyingController.SetStatus(status, cs);
-
-            string resultMessage = result ? "succeded" : "failed";
-            Log.LogInformation($"Command SetStatus {status} execution {resultMessage}, network status {status}");
-
-            NetworkStatus reportedStatus = await this.GetStatus(cs);
-            return result && reportedStatus == status;
+            return this.underlyingController.SetStatus(status, cs);
         }
     }
 }

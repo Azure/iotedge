@@ -5,7 +5,7 @@ namespace NetworkController
     using System.Threading;
     using System.Threading.Tasks;
 
-    class WindowsNetworkInterfaceOfflineController : IController
+    class WindowsNetworkInterfaceOfflineController : INetworkController
     {
         public string Description => throw new NotImplementedException();
 

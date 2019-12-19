@@ -8,7 +8,7 @@ namespace NetworkController
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    class LinuxFirewallOfflineController : IController
+    class LinuxFirewallOfflineController : INetworkController
     {
         static readonly ILogger Log = Logger.Factory.CreateLogger<LinuxFirewallOfflineController>();
         readonly string networkInterfaceName;
@@ -95,6 +95,8 @@ namespace NetworkController
                     Log.LogInformation($"Found iotHub IP {item}");
                 }
 
+                // Adding rules to filter packages by iotHub IP
+                // Details about how the rules work https://wiki.archlinux.org/index.php/Advanced_traffic_control
                 await CommandExecutor.Execute(
                     "tc",
                     $"qdisc add dev {this.networkInterfaceName} root handle 1: prio priomap 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0",

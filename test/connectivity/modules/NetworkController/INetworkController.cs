@@ -4,7 +4,7 @@ namespace NetworkController
     using System.Threading;
     using System.Threading.Tasks;
 
-    interface IController
+    interface INetworkController
     {
         string Description { get; }
 
