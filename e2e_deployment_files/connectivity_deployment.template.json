@@ -20,6 +20,11 @@
         "systemModules": {
           "edgeAgent": {
             "type": "docker",
+            "env": {
+              "UpstreamProtocol": {
+                "value": "<UpstreamProtocol>"
+              }
+             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""

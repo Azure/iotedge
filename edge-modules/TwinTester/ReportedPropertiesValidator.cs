@@ -11,57 +11,25 @@ namespace TwinTester
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
 
-    class ReportedPropertyOperation : TwinOperationBase
+    class ReportedPropertiesValidator : ITwinPropertiesValidator
     {
-        static readonly ILogger LoggerImpl = ModuleUtil.CreateLogger(nameof(ReportedPropertyOperation));
+        static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(ReportedPropertiesValidator));
         readonly RegistryManager registryManager;
-        readonly ModuleClient moduleClient;
-        readonly AnalyzerClient analyzerClient;
-        readonly TwinEventStorage storage;
         readonly TwinState twinState;
+        readonly ModuleClient moduleClient;
+        readonly TwinEventStorage storage;
+        readonly ITwinTestResultHandler reporter;
 
-        public ReportedPropertyOperation(RegistryManager registryManager, ModuleClient moduleClient, AnalyzerClient analyzerClient, TwinEventStorage storage, TwinState twinState)
+        public ReportedPropertiesValidator(RegistryManager registryManager, ModuleClient moduleClient, TwinEventStorage storage, ITwinTestResultHandler reporter, TwinState twinState)
         {
             this.registryManager = registryManager;
             this.moduleClient = moduleClient;
-            this.analyzerClient = analyzerClient;
             this.storage = storage;
+            this.reporter = reporter;
             this.twinState = twinState;
         }
 
-        public override ILogger Logger => LoggerImpl;
-
-        public override async Task UpdateAsync()
-        {
-            string reportedPropertyUpdateValue = new string('1', Settings.Current.TwinUpdateSize); // dummy twin update needs to be any number
-            var twin = new TwinCollection();
-            twin[this.twinState.ReportedPropertyUpdateCounter.ToString()] = reportedPropertyUpdateValue;
-            try
-            {
-                await this.moduleClient.UpdateReportedPropertiesAsync(twin);
-                this.Logger.LogInformation($"Made reported property update {this.twinState.ReportedPropertyUpdateCounter}");
-            }
-            catch (Exception e)
-            {
-                string failureStatus = $"{(int)StatusCode.ReportedPropertyUpdateCallFailure}: Failed call to update reported properties";
-                this.Logger.LogError(failureStatus + $": {e}");
-                await this.CallAnalyzerToReportStatusAsync(this.analyzerClient, Settings.Current.ModuleId, failureStatus);
-                return;
-            }
-
-            try
-            {
-                await this.storage.AddReportedPropertyUpdateAsync(this.twinState.ReportedPropertyUpdateCounter.ToString());
-                this.twinState.ReportedPropertyUpdateCounter += 1;
-            }
-            catch (Exception e)
-            {
-                this.Logger.LogError($"Failed adding reported property update to storage: {e}");
-                return;
-            }
-        }
-
-        public override async Task ValidateAsync()
+        public async Task ValidateAsync()
         {
             Twin receivedTwin;
             try
@@ -73,12 +41,12 @@ namespace TwinTester
             {
                 if (e is IotHubCommunicationException || e is OperationCanceledException) // This is the transient exception case for microsoft.azure.devices.client.deviceclient version 1.21.2
                 {
-                    this.Logger.LogInformation($"Failed call to registry manager get twin due to transient error: {e}");
+                    Logger.LogError(e, "Failed call to registry manager get twin due to transient error.");
                     this.twinState.LastTimeOffline = DateTime.UtcNow;
                 }
                 else
                 {
-                    this.Logger.LogInformation($"Failed call to registry manager get twin due to non-transient error: {e}");
+                    Logger.LogError(e, "Failed call to registry manager get twin due to non-transient error.");
                 }
 
                 return;
@@ -100,7 +68,7 @@ namespace TwinTester
                 }
                 catch (Exception e)
                 {
-                    this.Logger.LogError($"Failed to remove validated reported property id {property.Key} from storage: {e}");
+                    Logger.LogError(e, $"Failed to remove validated reported property id {property.Key} from storage.");
                 }
             }
         }
@@ -113,7 +81,7 @@ namespace TwinTester
             }
             catch (Exception e)
             {
-                this.Logger.LogInformation($"Failed call to twin property reset: {e}");
+                Logger.LogError(e, "Failed call to twin property reset.");
             }
         }
 
@@ -133,17 +101,17 @@ namespace TwinTester
                     }
                     catch (Exception e)
                     {
-                        this.Logger.LogError($"Failed to remove validated reported property id {reportedPropertyUpdate.Key} from storage: {e}");
+                        Logger.LogError(e, $"Failed to remove validated reported property id {reportedPropertyUpdate.Key} from storage.");
                         continue;
                     }
 
-                    status = $"{(int)StatusCode.Success}: Successfully validated reported property update";
-                    this.Logger.LogInformation(status + $" {reportedPropertyUpdate.Key}");
+                    status = $"{(int)StatusCode.ValidationSuccess}: Successfully validated reported property update";
+                    Logger.LogInformation(status + $" {reportedPropertyUpdate.Key}");
                 }
                 else if (this.ExceedFailureThreshold(this.twinState, reportedPropertyUpdate.Value))
                 {
                     status = $"{(int)StatusCode.ReportedPropertyUpdateNotInCloudTwin}: Failure receiving reported property update";
-                    this.Logger.LogError(status + $" for reported property update {reportedPropertyUpdate.Key}");
+                    Logger.LogInformation($"{status} for reported property update {reportedPropertyUpdate.Key}");
                 }
                 else
                 {
@@ -151,10 +119,21 @@ namespace TwinTester
                 }
 
                 propertiesToRemoveFromTwin[reportedPropertyUpdate.Key] = null; // will later be serialized as a twin update
-                await this.CallAnalyzerToReportStatusAsync(this.analyzerClient, Settings.Current.ModuleId, status);
+                await this.HandleReportStatusAsync(Settings.Current.ModuleId, status);
             }
 
             return propertiesToRemoveFromTwin;
+        }
+
+        bool ExceedFailureThreshold(TwinState twinState, DateTime twinUpdateTime)
+        {
+            DateTime comparisonPoint = twinUpdateTime > twinState.LastTimeOffline ? twinUpdateTime : twinState.LastTimeOffline;
+            return DateTime.UtcNow - comparisonPoint > Settings.Current.TwinUpdateFailureThreshold;
+        }
+
+        async Task HandleReportStatusAsync(string moduleId, string status)
+        {
+            await this.reporter.HandleTwinValidationStatusAsync(status);
         }
     }
 }
