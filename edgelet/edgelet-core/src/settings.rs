@@ -498,9 +498,9 @@ impl FromStr for Protocol {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_ref() {
-            "tls" | "tls1" | "tls10" | "tlsv10" => Ok(Protocol::Tls10),
-            "tls11" | "tlsv11" => Ok(Protocol::Tls11),
-            "tls12" | "tlsv12" => Ok(Protocol::Tls12),
+            "tls" | "tls1" | "tls10" | "tls1.0" | "tls1_0" | "tlsv10" => Ok(Protocol::Tls10),
+            "tls11" | "tls1.1" | "tls1_1" | "tlsv11" => Ok(Protocol::Tls11),
+            "tls12" | "tls1.2" | "tls1_2" | "tlsv12" => Ok(Protocol::Tls12),
             _ => Err(format!("Unsupported TLS protocol version: {}", s)),
         }
     }
@@ -915,21 +915,22 @@ mod tests {
     }
 
     #[test_case("tls", Protocol::Tls10; "when tls provided")]
-    #[test_case("TLS", Protocol::Tls10; "when uppercase TLS provided")]
-    #[test_case("tls1", Protocol::Tls10; "when tls1 provided")]
-    #[test_case("TLS1", Protocol::Tls10; "when uppercase TLS1 provided")]
+    #[test_case("tls1", Protocol::Tls10; "when tls1 with dot provided")]
     #[test_case("tls10", Protocol::Tls10; "when tls10 provided")]
+    #[test_case("tls1.0", Protocol::Tls10; "when tls10 with dot provided")]
+    #[test_case("tls1_0", Protocol::Tls10; "when tls10 with underscore provided")]
+    #[test_case("Tlsv10" , Protocol::Tls10; "when Tlsv10 provided")]
     #[test_case("TLS10", Protocol::Tls10; "when uppercase TLS10 Provided")]
-    #[test_case("tlsv10" , Protocol::Tls10; "when tlsv10 provided")]
-    #[test_case("TLSv10" , Protocol::Tls10; "when uppercase TLSv10 Provided")]
     #[test_case("tls11", Protocol::Tls11; "when tls11 provided")]
+    #[test_case("tls1.1", Protocol::Tls11; "when tls11 with dot provided")]
+    #[test_case("tls1_1", Protocol::Tls11; "when tls11 with underscore provided")]
+    #[test_case("Tlsv11" , Protocol::Tls11; "when Tlsv11 provided")]
     #[test_case("TLS11", Protocol::Tls11; "when uppercase TLS11 Provided")]
-    #[test_case("tlsv11", Protocol::Tls11; "when tlsv11 Provided")]
-    #[test_case("TLSv11", Protocol::Tls11; "when uppercase TLSv11 provided")]
     #[test_case("tls12", Protocol::Tls12; "when tls12 provided")]
-    #[test_case("TLS12", Protocol::Tls12; "when uppercase TLS12 provided")]
-    #[test_case("tlsv12", Protocol::Tls12; "when tlsv12 provided")]
-    #[test_case("TLSv12", Protocol::Tls12; "when uppercase TLSv12 provided")]
+    #[test_case("tls1.2", Protocol::Tls12; "when tls12 with dot provided")]
+    #[test_case("tls1_2", Protocol::Tls12; "when tls12 with underscore provided")]
+    #[test_case("Tlsv12" , Protocol::Tls12; "when Tlsv12 provided")]
+    #[test_case("TLS12", Protocol::Tls12; "when uppercase TLS12 Provided")]
     fn it_parses_protocol(value: &str, expected: Protocol) {
         let actual = Protocol::from_str(value);
         assert_eq!(actual, Ok(expected));
