@@ -6,6 +6,7 @@ namespace DirectMethodSender
     using System.IO;
     using System.Linq;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
 
@@ -25,7 +26,9 @@ namespace DirectMethodSender
                     configuration.GetValue<string>("TargetModuleId", "DirectMethodReceiver"),
                     configuration.GetValue<TransportType>("TransportType", TransportType.Amqp_Tcp_Only),
                     configuration.GetValue<TimeSpan>("DirectMethodDelay", TimeSpan.FromSeconds(5)),
-                    configuration.GetValue<Uri>("AnalyzerUrl", new Uri("http://analyzer:15000")));
+                    Option.Maybe(configuration.GetValue<Uri>("AnalyzerUrl")),
+                    configuration.GetValue<InvocationSource>("InvocationSource", InvocationSource.Local),
+                    Option.Maybe<string>(configuration.GetValue<string>("ServiceClientConnectionString")));
             });
 
         Settings(
@@ -33,14 +36,18 @@ namespace DirectMethodSender
             string targetModuleId,
             TransportType transportType,
             TimeSpan directMethodDelay,
-            Uri analyzerUrl)
+            Option<Uri> analyzerUrl,
+            InvocationSource invocationSource,
+            Option<string> serviceClientConnectionString)
         {
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.TargetModuleId = Preconditions.CheckNonWhiteSpace(targetModuleId, nameof(targetModuleId));
             Preconditions.CheckArgument(TransportType.IsDefined(typeof(TransportType), transportType));
             this.TransportType = transportType;
-            this.DirectMethodDelay = Preconditions.CheckNotNull(directMethodDelay);
-            this.AnalyzerUrl = Preconditions.CheckNotNull(analyzerUrl);
+            this.DirectMethodDelay = directMethodDelay;
+            this.AnalyzerUrl = analyzerUrl;
+            this.ServiceClientConnectionString = serviceClientConnectionString;
+            this.InvocationSource = invocationSource;
         }
 
         public static Settings Current => DefaultSettings.Value;
@@ -53,7 +60,11 @@ namespace DirectMethodSender
 
         public TimeSpan DirectMethodDelay { get; }
 
-        public Uri AnalyzerUrl { get; }
+        public InvocationSource InvocationSource { get; }
+
+        public Option<string> ServiceClientConnectionString { get; }
+
+        public Option<Uri> AnalyzerUrl { get; }
 
         public override string ToString()
         {
@@ -64,8 +75,13 @@ namespace DirectMethodSender
                 { nameof(this.TargetModuleId), this.TargetModuleId },
                 { nameof(this.TransportType), Enum.GetName(typeof(TransportType), this.TransportType) },
                 { nameof(this.DirectMethodDelay), this.DirectMethodDelay.ToString() },
-                { nameof(this.AnalyzerUrl), this.AnalyzerUrl.AbsoluteUri },
+                { nameof(this.InvocationSource), this.InvocationSource.ToString() },
             };
+
+            this.AnalyzerUrl.ForEach((url) =>
+            {
+                fields.Add(nameof(this.AnalyzerUrl), url.AbsoluteUri);
+            });
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
         }

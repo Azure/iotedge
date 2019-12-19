@@ -45,7 +45,7 @@
               "messageFrequency": {
                 "value": "<LoadGen.MessageFrequency>"
               },
-              "testRunDuration": {
+              "testDuration": {
                 "value": "<TestDuration>"
               },
               "testStartDelay": {
@@ -78,7 +78,7 @@
               "messageFrequency": {
                 "value": "<LoadGen.MessageFrequency>"
               },
-              "testRunDuration": {
+              "testDuration": {
                 "value": "<TestDuration>"
               },
               "testStartDelay": {
@@ -114,6 +114,9 @@
               "inputName": {
                 "value": "input1"
               },
+              "outputName": {
+                "value": "output1"
+              },
               "testResultCoordinatorUrl": {
                 "value": "http://testResultCoordinator:5001"
               }
@@ -135,6 +138,9 @@
               "inputName": {
                 "value": "input2"
               },
+              "outputName": {
+                "value": "output2"
+              },
               "testResultCoordinatorUrl": {
                 "value": "http://testResultCoordinator:5001"
               }
@@ -152,6 +158,9 @@
             "env": {
               "trackingId": {
                 "value": "<TrackingId>"
+              },
+              "testStartDelay": {
+                "value": "<TestStartDelay>"
               },
               "testDuration": {
                 "value": "<TestDuration>"

@@ -100,6 +100,7 @@ namespace Relayer
                     Settings.Current.ModuleId + ".receive",
                     ModuleUtil.FormatTestResultValue(trackingId, batchId, sequenceNumber),
                     TestOperationResultType.Messages.ToString());
+                Logger.LogInformation($"Successfully received message: trackingid={trackingId}, batchId={batchId}, sequenceNumber={sequenceNumber}");
 
                 byte[] messageBytes = message.GetBytes();
                 var messageCopy = new Message(messageBytes);
@@ -113,8 +114,7 @@ namespace Relayer
                     Settings.Current.ModuleId + ".send",
                     ModuleUtil.FormatTestResultValue(trackingId, batchId, sequenceNumber),
                     TestOperationResultType.Messages.ToString());
-
-                Logger.LogInformation("Successfully sent a message");
+                Logger.LogInformation($"Successfully sent message: trackingid={trackingId}, batchId={batchId}, sequenceNumber={sequenceNumber}");
             }
             catch (Exception ex)
             {
