@@ -29,6 +29,7 @@ namespace TwinTester
 
         async Task OnDesiredPropertyUpdateAsync(TwinCollection desiredProperties, object userContext)
         {
+            Logger.LogDebug($"Received desired property {desiredProperties.ToString()}");
             await this.resultHandler.HandleDesiredPropertyReceivedAsync(desiredProperties);
         }
     }
