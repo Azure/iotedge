@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
         LegacyTwin,
         Messages,
         DirectMethod,
-        Twin
+        Twin,
+        Network
     }
 }
