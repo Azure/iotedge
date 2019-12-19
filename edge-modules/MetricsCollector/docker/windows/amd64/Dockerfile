@@ -7,4 +7,4 @@ WORKDIR /app
 
 COPY $EXE_DIR/ ./
 
-CMD ["dotnet", "DirectMethodCloudSender.dll"]
+CMD ["dotnet", "MetricsCollector.dll"]
