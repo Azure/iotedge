@@ -86,8 +86,8 @@ namespace NetworkController
         static async Task SetNetworkStatus(INetworkController controller, NetworkStatus status, INetworkStatusReporter reporter, CancellationToken cs)
         {
             await reporter.ReportNetworkStatus(NetworkControllerOperation.SettingRule, status, controller.Description);
-            bool success = await controller.SetStatus(status, cs);
-            success = await CheckSetStatusResult(success, NetworkStatus.Default, controller, cs);
+            bool success = await controller.SetStatusAsync(status, cs);
+            success = await CheckSetStatusAsyncResult(success, NetworkStatus.Default, controller, cs);
             await reporter.ReportNetworkStatus(NetworkControllerOperation.RuleSet, status, controller.Description, success);
         }
 
@@ -97,12 +97,12 @@ namespace NetworkController
 
             foreach (var controller in controllerList)
             {
-                NetworkStatus status = await controller.GetStatus(cancellationToken);
+                NetworkStatus status = await controller.GetStatusAsync(cancellationToken);
                 if (status != NetworkStatus.Default)
                 {
                     Log.LogInformation($"Network is {status} with {controller.Description}, setting default");
-                    bool online = await controller.SetStatus(NetworkStatus.Default, cancellationToken);
-                    online = await CheckSetStatusResult(online, NetworkStatus.Default, controller, cancellationToken);
+                    bool online = await controller.SetStatusAsync(NetworkStatus.Default, cancellationToken);
+                    online = await CheckSetStatusAsyncResult(online, NetworkStatus.Default, controller, cancellationToken);
                     if (!online)
                     {
                         Log.LogError($"Failed to ensure it starts with default values.");
@@ -115,12 +115,12 @@ namespace NetworkController
             await reporter.ReportNetworkStatus(NetworkControllerOperation.RuleSet, NetworkStatus.Default, "All", true);
         }
 
-        static async Task<bool> CheckSetStatusResult(bool success, NetworkStatus status, INetworkController controller, CancellationToken cs)
+        static async Task<bool> CheckSetStatusAsyncResult(bool success, NetworkStatus status, INetworkController controller, CancellationToken cs)
         {
-            NetworkStatus reportedStatus = await controller.GetStatus(cs);
+            NetworkStatus reportedStatus = await controller.GetStatusAsync(cs);
 
             string resultMessage = success ? "succeded" : "failed";
-            Log.LogInformation($"Command SetStatus {status} execution {resultMessage}, network status {reportedStatus}");
+            Log.LogInformation($"Command SetStatusAsync {status} execution {resultMessage}, network status {reportedStatus}");
 
             return success && reportedStatus == status;
         }

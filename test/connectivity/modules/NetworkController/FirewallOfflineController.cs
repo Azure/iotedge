@@ -26,7 +26,7 @@ namespace NetworkController
 
         public string Description => "FirewallOffline";
 
-        public Task<NetworkStatus> GetStatusAsync(CancellationToken cs) => this.underlyingController.GetStatus(cs);
+        public Task<NetworkStatus> GetStatusAsync(CancellationToken cs) => this.underlyingController.GetStatusAsync(cs);
 
         public Task<bool> SetStatusAsync(NetworkStatus status, CancellationToken cs)
         {
