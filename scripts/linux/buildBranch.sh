@@ -254,6 +254,7 @@ publish_app "DirectMethodReceiver"
 publish_app "ModuleRestarter"
 publish_app "TwinTester"
 publish_app "Relayer"
+publish_app "MetricsCollector"
 publish_app "TestResultCoordinator"
 publish_app "NetworkController"
 

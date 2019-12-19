@@ -151,6 +151,7 @@ $appProjectList.Add("DirectMethodReceiver.csproj")
 $appProjectList.Add("ModuleRestarter.csproj")
 $appProjectList.Add("TwinTester.csproj")
 $appProjectList.Add("Relayer.csproj")
+$appProjectList.Add("MetricsCollector.csproj")
 $appProjectList.Add("TestResultCoordinator.csproj")
 
 # Download latest rocksdb ARM32 library
