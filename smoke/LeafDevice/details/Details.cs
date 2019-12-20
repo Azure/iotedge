@@ -187,7 +187,7 @@ namespace LeafDeviceTest
                 }
                 catch (OperationCanceledException e)
                 {
-                    throw new Exception($"Failed to connect to edge and send data: {savedException?.Message ?? e.Message}");
+                    throw new InvalidOperationException("Failed to connect to edge and send data", savedException ?? e);
                 }
                 catch (Exception e)
                 {
