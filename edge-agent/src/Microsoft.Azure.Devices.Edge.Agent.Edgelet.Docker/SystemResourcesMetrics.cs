@@ -189,7 +189,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
                     {
                         double result = 100 * moduleDiff / systemDiff;
 
-                        // Occasionally on startup results in a very large number (billions of percent). Ignore this point. 
+                        // Occasionally on startup results in a very large number (billions of percent). Ignore this point.
                         if (result < 100)
                         {
                             return Option.Some(result);
@@ -199,7 +199,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
 
                 this.previousModuleCpu[module.Name] = module.CpuStats.CpuUsage.TotalUsage;
                 this.previousSystemCpu[module.Name] = module.CpuStats.SystemCpuUsage;
-
             }
             else
             {
