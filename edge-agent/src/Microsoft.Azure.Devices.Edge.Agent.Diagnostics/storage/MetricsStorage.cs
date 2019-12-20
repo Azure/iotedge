@@ -38,9 +38,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage
 
         public async Task RemoveAllReturnedMetricsAsync()
         {
-            while (await (await this.dataStore).RemoveFirst((o, _) => Task.FromResult(this.entriesToRemove.Remove(o))))
+            bool notLast = false;
+            do
             {
+                // Only delete entries that have been returned. Also remove from entriesToRemove.
+                Task<bool> ShouldRemove(long offset, object _)
+                {
+                    return Task.FromResult(this.entriesToRemove.Remove(offset));
+                }
+
+                notLast = await (await this.dataStore).RemoveFirst(ShouldRemove);
             }
+            while (notLast);
         }
     }
 }
