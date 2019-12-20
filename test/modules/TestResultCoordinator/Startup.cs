@@ -53,9 +53,10 @@ namespace TestResultCoordinator
             }
 
             services.AddSingleton<ITestOperationResultStorage>(
-                TestOperationResultStorage.Create(
-                    storeProvider,
-                    Settings.Current.ResultSources).Result);
+                new TestOperationResultStorageWrapper(
+                    TestOperationResultStorage.Create(
+                        storeProvider,
+                        Settings.Current.ResultSources).Result));
 
             services.AddHostedService<TestResultReportingService>();
             services.AddHostedService<TestResultEventReceivingService>();

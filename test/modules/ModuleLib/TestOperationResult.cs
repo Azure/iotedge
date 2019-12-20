@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
 {
     using System;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Newtonsoft.Json;
 
     public class TestOperationResult
     {
@@ -25,5 +26,11 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
         public string Result { get; }
 
         public DateTime CreatedAt { get; }
+
+        [JsonIgnore]
+        public bool NetworkOn { get; set; }
+
+        [JsonIgnore]
+        public DateTime NetworkLastUpdatedTime { get; set; }
     }
 }
