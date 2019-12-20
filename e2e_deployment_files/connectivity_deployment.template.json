@@ -113,9 +113,6 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "ClientTransportType" : {
-                "value": "Amqp_Tcp_Only"
-              },
               "InvocationSource": {
                 "value": "Cloud"
               },
@@ -125,14 +122,16 @@
               "TargetModuleId": {
                 "value": "DirectMethodReceiver"
               },
+              "TransportType" : {
+                "value": "Mqtt"
+              },
               "testDuration": {
                 "value": "<TestDuration>"
               },
               "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
-              "testResultCoordinatorUrl":
-              {
+              "testResultCoordinatorUrl": {
                 "value": "http://testResultCoordinator:5001"
               },
               "trackingId": {
@@ -150,8 +149,8 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "ClientTransportType": {
-                "value": "Amqp_Tcp_Only"
+              "TransportType": {
+                "value": "Mqtt"
               }
             },
             "settings": {
@@ -165,11 +164,11 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "ClientTransportType" : {
-                "value": "Amqp_Tcp_Only"
-              },
               "InvocationSource": {
                 "value": "Local"
+              },
+              "TransportType" : {
+                "value": "Mqtt"
               },
               "TargetModuleId": {
                 "value": "DirectMethodReceiver2"
@@ -199,8 +198,8 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "ClientTransportType": {
-                "value": "Amqp_Tcp_Only"
+              "TransportType": {
+                "value": "Mqtt"
               }
             },
             "settings": {
