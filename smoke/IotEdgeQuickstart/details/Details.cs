@@ -289,7 +289,7 @@ namespace IotEdgeQuickstart.Details
                     ServiceClient serviceClient =
                         ServiceClient.CreateFromConnectionString(this.context.IotHubConnectionString, this.serviceClientTransportType, settings);
 
-                    while (true)
+                    while (!cts.IsCancellationRequested)
                     {
                         await Task.Delay(TimeSpan.FromSeconds(10), cts.Token);
 

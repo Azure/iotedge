@@ -14,6 +14,7 @@ namespace LeafDeviceTest
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Client.Exceptions;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Common;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -145,29 +146,53 @@ namespace LeafDeviceTest
         {
             using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(600))) // Long timeout is needed because registry manager takes a while for the device identity to be usable
             {
-                var builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
-                DeviceClient deviceClient;
-                if (this.authType == AuthenticationType.Sas)
+                Exception savedException = null;
+
+                try
                 {
-                    string leafDeviceConnectionString = $"HostName={builder.HostName};DeviceId={this.deviceId};SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.edgeHostName}";
-                    deviceClient = DeviceClient.CreateFromConnectionString(leafDeviceConnectionString, this.deviceTransportSettings);
+                    var builder = IotHubConnectionStringBuilder.Create(this.iothubConnectionString);
+                    DeviceClient deviceClient;
+                    if (this.authType == AuthenticationType.Sas)
+                    {
+                        string leafDeviceConnectionString = $"HostName={builder.HostName};DeviceId={this.deviceId};SharedAccessKey={this.context.Device.Authentication.SymmetricKey.PrimaryKey};GatewayHostName={this.edgeHostName}";
+                        deviceClient = DeviceClient.CreateFromConnectionString(leafDeviceConnectionString, this.deviceTransportSettings);
+                    }
+                    else
+                    {
+                        var auth = new DeviceAuthenticationWithX509Certificate(this.deviceId, this.clientCertificate.Expect(() => new InvalidOperationException("Missing client certificate")));
+                        deviceClient = DeviceClient.Create(builder.HostName, this.edgeHostName, auth, this.deviceTransportSettings);
+                    }
+
+                    this.context.DeviceClientInstance = Option.Some(deviceClient);
+                    Console.WriteLine("Leaf Device client created.");
+
+                    var message = new Message(Encoding.ASCII.GetBytes($"Message from Leaf Device. Msg GUID: {this.context.MessageGuid}"));
+                    Console.WriteLine($"Trying to send the message to '{this.edgeHostName}'");
+
+                    while (!cts.IsCancellationRequested)
+                    {
+                        try
+                        {
+                            await deviceClient.SendEventAsync(message);
+                            Console.WriteLine("Message Sent.");
+                            await deviceClient.SetMethodHandlerAsync("DirectMethod", DirectMethod, null);
+                            Console.WriteLine("Direct method callback is set.");
+                            break;
+                        }
+                        catch (Exception e)
+                        {
+                            savedException = e;
+                        }
+                    }
                 }
-                else
+                catch (OperationCanceledException e)
                 {
-                    var auth = new DeviceAuthenticationWithX509Certificate(this.deviceId, this.clientCertificate.Expect(() => new InvalidOperationException("Missing client certificate")));
-                    deviceClient = DeviceClient.Create(builder.HostName, this.edgeHostName, auth, this.deviceTransportSettings);
+                    throw new Exception($"Failed to connect to edge and send data: {savedException?.Message ?? e.Message}");
                 }
-
-                this.context.DeviceClientInstance = Option.Some(deviceClient);
-                Console.WriteLine("Leaf Device client created.");
-
-                var message = new Message(Encoding.ASCII.GetBytes($"Message from Leaf Device. Msg GUID: {this.context.MessageGuid}"));
-                Console.WriteLine($"Trying to send the message to '{this.edgeHostName}'");
-
-                await deviceClient.SendEventAsync(message);
-                Console.WriteLine("Message Sent.");
-                await deviceClient.SetMethodHandlerAsync("DirectMethod", DirectMethod, null);
-                Console.WriteLine("Direct method callback is set.");
+                catch (Exception e)
+                {
+                    throw new Exception($"Failed to connect to edge and send data: {e.Message}");
+                }
             }
         }
 
