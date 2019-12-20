@@ -8,6 +8,7 @@ namespace DirectMethodSender
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -29,6 +30,8 @@ namespace DirectMethodSender
                 directMethodClient = await CreateClientAsync(Settings.Current.InvocationSource);
 
                 Option<Uri> analyzerUrl = Settings.Current.AnalyzerUrl;
+                Option<Uri> testReportCoordinatorUrl = Settings.Current.TestResultCoordinatorUrl;
+                Guid batchId = Guid.NewGuid();
                 reportClient = await ModuleUtil.CreateModuleClientAsync(
                     Settings.Current.TransportType,
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
@@ -36,9 +39,26 @@ namespace DirectMethodSender
                     Logger);
                 while (!cts.Token.IsCancellationRequested)
                 {
+                    // TODO: Make this method return both result and count for the DM
                     HttpStatusCode result = await directMethodClient.InvokeDirectMethodAsync(cts);
 
                     // TODO: Create an abstract class to handle the reporting client generation
+                    await testReportCoordinatorUrl.ForEachAsync(
+                        async (Uri uri) => 
+                        {
+                            TestResultCoordinatorClient trcClient = new TestResultCoordinatorClient { BaseUrl = uri.AbsoluteUri };
+                            await ModuleUtil.ReportStatus(
+                                    trcClient,
+                                    Logger,
+                                    Settings.Current.ModuleId + ".send",
+                                    ModuleUtil.FormatDirectMethodTestResultValue(
+                                        Settings.Current.TrackingId,
+                                        batchId.ToString(),
+                                        messageIdCounter.ToString()),
+                                    TestOperationResultType.Messages.ToString());
+                        });
+
+
                     await analyzerUrl.ForEachAsync(
                         async (Uri uri) =>
                         {

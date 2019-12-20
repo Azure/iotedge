@@ -28,7 +28,8 @@ namespace DirectMethodSender
                     configuration.GetValue<TimeSpan>("DirectMethodDelay", TimeSpan.FromSeconds(5)),
                     Option.Maybe(configuration.GetValue<Uri>("AnalyzerUrl")),
                     configuration.GetValue<InvocationSource>("InvocationSource", InvocationSource.Local),
-                    Option.Maybe<string>(configuration.GetValue<string>("ServiceClientConnectionString")));
+                    Option.Maybe<string>(configuration.GetValue<string>("ServiceClientConnectionString")),
+                    Option.Maybe(configuration.GetValue<Uri>("testResultCoordinatorUrl")));
             });
 
         Settings(
@@ -38,16 +39,18 @@ namespace DirectMethodSender
             TimeSpan directMethodDelay,
             Option<Uri> analyzerUrl,
             InvocationSource invocationSource,
-            Option<string> serviceClientConnectionString)
+            Option<string> serviceClientConnectionString,
+            Option<Uri> testResultCoordinatorUrl)
         {
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.TargetModuleId = Preconditions.CheckNonWhiteSpace(targetModuleId, nameof(targetModuleId));
             Preconditions.CheckArgument(TransportType.IsDefined(typeof(TransportType), transportType));
             this.TransportType = transportType;
             this.DirectMethodDelay = directMethodDelay;
+            this.InvocationSource = invocationSource;
             this.AnalyzerUrl = analyzerUrl;
             this.ServiceClientConnectionString = serviceClientConnectionString;
-            this.InvocationSource = invocationSource;
+            this.TestResultCoordinatorUrl = testResultCoordinatorUrl;
         }
 
         public static Settings Current => DefaultSettings.Value;
@@ -65,6 +68,8 @@ namespace DirectMethodSender
         public Option<string> ServiceClientConnectionString { get; }
 
         public Option<Uri> AnalyzerUrl { get; }
+
+        public Option<Uri> TestResultCoordinatorUrl { get; }
 
         public override string ToString()
         {
