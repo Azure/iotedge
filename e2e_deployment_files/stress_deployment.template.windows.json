@@ -23,13 +23,21 @@
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-agent:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": ""
+            },
+            "env": {
+              "experimentalfeatures__enabled": {
+                  "value": "true"
+              },
+              "experimentalfeatures__enableMetrics": {
+                  "value": "true"
+              }
             }
           },
           "edgeHub": {
             "type": "docker",
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-hub:<Build.BuildNumber>-windows-<Architecture>",
-              "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"443/tcp\": [{\"HostPort\": \"443\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
+              "createOptions": "{\"User\": \"ContainerAdministrator\",\"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"443/tcp\": [{\"HostPort\": \"443\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
             "env": {
               "CollectMetrics": {
@@ -40,6 +48,12 @@
               },
               "mqttSettings__enabled": {
                 "value": "<mqttSettings__enabled>"
+              },
+              "experimentalfeatures__enabled": {
+                  "value": "true"
+              },
+              "experimentalfeatures__enableMetrics": {
+                  "value": "true"
               }
             },
             "status": "running",
@@ -297,6 +311,33 @@
               "image": "<Container_Registry>/microsoft/azureiotedge-analyzer:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"15000/tcp\":[{\"HostPort\":\"15000\"}]}}}"
             }
+          },
+          "metricsCollector": {
+            "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-windows-<Architecture>",
+                "createOptions": ""
+            },
+            "type": "docker",
+            "version": "1.0",
+            "env": {
+                "AzMonWorkspaceId": {
+                    "value": "<LogAnalyticsWorkspaceId>"
+                },
+                "AzMonWorkspaceKey": {
+                    "value": "<LogAnalyticsSharedKey>"
+                },
+                "MetricsEndpointsCSV": {
+                  "value": "<MetricsCollector.MetricsEndpointsCSV>"
+                },
+                "ScrapeFrequencyInSecs": {
+                    "value": "<MetricsCollector.ScrapeFrequencyInSecs>"
+                },
+                "UploadTarget": {
+                  "value": "<MetricsCollector.UploadTarget>"
+                }
+            },
+            "status": "running",
+            "restartPolicy": "always"
           }
         }
       }
