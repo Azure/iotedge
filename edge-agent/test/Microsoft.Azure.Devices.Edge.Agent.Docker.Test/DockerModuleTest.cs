@@ -30,8 +30,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         static readonly IModule Module9 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, DefaultEnvVals);
         static readonly IModule Module10 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, new Dictionary<string, EnvVal> { ["Env1"] = new EnvVal("Val2") });
         static readonly IModule Module11 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.Never, Constants.DefaultPriority, DefaultConfigurationInfo, DefaultEnvVals);
+        static readonly IModule Module12 = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, Constants.HighestPriority, DefaultConfigurationInfo, DefaultEnvVals);
         static readonly IModule ModuleWithConfig = new DockerModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.Always, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, new ConfigurationInfo("c1"), DefaultEnvVals);
         static readonly DockerModule ValidJsonModule = new DockerModule("<module_name>", "<semantic_version_number>", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, DefaultEnvVals);
+        static readonly DockerModule ValidJsonModuleWithPriority = new DockerModule("<module_name>", "<semantic_version_number>", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, ImagePullPolicy.OnCreate, Constants.HighestPriority, DefaultConfigurationInfo, DefaultEnvVals);
 
         static readonly JObject TestJsonInputs = JsonConvert.DeserializeObject<JObject>(
             @"
@@ -250,6 +252,43 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
           }
       }
    ],
+   ""validJsonWithPriority"":[
+      {
+         ""Version"":""<semantic_version_number>"",
+         ""Type"":""docker"",
+         ""Status"":""running"",
+         ""RestartPolicy"": ""on-unhealthy"",
+         ""ImagePullPolicy"": ""on-create"",
+         ""Priority"": 0,
+         ""Settings"":{
+            ""Image"":""image1:42"",
+            ""CreateOptions"": {
+               ""HostConfig"": {
+                  ""PortBindings"": {
+                     ""43/udp"": [
+                        {
+                           ""HostPort"": ""43""
+                        }
+                     ],
+                     ""42/tcp"": [
+                        {
+                           ""HostPort"": ""42""
+                        }
+                     ]
+                  }
+               }
+            }
+         },
+         ""Configuration"": {
+            ""id"": ""1""
+         },
+        ""env"":{
+            ""Env1"":{
+              ""value"":""Val1""
+            }
+          }
+      }
+   ],
    ""throwsException"":[      
       {
          ""Version"":""<semantic_version_number>"",
@@ -307,6 +346,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             return GetJsonTestCases("validJson").Select(s => new object[] { s });
         }
 
+        public static IEnumerable<object[]> GetValidJsonWithPriorityInputs()
+        {
+            return GetJsonTestCases("validJsonWithPriority").Select(s => new object[] { s });
+        }
+
         public static IEnumerable<object[]> GetExceptionJsonInputs()
         {
             return GetJsonTestCases("throwsException").Select(s => new object[] { s });
@@ -332,6 +376,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.NotEqual(Module1, Module3);
             Assert.NotEqual(Module1, Module9);
             Assert.NotEqual(Module1, Module11);
+            Assert.NotEqual(Module1, Module12);
             Assert.NotEqual(Module1, Module4);
             Assert.NotEqual(Module1, Module6);
             Assert.NotEqual(Module1, Module7);
@@ -357,6 +402,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.NotEqual(Module1.GetHashCode(), Module3.GetHashCode());
             Assert.NotEqual(Module1.GetHashCode(), Module9.GetHashCode());
             Assert.NotEqual(Module1.GetHashCode(), Module11.GetHashCode());
+            Assert.NotEqual(Module1.GetHashCode(), Module12.GetHashCode());
         }
 
         [Theory]
@@ -367,6 +413,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             var module = ModuleSerde.Instance.Deserialize<DockerModule>(inputJson);
             module.Name = "<module_name>";
             Assert.True(ValidJsonModule.Equals(module));
+        }
+
+        [Theory]
+        [Unit]
+        [MemberData(nameof(GetValidJsonWithPriorityInputs))]
+        public void TestDeserializeValidJsonWithPriority(string inputJson)
+        {
+            var module = ModuleSerde.Instance.Deserialize<DockerModule>(inputJson);
+            module.Name = "<module_name>";
+            Assert.True(ValidJsonModuleWithPriority.Equals(module));
         }
 
         [Fact]

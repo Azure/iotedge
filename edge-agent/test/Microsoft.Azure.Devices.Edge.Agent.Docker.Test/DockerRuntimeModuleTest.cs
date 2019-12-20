@@ -40,6 +40,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
         static readonly IModule Module11 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 1, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
         static readonly IModule Module12 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Stopped, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
         static readonly IModule Module13 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.Never, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+        static readonly IModule Module14 = new DockerRuntimeModule("mod1", "version1", ModuleStatus.Running, RestartPolicy.OnUnhealthy, Config1, 0, "Running 1 minute", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.MinValue, 0, DateTime.MinValue, ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.HighestPriority, DefaultConfigurationInfo, EnvVars);
 
         static readonly DockerConfig ValidConfig = new DockerReportedConfig("image1:42", (string)null, "sha256:75");
         static readonly DockerRuntimeModule ValidJsonModule = new DockerRuntimeModule("<module_name>", "<semantic_version_number>", ModuleStatus.Running, RestartPolicy.OnFailure, ValidConfig, 0, "<status description>", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.Parse("2017-08-05T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), 1, DateTime.Parse("2017-08-06T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
@@ -449,6 +450,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""status"":""running"",
          ""restartpolicy"":""on-failure"",
          ""imagepullpolicy"": ""on-create"",
+         ""priority"": 10,
          ""exitcode"": 0,
          ""statusdescription"" : ""<status description>"",
          ""laststarttimeutc"" : ""2017-08-04T17:52:13.0419502Z"",
@@ -578,6 +580,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.NotEqual(Module8, Module11);
             Assert.NotEqual(Module8, Module12);
             Assert.NotEqual(Module8, Module13);
+            Assert.NotEqual(Module8, Module14);
 
             Assert.False(Module1.Equals(null));
             Assert.False(Module2.Equals(null));
@@ -711,6 +714,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             Assert.Equal(m2.RestartCount, newM2.RestartCount);
             Assert.Equal(m2.RestartPolicy, newM2.RestartPolicy);
             Assert.Equal(m2.ImagePullPolicy, newM2.ImagePullPolicy);
+            Assert.Equal(m2.Priority, newM2.Priority);
             Assert.Equal(m2.StatusDescription, newM2.StatusDescription);
             Assert.Equal(m2.Type, newM2.Type);
             Assert.Equal(m2.Version, newM2.Version);

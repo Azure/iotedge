@@ -204,6 +204,41 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                 });
         }
 
+        [Fact]
+        [Unit]
+        public async void RestartPlannerAddModulesWithPriority()
+        {
+            var factory = new TestCommandFactory();
+
+            IModule module1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, 3, DefaultConfigurationInfo, EnvVars);
+            IModule updatedModule1 = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, 3, DefaultConfigurationInfo, EnvVars);
+            IModule addModule2 = new TestModule("mod2", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, 2, DefaultConfigurationInfo, EnvVars);
+            IModule addModule3 = new TestModule("mod3", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, 1, DefaultConfigurationInfo, EnvVars);
+
+            IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { module1, addModule2, addModule3 });
+
+            var planner = new RestartPlanner(factory);
+            var token = default(CancellationToken);
+
+            ModuleSet currentSet = ModuleSet.Create(module1);
+            ModuleSet desiredSet = ModuleSet.Create(updatedModule1, addModule2, addModule3);
+            var executionList = new List<TestRecordType>
+            {
+                new TestRecordType(TestCommandType.TestStop, module1),
+                new TestRecordType(TestCommandType.TestCreate, addModule3),
+                new TestRecordType(TestCommandType.TestCreate, addModule2),
+                new TestRecordType(TestCommandType.TestUpdate, updatedModule1),
+                new TestRecordType(TestCommandType.TestStart, addModule3),
+                new TestRecordType(TestCommandType.TestStart, addModule2),
+                new TestRecordType(TestCommandType.TestStart, updatedModule1),
+            };
+            Plan addPlan = await planner.PlanAsync(desiredSet, currentSet, RuntimeInfo, moduleIdentities);
+            var planRunner = new OrderedPlanRunner();
+            await planRunner.ExecuteAsync(1, addPlan, token);
+
+            factory.Recorder.ForEach(r => Assert.Equal(executionList, r.ExecutionList));
+        }
+
         static IImmutableDictionary<string, IModuleIdentity> GetModuleIdentities(IList<IModule> modules)
         {
             var credential = new ConnectionStringCredentials("fake");

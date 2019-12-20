@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new TestConfig("mod2:v0"),
             RestartPolicy.Always,
             ImagePullPolicy.Never,
-            Constants.DefaultPriority,
+            Constants.HighestPriority,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
@@ -89,7 +89,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             new TestConfig("mod2:v0"),
             RestartPolicy.Always,
             ImagePullPolicy.Never,
-            Constants.DefaultPriority,
+            Constants.HighestPriority,
             new ConfigurationInfo(),
             new Dictionary<string, EnvVal>());
 
