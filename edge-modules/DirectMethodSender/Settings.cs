@@ -29,7 +29,8 @@ namespace DirectMethodSender
                     Option.Maybe(configuration.GetValue<Uri>("AnalyzerUrl")),
                     configuration.GetValue<InvocationSource>("InvocationSource", InvocationSource.Local),
                     Option.Maybe<string>(configuration.GetValue<string>("ServiceClientConnectionString")),
-                    Option.Maybe(configuration.GetValue<Uri>("testResultCoordinatorUrl")));
+                    Option.Maybe(configuration.GetValue<Uri>("testResultCoordinatorUrl")),
+                    configuration.GetValue<string>("IOTEDGE_MODULEID"));
             });
 
         Settings(
@@ -40,7 +41,8 @@ namespace DirectMethodSender
             Option<Uri> analyzerUrl,
             InvocationSource invocationSource,
             Option<string> serviceClientConnectionString,
-            Option<Uri> testResultCoordinatorUrl)
+            Option<Uri> testResultCoordinatorUrl,
+            string moduleId)
         {
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.TargetModuleId = Preconditions.CheckNonWhiteSpace(targetModuleId, nameof(targetModuleId));
@@ -51,6 +53,7 @@ namespace DirectMethodSender
             this.AnalyzerUrl = analyzerUrl;
             this.ServiceClientConnectionString = serviceClientConnectionString;
             this.TestResultCoordinatorUrl = testResultCoordinatorUrl;
+            this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
         }
 
         public static Settings Current => DefaultSettings.Value;
@@ -71,11 +74,14 @@ namespace DirectMethodSender
 
         public Option<Uri> TestResultCoordinatorUrl { get; }
 
+        public string ModuleId { get; }
+
         public override string ToString()
         {
             // serializing in this pattern so that secrets don't accidentally get added anywhere in the future
             var fields = new Dictionary<string, string>()
             {
+                { nameof(this.ModuleId), this.ModuleId },
                 { nameof(this.DeviceId), this.DeviceId },
                 { nameof(this.TargetModuleId), this.TargetModuleId },
                 { nameof(this.TransportType), Enum.GetName(typeof(TransportType), this.TransportType) },
