@@ -18,6 +18,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
 
     public class SystemResourcesMetrics : IDisposable
     {
+        public static readonly TimeSpan MaxUpdateFrequency = TimeSpan.FromSeconds(5);
+
         Func<Task<SystemResources>> getSystemResources;
         PeriodicTask updateResources;
         string apiVersion;
@@ -46,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             Preconditions.CheckNotNull(metricsProvider, nameof(metricsProvider));
             this.getSystemResources = Preconditions.CheckNotNull(getSystemResources, nameof(getSystemResources));
             this.apiVersion = Preconditions.CheckNotNull(apiVersion, nameof(apiVersion));
-            Preconditions.CheckArgument(updateFrequency > TimeSpan.FromSeconds(5), "Performance metrics cannot update faster than 5 seconds.");
+            Preconditions.CheckArgument(updateFrequency >= MaxUpdateFrequency, $"Performance metrics cannot update faster than {MaxUpdateFrequency.Humanize()}.");
             this.updateFrequency = updateFrequency;
 
             this.hostUptime = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
