@@ -111,7 +111,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
         {
             if (ApiVersion.ParseVersion(this.apiVersion).Value >= ApiVersion.Version20191105.Value)
             {
-                this.updateResources = new PeriodicTask(this.Update, TimeSpan.FromMinutes(.125), TimeSpan.FromMinutes(.1), logger, "Get system resources", false);
+                this.updateResources = new PeriodicTask(this.Update, TimeSpan.FromSeconds(30), TimeSpan.FromMinutes(1), logger, "Get system resources", false);
             }
             else
             {
@@ -133,7 +133,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
 
             var hostTags = new string[] { "host" };
             // edgelet sets used cpu to -1 on error
-            Console.WriteLine($"Host: {systemResources.UsedCpu}");
             if (systemResources.UsedCpu > 0)
             {
                 this.cpuPercentage.Update(systemResources.UsedCpu, hostTags);
