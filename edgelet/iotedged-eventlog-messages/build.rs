@@ -13,7 +13,6 @@ mod windows {
     use std::path::{Path, PathBuf};
     use std::process::Command;
 
-    use version_compare::VersionCompare;
     use winreg::enums::*;
     use winreg::RegKey;
 
