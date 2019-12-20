@@ -5,7 +5,7 @@ namespace TestResultCoordinator
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Storage;
 
-    class SimpleTestResults<T> : ITestResults<T>
+    class StoreTestResultCollection<T> : ITestResultCollection<T>
     {
         readonly int batchSize;
         readonly ISequentialStore<T> store;
@@ -13,7 +13,7 @@ namespace TestResultCoordinator
         long lastLoadedPosition;
         T current;
 
-        public SimpleTestResults(ISequentialStore<T> store, int batchSize)
+        public StoreTestResultCollection(ISequentialStore<T> store, int batchSize)
         {
             this.batchSize = batchSize;
             this.store = store;

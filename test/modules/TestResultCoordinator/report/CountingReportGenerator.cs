@@ -8,7 +8,6 @@ namespace TestResultCoordinator.Report
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-
     using TestOperationResult = TestResultCoordinator.TestOperationResult;
 
     /// <summary>
@@ -24,28 +23,28 @@ namespace TestResultCoordinator.Report
         public CountingReportGenerator(
             string trackingId,
             string expectedSource,
-            ITestResults<TestOperationResult> expectedResults,
+            ITestResultCollection<TestOperationResult> expectedTestResults,
             string actualSource,
-            ITestResults<TestOperationResult> actualResults,
+            ITestResultCollection<TestOperationResult> actualTestResults,
             string resultType,
             ITestResultComparer<TestOperationResult> testResultComparer)
         {
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
-            this.ExpectedResults = Preconditions.CheckNotNull(expectedResults, nameof(expectedResults));
+            this.ExpectedTestResults = Preconditions.CheckNotNull(expectedTestResults, nameof(expectedTestResults));
             this.ExpectedSource = Preconditions.CheckNonWhiteSpace(expectedSource, nameof(expectedSource));
             this.ActualSource = Preconditions.CheckNonWhiteSpace(actualSource, nameof(actualSource));
-            this.ActualResults = Preconditions.CheckNotNull(actualResults, nameof(actualResults));
+            this.ActualTestResults = Preconditions.CheckNotNull(actualTestResults, nameof(actualTestResults));
             this.TestResultComparer = Preconditions.CheckNotNull(testResultComparer, nameof(testResultComparer));
             this.ResultType = Preconditions.CheckNonWhiteSpace(resultType, nameof(resultType));
         }
 
         internal string ActualSource { get; }
 
-        internal ITestResults<TestOperationResult> ActualResults { get; }
+        internal ITestResultCollection<TestOperationResult> ActualTestResults { get; }
 
         internal string ExpectedSource { get; }
 
-        internal ITestResults<TestOperationResult> ExpectedResults { get; }
+        internal ITestResultCollection<TestOperationResult> ExpectedTestResults { get; }
 
         internal string ResultType { get; }
 
@@ -59,56 +58,58 @@ namespace TestResultCoordinator.Report
         /// <returns>Test Result Report.</returns>
         public async Task<ITestResultReport> CreateReportAsync()
         {
+            Logger.LogInformation($"Start to generate report by {nameof(CountingReportGenerator)} for Sources [{this.ExpectedSource}] and [{this.ActualSource}]");
+
             TestOperationResult lastLoadedResult = default(TestOperationResult);
             ulong totalExpectCount = 0;
             ulong totalMatchCount = 0;
             ulong totalDuplicateResultCount = 0;
             List<TestOperationResult> unmatchedResults = new List<TestOperationResult>();
 
-            bool hasExpectedResult = await this.ExpectedResults.MoveNextAsync();
-            bool hasActualResult = await this.ActualResults.MoveNextAsync();
+            bool hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
+            bool hasActualResult = await this.ActualTestResults.MoveNextAsync();
 
             while (hasExpectedResult && hasActualResult)
             {
-                this.ValidateStoredDataSource(this.ExpectedResults.Current, this.ExpectedSource);
-                this.ValidateStoredDataSource(this.ActualResults.Current, this.ActualSource);
+                this.ValidateStoredDataSource(this.ExpectedTestResults.Current, this.ExpectedSource);
+                this.ValidateStoredDataSource(this.ActualTestResults.Current, this.ActualSource);
 
-                while (hasActualResult && this.TestResultComparer.Matches(lastLoadedResult, this.ActualResults.Current))
+                while (hasActualResult && this.TestResultComparer.Matches(lastLoadedResult, this.ActualTestResults.Current))
                 {
                     totalDuplicateResultCount++;
-                    lastLoadedResult = this.ActualResults.Current;
-                    hasActualResult = await this.ActualResults.MoveNextAsync();
+                    lastLoadedResult = this.ActualTestResults.Current;
+                    hasActualResult = await this.ActualTestResults.MoveNextAsync();
                 }
 
                 totalExpectCount++;
 
-                if (this.TestResultComparer.Matches(this.ExpectedResults.Current, this.ActualResults.Current))
+                if (this.TestResultComparer.Matches(this.ExpectedTestResults.Current, this.ActualTestResults.Current))
                 {
-                    lastLoadedResult = this.ActualResults.Current;
-                    hasActualResult = await this.ActualResults.MoveNextAsync();
-                    hasExpectedResult = await this.ExpectedResults.MoveNextAsync();
+                    lastLoadedResult = this.ActualTestResults.Current;
+                    hasActualResult = await this.ActualTestResults.MoveNextAsync();
+                    hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
                     totalMatchCount++;
                 }
                 else
                 {
-                    unmatchedResults.Add(this.ExpectedResults.Current);
-                    hasExpectedResult = await this.ExpectedResults.MoveNextAsync();
+                    unmatchedResults.Add(this.ExpectedTestResults.Current);
+                    hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
                 }
             }
 
             while (hasExpectedResult)
             {
-                if (this.TestResultComparer.Matches(lastLoadedResult, this.ExpectedResults.Current))
+                if (this.TestResultComparer.Matches(lastLoadedResult, this.ExpectedTestResults.Current))
                 {
                     totalDuplicateResultCount++;
-                    lastLoadedResult = this.ExpectedResults.Current;
+                    lastLoadedResult = this.ExpectedTestResults.Current;
                 }
                 else
                 {
-                    unmatchedResults.Add(this.ExpectedResults.Current);
+                    unmatchedResults.Add(this.ExpectedTestResults.Current);
                 }
 
-                hasExpectedResult = await this.ExpectedResults.MoveNextAsync();
+                hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
                 totalExpectCount++;
             }
 
@@ -117,9 +118,9 @@ namespace TestResultCoordinator.Report
                 // Log message for unexpected case.
                 Logger.LogError($"[{nameof(CountingReportGenerator)}] Actual test result source has unexpected results.");
 
-                hasActualResult = await this.ActualResults.MoveNextAsync();
+                hasActualResult = await this.ActualTestResults.MoveNextAsync();
                 // Log actual queue items
-                Logger.LogError($"Unexpected actual test result: {this.ActualResults.Current.Source}, {this.ActualResults.Current.Type}, {this.ActualResults.Current.Result} at {this.ActualResults.Current.CreatedAt}");
+                Logger.LogError($"Unexpected actual test result: {this.ActualTestResults.Current.Source}, {this.ActualTestResults.Current.Type}, {this.ActualTestResults.Current.Result} at {this.ActualTestResults.Current.CreatedAt}");
             }
 
             return new CountingReport<TestOperationResult>(
