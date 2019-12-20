@@ -107,7 +107,7 @@
               "createOptions": ""
             }
           },
-          "DirectMethodSender": {
+          "DirectMethodSender1": {
             "version": "1.0",
             "type": "docker",
             "status": "running",
@@ -120,10 +120,7 @@
                 "value": "<ServiceClientConnectionString>"
               },
               "TargetModuleId": {
-                "value": "DirectMethodReceiver"
-              },
-              "TransportType" : {
-                "value": "Amqp"
+                "value": "DirectMethodReceiver1"
               },
               "testDuration": {
                 "value": "<TestDuration>"
@@ -143,13 +140,13 @@
               "createOptions": ""
             }
           },
-          "DirectMethodReceiver": {
+          "DirectMethodReceiver1": {
             "version": "1.0",
             "type": "docker",
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "TransportType": {
+              "ClientTransportType": {
                 "value": "Amqp"
               }
             },
@@ -172,9 +169,6 @@
               },
               "TargetModuleId": {
                 "value": "DirectMethodReceiver2"
-              },
-              "TransportType" : {
-                "value": "Mqtt"
               },
               "testDuration": {
                 "value": "<TestDuration>"
@@ -201,7 +195,7 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "TransportType": {
+              "ClientTransportType": {
                 "value": "Mqtt"
               }
             },
