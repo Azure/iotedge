@@ -12,23 +12,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage
 
     public class MetricsStorage : IMetricsStorage
     {
-        readonly Task<ISequentialStore<IEnumerable<Metric>>> dataStore;
+        readonly ISequentialStore<IEnumerable<Metric>> dataStore;
         readonly HashSet<long> entriesToRemove = new HashSet<long>();
 
-        public MetricsStorage(Task<IStoreProvider> storeProvider)
+        public MetricsStorage(ISequentialStore<IEnumerable<Metric>> sequentialStore)
         {
-            Preconditions.CheckNotNull(storeProvider, nameof(storeProvider));
-            this.dataStore = Task.Run(async () => await (await storeProvider).GetSequentialStore<IEnumerable<Metric>>("Metrics"));
+            this.dataStore = Preconditions.CheckNotNull(sequentialStore, nameof(sequentialStore));
         }
 
-        public async Task StoreMetricsAsync(IEnumerable<Metric> metrics)
+        public Task StoreMetricsAsync(IEnumerable<Metric> metrics)
         {
-            await (await this.dataStore).Append(metrics);
+            return this.dataStore.Append(metrics);
         }
 
         public async Task<IEnumerable<Metric>> GetAllMetricsAsync()
         {
-            return (await (await this.dataStore).GetBatch(0, 1000))
+            return (await this.dataStore.GetBatch(0, 1000))
                     .SelectMany(((long offset, IEnumerable<Metric> metrics) storeResult) =>
                     {
                         this.entriesToRemove.Add(storeResult.offset);
@@ -41,13 +40,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage
             bool notLast = false;
             do
             {
-                // Only delete entries that have been returned. Also remove from entriesToRemove.
+                // Only delete entries in entriesToRemove. Also remove from entriesToRemove.
                 Task<bool> ShouldRemove(long offset, object _)
                 {
                     return Task.FromResult(this.entriesToRemove.Remove(offset));
                 }
 
-                notLast = await (await this.dataStore).RemoveFirst(ShouldRemove);
+                notLast = await this.dataStore.RemoveFirst(ShouldRemove);
             }
             while (notLast);
         }
