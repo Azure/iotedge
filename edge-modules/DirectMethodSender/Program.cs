@@ -48,12 +48,11 @@ namespace DirectMethodSender
                 DateTime testStartAt = DateTime.UtcNow;
                 while (!cts.Token.IsCancellationRequested && IsTestTimeUp(testStartAt))
                 {
-                    // TODO: Make this method return both result and count for the DM
-                    HttpStatusCode result = await directMethodClient.InvokeDirectMethodAsync(cts);
+                    (HttpStatusCode result, long dmCounter) = await directMethodClient.InvokeDirectMethodAsync(cts);
 
                     // TODO: Create an abstract class to handle the reporting client generation
                     await testReportCoordinatorUrl.ForEachAsync(
-                        async (Uri uri) => 
+                        async (Uri uri) =>
                         {
                             TestResultCoordinatorClient trcClient = new TestResultCoordinatorClient { BaseUrl = uri.AbsoluteUri };
                             await ModuleUtil.ReportStatus(
@@ -61,12 +60,12 @@ namespace DirectMethodSender
                                     Logger,
                                     Settings.Current.ModuleId + ".send",
                                     ModuleUtil.FormatDirectMethodTestResultValue(
-                                        Settings.Current.TrackingId,
+                                        Settings.Current.TrackingId.Expect(() => new ArgumentException("TrackingId is empty")),
                                         batchId.ToString(),
-                                        messageIdCounter.ToString()),
+                                        dmCounter.ToString(),
+                                        result.ToString()),
                                     TestOperationResultType.Messages.ToString());
                         });
-
 
                     await analyzerUrl.ForEachAsync(
                         async (Uri uri) =>

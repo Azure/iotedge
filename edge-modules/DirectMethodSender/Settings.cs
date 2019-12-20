@@ -33,8 +33,7 @@ namespace DirectMethodSender
                     configuration.GetValue("testDuration", TimeSpan.Zero),
                     configuration.GetValue("testStartDelay", TimeSpan.Zero),
                     Option.Maybe(configuration.GetValue<Uri>("testResultCoordinatorUrl")),
-                    Option.Maybe(configuration.GetValue<string>("trackingId"))
-                    );
+                    Option.Maybe(configuration.GetValue<string>("trackingId")));
             });
 
         Settings(
