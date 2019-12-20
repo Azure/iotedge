@@ -191,7 +191,7 @@ namespace LeafDeviceTest
                 }
                 catch (Exception e)
                 {
-                    throw new Exception($"Failed to connect to edge and send data: {e.Message}");
+                    throw new InvalidOperationException("Failed to connect to edge and send data", e);
                 }
             }
         }
