@@ -27,7 +27,8 @@ function usage()
     echo ""
     echo "options"
     echo " -h,  --help                   Print this help and exit."
-    echo " -i,  --image                  Toolchain (default: stable)"
+    echo " -i,  --image                  Image name"
+    echo " -t,  --target-arch            Target architecture"
     exit 1;
 }
 
@@ -42,10 +43,14 @@ process_args()
         if [ $save_next_arg -eq 1 ]; then
             IMAGE="$arg"
             save_next_arg=0
+        elif [ $save_next_arg -eq 2 ]; then
+            TARGET_ARCH="$arg"
+            save_next_arg=0
         else
             case "$arg" in
                 "-h" | "--help" ) usage;;
                 "-i" | "--image" ) save_next_arg=1;;
+                "-t" | "--target-arch" ) save_next_arg=2;;
                 * ) usage;;
             esac
         fi
@@ -58,10 +63,25 @@ process_args "$@"
 ###############################################################################
 # Build
 ###############################################################################
-
 echo ${PROJECT_ROOT}
-docker run --rm -it -v "${PROJECT_ROOT}":/home/rust/src ekidd/rust-musl-builder cargo build --release --manifest-path /home/rust/src/edge-modules/edgehub-proxy/Cargo.toml
+if [ $TARGET_ARCH == "amd64" ]; then
+	docker run --rm -it -v "${PROJECT_ROOT}":/home/rust/src ekidd/rust-musl-builder cargo build --release --manifest-path /home/rust/src/edge-modules/edgehub-proxy/Cargo.toml
+	strip ${PROJECT_ROOT}/edge-modules/edgehub-proxy/target/x86_64-unknown-linux-musl/release/edgehub-proxy
+elif [ $TARGET_ARCH == "arm32v7" ]; then
+	# download and compile openssl for arm32v7
+	export MACHINE=armv7
+	export ARCH=arm
+	export CC=arm-linux-gnueabihf-gcc
+	cd /tmp
+	wget https://www.openssl.org/source/openssl-1.1.1d.tar.gz
+	tar xzf openssl-1.1.1d.tar.gz
+	cd openssl-1.1.1d && ./config shared && make && cd -
 
-strip ${PROJECT_ROOT}/edge-modules/edgehub-proxy/target/x86_64-unknown-linux-musl/release/edgehub-proxy
+	# build edgehub-proxy locally for arm32v7
+	cd ${PROJECT_ROOT}/edge-modules/edgehub-proxy/
+	cargo build --release --target=armv7-unknown-linux-gnueabihf
+	
+	arm-linux-gnueabihf-strip target/armv7-unknown-linux-gnueabihf/release/edgehub-proxy
+fi
 
-docker build -t ${IMAGE} ${PROJECT_ROOT}/edge-modules/edgehub-proxy/
+docker build -t ${IMAGE} -f ${PROJECT_ROOT}/edge-modules/edgehub-proxy/docker/linux/$TARGET_ARCH/Dockerfile ${PROJECT_ROOT}/edge-modules/edgehub-proxy/
