@@ -21,6 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
         Func<Task<SystemResources>> getSystemResources;
         PeriodicTask updateResources;
         string apiVersion;
+        TimeSpan updateFrequency;
 
         IMetricsGauge hostUptime;
         IMetricsGauge iotedgedUptime;
@@ -40,11 +41,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
         Dictionary<string, ulong> previousSystemCpu = new Dictionary<string, ulong>();
         Dictionary<string, DateTime> previousReadTime = new Dictionary<string, DateTime>();
 
-        public SystemResourcesMetrics(IMetricsProvider metricsProvider, Func<Task<SystemResources>> getSystemResources, string apiVersion)
+        public SystemResourcesMetrics(IMetricsProvider metricsProvider, Func<Task<SystemResources>> getSystemResources, string apiVersion, TimeSpan updateFrequency)
         {
             Preconditions.CheckNotNull(metricsProvider, nameof(metricsProvider));
             this.getSystemResources = Preconditions.CheckNotNull(getSystemResources, nameof(getSystemResources));
             this.apiVersion = Preconditions.CheckNotNull(apiVersion, nameof(apiVersion));
+            Preconditions.CheckArgument(updateFrequency > TimeSpan.FromSeconds(5), "Performance metrics cannot update faster than 5 seconds.");
+            this.updateFrequency = updateFrequency;
 
             this.hostUptime = Preconditions.CheckNotNull(metricsProvider.CreateGauge(
                 "host_uptime_seconds",
@@ -111,7 +114,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
         {
             if (ApiVersion.ParseVersion(this.apiVersion).Value >= ApiVersion.Version20191105.Value)
             {
-                this.updateResources = new PeriodicTask(this.Update, TimeSpan.FromSeconds(30), TimeSpan.FromMinutes(1), logger, "Get system resources", false);
+                logger.LogInformation($"Updating performance metrics every {this.updateFrequency.Humanize()}");
+                this.updateResources = new PeriodicTask(this.Update, this.updateFrequency, TimeSpan.FromMinutes(1), logger, "Get system resources", false);
             }
             else
             {
