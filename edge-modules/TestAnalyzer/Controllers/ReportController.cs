@@ -62,23 +62,25 @@ namespace TestAnalyzer.Controllers
             // Upload the data to Log Analytics for our dashboards
             try
             {
-                await AzureLogAnalytics.Instance.PostAsync(
+                Task reportMessages = AzureLogAnalytics.Instance.PostAsync(
                     workspaceId,
                     sharedKey,
                     messagesJson,
                     logType);
 
-                await AzureLogAnalytics.Instance.PostAsync(
+                Task reportTwins = AzureLogAnalytics.Instance.PostAsync(
                     workspaceId,
                     sharedKey,
                     twinsJson,
                     logType);
 
-                await AzureLogAnalytics.Instance.PostAsync(
+                Task reportDirectMethods = AzureLogAnalytics.Instance.PostAsync(
                     workspaceId,
                     sharedKey,
                     directMethodsJson,
                     logType);
+
+                await Task.WhenAll(reportMessages, reportTwins, reportDirectMethods);
             }
             catch (Exception e)
             {

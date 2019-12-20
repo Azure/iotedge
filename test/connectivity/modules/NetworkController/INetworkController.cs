@@ -4,12 +4,12 @@ namespace NetworkController
     using System.Threading;
     using System.Threading.Tasks;
 
-    interface IController
+    interface INetworkController
     {
         string Description { get; }
 
-        Task<bool> SetStatus(NetworkStatus status, CancellationToken cs);
+        Task<bool> SetStatusAsync(NetworkStatus status, CancellationToken cs);
 
-        Task<NetworkStatus> GetStatus(CancellationToken cs);
+        Task<NetworkStatus> GetStatusAsync(CancellationToken cs);
     }
 }

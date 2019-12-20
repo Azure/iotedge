@@ -13,22 +13,28 @@ namespace TwinTester
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
-    class TwinOperator : IDisposable
+    class TwinAllOperationsInitializer : ITwinTestInitializer
     {
-        static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TwinOperator));
+        static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TwinAllOperationsInitializer));
         readonly SemaphoreSlim operationLock = new SemaphoreSlim(1, 1);
-        readonly TwinOperationBase reportedPropertyOperation;
-        readonly TwinOperationBase desiredPropertyOperation;
+        readonly ITwinOperation reportedPropertyUpdater;
+        readonly ITwinOperation desiredPropertyUpdater;
+        readonly ITwinOperation desiredPropertyReceiver;
+        readonly ITwinPropertiesValidator reportedPropertiesValidator;
+        readonly ITwinPropertiesValidator desiredPropertiesValidator;
         PeriodicTask periodicValidation;
         PeriodicTask periodicUpdate;
 
-        private TwinOperator(RegistryManager registryManager, ModuleClient moduleClient, AnalyzerClient analyzerClient, TwinEventStorage storage, TwinState twinState)
+        TwinAllOperationsInitializer(RegistryManager registryManager, ModuleClient moduleClient, ITwinTestResultHandler resultHandler, TwinEventStorage storage, TwinState twinState)
         {
-            this.reportedPropertyOperation = new ReportedPropertyOperation(registryManager, moduleClient, analyzerClient, storage, twinState);
-            this.desiredPropertyOperation = new DesiredPropertyOperation(registryManager, moduleClient, analyzerClient, storage, twinState);
+            this.reportedPropertyUpdater = new ReportedPropertyUpdater(registryManager, moduleClient, resultHandler, twinState);
+            this.desiredPropertyUpdater = new DesiredPropertyUpdater(registryManager, resultHandler, twinState);
+            this.desiredPropertyReceiver = new DesiredPropertyReceiver(registryManager, moduleClient, resultHandler);
+            this.reportedPropertiesValidator = new ReportedPropertiesValidator(registryManager, moduleClient, storage, resultHandler, twinState);
+            this.desiredPropertiesValidator = new DesiredPropertiesValidator(registryManager, moduleClient, storage, resultHandler, twinState);
         }
 
-        public static async Task<TwinOperator> CreateAsync(RegistryManager registryManager, ModuleClient moduleClient, AnalyzerClient analyzerClient, TwinEventStorage storage)
+        public static async Task<TwinAllOperationsInitializer> CreateAsync(RegistryManager registryManager, ModuleClient moduleClient, ITwinTestResultHandler resultHandler, TwinEventStorage storage)
         {
             try
             {
@@ -36,6 +42,7 @@ namespace TwinTester
                 Twin twin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
                 Dictionary<string, DateTime> reportedPropertyUpdates = await storage.GetAllReportedPropertiesUpdatedAsync();
                 Dictionary<string, DateTime> desiredPropertyUpdates = await storage.GetAllDesiredPropertiesUpdatedAsync();
+
                 if (reportedPropertyUpdates.Count == 0 &&
                     desiredPropertyUpdates.Count == 0 &&
                     (await storage.GetAllDesiredPropertiesReceivedAsync()).Count == 0)
@@ -60,7 +67,7 @@ namespace TwinTester
                 }
 
                 Logger.LogInformation($"Start state of module twin: {JsonConvert.SerializeObject(twin, Formatting.Indented)}");
-                return new TwinOperator(registryManager, moduleClient, analyzerClient, storage, initializedState);
+                return new TwinAllOperationsInitializer(registryManager, moduleClient, resultHandler, storage, initializedState);
             }
             catch (Exception e)
             {
@@ -68,11 +75,12 @@ namespace TwinTester
             }
         }
 
-        public void Start()
+        public Task Start()
         {
             TimeSpan validationInterval = new TimeSpan(Settings.Current.TwinUpdateFailureThreshold.Ticks / 4);
             this.periodicValidation = new PeriodicTask(this.PerformValidationAsync, validationInterval, validationInterval, Logger, "TwinValidation");
             this.periodicUpdate = new PeriodicTask(this.PerformUpdatesAsync, Settings.Current.TwinUpdateFrequency, Settings.Current.TwinUpdateFrequency, Logger, "TwinUpdates");
+            return this.desiredPropertyReceiver.UpdateAsync();
         }
 
         public async Task PerformUpdatesAsync(CancellationToken cancellationToken)
@@ -80,8 +88,8 @@ namespace TwinTester
             try
             {
                 await this.operationLock.WaitAsync();
-                await this.reportedPropertyOperation.UpdateAsync();
-                await this.desiredPropertyOperation.UpdateAsync();
+                await this.reportedPropertyUpdater.UpdateAsync();
+                await this.desiredPropertyUpdater.UpdateAsync();
             }
             finally
             {
@@ -94,13 +102,19 @@ namespace TwinTester
             try
             {
                 await this.operationLock.WaitAsync();
-                await this.reportedPropertyOperation.ValidateAsync();
-                await this.desiredPropertyOperation.ValidateAsync();
+                await this.reportedPropertiesValidator.ValidateAsync();
+                await this.desiredPropertiesValidator.ValidateAsync();
             }
             finally
             {
                 this.operationLock.Release();
             }
+        }
+
+        public void Dispose()
+        {
+            this.periodicValidation.Dispose();
+            this.periodicUpdate.Dispose();
         }
 
         static int GetNewPropertyCounter(Dictionary<string, DateTime> properties)
@@ -124,12 +138,6 @@ namespace TwinTester
             }
 
             return eraseReportedProperties;
-        }
-
-        public void Dispose()
-        {
-            this.periodicValidation.Dispose();
-            this.periodicUpdate.Dispose();
         }
     }
 }
