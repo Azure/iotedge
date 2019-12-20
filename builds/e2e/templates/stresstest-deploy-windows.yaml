@@ -26,6 +26,9 @@ parameters:
   twinTester.twinUpdateSize: ''
   twinTester.twinUpdateFrequency: ''
   twinTester.twinUpdateFailureThreshold: ''
+  metricsCollector.metricsEndpointsCSV: ''
+  metricsCollector.scrapeFrequencyInSecs: ''
+  metricsCollector.uploadTarget: ''
 
 steps:
   - task: CopyFiles@2
@@ -76,7 +79,10 @@ steps:
           -LogAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" `
           -TwinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" `
           -TwinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" `
-          -TwinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}"
+          -TwinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}" `
+          -MetricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" `
+          -MetricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" `
+          -MetricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}"
         # schedule a task to stop iotedge service (terminate the test) in 4:30h
         $ScheduleDatetime = [DateTime]::Now.AddMinutes(270)
         $ScheduleDate=$ScheduleDatetime.ToString("MM/dd/yyyy")

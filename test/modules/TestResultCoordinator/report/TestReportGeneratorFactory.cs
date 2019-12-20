@@ -7,6 +7,7 @@ namespace TestResultCoordinator.Report
 
     class TestReportGeneratorFactory : ITestReportGeneratorFactory
     {
+        const int BatchSize = 500;
         readonly ITestOperationResultStorage storage;
 
         public TestReportGeneratorFactory(ITestOperationResultStorage storage)
@@ -22,12 +23,20 @@ namespace TestResultCoordinator.Report
             {
                 case TestReportType.CountingReport:
                 {
+                    var expectedTestResults = new StoreTestResultCollection<TestOperationResult>(
+                        this.storage.GetStoreFromSource(reportMetadata.ExpectedSource),
+                        500);
+
+                    var actualTestResults = new StoreTestResultCollection<TestOperationResult>(
+                        this.storage.GetStoreFromSource(reportMetadata.ActualSource),
+                        500);
+
                     return new CountingReportGenerator(
                         trackingId,
                         reportMetadata.ExpectedSource,
-                        this.storage.GetStoreFromSource(reportMetadata.ExpectedSource),
+                        expectedTestResults,
                         reportMetadata.ActualSource,
-                        this.storage.GetStoreFromSource(reportMetadata.ActualSource),
+                        actualTestResults,
                         reportMetadata.TestOperationResultType.ToString(),
                         new SimpleTestOperationResultComparer());
                 }
