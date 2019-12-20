@@ -1270,7 +1270,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     Constants.HighestPriority,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule21", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule21", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.HighestPriority, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -1291,7 +1291,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     Constants.HighestPriority + 1,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule22", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule22", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.HighestPriority + 1, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -1312,7 +1312,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     Constants.HighestPriority + 2,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule23", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule23", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.HighestPriority + 2, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -1333,7 +1333,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     Constants.HighestPriority + 3,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule24", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule24", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.HighestPriority + 3, DefaultConfigurationInfo, EnvVars)
             ),
             (
                 new TestRuntimeModule(
@@ -1354,7 +1354,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
                     Constants.HighestPriority + 4,
                     null,
                     EnvVars),
-                new TestModule("updateDeployModule25", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars)
+                new TestModule("updateDeployModule25", "version1", "test", ModuleStatus.Running, Config2, RestartPolicy.Always, ImagePullPolicy.OnCreate, Constants.HighestPriority + 4, DefaultConfigurationInfo, EnvVars)
             ),
         };
 

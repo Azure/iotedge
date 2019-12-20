@@ -73,14 +73,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             Events.LogCurrent(current);
 
             List<ICommand> commands = new List<ICommand>();
-            var priorityGroup = desired.Modules.ToLookup(x => x.Value.Priority);
+            var priorityGroup = desired.Modules.Union(current.Modules).ToLookup(x => x.Value.Priority).OrderBy(x => x.Key);
 
             foreach (IGrouping<uint, KeyValuePair<string, IModule>> packageGroup in priorityGroup)
             {
-                ModuleSet priorityBasedDesiredSet = ModuleSet.Create(packageGroup.Select(x => x.Value).ToArray());
+                ModuleSet priorityBasedDesiredSet = ModuleSet.Create(desired.Modules.Where(x => packageGroup.Any(y => y.Value.Name == x.Value.Name)).Select(x => x.Value).ToArray());
                 ModuleSet priorityBasedCurrentSet = ModuleSet.Create(
                     current.Modules.Where(x => priorityBasedDesiredSet.Modules.ContainsKey(x.Value.Name) ||
-                    (!desired.Modules.ContainsKey(x.Value.Name) && x.Value.Priority == packageGroup.Key)).Select(y => y.Value)
+                    packageGroup.Any(y => y.Value.Name == x.Value.Name))
+                    .Select(y => y.Value)
                     .ToArray());
 
                 // extract list of modules that need attention
