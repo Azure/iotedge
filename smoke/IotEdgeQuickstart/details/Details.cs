@@ -277,7 +277,7 @@ namespace IotEdgeQuickstart.Details
         protected async Task VerifyEdgeAgentIsConnectedToIotHub()
         {
             Console.WriteLine("Verifying if edge is connected to IoThub");
-            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(300)))
+            using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(600))) // Long timeout is needed because registry manager takes a while for the device identity to be usable
             {
                 Exception savedException = null;
 
@@ -289,7 +289,7 @@ namespace IotEdgeQuickstart.Details
                     ServiceClient serviceClient =
                         ServiceClient.CreateFromConnectionString(this.context.IotHubConnectionString, this.serviceClientTransportType, settings);
 
-                    while (true)
+                    while (!cts.IsCancellationRequested)
                     {
                         await Task.Delay(TimeSpan.FromSeconds(10), cts.Token);
 
