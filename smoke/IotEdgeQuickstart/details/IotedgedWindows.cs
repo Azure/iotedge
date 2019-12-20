@@ -55,7 +55,7 @@ namespace IotEdgeQuickstart.Details
 
         public async Task VerifyModuleIsRunning(string name)
         {
-            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5)))
+            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(20))) // This long timeout is needed for resource constrained devices pulling the large tempFilterFunctions image
             {
                 try
                 {

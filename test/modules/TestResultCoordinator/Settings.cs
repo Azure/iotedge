@@ -75,18 +75,6 @@ namespace TestResultCoordinator
             this.ReportMetadataList = this.InitializeReportMetadataList();
         }
 
-        List<IReportMetadata> InitializeReportMetadataList()
-        {
-            // TODO: Remove this hardcoded list and use twin update instead
-            return new List<IReportMetadata>
-            {
-                new CountingReportMetadata("loadGen1.send", "relayer1.receive", TestOperationResultType.Messages, TestReportType.CountingReport),
-                new CountingReportMetadata("relayer1.send", "relayer1.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport),
-                new CountingReportMetadata("loadGen2.send", "relayer2.receive", TestOperationResultType.Messages, TestReportType.CountingReport),
-                new CountingReportMetadata("relayer2.send", "relayer2.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport)
-            };
-        }
-
         public static Settings Current => DefaultSettings.Value;
 
         public string EventHubConnectionString { get; }
@@ -140,10 +128,22 @@ namespace TestResultCoordinator
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
         }
 
+        List<IReportMetadata> InitializeReportMetadataList()
+        {
+            // TODO: Remove this hardcoded list and use twin update instead
+            return new List<IReportMetadata>
+            {
+                new CountingReportMetadata("loadGen1.send", "relayer1.receive", TestOperationResultType.Messages, TestReportType.CountingReport),
+                new CountingReportMetadata("relayer1.send", "relayer1.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport),
+                new CountingReportMetadata("loadGen2.send", "relayer2.receive", TestOperationResultType.Messages, TestReportType.CountingReport),
+                new CountingReportMetadata("relayer2.send", "relayer2.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport)
+            };
+        }
+
         List<string> GetResultSources()
         {
             // TODO: Remove this hardcoded list and use environment variables once we've decided on how exactly to set the configuration
-            return new List<string> { "loadGen1.send", "relayer1.receive", "relayer1.send", "relayer1.eventHub", "loadGen2.send", "relayer2.receive", "relayer2.send", "relayer2.eventHub" };
+            return new List<string> { "loadGen1.send", "relayer1.receive", "relayer1.send", "relayer1.eventHub", "loadGen2.send", "relayer2.receive", "relayer2.send", "relayer2.eventHub", "networkController" };
         }
     }
 }

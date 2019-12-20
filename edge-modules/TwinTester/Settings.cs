@@ -20,9 +20,12 @@ namespace TwinTester
                     .AddEnvironmentVariables()
                     .Build();
 
+                string moduleId = configuration.GetValue<string>("TargetModuleId");
+                moduleId = string.IsNullOrWhiteSpace(moduleId) ? configuration.GetValue<string>("IOTEDGE_MODULEID", string.Empty) : moduleId;
+
                 return new Settings(
                     configuration.GetValue<string>("IOTEDGE_DEVICEID", string.Empty),
-                    configuration.GetValue<string>("IOTEDGE_MODULEID", string.Empty),
+                    moduleId,
                     configuration.GetValue<int>("TwinUpdateSize", 1),
                     configuration.GetValue<TimeSpan>("TwinUpdateFrequency", TimeSpan.FromSeconds(10)),
                     configuration.GetValue<TimeSpan>("TwinUpdateFailureThreshold", TimeSpan.FromMinutes(1)),
@@ -30,7 +33,8 @@ namespace TwinTester
                     configuration.GetValue<Uri>("AnalyzerUrl", new Uri("http://analyzer:15000")),
                     configuration.GetValue<string>("ServiceClientConnectionString"),
                     configuration.GetValue<string>("StoragePath"),
-                    configuration.GetValue<bool>("StorageOptimizeForPerformance", true));
+                    configuration.GetValue<bool>("StorageOptimizeForPerformance", true),
+                    configuration.GetValue<TestMode>("TestMode", TestMode.TwinAllOperations));
             });
 
         Settings(
@@ -43,7 +47,8 @@ namespace TwinTester
             Uri analyzerUrl,
             string serviceClientConnectionString,
             string storagePath,
-            bool storageOptimizeForPerformance)
+            bool storageOptimizeForPerformance,
+            TestMode testMode)
         {
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
@@ -55,20 +60,32 @@ namespace TwinTester
             this.ServiceClientConnectionString = Preconditions.CheckNonWhiteSpace(serviceClientConnectionString, nameof(serviceClientConnectionString));
             this.StoragePath = Preconditions.CheckNotNull(storagePath);
             this.StorageOptimizeForPerformance = Preconditions.CheckNotNull(storageOptimizeForPerformance);
+            this.TestMode = testMode;
         }
 
         public static Settings Current => DefaultSettings.Value;
 
         public string DeviceId { get; }
+
         public string ModuleId { get; }
+
         public int TwinUpdateSize { get; }
+
         public TimeSpan TwinUpdateFrequency { get; }
+
         public TimeSpan TwinUpdateFailureThreshold { get; }
+
         public TransportType TransportType { get; }
+
         public Uri AnalyzerUrl { get; }
+
         public string ServiceClientConnectionString { get; }
+
         public string StoragePath { get; }
+
         public bool StorageOptimizeForPerformance { get; }
+
+        public TestMode TestMode { get; }
 
         public override string ToString()
         {
@@ -82,6 +99,7 @@ namespace TwinTester
             fields.Add(nameof(this.AnalyzerUrl), this.AnalyzerUrl.ToString());
             fields.Add(nameof(this.StoragePath), this.StoragePath);
             fields.Add(nameof(this.StorageOptimizeForPerformance), this.StorageOptimizeForPerformance.ToString());
+            fields.Add(nameof(this.TestMode), this.TestMode.ToString());
             return JsonConvert.SerializeObject(fields, Formatting.Indented);
         }
     }
