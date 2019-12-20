@@ -31,7 +31,8 @@ namespace DirectMethodSender
                     Option.Maybe<string>(configuration.GetValue<string>("ServiceClientConnectionString")),
                     Option.Maybe(configuration.GetValue<Uri>("testResultCoordinatorUrl")),
                     configuration.GetValue<string>("IOTEDGE_MODULEID"),
-                    configuration.GetValue("testDuration", TimeSpan.Zero)
+                    configuration.GetValue("testDuration", TimeSpan.Zero),
+                    configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2))
                     );
             });
 
@@ -45,9 +46,11 @@ namespace DirectMethodSender
             Option<string> serviceClientConnectionString,
             Option<Uri> testResultCoordinatorUrl,
             string moduleId,
-            TimeSpan testDuration)
+            TimeSpan testDuration,
+            TimeSpan testStartDelay)
         {
             Preconditions.CheckRange(testDuration.Ticks, 0);
+            Preconditions.CheckRange(testStartDelay.Ticks, 0);
 
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.TargetModuleId = Preconditions.CheckNonWhiteSpace(targetModuleId, nameof(targetModuleId));
@@ -60,6 +63,7 @@ namespace DirectMethodSender
             this.TestResultCoordinatorUrl = testResultCoordinatorUrl;
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.TestDuration = testDuration;
+            this.TestStartDelay = testStartDelay;
         }
 
         public static Settings Current => DefaultSettings.Value;
@@ -84,6 +88,8 @@ namespace DirectMethodSender
 
         public TimeSpan TestDuration { get; }
 
+        public TimeSpan TestStartDelay { get; }
+
         public override string ToString()
         {
             // serializing in this pattern so that secrets don't accidentally get added anywhere in the future
@@ -93,6 +99,7 @@ namespace DirectMethodSender
                 { nameof(this.DeviceId), this.DeviceId },
                 { nameof(this.TargetModuleId), this.TargetModuleId },
                 { nameof(this.TestDuration), this.TestDuration.ToString() },
+                { nameof(this.TestStartDelay), this.TestStartDelay.ToString() },
                 { nameof(this.TransportType), Enum.GetName(typeof(TransportType), this.TransportType) },
                 { nameof(this.DirectMethodDelay), this.DirectMethodDelay.ToString() },
                 { nameof(this.InvocationSource), this.InvocationSource.ToString() },

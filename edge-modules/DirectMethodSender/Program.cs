@@ -28,11 +28,12 @@ namespace DirectMethodSender
             ModuleClient reportClient = null;
             Option<Uri> analyzerUrl = Settings.Current.AnalyzerUrl;
             Option<Uri> testReportCoordinatorUrl = Settings.Current.TestResultCoordinatorUrl;
-            Guid batchId = Guid.NewGuid();
-            DateTime testStartAt = DateTime.UtcNow;
 
             try
             {
+                Guid batchId = Guid.NewGuid();
+                Logger.LogInformation($"Batch Id={batchId}");
+
                 directMethodClient = await CreateClientAsync(Settings.Current.InvocationSource);
 
                 reportClient = await ModuleUtil.CreateModuleClientAsync(
@@ -41,6 +42,10 @@ namespace DirectMethodSender
                     ModuleUtil.DefaultTransientRetryStrategy,
                     Logger);
 
+                Logger.LogInformation($"Load gen delay start for {Settings.Current.TestStartDelay}.");
+                await Task.Delay(Settings.Current.TestStartDelay);
+
+                DateTime testStartAt = DateTime.UtcNow;
                 while (!cts.Token.IsCancellationRequested && IsTestTimeUp(testStartAt))
                 {
                     // TODO: Make this method return both result and count for the DM
