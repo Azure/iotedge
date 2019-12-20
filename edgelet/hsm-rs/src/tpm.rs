@@ -63,6 +63,9 @@ impl Tpm {
     }
 
     pub fn get_version(&self) -> Result<String, Error> {
+        // We want to enforce Crypto::new is called before this, since ::new() initializes the libiothsm. So silence the allow_unused clippy lint.
+        let _ = self;
+
         let version = unsafe {
             CStr::from_ptr(hsm_get_version())
                 .to_string_lossy()
