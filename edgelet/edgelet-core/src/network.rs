@@ -157,7 +157,7 @@ mod tests {
             .with_ip_range("172.18.0.0/16".to_string())
             .with_subnet("172.18.0.0/16".to_string());
 
-        let ipam = Ipam::default().with_config(vec![ipam_config.clone()]);
+        let ipam = Ipam::default().with_config(vec![ipam_config]);
         let network_name = "my-network";
         let ipv6 = true;
         let network = Network::new(network_name.to_string())
