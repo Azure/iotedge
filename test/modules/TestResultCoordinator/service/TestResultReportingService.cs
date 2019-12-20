@@ -2,7 +2,6 @@
 namespace TestResultCoordinator.Service
 {
     using System;
-    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
