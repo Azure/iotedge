@@ -60,7 +60,7 @@
                 "value": "<TrackingId>"
               },
               "transportType": {
-                "value": "amqp"
+                "value": "Amqp"
               },
               "outputName": {
                 "value": "output1"
@@ -93,7 +93,7 @@
                 "value": "<TrackingId>"
               },
               "transportType": {
-                "value": "mqtt"
+                "value": "Mqtt"
               },
               "outputName": {
                 "value": "output2"
@@ -123,7 +123,7 @@
                 "value": "DirectMethodReceiver"
               },
               "TransportType" : {
-                "value": "Mqtt"
+                "value": "Amqp"
               },
               "testDuration": {
                 "value": "<TestDuration>"
@@ -150,7 +150,7 @@
             "restartPolicy": "always",
             "env": {
               "TransportType": {
-                "value": "Mqtt"
+                "value": "Amqp"
               }
             },
             "settings": {
@@ -165,13 +165,16 @@
             "restartPolicy": "always",
             "env": {
               "InvocationSource": {
-                "value": "Local"
+                "value": "Cloud"
               },
-              "TransportType" : {
-                "value": "Mqtt"
+              "ServiceClientConnectionString": {
+                "value": "<ServiceClientConnectionString>"
               },
               "TargetModuleId": {
                 "value": "DirectMethodReceiver2"
+              },
+              "TransportType" : {
+                "value": "Mqtt"
               },
               "testDuration": {
                 "value": "<TestDuration>"
@@ -214,7 +217,7 @@
             "restartPolicy": "always",
             "env": {
               "transportType": {
-                "value": "amqp"
+                "value": "Amqp"
               },
               "inputName": {
                 "value": "input1"
@@ -238,7 +241,7 @@
             "restartPolicy": "always",
             "env": {
               "transportType": {
-                "value": "mqtt"
+                "value": "Mqtt"
               },
               "inputName": {
                 "value": "input2"
@@ -340,8 +343,7 @@
           "loadGen1ToRelayer1": "FROM /messages/modules/loadGen1/outputs/output1 INTO BrokeredEndpoint(\"/modules/relayer1/inputs/input1\")",
           "relayer1ToCloud": "FROM /messages/modules/relayer1/outputs/output1 INTO $upstream",
           "loadGen2ToRelayer2": "FROM /messages/modules/loadGen2/outputs/output2 INTO BrokeredEndpoint(\"/modules/relayer2/inputs/input2\")",
-          "relayer2ToCloud": "FROM /messages/modules/relayer2/outputs/output2 INTO $upstream",
-          "directMethodSender1ToUpstream": "FROM /messages/modules/DirectMethodSender/outputs/output1 INTO $upstream"
+          "relayer2ToCloud": "FROM /messages/modules/relayer2/outputs/output2 INTO $upstream"
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 86400
