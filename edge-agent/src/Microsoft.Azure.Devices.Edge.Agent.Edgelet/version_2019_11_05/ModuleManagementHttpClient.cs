@@ -202,15 +202,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_11_05
             }
         }
 
-        public override async Task ReprovisionDeviceAsync()
-        {
-            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
-            {
-                var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
-                await this.Execute(() => edgeletHttpClient.ReprovisionDeviceAsync(this.Version.Name), "reprovision the device");
-            }
-        }
-
         protected override void HandleException(Exception exception, string operation)
         {
             switch (exception)
