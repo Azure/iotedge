@@ -224,12 +224,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             ModuleSet desiredSet = ModuleSet.Create(updatedModule1, addModule2, addModule3);
             var executionList = new List<TestRecordType>
             {
-                new TestRecordType(TestCommandType.TestStop, module1),
                 new TestRecordType(TestCommandType.TestCreate, addModule3),
-                new TestRecordType(TestCommandType.TestCreate, addModule2),
-                new TestRecordType(TestCommandType.TestUpdate, updatedModule1),
                 new TestRecordType(TestCommandType.TestStart, addModule3),
+                new TestRecordType(TestCommandType.TestCreate, addModule2),
                 new TestRecordType(TestCommandType.TestStart, addModule2),
+                new TestRecordType(TestCommandType.TestStop, module1),
+                new TestRecordType(TestCommandType.TestUpdate, updatedModule1),
                 new TestRecordType(TestCommandType.TestStart, updatedModule1),
             };
             Plan addPlan = await planner.PlanAsync(desiredSet, currentSet, RuntimeInfo, moduleIdentities);
