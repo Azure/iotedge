@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace TestResultCoordinator.Controllers
 {
+    using System;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
@@ -33,7 +34,15 @@ namespace TestResultCoordinator.Controllers
                 return new ContentResult { Content = "No test report generated" };
             }
 
-            return new ContentResult { Content = JsonConvert.SerializeObject(testResultReports, Formatting.Indented) };
+            return new ContentResult
+            {
+                Content = this.AddManualRunReportingHeading(JsonConvert.SerializeObject(testResultReports, Formatting.Indented)) // explicit serialization needed due to the wrapping list
+            };
+        }
+
+        string AddManualRunReportingHeading(string reportContent)
+        {
+            return $"Run manually at {DateTime.UtcNow}{Environment.NewLine}Report result is not complete as testing is still running.{Environment.NewLine}{reportContent}";
         }
     }
 }

@@ -23,6 +23,14 @@
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
+            },
+            "env": {
+              "experimentalfeatures__enabled": {
+                  "value": "true"
+              },
+              "experimentalfeatures__enableMetrics": {
+                  "value": "true"
+              }
             }
           },
           "edgeHub": {
@@ -40,6 +48,12 @@
               },
               "mqttSettings__enabled": {
                 "value": "<mqttSettings__enabled>"
+              },
+              "experimentalfeatures__enabled": {
+                  "value": "true"
+              },
+              "experimentalfeatures__enableMetrics": {
+                  "value": "true"
               }
             },
             "status": "running",
@@ -294,6 +308,33 @@
               "image": "<Container_Registry>/microsoft/azureiotedge-analyzer:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"15000/tcp\":[{\"HostPort\":\"15000\"}]}}}"
             }
+          },
+          "metricsCollector": {
+            "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
+                "createOptions": ""
+            },
+            "type": "docker",
+            "version": "1.0",
+            "env": {
+                "AzMonWorkspaceId": {
+                    "value": "<LogAnalyticsWorkspaceId>"
+                },
+                "AzMonWorkspaceKey": {
+                    "value": "<LogAnalyticsSharedKey>"
+                },
+                "MetricsEndpointsCSV": {
+                  "value": "<MetricsCollector.MetricsEndpointsCSV>"
+                },
+                "ScrapeFrequencyInSecs": {
+                    "value": "<MetricsCollector.ScrapeFrequencyInSecs>"
+                },
+                "UploadTarget": {
+                  "value": "<MetricsCollector.UploadTarget>"
+                }
+            },
+            "status": "running",
+            "restartPolicy": "always"
           }
         }
       }
