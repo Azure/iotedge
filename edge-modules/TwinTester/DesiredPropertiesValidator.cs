@@ -11,55 +11,25 @@ namespace TwinTester
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
-    class DesiredPropertyOperation : TwinOperationBase
+    class DesiredPropertiesValidator : ITwinPropertiesValidator
     {
-        static readonly ILogger LoggerImpl = ModuleUtil.CreateLogger(nameof(DesiredPropertyOperation));
+        static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(DesiredPropertiesValidator));
         readonly RegistryManager registryManager;
-        readonly ModuleClient moduleClient;
-        readonly AnalyzerClient analyzerClient;
-        readonly TwinEventStorage storage;
         readonly TwinState twinState;
+        readonly ModuleClient moduleClient;
+        readonly TwinEventStorage storage;
+        readonly ITwinTestResultHandler resultHandler;
 
-        public DesiredPropertyOperation(RegistryManager registryManager, ModuleClient moduleClient, AnalyzerClient analyzerClient, TwinEventStorage storage, TwinState twinState)
+        public DesiredPropertiesValidator(RegistryManager registryManager, ModuleClient moduleClient, TwinEventStorage storage, ITwinTestResultHandler resultHandler, TwinState twinState)
         {
             this.registryManager = registryManager;
             this.moduleClient = moduleClient;
-            this.analyzerClient = analyzerClient;
             this.storage = storage;
+            this.resultHandler = resultHandler;
             this.twinState = twinState;
-            this.moduleClient.SetDesiredPropertyUpdateCallbackAsync(this.OnDesiredPropertyUpdateAsync, storage);
         }
 
-        public override ILogger Logger => LoggerImpl;
-
-        public override async Task UpdateAsync()
-        {
-            try
-            {
-                string desiredPropertyUpdateValue = new string('1', Settings.Current.TwinUpdateSize); // dummy twin update needs to be any number
-                string patch = string.Format("{{ properties: {{ desired: {{ {0}: {1}}} }} }}", this.twinState.DesiredPropertyUpdateCounter, desiredPropertyUpdateValue);
-                Twin newTwin = await this.registryManager.UpdateTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId, patch, this.twinState.TwinETag);
-                this.twinState.TwinETag = newTwin.ETag;
-                this.Logger.LogInformation($"Made desired property update {this.twinState.DesiredPropertyUpdateCounter}");
-            }
-            catch (Exception e)
-            {
-                this.Logger.LogInformation($"Failed call to desired property update: {e}");
-                return;
-            }
-
-            try
-            {
-                await this.storage.AddDesiredPropertyUpdateAsync(this.twinState.DesiredPropertyUpdateCounter.ToString());
-                this.twinState.DesiredPropertyUpdateCounter += 1;
-            }
-            catch (Exception e)
-            {
-                this.Logger.LogError($"Failed adding desired property update to storage: {e}");
-            }
-        }
-
-        public override async Task ValidateAsync()
+        public async Task ValidateAsync()
         {
             Twin receivedTwin;
             try
@@ -68,7 +38,7 @@ namespace TwinTester
             }
             catch (Exception e)
             {
-                this.Logger.LogInformation($"Failed call to module client get twin: {e}");
+                Logger.LogError(e, "Failed call to module client get twin.");
                 return;
             }
 
@@ -90,8 +60,8 @@ namespace TwinTester
                 string status;
                 if (hasTwinUpdate && hasModuleReceivedCallback)
                 {
-                    status = $"{(int)StatusCode.Success}: Successfully validated desired property update";
-                    this.Logger.LogInformation(status + $" {desiredPropertyUpdate.Key}");
+                    status = $"{(int)StatusCode.ValidationSuccess}: Successfully validated desired property update";
+                    Logger.LogInformation(status + $" {desiredPropertyUpdate.Key}");
                 }
                 else if (this.ExceedFailureThreshold(this.twinState, desiredPropertyUpdate.Value))
                 {
@@ -108,28 +78,18 @@ namespace TwinTester
                         status = $"{(int)StatusCode.DesiredPropertyUpdateTotalFailure}: Failure receiving desired property update in both twin and callback";
                     }
 
-                    this.Logger.LogError(status + $" for update #{desiredPropertyUpdate.Key}");
+                    Logger.LogError($"{status} for update #{desiredPropertyUpdate.Key}");
                 }
                 else
                 {
                     continue;
                 }
 
-                await this.CallAnalyzerToReportStatusAsync(this.analyzerClient, Settings.Current.ModuleId, status);
+                await this.HandleReportStatusAsync(Settings.Current.ModuleId, status);
                 propertiesToRemoveFromTwin.Add(desiredPropertyUpdate.Key, null); // will later be serialized as a twin update
             }
 
             return propertiesToRemoveFromTwin;
-        }
-
-        async Task OnDesiredPropertyUpdateAsync(TwinCollection desiredProperties, object userContext)
-        {
-            TwinEventStorage storage = (TwinEventStorage)userContext;
-            foreach (dynamic twinUpdate in desiredProperties)
-            {
-                KeyValuePair<string, object> pair = (KeyValuePair<string, object>)twinUpdate;
-                await this.storage.AddDesiredPropertyReceivedAsync(pair.Key);
-            }
         }
 
         async Task RemovePropertiesFromStorage(Dictionary<string, string> propertiesToRemoveFromTwin)
@@ -143,7 +103,7 @@ namespace TwinTester
                 }
                 catch (Exception e)
                 {
-                    this.Logger.LogError($"Failed to remove validated desired property id {pair.Key} from storage: {e}");
+                    Logger.LogError(e, $"Failed to remove validated desired property id {pair.Key} from storage.");
                 }
             }
         }
@@ -158,8 +118,19 @@ namespace TwinTester
             }
             catch (Exception e)
             {
-                this.Logger.LogInformation($"Failed call to remove successful desired property updates: {e}");
+                Logger.LogError(e, "Failed call to remove successful desired property updates.");
             }
+        }
+
+        bool ExceedFailureThreshold(TwinState twinState, DateTime twinUpdateTime)
+        {
+            DateTime comparisonPoint = twinUpdateTime > twinState.LastTimeOffline ? twinUpdateTime : twinState.LastTimeOffline;
+            return DateTime.UtcNow - comparisonPoint > Settings.Current.TwinUpdateFailureThreshold;
+        }
+
+        async Task HandleReportStatusAsync(string moduleId, string status)
+        {
+            await this.resultHandler.HandleTwinValidationStatusAsync(status);
         }
     }
 }
