@@ -29,10 +29,11 @@ namespace DirectMethodSender
                     Option.Maybe(configuration.GetValue<Uri>("AnalyzerUrl")),
                     configuration.GetValue<InvocationSource>("InvocationSource", InvocationSource.Local),
                     Option.Maybe<string>(configuration.GetValue<string>("ServiceClientConnectionString")),
-                    Option.Maybe(configuration.GetValue<Uri>("testResultCoordinatorUrl")),
                     configuration.GetValue<string>("IOTEDGE_MODULEID"),
                     configuration.GetValue("testDuration", TimeSpan.Zero),
-                    configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2))
+                    configuration.GetValue("testStartDelay", TimeSpan.Zero),
+                    Option.Maybe(configuration.GetValue<Uri>("testResultCoordinatorUrl")),
+                    Option.Maybe(configuration.GetValue<string>("trackingId"))
                     );
             });
 
@@ -44,10 +45,11 @@ namespace DirectMethodSender
             Option<Uri> analyzerUrl,
             InvocationSource invocationSource,
             Option<string> serviceClientConnectionString,
-            Option<Uri> testResultCoordinatorUrl,
             string moduleId,
             TimeSpan testDuration,
-            TimeSpan testStartDelay)
+            TimeSpan testStartDelay,
+            Option<Uri> testResultCoordinatorUrl,
+            Option<string> trackingId)
         {
             Preconditions.CheckRange(testDuration.Ticks, 0);
             Preconditions.CheckRange(testStartDelay.Ticks, 0);
@@ -60,10 +62,11 @@ namespace DirectMethodSender
             this.InvocationSource = invocationSource;
             this.AnalyzerUrl = analyzerUrl;
             this.ServiceClientConnectionString = serviceClientConnectionString;
-            this.TestResultCoordinatorUrl = testResultCoordinatorUrl;
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.TestDuration = testDuration;
             this.TestStartDelay = testStartDelay;
+            this.TestResultCoordinatorUrl = testResultCoordinatorUrl;
+            this.TrackingId = trackingId;
         }
 
         public static Settings Current => DefaultSettings.Value;
@@ -82,13 +85,15 @@ namespace DirectMethodSender
 
         public Option<Uri> AnalyzerUrl { get; }
 
-        public Option<Uri> TestResultCoordinatorUrl { get; }
-
         public string ModuleId { get; }
 
         public TimeSpan TestDuration { get; }
 
         public TimeSpan TestStartDelay { get; }
+
+        public Option<Uri> TestResultCoordinatorUrl { get; }
+
+        public Option<string> TrackingId { get; }
 
         public override string ToString()
         {
@@ -100,6 +105,7 @@ namespace DirectMethodSender
                 { nameof(this.TargetModuleId), this.TargetModuleId },
                 { nameof(this.TestDuration), this.TestDuration.ToString() },
                 { nameof(this.TestStartDelay), this.TestStartDelay.ToString() },
+                { nameof(this.TrackingId), this.TrackingId.ToString() },
                 { nameof(this.TransportType), Enum.GetName(typeof(TransportType), this.TransportType) },
                 { nameof(this.DirectMethodDelay), this.DirectMethodDelay.ToString() },
                 { nameof(this.InvocationSource), this.InvocationSource.ToString() },
