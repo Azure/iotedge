@@ -67,7 +67,7 @@ namespace TestResultCoordinator.Service
                                 // TODO: remove hardcoded eventHub string in next line
                                 var result = new TestOperationResult(
                                     (string)moduleIdFromEvent + ".eventHub",
-TestOperationResultType.Messages.ToString(),
+                                    TestOperationResultType.Messages.ToString(),
                                     ModuleUtil.FormatMessagesTestResultValue(
                                         (string)trackingIdFromEvent,
                                         (string)batchIdFromEvent,
