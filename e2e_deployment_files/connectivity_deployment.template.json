@@ -116,10 +116,6 @@
               "ClientTransportType" : {
                 "value": "Amqp_Tcp_Only"
               },
-              "testResultCoordinatorUrl":
-              {
-                "value": "http://testResultCoordinator:5001"
-              },
               "InvocationSource": {
                 "value": "Cloud"
               },
@@ -128,6 +124,19 @@
               },
               "TargetModuleId": {
                 "value": "DirectMethodReceiver"
+              },
+              "testDuration": {
+                "value": "<TestDuration>"
+              },
+              "testStartDelay": {
+                "value": "<TestStartDelay>"
+              },
+              "testResultCoordinatorUrl":
+              {
+                "value": "http://testResultCoordinator:5001"
+              },
+              "trackingId": {
+                "value": "<TrackingId>"
               }
             },
             "settings": {
@@ -159,15 +168,24 @@
               "ClientTransportType" : {
                 "value": "Amqp_Tcp_Only"
               },
-              "testResultCoordinatorUrl":
-              {
-                "value": "http://testResultCoordinator:5001"
-              },
               "InvocationSource": {
                 "value": "Local"
               },
               "TargetModuleId": {
                 "value": "DirectMethodReceiver2"
+              },
+              "testDuration": {
+                "value": "<TestDuration>"
+              },
+              "testStartDelay": {
+                "value": "<TestStartDelay>"
+              },
+              "testResultCoordinatorUrl":
+              {
+                "value": "http://testResultCoordinator:5001"
+              },
+              "trackingId": {
+                "value": "<TrackingId>"
               }
             },
             "settings": {
