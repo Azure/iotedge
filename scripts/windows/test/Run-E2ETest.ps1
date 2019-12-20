@@ -122,6 +122,15 @@
     .PARAMETER TwinUpdateFailureThreshold
         Specifies the longest period of time a twin update can take before being marked as a failure. This should be specified in DateTime format. Default is 00:01:00
 
+    .PARAMETER MetricsEndpointsCSV
+        Optional CSV of exposed endpoints for which to scrape metrics.
+
+    .PARAMETER MetricsScrapeFrequencyInSecs
+        Optional frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds. 
+
+    .PARAMETER MetricsUploadTarget
+        Optional upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics. 
+
     .EXAMPLE
         .\Run-E2ETest.ps1
             -E2ETestFolder "C:\Data\e2etests"
@@ -251,6 +260,12 @@ Param (
     [string] $IoTHubConnectionString = $(Throw "IoT hub connection string is required"),
 
     [string] $LoadGenMessageFrequency = $null,
+
+    [string] $MetricsEndpointsCSV = $null,
+
+    [string] $MetricsScrapeFrequencyInSecs = $null,
+
+    [string] $MetricsUploadTarget = $null,
 
     [ValidateScript({($_ -as [System.Uri]).AbsoluteUri -ne $null})]
     [string] $ProxyUri = $null,
@@ -490,6 +505,9 @@ Function PrepareTestFromArtifacts
                 (Get-Content $DeploymentWorkingFilePath).replace('<LoadGen.MessageFrequency>',$LoadGenMessageFrequency) | Set-Content $DeploymentWorkingFilePath
                 $escapedBuildId= $ArtifactImageBuildNumber -replace "\.",""
                 (Get-Content $DeploymentWorkingFilePath).replace('<ServiceClientConnectionString>',$IoTHubConnectionString) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<MetricsCollector.MetricsEndpointsCSV>',$MetricsEndpointsCSV) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<MetricsCollector.ScrapeFrequencyInSecs>',$MetricsScrapeFrequencyInSecs) | Set-Content $DeploymentWorkingFilePath
+                (Get-Content $DeploymentWorkingFilePath).replace('<MetricsCollector.UploadTarget>',$MetricsUploadTarget) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.AlertUrl>',$SnitchAlertUrl) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildNumber>',$SnitchBuildNumber) | Set-Content $DeploymentWorkingFilePath
                 (Get-Content $DeploymentWorkingFilePath).replace('<Snitch.BuildId>',"$ReleaseLabel-$(GetImageArchitectureLabel)-windows-$escapedBuildId") | Set-Content $DeploymentWorkingFilePath
@@ -1547,6 +1565,16 @@ If ([string]::IsNullOrWhiteSpace($EdgeE2ERootCAKeyRSAFile))
 If ([string]::IsNullOrWhiteSpace($TwinUpdateFailureThreshold))
 {
     $TwinUpdateFailureThreshold="00:00:01"
+}
+
+If ([string]::IsNullOrWhiteSpace($MetricsScrapeFrequencyInSecs))
+{
+    $MetricsScrapeFrequencyInSecs=300;
+}
+
+If ([string]::IsNullOrWhiteSpace($MetricsUploadTarget))
+{
+    $MetricsScrapeFrequencyInSecs="AzureLogAnalytics";
 }
 
 If ($TestName -eq "LongHaul")

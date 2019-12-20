@@ -11,34 +11,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher;
+    using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage;
+    using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
 
     public class MetricsWorker : IDisposable
     {
+        public static RetryStrategy RetryStrategy = new ExponentialBackoff(20, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(30), TimeSpan.FromMinutes(1), false);
+
         readonly IMetricsScraper scraper;
         readonly IMetricsStorage storage;
         readonly IMetricsPublisher uploader;
-        readonly ISystemTime systemTime;
         readonly AsyncLock scrapeUploadLock = new AsyncLock();
         static readonly ILogger Log = Logger.Factory.CreateLogger<MetricsScraper>();
-
-        DateTime lastUploadTime = DateTime.MinValue;
-
-        // This acts as a local buffer. It stores the previous value of every metric.
-        // If the new value for that metric is unchanged, it doesn't write the duplicate value to disk.
-        Dictionary<int, Metric> metrics = new Dictionary<int, Metric>();
 
         PeriodicTask scrape;
         PeriodicTask upload;
 
-        public MetricsWorker(IMetricsScraper scraper, IMetricsStorage storage, IMetricsPublisher uploader, ISystemTime systemTime = null)
+        public MetricsWorker(IMetricsScraper scraper, IMetricsStorage storage, IMetricsPublisher uploader)
         {
             this.scraper = Preconditions.CheckNotNull(scraper, nameof(scraper));
             this.storage = Preconditions.CheckNotNull(storage, nameof(storage));
             this.uploader = Preconditions.CheckNotNull(uploader, nameof(uploader));
-            this.systemTime = systemTime ?? SystemTime.Instance;
         }
 
         public void Start(TimeSpan scrapingInterval, TimeSpan uploadInterval)
@@ -52,68 +49,72 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             using (await this.scrapeUploadLock.LockAsync(cancellationToken))
             {
                 Log.LogInformation("Scraping Metrics");
-                List<Metric> metricsToPersist = new List<Metric>();
-                int numScrapedMetrics = 0;
-                foreach (Metric scrapedMetric in await this.scraper.ScrapeEndpointsAsync(cancellationToken))
-                {
-                    numScrapedMetrics++;
-                    // Get the previous scrape for this metric
-                    if (this.metrics.TryGetValue(scrapedMetric.GetMetricKey(), out Metric oldMetric))
-                    {
-                        // If the metric is unchanged, do nothing
-                        if (oldMetric.Value.Equals(scrapedMetric.Value))
-                        {
-                            continue;
-                        }
-                    }
-
-                    // if new metric or metric changed, save to local buffer and disk.
-                    metricsToPersist.Add(scrapedMetric);
-                    this.metrics[scrapedMetric.GetMetricKey()] = scrapedMetric;
-                }
-
-                Log.LogInformation($"Scraped {numScrapedMetrics} Metrics");
-
-                if (metricsToPersist.Any())
-                {
-                    Log.LogInformation("Storing Metrics");
-                    this.storage.WriteData(Newtonsoft.Json.JsonConvert.SerializeObject(metricsToPersist));
-                    Log.LogInformation("Stored Metrics");
-                }
+                IEnumerable<Metric> scrapedMetrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
+                Log.LogInformation("Storing Metrics");
+                await this.storage.StoreMetricsAsync(scrapedMetrics);
+                Log.LogInformation("Scraped and Stored Metrics");
             }
         }
 
         internal async Task Upload(CancellationToken cancellationToken)
         {
-            using (await this.scrapeUploadLock.LockAsync(cancellationToken))
+            if (!await this.TryUploadAndClear(cancellationToken))
             {
-                Log.LogInformation($"Uploading Metrics. Last upload was at {this.lastUploadTime}");
-                DateTime currentUploadTime = this.systemTime.UtcNow;
-                int numMetricsUploaded = 0;
-                IEnumerable<Metric> metricsToUpload = this.GetMetricsToUpload(this.lastUploadTime).Select(metric =>
-                {
-                    numMetricsUploaded++;
-                    return metric;
-                });
-                await this.uploader.PublishAsync(metricsToUpload, cancellationToken);
-                Log.LogInformation($"Uploaded {numMetricsUploaded} Metrics");
-
-                this.storage.RemoveOldEntries(currentUploadTime);
-                this.metrics.Clear();
-                this.lastUploadTime = currentUploadTime;
+                await this.BeginUploadRetry(cancellationToken);
             }
         }
 
-        IEnumerable<Metric> GetMetricsToUpload(DateTime lastUploadTime)
+        async Task<bool> TryUploadAndClear(CancellationToken cancellationToken)
         {
-            // Get all metrics that have been stored since the last upload
-            foreach (KeyValuePair<DateTime, Func<string>> data in this.storage.GetData(lastUploadTime))
+            using (await this.scrapeUploadLock.LockAsync(cancellationToken))
             {
-                var fileMetrics = Newtonsoft.Json.JsonConvert.DeserializeObject<Metric[]>(data.Value()) ?? Enumerable.Empty<Metric>();
-                foreach (Metric metric in fileMetrics)
+                Log.LogInformation($"Uploading Metrics");
+                IEnumerable<Metric> metricsToUpload = (await this.storage.GetAllMetricsAsync()).CondenseTimeSeries();
+
+                try
                 {
-                    yield return metric;
+                    if (await this.uploader.PublishAsync(metricsToUpload, cancellationToken))
+                    {
+                        Log.LogInformation($"Published metrics");
+                        await this.storage.RemoveAllReturnedMetricsAsync();
+                        return true;
+                    }
+                    else
+                    {
+                        Log.LogInformation($"Failed to publish metrics");
+                        return false;
+                    }
                 }
+                catch (Exception ex)
+                {
+                    // If unexpected error publishing metrics, delete stored ones to prevent storage buildup.
+                    Log.LogError($"Unexpected error publishing metrics. Deleting stored metrics.");
+                    await this.storage.RemoveAllReturnedMetricsAsync();
+                    throw ex;
+                }
+            }
+        }
+
+        async Task BeginUploadRetry(CancellationToken cancellationToken)
+        {
+            int retryNum = 0;
+            var shouldRetry = RetryStrategy.GetShouldRetry();
+            while (shouldRetry(retryNum++, null, out TimeSpan backoffDelay))
+            {
+                Log.LogInformation($"Metric publish set to retry in {backoffDelay.Humanize()}");
+                await Task.Delay(backoffDelay, cancellationToken);
+                if (await this.TryUploadAndClear(cancellationToken))
+                {
+                    // Upload succeded, end loop
+                    return;
+                }
+            }
+
+            Log.LogInformation($"Upload retries exeeded {retryNum} allowed attempts. Deleting stored metrics.");
+            using (await this.scrapeUploadLock.LockAsync(cancellationToken))
+            {
+                await this.storage.RemoveAllReturnedMetricsAsync();
+                Log.LogInformation($"Deleted stored metrics.");
             }
         }
 

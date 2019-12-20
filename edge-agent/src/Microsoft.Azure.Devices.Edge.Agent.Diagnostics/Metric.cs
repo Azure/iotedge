@@ -3,8 +3,6 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
 {
     using System;
-    using System.Collections.Generic;
-    using System.Text;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public sealed class Metric : IEquatable<Metric>

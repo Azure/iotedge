@@ -3,11 +3,12 @@
 use std::fmt::{self, Display};
 use std::io;
 
-use edgelet_http::Error as EdgeletHttpError;
 use failure::{Backtrace, Context, Fail};
 use hyper::Error as HyperError;
 use serde_json;
 use url::ParseError;
+
+use edgelet_http::Error as EdgeletHttpError;
 use workload::apis::Error as WorkloadError;
 
 #[derive(Debug)]
@@ -32,7 +33,7 @@ pub enum ErrorKind {
 }
 
 impl Fail for Error {
-    fn cause(&self) -> Option<&Fail> {
+    fn cause(&self) -> Option<&dyn Fail> {
         self.inner.cause()
     }
 
@@ -42,7 +43,7 @@ impl Fail for Error {
 }
 
 impl Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.inner, f)
     }
 }

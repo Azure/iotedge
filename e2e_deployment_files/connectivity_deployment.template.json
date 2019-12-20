@@ -20,6 +20,11 @@
         "systemModules": {
           "edgeAgent": {
             "type": "docker",
+            "env": {
+              "UpstreamProtocol": {
+                "value": "<UpstreamProtocol>"
+              }
+             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
@@ -45,7 +50,7 @@
               "messageFrequency": {
                 "value": "<LoadGen.MessageFrequency>"
               },
-              "testRunDuration": {
+              "testDuration": {
                 "value": "<TestDuration>"
               },
               "testStartDelay": {
@@ -61,7 +66,7 @@
                 "value": "output1"
               },
               "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001/api/testoperationresult"
+                "value": "http://testResultCoordinator:5001"
               }
             },
             "settings": {
@@ -78,7 +83,7 @@
               "messageFrequency": {
                 "value": "<LoadGen.MessageFrequency>"
               },
-              "testRunDuration": {
+              "testDuration": {
                 "value": "<TestDuration>"
               },
               "testStartDelay": {
@@ -94,7 +99,7 @@
                 "value": "output2"
               },
               "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001/api/testoperationresult"
+                "value": "http://testResultCoordinator:5001"
               }
             },
             "settings": {
@@ -114,8 +119,11 @@
               "inputName": {
                 "value": "input1"
               },
+              "outputName": {
+                "value": "output1"
+              },
               "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001/api/testoperationresult"
+                "value": "http://testResultCoordinator:5001"
               }
             },
             "settings": {
@@ -135,8 +143,11 @@
               "inputName": {
                 "value": "input2"
               },
+              "outputName": {
+                "value": "output2"
+              },
               "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001/api/testoperationresult"
+                "value": "http://testResultCoordinator:5001"
               }
             },
             "settings": {
@@ -153,8 +164,14 @@
               "trackingId": {
                 "value": "<TrackingId>"
               },
+              "testStartDelay": {
+                "value": "<TestStartDelay>"
+              },
               "testDuration": {
                 "value": "<TestDuration>"
+              },
+              "verificationDelay": {
+                "value": "<TestResultCoordinator.VerificationDelay>"
               },
               "eventHubConnectionString": {
                 "value": "<TestResultCoordinator.EventHubConnectionString>"
@@ -190,15 +207,15 @@
                 "value": "<TrackingId>"
               },
               "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001/api/testoperationresult"
+                "value": "http://testResultCoordinator:5001"
               },
-              "RunFrequencies:0:OfflineFrequency": {
+              "RunFrequencies__0__OfflineFrequency": {
                 "value": "<NetworkController.OfflineFrequency0>"
               },
-              "RunFrequencies:0:OnlineFrequency": {
+              "RunFrequencies__0__OnlineFrequency": {
                 "value": "<NetworkController.OnlineFrequency0>"
               },
-              "RunFrequencies:0:RunsCount": {
+              "RunFrequencies__0__RunsCount": {
                 "value": "<NetworkController.RunsCount0>"
               },
               "NetworkControllerMode": {

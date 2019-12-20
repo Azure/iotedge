@@ -5,7 +5,7 @@ namespace NetworkController
     using System.Threading.Tasks;
 
     // TODO: implement satellite
-    class SatelliteController : IController
+    class SatelliteController : INetworkController
     {
         string name;
 
@@ -16,12 +16,12 @@ namespace NetworkController
 
         public string Description => "Satellite";
 
-        public Task<bool> SetStatus(NetworkStatus status, CancellationToken cs)
+        public Task<bool> SetStatusAsync(NetworkStatus status, CancellationToken cs)
         {
             return Task.FromResult(true);
         }
 
-        public Task<NetworkStatus> GetStatus(CancellationToken cs)
+        public Task<NetworkStatus> GetStatusAsync(CancellationToken cs)
         {
             return Task.FromResult(NetworkStatus.Default);
         }

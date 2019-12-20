@@ -160,7 +160,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                     string.Empty,
                     metricsConfig,
                     enableNonPersistentStorageBackup,
-                    backupFolder));
+                    backupFolder,
+                    Option.None<ulong>()));
 
             builder.RegisterModule(
                 new RoutingModule(
