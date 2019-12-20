@@ -2,9 +2,9 @@
 namespace NetworkController
 {
     using System.Threading.Tasks;
-
+    using ModuleUtil.NetworkControllerResult;
     interface INetworkStatusReporter
     {
-        Task ReportNetworkStatus(NetworkControllerOperation settingRule, NetworkStatus status, string description, bool success = true);
+        Task ReportNetworkStatus(NetworkControllerOperation settingRule, bool enabled, NetworkStatus networkStatus, bool success = true);
     }
 }

@@ -3,13 +3,14 @@ namespace NetworkController
 {
     using System.Threading;
     using System.Threading.Tasks;
+    using ModuleUtil.NetworkControllerResult;
 
     interface INetworkController
     {
-        string Description { get; }
+        NetworkStatus NetworkStatus { get; }
 
-        Task<bool> SetStatusAsync(NetworkStatus status, CancellationToken cs);
+        Task<bool> SetEnabledAsync(bool enabled, CancellationToken cs);
 
-        Task<NetworkStatus> GetStatusAsync(CancellationToken cs);
+        Task<bool> GetEnabledAsync(CancellationToken cs);
     }
 }

@@ -7,6 +7,7 @@ namespace NetworkController
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using ModuleUtil.NetworkControllerResult;
 
     class LinuxFirewallOfflineController : INetworkController
     {
@@ -20,9 +21,9 @@ namespace NetworkController
             this.iotHubHostname = iotHubHostname;
         }
 
-        public string Description => "LinuxFirewallOffline";
+        public NetworkStatus NetworkStatus => NetworkStatus.Offline;
 
-        public async Task<NetworkStatus> GetStatusAsync(CancellationToken cs)
+        public async Task<bool> GetEnabledAsync(CancellationToken cs)
         {
             try
             {
@@ -32,34 +33,16 @@ namespace NetworkController
                     cs);
 
                 // parse output to see if online or offline
-                if (output.Contains("qdisc noqueue"))
-                {
-                    return NetworkStatus.Default;
-                }
-                else
-                {
-                    return NetworkStatus.Restricted;
-                }
+                return !output.Contains("qdisc noqueue");
             }
             catch (Exception e)
             {
                 Log.LogError(e, "Failed to get network status");
-                return NetworkStatus.Unknown;
+                return false;
             }
         }
 
-        public Task<bool> SetStatusAsync(NetworkStatus status, CancellationToken cs)
-        {
-            switch (status)
-            {
-                case NetworkStatus.Restricted:
-                    return this.AddDropRule(cs);
-                case NetworkStatus.Default:
-                    return this.RemoveDropRule(cs);
-                default:
-                    throw new NotSupportedException($"Set status '{status}' is not supported.");
-            }
-        }
+        public Task<bool> SetEnabledAsync(bool enabled, CancellationToken cs) => enabled ? this.AddDropRule(cs) : this.RemoveDropRule(cs);
 
         async Task<bool> RemoveDropRule(CancellationToken cs)
         {

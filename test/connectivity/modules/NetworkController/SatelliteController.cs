@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace NetworkController
 {
+    using ModuleUtil.NetworkControllerResult;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -14,16 +15,16 @@ namespace NetworkController
             this.name = name;
         }
 
-        public string Description => "Satellite";
+        public NetworkStatus NetworkStatus => NetworkStatus.Sattelite;
 
-        public Task<bool> SetStatusAsync(NetworkStatus status, CancellationToken cs)
+        public Task<bool> SetEnabledAsync(bool enabled, CancellationToken cs)
         {
             return Task.FromResult(true);
         }
 
-        public Task<NetworkStatus> GetStatusAsync(CancellationToken cs)
+        public Task<bool> GetEnabledAsync(CancellationToken cs)
         {
-            return Task.FromResult(NetworkStatus.Default);
+            return Task.FromResult(true);
         }
     }
 }
