@@ -71,8 +71,8 @@ namespace TestResultCoordinator.Report
 
             while (hasExpectedResult && hasActualResult)
             {
-                this.ValidateStoredDataSource(this.ExpectedTestResults.Current, this.ExpectedSource);
-                this.ValidateStoredDataSource(this.ActualTestResults.Current, this.ActualSource);
+                this.ValidateDataSource(this.ExpectedTestResults.Current, this.ExpectedSource);
+                this.ValidateDataSource(this.ActualTestResults.Current, this.ActualSource);
 
                 while (hasActualResult && this.TestResultComparer.Matches(lastLoadedResult, this.ActualTestResults.Current))
                 {
@@ -134,7 +134,7 @@ namespace TestResultCoordinator.Report
                 unmatchedResults.AsReadOnly());
         }
 
-        void ValidateStoredDataSource(TestOperationResult current, string expectedSource)
+        void ValidateDataSource(TestOperationResult current, string expectedSource)
         {
             if (!current.Source.Equals(expectedSource, StringComparison.OrdinalIgnoreCase))
             {

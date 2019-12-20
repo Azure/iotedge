@@ -121,7 +121,7 @@ namespace Modules.Test.TestResultCoordinator
                     "resultType1",
                     new SimpleTestOperationResultComparer()));
 
-            Assert.Equal("expectedResults", ex.ParamName);
+            Assert.Equal("expectedTestResults", ex.ParamName);
         }
 
         [Theory]
@@ -160,7 +160,7 @@ namespace Modules.Test.TestResultCoordinator
                     "resultType1",
                     new SimpleTestOperationResultComparer()));
 
-            Assert.Equal("actualResults", ex.ParamName);
+            Assert.Equal("actualTestResults", ex.ParamName);
         }
 
         [Theory]

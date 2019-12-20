@@ -10,7 +10,7 @@ namespace Modules.Test.TestResultCoordinator
     using Moq;
     using Xunit;
 
-    public class SimpleResultsTest
+    public class StoreTestResultCollectionTest
     {
         public static IEnumerable<object[]> GetCreateReportData =>
             new List<object[]>

@@ -27,7 +27,7 @@ namespace TestResultCoordinator.Report
                         this.storage.GetStoreFromSource(reportMetadata.ExpectedSource),
                         500);
 
-                    var actualResultsLoader = new StoreTestResultCollection<TestOperationResult>(
+                    var actualTestResults = new StoreTestResultCollection<TestOperationResult>(
                         this.storage.GetStoreFromSource(reportMetadata.ActualSource),
                         500);
 
@@ -36,7 +36,7 @@ namespace TestResultCoordinator.Report
                         reportMetadata.ExpectedSource,
                         expectedTestResults,
                         reportMetadata.ActualSource,
-                        actualResultsLoader,
+                        actualTestResults,
                         reportMetadata.TestOperationResultType.ToString(),
                         new SimpleTestOperationResultComparer());
                 }
