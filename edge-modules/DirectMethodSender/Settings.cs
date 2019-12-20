@@ -30,7 +30,9 @@ namespace DirectMethodSender
                     configuration.GetValue<InvocationSource>("InvocationSource", InvocationSource.Local),
                     Option.Maybe<string>(configuration.GetValue<string>("ServiceClientConnectionString")),
                     Option.Maybe(configuration.GetValue<Uri>("testResultCoordinatorUrl")),
-                    configuration.GetValue<string>("IOTEDGE_MODULEID"));
+                    configuration.GetValue<string>("IOTEDGE_MODULEID"),
+                    configuration.GetValue("testDuration", TimeSpan.Zero)
+                    );
             });
 
         Settings(
@@ -42,8 +44,11 @@ namespace DirectMethodSender
             InvocationSource invocationSource,
             Option<string> serviceClientConnectionString,
             Option<Uri> testResultCoordinatorUrl,
-            string moduleId)
+            string moduleId,
+            TimeSpan testDuration)
         {
+            Preconditions.CheckRange(testDuration.Ticks, 0);
+
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.TargetModuleId = Preconditions.CheckNonWhiteSpace(targetModuleId, nameof(targetModuleId));
             Preconditions.CheckArgument(TransportType.IsDefined(typeof(TransportType), transportType));
@@ -54,6 +59,7 @@ namespace DirectMethodSender
             this.ServiceClientConnectionString = serviceClientConnectionString;
             this.TestResultCoordinatorUrl = testResultCoordinatorUrl;
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
+            this.TestDuration = testDuration;
         }
 
         public static Settings Current => DefaultSettings.Value;
@@ -76,6 +82,8 @@ namespace DirectMethodSender
 
         public string ModuleId { get; }
 
+        public TimeSpan TestDuration { get; }
+
         public override string ToString()
         {
             // serializing in this pattern so that secrets don't accidentally get added anywhere in the future
@@ -84,6 +92,7 @@ namespace DirectMethodSender
                 { nameof(this.ModuleId), this.ModuleId },
                 { nameof(this.DeviceId), this.DeviceId },
                 { nameof(this.TargetModuleId), this.TargetModuleId },
+                { nameof(this.TestDuration), this.TestDuration.ToString() },
                 { nameof(this.TransportType), Enum.GetName(typeof(TransportType), this.TransportType) },
                 { nameof(this.DirectMethodDelay), this.DirectMethodDelay.ToString() },
                 { nameof(this.InvocationSource), this.InvocationSource.ToString() },

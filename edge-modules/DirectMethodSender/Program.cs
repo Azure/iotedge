@@ -11,6 +11,7 @@ namespace DirectMethodSender
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using TestOperationResult = Microsoft.Azure.Devices.Edge.ModuleUtil.TestOperationResult;
 
     class Program
     {
@@ -25,19 +26,22 @@ namespace DirectMethodSender
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
             DirectMethodSenderBase directMethodClient = null;
             ModuleClient reportClient = null;
+            Option<Uri> analyzerUrl = Settings.Current.AnalyzerUrl;
+            Option<Uri> testReportCoordinatorUrl = Settings.Current.TestResultCoordinatorUrl;
+            Guid batchId = Guid.NewGuid();
+            DateTime testStartAt = DateTime.UtcNow;
+
             try
             {
                 directMethodClient = await CreateClientAsync(Settings.Current.InvocationSource);
 
-                Option<Uri> analyzerUrl = Settings.Current.AnalyzerUrl;
-                Option<Uri> testReportCoordinatorUrl = Settings.Current.TestResultCoordinatorUrl;
-                Guid batchId = Guid.NewGuid();
                 reportClient = await ModuleUtil.CreateModuleClientAsync(
                     Settings.Current.TransportType,
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                     ModuleUtil.DefaultTransientRetryStrategy,
                     Logger);
-                while (!cts.Token.IsCancellationRequested)
+
+                while (!cts.Token.IsCancellationRequested && IsTestTimeUp(testStartAt))
                 {
                     // TODO: Make this method return both result and count for the DM
                     HttpStatusCode result = await directMethodClient.InvokeDirectMethodAsync(cts);
@@ -119,6 +123,11 @@ namespace DirectMethodSender
             }
 
             return directMethodClient;
+        }
+
+        public static bool IsTestTimeUp(DateTime testStartAt)
+        {
+            return (Settings.Current.TestDuration == TimeSpan.Zero) || (DateTime.UtcNow - testStartAt < Settings.Current.TestDuration);
         }
 
         static async Task ReportStatus(string moduleId, HttpStatusCode result, AnalyzerClient analyzerClient)
