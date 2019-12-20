@@ -169,7 +169,7 @@ namespace LeafDeviceTest
                     var message = new Message(Encoding.ASCII.GetBytes($"Message from Leaf Device. Msg GUID: {this.context.MessageGuid}"));
                     Console.WriteLine($"Trying to send the message to '{this.edgeHostName}'");
 
-                    while (!cts.IsCancellationRequested)
+                    while (!cts.IsCancellationRequested) // Retries are needed as the DeviceClient timeouts are not long enough
                     {
                         try
                         {
