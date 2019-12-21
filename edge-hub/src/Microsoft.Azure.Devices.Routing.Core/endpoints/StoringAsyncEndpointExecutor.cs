@@ -59,9 +59,9 @@ namespace Microsoft.Azure.Devices.Routing.Core.Endpoints
 
                 using (MetricsV0.StoreLatency(this.Endpoint.Id))
                 {
-                    long offset = await this.messageStore.Add(this.Endpoint.Id, message);
-                    this.checkpointer.Propose(message);
-                    Events.AddMessageSuccess(this, offset);
+                    IMessage storedMessage = await this.messageStore.Add(this.Endpoint.Id, message);
+                    this.checkpointer.Propose(storedMessage);
+                    Events.AddMessageSuccess(this, storedMessage.Offset);
                 }
 
                 this.hasMessagesInQueue.Set();
