@@ -129,7 +129,7 @@
                 "value": "<TestStartDelay>"
               },
               "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001"
+                "value": "http://localhost:5001"
               },
               "trackingId": {
                 "value": "<TrackingId>"
@@ -137,7 +137,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
+              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "directMethodReceiver1": {
@@ -178,7 +178,7 @@
               },
               "testResultCoordinatorUrl":
               {
-                "value": "http://testResultCoordinator:5001"
+                "value": "http://localhost:5001"
               },
               "trackingId": {
                 "value": "<TrackingId>"
@@ -186,7 +186,7 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
-              "createOptions": ""
+              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "directMethodReceiver2": {
@@ -304,7 +304,7 @@
                 "value": "<TrackingId>"
               },
               "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001"
+                "value": "http://localhost:5001"
               },
               "RunFrequencies__0__OfflineFrequency": {
                 "value": "<NetworkController.OfflineFrequency0>"
