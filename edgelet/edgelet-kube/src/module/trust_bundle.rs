@@ -30,7 +30,7 @@ where
         .map_err(|err| Error::from(err.context(ErrorKind::IdentityCertificate)))
         .and_then(|cert| trust_bundle_to_config_map(runtime.settings(), &cert))
         .map(|(name, new_config_map)| {
-            let client_copy = runtime.client().clone();
+            let client_copy = runtime.client();
             let namespace_copy = runtime.settings().namespace().to_owned();
 
             runtime

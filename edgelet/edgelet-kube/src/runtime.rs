@@ -62,7 +62,7 @@ impl<T, S> KubeModuleRuntime<T, S> {
 impl<T, S> Clone for KubeModuleRuntime<T, S> {
     fn clone(&self) -> Self {
         KubeModuleRuntime {
-            client: self.client().clone(),
+            client: self.client(),
             settings: self.settings().clone(),
         }
     }
