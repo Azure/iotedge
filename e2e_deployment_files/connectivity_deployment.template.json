@@ -107,7 +107,7 @@
               "createOptions": ""
             }
           },
-          "DirectMethodSender1": {
+          "directMethodSender1": {
             "version": "1.0",
             "type": "docker",
             "status": "running",
@@ -120,7 +120,7 @@
                 "value": "<ServiceClientConnectionString>"
               },
               "TargetModuleId": {
-                "value": "DirectMethodReceiver1"
+                "value": "directMethodReceiver1"
               },
               "testDuration": {
                 "value": "<TestDuration>"
@@ -140,7 +140,7 @@
               "createOptions": ""
             }
           },
-          "DirectMethodReceiver1": {
+          "directMethodReceiver1": {
             "version": "1.0",
             "type": "docker",
             "status": "running",
@@ -155,7 +155,7 @@
               "createOptions": ""
             }
           },
-          "DirectMethodSender2": {
+          "directMethodSender2": {
             "version": "1.0",
             "type": "docker",
             "status": "running",
@@ -168,7 +168,7 @@
                 "value": "<ServiceClientConnectionString>"
               },
               "TargetModuleId": {
-                "value": "DirectMethodReceiver2"
+                "value": "directMethodReceiver2"
               },
               "testDuration": {
                 "value": "<TestDuration>"
@@ -189,7 +189,7 @@
               "createOptions": ""
             }
           },
-          "DirectMethodReceiver2": {
+          "directMethodReceiver2": {
             "version": "1.0",
             "type": "docker",
             "status": "running",

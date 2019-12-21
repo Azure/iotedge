@@ -64,7 +64,7 @@ namespace DirectMethodSender
                                         batchId.ToString(),
                                         dmCounter.ToString(),
                                         result.ToString()),
-                                    TestOperationResultType.Messages.ToString());
+                                    TestOperationResultType.DirectMethod.ToString());
                         });
 
                     await analyzerUrl.ForEachAsync(

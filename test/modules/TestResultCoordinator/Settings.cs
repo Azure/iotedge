@@ -137,8 +137,8 @@ namespace TestResultCoordinator
                 new CountingReportMetadata("relayer1.send", "relayer1.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport),
                 new CountingReportMetadata("loadGen2.send", "relayer2.receive", TestOperationResultType.Messages, TestReportType.CountingReport),
                 new CountingReportMetadata("relayer2.send", "relayer2.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport),
-                new CountingReportMetadata("DirectMethodSender1.send", "DirectMethodReceiver1.receive", TestOperationResultType.Messages, TestReportType.CountingReport),
-                new CountingReportMetadata("DirectMethodSender2.send", "DirectMethodReceiver2.receive", TestOperationResultType.Messages, TestReportType.CountingReport)
+                new CountingReportMetadata("directMethodSender1.send", "directMethodReceiver1.receive", TestOperationResultType.DirectMethod, TestReportType.CountingReport),
+                new CountingReportMetadata("directMethodSender2.send", "directMethodReceiver2.receive", TestOperationResultType.DirectMethod, TestReportType.CountingReport)
             };
         }
 
@@ -154,10 +154,10 @@ namespace TestResultCoordinator
                 "relayer2.receive",
                 "relayer2.send",
                 "relayer2.eventHub",
-                "DirectMethodSender1.send",
-                "DirectMethodSender2.send",
-                "DirectMethodReceiver1.receive",
-                "DirectMethodReceiver2.receive",
+                "directMethodSender1.send",
+                "directMethodSender2.send",
+                "directMethodReceiver1.receive",
+                "directMethodReceiver2.receive",
                 "networkController" };
         }
     }
