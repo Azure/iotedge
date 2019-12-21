@@ -160,7 +160,7 @@ impl ManualDeviceConnectionString {
             )));
         }
 
-        Ok((key, device_id.to_owned(), hub.to_owned()))
+        Ok((key, device_id, hub))
     }
 }
 
@@ -350,9 +350,7 @@ impl<'de> serde::Deserialize<'de> for Dps {
                 ));
             }
             (Some(att), None) => att,
-            (None, Some(reg_id)) => {
-                AttestationMethod::Tpm(TpmAttestationInfo::new(reg_id.to_string()))
-            }
+            (None, Some(reg_id)) => AttestationMethod::Tpm(TpmAttestationInfo::new(reg_id)),
             (None, None) => {
                 return Err(serde::de::Error::custom(
                     "Provisioning registration_id has to be set",
@@ -642,7 +640,7 @@ impl Certificates {
     }
 }
 
-#[derive(Clone, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
+#[derive(Clone, Copy, Debug, serde_derive::Deserialize, serde_derive::Serialize)]
 #[serde(untagged)]
 pub enum RetryLimit {
     Infinite,
@@ -650,7 +648,7 @@ pub enum RetryLimit {
 }
 
 impl RetryLimit {
-    pub fn compare(&self, right: u32) -> Ordering {
+    pub fn compare(self, right: u32) -> Ordering {
         match self {
             RetryLimit::Infinite => Ordering::Greater,
             RetryLimit::Num(n) => n.cmp(&right),
@@ -671,8 +669,8 @@ pub struct WatchdogSettings {
 }
 
 impl WatchdogSettings {
-    pub fn max_retries(&self) -> &RetryLimit {
-        &self.max_retries
+    pub fn max_retries(&self) -> RetryLimit {
+        self.max_retries
     }
 }
 

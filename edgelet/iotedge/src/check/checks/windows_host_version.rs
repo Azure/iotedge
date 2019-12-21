@@ -35,6 +35,9 @@ impl WindowsHostVersion {
     fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
         #[cfg(unix)]
         {
+            // We want to use the same as Windows' Checker::inner_execute() but the self is unused in Unix. So silence the allow_unused clippy lint.
+            let _ = self;
+
             let _ = check;
             Ok(CheckResult::Ignored)
         }
