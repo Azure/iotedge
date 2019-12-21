@@ -17,7 +17,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
     {
         public static IEnumerable<byte> MetricsToBytes(IEnumerable<Metric> metrics)
         {
-            return metrics.GroupBy(m => m.GetMetricKey()).SelectMany(x => MetricGroupsToBytes(
+            return metrics.GroupBy(m => m.MetricKey.Value).SelectMany(x => MetricGroupsToBytes(
                 x.First().Name,
                 JsonConvert.SerializeObject(x.First().Tags),
                 x.Select(m => new RawMetricValue(m.TimeGeneratedUtc, m.Value))));

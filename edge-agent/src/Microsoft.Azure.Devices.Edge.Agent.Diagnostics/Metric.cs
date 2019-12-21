@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
         public double Value { get; }
         public IReadOnlyDictionary<string, string> Tags { get; }
 
-        int? metricKey;
+        public readonly Lazy<int> MetricKey;
 
         public Metric(DateTime timeGeneratedUtc, string name, double value, IReadOnlyDictionary<string, string> tags)
         {
@@ -23,20 +23,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             this.Name = Preconditions.CheckNotNull(name, nameof(name));
             this.Value = value;
             this.Tags = Preconditions.CheckNotNull(tags, nameof(tags));
-        }
 
-        /// <summary>
-        /// This combines the hashes of name and tags to make it easy to group all metrics.
-        /// </summary>
-        /// <returns>Hash of name and tags.</returns>
-        public int GetMetricKey()
-        {
-            if (this.metricKey == null)
-            {
-                this.metricKey = MetricHelper.CombineHash(this.Name.GetHashCode(), this.Tags.OrderIndependentHash());
-            }
-
-            return this.metricKey.Value;
+            this.MetricKey = new Lazy<int>(() => this.GetMetricKey());
         }
 
         public bool Equals(Metric other)
@@ -44,13 +32,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             return this.TimeGeneratedUtc == other.TimeGeneratedUtc &&
                 this.Name == other.Name &&
                 this.Value == other.Value &&
-                this.Tags.OrderIndependentHash() == other.Tags.OrderIndependentHash();
+                GetOrderIndependentHash(this.Tags) == GetOrderIndependentHash(other.Tags);
         }
-    }
 
-    public static class MetricHelper
-    {
-        public static int OrderIndependentHash<T1, T2>(this IEnumerable<KeyValuePair<T1, T2>> dictionary)
+        /// <summary>
+        /// This combines the hashes of name and tags to make it easy to group all metrics.
+        /// </summary>
+        /// <returns>Hash of name and tags.</returns>
+        int GetMetricKey()
+        {
+            return CombineHash(this.Name.GetHashCode(), GetOrderIndependentHash(this.Tags));
+        }
+
+        public static int GetOrderIndependentHash<T1, T2>(IEnumerable<KeyValuePair<T1, T2>> dictionary)
         {
             return CombineHash(dictionary.Select(o => CombineHash(o.Key.GetHashCode(), o.Value.GetHashCode())).OrderBy(h => h).ToArray());
         }

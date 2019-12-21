@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             }
         }
 
-        public void AddToWhitelist(params KeyValuePair<string, string>[] pairs)
+        public MetricFilter AddToWhitelist(params KeyValuePair<string, string>[] pairs)
         {
             if (this.tagsWhitelist.HasValue)
             {
@@ -58,9 +58,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             {
                 this.tagsWhitelist = Option.Some(new List<KeyValuePair<string, string>>(pairs));
             }
+
+            return this;
         }
 
-        public void AddToBlacklist(params KeyValuePair<string, string>[] pairs)
+        public MetricFilter AddToBlacklist(params KeyValuePair<string, string>[] pairs)
         {
             if (this.tagsBlacklist.HasValue)
             {
@@ -70,9 +72,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             {
                 this.tagsBlacklist = Option.Some(new List<KeyValuePair<string, string>>(pairs));
             }
+
+            return this;
         }
 
-        public void AddTagsToAdd(params KeyValuePair<string, string>[] pairs)
+        public MetricFilter AddTagsToAdd(params KeyValuePair<string, string>[] pairs)
         {
             if (this.tagsToAdd.HasValue)
             {
@@ -82,9 +86,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             {
                 this.tagsToAdd = Option.Some(new List<KeyValuePair<string, string>>(pairs));
             }
+
+            return this;
         }
 
-        public void AddTagsToRemove(params string[] keys)
+        public MetricFilter AddTagsToRemove(params string[] keys)
         {
             if (this.tagsToRemove.HasValue)
             {
@@ -94,6 +100,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             {
                 this.tagsToRemove = Option.Some(new List<string>(keys));
             }
+
+            return this;
         }
     }
 }
