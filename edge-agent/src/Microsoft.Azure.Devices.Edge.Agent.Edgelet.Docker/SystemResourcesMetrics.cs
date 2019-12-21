@@ -197,9 +197,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             {
                 // Get values if exist
                 ulong totalUsage = 0, systemUsage = 0;
-                if (!module.CpuStats.Exists(cpuStats =>
-                 {
-                     return cpuStats.CpuUsage.Exists(cpuUsage => cpuUsage.TotalUsage.Exists(tu =>
+                if (!module.CpuStats.Exists(cpuStats => cpuStats.CpuUsage.Exists(cpuUsage => cpuUsage.TotalUsage.Exists(tu =>
                      {
                          totalUsage = tu;
                          return true;
@@ -207,8 +205,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
                      {
                          systemUsage = su;
                          return true;
-                     });
-                 }))
+                     })))
                 {
                     // One of the values is missing, skip.
                     return Option.None<double>();
