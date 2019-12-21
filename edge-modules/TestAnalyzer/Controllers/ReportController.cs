@@ -41,7 +41,7 @@ namespace TestAnalyzer.Controllers
             return new ContentResult { Content = JsonConvert.SerializeObject(deviceAnalysis.MessagesReport, Formatting.Indented) }; // explicit serialization needed due to the wrapping list
         }
 
-        private async Task PublishToLogAnalyticsAsync(TestResultAnalysis deviceAnalysis)
+        async Task PublishToLogAnalyticsAsync(TestResultAnalysis deviceAnalysis)
         {
             string messagesJson = JsonConvert.SerializeObject(deviceAnalysis.MessagesReport, Formatting.Indented);
             string twinsJson = JsonConvert.SerializeObject(deviceAnalysis.TwinsReport, Formatting.Indented);
@@ -54,27 +54,29 @@ namespace TestAnalyzer.Controllers
             // Upload the data to Log Analytics for our dashboards
             try
             {
-                await AzureLogAnalytics.Instance.PostAsync(
+                Task reportMessages = AzureLogAnalytics.Instance.PostAsync(
                     workspaceId,
                     sharedKey,
                     messagesJson,
                     logType);
 
-                await AzureLogAnalytics.Instance.PostAsync(
+                Task reportTwins = AzureLogAnalytics.Instance.PostAsync(
                     workspaceId,
                     sharedKey,
                     twinsJson,
                     logType);
 
-                await AzureLogAnalytics.Instance.PostAsync(
+                Task reportDirectMethods = AzureLogAnalytics.Instance.PostAsync(
                     workspaceId,
                     sharedKey,
                     directMethodsJson,
                     logType);
+
+                await Task.WhenAll(reportMessages, reportTwins, reportDirectMethods);
             }
             catch (Exception e)
             {
-                Logger.LogError($"Failed uploading reports to log analytics:",  e);
+                Logger.LogError($"Failed uploading reports to log analytics:", e);
             }
         }
     }

@@ -10,6 +10,7 @@ namespace TestResultCoordinator
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Serialization;
+    using TestResultCoordinator.Report;
 
     [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
     class Settings
@@ -36,7 +37,9 @@ namespace TestResultCoordinator
                     configuration.GetValue<string>("logAnalyticsLogType"),
                     configuration.GetValue("storagePath", DefaultStoragePath),
                     configuration.GetValue<bool>("optimizeForPerformance", true),
-                    configuration.GetValue("testDuration", TimeSpan.FromHours(1)));
+                    configuration.GetValue("testStartDelay", TimeSpan.FromMinutes(2)),
+                    configuration.GetValue("testDuration", TimeSpan.FromHours(1)),
+                    configuration.GetValue("verificationDelay", TimeSpan.FromMinutes(15)));
             });
 
         Settings(
@@ -49,7 +52,9 @@ namespace TestResultCoordinator
             string logAnalyticsLogType,
             string storagePath,
             bool optimizeForPerformance,
-            TimeSpan testDuration)
+            TimeSpan testStartDelay,
+            TimeSpan testDuration,
+            TimeSpan verificationDelay)
         {
             Preconditions.CheckRange(testDuration.Ticks, 1);
 
@@ -63,22 +68,11 @@ namespace TestResultCoordinator
             this.StoragePath = storagePath;
             this.OptimizeForPerformance = Preconditions.CheckNotNull(optimizeForPerformance);
             this.TestDuration = testDuration;
+            this.TestStartDelay = testStartDelay;
             this.ResultSources = this.GetResultSources();
-            this.DurationBeforeVerification = TimeSpan.FromMinutes(15);
+            this.DurationBeforeVerification = verificationDelay;
             this.ConsumerGroupName = "$Default";
             this.ReportMetadataList = this.InitializeReportMetadataList();
-        }
-
-        List<IReportMetadata> InitializeReportMetadataList()
-        {
-            // TODO: Remove this hardcoded list and use twin update instead
-            return new List<IReportMetadata>
-            {
-                new CountingReportMetadata("loadGen1.send", "relayer1.receive", TestOperationResultType.Messages, TestReportType.CountingReport),
-                new CountingReportMetadata("relayer1.send", "relayer1.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport),
-                new CountingReportMetadata("loadGen2.send", "relayer2.receive", TestOperationResultType.Messages, TestReportType.CountingReport),
-                new CountingReportMetadata("relayer2.send", "relayer2.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport)
-            };
         }
 
         public static Settings Current => DefaultSettings.Value;
@@ -103,6 +97,8 @@ namespace TestResultCoordinator
 
         public TimeSpan TestDuration { get; }
 
+        public TimeSpan TestStartDelay { get; }
+
         public List<string> ResultSources { get; }
 
         public TimeSpan DurationBeforeVerification { get; }
@@ -121,6 +117,7 @@ namespace TestResultCoordinator
                 { nameof(this.WebHostPort), this.WebHostPort.ToString() },
                 { nameof(this.StoragePath), this.StoragePath },
                 { nameof(this.OptimizeForPerformance), this.OptimizeForPerformance.ToString() },
+                { nameof(this.TestStartDelay), this.TestDuration.ToString() },
                 { nameof(this.TestDuration), this.TestDuration.ToString() },
                 { nameof(this.ResultSources), string.Join("\n", this.ResultSources) },
                 { nameof(this.DurationBeforeVerification), this.DurationBeforeVerification.ToString() },
@@ -131,10 +128,22 @@ namespace TestResultCoordinator
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
         }
 
+        List<IReportMetadata> InitializeReportMetadataList()
+        {
+            // TODO: Remove this hardcoded list and use twin update instead
+            return new List<IReportMetadata>
+            {
+                new CountingReportMetadata("loadGen1.send", "relayer1.receive", TestOperationResultType.Messages, TestReportType.CountingReport),
+                new CountingReportMetadata("relayer1.send", "relayer1.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport),
+                new CountingReportMetadata("loadGen2.send", "relayer2.receive", TestOperationResultType.Messages, TestReportType.CountingReport),
+                new CountingReportMetadata("relayer2.send", "relayer2.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport)
+            };
+        }
+
         List<string> GetResultSources()
         {
             // TODO: Remove this hardcoded list and use environment variables once we've decided on how exactly to set the configuration
-            return new List<string> { "loadGen1.send", "relayer1.receive", "relayer1.send", "relayer1.eventHub", "loadGen2.send", "relayer2.receive", "relayer2.send", "relayer2.eventHub" };
+            return new List<string> { "loadGen1.send", "relayer1.receive", "relayer1.send", "relayer1.eventHub", "loadGen2.send", "relayer2.receive", "relayer2.send", "relayer2.eventHub", "networkController" };
         }
     }
 }

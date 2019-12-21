@@ -65,6 +65,7 @@ jobs:
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
           iotHub.connectionString: '$(EdgeConnectivityTestHubConnString)'
           eventHub.connectionString: '$(EdgeConnectivityEventHubConnString)'
+          upstream.protocol: '$(upstream.protocol)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           testDuration: '$(testDuration)'
           testStartDelay: '$(testStartDelay)'
@@ -73,6 +74,7 @@ jobs:
           testResultCoordinator.logAnalyticsWorkspaceId: '$(kvLogAnalyticWorkspaceId)'
           testResultCoordinator.logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
           testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
+          testResultCoordinator.verificationDelay: '$(testResultCoordinator.verificationDelay)'
 
 ################################################################################
   - job: linux_arm32v7_moby
@@ -134,6 +136,7 @@ jobs:
           container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
           iotHub.connectionString: '$(EdgeConnectivityTestHubConnString)'
           eventHub.connectionString: '$(EdgeConnectivityEventHubConnString)'
+          upstream.protocol: '$(upstream.protocol)'
           loadGen.message.frequency: '$(loadGen.message.frequency.arm32)'
           testDuration: '$(testDuration)'
           testStartDelay: '$(testStartDelay)'
@@ -142,3 +145,4 @@ jobs:
           testResultCoordinator.logAnalyticsWorkspaceId: '$(kvLogAnalyticWorkspaceId)'
           testResultCoordinator.logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
           testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
+          testResultCoordinator.verificationDelay: '$(testResultCoordinator.verificationDelay)'

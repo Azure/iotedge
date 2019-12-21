@@ -411,7 +411,7 @@ pub fn spec_to_service_account(
 
     // labels
     let mut labels = BTreeMap::new();
-    labels.insert(EDGE_MODULE_LABEL.to_string(), module_label_value.clone());
+    labels.insert(EDGE_MODULE_LABEL.to_string(), module_label_value);
     labels.insert(EDGE_DEVICE_LABEL.to_string(), device_label_value);
     labels.insert(EDGE_HUBNAME_LABEL.to_string(), hubname_label);
 

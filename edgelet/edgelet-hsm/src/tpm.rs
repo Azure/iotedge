@@ -70,7 +70,7 @@ impl TpmKeyStore {
         Ok(())
     }
 
-    /// Get a TpmKey which will sign data.
+    /// Get a `TpmKey` which will sign data.
     pub fn get_active_key(&self) -> Result<TpmKey, Error> {
         Ok(TpmKey {
             tpm: Arc::clone(&self.tpm),
