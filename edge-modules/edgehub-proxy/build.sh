@@ -28,8 +28,23 @@ function usage()
     echo "options"
     echo " -h,  --help                   Print this help and exit."
     echo " -i,  --image                  Image name"
-    echo " -t,  --target-arch            Target architecture"
+    echo " -t,  --target-arch            Target architecture: x86_64|armv7l"
     exit 1;
+}
+
+###############################################################################
+# Function to obtain the underlying architecture and check if supported
+###############################################################################
+check_arch()
+{
+    if [[ "$ARCH" == "x86_64" ]]; then
+        ARCH="amd64"
+    elif [[ "$ARCH" == "armv7l" ]]; then
+        ARCH="arm32v7"
+    else
+        echo "Unsupported architecture"
+        exit 1
+    fi
 }
 
 ###############################################################################
@@ -44,7 +59,7 @@ process_args()
             IMAGE="$arg"
             save_next_arg=0
         elif [ $save_next_arg -eq 2 ]; then
-            TARGET_ARCH="$arg"
+            ARCH="$arg"
             save_next_arg=0
         else
             case "$arg" in
@@ -58,30 +73,20 @@ process_args()
 }
 
 process_args "$@"
+check_arch
 
 
 ###############################################################################
 # Build
 ###############################################################################
 echo ${PROJECT_ROOT}
-if [ $TARGET_ARCH == "amd64" ]; then
+if [ $ARCH == "amd64" ]; then
 	docker run --rm -it -v "${PROJECT_ROOT}":/home/rust/src ekidd/rust-musl-builder cargo build --release --manifest-path /home/rust/src/edge-modules/edgehub-proxy/Cargo.toml
 	strip ${PROJECT_ROOT}/edge-modules/edgehub-proxy/target/x86_64-unknown-linux-musl/release/edgehub-proxy
-elif [ $TARGET_ARCH == "arm32v7" ]; then
-	# download and compile openssl for arm32v7
-	export MACHINE=armv7
-	export ARCH=arm
-	export CC=arm-linux-gnueabihf-gcc
-	cd /tmp
-	wget https://www.openssl.org/source/openssl-1.1.1d.tar.gz
-	tar xzf openssl-1.1.1d.tar.gz
-	cd openssl-1.1.1d && ./config shared && make && cd -
-
-	# build edgehub-proxy locally for arm32v7
-	cd ${PROJECT_ROOT}/edge-modules/edgehub-proxy/
-	cargo build --release --target=armv7-unknown-linux-gnueabihf
-	
-	arm-linux-gnueabihf-strip target/armv7-unknown-linux-gnueabihf/release/edgehub-proxy
+elif [ $ARCH == "arm32v7" ]; then
+	docker build -t edgehub-proxy-builder ${PROJECT_ROOT}/edge-modules/edgehub-proxy/docker/linux/builder
+  docker run --rm -it -v "${PROJECT_ROOT}":/home/rust/src edgehub-proxy-builder cargo build --release --target=armv7-unknown-linux-gnueabihf --manifest-path /home/rust/src/edge-modules/edgehub-proxy/Cargo.toml
+	docker run --rm -it -v "${PROJECT_ROOT}":/home/rust/src edgehub-proxy-builder arm-linux-gnueabihf-strip /home/rust/src/edge-modules/edgehub-proxy/target/armv7-unknown-linux-gnueabihf/release/edgehub-proxy
 fi
 
-docker build -t ${IMAGE} -f ${PROJECT_ROOT}/edge-modules/edgehub-proxy/docker/linux/$TARGET_ARCH/Dockerfile ${PROJECT_ROOT}/edge-modules/edgehub-proxy/
+docker build -t ${IMAGE} -f ${PROJECT_ROOT}/edge-modules/edgehub-proxy/docker/linux/$ARCH/Dockerfile ${PROJECT_ROOT}/edge-modules/edgehub-proxy/
