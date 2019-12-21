@@ -4,6 +4,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
     public class DockerStats
@@ -11,39 +13,50 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
         [JsonConstructor]
         public DockerStats(string name, Dictionary<string, DiskIO[]> block_io_stats, DockerCpuStats cpu_stats, MemoryStats memory_stats, Dictionary<string, NetworkInfo> networks, int? num_processes, PidsStats pids_stats, DateTime? read)
         {
-            this.Name = name ?? "error_name";
-            this.BlockIoStats = block_io_stats ?? new Dictionary<string, DiskIO[]>();
-            this.CpuStats = cpu_stats ?? new DockerCpuStats(null, null, null);
-            this.MemoryStats = memory_stats ?? new MemoryStats(null, null, null);
-            this.Networks = networks ?? new Dictionary<string, NetworkInfo>();
-            this.NumProcesses = num_processes ?? 0;
-            this.PidsStats = pids_stats ?? new PidsStats(null);
-            this.Read = read ?? DateTime.MinValue;
+            this.Name = Option.Maybe(name);
+            this.BlockIoStats = Option.Maybe(block_io_stats);
+            this.CpuStats = Option.Maybe(cpu_stats);
+            this.MemoryStats = Option.Maybe(memory_stats);
+            this.Networks = Option.Maybe(networks);
+            this.NumProcesses = Option.Maybe(num_processes);
+            this.PidsStats = Option.Maybe(pids_stats);
+            this.Read = Option.Maybe(read);
+
+            // Check for null entries in dictionarys
+            if (this.BlockIoStats.Exists(n => n.Any(o => o.Key == null || o.Value == null)))
+            {
+                this.BlockIoStats = Option.None<Dictionary<string, DiskIO[]>>();
+            }
+
+            if (this.Networks.Exists(n => n.Any(o => o.Key == null || o.Value == null)))
+            {
+                this.Networks = Option.None<Dictionary<string, NetworkInfo>>();
+            }
         }
 
         [JsonProperty("name", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public string Name { get; set; }
+        public Option<string> Name { get; }
 
         [JsonProperty("blkio_stats", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public Dictionary<string, DiskIO[]> BlockIoStats { get; set; }
+        public Option<Dictionary<string, DiskIO[]>> BlockIoStats { get; }
 
         [JsonProperty("cpu_stats", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public DockerCpuStats CpuStats { get; set; }
+        public Option<DockerCpuStats> CpuStats { get; }
 
         [JsonProperty("memory_stats", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public MemoryStats MemoryStats { get; set; }
+        public Option<MemoryStats> MemoryStats { get; }
 
         [JsonProperty("networks", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public Dictionary<string, NetworkInfo> Networks { get; set; }
+        public Option<Dictionary<string, NetworkInfo>> Networks { get; }
 
         [JsonProperty("num_procs", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public int NumProcesses { get; set; }
+        public Option<int> NumProcesses { get; }
 
         [JsonProperty("pids_stats", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public PidsStats PidsStats { get; set; }
+        public Option<PidsStats> PidsStats { get; }
 
         [JsonProperty("read", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public DateTime Read { get; set; }
+        public Option<DateTime> Read { get; }
     }
 
     public class DiskIO
@@ -51,23 +64,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
         [JsonConstructor]
         public DiskIO(long? major, long? minor, string op, long? value)
         {
-            this.Major = major ?? 0;
-            this.Minor = minor ?? 0;
-            this.Op = op ?? "Error";
-            this.Value = value ?? 0;
+            this.Major = Option.Maybe(major);
+            this.Minor = Option.Maybe(minor);
+            this.Op = Option.Maybe(op);
+            this.Value = Option.Maybe(value);
         }
 
         [JsonProperty("major", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public long Major { get; set; }
+        public Option<long> Major { get; }
 
         [JsonProperty("minor", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public long Minor { get; set; }
+        public Option<long> Minor { get; }
 
         [JsonProperty("op", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public string Op { get; set; }
+        public Option<string> Op { get; }
 
         [JsonProperty("value", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public long Value { get; set; }
+        public Option<long> Value { get; }
     }
 
     public class DockerCpuStats
@@ -75,19 +88,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
         [JsonConstructor]
         public DockerCpuStats(CpuUsage cpu_usage, int? online_cpus, ulong? system_cpu_usage)
         {
-            this.CpuUsage = cpu_usage ?? new CpuUsage(null, null, null);
-            this.OnlineCpus = online_cpus ?? 0;
-            this.SystemCpuUsage = system_cpu_usage ?? 0;
+            this.CpuUsage = Option.Maybe(cpu_usage);
+            this.OnlineCpus = Option.Maybe(online_cpus);
+            this.SystemCpuUsage = Option.Maybe(system_cpu_usage);
         }
 
         [JsonProperty("cpu_usage", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public CpuUsage CpuUsage { get; set; }
+        public Option<CpuUsage> CpuUsage { get; }
 
         [JsonProperty("online_cpus", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public int OnlineCpus { get; set; }
+        public Option<int> OnlineCpus { get; }
 
         [JsonProperty("system_cpu_usage", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public ulong SystemCpuUsage { get; set; }
+        public Option<ulong> SystemCpuUsage { get; }
     }
 
     public class CpuUsage
@@ -95,19 +108,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
         [JsonConstructor]
         public CpuUsage(ulong? total_usage, ulong? usage_in_kernelmode, ulong? usage_in_usermode)
         {
-            this.TotalUsage = total_usage ?? 0;
-            this.UsageInKernelmode = usage_in_kernelmode ?? 0;
-            this.UsageInUsermode = usage_in_usermode ?? 0;
+            this.TotalUsage = Option.Maybe(total_usage);
+            this.UsageInKernelmode = Option.Maybe(usage_in_kernelmode);
+            this.UsageInUsermode = Option.Maybe(usage_in_usermode);
         }
 
         [JsonProperty("total_usage", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public ulong TotalUsage { get; set; }
+        public Option<ulong> TotalUsage { get; }
 
         [JsonProperty("usage_in_kernelmode", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public ulong UsageInKernelmode { get; set; }
+        public Option<ulong> UsageInKernelmode { get; }
 
         [JsonProperty("usage_in_usermode", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public ulong UsageInUsermode { get; set; }
+        public Option<ulong> UsageInUsermode { get; }
     }
 
     public class MemoryStats
@@ -115,19 +128,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
         [JsonConstructor]
         public MemoryStats(ulong? limit, ulong? max_usage, ulong? usage)
         {
-            this.Limit = limit ?? 0;
-            this.MaxUsage = max_usage ?? 0;
-            this.Usage = usage ?? 0;
+            this.Limit = Option.Maybe(limit);
+            this.MaxUsage = Option.Maybe(max_usage);
+            this.Usage = Option.Maybe(usage);
         }
 
         [JsonProperty("limit", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public ulong Limit { get; set; }
+        public Option<ulong> Limit { get; }
 
         [JsonProperty("max_usage", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public ulong MaxUsage { get; set; }
+        public Option<ulong> MaxUsage { get; }
 
         [JsonProperty("usage", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public ulong Usage { get; set; }
+        public Option<ulong> Usage { get; }
     }
 
     public class NetworkInfo
@@ -135,15 +148,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
         [JsonConstructor]
         public NetworkInfo(int? rx_bytes, int? tx_bytes)
         {
-            this.RxBytes = rx_bytes ?? 0;
-            this.TxBytes = tx_bytes ?? 0;
+            this.RxBytes = Option.Maybe(rx_bytes);
+            this.TxBytes = Option.Maybe(tx_bytes);
         }
 
         [JsonProperty("rx_bytes", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public int RxBytes { get; set; }
+        public Option<int> RxBytes { get; }
 
         [JsonProperty("tx_bytes", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public int TxBytes { get; set; }
+        public Option<int> TxBytes { get; }
     }
 
     public class PidsStats
@@ -151,10 +164,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
         [JsonConstructor]
         public PidsStats(int? current)
         {
-            this.Current = current ?? 0;
+            this.Current = Option.Maybe(current);
         }
 
         [JsonProperty("current", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
-        public int Current { get; set; }
+        public Option<int> Current { get; }
     }
 }
