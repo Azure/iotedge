@@ -17,7 +17,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
     public class MetricFilter
     {
         Option<List<KeyValuePair<string, string>>> tagsWhitelist = Option.None<List<KeyValuePair<string, string>>>();
-        Option<List<KeyValuePair<string, string>>> tagsBlacklist = Option.None<List<KeyValuePair<string, string>>>();
         Option<List<KeyValuePair<string, string>>> tagsToAdd = Option.None<List<KeyValuePair<string, string>>>();
         Option<List<string>> tagsToRemove = Option.None<List<string>>();
 
@@ -25,8 +24,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
         {
             foreach (Metric metric in metrics)
             {
-                // Skip if the blacklist has any or the whitelist does not contain it.
-                if (this.tagsBlacklist.Exists(bl => bl.Any(metric.Tags.Contains)) || this.tagsWhitelist.Exists(wl => !wl.Any(metric.Tags.Contains)))
+                // Skip metric if the whitelist does not contain it.
+                if (this.tagsWhitelist.Exists(wl => !wl.Any(metric.Tags.Contains)))
                 {
                     continue;
                 }
@@ -57,20 +56,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             else
             {
                 this.tagsWhitelist = Option.Some(new List<KeyValuePair<string, string>>(pairs));
-            }
-
-            return this;
-        }
-
-        public MetricFilter AddToBlacklist(params KeyValuePair<string, string>[] pairs)
-        {
-            if (this.tagsBlacklist.HasValue)
-            {
-                this.tagsBlacklist.ForEach(wl => wl.AddRange(pairs));
-            }
-            else
-            {
-                this.tagsBlacklist = Option.Some(new List<KeyValuePair<string, string>>(pairs));
             }
 
             return this;
