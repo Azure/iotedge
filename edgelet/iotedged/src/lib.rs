@@ -5,6 +5,7 @@
 #![allow(
     clippy::doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
     clippy::module_name_repetitions,
+    clippy::must_use_candidate,
     clippy::shadow_unrelated,
     clippy::use_self,
     clippy::too_many_lines
@@ -446,7 +447,7 @@ where
                             );
                         } else {
                             let (derived_key_store, tpm_key) =
-                                external_provision_tpm(hsm_lock.clone())?;
+                                external_provision_tpm(hsm_lock)?;
                             start_edgelet!(
                                 derived_key_store,
                                 prov_result,
@@ -478,7 +479,7 @@ where
                             dps_path,
                             &mut tokio_runtime,
                             tpm,
-                            hsm_lock.clone(),
+                            hsm_lock,
                         )?;
                         start_edgelet!(
                             key_store,
