@@ -1137,7 +1137,7 @@ mod tests {
                 "scope_id".to_string(),
                 "reg".to_string(),
                 key.clone(),
-            ))
+            )),
         ));
         let token_source = DpsTokenSource::new("scope_id".to_string(), "reg".to_string(), key);
         let dps_operation = DpsClient::<_, _, MemoryKeyStore>::get_device_registration_result(
@@ -1180,7 +1180,7 @@ mod tests {
                 "scope_id".to_string(),
                 "reg".to_string(),
                 key.clone(),
-            ))
+            )),
         ));
         let token_source = DpsTokenSource::new("scope_id".to_string(), "reg".to_string(), key);
         let dps_operation = DpsClient::<_, _, MemoryKeyStore>::get_device_registration_result(

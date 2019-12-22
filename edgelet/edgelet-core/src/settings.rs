@@ -225,9 +225,7 @@ impl<'de> serde::Deserialize<'de> for Dps {
                 ));
             }
             (Some(att), None) => att,
-            (None, Some(reg_id)) => {
-                AttestationMethod::Tpm(TpmAttestationInfo::new(reg_id))
-            }
+            (None, Some(reg_id)) => AttestationMethod::Tpm(TpmAttestationInfo::new(reg_id)),
             (None, None) => {
                 return Err(serde::de::Error::custom(
                     "Provisioning registration_id has to be set",

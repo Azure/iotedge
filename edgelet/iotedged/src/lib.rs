@@ -446,8 +446,7 @@ where
                                 None,
                             );
                         } else {
-                            let (derived_key_store, tpm_key) =
-                                external_provision_tpm(hsm_lock)?;
+                            let (derived_key_store, tpm_key) = external_provision_tpm(hsm_lock)?;
                             start_edgelet!(
                                 derived_key_store,
                                 prov_result,

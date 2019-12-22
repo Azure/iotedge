@@ -283,9 +283,7 @@ impl GetCertificate for Crypto {
             .hsm_client_crypto_get_certificate
             .ok_or(ErrorKind::NoneFn)?;
 
-        let c_alias = CString::new(alias)
-            .ok()
-            .ok_or_else(|| ErrorKind::ToCStr)?;
+        let c_alias = CString::new(alias).ok().ok_or_else(|| ErrorKind::ToCStr)?;
         let cert_info_handle = unsafe { if_fn(self.handle, c_alias.as_ptr()) };
         if cert_info_handle.is_null() {
             Err(ErrorKind::NullResponse.into())
