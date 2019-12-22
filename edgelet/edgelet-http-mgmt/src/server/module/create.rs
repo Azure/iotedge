@@ -70,7 +70,7 @@ where
                             ))
                         }
                         ImagePullPolicy::Never => {
-                            Either::B(futures::future::ok((module_name.clone(), false)))
+                            Either::B(futures::future::ok((module_name, false)))
                         }
                     };
 

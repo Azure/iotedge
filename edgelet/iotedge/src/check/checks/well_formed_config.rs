@@ -30,6 +30,9 @@ impl Checker for WellFormedConfig {
 
 impl WellFormedConfig {
     fn inner_execute(&mut self, check: &mut Check) -> Result<CheckResult, failure::Error> {
+        // We want to enforce Checker::WellFormedConfig. So silence the allow_unused clippy lint.
+        let _ = self;
+
         let config_file = &check.config_file;
 
         // The config crate just returns a "file not found" error when it can't open the file for any reason,
