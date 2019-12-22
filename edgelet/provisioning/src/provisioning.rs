@@ -377,7 +377,7 @@ where
         let c = DpsClient::new(
             self.client.clone(),
             self.scope_id.clone(),
-            self.registration_id.clone(),
+            self.registration_id,
             DpsAuthKind::Tpm { ek, srk },
             key_activator,
         );
@@ -460,7 +460,7 @@ where
         let c = DpsClient::new(
             self.client.clone(),
             self.scope_id.clone(),
-            self.registration_id.clone(),
+            self.registration_id,
             DpsAuthKind::SymmetricKey,
             key_activator,
         );
@@ -542,7 +542,7 @@ where
         let c = DpsClient::new(
             self.client.clone(),
             self.scope_id.clone(),
-            self.registration_id.clone(),
+            self.registration_id,
             DpsAuthKind::X509,
             key_activator,
         );

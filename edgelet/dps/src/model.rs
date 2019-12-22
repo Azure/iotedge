@@ -174,7 +174,7 @@ pub struct SymmetricKeyRegistrationResult {
 }
 
 impl SymmetricKeyRegistrationResult {
-    /// Registration result returned when using SymmetricKey attestation
+    /// Registration result returned when using symmetric key attestation
     pub fn new() -> SymmetricKeyRegistrationResult {
         SymmetricKeyRegistrationResult {
             enrollment_group_id: None,

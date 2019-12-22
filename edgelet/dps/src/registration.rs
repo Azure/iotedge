@@ -512,7 +512,7 @@ where
                             Ok(None)
                         } else {
                             match key_store.get(&KeyIdentity::Device, "primary") {
-                                Ok(id_key) => Ok(Some(id_key.clone())),
+                                Ok(id_key) => Ok(Some(id_key)),
                                 Err(_err) => Err(()),
                             }
                         };
@@ -1138,7 +1138,6 @@ mod tests {
                 "reg".to_string(),
                 key.clone(),
             ))
-            .clone(),
         ));
         let token_source = DpsTokenSource::new("scope_id".to_string(), "reg".to_string(), key);
         let dps_operation = DpsClient::<_, _, MemoryKeyStore>::get_device_registration_result(
@@ -1182,7 +1181,6 @@ mod tests {
                 "reg".to_string(),
                 key.clone(),
             ))
-            .clone(),
         ));
         let token_source = DpsTokenSource::new("scope_id".to_string(), "reg".to_string(), key);
         let dps_operation = DpsClient::<_, _, MemoryKeyStore>::get_device_registration_result(
@@ -1271,7 +1269,7 @@ mod tests {
         let key = MemoryKey::new("key".to_string());
         let token_source = DpsTokenSource::new("scope_id".to_string(), "reg".to_string(), key);
         let dps_operation = DpsClient::<_, _, MemoryKeyStore>::get_operation_status(
-            &Arc::new(RwLock::new(client.clone())),
+            &Arc::new(RwLock::new(client)),
             "scope_id",
             "reg",
             "operation",
