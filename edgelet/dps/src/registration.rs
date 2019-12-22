@@ -521,7 +521,7 @@ where
                                 let ts = if let Some(k) = tk {
                                     Some(DpsTokenSource::new(
                                         scope_id.to_string(),
-                                        registration_id.clone().to_string(),
+                                        registration_id.clone(),
                                         k,
                                     ))
                                 } else {
