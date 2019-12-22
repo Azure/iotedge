@@ -2693,7 +2693,7 @@ mod tests {
         // validate that module reprovision is required since decrypt failed
         assert!(force_module_reprovision);
         assert_eq!(
-            hybrid_identity_key.clone().unwrap().len(),
+            hybrid_identity_key.unwrap().len(),
             IDENTITY_MASTER_KEY_LEN_BYTES
         );
 
@@ -2829,7 +2829,7 @@ mod tests {
 
         // validate that a new hybrid id key was created
         assert_ne!(
-            first_hybrid_identity_key.clone().unwrap(),
+            first_hybrid_identity_key.unwrap(),
             second_hybrid_identity_key.unwrap()
         );
 
@@ -2937,7 +2937,7 @@ mod tests {
 
         // validate that a new hybrid id key was created
         assert_ne!(
-            first_hybrid_identity_key.clone().unwrap(),
+            first_hybrid_identity_key.unwrap(),
             second_hybrid_identity_key.unwrap()
         );
 

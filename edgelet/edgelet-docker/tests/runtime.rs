@@ -1136,7 +1136,7 @@ fn container_list_handler(req: Request<Body>) -> ResponseFuture {
             vec![],
             10,
             10,
-            labels.clone(),
+            labels,
             "".to_string(),
             "".to_string(),
             ContainerHostConfig::new(""),
