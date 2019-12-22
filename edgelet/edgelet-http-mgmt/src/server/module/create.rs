@@ -58,15 +58,14 @@ where
 
                     let pull_future = match image_pull_policy {
                         ImagePullPolicy::OnCreate => {
-                            let name = module_name.clone();
                             Either::A(runtime.registry().pull(core_spec.config()).then(
                                 move |result| {
                                     result.with_context(|_| {
                                         ErrorKind::RuntimeOperation(RuntimeOperation::CreateModule(
-                                            name.clone(),
+                                            module_name.clone(),
                                         ))
                                     })?;
-                                    Ok((name, true))
+                                    Ok((module_name, true))
                                 },
                             ))
                         }
