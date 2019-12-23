@@ -62,12 +62,12 @@ where
     where
         F: Future<Item = (), Error = ()> + 'static,
     {
-        let runtime = self.runtime.clone();
-        let runtime_copy = self.runtime.clone();
+        let runtime = self.runtime;
+        let runtime_copy = runtime.clone();
         let name = spec.name().to_string();
-        let id_mgr = self.id_mgr.clone();
+        let id_mgr = self.id_mgr;
         let module_id = module_id.to_string();
-        let max_retries = self.max_retries.clone();
+        let max_retries = self.max_retries;
 
         let watchdog = start_watchdog(runtime, id_mgr, spec, module_id, max_retries);
 

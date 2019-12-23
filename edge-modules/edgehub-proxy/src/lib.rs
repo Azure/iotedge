@@ -3,16 +3,13 @@
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
+    clippy::default_trait_access,
     clippy::module_name_repetitions,
-    clippy::must_use_candidate,
+    clippy::pub_enum_variant_names,
+    clippy::similar_names,
     clippy::too_many_lines,
     clippy::use_self
 )]
 
-pub mod client;
 pub mod error;
-
-pub use client::{ExternalProvisioningClient, ExternalProvisioningInterface};
-pub use error::{Error, ErrorKind};
-
-pub const EXTERNAL_PROVISIONING_API_VERSION: &str = "2019-04-10";
+pub mod logging;

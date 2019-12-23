@@ -173,9 +173,12 @@ function prepare_test_from_artifacts() {
                 sed -i -e "s@<Analyzer.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
                 sed -i -e "s@<Analyzer.LogAnalyticsEnabled>@$LOG_ANALYTICS_ENABLED@g" "$deployment_working_file"
                 sed -i -e "s@<Analyzer.LogAnalyticsLogType>@$LOG_ANALYTICS_LOG_TYPE@g" "$deployment_working_file"
-                sed -i -e "s@<LogAnalyticsWorkspaceId>@$LOG_ANALYTICS_WORKSPACE_ID@g" "$deployment_working_file"
-                sed -i -e "s@<LogAnalyticsSharedKey>@$LOG_ANALYTICS_SHARED_KEY@g" "$deployment_working_file"
                 sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
+                sed -i -e "s@<LogAnalyticsSharedKey>@$LOG_ANALYTICS_SHARED_KEY@g" "$deployment_working_file"
+                sed -i -e "s@<LogAnalyticsWorkspaceId>@$LOG_ANALYTICS_WORKSPACE_ID@g" "$deployment_working_file"
+                sed -i -e "s@<MetricsCollector.MetricsEndpointsCSV>@$METRICS_ENDPOINTS_CSV@g" "$deployment_working_file"
+                sed -i -e "s@<MetricsCollector.ScrapeFrequencyInSecs>@$METRICS_SCRAPE_FREQUENCY_IN_SECS@g" "$deployment_working_file"
+                sed -i -e "s@<MetricsCollector.UploadTarget>@$METRICS_UPLOAD_TARGET@g" "$deployment_working_file"
                 escapedSnitchAlertUrl="${SNITCH_ALERT_URL//&/\\&}"
                 escapedBuildId="${ARTIFACT_IMAGE_BUILD_NUMBER//./}"
                 sed -i -e "s@<ServiceClientConnectionString>@$IOTHUB_CONNECTION_STRING@g" "$deployment_working_file"
@@ -387,6 +390,15 @@ function process_args() {
         elif [ $saveNextArg -eq 38 ]; then
             TWIN_UPDATE_FAILURE_THRESHOLD="$arg"
             saveNextArg=0;
+        elif [ $saveNextArg -eq 39 ]; then
+            METRICS_ENDPOINTS_CSV="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 40 ]; then
+            METRICS_SCRAPE_FREQUENCY_IN_SECS="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 41 ]; then
+            METRICS_UPLOAD_TARGET="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -428,6 +440,9 @@ function process_args() {
                 '-twinUpdateSize' ) saveNextArg=36;;
                 '-twinUpdateFrequency' ) saveNextArg=37;;
                 '-twinUpdateFailureThreshold' ) saveNextArg=38;;
+                '-metricsEndpointsCSV' ) saveNextArg=39;;
+                '-metricsScrapeFrequencyInSecs' ) saveNextArg=40;;
+                '-metricsUploadTarget' ) saveNextArg=41;;
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
@@ -1019,6 +1034,9 @@ function usage() {
     echo ' -twinUpdateSize                   Specifies the char count (i.e. size) of each twin update. Default is 1 for long haul and 100 for stress test.'
     echo ' -twinUpdateFrequency              Frequency to make twin updates. This should be specified in DateTime format. Default is 00:00:15 for long haul and 00:00:05 for stress test.'
     echo ' -twinUpdateFailureThreshold       Specifies the longest period of time a twin update can take before being marked as a failure. This should be specified in DateTime format. Default is 00:01:00'
+    echo ' -metricsEndpointsCSV              Optional csv of exposed endpoints for which to scrape metrics.'
+    echo ' -metricsScrapeFrequencyInSecs     Optional frequency at which the MetricsCollector module will scrape metrics from the exposed metrics endpoints. Default is 300 seconds.'
+    echo ' -metricsUploadTarget              Optional upload target for metrics. Valid values are AzureLogAnalytics or IoTHub. Default is AzureLogAnalytics.'
     exit 1;
 }
 
@@ -1033,6 +1051,8 @@ TRANSPORT_TYPE_2="${TRANSPORT_TYPE_2:-amqp}"
 TRANSPORT_TYPE_3="${TRANSPORT_TYPE_3:-mqtt}"
 TRANSPORT_TYPE_4="${TRANSPORT_TYPE_4:-mqtt}"
 TWIN_UPDATE_FAILURE_THRESHOLD="${TWIN_UPDATE_FAILURE_THRESHOLD:-00:01:00}"
+METRICS_SCRAPE_FREQUENCY_IN_SECS="${METRICS_SCRAPE_FREQUENCY_IN_SECS:-300}"
+METRICS_UPLOAD_TARGET="${METRICS_UPLOAD_TARGET:-AzureLogAnalytics}"
 if [[ "${TEST_NAME,,}" == "longhaul" ]]; then
     DESIRED_MODULES_TO_RESTART_CSV="${DESIRED_MODULES_TO_RESTART_CSV:-,}"
     LOADGEN_MESSAGE_FREQUENCY="${LOADGEN_MESSAGE_FREQUENCY:-00:00:01}"

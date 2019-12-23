@@ -10,6 +10,16 @@ namespace TestResultCoordinator.Report
     {
         public bool Matches(TestOperationResult value1, TestOperationResult value2)
         {
+            if ((value1 == null && value2 != null) || (value1 != null && value2 == null))
+            {
+                return false;
+            }
+
+            if (value1 == null && value2 == null)
+            {
+                return true;
+            }
+
             return string.Equals(value1.Type, value2.Type, StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(value1.Result, value2.Result, StringComparison.OrdinalIgnoreCase);
         }

@@ -46,9 +46,7 @@
 //!     }
 //! }
 //!
-//! fn main() {
-//!     let _thing = TheThing::new(5);
-//! }
+//! let _thing = TheThing::new(5);
 //! ```
 //!
 //! <h3>Functions that return futures:</h3>
@@ -86,9 +84,7 @@
 //!     )
 //! }
 //!
-//! fn main() {
-//!     let _thing_future = do_the_thing(20);
-//! }
+//! let _thing_future = do_the_thing(20);
 //! ```
 
 use std::fmt;
