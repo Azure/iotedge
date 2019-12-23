@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test
             DateTime lastRestartTimeUtc,
             ModuleStatus runtimeStatus,
             ImagePullPolicy imagePullPolicy = ImagePullPolicy.OnCreate,
-            uint priority = uint.MaxValue,
+            uint priority = Constants.HighestPriority,
             ConfigurationInfo deploymentInfo = null,
             IDictionary<string, EnvVal> env = null)
             : base(name, version, type, desiredStatus, config, restartPolicy, imagePullPolicy, priority, deploymentInfo, env)
