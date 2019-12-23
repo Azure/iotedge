@@ -329,10 +329,18 @@ namespace Microsoft.Azure.Devices.Routing.Core.Test.Endpoints
             {
             }
 
-            public Task<long> Add(string endpointId, IMessage message)
+            public async Task<IMessage> Add(string endpointId, IMessage message)
             {
                 TestMessageQueue queue = this.GetQueue(endpointId);
-                return queue.Add(message);
+                long offset = await queue.Add(message);
+                return new Message(
+                    message.MessageSource,
+                    message.Body,
+                    message.Properties,
+                    message.SystemProperties,
+                    offset,
+                    message.EnqueuedTime,
+                    message.DequeuedTime);
             }
 
             public IMessageIterator GetMessageIterator(string endpointId, long startingOffset) => this.GetQueue(endpointId);
