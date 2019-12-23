@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Test
 {
     using System;
@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Util;
     using NUnit.Framework;
 
-    class Device : ManualProvisioningFixture
+    class Device : SasManualProvisioningFixture
     {
         [Test]
         public async Task QuickstartCerts()

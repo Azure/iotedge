@@ -40,6 +40,7 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<TestDuration>@$TEST_DURATION@g" "$deployment_working_file"
     sed -i -e "s@<TestStartDelay>@$TEST_START_DELAY@g" "$deployment_working_file"
     sed -i -e "s@<TrackingId>@$tracking_Id@g" "$deployment_working_file"
+    sed -i -e "s@<UpstreamProtocol>@$UPSTREAM_PROTOCOL@g" "$deployment_working_file"
 
     sed -i -e "s@<TestResultCoordinator.VerificationDelay>@$VERIFICATION_DELAY@g" "$deployment_working_file"
     sed -i -e "s@<TestResultCoordinator.OptimizeForPerformance>@$optimize_for_performance@g" "$deployment_working_file"
@@ -140,7 +141,10 @@ function process_args() {
             saveNextArg=0
         elif [ $saveNextArg -eq 18 ]; then
             VERIFICATION_DELAY="$arg"
-            saveNextArg=0        
+            saveNextArg=0
+        elif [ $saveNextArg -eq 19 ]; then
+            UPSTREAM_PROTOCOL="$arg"
+            saveNextArg=0
         else
             case "$arg" in
                 '-h' | '--help' ) usage;;
@@ -162,6 +166,7 @@ function process_args() {
                 '-logAnalyticsSharedKey' ) saveNextArg=16;;
                 '-logAnalyticsLogType' ) saveNextArg=17;;
                 '-verificationDelay' ) saveNextArg=18;;
+                '-upstreamProtocol' ) saveNextArg=19;;
 
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
@@ -287,6 +292,7 @@ function usage() {
     echo ' -logAnalyticsSharedKey          Log Analytics shared key'
     echo ' -logAnalyticsLogType            Log Analytics log type'
     echo ' -verificationDelay              Delay before starting the verification after test finished'
+    echo ' -upstreamProtocol               Upstream protocol used to connect to IoT Hub'
 
     echo ' -cleanAll                       Do docker prune for containers, logs and volumes.'
     exit 1;
@@ -304,6 +310,7 @@ NETWORK_CONTROLLER_MODE=${NETWORK_CONTROLLER_MODE:-OfflineTrafficController}
 TEST_START_DELAY="${TEST_START_DELAY:-00:02:00}"
 LOG_ANALYTICS_LOGTYPE="${LOG_ANALYTICS_LOGTYPE:-connectivity}"
 VERIFICATION_DELAY="${VERIFICATION_DELAY:-00:15:00}"
+UPSTREAM_PROTOCOL="${UPSTREAM_PROTOCOL:-Amqp}"
 
 working_folder="$E2E_TEST_DIR/working"
 quickstart_working_folder="$working_folder/quickstart"

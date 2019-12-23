@@ -2,17 +2,14 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Service
 {
-    using System;
     using System.Collections.Generic;
-    using System.IO;
-    using System.Text;
+    using System.Threading.Tasks;
     using Autofac;
-    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Logging;
 
     public sealed class DiagnosticsModule : Module
     {
@@ -31,18 +28,28 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 .SingleInstance();
 
             // IMetricsStorage
-            builder.RegisterType<MetricsStorage>()
-                .As<IMetricsStorage>()
+            builder.Register(async c =>
+                    {
+                        IStoreProvider storeProvider = await c.Resolve<Task<IStoreProvider>>();
+                        ISequentialStore<IEnumerable<Metric>> dataStore = await storeProvider.GetSequentialStore<IEnumerable<Metric>>("Metrics");
+
+                        return new MetricsStorage(dataStore);
+                    })
+                .As<Task<IMetricsStorage>>()
                 .SingleInstance();
 
             // IMetricsPublisher
-            builder.RegisterType<IoTHubMetricsUpload>()
-                .As<IMetricsPublisher>()
-                .SingleInstance();
+            builder.RegisterType<EdgeRuntimeDiagnosticsUpload>()
+                    .As<IMetricsPublisher>()
+                    .SingleInstance();
 
             // MetricsWorker
-            builder.RegisterType<MetricsWorker>()
-                .SingleInstance();
+            builder.Register(async c => new MetricsWorker(
+                        c.Resolve<IMetricsScraper>(),
+                        await c.Resolve<Task<IMetricsStorage>>(),
+                        c.Resolve<IMetricsPublisher>()))
+                    .As<Task<MetricsWorker>>()
+                    .SingleInstance();
 
             base.Load(builder);
         }

@@ -2,7 +2,6 @@
 namespace TestResultCoordinator.Controllers
 {
     using System;
-    using System.IO;
     using System.Net;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Mvc;
@@ -17,6 +16,7 @@ namespace TestResultCoordinator.Controllers
     public class TestOperationResultController : Controller
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TestOperationResultController));
+
         readonly ITestOperationResultStorage storage;
 
         public TestOperationResultController(ITestOperationResultStorage storage)
