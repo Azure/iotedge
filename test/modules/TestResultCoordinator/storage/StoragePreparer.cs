@@ -1,10 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace TestResultCoordinator.Storage
 {
+    using System;
+    using System.Threading;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkControllerResult;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
-    using ModuleUtil.NetworkControllerResult;
     using Newtonsoft.Json;
 
     /// <summary>
@@ -16,26 +18,36 @@ namespace TestResultCoordinator.Storage
         static readonly ILogger Logger = Microsoft.Azure.Devices.Edge.ModuleUtil.ModuleUtil.CreateLogger(nameof(StoragePreparer));
 
         static AtomicBoolean currentlyOnline = new AtomicBoolean(true);
-        public static TestResultCoordinator.TestOperationResult PrepareTestOperationResult(TestOperationResult testOperationResult)
+        static long dateTimeTicks = 0;
+        public static TestOperationResult PrepareTestOperationResult(TestOperationResult testOperationResult)
         {
             Preconditions.CheckNotNull(testOperationResult, nameof(testOperationResult));
             if (Microsoft.Azure.Devices.Edge.ModuleUtil.TestOperationResultType.Network.ToString().Equals(testOperationResult.Type))
             {
                 NetworkControllerResult networkControllerResult = (NetworkControllerResult)JsonConvert.DeserializeObject(testOperationResult.Result, typeof(NetworkControllerResult));
-                switch (networkControllerResult.NetworkStatus)
+                switch (networkControllerResult.NetworkControllerType)
                 {
-                    case NetworkStatus.Offline:
-                        Logger.LogInformation($"Setting CurrentlyOnline to {!networkControllerResult.Enabled}");
-                        currentlyOnline.Set(!networkControllerResult.Enabled);
+                    case NetworkControllerType.Offline:
+                        if (networkControllerResult.NetworkControllerStatus == NetworkControllerStatus.Enabled)
+                        {
+                            Logger.LogInformation($"Setting Online Status to false");
+                            currentlyOnline.Set(false);
+                        }
+                        else
+                        {
+                            Logger.LogInformation($"Setting Online Status to true");
+                            currentlyOnline.Set(true);
+                        }
+
+                        dateTimeTicks = Interlocked.Exchange(ref dateTimeTicks, DateTime.Now.Ticks);
                         break;
                     default:
-                        Logger.LogInformation($"Setting CurrentlyOnline to true");
-                        currentlyOnline.Set(true);
-                        break;
+                        throw new NotImplementedException($"Storage preparation for {networkControllerResult.NetworkControllerType} is not yet implemented");
                 }
             }
 
-            testOperationResult.NetworkOn = currentlyOnline.Get();
+            testOperationResult.NetworkOnline = currentlyOnline.Get();
+            testOperationResult.NetworkLastUpdatedTime = new DateTime(dateTimeTicks);
             return testOperationResult;
         }
     }
