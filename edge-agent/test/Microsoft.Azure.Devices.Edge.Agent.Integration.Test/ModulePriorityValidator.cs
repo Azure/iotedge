@@ -5,11 +5,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
 
     public class ModulePriorityValidator : Validator
     {
-        public ModulePriorityValidator()
-        {
-            this.Type = ValidatorType.ModulePriority;
-        }
-
         public ModuleCommand[] moduleCommands;
 
         public override bool Validate(TestCommandFactory testCommandFactory)

@@ -46,15 +46,6 @@
     <ProjectReference Include="..\..\src\Microsoft.Azure.Devices.Edge.Agent.Docker\Microsoft.Azure.Devices.Edge.Agent.Docker.csproj" />
   </ItemGroup>
 
-  <!--<ItemGroup>
-    <None Update="test-config-x64.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="test-config-windows-x64.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>-->
-
   <ItemGroup>
     <AdditionalFiles Include="..\..\..\stylecop.json" Link="stylecop.json" />
   </ItemGroup>
