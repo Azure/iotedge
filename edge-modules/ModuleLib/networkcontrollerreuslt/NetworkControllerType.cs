@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkControllerResult
     {
         Offline,
         Sattelite,
-        Cellular
+        Cellular,
+        All
     }
 }

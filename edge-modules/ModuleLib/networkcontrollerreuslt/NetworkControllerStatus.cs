@@ -3,8 +3,8 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkControllerResult
 {
     public enum NetworkControllerStatus
     {
+        Unknown,
         Enabled,
-        Disabled,
-        Unknown
+        Disabled
     }
 }

@@ -103,15 +103,14 @@ namespace NetworkController
                     if (!online)
                     {
                         Log.LogError($"Failed to ensure it starts with default values.");
+                        await reporter.ReportNetworkStatus(NetworkControllerOperation.RuleSet, NetworkControllerStatus.Enabled, controller.NetworkControllerType, true);
                         throw new TestInitializationException();
-                    }
-                    else
-                    {
-                        Log.LogInformation($"Network is online for {controller.NetworkControllerType}");
-                        await reporter.ReportNetworkStatus(NetworkControllerOperation.RuleSet, NetworkControllerStatus.Disabled, controller.NetworkControllerType, true);
                     }
                 }
             }
+
+            Log.LogInformation($"Network is online");
+            await reporter.ReportNetworkStatus(NetworkControllerOperation.RuleSet, NetworkControllerStatus.Disabled, NetworkControllerType.All, true);
         }
 
         static async Task<bool> CheckSetNetworkControllerStatusAsyncResult(bool success, NetworkControllerStatus networkControllerStatus, INetworkController controller, CancellationToken cs)
@@ -119,7 +118,7 @@ namespace NetworkController
             NetworkControllerStatus reportedStatus = await controller.GetNetworkControllerStatusAsync(cs);
 
             string resultMessage = success ? "succeded" : "failed";
-            Log.LogInformation($"Command SetEnabledAsync to {networkControllerStatus} execution {resultMessage}, network status {reportedStatus}");
+            Log.LogInformation($"Command SetNetworkControllerStatus to {networkControllerStatus} execution {resultMessage}, network status {reportedStatus}");
 
             return success && reportedStatus == networkControllerStatus;
         }
