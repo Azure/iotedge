@@ -238,7 +238,6 @@ edge-kubernetes-crd:
 provisioning:
   source: "manual"
   deviceConnectionString: "<ADD DEVICE CONNECTION STRING HERE>"
-  testProvision: 78
   dynamicReprovisioning: false
 
 # Manual provisioning configuration using an X.509 identity certificate
