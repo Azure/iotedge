@@ -16,13 +16,30 @@ Create chart name and version as used by the chart label.
 {{/* Template for iotedged's configuration YAML. */}}
 {{- define "edge-kubernetes.iotedgedconfig" }}
 provisioning:
-  source: "manual"
-  device_connection_string: {{ .Values.deviceConnectionString | quote }}
+  {{- range $key, $val := .Values.provisioning }}
+  {{- if eq $key "attestation"}}
+  attestation:
+    {{- range $atkey, $atval := $val }}
+    {{ $atkey | snakecase }}: {{$atval | quote }}
+    {{- end }}
+  {{- else if eq $key "authentication" }}
+  authentication:
+    {{- range $aukey, $auval := $val }}
+    {{ $aukey | snakecase }}: {{$auval | quote }}
+    {{- end }}
+  {{- else }}
+  {{ $key | snakecase }}: {{- if or (kindIs "float64" $val) (kindIs "bool" $val) }} {{ $val }} {{- else }} {{ $val | quote }}
+  {{- end }}
+  {{- end }}
+  {{- end }}
 {{- if .Values.iotedged.certificates }}
 certificates:
   device_ca_cert: "/etc/edgecerts/device_ca_cert"
   device_ca_pk: "/etc/edgecerts/device_ca_pk"
   trusted_ca_certs: "/etc/edgecerts/trusted_ca_certs"
+  {{- if .Values.iotedged.certificates.auto_generated_ca_lifetime_days }}
+  auto_generated_ca_lifetime_days: {{ .Values.iotedged.certificates.auto_generated_ca_lifetime_days }}
+  {{- end }}
 {{ end }}
 agent:
   name: "edgeAgent"
@@ -75,6 +92,9 @@ agent:
     {{ else }}
     auth: {}
     {{ end }}
+{{- if .Values.maxRetries }}
+max_retries: {{ .Values.maxRetries }}
+{{- end }}
 hostname: {{ .Values.edgeAgent.hostname }}
 connect:
   management_uri: "https://localhost:{{ .Values.iotedged.ports.management }}"
