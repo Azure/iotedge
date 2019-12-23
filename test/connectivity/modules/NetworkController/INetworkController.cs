@@ -3,14 +3,14 @@ namespace NetworkController
 {
     using System.Threading;
     using System.Threading.Tasks;
-    using ModuleUtil.NetworkControllerResult;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkControllerResult;
 
     interface INetworkController
     {
-        NetworkStatus NetworkStatus { get; }
+        NetworkControllerType NetworkControllerType { get; }
 
-        Task<bool> SetEnabledAsync(bool enabled, CancellationToken cs);
+        Task<bool> SetNetworkStatusAsync(NetworkStatus networkStatus, CancellationToken cs);
 
-        Task<bool> GetEnabledAsync(CancellationToken cs);
+        Task<NetworkStatus> GetNetworkStatusAsync(CancellationToken cs);
     }
 }

@@ -5,6 +5,7 @@ namespace NetworkController
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkControllerResult;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -57,14 +58,14 @@ namespace NetworkController
             INetworkStatusReporter reporter = new NetworkStatusReporter(Settings.Current.TestResultCoordinatorEndpoint, Settings.Current.ModuleId, Settings.Current.TrackingId);
             foreach (Frequency item in Settings.Current.Frequencies)
             {
-                Log.LogInformation($"Schedule task with NetworkStatus {controller.NetworkStatus} to start after {delay} Offline frequency {item.OfflineFrequency} Online frequency {item.OnlineFrequency} Run times {item.RunsCount}");
+                Log.LogInformation($"Schedule task for type {controller.NetworkControllerType} to start after {delay} Offline frequency {item.OfflineFrequency} Online frequency {item.OnlineFrequency} Run times {item.RunsCount}");
 
                 var taskExecutor = new CountedTaskExecutor(
                     async cs =>
                     {
-                        await SetNetworkStatus(controller, true, reporter, cs);
+                        await SetNetworkStatus(controller, NetworkStatus.Enabled, reporter, cs);
                         await Task.Delay(item.OfflineFrequency, cs);
-                        await SetNetworkStatus(controller, false, reporter, cs);
+                        await SetNetworkStatus(controller, NetworkStatus.Disabled, reporter, cs);
                     },
                     delay,
                     item.OfflineFrequency,
@@ -79,12 +80,12 @@ namespace NetworkController
             }
         }
 
-        static async Task SetNetworkStatus(INetworkController controller, bool enabled, INetworkStatusReporter reporter, CancellationToken cs)
+        static async Task SetNetworkStatus(INetworkController controller, NetworkStatus networkStatus, INetworkStatusReporter reporter, CancellationToken cs)
         {
-            await reporter.ReportNetworkStatus(NetworkControllerOperation.SettingRule, enabled, controller.NetworkStatus);
-            bool success = await controller.SetEnabledAsync(enabled, cs);
-            success = await CheckSetEnabledAsyncResult(success, false, controller, cs);
-            await reporter.ReportNetworkStatus(NetworkControllerOperation.RuleSet, enabled, controller.NetworkStatus, success);
+            await reporter.ReportNetworkStatus(NetworkControllerOperation.SettingRule, networkStatus, controller.NetworkControllerType);
+            bool success = await controller.SetNetworkStatusAsync(networkStatus, cs);
+            success = await CheckSetNetworkStatusAsyncResult(success, NetworkStatus.Disabled, controller, cs);
+            await reporter.ReportNetworkStatus(NetworkControllerOperation.RuleSet, networkStatus, controller.NetworkControllerType, success);
         }
 
         static async Task RemoveAllControllingRules(IList<INetworkController> controllerList, CancellationToken cancellationToken)
@@ -93,12 +94,12 @@ namespace NetworkController
 
             foreach (var controller in controllerList)
             {
-                bool enabled = await controller.GetEnabledAsync(cancellationToken);
-                if (enabled)
+                NetworkStatus networkStatus = await controller.GetNetworkStatusAsync(cancellationToken);
+                if (networkStatus != NetworkStatus.Disabled)
                 {
-                    Log.LogInformation($"Network restriction is enabled with {controller.NetworkStatus}. Setting default");
-                    bool online = await controller.SetEnabledAsync(false, cancellationToken);
-                    online = await CheckSetEnabledAsyncResult(online, false, controller, cancellationToken);
+                    Log.LogInformation($"Network restriction is enabled for {controller.NetworkControllerType}. Setting default");
+                    bool online = await controller.SetNetworkStatusAsync(NetworkStatus.Disabled, cancellationToken);
+                    online = await CheckSetNetworkStatusAsyncResult(online, NetworkStatus.Disabled, controller, cancellationToken);
                     if (!online)
                     {
                         Log.LogError($"Failed to ensure it starts with default values.");
@@ -106,22 +107,21 @@ namespace NetworkController
                     }
                     else
                     {
-                        Log.LogInformation($"Network is online for {controller.NetworkStatus}");
-                        await reporter.ReportNetworkStatus(NetworkControllerOperation.RuleSet, false, controller.NetworkStatus, true);
+                        Log.LogInformation($"Network is online for {controller.NetworkControllerType}");
+                        await reporter.ReportNetworkStatus(NetworkControllerOperation.RuleSet, NetworkStatus.Disabled, controller.NetworkControllerType, true);
                     }
                 }
             }
         }
 
-        static async Task<bool> CheckSetEnabledAsyncResult(bool success, bool enabled, INetworkController controller, CancellationToken cs)
+        static async Task<bool> CheckSetNetworkStatusAsyncResult(bool success, NetworkStatus networkStatus, INetworkController controller, CancellationToken cs)
         {
-            bool reportedEnabled = await controller.GetEnabledAsync(cs);
+            NetworkStatus reportedStatus = await controller.GetNetworkStatusAsync(cs);
 
             string resultMessage = success ? "succeded" : "failed";
-            string networkStatus = reportedEnabled ? "restricted" : "online";
-            Log.LogInformation($"Command SetEnabledAsync to {enabled} execution {resultMessage}, network status {networkStatus}");
+            Log.LogInformation($"Command SetEnabledAsync to {networkStatus} execution {resultMessage}, network status {networkStatus}");
 
-            return success && reportedEnabled == enabled;
+            return success && reportedStatus == networkStatus;
         }
     }
 }

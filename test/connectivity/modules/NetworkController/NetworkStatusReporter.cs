@@ -4,10 +4,10 @@ namespace NetworkController
     using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkControllerResult;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using ModuleUtil.NetworkControllerResult;
 
     class NetworkStatusReporter : INetworkStatusReporter
     {
@@ -23,9 +23,9 @@ namespace NetworkController
             this.trackingId = trackingId;
         }
 
-        public Task ReportNetworkStatus(NetworkControllerOperation operation, bool enabled, NetworkStatus networkStatus, bool success = true)
+        public Task ReportNetworkStatus(NetworkControllerOperation operation, NetworkStatus networkStatus, NetworkControllerType networkControllerType, bool success = true)
         {
-            var networkController = new NetworkControllerResult() { Operation = operation.ToString(), OperationStatus = success ? "Success" : "Failed", NetworkStatus = networkStatus, Enabled = enabled, TrackingId = this.trackingId };
+            var networkController = new NetworkControllerResult() { Operation = operation.ToString(), OperationStatus = success ? "Success" : "Failed", NetworkControllerType = networkControllerType, NetworkStatus = networkStatus, TrackingId = this.trackingId };
             return ModuleUtil.ReportStatus(this.trcClient, Log, this.moduleId, networkController.ToString(), TestOperationResultType.Network.ToString());
         }
     }

@@ -5,9 +5,9 @@ namespace NetworkController
     using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkControllerResult;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using ModuleUtil.NetworkControllerResult;
 
     class LinuxFirewallOfflineController : INetworkController
     {
@@ -21,9 +21,9 @@ namespace NetworkController
             this.iotHubHostname = iotHubHostname;
         }
 
-        public NetworkStatus NetworkStatus => NetworkStatus.Offline;
+        public NetworkControllerType NetworkControllerType => NetworkControllerType.Offline;
 
-        public async Task<bool> GetEnabledAsync(CancellationToken cs)
+        public async Task<NetworkStatus> GetNetworkStatusAsync(CancellationToken cs)
         {
             try
             {
@@ -33,16 +33,34 @@ namespace NetworkController
                     cs);
 
                 // parse output to see if online or offline
-                return !output.Contains("qdisc noqueue");
+                if (output.Contains("qdisc noqueue"))
+                {
+                    return NetworkStatus.Disabled;
+                }
+                else
+                {
+                    return NetworkStatus.Enabled;
+                }
             }
             catch (Exception e)
             {
                 Log.LogError(e, "Failed to get network status");
-                return false;
+                return NetworkStatus.Unknown;
             }
         }
 
-        public Task<bool> SetEnabledAsync(bool enabled, CancellationToken cs) => enabled ? this.AddDropRule(cs) : this.RemoveDropRule(cs);
+        public Task<bool> SetNetworkStatusAsync(NetworkStatus status, CancellationToken cs)
+        {
+            switch (status)
+            {
+                case NetworkStatus.Enabled:
+                    return this.AddDropRule(cs);
+                case NetworkStatus.Disabled:
+                    return this.RemoveDropRule(cs);
+                default:
+                    throw new NotSupportedException($"Set status '{status}' is not supported.");
+            }
+        }
 
         async Task<bool> RemoveDropRule(CancellationToken cs)
         {

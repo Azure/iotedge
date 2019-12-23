@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace NetworkController
 {
-    using ModuleUtil.NetworkControllerResult;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkControllerResult;
 
     // TODO: implement satellite
     class SatelliteController : INetworkController
@@ -15,16 +15,16 @@ namespace NetworkController
             this.name = name;
         }
 
-        public NetworkStatus NetworkStatus => NetworkStatus.Sattelite;
+        public NetworkControllerType NetworkControllerType => NetworkControllerType.Sattelite;
 
-        public Task<bool> SetEnabledAsync(bool enabled, CancellationToken cs)
+        public Task<bool> SetNetworkStatusAsync(NetworkStatus networkStatus, CancellationToken cs)
         {
             return Task.FromResult(true);
         }
 
-        public Task<bool> GetEnabledAsync(CancellationToken cs)
+        public Task<NetworkStatus> GetNetworkStatusAsync(CancellationToken cs)
         {
-            return Task.FromResult(true);
+            return Task.FromResult(NetworkStatus.Disabled);
         }
     }
 }

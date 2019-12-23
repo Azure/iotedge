@@ -2,9 +2,10 @@
 namespace NetworkController
 {
     using System.Threading.Tasks;
-    using ModuleUtil.NetworkControllerResult;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkControllerResult;
+
     interface INetworkStatusReporter
     {
-        Task ReportNetworkStatus(NetworkControllerOperation settingRule, bool enabled, NetworkStatus networkStatus, bool success = true);
+        Task ReportNetworkStatus(NetworkControllerOperation settingRule, NetworkStatus networkStatus, NetworkControllerType networkControllerType, bool success = true);
     }
 }

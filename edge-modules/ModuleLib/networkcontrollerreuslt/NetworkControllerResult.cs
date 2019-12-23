@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace ModuleUtil.NetworkControllerResult
+namespace Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkControllerResult
 {
     using Newtonsoft.Json;
     public class NetworkControllerResult
@@ -10,9 +10,9 @@ namespace ModuleUtil.NetworkControllerResult
 
         public string OperationStatus { get; set; }
 
-        public NetworkStatus NetworkStatus { get; set; }
+        public NetworkControllerType NetworkControllerType { get; set; }
 
-        public bool Enabled { get; set; }
+        public NetworkStatus NetworkStatus { get; set; }
 
         public override string ToString()
         {
