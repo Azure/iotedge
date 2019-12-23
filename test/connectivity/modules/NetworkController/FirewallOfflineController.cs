@@ -27,11 +27,11 @@ namespace NetworkController
 
         public NetworkControllerType NetworkControllerType => NetworkControllerType.Offline;
 
-        public Task<NetworkStatus> GetNetworkStatusAsync(CancellationToken cs) => this.underlyingController.GetNetworkStatusAsync(cs);
+        public Task<NetworkControllerStatus> GetNetworkControllerStatusAsync(CancellationToken cs) => this.underlyingController.GetNetworkControllerStatusAsync(cs);
 
-        public Task<bool> SetNetworkStatusAsync(NetworkStatus networkStatus, CancellationToken cs)
+        public Task<bool> SetNetworkControllerStatusAsync(NetworkControllerStatus networkControllerStatus, CancellationToken cs)
         {
-            return this.underlyingController.SetNetworkStatusAsync(networkStatus, cs);
+            return this.underlyingController.SetNetworkControllerStatusAsync(networkControllerStatus, cs);
         }
     }
 }

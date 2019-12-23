@@ -19,12 +19,12 @@ namespace NetworkController
 
         public NetworkControllerType NetworkControllerType => throw new NotImplementedException();
 
-        public Task<NetworkStatus> GetNetworkStatusAsync(CancellationToken cs)
+        public Task<NetworkControllerStatus> GetNetworkControllerStatusAsync(CancellationToken cs)
         {
             throw new NotImplementedException();
         }
 
-        public Task<bool> SetNetworkStatusAsync(NetworkStatus networkStatus, CancellationToken cs)
+        public Task<bool> SetNetworkControllerStatusAsync(NetworkControllerStatus networkControllerStatus, CancellationToken cs)
         {
             throw new NotImplementedException();
         }

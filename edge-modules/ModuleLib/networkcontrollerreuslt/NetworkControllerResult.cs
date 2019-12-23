@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkControllerResult
 
         public NetworkControllerType NetworkControllerType { get; set; }
 
-        public NetworkStatus NetworkStatus { get; set; }
+        public NetworkControllerStatus NetworkControllerStatus { get; set; }
 
         public override string ToString()
         {

@@ -23,9 +23,9 @@ namespace NetworkController
             this.trackingId = trackingId;
         }
 
-        public Task ReportNetworkStatus(NetworkControllerOperation operation, NetworkStatus networkStatus, NetworkControllerType networkControllerType, bool success = true)
+        public Task ReportNetworkStatus(NetworkControllerOperation operation, NetworkControllerStatus networkControllerStatus, NetworkControllerType networkControllerType, bool success = true)
         {
-            var networkController = new NetworkControllerResult() { Operation = operation.ToString(), OperationStatus = success ? "Success" : "Failed", NetworkControllerType = networkControllerType, NetworkStatus = networkStatus, TrackingId = this.trackingId };
+            var networkController = new NetworkControllerResult() { Operation = operation.ToString(), OperationStatus = success ? "Success" : "Failed", NetworkControllerType = networkControllerType, NetworkControllerStatus = networkControllerStatus, TrackingId = this.trackingId };
             return ModuleUtil.ReportStatus(this.trcClient, Log, this.moduleId, networkController.ToString(), TestOperationResultType.Network.ToString());
         }
     }

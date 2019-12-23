@@ -9,8 +9,8 @@ namespace NetworkController
     {
         NetworkControllerType NetworkControllerType { get; }
 
-        Task<bool> SetNetworkStatusAsync(NetworkStatus networkStatus, CancellationToken cs);
+        Task<bool> SetNetworkControllerStatusAsync(NetworkControllerStatus networkControllerStatus, CancellationToken cs);
 
-        Task<NetworkStatus> GetNetworkStatusAsync(CancellationToken cs);
+        Task<NetworkControllerStatus> GetNetworkControllerStatusAsync(CancellationToken cs);
     }
 }

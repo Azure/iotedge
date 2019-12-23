@@ -6,6 +6,6 @@ namespace NetworkController
 
     interface INetworkStatusReporter
     {
-        Task ReportNetworkStatus(NetworkControllerOperation settingRule, NetworkStatus networkStatus, NetworkControllerType networkControllerType, bool success = true);
+        Task ReportNetworkStatus(NetworkControllerOperation settingRule, NetworkControllerStatus networkControllerStatus, NetworkControllerType networkControllerType, bool success = true);
     }
 }

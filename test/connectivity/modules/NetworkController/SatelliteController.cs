@@ -17,14 +17,14 @@ namespace NetworkController
 
         public NetworkControllerType NetworkControllerType => NetworkControllerType.Sattelite;
 
-        public Task<bool> SetNetworkStatusAsync(NetworkStatus networkStatus, CancellationToken cs)
+        public Task<bool> SetNetworkControllerStatusAsync(NetworkControllerStatus networkControllerStatus, CancellationToken cs)
         {
             return Task.FromResult(true);
         }
 
-        public Task<NetworkStatus> GetNetworkStatusAsync(CancellationToken cs)
+        public Task<NetworkControllerStatus> GetNetworkControllerStatusAsync(CancellationToken cs)
         {
-            return Task.FromResult(NetworkStatus.Disabled);
+            return Task.FromResult(NetworkControllerStatus.Disabled);
         }
     }
 }
