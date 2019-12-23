@@ -60,7 +60,7 @@ namespace LoadGen
                                     trcClient,
                                     Logger,
                                     Settings.Current.ModuleId + ".send",
-                                    ModuleUtil.FormatTestResultValue(
+                                    ModuleUtil.FormatMessagesTestResultValue(
                                         Settings.Current.TrackingId,
                                         batchId.ToString(),
                                         messageIdCounter.ToString()),
