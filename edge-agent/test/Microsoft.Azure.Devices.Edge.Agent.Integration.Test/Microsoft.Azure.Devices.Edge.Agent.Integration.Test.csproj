@@ -60,7 +60,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="module-priority-test-config.json">
+    <None Update="test-configs\module-priority-test-config.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

@@ -49,7 +49,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
         async Task<Plan> CreatePlan(ModuleSet desired, ModuleSet current, IRuntimeInfo runtimeInfo, IImmutableDictionary<string, IModuleIdentity> moduleIdentities)
         {
             List<ICommand> commands = new List<ICommand>();
-            var priorityGroup = desired.Modules.Union(current.Modules).ToLookup(x => x.Value.Priority).OrderBy(x => x.Key);
+            var priorityGroup = desired.Modules.Union(
+                current.Modules.Where(y => !desired.Modules.ContainsKey(y.Key))).ToLookup(x => x.Value.Priority).OrderBy(x => x.Key);
 
             foreach (IGrouping<uint, KeyValuePair<string, IModule>> packageGroup in priorityGroup)
             {

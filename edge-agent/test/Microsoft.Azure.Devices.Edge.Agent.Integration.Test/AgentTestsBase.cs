@@ -18,6 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
     using Microsoft.Azure.Devices.Edge.Agent.Docker;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Extensions.Configuration;
     using Moq;
     using Newtonsoft.Json;

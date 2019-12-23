@@ -73,7 +73,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             Events.LogCurrent(current);
 
             List<ICommand> commands = new List<ICommand>();
-            var priorityGroup = desired.Modules.Union(current.Modules.Where(y => !desired.Modules.ContainsKey(y.Key))).ToLookup(x => x.Value.Priority).OrderBy(x => x.Key);
+            var priorityGroup = desired.Modules.Union(
+                current.Modules.Where(y => !desired.Modules.ContainsKey(y.Key))).ToLookup(x => x.Value.Priority).OrderBy(x => x.Key);
 
             foreach (IGrouping<uint, KeyValuePair<string, IModule>> packageGroup in priorityGroup)
             {
