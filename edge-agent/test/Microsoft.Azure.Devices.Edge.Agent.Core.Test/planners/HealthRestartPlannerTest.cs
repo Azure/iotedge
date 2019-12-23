@@ -381,7 +381,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             await planRunner.ExecuteAsync(1, plan, CancellationToken.None);
 
             // Assert
-            factory.Recorder.ForEach(r => {
+            factory.Recorder.ForEach(r =>
+            {
                 Assert.Empty(expectedExecutionList.Except(r.ExecutionList));
 
                 // Asserting whether the execution list commands are ordered based on module priority.

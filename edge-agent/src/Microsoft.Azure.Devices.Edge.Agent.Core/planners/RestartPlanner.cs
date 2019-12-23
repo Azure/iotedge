@@ -49,15 +49,27 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
         async Task<Plan> CreatePlan(ModuleSet desired, ModuleSet current, IRuntimeInfo runtimeInfo, IImmutableDictionary<string, IModuleIdentity> moduleIdentities)
         {
             List<ICommand> commands = new List<ICommand>();
-            var priorityGroup = desired.Modules.Union(
+
+            // Create a grouping of modules based on their priority.
+            // We want to process all the modules in the deployment (desired modules) and also include the modules
+            // that are not specified in the deployment but are currently running on the device. This is so that
+            // their processing is done in the right priority order.
+            var priorityGroups = desired.Modules.Union(
                 current.Modules.Where(y => !desired.Modules.ContainsKey(y.Key))).ToLookup(x => x.Value.Priority).OrderBy(x => x.Key);
 
-            foreach (IGrouping<uint, KeyValuePair<string, IModule>> packageGroup in priorityGroup)
+            foreach (IGrouping<uint, KeyValuePair<string, IModule>> priorityGroup in priorityGroups)
             {
-                ModuleSet priorityBasedDesiredSet = ModuleSet.Create(desired.Modules.Where(x => packageGroup.Any(y => y.Key.Equals(x.Key, StringComparison.OrdinalIgnoreCase))).Select(x => x.Value).ToArray());
+                // The desired set is all the desired modules that have the priority of the current priority group being evaluated.
+                ModuleSet priorityBasedDesiredSet = ModuleSet.Create(
+                    desired.Modules.Where(x => priorityGroup.Any(y => y.Key.Equals(x.Key, StringComparison.OrdinalIgnoreCase))).Select(x => x.Value).ToArray());
+
+                // The current set is:
+                // - All the current modules that correspond to the desired modules present in the current priority group.
+                // - All the current modules that have the priority of the current priority group being evaluated and were not specified in the desired deployment config.
+                //   These are included so that they can be stopped and removed in the right priority order.
                 ModuleSet priorityBasedCurrentSet = ModuleSet.Create(
                     current.Modules.Where(x => priorityBasedDesiredSet.Modules.ContainsKey(x.Key) ||
-                    packageGroup.Any(y => y.Key.Equals(x.Key, StringComparison.OrdinalIgnoreCase)))
+                    priorityGroup.Any(y => y.Key.Equals(x.Key, StringComparison.OrdinalIgnoreCase)))
                     .Select(y => y.Value)
                     .ToArray());
 
