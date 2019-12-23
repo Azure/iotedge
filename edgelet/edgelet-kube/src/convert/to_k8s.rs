@@ -475,12 +475,12 @@ pub fn spec_to_role_binding(
             kind: "Role".into(),
             name: module_label_value.clone(),
         },
-        subjects: vec![api_rbac::Subject {
+        subjects: Some(vec![api_rbac::Subject {
             api_group: None,
             kind: "ServiceAccount".into(),
             name: module_label_value,
             namespace: Some(settings.namespace().into()),
-        }],
+        }]),
     };
 
     Ok((role_binding_name, role_binding))
@@ -781,12 +781,15 @@ mod tests {
         assert_eq!(role_binding.role_ref.kind, "Role");
         assert_eq!(role_binding.role_ref.name, "edgeagent");
 
-        assert_eq!(role_binding.subjects.len(), 1);
-        let subject = &role_binding.subjects[0];
-        assert_eq!(subject.api_group, None);
-        assert_eq!(subject.kind, "ServiceAccount");
-        assert_eq!(subject.name, "edgeagent");
-        assert_eq!(subject.namespace, Some("default".to_string()));
+        assert!(role_binding.subjects.is_some());
+        if let Some(subjects) = role_binding.subjects {
+            assert_eq!(subjects.len(), 1);
+            let subject = &subjects[0];
+            assert_eq!(subject.api_group, None);
+            assert_eq!(subject.kind, "ServiceAccount");
+            assert_eq!(subject.name, "edgeagent");
+            assert_eq!(subject.namespace, Some("default".to_string()));
+        }
     }
 
     #[test]
