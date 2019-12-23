@@ -53,10 +53,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
 
             foreach (IGrouping<uint, KeyValuePair<string, IModule>> packageGroup in priorityGroup)
             {
-                ModuleSet priorityBasedDesiredSet = ModuleSet.Create(desired.Modules.Where(x => packageGroup.Any(y => y.Value.Name == x.Value.Name)).Select(x => x.Value).ToArray());
+                ModuleSet priorityBasedDesiredSet = ModuleSet.Create(desired.Modules.Where(x => packageGroup.Any(y => y.Key.Equals(x.Key, StringComparison.OrdinalIgnoreCase))).Select(x => x.Value).ToArray());
                 ModuleSet priorityBasedCurrentSet = ModuleSet.Create(
-                    current.Modules.Where(x => priorityBasedDesiredSet.Modules.ContainsKey(x.Value.Name) ||
-                    packageGroup.Any(y => y.Value.Name == x.Value.Name))
+                    current.Modules.Where(x => priorityBasedDesiredSet.Modules.ContainsKey(x.Key) ||
+                    packageGroup.Any(y => y.Key.Equals(x.Key, StringComparison.OrdinalIgnoreCase)))
                     .Select(y => y.Value)
                     .ToArray());
 
@@ -66,10 +66,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
                 IEnumerable<ICommand> stop = await Task.WhenAll(stopTasks);
                 IEnumerable<Task<ICommand>> removeTasks = diff.Removed.Select(name => this.commandFactory.RemoveAsync(priorityBasedCurrentSet.Modules[name]));
                 IEnumerable<ICommand> remove = await Task.WhenAll(removeTasks);
-                IEnumerable<Task<ICommand>> startTasks = priorityBasedDesiredSet.Modules.Values
-                    .Where(m => m.DesiredStatus == ModuleStatus.Running)
-                    .Select(m => this.commandFactory.StartAsync(m));
-                IEnumerable<ICommand> start = await Task.WhenAll(startTasks);
 
                 // Only update changed modules
                 IList<Task<ICommand>> updateTasks = diff.AddedOrUpdated
@@ -77,6 +73,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
                     .Select(m => this.CreateOrUpdate(priorityBasedCurrentSet, m, runtimeInfo, moduleIdentities))
                     .ToList();
                 IEnumerable<ICommand> update = await Task.WhenAll(updateTasks);
+
+                IEnumerable<Task<ICommand>> startTasks = priorityBasedDesiredSet.Modules.Values
+                    .Where(m => m.DesiredStatus == ModuleStatus.Running)
+                    .Select(m => this.commandFactory.StartAsync(m));
+                IEnumerable<ICommand> start = await Task.WhenAll(startTasks);
 
                 var newCommands = stop
                     .Concat(remove)
