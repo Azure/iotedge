@@ -4,6 +4,7 @@ namespace NetworkController
     using System.Runtime.InteropServices;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkControllerResult;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -24,13 +25,13 @@ namespace NetworkController
             }
         }
 
-        public string Description => "FirewallOffline";
+        public NetworkControllerType NetworkControllerType => NetworkControllerType.Offline;
 
-        public Task<NetworkStatus> GetStatusAsync(CancellationToken cs) => this.underlyingController.GetStatusAsync(cs);
+        public Task<NetworkControllerStatus> GetNetworkControllerStatusAsync(CancellationToken cs) => this.underlyingController.GetNetworkControllerStatusAsync(cs);
 
-        public Task<bool> SetStatusAsync(NetworkStatus status, CancellationToken cs)
+        public Task<bool> SetNetworkControllerStatusAsync(NetworkControllerStatus networkControllerStatus, CancellationToken cs)
         {
-            return this.underlyingController.SetStatusAsync(status, cs);
+            return this.underlyingController.SetNetworkControllerStatusAsync(networkControllerStatus, cs);
         }
     }
 }
