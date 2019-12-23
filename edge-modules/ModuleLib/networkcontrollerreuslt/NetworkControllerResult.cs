@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkControllerResult
 {
     using Newtonsoft.Json;
+
     public class NetworkControllerResult
     {
         public string TrackingId { get; set; }
