@@ -5,6 +5,7 @@ namespace NetworkController
     using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkControllerResult;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -20,9 +21,9 @@ namespace NetworkController
             this.iotHubHostname = iotHubHostname;
         }
 
-        public string Description => "LinuxFirewallOffline";
+        public NetworkControllerType NetworkControllerType => NetworkControllerType.Offline;
 
-        public async Task<NetworkStatus> GetStatusAsync(CancellationToken cs)
+        public async Task<NetworkControllerStatus> GetNetworkControllerStatusAsync(CancellationToken cs)
         {
             try
             {
@@ -34,27 +35,27 @@ namespace NetworkController
                 // parse output to see if online or offline
                 if (output.Contains("qdisc noqueue"))
                 {
-                    return NetworkStatus.Default;
+                    return NetworkControllerStatus.Disabled;
                 }
                 else
                 {
-                    return NetworkStatus.Restricted;
+                    return NetworkControllerStatus.Enabled;
                 }
             }
             catch (Exception e)
             {
                 Log.LogError(e, "Failed to get network status");
-                return NetworkStatus.Unknown;
+                return NetworkControllerStatus.Unknown;
             }
         }
 
-        public Task<bool> SetStatusAsync(NetworkStatus status, CancellationToken cs)
+        public Task<bool> SetNetworkControllerStatusAsync(NetworkControllerStatus status, CancellationToken cs)
         {
             switch (status)
             {
-                case NetworkStatus.Restricted:
+                case NetworkControllerStatus.Enabled:
                     return this.AddDropRule(cs);
-                case NetworkStatus.Default:
+                case NetworkControllerStatus.Disabled:
                     return this.RemoveDropRule(cs);
                 default:
                     throw new NotSupportedException($"Set status '{status}' is not supported.");

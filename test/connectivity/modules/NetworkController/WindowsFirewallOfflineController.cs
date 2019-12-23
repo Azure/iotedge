@@ -4,6 +4,7 @@ namespace NetworkController
     using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkControllerResult;
     using Microsoft.Azure.Devices.Edge.Util;
 
     class WindowsFirewallOfflineController : INetworkController
@@ -16,14 +17,14 @@ namespace NetworkController
                 Preconditions.CheckNonWhiteSpace(networkInterfaceName, nameof(networkInterfaceName));
         }
 
-        public string Description => throw new NotImplementedException();
+        public NetworkControllerType NetworkControllerType => throw new NotImplementedException();
 
-        public Task<NetworkStatus> GetStatusAsync(CancellationToken cs)
+        public Task<NetworkControllerStatus> GetNetworkControllerStatusAsync(CancellationToken cs)
         {
             throw new NotImplementedException();
         }
 
-        public Task<bool> SetStatusAsync(NetworkStatus status, CancellationToken cs)
+        public Task<bool> SetNetworkControllerStatusAsync(NetworkControllerStatus networkControllerStatus, CancellationToken cs)
         {
             throw new NotImplementedException();
         }
