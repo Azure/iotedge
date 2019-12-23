@@ -73,16 +73,17 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Planners
             Events.LogCurrent(current);
 
             List<ICommand> commands = new List<ICommand>();
-            var priorityGroup = desired.Modules.Union(current.Modules).ToLookup(x => x.Value.Priority).OrderBy(x => x.Key);
+            var priorityGroup = desired.Modules.Union(current.Modules.Where(y => !desired.Modules.ContainsKey(y.Key))).ToLookup(x => x.Value.Priority).OrderBy(x => x.Key);
 
             foreach (IGrouping<uint, KeyValuePair<string, IModule>> packageGroup in priorityGroup)
             {
-                ModuleSet priorityBasedDesiredSet = ModuleSet.Create(desired.Modules.Where(x => packageGroup.Any(y => y.Value.Name == x.Value.Name)).Select(x => x.Value).ToArray());
+                ModuleSet priorityBasedDesiredSet = ModuleSet.Create(desired.Modules.Where(x => packageGroup.Any(y => y.Key.Equals(x.Key, StringComparison.OrdinalIgnoreCase))).Select(x => x.Value).ToArray());
                 ModuleSet priorityBasedCurrentSet = ModuleSet.Create(
-                    current.Modules.Where(x => priorityBasedDesiredSet.Modules.ContainsKey(x.Value.Name) ||
-                    packageGroup.Any(y => y.Value.Name == x.Value.Name))
+                    current.Modules.Where(x => priorityBasedDesiredSet.Modules.ContainsKey(x.Key) ||
+                    packageGroup.Any(y => y.Key.Equals(x.Key, StringComparison.OrdinalIgnoreCase)))
                     .Select(y => y.Value)
                     .ToArray());
+
 
                 // extract list of modules that need attention
                 (IList<IModule> added, IList<IModule> updateDeployed, IList<IModule> desiredStatusChanged, IList<IRuntimeModule> updateStateChanged, IList<IRuntimeModule> removed, IList<IRuntimeModule> runningGreat) = this.ProcessDiff(priorityBasedDesiredSet, priorityBasedCurrentSet);

@@ -3,7 +3,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
 {
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Newtonsoft.Json;
-    using System.ComponentModel.DataAnnotations;
 
     public class TestConfig
     {

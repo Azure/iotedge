@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
 {
-    using System.Diagnostics;
     using Xunit;
 
     public class ModulePriorityValidator : Validator
