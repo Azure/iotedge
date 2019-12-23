@@ -251,16 +251,6 @@ provisioning:
 #     identityPk: "<REQUIRED URI TO DEVICE IDENTITY PRIVATE KEY>"
 #   dynamicReprovisioning: false
 
-# DPS TPM provisioning configuration
-# provisioning:
-#   source: "dps"
-#   globalEndpoint: "https://global.azure-devices-provisioning.net"
-#   scopeId: "{scope_id}"
-#   attestation:
-#     method: "tpm"
-#     registrationId: "{registration_id}"
-#   dynamicReprovisioning: false
-
 # DPS symmetric key provisioning configuration
 # provisioning:
 #   source: "dps"
