@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
         [MemberData(nameof(AgentTestsBase.GenerateStartTestData), TestConfig)]
         public async Task ModulesProcessedInPriorityOrderAsync(TestConfig testConfig)
         {
-            await AgentExecutionTestAsync(testConfig);
+            await this.AgentExecutionTestAsync(testConfig);
         }
     }
 }
