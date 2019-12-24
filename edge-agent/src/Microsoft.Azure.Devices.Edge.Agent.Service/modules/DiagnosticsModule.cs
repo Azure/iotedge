@@ -2,13 +2,10 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Service
 {
-    using System.Collections.Generic;
-    using System.Threading.Tasks;
     using Autofac;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage;
-    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
 
     public sealed class DiagnosticsModule : Module
@@ -28,28 +25,18 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 .SingleInstance();
 
             // IMetricsStorage
-            builder.Register(async c =>
-                    {
-                        IStoreProvider storeProvider = await c.Resolve<Task<IStoreProvider>>();
-                        ISequentialStore<IEnumerable<Metric>> dataStore = await storeProvider.GetSequentialStore<IEnumerable<Metric>>("Metrics");
-
-                        return new MetricsStorage(dataStore);
-                    })
-                .As<Task<IMetricsStorage>>()
+            builder.RegisterType<MetricsStorage>()
+                .As<IMetricsStorage>()
                 .SingleInstance();
 
             // IMetricsPublisher
             builder.RegisterType<EdgeRuntimeDiagnosticsUpload>()
-                    .As<IMetricsPublisher>()
-                    .SingleInstance();
+                .As<IMetricsPublisher>()
+                .SingleInstance();
 
             // MetricsWorker
-            builder.Register(async c => new MetricsWorker(
-                        c.Resolve<IMetricsScraper>(),
-                        await c.Resolve<Task<IMetricsStorage>>(),
-                        c.Resolve<IMetricsPublisher>()))
-                    .As<Task<MetricsWorker>>()
-                    .SingleInstance();
+            builder.RegisterType<MetricsWorker>()
+                .SingleInstance();
 
             base.Load(builder);
         }
