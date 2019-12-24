@@ -4,6 +4,7 @@ version = "0.1.1"
 authors = ["Azure IoT Edge Devs"]
 edition = "2018"
 
+
 [dependencies]
 clap = "2.32"
 env_logger = "0.5"
