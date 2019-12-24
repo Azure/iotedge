@@ -19,9 +19,6 @@ function clean_up() {
     rm -rf /var/run/iotedge/
     rm -rf /etc/iotedge/config.yaml
 
-    echo 'Remove mounted storage folder'
-    rm -rf $mounted_storage_path
-
     if [ "$CLEAN_ALL" = '1' ]; then
         echo 'Prune docker system'
         docker system prune -af --volumes || true
@@ -172,7 +169,12 @@ function prepare_test_from_artifacts() {
 
                 local escapedSnitchAlertUrl
                 local escapedBuildId
+                sed -i -e "s@<Analyzer.ConsumerGroupId>@$EVENT_HUB_CONSUMER_GROUP_ID@g" "$deployment_working_file"
                 sed -i -e "s@<Analyzer.EventHubConnectionString>@$EVENTHUB_CONNECTION_STRING@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.LogAnalyticsEnabled>@$LOG_ANALYTICS_ENABLED@g" "$deployment_working_file"
+                sed -i -e "s@<Analyzer.LogAnalyticsLogType>@$LOG_ANALYTICS_LOG_TYPE@g" "$deployment_working_file"
+                sed -i -e "s@<LogAnalyticsWorkspaceId>@$LOG_ANALYTICS_WORKSPACE_ID@g" "$deployment_working_file"
+                sed -i -e "s@<LogAnalyticsSharedKey>@$LOG_ANALYTICS_SHARED_KEY@g" "$deployment_working_file"
                 sed -i -e "s@<LoadGen.MessageFrequency>@$LOADGEN_MESSAGE_FREQUENCY@g" "$deployment_working_file"
                 escapedSnitchAlertUrl="${SNITCH_ALERT_URL//&/\\&}"
                 escapedBuildId="${ARTIFACT_IMAGE_BUILD_NUMBER//./}"
@@ -335,34 +337,47 @@ function process_args() {
             MQTT_SETTINGS_ENABLED="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 23 ]; then
-            LONG_HAUL_PROTOCOL_HEAD="$arg"
-            saveNextArg=0
-        elif [ $saveNextArg -eq 24 ]; then
             CERT_SCRIPT_DIR="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 25 ]; then
+        elif [ $saveNextArg -eq 24 ]; then
             ROOT_CA_CERT_PATH="$arg"
             INSTALL_CA_CERT=1
             saveNextArg=0
-        elif [ $saveNextArg -eq 26 ]; then
+        elif [ $saveNextArg -eq 25 ]; then
             ROOT_CA_KEY_PATH="$arg"
             INSTALL_CA_CERT=1
             saveNextArg=0
-        elif [ $saveNextArg -eq 27 ]; then
+        elif [ $saveNextArg -eq 26 ]; then
             ROOT_CA_PASSWORD="$arg"
             INSTALL_CA_CERT=1
             saveNextArg=0
-        elif [ $saveNextArg -eq 28 ]; then
+        elif [ $saveNextArg -eq 27 ]; then
             DPS_SCOPE_ID="$arg"
             saveNextArg=0
-        elif [ $saveNextArg -eq 29 ]; then
+        elif [ $saveNextArg -eq 28 ]; then
             DPS_MASTER_SYMMETRIC_KEY="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 29 ]; then
+            EVENT_HUB_CONSUMER_GROUP_ID="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 30 ]; then
             DESIRED_MODULES_TO_RESTART_CSV="$arg"
             saveNextArg=0
         elif [ $saveNextArg -eq 31 ]; then
             RESTART_INTERVAL_IN_MINS="$arg"
+            saveNextArg=0;
+        elif [ $saveNextArg -eq 32 ]; then
+            LOG_ANALYTICS_ENABLED="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 33 ]; then
+            LOG_ANALYTICS_WORKSPACE_ID="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 34 ]; then
+            LOG_ANALYTICS_SHARED_KEY="$arg"
+            saveNextArg=0
+        elif [ $saveNextArg -eq 35 ]; then
+            LOG_ANALYTICS_LOG_TYPE="$arg"
+            saveNextArg=0
         elif [ $saveNextArg -eq 36 ]; then
             TWIN_UPDATE_SIZE="$arg"
             saveNextArg=0;
@@ -427,6 +442,11 @@ function process_args() {
     [[ -z "$CONTAINER_REGISTRY_PASSWORD" ]] && { print_error 'Container registry password is required'; exit 1; }
     [[ -z "$IOTHUB_CONNECTION_STRING" ]] && { print_error 'IoT hub connection string is required'; exit 1; }
     [[ -z "$EVENTHUB_CONNECTION_STRING" ]] && { print_error 'Event hub connection string is required'; exit 1; }
+    [[ -z "$LOG_ANALYTICS_ENABLED" ]] && { LOG_ANALYTICS_ENABLED="false"; }
+    [[ "$LOG_ANALYTICS_ENABLED" == true ]] && \
+    {  [[ -z "$LOG_ANALYTICS_WORKSPACE_ID" ]] && { print_error 'Log Analytics Workspace ID is required'; exit 1; }; \
+       [[ -z "$LOG_ANALYTICS_SHARED_KEY" ]] && { print_error 'Log Analytics secret is required'; exit 1; }; \
+       [[ -z "$LOG_ANALYTICS_LOG_TYPE" ]] && { print_error 'Log Analytics Log Type is required'; exit 1; }; }
 
     echo 'Required parameters are provided'
 }
@@ -877,17 +897,9 @@ function run_test()
     exit $ret
 }
 
-function setup_mounted_storage() {
-    if [ ! -d $mounted_storage_path ]; then
-        mkdir $mounted_storage_path
-    fi
-    chmod a+rw $mounted_storage_path
-}
-
 function test_setup() {
     validate_test_parameters
     clean_up
-    setup_mounted_storage
     prepare_test_from_artifacts
     create_iotedge_service_config
 }
@@ -1014,7 +1026,7 @@ process_args "$@"
 
 CONTAINER_REGISTRY="${CONTAINER_REGISTRY:-edgebuilds.azurecr.io}"
 E2E_TEST_DIR="${E2E_TEST_DIR:-$(pwd)}"
-LONG_HAUL_PROTOCOL_HEAD="${LONG_HAUL_PROTOCOL_HEAD:-amqp}"
+EVENT_HUB_CONSUMER_GROUP_ID=${EVENT_HUB_CONSUMER_GROUP_ID:-\$Default}
 SNITCH_BUILD_NUMBER="${SNITCH_BUILD_NUMBER:-1.2}"
 TRANSPORT_TYPE_1="${TRANSPORT_TYPE_1:-amqp}"
 TRANSPORT_TYPE_2="${TRANSPORT_TYPE_2:-amqp}"
@@ -1051,6 +1063,7 @@ if [ "$image_architecture_label" = 'arm32v7' ] ||
    [ "$image_architecture_label" = 'arm64v8' ]; then
     optimize_for_performance=false
 fi
+
 iotedged_artifact_folder="$(get_iotedged_artifact_folder)"
 iotedge_quickstart_artifact_file="$(get_iotedge_quickstart_artifact_file)"
 leafdevice_artifact_file="$(get_leafdevice_artifact_file)"
@@ -1063,6 +1076,5 @@ stress_deployment_artifact_file="$E2E_TEST_DIR/artifacts/core-linux/e2e_deployme
 deployment_working_file="$working_folder/deployment.json"
 quickstart_working_folder="$working_folder/quickstart"
 leafdevice_working_folder="$working_folder/leafdevice"
-mounted_storage_path="/home/edgehub-mounted-storage"
 
 run_test
