@@ -28,13 +28,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         const string Device2ConnStrKey = "device2ConnStrKey";
         const string Device3ConnStrKey = "device3ConnStrKey";
         static readonly TimeSpan ClockSkew = TimeSpan.FromMinutes(5);
-<<<<<<< HEAD
-
-        static readonly int EventHubMessageReceivedRetry = 5;
-=======
         static readonly int EventHubMessageReceivedRetry = 10;
         static readonly ILogger logger = Logger.Factory.CreateLogger(nameof(CloudProxyTest));
->>>>>>> d7a74bfe... Fix flaky CI tests - Overloaded consumer group partitions (#2114)
 
         [Fact]
         [TestPriority(401)]
@@ -258,13 +253,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             var receivedMessagesByPartition = new Dictionary<string, List<EventData>>();
 
             bool messagesFound = false;
-<<<<<<< HEAD
-            // Add retry mechanism to make sure all the messages sent reached Event Hub. Retry 3 times.
-            for (int i = 0; i < EventHubMessageReceivedRetry; i++)
-=======
             // If this test becomes flaky, use PartitionReceiver as a background Task to continuously retrieve messages.
             for (int i = 0; i < EventHubMessageReceivedRetry; i++) // Retry for event hub being slow to process messages.
->>>>>>> d7a74bfe... Fix flaky CI tests - Overloaded consumer group partitions (#2114)
             {
                 foreach (string deviceId in sentMessagesByDevice.Keys)
                 {
