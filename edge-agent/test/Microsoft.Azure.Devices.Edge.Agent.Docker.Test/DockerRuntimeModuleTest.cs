@@ -44,6 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
 
         static readonly DockerConfig ValidConfig = new DockerReportedConfig("image1:42", (string)null, "sha256:75");
         static readonly DockerRuntimeModule ValidJsonModule = new DockerRuntimeModule("<module_name>", "<semantic_version_number>", ModuleStatus.Running, RestartPolicy.OnFailure, ValidConfig, 0, "<status description>", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.Parse("2017-08-05T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), 1, DateTime.Parse("2017-08-06T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.DefaultPriority, DefaultConfigurationInfo, EnvVars);
+        static readonly DockerRuntimeModule ValidJsonModuleWithPriority = new DockerRuntimeModule("<module_name>", "<semantic_version_number>", ModuleStatus.Running, RestartPolicy.OnFailure, ValidConfig, 0, "<status description>", DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), DateTime.Parse("2017-08-05T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), 1, DateTime.Parse("2017-08-06T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind), ModuleStatus.Running, ImagePullPolicy.OnCreate, Constants.HighestPriority, DefaultConfigurationInfo, EnvVars);
 
         static readonly JObject TestJsonInputs = JsonConvert.DeserializeObject<JObject>(
             @"
@@ -450,7 +451,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          ""status"":""running"",
          ""restartpolicy"":""on-failure"",
          ""imagepullpolicy"": ""on-create"",
-         ""priority"": 10,
          ""exitcode"": 0,
          ""statusdescription"" : ""<status description>"",
          ""laststarttimeutc"" : ""2017-08-04T17:52:13.0419502Z"",
@@ -486,12 +486,40 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
          }
       }
    ],
+   ""validJsonWithPriority"":[
+      {
+         ""Version"":""<semantic_version_number>"",
+         ""Type"":""docker"",
+         ""Status"":""running"",
+         ""RestartPolicy"":""on-failure"",
+         ""ImagePullPolicy"": ""on-create"",
+         ""Priority"": 0,
+         ""Settings"":{
+            ""Image"":""image1:42""
+         },
+         ""ExitCode"": 0,
+         ""StatusDescription"" : ""<status description>"",
+         ""LastStartTimeUtc"" : ""2017-08-04T17:52:13.0419502Z"",
+         ""LastExitTimeUtc"" : ""2017-08-05T17:52:13.0419502Z"",
+         ""RestartCount"" : 1,
+         ""LastRestartTimeUtc"" : ""2017-08-06T17:52:13.0419502Z"",
+         ""RuntimeStatus"":""running"",
+         ""Configuration"": {
+            ""id"": ""1""
+         }
+      }
+   ],
 }
 ");
 
         public static IEnumerable<object[]> GetValidJsonInputs()
         {
             return GetJsonTestCases("validJson").Select(s => new object[] { s });
+        }
+
+        public static IEnumerable<object[]> GetValidJsonWithPriorityInputs()
+        {
+            return GetJsonTestCases("validJsonWithPriority").Select(s => new object[] { s });
         }
 
         public static IEnumerable<object[]> GetValidStatusInputs()
@@ -624,6 +652,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             var module = ModuleSerde.Instance.Deserialize<DockerRuntimeModule>(inputJson);
             module.Name = "<module_name>";
             Assert.True(ValidJsonModule.Equals(module));
+        }
+
+        [Theory]
+        [MemberData(nameof(GetValidJsonWithPriorityInputs))]
+        public void TestDeserializeValidJsonWithPriority(string inputJson)
+        {
+            var module = ModuleSerde.Instance.Deserialize<DockerRuntimeModule>(inputJson);
+            module.Name = "<module_name>";
+            Assert.True(ValidJsonModuleWithPriority.Equals(module));
         }
 
         [Theory]
