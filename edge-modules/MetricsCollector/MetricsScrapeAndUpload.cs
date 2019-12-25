@@ -56,9 +56,10 @@ namespace MetricsCollector
         {
             foreach (Metric metric in metrics)
             {
-                Dictionary<string, string> tagsWithGuid = JsonConvert.DeserializeObject<Dictionary<string, string>>(metric.Tags);
-                tagsWithGuid.Add("guid", this.metricsCollectorRuntimeId.ToString());
-                yield return new Metric(metric.TimeGeneratedUtc, metric.Name, metric.Value, JsonConvert.SerializeObject(tagsWithGuid));
+                Dictionary<string, string> metricTags = JsonConvert.DeserializeObject<Dictionary<string, string>>(metric.Tags);
+                metricTags.Add("testId", this.metricsCollectorRuntimeId.ToString());
+                metricTags.Add("testType", Settings.Current.TestType);
+                yield return new Metric(metric.TimeGeneratedUtc, metric.Name, metric.Value, JsonConvert.SerializeObject(metricTags));
             }
         }
     }

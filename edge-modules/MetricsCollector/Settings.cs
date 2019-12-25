@@ -26,6 +26,7 @@ namespace MetricsCollector
                     configuration.GetValue<string>("AzMonLogType", "testMetrics"),
                     configuration.GetValue<string>("MetricsEndpointsCSV", "http://edgeHub:9600/metrics,http://edgeAgent:9600/metrics"),
                     configuration.GetValue<int>("ScrapeFrequencyInSecs", 300),
+                    configuration.GetValue<string>("TestType"),
                     configuration.GetValue<UploadTarget>("UploadTarget", UploadTarget.AzureLogAnalytics));
                 });
 
@@ -35,6 +36,7 @@ namespace MetricsCollector
             string azMonLogType,
             string endpoints,
             int scrapeFrequencySecs,
+            string testType,
             UploadTarget uploadTarget)
         {
             this.AzMonWorkspaceId = Preconditions.CheckNonWhiteSpace(azMonWorkspaceId, nameof(azMonWorkspaceId));
@@ -55,6 +57,7 @@ namespace MetricsCollector
                 throw new ArgumentException("No endpoints specified to scrape metrics");
             }
 
+            this.TestType = Preconditions.CheckNonWhiteSpace(testType, nameof(testType));
             this.ScrapeFrequencySecs = Preconditions.CheckRange(scrapeFrequencySecs, 1);
             this.UploadTarget = uploadTarget;
         }
@@ -70,6 +73,8 @@ namespace MetricsCollector
         public List<string> Endpoints { get; }
 
         public int ScrapeFrequencySecs { get; }
+
+        public string TestType { get; }
 
         public UploadTarget UploadTarget { get; }
 
