@@ -77,6 +77,9 @@ impl Crypto {
     }
 
     pub fn get_device_ca_alias(&self) -> String {
+        // We want to enforce Crypto::new is called before this, since ::new() initializes the libiothsm. So silence the allow_unused clippy lint.
+        let _ = self;
+
         unsafe {
             CStr::from_ptr(hsm_get_device_ca_alias())
                 .to_string_lossy()
@@ -85,6 +88,9 @@ impl Crypto {
     }
 
     pub fn get_version(&self) -> Result<String, Error> {
+        // We want to enforce Crypto::new is called before this, since ::new() initializes the libiothsm. So silence the allow_unused clippy lint.
+        let _ = self;
+
         let version = unsafe {
             CStr::from_ptr(hsm_get_version())
                 .to_string_lossy()
@@ -259,7 +265,7 @@ impl CreateCertificate for Crypto {
             .hsm_client_destroy_certificate
             .ok_or(ErrorKind::NoneFn)?;
 
-        CString::new(alias.clone())
+        CString::new(alias)
             .ok()
             .and_then(|c_alias| {
                 unsafe { if_fn(self.handle, c_alias.as_ptr()) };
@@ -277,9 +283,7 @@ impl GetCertificate for Crypto {
             .hsm_client_crypto_get_certificate
             .ok_or(ErrorKind::NoneFn)?;
 
-        let c_alias = CString::new(alias.clone())
-            .ok()
-            .ok_or_else(|| ErrorKind::ToCStr)?;
+        let c_alias = CString::new(alias).ok().ok_or_else(|| ErrorKind::ToCStr)?;
         let cert_info_handle = unsafe { if_fn(self.handle, c_alias.as_ptr()) };
         if cert_info_handle.is_null() {
             Err(ErrorKind::NullResponse.into())

@@ -5,6 +5,7 @@
 #![allow(
     clippy::doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
     clippy::module_name_repetitions,
+    clippy::must_use_candidate,
     clippy::shadow_unrelated,
     clippy::use_self,
     clippy::too_many_lines
@@ -445,8 +446,7 @@ where
                                 None,
                             );
                         } else {
-                            let (derived_key_store, tpm_key) =
-                                external_provision_tpm(hsm_lock.clone())?;
+                            let (derived_key_store, tpm_key) = external_provision_tpm(hsm_lock)?;
                             start_edgelet!(
                                 derived_key_store,
                                 prov_result,
@@ -478,7 +478,7 @@ where
                             dps_path,
                             &mut tokio_runtime,
                             tpm,
-                            hsm_lock.clone(),
+                            hsm_lock,
                         )?;
                         start_edgelet!(
                             key_store,
@@ -2692,7 +2692,7 @@ mod tests {
         // validate that module reprovision is required since decrypt failed
         assert!(force_module_reprovision);
         assert_eq!(
-            hybrid_identity_key.clone().unwrap().len(),
+            hybrid_identity_key.unwrap().len(),
             IDENTITY_MASTER_KEY_LEN_BYTES
         );
 
@@ -2828,7 +2828,7 @@ mod tests {
 
         // validate that a new hybrid id key was created
         assert_ne!(
-            first_hybrid_identity_key.clone().unwrap(),
+            first_hybrid_identity_key.unwrap(),
             second_hybrid_identity_key.unwrap()
         );
 
@@ -2936,7 +2936,7 @@ mod tests {
 
         // validate that a new hybrid id key was created
         assert_ne!(
-            first_hybrid_identity_key.clone().unwrap(),
+            first_hybrid_identity_key.unwrap(),
             second_hybrid_identity_key.unwrap()
         );
 

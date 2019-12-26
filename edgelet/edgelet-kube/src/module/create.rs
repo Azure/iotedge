@@ -57,7 +57,7 @@ where
     spec_to_service_account(runtime.settings(), module)
         .map_err(Error::from)
         .map(|(name, new_service_account)| {
-            let client_copy = runtime.client().clone();
+            let client_copy = runtime.client();
             let namespace_copy = runtime.settings().namespace().to_owned();
 
             runtime

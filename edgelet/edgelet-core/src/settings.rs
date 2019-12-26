@@ -96,7 +96,7 @@ impl Manual {
             ));
         }
 
-        Ok((key, device_id.to_owned(), hub.to_owned()))
+        Ok((key, device_id, hub))
     }
 }
 
@@ -225,9 +225,7 @@ impl<'de> serde::Deserialize<'de> for Dps {
                 ));
             }
             (Some(att), None) => att,
-            (None, Some(reg_id)) => {
-                AttestationMethod::Tpm(TpmAttestationInfo::new(reg_id.to_string()))
-            }
+            (None, Some(reg_id)) => AttestationMethod::Tpm(TpmAttestationInfo::new(reg_id)),
             (None, None) => {
                 return Err(serde::de::Error::custom(
                     "Provisioning registration_id has to be set",

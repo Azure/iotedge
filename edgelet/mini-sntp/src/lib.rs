@@ -3,6 +3,7 @@
 #![allow(
     clippy::doc_markdown,
     clippy::module_name_repetitions,
+    clippy::must_use_candidate,
     clippy::use_self
 )]
 

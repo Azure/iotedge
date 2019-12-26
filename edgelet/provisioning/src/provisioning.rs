@@ -377,7 +377,7 @@ where
         let c = DpsClient::new(
             self.client.clone(),
             self.scope_id.clone(),
-            self.registration_id.clone(),
+            self.registration_id,
             DpsAuthKind::Tpm { ek, srk },
             key_activator,
         );
@@ -460,7 +460,7 @@ where
         let c = DpsClient::new(
             self.client.clone(),
             self.scope_id.clone(),
-            self.registration_id.clone(),
+            self.registration_id,
             DpsAuthKind::SymmetricKey,
             key_activator,
         );
@@ -542,7 +542,7 @@ where
         let c = DpsClient::new(
             self.client.clone(),
             self.scope_id.clone(),
-            self.registration_id.clone(),
+            self.registration_id,
             DpsAuthKind::X509,
             key_activator,
         );
@@ -781,7 +781,7 @@ mod tests {
                 .unwrap();
         let memory_hsm = MemoryKeyStore::new();
         let task = provisioning
-            .provision(memory_hsm.clone())
+            .provision(memory_hsm)
             .then(|result| match result {
                 Ok(result) => {
                     assert_eq!(result.hub_name, "test.com".to_string());
@@ -822,7 +822,7 @@ mod tests {
         let provisioning1 =
             parse_connection_string("DeviceId=test;SharedAccessKey=test;HostName=test.com")
                 .unwrap();
-        let task1 = provisioning1.provision(memory_hsm.clone()).then(|result| {
+        let task1 = provisioning1.provision(memory_hsm).then(|result| {
             let result = result.expect("Unexpected");
             assert_eq!(result.hub_name, "test.com".to_string());
             assert_eq!(result.device_id, "test".to_string());
@@ -844,7 +844,7 @@ mod tests {
         )
         .unwrap();
         let memory_hsm = MemoryKeyStore::new();
-        let task1 = test2.provision(memory_hsm.clone()).then(|result| {
+        let task1 = test2.provision(memory_hsm).then(|result| {
             let result = result.expect("Unexpected");
             assert_eq!(result.hub_name, "test.com".to_string());
             assert_eq!(result.device_id, "test".to_string());
@@ -1097,7 +1097,7 @@ mod tests {
         });
         let memory_hsm = MemoryKeyStore::new();
         let task = provisioning
-            .provision(memory_hsm.clone())
+            .provision(memory_hsm)
             .then(|result| match result {
                 Ok(result) => {
                     assert_eq!(result.hub_name, "TestHub".to_string());
@@ -1142,7 +1142,7 @@ mod tests {
         });
         let memory_hsm = MemoryKeyStore::new();
         let task = provisioning
-            .provision(memory_hsm.clone())
+            .provision(memory_hsm)
             .then(|result| match result {
                 Ok(result) => {
                     assert_eq!(result.hub_name, "TestHub".to_string());
@@ -1184,7 +1184,7 @@ mod tests {
             provisioning_info,
         });
         let memory_hsm = MemoryKeyStore::new();
-        let task = provisioning.provision(memory_hsm.clone()).then(|result| {
+        let task = provisioning.provision(memory_hsm).then(|result| {
             assert_eq!(
                 result.unwrap_err().kind(),
                 &ErrorKind::ExternalProvisioning(
@@ -1213,7 +1213,7 @@ mod tests {
             provisioning_info,
         });
         let memory_hsm = MemoryKeyStore::new();
-        let task = provisioning.provision(memory_hsm.clone()).then(|result| {
+        let task = provisioning.provision(memory_hsm).then(|result| {
             assert_eq!(
                 result.unwrap_err().kind(),
                 &ErrorKind::ExternalProvisioning(
@@ -1242,7 +1242,7 @@ mod tests {
             provisioning_info,
         });
         let memory_hsm = MemoryKeyStore::new();
-        let task = provisioning.provision(memory_hsm.clone()).then(|result| {
+        let task = provisioning.provision(memory_hsm).then(|result| {
             assert_eq!(
                 result.unwrap_err().kind(),
                 &ErrorKind::ExternalProvisioning(
