@@ -290,7 +290,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             // Initialize metric uploading
             if (diagnosticConfig.Enabled)
             {
-                MetricsWorker worker = await container.Resolve<Task<MetricsWorker>>();
+                MetricsWorker worker = container.Resolve<MetricsWorker>();
                 worker.Start(diagnosticConfig.ScrapeInterval, diagnosticConfig.UploadInterval);
                 Console.WriteLine($"Scraping frequency: {diagnosticConfig.ScrapeInterval}\nUpload Frequency: {diagnosticConfig.UploadInterval}");
             }
