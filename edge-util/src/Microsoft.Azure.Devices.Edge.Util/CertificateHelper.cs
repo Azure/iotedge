@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using System.Runtime.InteropServices;
     using System.Security.Cryptography;
     using System.Security.Cryptography.X509Certificates;
     using System.Text;
@@ -207,13 +208,18 @@ namespace Microsoft.Azure.Devices.Edge.Util
             return true;
         }
 
-        public static void InstallCerts(StoreName name, StoreLocation location, IEnumerable<X509Certificate2> certs)
+        public static void InstallCertificates(IEnumerable<X509Certificate2> certificateChain, ILogger logger)
         {
-            List<X509Certificate2> certsList = Preconditions.CheckNotNull(certs, nameof(certs)).ToList();
-            using (var store = new X509Store(name, location))
+            X509Certificate2[] certs = Preconditions.CheckNotNull(certificateChain, nameof(certificateChain)).ToArray();
+            Preconditions.CheckNotNull(logger, nameof(logger));
+
+            StoreName storeName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? StoreName.CertificateAuthority : StoreName.Root;
+
+            logger.LogInformation($"Installing certificates {string.Join(",", certs.Select(c => $"[{c.Subject}:{c.GetExpirationDateString()}]"))} to {storeName}");
+            using (var store = new X509Store(storeName, StoreLocation.CurrentUser))
             {
                 store.Open(OpenFlags.ReadWrite);
-                foreach (X509Certificate2 cert in certsList)
+                foreach (X509Certificate2 cert in certs)
                 {
                     store.Add(cert);
                 }
@@ -252,7 +258,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
 
         public static async Task<IEnumerable<X509Certificate2>> GetTrustBundleFromEdgelet(Uri workloadUri, string workloadApiVersion, string workloadClientApiVersion, string moduleId, string moduleGenerationId)
         {
-            string response = await new WorkloadClient(workloadUri, workloadClientApiVersion, workloadApiVersion, moduleId, moduleGenerationId).GetTrustBundleAsync();
+            string response = await new WorkloadClient(workloadUri, workloadApiVersion, workloadClientApiVersion, moduleId, moduleGenerationId).GetTrustBundleAsync();
             return ParseTrustedBundleCerts(response);
         }
 

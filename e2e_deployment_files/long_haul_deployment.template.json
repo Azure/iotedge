@@ -23,6 +23,14 @@
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-agent:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
+            },
+            "env": {
+              "experimentalfeatures__enabled": {
+                  "value": "true"
+              },
+              "experimentalfeatures__enableMetrics": {
+                  "value": "true"
+              }
             }
           },
           "edgeHub": {
@@ -34,6 +42,12 @@
             "env": {
               "CollectMetrics": {
                 "value": "true"
+              },
+              "experimentalfeatures__enabled": {
+                  "value": "true"
+              },
+              "experimentalfeatures__enableMetrics": {
+                  "value": "true"
               }
             },
             "status": "running",
@@ -76,6 +90,60 @@
               "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
+          },
+          "twinTester1": {
+            "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
+                "createOptions": ""
+            },
+            "type": "docker",
+            "version": "1.0",
+            "env": {
+                "TransportType": {
+                    "value": "amqp"
+                },
+                "ServiceClientConnectionString": {
+                    "value": "<ServiceClientConnectionString>"
+                },
+                "TwinUpdateSize": {
+                    "value": "<TwinUpdateSize>"
+                },
+                "TwinUpdateFrequency": {
+                    "value": "<TwinUpdateFrequency>"
+                },
+                "TwinUpdateFailureThreshold": {
+                    "value": "<TwinUpdateFailureThreshold>"
+                }
+            },
+            "status": "running",
+            "restartPolicy": "always"
+          },
+          "twinTester2": {
+            "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
+                "createOptions": ""
+            },
+            "type": "docker",
+            "version": "1.0",
+            "env": {
+                "TransportType": {
+                    "value": "mqtt"
+                },
+                "ServiceClientConnectionString": {
+                    "value": "<ServiceClientConnectionString>"
+                },
+                "TwinUpdateSize": {
+                    "value": "<TwinUpdateSize>"
+                },
+                "TwinUpdateFrequency": {
+                    "value": "<TwinUpdateFrequency>"
+                },
+                "TwinUpdateFailureThreshold": {
+                    "value": "<TwinUpdateFailureThreshold>"
+                }
+            },
+            "status": "running",
+            "restartPolicy": "always"
           },
           "tempSensor": {
             "version": "1.0",
@@ -199,17 +267,17 @@
               "ConsumerGroupId": {
                 "value": "<Analyzer.ConsumerGroupId>"
               },
-              "LogAnalyticEnabled": {
-                "value": "<Analyzer.LogAnalyticEnabled>"
+              "LogAnalyticsEnabled": {
+                "value": "<Analyzer.LogAnalyticsEnabled>"
               },
-              "LogAnalyticWorkspaceId": {
-                "value": "<Analyzer.LogAnalyticWorkspaceId>"
+              "LogAnalyticsWorkspaceId": {
+                "value": "<LogAnalyticsWorkspaceId>"
               },
-              "LogAnalyticSharedKey": {
-                "value": "<Analyzer.LogAnalyticSharedKey>"
+              "LogAnalyticsSharedKey": {
+                "value": "<LogAnalyticsSharedKey>"
               },
-              "LogAnalyticLogType": {
-                "value": "<Analyzer.LogAnalyticLogType>"
+              "LogAnalyticsLogType": {
+                "value": "<Analyzer.LogAnalyticsLogType>"
               }
             },
             "settings": {
@@ -217,24 +285,28 @@
               "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"15000/tcp\":[{\"HostPort\":\"15000\"}]}}}"
             }
           },
-          "DirectMethodCloudSender": {
+          "DirectMethodSender": {
             "version": "1.0",
             "type": "docker",
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "TargetModuleId": {
-                "value": "DirectMethodReceiver"
+              "AnalyzerUrl":
+              {
+                "value": "http://analyzer:15000"
               },
-              "ClientTransportType": {
-                "value": "Amqp_Tcp_Only"
+              "InvocationSource": {
+                "value": "Cloud"
               },
               "ServiceClientConnectionString": {
                 "value": "<ServiceClientConnectionString>"
+              },
+              "TargetModuleId": {
+                "value": "DirectMethodReceiver"
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-cloud-sender:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           },
@@ -253,24 +325,28 @@
               "createOptions": ""
             }
           },
-          "DirectMethodCloudSender2": {
+          "DirectMethodSender2": {
             "version": "1.0",
             "type": "docker",
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "TargetModuleId": {
-                "value": "DirectMethodReceiver2"
+              "AnalyzerUrl":
+              {
+                "value": "http://analyzer:15000"
               },
-              "ClientTransportType": {
-                "value": "Mqtt_Tcp_Only"
+              "InvocationSource": {
+                "value": "Cloud"
               },
               "ServiceClientConnectionString": {
                 "value": "<ServiceClientConnectionString>"
+              },
+              "TargetModuleId": {
+                "value": "DirectMethodReceiver2"
               }
             },
             "settings": {
-              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-cloud-sender:<Build.BuildNumber>-linux-<Architecture>",
+              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           },
@@ -308,6 +384,33 @@
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-module-restarter:<Build.BuildNumber>-linux-<Architecture>"
             }
+          },
+          "metricsCollector": {
+            "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-linux-<Architecture>",
+                "createOptions": ""
+            },
+            "type": "docker",
+            "version": "1.0",
+            "env": {
+                "AzMonWorkspaceId": {
+                    "value": "<LogAnalyticsWorkspaceId>"
+                },
+                "AzMonWorkspaceKey": {
+                    "value": "<LogAnalyticsSharedKey>"
+                },
+                "MetricsEndpointsCSV": {
+                  "value": "<MetricsCollector.MetricsEndpointsCSV>"
+                },
+                "ScrapeFrequencyInSecs": {
+                    "value": "<MetricsCollector.ScrapeFrequencyInSecs>"
+                },
+                "UploadTarget": {
+                  "value": "<MetricsCollector.UploadTarget>"
+                }
+            },
+            "status": "running",
+            "restartPolicy": "always"
           }
         }
       }
@@ -322,8 +425,8 @@
           "TempSensorToTempFilter": "FROM /messages/modules/tempSensor/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/tempFilter/inputs/input1\")",
           "TempFilterToCloud2": "FROM /messages/modules/tempFilter2/outputs/* INTO $upstream",
           "TempSensorToTempFilter2": "FROM /messages/modules/tempSensor2/outputs/temperatureOutput INTO BrokeredEndpoint(\"/modules/tempFilter2/inputs/input1\")",
-          "upstreamDirectMethodCloudSender1": "FROM /messages/modules/DirectMethodCloudSender/outputs/output1 INTO $upstream",
-          "upstreamDirectMethodCloudSender2": "FROM /messages/modules/DirectMethodCloudSender2/outputs/output1 INTO $upstream"
+          "DirectMethodSender1ToUpstream": "FROM /messages/modules/DirectMethodSender/outputs/output1 INTO $upstream",
+          "DirectMethodSender2ToUpstream": "FROM /messages/modules/DirectMethodSender2/outputs/output1 INTO $upstream"
         },
         "storeAndForwardConfiguration": {
           "timeToLiveSecs": 86400

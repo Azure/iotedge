@@ -13,19 +13,26 @@ variables:
   #pool.name: ''
   #container.registry: ''
   #snitch.storage.account: ''
-  #analyzer.logAnalytic.enabled  
-  #analyzer.logAnalytic.logType
+  #analyzer.logAnalytics.enabled  
+  #analyzer.logAnalytics.logType
   # Variables settable at queue time
   #edgelet.package.branchName
   #images.branchName
   #loadGen.message.frequency.amd64: 'xx:xx:xx.xx'
   #loadGen.message.frequency.arm32v7: 'xx:xx:xx.xx'
   #loadGen.message.frequency.arm64v8: 'xx:xx:xx.xx'
-  #loadGen.transportType: ''
   #run.linux.amd64.moby: 'true/false'
   #run.linux.arm32v7.moby: 'true/false'
   #run.linux.arm64v8.docker: 'true/false'
   #run.windows.amd64.moby: 'true/false'
+  #longhaul.desiredModulesToRestartCSV: ''
+  #longhaul.restartIntervalInMins: ''
+  #twinTester.twinUpdateSize: ''
+  #twinTester.twinUpdateFrequency: 'xx:xx:xx.xx' 
+  #twinTester.twinUpdateFailureThreshold: 'xx:xx:xx.xx'
+  #metricsCollector.metricsEndpointsCSV
+  #metricsCollector.scrapeFrequencyInSecs: 'xx:xx:xx.xx'
+  #metricsCollector.uploadTarget
 
 jobs:
 ################################################################################
@@ -94,10 +101,16 @@ jobs:
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           analyzer.consumerGroupId: 'longhaul_linux_amd64'
-          analyzer.logAnalytic.enabled: '$(analyzer.logAnalytic.enabled)'
-          analyzer.logAnalytic.workspaceId: '$(kvLogAnalyticWorkspaceId)'
-          analyzer.logAnalytic.sharedKey: '$(kvLogAnalyticSharedKey)'
-          analyzer.logAnalytic.logType: '$(analyzer.logAnalytic.logType)'
+          analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
+          analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
+          logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
+          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
+          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
+          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
+          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
+          metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
+          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
 
 ################################################################################
   - job: linux_arm32v7_moby
@@ -166,10 +179,16 @@ jobs:
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           analyzer.consumerGroupId: 'longhaul_linux_arm32v7'
-          analyzer.logAnalytic.enabled: '$(analyzer.logAnalytic.enabled)'
-          analyzer.logAnalytic.workspaceId: '$(kvLogAnalyticWorkspaceId)'
-          analyzer.logAnalytic.sharedKey: '$(kvLogAnalyticSharedKey)'
-          analyzer.logAnalytic.logType: '$(analyzer.logAnalytic.logType)'
+          analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
+          analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
+          logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
+          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
+          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
+          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
+          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
+          metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
+          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
 
 ################################################################################
   - job: linux_arm64v8_docker
@@ -238,10 +257,16 @@ jobs:
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           analyzer.consumerGroupId: 'longhaul_linux_arm64v8'
-          analyzer.logAnalytic.enabled: '$(analyzer.logAnalytic.enabled)'
-          analyzer.logAnalytic.workspaceId: '$(kvLogAnalyticWorkspaceId)'
-          analyzer.logAnalytic.sharedKey: '$(kvLogAnalyticSharedKey)'
-          analyzer.logAnalytic.logType: '$(analyzer.logAnalytic.logType)'
+          analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
+          analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
+          logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
+          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
+          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
+          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
+          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
+          metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
+          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
           
 ################################################################################
   - job: windows_amd64_moby
@@ -312,10 +337,16 @@ jobs:
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           analyzer.consumerGroupId: 'longhaul_windows_amd64'
-          analyzer.logAnalytic.enabled: '$(analyzer.logAnalytic.enabled)'
-          analyzer.logAnalytic.workspaceId: '$(kvLogAnalyticWorkspaceId)'
-          analyzer.logAnalytic.sharedKey: '$(kvLogAnalyticSharedKey)'
-          analyzer.logAnalytic.logType: '$(analyzer.logAnalytic.logType)'
+          analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
+          analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
+          logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
+          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
+          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
+          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
+          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
+          metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
+          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
 
 ################################################################################
   - job: windows_servercore_amd64_moby
@@ -386,10 +417,16 @@ jobs:
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           analyzer.consumerGroupId: 'longhaul_windows_servercore_amd64'
-          analyzer.logAnalytic.enabled: '$(analyzer.logAnalytic.enabled)'
-          analyzer.logAnalytic.workspaceId: '$(kvLogAnalyticWorkspaceId)'
-          analyzer.logAnalytic.sharedKey: '$(kvLogAnalyticSharedKey)'
-          analyzer.logAnalytic.logType: '$(analyzer.logAnalytic.logType)'
+          analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
+          analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
+          logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
+          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
+          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
+          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
+          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
+          metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
+          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
 
 ################################################################################
   - job: iotuap_amd64_moby
@@ -459,7 +496,13 @@ jobs:
           longHaul.desiredModulesToRestartCSV: '$(longHaul.desiredModulesToRestartCSV)'
           longHaul.restartIntervalInMins: '$(longHaul.restartIntervalInMins)'
           analyzer.consumerGroupId: 'longhaul_iotuap_amd64'
-          analyzer.logAnalytic.enabled: '$(analyzer.logAnalytic.enabled)'
-          analyzer.logAnalytic.workspaceId: '$(kvLogAnalyticWorkspaceId)'
-          analyzer.logAnalytic.sharedKey: '$(kvLogAnalyticSharedKey)'
-          analyzer.logAnalytic.logType: '$(analyzer.logAnalytic.logType)'
+          analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
+          analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
+          logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
+          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
+          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
+          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
+          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
+          metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
+          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'

@@ -23,13 +23,21 @@
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-agent:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": ""
+            },
+            "env": {
+              "experimentalfeatures__enabled": {
+                  "value": "true"
+              },
+              "experimentalfeatures__enableMetrics": {
+                  "value": "true"
+              }
             }
           },
           "edgeHub": {
             "type": "docker",
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-hub:<Build.BuildNumber>-windows-<Architecture>",
-              "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"443/tcp\": [{\"HostPort\": \"443\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
+              "createOptions": "{\"User\": \"ContainerAdministrator\",\"HostConfig\": {\"PortBindings\": {\"8883/tcp\": [{\"HostPort\": \"8883\"}],\"443/tcp\": [{\"HostPort\": \"443\"}],\"5671/tcp\": [{\"HostPort\": \"5671\"}]}}}"
             },
             "env": {
               "CollectMetrics": {
@@ -40,6 +48,12 @@
               },
               "mqttSettings__enabled": {
                 "value": "<mqttSettings__enabled>"
+              },
+              "experimentalfeatures__enabled": {
+                  "value": "true"
+              },
+              "experimentalfeatures__enableMetrics": {
+                  "value": "true"
               }
             },
             "status": "running",
@@ -57,7 +71,7 @@
                 "value": "<LoadGen.MessageFrequency>"
               },
               "transportType": {
-                "value": "<LoadGen1.TransportType>"
+                "value": "<TransportType1>"
               }
             },
             "settings": {
@@ -75,7 +89,7 @@
                 "value": "<LoadGen.MessageFrequency>"
               },
               "transportType": {
-                "value": "<LoadGen2.TransportType>"
+                "value": "<TransportType2>"
               }
             },
             "settings": {
@@ -93,7 +107,7 @@
                 "value": "<LoadGen.MessageFrequency>"
               },
               "transportType": {
-                "value": "<LoadGen3.TransportType>"
+                "value": "<TransportType3>"
               }
             },
             "settings": {
@@ -111,13 +125,121 @@
                 "value": "<LoadGen.MessageFrequency>"
               },
               "transportType": {
-                "value": "<LoadGen4.TransportType>"
+                "value": "<TransportType4>"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-load-gen:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": ""
             }
+          },
+          "twinTester1": {
+            "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-windows-<Architecture>",
+                "createOptions": ""
+            },
+            "type": "docker",
+            "version": "1.0",
+            "env": {
+                "TransportType": {
+                    "value": "<TransportType1>"
+                },
+                "ServiceClientConnectionString": {
+                    "value": "<ServiceClientConnectionString>"
+                },
+                "TwinUpdateSize": {
+                    "value": "<TwinUpdateSize>"
+                },
+                "TwinUpdateFrequency": {
+                    "value": "<TwinUpdateFrequency>"
+                },
+                "TwinUpdateFailureThreshold": {
+                    "value": "<TwinUpdateFailureThreshold>"
+                }
+            },
+            "status": "running",
+            "restartPolicy": "always"
+          },
+          "twinTester2": {
+            "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-windows-<Architecture>",
+                "createOptions": ""
+            },
+            "type": "docker",
+            "version": "1.0",
+            "env": {
+                "TransportType": {
+                    "value": "<TransportType2>"
+                },
+                "ServiceClientConnectionString": {
+                    "value": "<ServiceClientConnectionString>"
+                },
+                "TwinUpdateSize": {
+                    "value": "<TwinUpdateSize>"
+                },
+                "TwinUpdateFrequency": {
+                    "value": "<TwinUpdateFrequency>"
+                },
+                "TwinUpdateFailureThreshold": {
+                    "value": "<TwinUpdateFailureThreshold>"
+                }
+            },
+            "status": "running",
+            "restartPolicy": "always"
+          },
+          "twinTester3": {
+            "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-windows-<Architecture>",
+                "createOptions": ""
+            },
+            "type": "docker",
+            "version": "1.0",
+            "env": {
+                "TransportType": {
+                    "value": "<TransportType3>"
+                },
+                "ServiceClientConnectionString": {
+                    "value": "<ServiceClientConnectionString>"
+                },
+                "TwinUpdateSize": {
+                    "value": "<TwinUpdateSize>"
+                },
+                "TwinUpdateFrequency": {
+                    "value": "<TwinUpdateFrequency>"
+                },
+                "TwinUpdateFailureThreshold": {
+                    "value": "<TwinUpdateFailureThreshold>"
+                }
+            },
+            "status": "running",
+            "restartPolicy": "always"
+          },
+          "twinTester4": {
+            "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-windows-<Architecture>",
+                "createOptions": ""
+            },
+            "type": "docker",
+            "version": "1.0",
+            "env": {
+                "TransportType": {
+                    "value": "<TransportType4>"
+                },
+                "ServiceClientConnectionString": {
+                    "value": "<ServiceClientConnectionString>"
+                },
+                "TwinUpdateSize": {
+                    "value": "<TwinUpdateSize>"
+                },
+                "TwinUpdateFrequency": {
+                    "value": "<TwinUpdateFrequency>"
+                },
+                "TwinUpdateFailureThreshold": {
+                    "value": "<TwinUpdateFailureThreshold>"
+                }
+            },
+            "status": "running",
+            "restartPolicy": "always"
           },
           "snitcher": {
             "version": "2.0",
@@ -172,23 +294,50 @@
               "ConsumerGroupId": {
                 "value": "<Analyzer.ConsumerGroupId>"
               }, 
-              "LogAnalyticEnabled": {
-                "value": "<Analyzer.LogAnalyticEnabled>"
+              "LogAnalyticsEnabled": {
+                "value": "<Analyzer.LogAnalyticsEnabled>"
               },
-              "LogAnalyticWorkspaceId": {
-                "value": "<Analyzer.LogAnalyticWorkspaceId>"
+              "LogAnalyticsWorkspaceId": {
+                "value": "<LogAnalyticsWorkspaceId>"
               },
-              "LogAnalyticSharedKey": {
-                "value": "<Analyzer.LogAnalyticSharedKey>"
+              "LogAnalyticsSharedKey": {
+                "value": "<LogAnalyticsSharedKey>"
               },
-              "LogAnalyticLogType": {
-                "value": "<Analyzer.LogAnalyticLogType>"
+              "LogAnalyticsLogType": {
+                "value": "<Analyzer.LogAnalyticsLogType>"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-analyzer:<Build.BuildNumber>-windows-<Architecture>",
               "createOptions": "{\"HostConfig\":{\"PortBindings\":{\"15000/tcp\":[{\"HostPort\":\"15000\"}]}}}"
             }
+          },
+          "metricsCollector": {
+            "settings": {
+                "image": "<Container_Registry>/microsoft/azureiotedge-metrics-collector:<Build.BuildNumber>-windows-<Architecture>",
+                "createOptions": ""
+            },
+            "type": "docker",
+            "version": "1.0",
+            "env": {
+                "AzMonWorkspaceId": {
+                    "value": "<LogAnalyticsWorkspaceId>"
+                },
+                "AzMonWorkspaceKey": {
+                    "value": "<LogAnalyticsSharedKey>"
+                },
+                "MetricsEndpointsCSV": {
+                  "value": "<MetricsCollector.MetricsEndpointsCSV>"
+                },
+                "ScrapeFrequencyInSecs": {
+                    "value": "<MetricsCollector.ScrapeFrequencyInSecs>"
+                },
+                "UploadTarget": {
+                  "value": "<MetricsCollector.UploadTarget>"
+                }
+            },
+            "status": "running",
+            "restartPolicy": "always"
           }
         }
       }

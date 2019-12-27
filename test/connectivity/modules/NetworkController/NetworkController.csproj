@@ -1,0 +1,58 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup Condition="'$(DotNet_Runtime)' != 'netcoreapp3.0'">
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(OS)|$(DotNet_Runtime)' == 'Unix|netcoreapp3.0'">
+    <TargetFramework>netcoreapp3.0</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <LangVersion>latest</LangVersion>
+    <Configurations>Debug;Release;CheckInBuild</Configurations>
+    <HighEntropyVA>true</HighEntropyVA>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="docker\linux\amd64\Dockerfile" />
+    <None Remove="docker\linux\arm32v7\Dockerfile" />
+    <None Remove="docker\linux\arm64v8\Dockerfile" />
+    <None Remove="docker\windows\amd64\Dockerfile" />
+    <None Remove="docker\windows\arm32v7\Dockerfile" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="docker*/**/*.*" CopyToPublishDirectory="Always" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Docker.DotNet" Version="3.125.2" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="2.2.0" />
+    <PackageReference Include="RunProcessAsTask" Version="1.2.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="config\settings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="..\..\..\..\stylecop.json" Link="stylecop.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\edge-modules\ModuleLib\Microsoft.Azure.Devices.Edge.ModuleUtil.csproj" />
+    <ProjectReference Include="..\..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
+  </ItemGroup>
+  <PropertyGroup>
+    <CodeAnalysisRuleSet>..\..\..\..\stylecop.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <Import Project="..\..\..\..\stylecop.props" />
+
+</Project>

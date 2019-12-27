@@ -13,8 +13,8 @@ variables:
   #pool.name: ''
   #container.registry: ''
   #snitch.storage.account: ''
-  #analyzer.logAnalytic.enabled
-  #analyzer.logAnalytic.logType
+  #analyzer.logAnalytics.enabled
+  #analyzer.logAnalytics.logType
   # Variables settable at queue time
   #edgelet.package.branchName
   #images.branchName
@@ -26,6 +26,12 @@ variables:
   #run.linux.arm64v8.docker: 'true/false'
   #run.windows.amd64.moby: 'true/false'
   #snitch.build.number: '1.1'
+  #twinTester.twinUpdateSize: ''
+  #twinTester.twinUpdateFrequency: 'xx:xx:xx.xx' 
+  #twinTester.twinUpdateFailureThreshold: 'xx:xx:xx.xx'
+  #metricsCollector.metricsEndpointsCSV
+  #metricsCollector.scrapeFrequencyInSecs: 'xx:xx:xx.xx'
+  #metricsCollector.uploadTarget
 
 jobs:
 ################################################################################
@@ -92,10 +98,16 @@ jobs:
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           analyzer.consumerGroupId: 'stress_linux_amd64'
-          analyzer.logAnalytic.enabled: '$(analyzer.logAnalytic.enabled)'
-          analyzer.logAnalytic.workspaceId: '$(kvLogAnalyticWorkspaceId)'
-          analyzer.logAnalytic.sharedKey: '$(kvLogAnalyticSharedKey)'
-          analyzer.logAnalytic.logType: '$(analyzer.logAnalytic.logType)'
+          analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
+          analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
+          logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
+          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
+          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
+          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
+          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
+          metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
+          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
 
 ################################################################################
   - job: linux_arm32v7_moby
@@ -162,10 +174,16 @@ jobs:
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: $(loadGen.message.frequency.arm32v7)
           analyzer.consumerGroupId: 'stress_linux_arm32v7'
-          analyzer.logAnalytic.enabled: '$(analyzer.logAnalytic.enabled)'
-          analyzer.logAnalytic.workspaceId: '$(kvLogAnalyticWorkspaceId)'
-          analyzer.logAnalytic.sharedKey: '$(kvLogAnalyticSharedKey)'
-          analyzer.logAnalytic.logType: '$(analyzer.logAnalytic.logType)'
+          analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
+          analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
+          logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
+          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
+          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
+          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
+          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
+          metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
+          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
 
 ################################################################################
   - job: linux_arm64v8_docker
@@ -232,10 +250,16 @@ jobs:
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: $(loadGen.message.frequency.arm64v8)
           analyzer.consumerGroupId: 'stress_linux_arm64v8'
-          analyzer.logAnalytic.enabled: '$(analyzer.logAnalytic.enabled)'
-          analyzer.logAnalytic.workspaceId: '$(kvLogAnalyticWorkspaceId)'
-          analyzer.logAnalytic.sharedKey: '$(kvLogAnalyticSharedKey)'
-          analyzer.logAnalytic.logType: '$(analyzer.logAnalytic.logType)'
+          analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
+          analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
+          logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
+          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
+          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
+          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
+          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
+          metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
+          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
 
 ################################################################################
   - job: windows_amd64_moby
@@ -304,10 +328,16 @@ jobs:
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           analyzer.consumerGroupId: 'stress_windows_amd64'
-          analyzer.logAnalytic.enabled: '$(analyzer.logAnalytic.enabled)'
-          analyzer.logAnalytic.workspaceId: '$(kvLogAnalyticWorkspaceId)'
-          analyzer.logAnalytic.sharedKey: '$(kvLogAnalyticSharedKey)'
-          analyzer.logAnalytic.logType: '$(analyzer.logAnalytic.logType)'
+          analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
+          analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
+          logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
+          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
+          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
+          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
+          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
+          metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
+          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
 
 ################################################################################
   - job: windows_servercore_amd64_moby
@@ -376,10 +406,16 @@ jobs:
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           analyzer.consumerGroupId: 'stress_windows_servercore_amd64'
-          analyzer.logAnalytic.enabled: '$(analyzer.logAnalytic.enabled)'
-          analyzer.logAnalytic.workspaceId: '$(kvLogAnalyticWorkspaceId)'
-          analyzer.logAnalytic.sharedKey: '$(kvLogAnalyticSharedKey)'
-          analyzer.logAnalytic.logType: '$(analyzer.logAnalytic.logType)'
+          analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
+          analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
+          logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
+          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
+          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
+          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
+          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
+          metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
+          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'
 
 ################################################################################
   - job: iotuap_amd64_moby
@@ -447,7 +483,13 @@ jobs:
           snitch.storage.masterKey: '$(StorageAccountMasterKeyStress)'
           loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
           analyzer.consumerGroupId: 'stress_iotuap_amd64'
-          analyzer.logAnalytic.enabled: '$(analyzer.logAnalytic.enabled)'
-          analyzer.logAnalytic.workspaceId: '$(kvLogAnalyticWorkspaceId)'
-          analyzer.logAnalytic.sharedKey: '$(kvLogAnalyticSharedKey)'
-          analyzer.logAnalytic.logType: '$(analyzer.logAnalytic.logType)'
+          analyzer.logAnalytics.enabled: '$(analyzer.logAnalytics.enabled)'
+          analyzer.logAnalytics.logType: '$(analyzer.logAnalytics.logType)'
+          logAnalytics.workspaceId: '$(kvLogAnalyticWorkspaceId)'
+          logAnalytics.sharedKey: '$(kvLogAnalyticSharedKey)'
+          twinTester.twinUpdateSize: '$(twinTester.twinUpdateSize)'
+          twinTester.twinUpdateFrequency: '$(twinTester.twinUpdateFrequency)'
+          twinTester.twinUpdateFailureThreshold: '$(twinTester.twinUpdateFailureThreshold)'
+          metricsCollector.metricsEndpointsCSV: '$(metricsCollector.metricsEndpointsCSV)'
+          metricsCollector.scrapeFrequencyInSecs: '$(metricsCollector.scrapeFrequencyInSecs)'
+          metricsCollector.uploadTarget: '$(metricsCollector.uploadTarget)'

@@ -14,6 +14,7 @@ use hyper::{Request, Uri};
 use hyper_tls::HttpsConnector;
 use k8s_openapi::api::apps::v1 as api_apps;
 use k8s_openapi::api::authentication::v1 as api_auth;
+use k8s_openapi::api::authorization::v1 as api_authorize;
 use k8s_openapi::api::core::v1 as api_core;
 use k8s_openapi::api::rbac::v1 as api_rbac;
 use k8s_openapi::apimachinery::pkg::apis::meta::v1 as api_meta;
@@ -77,6 +78,54 @@ where
     S::Error: Fail,
     Body: From<<S as Service>::ResBody>,
 {
+    pub fn is_subject_allowed(
+        &mut self,
+        resource: String,
+        verb: String,
+    ) -> impl Future<Item = api_authorize::SubjectAccessReviewStatus, Error = Error> {
+        let subject_access_review = api_authorize::SelfSubjectAccessReview {
+            spec: api_authorize::SelfSubjectAccessReviewSpec {
+                resource_attributes: Some(api_authorize::ResourceAttributes {
+                    resource: Some(resource),
+                    verb: Some(verb),
+                    ..api_authorize::ResourceAttributes::default()
+                }),
+                ..api_authorize::SelfSubjectAccessReviewSpec::default()
+            },
+            ..api_authorize::SelfSubjectAccessReview::default()
+        };
+        let params = api_authorize::CreateSelfSubjectAccessReviewOptional::default();
+
+        api_authorize::SelfSubjectAccessReview::create_self_subject_access_review(
+            &subject_access_review,
+            params,
+        )
+        .map_err(|err| {
+            Error::from(err.context(ErrorKind::Request(
+                RequestType::SelfSubjectAccessReviewCreate,
+            )))
+        })
+        .map(|req| {
+            self.request(req)
+                .and_then(|response| match response {
+                    api_authorize::CreateSelfSubjectAccessReviewResponse::Accepted(s)
+                    | api_authorize::CreateSelfSubjectAccessReviewResponse::Created(s)
+                    | api_authorize::CreateSelfSubjectAccessReviewResponse::Ok(s) => Ok(s),
+                    _ => Err(Error::from(ErrorKind::Response(
+                        RequestType::SelfSubjectAccessReviewCreate,
+                    ))),
+                })
+                .map_err(|err| {
+                    Error::from(err.context(ErrorKind::Response(
+                        RequestType::SelfSubjectAccessReviewCreate,
+                    )))
+                })
+                .and_then(|ssar| Ok(ssar.status.unwrap_or_default()))
+        })
+        .into_future()
+        .flatten()
+    }
+
     pub fn list_config_maps(
         &mut self,
         namespace: &str,
@@ -812,6 +861,73 @@ mod tests {
         fn get(&self) -> Result<Option<String>, Self::Error> {
             Ok(None)
         }
+    }
+
+    const ACCESS_REVIEW_ALLOWED: &str = r##"{"spec": {}, "status": {"allowed":true}}"##;
+    const ACCESS_REVIEW_DENIED: &str = r##"{"spec": {}, "status": {"allowed":false}}"##;
+    const ACCESS_REVIEW_MISSING: &str = r##"{"spec": {}}"##;
+
+    #[test]
+    fn is_subject_allowed_is_true() {
+        let service = service_fn(
+            move |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
+                let mut res = Response::new(Body::from(ACCESS_REVIEW_ALLOWED));
+                *res.status_mut() = StatusCode::CREATED;
+                Ok(res)
+            },
+        );
+        let mut client = make_test_client(service);
+
+        let fut = client
+            .is_subject_allowed("nodes".to_string(), "list".to_string())
+            .map(|status| assert!(status.allowed));
+
+        Runtime::new()
+            .unwrap()
+            .block_on(fut)
+            .expect("Expected future to be OK");
+    }
+
+    #[test]
+    fn is_subject_allowed_is_false() {
+        let service = service_fn(
+            move |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
+                let mut res = Response::new(Body::from(ACCESS_REVIEW_DENIED));
+                *res.status_mut() = StatusCode::CREATED;
+                Ok(res)
+            },
+        );
+        let mut client = make_test_client(service);
+
+        let fut = client
+            .is_subject_allowed("nodes".to_string(), "list".to_string())
+            .map(|status| assert!(!status.allowed));
+
+        Runtime::new()
+            .unwrap()
+            .block_on(fut)
+            .expect("Expected future to be OK");
+    }
+
+    #[test]
+    fn is_subject_allowed_is_default_false() {
+        let service = service_fn(
+            move |_req: Request<Body>| -> Result<Response<Body>, HyperError> {
+                let mut res = Response::new(Body::from(ACCESS_REVIEW_MISSING));
+                *res.status_mut() = StatusCode::CREATED;
+                Ok(res)
+            },
+        );
+        let mut client = make_test_client(service);
+
+        let fut = client
+            .is_subject_allowed("nodes".to_string(), "list".to_string())
+            .map(|status| assert!(!status.allowed));
+
+        Runtime::new()
+            .unwrap()
+            .block_on(fut)
+            .expect("Expected future to be OK");
     }
 
     const DEPLOYMENT_JSON: &str = r##"{"apiVersion":"apps/v1","kind":"Deployment"}"##;

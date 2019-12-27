@@ -40,13 +40,13 @@ impl WellFormedConnectionString {
                     let (_, device, hub) = cs.parse_device_connection_string().context(
                                 "Invalid connection string format detected.\n\
                                 Please check the value of the provisioning.device_connection_string parameter.",
-                )?;
+                    )?;
                     self.device_id = Some(device);
                     hub
                 }
                 ManualAuthMethod::X509(x509) => x509.iothub_hostname().to_owned(),
             };
-            check.iothub_hostname = Some(hub.clone());
+            check.iothub_hostname = Some(hub);
             self.iothub_hostname = check.iothub_hostname.clone();
         } else if check.iothub_hostname.is_none() {
             return Err(Context::new("Device is not using manual provisioning, so Azure IoT Hub hostname needs to be specified with --iothub-hostname").into());

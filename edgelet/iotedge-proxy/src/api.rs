@@ -17,7 +17,7 @@ impl ApiService {
         ApiService
     }
 
-    fn handle(&self, req: &Request<Body>) -> Result<Response<Body>, Error> {
+    fn handle(req: &Request<Body>) -> Result<Response<Body>, Error> {
         match (req.method(), req.uri().path()) {
             (&Method::GET, "/health") => Ok(Response::new(Body::empty())),
             _ => Ok(Response::builder()
@@ -38,8 +38,7 @@ impl Service for ApiService {
         let request = format!("{} {} {:?}", req.method(), req.uri(), req.version());
         debug!("Starting api request {}", request);
 
-        let fut = self
-            .handle(&req)
+        let fut = Self::handle(&req)
             .into_future()
             .map_err(|err: Error| {
                 logging::failure(&err);

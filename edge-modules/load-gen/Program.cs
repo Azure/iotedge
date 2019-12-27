@@ -7,8 +7,8 @@ namespace LoadGen
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
@@ -16,100 +16,110 @@ namespace LoadGen
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger("LoadGen");
 
-        static long messageIdCounter = 0;
-
         static async Task Main()
         {
             Logger.LogInformation($"Starting load gen with the following settings:\r\n{Settings.Current}");
 
+            ModuleClient moduleClient = null;
+
             try
             {
-                ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
+                (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
+
+                Guid batchId = Guid.NewGuid();
+                Logger.LogInformation($"Batch Id={batchId}");
+
+                moduleClient = await ModuleUtil.CreateModuleClientAsync(
                     Settings.Current.TransportType,
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                     ModuleUtil.DefaultTransientRetryStrategy,
                     Logger);
 
-                using (var timers = new Timers())
+                Logger.LogInformation($"Load gen delay start for {Settings.Current.TestStartDelay}.");
+                await Task.Delay(Settings.Current.TestStartDelay);
+
+                DateTime testStartAt = DateTime.UtcNow;
+                long messageIdCounter = 1;
+                while (!cts.IsCancellationRequested &&
+                    (Settings.Current.TestDuration == TimeSpan.Zero || DateTime.UtcNow - testStartAt < Settings.Current.TestDuration))
                 {
-                    Guid batchId = Guid.NewGuid();
-                    Logger.LogInformation($"Batch Id={batchId}");
+                    try
+                    {
+                        await SendEventAsync(moduleClient, batchId, Settings.Current.TrackingId, messageIdCounter);
 
-                    // setup the message timer
-                    timers.Add(
-                        Settings.Current.MessageFrequency,
-                        Settings.Current.JitterFactor,
-                        () => GenerateMessageAsync(moduleClient, batchId));
+                        // Report sending message successfully to Test Result Coordinator
+                        await Settings.Current.TestResultCoordinatorUrl.ForEachAsync(
+                            async trcUrl =>
+                            {
+                                Uri testResultCoordinatorUrl = new Uri(
+                                    trcUrl,
+                                    UriKind.Absolute);
+                                TestResultCoordinatorClient trcClient = new TestResultCoordinatorClient { BaseUrl = testResultCoordinatorUrl.AbsoluteUri };
 
-                    // setup the twin update timer
-                    timers.Add(
-                        Settings.Current.TwinUpdateFrequency,
-                        Settings.Current.JitterFactor,
-                        () => GenerateTwinUpdateAsync(moduleClient, batchId));
+                                await ModuleUtil.ReportStatus(
+                                    trcClient,
+                                    Logger,
+                                    Settings.Current.ModuleId + ".send",
+                                    ModuleUtil.FormatMessagesTestResultValue(
+                                        Settings.Current.TrackingId,
+                                        batchId.ToString(),
+                                        messageIdCounter.ToString()),
+                                    TestOperationResultType.Messages.ToString());
+                            });
 
-                    timers.Start();
-                    (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
-                    Logger.LogInformation("Load gen running.");
+                        if (messageIdCounter % 1000 == 0)
+                        {
+                            Logger.LogInformation($"Sent {messageIdCounter} messages.");
+                        }
 
-                    await cts.Token.WhenCanceled();
-                    Logger.LogInformation("Stopping timers.");
-                    timers.Stop();
-                    Logger.LogInformation("Closing connection to Edge Hub.");
-                    await moduleClient.CloseAsync();
-
-                    completed.Set();
-                    handler.ForEach(h => GC.KeepAlive(h));
-                    Logger.LogInformation("Load Gen complete. Exiting.");
+                        await Task.Delay(Settings.Current.MessageFrequency);
+                        messageIdCounter++;
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError(ex, $"[SendEventAsync] Sequence number {messageIdCounter}, BatchId: {batchId.ToString()};");
+                    }
                 }
+
+                Logger.LogInformation("Finish sending messages.");
+                await cts.Token.WhenCanceled();
+                completed.Set();
+                handler.ForEach(h => GC.KeepAlive(h));
             }
             catch (Exception ex)
             {
-                Logger.LogError($"Error occurred during load gen.\r\n{ex}");
+                Logger.LogError(ex, "Error occurred during load gen.");
             }
+            finally
+            {
+                Logger.LogInformation("Closing connection to Edge Hub.");
+                moduleClient?.CloseAsync();
+                moduleClient?.Dispose();
+            }
+
+            Logger.LogInformation("Load Gen complete. Exiting.");
         }
 
-        static async Task GenerateMessageAsync(ModuleClient client, Guid batchId)
+        static async Task SendEventAsync(ModuleClient client, Guid batchId, string trackingId, long messageId)
         {
             var random = new Random();
             var bufferPool = new BufferPool();
-            long sequenceNumber = -1;
 
-            try
+            using (Buffer data = bufferPool.AllocBuffer(Settings.Current.MessageSizeInBytes))
             {
-                using (Buffer data = bufferPool.AllocBuffer(Settings.Current.MessageSizeInBytes))
-                {
-                    // generate some bytes
-                    random.NextBytes(data.Data);
+                // generate some bytes
+                random.NextBytes(data.Data);
 
-                    // build message
-                    var messageBody = new { data = data.Data };
-                    var message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)));
-                    sequenceNumber = Interlocked.Increment(ref messageIdCounter);
-                    message.Properties.Add("sequenceNumber", sequenceNumber.ToString());
-                    message.Properties.Add("batchId", batchId.ToString());
+                // build message
+                var messageBody = new { data = data.Data };
+                var message = new Message(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(messageBody)));
+                message.Properties.Add(TestConstants.Message.SequenceNumberPropertyName, messageId.ToString());
+                message.Properties.Add(TestConstants.Message.BatchIdPropertyName, batchId.ToString());
+                message.Properties.Add(TestConstants.Message.TrackingIdPropertyName, trackingId);
 
-                    await client.SendEventAsync(Settings.Current.OutputName, message);
-                }
-            }
-            catch (Exception e)
-            {
-                Logger.LogError($"[GenerateMessageAsync] Sequence number {sequenceNumber}, BatchId: {batchId.ToString()};{Environment.NewLine}{e}");
-            }
-        }
-
-        static async Task GenerateTwinUpdateAsync(ModuleClient client, Guid batchId)
-        {
-            var twin = new TwinCollection();
-            long sequenceNumber = messageIdCounter;
-            twin["messagesSent"] = sequenceNumber;
-
-            try
-            {
-                await client.UpdateReportedPropertiesAsync(twin);
-            }
-            catch (Exception e)
-            {
-                Logger.LogError($"[GenerateTwinUpdateAsync] Sequence number {sequenceNumber}, BatchId: {batchId.ToString()};{Environment.NewLine}{e}");
+                // sending the result via edgeHub
+                await client.SendEventAsync(Settings.Current.OutputName, message);
+                Logger.LogInformation($"Sent message successfully: sequenceNumber={messageId}");
             }
         }
     }

@@ -63,12 +63,12 @@ jobs:
            filePath: scripts/linux/buildImage.sh
            arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-load-gen -n microsoft -P load-gen --target-arch aarch64
 
-      # Messages Analyzer - Not Using Template for ARM64 because we have 2 different .NET Core.
+      # Test Analyzer - Not Using Template for ARM64 because we have 2 different .NET Core.
       - task: Bash@3
-        displayName: Build Image - Messages Analyzer - aarch64
+        displayName: Build Image - Test Analyzer - aarch64
         inputs:
            filePath: scripts/linux/buildImage.sh
-           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-analyzer -n microsoft -P MessagesAnalyzer --target-arch aarch64
+           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-analyzer -n microsoft -P TestAnalyzer --target-arch aarch64
 
       # Functions Sample - Not Using Template for ARM64 because we have 2 different .NET Core.//TODO: Enable this once Functions supports arm64v8. Right now they are not ready.
       #- task: Bash@3
@@ -91,19 +91,41 @@ jobs:
            filePath: scripts/linux/buildImage.sh
            arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-direct-method-receiver -n microsoft -P DirectMethodReceiver --target-arch aarch64
 
-      # Direct Method Cloud Sender - Not Using Template for ARM64 because we have 2 different .NET Core.
-      - task: Bash@3
-        displayName: Build Image - Direct Method Cloud Sender - aarch64
-        inputs:
-           filePath: scripts/linux/buildImage.sh
-           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-direct-method-cloud-sender -n microsoft -P DirectMethodCloudSender --target-arch aarch64
-
       # Module Restarter - Not Using Template for ARM64 because we have 2 different .NET Core.
       - task: Bash@3
         displayName: Build Image - Module Restarter - aarch64
         inputs:
            filePath: scripts/linux/buildImage.sh
            arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-module-restarter -n microsoft -P ModuleRestarter --target-arch aarch64
+
+      # Twin Tester - Not Using Template for ARM64 because we have 2 different .NET Core.
+      - task: Bash@3
+        displayName: Build Image - Twin Tester - aarch64
+        inputs:
+           filePath: scripts/linux/buildImage.sh
+           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-twin-tester -n microsoft -P TwinTester --target-arch aarch64
+
+      # Relayer - Not Using Template for ARM64 because we have 2 different .NET Core.
+      - task: Bash@3
+        displayName: Build Image - Relayer - aarch64
+        inputs:
+          filePath: scripts/linux/buildImage.sh
+          arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-relayer -n microsoft -P Relayer --target-arch aarch64
+
+      # Metrics Collector - Not Using Template for ARM64 because we have 2 different .NET Core.
+      - task: Bash@3
+        displayName: Build Image - Metrics Collector - aarch64
+        inputs:
+           filePath: scripts/linux/buildImage.sh
+           arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-metrics-collector -n microsoft -P MetricsCollector --target-arch aarch64
+
+      # TestResultCoordinator - Not Using Template for ARM64 because we have 2 different .NET Core.
+      - task: Bash@3
+        displayName: Build Image - Test Result Coordinator - aarch64
+        inputs:
+          filePath: scripts/linux/buildImage.sh
+          arguments: -r $(registry.address) -u $(registry.user) -p $(registry.password) -i azureiotedge-test-result-coordinator -n microsoft -P TestResultCoordinator --target-arch aarch64
+
            
           
 ################################################################################
@@ -166,12 +188,12 @@ jobs:
           imageName: azureiotedge-load-gen
           project: load-gen
 
-      # Messages Analyzer
+      # Test Analyzer
       - template: templates/image-linux.yaml
         parameters:
-          name: Messages Analyzer
+          name: Test Analyzer
           imageName: azureiotedge-analyzer
-          project: MessagesAnalyzer
+          project: TestAnalyzer
 
       # Functions Sample
       - template: templates/image-linux.yaml
@@ -194,19 +216,47 @@ jobs:
           imageName: azureiotedge-direct-method-receiver
           project: DirectMethodReceiver
 
-      # Direct Method Cloud Sender
-      - template: templates/image-linux.yaml
-        parameters:
-          name: Direct Method Cloud Sender
-          imageName: azureiotedge-direct-method-cloud-sender
-          project: DirectMethodCloudSender
-
      # Module Restarter
       - template: templates/image-linux.yaml
         parameters:
           name: Module Restarter
           imageName: azureiotedge-module-restarter
           project: ModuleRestarter
+
+     # Twin Tester
+      - template: templates/image-linux.yaml
+        parameters:
+          name: TwinTester
+          imageName: azureiotedge-twin-tester
+          project: TwinTester
+
+     # Relayer
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Relayer
+          imageName: azureiotedge-relayer
+          project: Relayer
+          
+    # Network Controller
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Network Controller
+          imageName: azureiotedge-network-controller
+          project: NetworkController
+
+     # TestResultCoordinator
+      - template: templates/image-linux.yaml
+        parameters:
+          name: TestResultCoordinator
+          imageName: azureiotedge-test-result-coordinator
+          project: TestResultCoordinator
+
+     # Metrics Collector
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Metrics Collector
+          imageName: azureiotedge-metrics-collector
+          project: MetricsCollector
 
 ################################################################################
 # linux - Rust amd64
@@ -236,6 +286,7 @@ jobs:
   - job: windows
 ################################################################################
     displayName: Windows
+    timeoutInMinutes: 90
     pool:
       name: Azure-IoT-Edge-Core
       demands:
@@ -311,12 +362,12 @@ jobs:
           imageName: azureiotedge-load-gen
           project: load-gen
 
-      # Messages Analyzer
+      # Test Analyzer
       - template: templates/image-windows.yaml
         parameters:
-          name: Messages Analyzer
+          name: Test Analyzer
           imageName: azureiotedge-analyzer
-          project: MessagesAnalyzer
+          project: TestAnalyzer
           
       # Functions Sample
       - template: templates/image-windows.yaml
@@ -340,19 +391,40 @@ jobs:
           imageName: azureiotedge-direct-method-receiver
           project: DirectMethodReceiver
 
-      # Direct Method Cloud Sender
-      - template: templates/image-windows.yaml
-        parameters:
-          name: Direct Method Cloud Sender
-          imageName: azureiotedge-direct-method-cloud-sender
-          project: DirectMethodCloudSender
-
      # Module Restarter
       - template: templates/image-windows.yaml
         parameters:
           name: Module Restarter
           imageName: azureiotedge-module-restarter
           project: ModuleRestarter
+
+     # Twin Tester
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Twin Tester
+          imageName: azureiotedge-twin-tester
+          project: TwinTester
+
+     # Relayer
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Relayer
+          imageName: azureiotedge-relayer
+          project: Relayer
+
+     # Metrics Collector
+      - template: templates/image-windows.yaml
+        parameters:
+          name: Metrics Collector
+          imageName: azureiotedge-metrics-collector
+          project: MetricsCollector
+
+     # TestResultCoordinator
+      - template: templates/image-windows.yaml
+        parameters:
+          name: TestResultCoordinator
+          imageName: azureiotedge-test-result-coordinator
+          project: TestResultCoordinator
 
       - powershell: docker system prune -a -f
         displayName: Clean Machine

@@ -1,0 +1,148 @@
+trigger: none
+pr: none
+
+variables:
+  images.artifact.name.linux: 'core-linux'
+  vsts.project: $(System.TeamProjectId)
+
+jobs:
+################################################################################
+  - job: linux_amd64_moby
+################################################################################
+    displayName: Linux AMD64 Moby
+    condition: and(eq(variables['run.linux.amd64.moby'], 'true'), ne(variables['agent.group'], ''))
+    pool:
+      name: $(pool.name)
+      demands:
+        - agent-group -equals $(agent.group)
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals X64
+        - run-connectivity -equals true
+    variables:
+      edgelet.artifact.name: 'iotedged-ubuntu16.04-amd64'
+    steps:
+      - checkout: none
+      - task: AzureKeyVault@1
+        displayName: 'Azure Key Vault'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: $(azure.keyVault)
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey'
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Edgelet Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(edgelet.package.build)
+          branchName: $(edgelet.package.branchName)
+          buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
+          artifactName: $(edgelet.artifact.name)
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Images Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(images.build)
+          branchName: $(images.branchName)
+          buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
+          artifactName: $(images.artifact.name.linux)
+          itemPattern: |
+            $(images.artifact.name.linux)/IotEdgeQuickstart.linux-x64.tar.gz
+            $(images.artifact.name.linux)/e2e_deployment_files/connectivity_deployment.template.json
+            $(images.artifact.name.linux)/scripts/connectivityTest.sh
+            $(images.artifact.name.linux)/scripts/testHelper.sh
+            $(images.artifact.name.linux)/artifactInfo.txt
+      # Deploy connectivity test
+      - template: templates/connectivity-deploy.yaml
+        parameters:
+          release.label: 'ct$(agent.group)'
+          edgelet.artifact.name: '$(edgelet.artifact.name)'
+          images.artifact.name: '$(images.artifact.name.linux)'
+          container.registry: '$(container.registry)'
+          container.registry.username: '$(edgebuilds-azurecr-io-username)'
+          container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
+          iotHub.connectionString: '$(EdgeConnectivityTestHubConnString)'
+          eventHub.connectionString: '$(EdgeConnectivityEventHubConnString)'
+          upstream.protocol: '$(upstream.protocol)'
+          loadGen.message.frequency: '$(loadGen.message.frequency.amd64)'
+          testDuration: '$(testDuration)'
+          testStartDelay: '$(testStartDelay)'
+          networkController.frequencies: '$(networkController.frequencies)'
+          networkController.mode: '$(networkController.mode)'
+          testResultCoordinator.logAnalyticsWorkspaceId: '$(kvLogAnalyticWorkspaceId)'
+          testResultCoordinator.logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
+          testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
+          testResultCoordinator.verificationDelay: '$(testResultCoordinator.verificationDelay)'
+
+################################################################################
+  - job: linux_arm32v7_moby
+################################################################################
+    displayName: Linux ARM32v7 Moby
+    condition: and(eq(variables['run.linux.arm32v7.moby'], 'true'), ne(variables['agent.group'], ''))
+    pool:
+      name: $(pool.name)
+      demands:
+        - agent-group -equals $(agent.group)
+        - Agent.OS -equals Linux
+        - Agent.OSArchitecture -equals ARM
+        - agent-osbits -equals 32
+        - run-connectivity -equals true
+    variables:
+      edgelet.artifact.name: 'iotedged-debian9-arm32v7'
+    steps:
+      - checkout: none
+      - task: AzureKeyVault@1
+        displayName: 'Azure Key Vault'
+        inputs:
+          azureSubscription: $(azure.subscription)
+          KeyVaultName: $(azure.keyVault)
+          SecretsFilter: 'edgebuilds-azurecr-io-username,edgebuilds-azurecr-io-pwd,EdgeConnectivityTestHubConnString,EdgeConnectivityEventHubConnString,kvLogAnalyticWorkspaceId,kvLogAnalyticSharedKey'
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Edgelet Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(edgelet.package.build)
+          branchName: $(edgelet.package.branchName)
+          buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
+          artifactName: $(edgelet.artifact.name)
+      - task: DownloadBuildArtifacts@0
+        displayName: 'Download Images Artifacts'
+        inputs:
+          buildType: specific
+          project: $(vsts.project)
+          pipeline: $(images.build)
+          branchName: $(images.branchName)
+          buildVersionToDownload: latestFromBranch
+          downloadPath: '$(Build.StagingDirectory)'
+          artifactName: $(images.artifact.name.linux)
+          itemPattern: |
+            $(images.artifact.name.linux)/IotEdgeQuickstart.linux-arm.tar.gz
+            $(images.artifact.name.linux)/e2e_deployment_files/connectivity_deployment.template.json
+            $(images.artifact.name.linux)/scripts/connectivityTest.sh
+            $(images.artifact.name.linux)/scripts/testHelper.sh
+            $(images.artifact.name.linux)/artifactInfo.txt
+      # Deploy connectivity test
+      - template: templates/connectivity-deploy.yaml
+        parameters:
+          release.label: 'ct$(agent.group)'
+          edgelet.artifact.name: '$(edgelet.artifact.name)'
+          images.artifact.name: '$(images.artifact.name.linux)'
+          container.registry: '$(container.registry)'
+          container.registry.username: '$(edgebuilds-azurecr-io-username)'
+          container.registry.password: '$(edgebuilds-azurecr-io-pwd)'
+          iotHub.connectionString: '$(EdgeConnectivityTestHubConnString)'
+          eventHub.connectionString: '$(EdgeConnectivityEventHubConnString)'
+          upstream.protocol: '$(upstream.protocol)'
+          loadGen.message.frequency: '$(loadGen.message.frequency.arm32)'
+          testDuration: '$(testDuration)'
+          testStartDelay: '$(testStartDelay)'
+          networkController.frequencies: '$(networkController.frequencies)'
+          networkController.mode: '$(networkController.mode)'
+          testResultCoordinator.logAnalyticsWorkspaceId: '$(kvLogAnalyticWorkspaceId)'
+          testResultCoordinator.logAnalyticsSharedKey: '$(kvLogAnalyticSharedKey)'
+          testResultCoordinator.logAnalyticsLogType: '$(testResultCoordinator.logAnalyticsLogType)'
+          testResultCoordinator.verificationDelay: '$(testResultCoordinator.verificationDelay)'

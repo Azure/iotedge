@@ -1,0 +1,46 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+    <Configurations>Debug;Release;CodeCoverage;CheckInBuild</Configurations>
+    <HighEntropyVA>true</HighEntropyVA>
+  </PropertyGroup>
+
+  <!--
+    Normally, the 'Debug' configuration would work for code coverage, but Microsoft.CodeCoverage currently requires '<DebugType>full</DebugType>' for .NET Core.
+    See https://github.com/Microsoft/vstest-docs/blob/06f9dc0aeb47be7204dc4e1a98c110ead3e978c7/docs/analyze.md#setup-a-project.
+    That setting seems to break the "Open Test" context menu in VS IDE, so we'll use a dedicated configuration for code coverage.
+    -->
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'CodeCoverage|AnyCPU' ">
+    <IntermediateOutputPath>obj\CodeCoverage</IntermediateOutputPath>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\CodeCoverage</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.21.3" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="2.2.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
+    <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Storage\Microsoft.Azure.Devices.Edge.Storage.csproj" />
+    <ProjectReference Include="..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
+    <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Agent.IoTHub\Microsoft.Azure.Devices.Edge.Agent.IoTHub.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="..\..\..\stylecop.json" Link="stylecop.json" />
+  </ItemGroup>
+  <PropertyGroup>
+    <CodeAnalysisRuleSet>..\..\..\stylecop.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <Import Project="..\..\..\stylecop.props" />
+</Project>
