@@ -8,13 +8,12 @@ namespace MetricsCollector
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
     internal class Program
     {
-        static readonly ILogger Logger = ModuleUtil.CreateLogger("MetricsCollector");
+        static readonly ILogger Logger = MetricsScrapeAndUpload.CreateLogger("MetricsCollector");
 
         public static int Main() => MainAsync().Result;
 
@@ -41,7 +40,7 @@ namespace MetricsCollector
                     publisher = new EventHubMetricsUpload(moduleClient);
                 }
 
-                using (MetricsScrapeAndUpload metricsScrapeAndUpload = new MetricsScrapeAndUpload(scraper, publisher, Guid.NewGuid()))
+                using (var metricsScrapeAndUpload = new MetricsScrapeAndUpload(scraper, publisher, Guid.NewGuid()))
                 {
                     TimeSpan scrapeAndUploadInterval = TimeSpan.FromSeconds(Settings.Current.ScrapeFrequencySecs);
                     metricsScrapeAndUpload.Start(scrapeAndUploadInterval);

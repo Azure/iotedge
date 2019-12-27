@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
                 WriteLog(logger, LogLevel.Error, $"Retry {args.CurrentRetryCount} times to create module client and failed with exception:{Environment.NewLine}{args.LastException}");
             };
 
-            ModuleClient client = await retryPolicy.ExecuteAsync(() => InitializeModuleClientAsync(transportType, logger));
+            ModuleClient client = await retryPolicy.ExecuteAsync(async () => await InitializeModuleClientAsync(transportType, logger));
             return client;
         }
 

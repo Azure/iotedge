@@ -7,14 +7,17 @@ namespace MetricsCollector
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
+    using Serilog;
+    using Serilog.Core;
+    using Serilog.Events;
+    using ILogger = Microsoft.Extensions.Logging.ILogger;
 
     class MetricsScrapeAndUpload : IDisposable
     {
-        static readonly ILogger Logger = ModuleUtil.CreateLogger("MetricsCollector");
+        static readonly ILogger Logger = CreateLogger("MetricsCollector");
         readonly IMetricsScraper scraper;
         readonly IMetricsPublisher publisher;
         PeriodicTask periodicScrapeAndUpload;
@@ -60,6 +63,19 @@ namespace MetricsCollector
                 tagsWithGuid.Add("guid", this.metricsCollectorRuntimeId.ToString());
                 yield return new Metric(metric.TimeGeneratedUtc, metric.Name, metric.Value, JsonConvert.SerializeObject(tagsWithGuid));
             }
+        }
+
+        public static ILogger CreateLogger(string categoryName, LogEventLevel logEventLevel = LogEventLevel.Debug)
+        {
+            Preconditions.CheckNonWhiteSpace(categoryName, nameof(categoryName));
+
+            var levelSwitch = new LoggingLevelSwitch(logEventLevel);
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.ControlledBy(levelSwitch)
+                .WriteTo.Console(outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+                .CreateLogger();
+
+            return new LoggerFactory().AddSerilog().CreateLogger(categoryName);
         }
     }
 }
