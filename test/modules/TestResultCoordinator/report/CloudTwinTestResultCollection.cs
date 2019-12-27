@@ -2,7 +2,6 @@
 namespace TestResultCoordinator.Report
 {
     using System;
-    using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
@@ -15,16 +14,13 @@ namespace TestResultCoordinator.Report
         readonly RegistryManager registryManager;
         readonly string moduleId;
         readonly string trackingId;
-
-        Queue<TestResultCoordinator.TestOperationResult> resultQueue;
         TestResultCoordinator.TestOperationResult current;
-        bool loadedFromCloud;
+        bool isLoaded;
 
         public CloudTwinTestResultCollection(string source, string serviceClientConnectionString, string moduleId, string trackingId)
         {
             this.registryManager = RegistryManager.CreateFromConnectionString(serviceClientConnectionString);
-            this.resultQueue = new Queue<TestResultCoordinator.TestOperationResult>();
-            this.loadedFromCloud = false;
+            this.isLoaded = false;
             this.moduleId = moduleId;
             this.Source = source;
             this.trackingId = trackingId;
@@ -41,38 +37,26 @@ namespace TestResultCoordinator.Report
 
         public async Task<bool> MoveNextAsync()
         {
-            bool hasValue = this.GetFromQueue();
-            if (!hasValue && !this.loadedFromCloud)
+            if (!this.isLoaded)
             {
-                await this.GetTwinAsync();
-                this.loadedFromCloud = true;
-                hasValue = this.GetFromQueue();
+                this.current = await this.GetTwinAsync();
+                this.isLoaded = true;
+            }
+            else
+            {
+                this.current = null;
             }
 
-            return hasValue;
+            return this.current != null;
         }
 
         public void Reset()
         {
-            this.loadedFromCloud = false;
-            this.resultQueue = new Queue<TestResultCoordinator.TestOperationResult>();
+            this.isLoaded = false;
+            this.current = null;
         }
 
-        bool GetFromQueue()
-        {
-            if (this.resultQueue.Count > 0)
-            {
-                this.current = this.resultQueue.Dequeue();
-                return true;
-            }
-            else
-            {
-                this.current = default(TestResultCoordinator.TestOperationResult);
-                return false;
-            }
-        }
-
-        async Task GetTwinAsync()
+        async Task<TestResultCoordinator.TestOperationResult> GetTwinAsync()
         {
             try
             {
@@ -80,20 +64,20 @@ namespace TestResultCoordinator.Report
                 if (twin == null)
                 {
                     Logger.LogError($"Twin was null for {this.moduleId}");
-                    return;
+                    return null;
                 }
 
                 var twinTestResult = new TwinTestResult() { TrackingId = this.trackingId, Properties = twin.Properties.Reported };
-                this.resultQueue.Enqueue(
-                    new TestResultCoordinator.TestOperationResult(
-                        this.Source,
-                        TestOperationResultType.Twin.ToString(),
-                        twinTestResult.ToString(),
-                        twin.LastActivityTime.HasValue ? twin.LastActivityTime.Value : DateTime.UtcNow));
+                return new TestResultCoordinator.TestOperationResult(
+                    this.Source,
+                    TestOperationResultType.Twin.ToString(),
+                    twinTestResult.ToString(),
+                    twin.LastActivityTime.HasValue ? twin.LastActivityTime.Value : DateTime.UtcNow);
             }
             catch (Exception e)
             {
                 Logger.LogError(e, $"Failed to get twin for {this.moduleId}");
+                return null;
             }
         }
     }
