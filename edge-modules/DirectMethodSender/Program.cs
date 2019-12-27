@@ -51,32 +51,37 @@ namespace DirectMethodSender
                     (HttpStatusCode result, long dmCounter) = await directMethodClient.InvokeDirectMethodAsync(cts);
 
                     // TODO: Create an abstract class to handle the reporting client generation
-                    await testReportCoordinatorUrl.ForEachAsync(
-                        async (Uri uri) =>
-                        {
-                            TestResultCoordinatorClient trcClient = new TestResultCoordinatorClient { BaseUrl = uri.AbsoluteUri };
-                            await ModuleUtil.ReportStatus(
-                                    trcClient,
-                                    Logger,
-                                    Settings.Current.ModuleId + ".send",
-                                    ModuleUtil.FormatDirectMethodTestResultValue(
-                                        Settings.Current.TrackingId.Expect(() => new ArgumentException("TrackingId is empty")),
-                                        batchId.ToString(),
-                                        dmCounter.ToString(),
-                                        result.ToString()),
-                                    TestOperationResultType.DirectMethod.ToString());
-                        });
-
-                    await analyzerUrl.ForEachAsync(
-                        async (Uri uri) =>
-                        {
-                            AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = uri.AbsoluteUri };
-                            await ReportStatus(Settings.Current.TargetModuleId, result, analyzerClient);
-                        },
-                        async () =>
-                        {
-                            await reportClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method call succeeded.")));
-                        });
+                    if(testReportCoordinatorUrl.HasValue)
+                    {
+                        await testReportCoordinatorUrl.ForEachAsync(
+                            async (Uri uri) =>
+                            {
+                                TestResultCoordinatorClient trcClient = new TestResultCoordinatorClient { BaseUrl = uri.AbsoluteUri };
+                                await ModuleUtil.ReportStatus(
+                                        trcClient,
+                                        Logger,
+                                        Settings.Current.ModuleId + ".send",
+                                        ModuleUtil.FormatDirectMethodTestResultValue(
+                                            Settings.Current.TrackingId.Expect(() => new ArgumentException("TrackingId is empty")),
+                                            batchId.ToString(),
+                                            dmCounter.ToString(),
+                                            result.ToString()),
+                                        TestOperationResultType.DirectMethod.ToString());
+                            });
+                    }
+                    else
+                    {
+                        await analyzerUrl.ForEachAsync(
+                            async (Uri uri) =>
+                            {
+                                AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = uri.AbsoluteUri };
+                                await ReportStatus(Settings.Current.TargetModuleId, result, analyzerClient);
+                            },
+                            async () =>
+                            {
+                                await reportClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method call succeeded.")));
+                            });
+                    }
 
                     await Task.Delay(Settings.Current.DirectMethodDelay, cts.Token);
                 }
