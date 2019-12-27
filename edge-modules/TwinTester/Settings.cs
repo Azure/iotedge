@@ -23,7 +23,7 @@ namespace TwinTester
                 string moduleId = configuration.GetValue<string>("IOTEDGE_MODULEID");
 
                 return new Settings(
-                    configuration.GetValue<string>("IOTEDGE_DEVICEID", string.Empty),
+                    configuration.GetValue<string>("IOTEDGE_DEVICEID"),
                     moduleId,
                     configuration.GetValue<string>("TargetModuleId", moduleId),
                     configuration.GetValue<int>("TwinUpdateSize", 1),

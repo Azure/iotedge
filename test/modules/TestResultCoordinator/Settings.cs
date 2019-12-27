@@ -156,7 +156,8 @@ namespace TestResultCoordinator
         List<string> GetResultSources()
         {
             // TODO: Remove this hardcoded list and use environment variables once we've decided on how exactly to set the configuration
-            return new List<string> {
+            return new List<string>
+            {
                 "loadGen1.send",
                 "relayer1.receive",
                 "relayer1.send",
@@ -169,15 +170,16 @@ namespace TestResultCoordinator
                 "directMethodSender2.send",
                 "directMethodReceiver1.receive",
                 "directMethodReceiver2.receive",
-                "twinTester1.desiredUpdated", 
+                "twinTester1.desiredUpdated",
                 "twinTester2.desiredReceived",
-                "twinTester2.reportedUpdated", 
-                "twinTester2.reportedReceived", 
-                "twinTester3.desiredUpdated", 
-                "twinTester4.desiredReceived", 
-                "twinTester4.reportedUpdated", 
+                "twinTester2.reportedUpdated",
+                "twinTester2.reportedReceived",
+                "twinTester3.desiredUpdated",
+                "twinTester4.desiredReceived",
+                "twinTester4.reportedUpdated",
                 "twinTester4.reportedReceived",
-                "networkController" };
+                "networkController"
+            };
         }
     }
 }

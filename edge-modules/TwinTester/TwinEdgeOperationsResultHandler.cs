@@ -14,13 +14,13 @@ namespace TwinTester
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TwinEdgeOperationsResultHandler));
         readonly TestResultCoordinatorClient trcClient;
         readonly string moduleId;
-        readonly Option<string> trackingId;
+        readonly string trackingId;
 
         public TwinEdgeOperationsResultHandler(Uri reporterUri, string moduleId, Option<string> trackingId)
         {
             this.trcClient = new TestResultCoordinatorClient() { BaseUrl = reporterUri.AbsoluteUri };
             this.moduleId = moduleId;
-            this.trackingId = trackingId;
+            this.trackingId = trackingId.Expect(() => new ArgumentNullException(nameof(trackingId)));
         }
 
         public Task HandleDesiredPropertyReceivedAsync(TwinCollection desiredProperties)
@@ -60,7 +60,7 @@ namespace TwinTester
 
         async Task SendReportAsync(string source, StatusCode statusCode, TwinCollection details, string exception = "")
         {
-            var result = new TwinTestResult() { Operation = statusCode.ToString(), Properties = details, ErrorMessage = exception, TrackingId = this.trackingId.GetOrElse(string.Empty) };
+            var result = new TwinTestResult() { Operation = statusCode.ToString(), Properties = details, ErrorMessage = exception, TrackingId = this.trackingId };
             Logger.LogDebug($"Sending report {result.ToString()}");
             await ModuleUtil.ReportStatus(this.trcClient, Logger, source, result.ToString(), TestOperationResultType.Twin.ToString());
         }
