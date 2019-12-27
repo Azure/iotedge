@@ -27,7 +27,7 @@ namespace DirectMethodSender
 
         public abstract void Dispose();
 
-        public async Task<HttpStatusCode> InvokeDirectMethodAsync(CancellationTokenSource cts)
+        public async Task<Tuple<HttpStatusCode, long>> InvokeDirectMethodAsync(CancellationTokenSource cts)
         {
             ILogger logger = this.logger;
             logger.LogDebug("Invoke DirectMethod: started.");
@@ -49,12 +49,12 @@ namespace DirectMethodSender
 
                 logger.LogInformation($"Invoke DirectMethod with count {this.directMethodCount}: finished.");
                 this.directMethodCount++;
-                return (HttpStatusCode)resultStatus;
+                return new Tuple<HttpStatusCode, long>((HttpStatusCode)resultStatus, this.directMethodCount);
             }
             catch (Exception e)
             {
                 logger.LogError(e, $"Exception caught with count {this.directMethodCount}");
-                return HttpStatusCode.InternalServerError;
+                return new Tuple<HttpStatusCode, long>(HttpStatusCode.InternalServerError, this.directMethodCount);
             }
         }
 

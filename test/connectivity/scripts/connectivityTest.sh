@@ -33,6 +33,7 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<Container_Registry>@$CONTAINER_REGISTRY@g" "$deployment_working_file"
     sed -i -e "s@<CR.Username>@$CONTAINER_REGISTRY_USERNAME@g" "$deployment_working_file"
     sed -i -e "s@<CR.Password>@$CONTAINER_REGISTRY_PASSWORD@g" "$deployment_working_file"
+    sed -i -e "s@<ServiceClientConnectionString>@$IOTHUB_CONNECTION_STRING@g" "$deployment_working_file"
 
     local tracking_Id=$(cat /proc/sys/kernel/random/uuid)
 

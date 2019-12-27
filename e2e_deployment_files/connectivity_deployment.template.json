@@ -60,7 +60,7 @@
                 "value": "<TrackingId>"
               },
               "transportType": {
-                "value": "amqp"
+                "value": "Amqp"
               },
               "outputName": {
                 "value": "output1"
@@ -93,7 +93,7 @@
                 "value": "<TrackingId>"
               },
               "transportType": {
-                "value": "mqtt"
+                "value": "Mqtt"
               },
               "outputName": {
                 "value": "output2"
@@ -107,6 +107,103 @@
               "createOptions": ""
             }
           },
+          "directMethodSender1": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "InvocationSource": {
+                "value": "Cloud"
+              },
+              "ServiceClientConnectionString": {
+                "value": "<ServiceClientConnectionString>"
+              },
+              "TargetModuleId": {
+                "value": "directMethodReceiver1"
+              },
+              "testDuration": {
+                "value": "<TestDuration>"
+              },
+              "testStartDelay": {
+                "value": "<TestStartDelay>"
+              },
+              "testResultCoordinatorUrl": {
+                "value": "http://localhost:5001"
+              },
+              "trackingId": {
+                "value": "<TrackingId>"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+            }
+          },
+          "directMethodReceiver1": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "ClientTransportType": {
+                "value": "Amqp"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
+          },
+          "directMethodSender2": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "InvocationSource": {
+                "value": "Cloud"
+              },
+              "ServiceClientConnectionString": {
+                "value": "<ServiceClientConnectionString>"
+              },
+              "TargetModuleId": {
+                "value": "directMethodReceiver2"
+              },
+              "testDuration": {
+                "value": "<TestDuration>"
+              },
+              "testStartDelay": {
+                "value": "<TestStartDelay>"
+              },
+              "testResultCoordinatorUrl":
+              {
+                "value": "http://localhost:5001"
+              },
+              "trackingId": {
+                "value": "<TrackingId>"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+            }
+          },
+          "directMethodReceiver2": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "ClientTransportType": {
+                "value": "Mqtt"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
+          },
           "relayer1": {
             "version": "1.0",
             "type": "docker",
@@ -114,7 +211,7 @@
             "restartPolicy": "always",
             "env": {
               "transportType": {
-                "value": "amqp"
+                "value": "Amqp"
               },
               "inputName": {
                 "value": "input1"
@@ -138,7 +235,7 @@
             "restartPolicy": "always",
             "env": {
               "transportType": {
-                "value": "mqtt"
+                "value": "Mqtt"
               },
               "inputName": {
                 "value": "input2"
@@ -207,7 +304,7 @@
                 "value": "<TrackingId>"
               },
               "testResultCoordinatorUrl": {
-                "value": "http://testResultCoordinator:5001"
+                "value": "http://localhost:5001"
               },
               "RunFrequencies__0__OfflineFrequency": {
                 "value": "<NetworkController.OfflineFrequency0>"
