@@ -145,7 +145,7 @@ namespace TestResultCoordinator
                 new CountingReportMetadata("loadGen2.send", "relayer2.receive", TestOperationResultType.Messages, TestReportType.CountingReport),
                 new CountingReportMetadata("relayer2.send", "relayer2.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport),
                 new CountingReportMetadata("directMethodSender1.send", "directMethodReceiver1.receive", TestOperationResultType.DirectMethod, TestReportType.CountingReport),
-                new CountingReportMetadata("directMethodSender2.send", "directMethodReceiver2.receive", TestOperationResultType.DirectMethod, TestReportType.CountingReport)
+                new CountingReportMetadata("directMethodSender2.send", "directMethodReceiver2.receive", TestOperationResultType.DirectMethod, TestReportType.CountingReport),
                 new TwinCountingReportMetadata("twinTester1.desiredUpdated", "twinTester2.desiredReceived", TestReportType.TwinCountingReport, TwinTestPropertyType.Desired),
                 new TwinCountingReportMetadata("twinTester2.reportedUpdated", "twinTester2.reportedReceived", TestReportType.TwinCountingReport, TwinTestPropertyType.Reported),
                 new TwinCountingReportMetadata("twinTester3.desiredUpdated", "twinTester4.desiredReceived", TestReportType.TwinCountingReport, TwinTestPropertyType.Desired),
