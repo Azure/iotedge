@@ -42,7 +42,7 @@ namespace TwinTester
             {
                 string failureStatus = $"{(int)StatusCode.ReportedPropertyUpdateCallFailure}: Failed call to update reported properties";
                 Logger.LogError(e, failureStatus);
-                await this.reporter.HandleReportedPropertyUpdateExceptionAsync(this.twinState.ReportedPropertyUpdateCounter.ToString(), failureStatus);
+                await this.reporter.HandleReportedPropertyUpdateExceptionAsync(failureStatus);
             }
         }
 

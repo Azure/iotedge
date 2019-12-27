@@ -30,7 +30,7 @@ namespace TwinTester
                     configuration.GetValue<TimeSpan>("TwinUpdateFrequency", TimeSpan.FromSeconds(10)),
                     configuration.GetValue<TimeSpan>("TwinUpdateFailureThreshold", TimeSpan.FromMinutes(1)),
                     configuration.GetValue<TransportType>("TransportType", TransportType.Amqp_Tcp_Only),
-                    configuration.GetValue<string>("AnalyzerUrl", http://analyzer:15000),
+                    configuration.GetValue<string>("AnalyzerUrl", "http://analyzer:15000"),
                     configuration.GetValue<string>("TestResultCoordinatorUrl"),
                     configuration.GetValue<string>("ServiceClientConnectionString"),
                     configuration.GetValue<string>("StoragePath"),

@@ -45,7 +45,7 @@ namespace TwinTester
             return Task.CompletedTask;
         }
 
-        public Task HandleReportedPropertyUpdateExceptionAsync(string propertyKey, string failureStatus)
+        public Task HandleReportedPropertyUpdateExceptionAsync(string failureStatus)
         {
             return Task.CompletedTask;
         }
