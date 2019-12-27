@@ -30,7 +30,7 @@ namespace TwinTester
                     configuration.GetValue<TimeSpan>("TwinUpdateFrequency", TimeSpan.FromSeconds(10)),
                     configuration.GetValue<TimeSpan>("TwinUpdateFailureThreshold", TimeSpan.FromMinutes(1)),
                     configuration.GetValue<TransportType>("TransportType", TransportType.Amqp_Tcp_Only),
-                    configuration.GetValue<string>("AnalyzerUrl"),
+                    configuration.GetValue<string>("AnalyzerUrl", http://analyzer:15000),
                     configuration.GetValue<string>("TestResultCoordinatorUrl"),
                     configuration.GetValue<string>("ServiceClientConnectionString"),
                     configuration.GetValue<string>("StoragePath"),
@@ -74,14 +74,14 @@ namespace TwinTester
             this.TestStartDelay = testStartDelay;
             this.TestDuration = testDuration;
 
-            if (!string.IsNullOrWhiteSpace(analyzerUrl))
+            if (!string.IsNullOrWhiteSpace(testResultCoordinatorUrl))
             {
-                this.ReporterUrl = new Uri(analyzerUrl);
+                this.ReporterUrl = new Uri(testResultCoordinatorUrl);
+                trackingId.Expect(() => new ArgumentNullException(nameof(trackingId)));
             }
             else
             {
-                this.ReporterUrl = new Uri(Preconditions.CheckNonWhiteSpace(testResultCoordinatorUrl, nameof(testResultCoordinatorUrl)));
-                trackingId.Expect(() => new ArgumentNullException(nameof(trackingId)));
+                this.ReporterUrl = new Uri(Preconditions.CheckNonWhiteSpace(analyzerUrl, nameof(analyzerUrl)));
             }
         }
 
