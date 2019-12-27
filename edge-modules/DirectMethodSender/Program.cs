@@ -43,7 +43,7 @@ namespace DirectMethodSender
                     Logger);
 
                 Logger.LogInformation($"Load gen delay start for {Settings.Current.TestStartDelay}.");
-                await Task.Delay(Settings.Current.TestStartDelay);
+                await Task.Delay(Settings.Current.TestStartDelay, cts.Token);
 
                 DateTime testStartAt = DateTime.UtcNow;
                 while (!cts.Token.IsCancellationRequested && IsTestTimeUp(testStartAt))
