@@ -8,8 +8,10 @@ namespace DirectMethodSender
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using TestOperationResult = Microsoft.Azure.Devices.Edge.ModuleUtil.TestOperationResult;
 
     class Program
     {
@@ -24,31 +26,62 @@ namespace DirectMethodSender
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
             DirectMethodSenderBase directMethodClient = null;
             ModuleClient reportClient = null;
+            Option<Uri> analyzerUrl = Settings.Current.AnalyzerUrl;
+            Option<Uri> testReportCoordinatorUrl = Settings.Current.TestResultCoordinatorUrl;
+
             try
             {
+                Guid batchId = Guid.NewGuid();
+                Logger.LogInformation($"Batch Id={batchId}");
+
                 directMethodClient = await CreateClientAsync(Settings.Current.InvocationSource);
 
-                Option<Uri> analyzerUrl = Settings.Current.AnalyzerUrl;
                 reportClient = await ModuleUtil.CreateModuleClientAsync(
                     Settings.Current.TransportType,
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                     ModuleUtil.DefaultTransientRetryStrategy,
                     Logger);
-                while (!cts.Token.IsCancellationRequested)
+
+                Logger.LogInformation($"Load gen delay start for {Settings.Current.TestStartDelay}.");
+                await Task.Delay(Settings.Current.TestStartDelay, cts.Token);
+
+                DateTime testStartAt = DateTime.UtcNow;
+                while (!cts.Token.IsCancellationRequested && IsTestTimeUp(testStartAt))
                 {
-                    HttpStatusCode result = await directMethodClient.InvokeDirectMethodAsync(cts);
+                    (HttpStatusCode result, long dmCounter) = await directMethodClient.InvokeDirectMethodAsync(cts);
 
                     // TODO: Create an abstract class to handle the reporting client generation
-                    await analyzerUrl.ForEachAsync(
-                        async (Uri uri) =>
-                        {
-                            AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = uri.AbsoluteUri };
-                            await ReportStatus(Settings.Current.TargetModuleId, result, analyzerClient);
-                        },
-                        async () =>
-                        {
-                            await reportClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method call succeeded.")));
-                        });
+                    if (testReportCoordinatorUrl.HasValue)
+                    {
+                        await testReportCoordinatorUrl.ForEachAsync(
+                            async (Uri uri) =>
+                            {
+                                TestResultCoordinatorClient trcClient = new TestResultCoordinatorClient { BaseUrl = uri.AbsoluteUri };
+                                await ModuleUtil.ReportStatus(
+                                        trcClient,
+                                        Logger,
+                                        Settings.Current.ModuleId + ".send",
+                                        ModuleUtil.FormatDirectMethodTestResultValue(
+                                            Settings.Current.TrackingId.Expect(() => new ArgumentException("TrackingId is empty")),
+                                            batchId.ToString(),
+                                            dmCounter.ToString(),
+                                            result.ToString()),
+                                        TestOperationResultType.DirectMethod.ToString());
+                            });
+                    }
+                    else
+                    {
+                        await analyzerUrl.ForEachAsync(
+                            async (Uri uri) =>
+                            {
+                                AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = uri.AbsoluteUri };
+                                await ReportStatus(Settings.Current.TargetModuleId, result, analyzerClient);
+                            },
+                            async () =>
+                            {
+                                await reportClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method call succeeded.")));
+                            });
+                    }
 
                     await Task.Delay(Settings.Current.DirectMethodDelay, cts.Token);
                 }
@@ -99,6 +132,11 @@ namespace DirectMethodSender
             }
 
             return directMethodClient;
+        }
+
+        public static bool IsTestTimeUp(DateTime testStartAt)
+        {
+            return (Settings.Current.TestDuration == TimeSpan.Zero) || (DateTime.UtcNow - testStartAt < Settings.Current.TestDuration);
         }
 
         static async Task ReportStatus(string moduleId, HttpStatusCode result, AnalyzerClient analyzerClient)

@@ -136,14 +136,29 @@ namespace TestResultCoordinator
                 new CountingReportMetadata("loadGen1.send", "relayer1.receive", TestOperationResultType.Messages, TestReportType.CountingReport),
                 new CountingReportMetadata("relayer1.send", "relayer1.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport),
                 new CountingReportMetadata("loadGen2.send", "relayer2.receive", TestOperationResultType.Messages, TestReportType.CountingReport),
-                new CountingReportMetadata("relayer2.send", "relayer2.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport)
+                new CountingReportMetadata("relayer2.send", "relayer2.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport),
+                new CountingReportMetadata("directMethodSender1.send", "directMethodReceiver1.receive", TestOperationResultType.DirectMethod, TestReportType.CountingReport),
+                new CountingReportMetadata("directMethodSender2.send", "directMethodReceiver2.receive", TestOperationResultType.DirectMethod, TestReportType.CountingReport)
             };
         }
 
         List<string> GetResultSources()
         {
             // TODO: Remove this hardcoded list and use environment variables once we've decided on how exactly to set the configuration
-            return new List<string> { "loadGen1.send", "relayer1.receive", "relayer1.send", "relayer1.eventHub", "loadGen2.send", "relayer2.receive", "relayer2.send", "relayer2.eventHub", "networkController" };
+            return new List<string> {
+                "loadGen1.send",
+                "relayer1.receive",
+                "relayer1.send",
+                "relayer1.eventHub",
+                "loadGen2.send",
+                "relayer2.receive",
+                "relayer2.send",
+                "relayer2.eventHub",
+                "directMethodSender1.send",
+                "directMethodSender2.send",
+                "directMethodReceiver1.receive",
+                "directMethodReceiver2.receive",
+                "networkController" };
         }
     }
 }
