@@ -27,12 +27,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
 
     public abstract class AgentTestsBase
     {
+        const string TestConfigBasePath = "test-configs";
+
         public static IEnumerable<object[]> GenerateStartTestData(string testConfig)
         {
             Type agentTestsType = typeof(AgentTestsBase);
             string format = $"{agentTestsType.Namespace}.{{0}}, {agentTestsType.Assembly.GetName().Name}";
 
-            string json = File.ReadAllText(testConfig);
+            string testConfigPath = Path.Combine(TestConfigBasePath, testConfig);
+            string json = File.ReadAllText(testConfigPath);
             var settings = new JsonSerializerSettings()
             {
                 TypeNameHandling = TypeNameHandling.Auto,

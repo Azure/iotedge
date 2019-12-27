@@ -7,7 +7,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Integration.Test
 
     public class ModulePriorityTests : AgentTestsBase
     {
-        const string TestConfig = "test-configs\\module-priority-test-config.json";
+        const string TestConfig = "module-priority-test-config.json";
 
         [Integration]
         [Theory]
