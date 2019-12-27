@@ -51,7 +51,7 @@ namespace DirectMethodSender
                     (HttpStatusCode result, long dmCounter) = await directMethodClient.InvokeDirectMethodAsync(cts);
 
                     // TODO: Create an abstract class to handle the reporting client generation
-                    if(testReportCoordinatorUrl.HasValue)
+                    if (testReportCoordinatorUrl.HasValue)
                     {
                         await testReportCoordinatorUrl.ForEachAsync(
                             async (Uri uri) =>
