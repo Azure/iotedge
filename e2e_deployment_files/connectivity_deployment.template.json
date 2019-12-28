@@ -258,6 +258,9 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
+              "Logging:LogLevel:Microsoft": {
+                "value": "Error"
+              },            
               "trackingId": {
                 "value": "<TrackingId>"
               },
