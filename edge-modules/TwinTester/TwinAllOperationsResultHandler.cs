@@ -67,7 +67,7 @@ namespace TwinTester
             return this.CallAnalyzer(status);
         }
 
-        public Task HandleReportedPropertyUpdateExceptionAsync(string propertyKey, string failureStatus)
+        public Task HandleReportedPropertyUpdateExceptionAsync(string failureStatus)
         {
             return this.CallAnalyzer(failureStatus);
         }

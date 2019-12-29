@@ -33,7 +33,7 @@ namespace TwinTester
                 desiredProperties.Desired[propertyKey] = desiredPropertyUpdateValue;
                 Twin patch = new Twin(desiredProperties);
 
-                Twin newTwin = await this.registryManager.UpdateTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId, patch, this.twinState.TwinETag);
+                Twin newTwin = await this.registryManager.UpdateTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId, patch, this.twinState.TwinETag);
                 this.twinState.TwinETag = newTwin.ETag;
 
                 Logger.LogInformation($"Desired property updated {propertyKey}");

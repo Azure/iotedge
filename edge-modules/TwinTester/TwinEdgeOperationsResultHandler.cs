@@ -4,36 +4,40 @@ namespace TwinTester
     using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
-    using Newtonsoft.Json;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient;
 
     class TwinEdgeOperationsResultHandler : ITwinTestResultHandler
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TwinEdgeOperationsResultHandler));
         readonly TestResultCoordinatorClient trcClient;
         readonly string moduleId;
+        readonly string trackingId;
 
-        public TwinEdgeOperationsResultHandler(Uri analyzerClientUri, string moduleId)
+        public TwinEdgeOperationsResultHandler(Uri reporterUri, string moduleId, Option<string> trackingId)
         {
-            this.trcClient = new TestResultCoordinatorClient() { BaseUrl = analyzerClientUri.AbsoluteUri };
+            this.trcClient = new TestResultCoordinatorClient() { BaseUrl = reporterUri.AbsoluteUri };
             this.moduleId = moduleId;
+            this.trackingId = trackingId.Expect(() => new ArgumentNullException(nameof(trackingId)));
         }
 
         public Task HandleDesiredPropertyReceivedAsync(TwinCollection desiredProperties)
         {
-            return this.SendReportAsync(StatusCode.DesiredPropertyReceived, desiredProperties.ToString());
+            return this.SendReportAsync($"{this.moduleId}.desiredReceived", StatusCode.DesiredPropertyReceived, desiredProperties);
         }
 
-        public Task HandleDesiredPropertyUpdateAsync(string details)
+        public Task HandleDesiredPropertyUpdateAsync(string propertyKey)
         {
-            return this.SendReportAsync(StatusCode.DesiredPropertyUpdated, details);
+            TwinCollection properties = this.GetTwinCollection(propertyKey);
+            return this.SendReportAsync($"{this.moduleId}.desiredUpdated", StatusCode.DesiredPropertyUpdated, properties);
         }
 
-        public Task HandleReportedPropertyUpdateAsync(string status)
+        public Task HandleReportedPropertyUpdateAsync(string propertyKey)
         {
-            return this.SendReportAsync(StatusCode.ReportedPropertyReceived, status);
+            TwinCollection properties = this.GetTwinCollection(propertyKey);
+            return this.SendReportAsync($"{this.moduleId}.reportedUpdated", StatusCode.ReportedPropertyUpdated, properties);
         }
 
         public Task HandleTwinValidationStatusAsync(string status)
@@ -41,29 +45,24 @@ namespace TwinTester
             return Task.CompletedTask;
         }
 
-        public Task HandleReportedPropertyUpdateExceptionAsync(string propertyKey, string failureStatus)
+        public Task HandleReportedPropertyUpdateExceptionAsync(string failureStatus)
         {
-            return this.SendReportAsync(StatusCode.ReportedPropertyUpdateCallFailure, propertyKey, failureStatus);
+            return Task.CompletedTask;
         }
 
-        async Task SendReportAsync(StatusCode statusCode, string details, string exception = "")
+        TwinCollection GetTwinCollection(string propertyKey)
         {
-            var result = new TwinTestResult() { Operation = statusCode.ToString(), TwinProperty = details, ErrorMessage = exception };
-            await ModuleUtil.ReportStatus(trcClient, Logger, this.moduleId, result.ToString(), TestOperationResultType.Twin.ToString());
+            var properties = new TwinCollection();
+            properties[propertyKey] = propertyKey;
+
+            return properties;
         }
 
-        class TwinTestResult
+        async Task SendReportAsync(string source, StatusCode statusCode, TwinCollection details, string exception = "")
         {
-            public string Operation { get; set; }
-
-            public string TwinProperty { get; set; }
-
-            public string ErrorMessage { get; set; }
-
-            public override string ToString()
-            {
-                return JsonConvert.SerializeObject(this, Formatting.Indented);
-            }
+            var result = new TwinTestResult() { Operation = statusCode.ToString(), Properties = details, ErrorMessage = exception, TrackingId = this.trackingId };
+            Logger.LogDebug($"Sending report {result.ToString()}");
+            await ModuleUtil.ReportStatus(this.trcClient, Logger, source, result.ToString(), TestOperationResultType.Twin.ToString());
         }
     }
 }

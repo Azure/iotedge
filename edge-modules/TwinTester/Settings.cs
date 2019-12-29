@@ -20,47 +20,69 @@ namespace TwinTester
                     .AddEnvironmentVariables()
                     .Build();
 
-                string moduleId = configuration.GetValue<string>("TargetModuleId");
-                moduleId = string.IsNullOrWhiteSpace(moduleId) ? configuration.GetValue<string>("IOTEDGE_MODULEID", string.Empty) : moduleId;
+                string moduleId = configuration.GetValue<string>("IOTEDGE_MODULEID");
 
                 return new Settings(
-                    configuration.GetValue<string>("IOTEDGE_DEVICEID", string.Empty),
+                    configuration.GetValue<string>("IOTEDGE_DEVICEID"),
                     moduleId,
+                    configuration.GetValue<string>("TargetModuleId", moduleId),
                     configuration.GetValue<int>("TwinUpdateSize", 1),
                     configuration.GetValue<TimeSpan>("TwinUpdateFrequency", TimeSpan.FromSeconds(10)),
                     configuration.GetValue<TimeSpan>("TwinUpdateFailureThreshold", TimeSpan.FromMinutes(1)),
                     configuration.GetValue<TransportType>("TransportType", TransportType.Amqp_Tcp_Only),
-                    configuration.GetValue<Uri>("AnalyzerUrl", new Uri("http://analyzer:15000")),
+                    configuration.GetValue<string>("AnalyzerUrl", "http://analyzer:15000"),
+                    configuration.GetValue<string>("TestResultCoordinatorUrl"),
                     configuration.GetValue<string>("ServiceClientConnectionString"),
                     configuration.GetValue<string>("StoragePath"),
                     configuration.GetValue<bool>("StorageOptimizeForPerformance", true),
-                    configuration.GetValue<TestMode>("TestMode", TestMode.TwinAllOperations));
+                    configuration.GetValue<TwinTestMode>("TwinTestMode", TwinTestMode.TwinAllOperations),
+                    Option.Maybe(configuration.GetValue<string>("trackingId")),
+                    configuration.GetValue("TestStartDelay", TimeSpan.Zero),
+                    configuration.GetValue("TestDuration", TimeSpan.FromMilliseconds(-1)));
             });
 
         Settings(
             string deviceId,
             string moduleId,
+            string targetModuleId,
             int twinUpdateSize,
             TimeSpan twinUpdateFrequency,
             TimeSpan twinUpdateFailureThreshold,
             TransportType transportType,
-            Uri analyzerUrl,
+            string analyzerUrl,
+            string testResultCoordinatorUrl,
             string serviceClientConnectionString,
             string storagePath,
             bool storageOptimizeForPerformance,
-            TestMode testMode)
+            TwinTestMode testMode,
+            Option<string> trackingId,
+            TimeSpan testStartDelay,
+            TimeSpan testDuration)
         {
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
+            this.TargetModuleId = Preconditions.CheckNonWhiteSpace(targetModuleId, nameof(targetModuleId));
             this.TwinUpdateSize = Preconditions.CheckRange(twinUpdateSize, 1);
             this.TwinUpdateFrequency = Preconditions.CheckNotNull(twinUpdateFrequency);
             this.TwinUpdateFailureThreshold = Preconditions.CheckNotNull(twinUpdateFailureThreshold);
             this.TransportType = Preconditions.CheckNotNull(transportType);
-            this.AnalyzerUrl = Preconditions.CheckNotNull(analyzerUrl, nameof(analyzerUrl));
             this.ServiceClientConnectionString = Preconditions.CheckNonWhiteSpace(serviceClientConnectionString, nameof(serviceClientConnectionString));
             this.StoragePath = Preconditions.CheckNotNull(storagePath);
             this.StorageOptimizeForPerformance = Preconditions.CheckNotNull(storageOptimizeForPerformance);
-            this.TestMode = testMode;
+            this.TwinTestMode = testMode;
+            this.TrackingId = trackingId;
+            this.TestStartDelay = testStartDelay;
+            this.TestDuration = testDuration;
+
+            if (!string.IsNullOrWhiteSpace(testResultCoordinatorUrl))
+            {
+                this.ReporterUrl = new Uri(testResultCoordinatorUrl);
+                trackingId.Expect(() => new ArgumentNullException(nameof(trackingId)));
+            }
+            else
+            {
+                this.ReporterUrl = new Uri(Preconditions.CheckNonWhiteSpace(analyzerUrl, nameof(analyzerUrl)));
+            }
         }
 
         public static Settings Current => DefaultSettings.Value;
@@ -68,6 +90,8 @@ namespace TwinTester
         public string DeviceId { get; }
 
         public string ModuleId { get; }
+
+        public string TargetModuleId { get; }
 
         public int TwinUpdateSize { get; }
 
@@ -77,7 +101,7 @@ namespace TwinTester
 
         public TransportType TransportType { get; }
 
-        public Uri AnalyzerUrl { get; }
+        public Uri ReporterUrl { get; }
 
         public string ServiceClientConnectionString { get; }
 
@@ -85,21 +109,31 @@ namespace TwinTester
 
         public bool StorageOptimizeForPerformance { get; }
 
-        public TestMode TestMode { get; }
+        public TwinTestMode TwinTestMode { get; }
+
+        public Option<string> TrackingId { get; }
+
+        public TimeSpan TestStartDelay { get; }
+
+        public TimeSpan TestDuration { get; }
 
         public override string ToString()
         {
             Dictionary<string, string> fields = new Dictionary<string, string>();
             fields.Add(nameof(this.DeviceId), this.DeviceId);
             fields.Add(nameof(this.ModuleId), this.ModuleId);
+            fields.Add(nameof(this.TargetModuleId), this.TargetModuleId);
             fields.Add(nameof(this.TwinUpdateSize), this.TwinUpdateSize.ToString());
             fields.Add(nameof(this.TwinUpdateFrequency), this.TwinUpdateFrequency.ToString());
             fields.Add(nameof(this.TwinUpdateFailureThreshold), this.TwinUpdateFailureThreshold.ToString());
             fields.Add(nameof(this.TransportType), Enum.GetName(typeof(TransportType), this.TransportType));
-            fields.Add(nameof(this.AnalyzerUrl), this.AnalyzerUrl.ToString());
+            fields.Add(nameof(this.ReporterUrl), this.ReporterUrl.ToString());
             fields.Add(nameof(this.StoragePath), this.StoragePath);
             fields.Add(nameof(this.StorageOptimizeForPerformance), this.StorageOptimizeForPerformance.ToString());
-            fields.Add(nameof(this.TestMode), this.TestMode.ToString());
+            fields.Add(nameof(this.TwinTestMode), this.TwinTestMode.ToString());
+            fields.Add(nameof(this.TrackingId), this.TrackingId.ToString());
+            fields.Add(nameof(this.TestStartDelay), this.TestStartDelay.ToString());
+            fields.Add(nameof(this.TestDuration), this.TestDuration.ToString());
             return JsonConvert.SerializeObject(fields, Formatting.Indented);
         }
     }

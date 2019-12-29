@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace TwinTester
 {
-    public enum TestMode
+    public enum TwinTestMode
     {
         TwinAllOperations = 0,
         TwinCloudOperations,

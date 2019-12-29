@@ -30,6 +30,7 @@ namespace TestResultCoordinator
                 return new Settings(
                     configuration.GetValue<string>("trackingId"),
                     configuration.GetValue<string>("eventHubConnectionString"),
+                    configuration.GetValue<string>("ServiceClientConnectionString"),
                     configuration.GetValue<string>("IOTEDGE_DEVICEID"),
                     configuration.GetValue("webhostPort", DefaultWebHostPort),
                     configuration.GetValue<string>("logAnalyticsWorkspaceId"),
@@ -45,6 +46,7 @@ namespace TestResultCoordinator
         Settings(
             string trackingId,
             string eventHubConnectionString,
+            string serviceClientConnectionString,
             string deviceId,
             ushort webHostPort,
             string logAnalyticsWorkspaceId,
@@ -60,6 +62,7 @@ namespace TestResultCoordinator
 
             this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.EventHubConnectionString = Preconditions.CheckNonWhiteSpace(eventHubConnectionString, nameof(eventHubConnectionString));
+            this.ServiceClientConnectionString = Preconditions.CheckNonWhiteSpace(serviceClientConnectionString, nameof(serviceClientConnectionString));
             this.DeviceId = Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
             this.WebHostPort = Preconditions.CheckNotNull(webHostPort, nameof(webHostPort));
             this.LogAnalyticsWorkspaceId = Preconditions.CheckNonWhiteSpace(logAnalyticsWorkspaceId, nameof(logAnalyticsWorkspaceId));
@@ -79,7 +82,11 @@ namespace TestResultCoordinator
 
         public string EventHubConnectionString { get; }
 
+        public string ServiceClientConnectionString { get; }
+
         public string DeviceId { get; }
+
+        public string ModuleId { get; }
 
         public ushort WebHostPort { get; }
 
@@ -138,14 +145,19 @@ namespace TestResultCoordinator
                 new CountingReportMetadata("loadGen2.send", "relayer2.receive", TestOperationResultType.Messages, TestReportType.CountingReport),
                 new CountingReportMetadata("relayer2.send", "relayer2.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport),
                 new CountingReportMetadata("directMethodSender1.send", "directMethodReceiver1.receive", TestOperationResultType.DirectMethod, TestReportType.CountingReport),
-                new CountingReportMetadata("directMethodSender2.send", "directMethodReceiver2.receive", TestOperationResultType.DirectMethod, TestReportType.CountingReport)
+                new CountingReportMetadata("directMethodSender2.send", "directMethodReceiver2.receive", TestOperationResultType.DirectMethod, TestReportType.CountingReport),
+                new TwinCountingReportMetadata("twinTester1.desiredUpdated", "twinTester2.desiredReceived", TestReportType.TwinCountingReport, TwinTestPropertyType.Desired),
+                new TwinCountingReportMetadata("twinTester2.reportedUpdated", "twinTester2.reportedReceived", TestReportType.TwinCountingReport, TwinTestPropertyType.Reported),
+                new TwinCountingReportMetadata("twinTester3.desiredUpdated", "twinTester4.desiredReceived", TestReportType.TwinCountingReport, TwinTestPropertyType.Desired),
+                new TwinCountingReportMetadata("twinTester4.reportedUpdated", "twinTester4.reportedReceived", TestReportType.TwinCountingReport, TwinTestPropertyType.Reported),
             };
         }
 
         List<string> GetResultSources()
         {
             // TODO: Remove this hardcoded list and use environment variables once we've decided on how exactly to set the configuration
-            return new List<string> {
+            return new List<string>
+            {
                 "loadGen1.send",
                 "relayer1.receive",
                 "relayer1.send",
@@ -158,7 +170,16 @@ namespace TestResultCoordinator
                 "directMethodSender2.send",
                 "directMethodReceiver1.receive",
                 "directMethodReceiver2.receive",
-                "networkController" };
+                "twinTester1.desiredUpdated",
+                "twinTester2.desiredReceived",
+                "twinTester2.reportedUpdated",
+                "twinTester2.reportedReceived",
+                "twinTester3.desiredUpdated",
+                "twinTester4.desiredReceived",
+                "twinTester4.reportedUpdated",
+                "twinTester4.reportedReceived",
+                "networkController"
+            };
         }
     }
 }
