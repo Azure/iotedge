@@ -290,6 +290,9 @@
               },
               "logAnalyticsLogType": {
                 "value": "<TestResultCoordinator.LogAnalyticsLogType>"
+              },
+              "ServiceClientConnectionString": {
+                "value": "<ServiceClientConnectionString>"
               }
             },
             "settings": {
