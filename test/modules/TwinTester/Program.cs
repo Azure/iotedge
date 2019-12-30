@@ -22,13 +22,11 @@ namespace TwinTester
 
             try
             {
-                await Task.Delay(Settings.Current.TestStartDelay);
-
                 RegistryManager registryManager = RegistryManager.CreateFromConnectionString(Settings.Current.ServiceClientConnectionString);
 
                 using (ITwinTestInitializer twinOperator = await GetTwinOperatorAsync(registryManager))
                 {
-                    await twinOperator.Start();
+                    await twinOperator.StartAsync(cts.Token);
                     await Task.Delay(Settings.Current.TestDuration, cts.Token);
                 }
 

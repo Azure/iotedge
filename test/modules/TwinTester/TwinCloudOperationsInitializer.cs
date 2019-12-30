@@ -2,6 +2,7 @@
 namespace TwinTester
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
@@ -30,10 +31,12 @@ namespace TwinTester
                 Twin twin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId);
 
                 // reset desired properties
-                Twin desiredPropertyResetTwin = await registryManager.ReplaceTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId, new Twin(), twin.ETag);
+                twin.Properties.Desired = null;
+                Twin desiredPropertyResetTwin = await registryManager.ReplaceTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId, twin, twin.ETag);
+
                 initializedState = new TwinState { TwinETag = desiredPropertyResetTwin.ETag };
 
-                Logger.LogInformation($"Start state of module twin: {JsonConvert.SerializeObject(twin, Formatting.Indented)}");
+                Logger.LogInformation($"Start state of module twin: {JsonConvert.SerializeObject(desiredPropertyResetTwin, Formatting.Indented)}");
                 return new TwinCloudOperationsInitializer(registryManager, resultHandler, initializedState);
             }
             catch (Exception e)
@@ -42,10 +45,10 @@ namespace TwinTester
             }
         }
 
-        public Task Start()
+        public async Task StartAsync(CancellationToken cancellationToken)
         {
+            await Task.Delay(Settings.Current.TestStartDelay, cancellationToken);
             this.periodicUpdate = new PeriodicTask(this.UpdateAsync, Settings.Current.TwinUpdateFrequency, Settings.Current.TwinUpdateFrequency, Logger, "TwinDesiredPropertiesUpdate");
-            return Task.CompletedTask;
         }
 
         public async Task UpdateAsync(CancellationToken cancellationToken)
