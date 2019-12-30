@@ -290,11 +290,146 @@
               },
               "logAnalyticsLogType": {
                 "value": "<TestResultCoordinator.LogAnalyticsLogType>"
+              },
+              "ServiceClientConnectionString": {
+                "value": "<ServiceClientConnectionString>"
               }
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-test-result-coordinator:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": "{\"HostConfig\": {\"PortBindings\": {\"5001/tcp\": [{\"HostPort\": \"5001\"}]}}}"
+            }
+          },
+          "twinTester1": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "trackingId": {
+                "value": "<TrackingId>"
+              },
+              "TestResultCoordinatorUrl": {
+                "value": "http://localhost:5001"
+              },
+              "TwinTestMode": {
+                "value": "TwinCloudOperations"
+              },
+              "TestStartDelay": {
+                "value": "<TestStartDelay>"
+              },
+              "TestDuration": {
+                "value": "<TestDuration>"
+              },
+              "ServiceClientConnectionString": {
+                "value": "<ServiceClientConnectionString>"
+              },
+              "TargetModuleId": {
+                "value": "twinTester2"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+            }
+          },
+          "twinTester2": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "trackingId": {
+                "value": "<TrackingId>"
+              },
+              "TestResultCoordinatorUrl": {
+                "value": "http://testResultCoordinator:5001"
+              },
+              "TwinTestMode": {
+                "value": "TwinEdgeOperations"
+              },
+              "TestStartDelay": {
+                "value": "<TestStartDelay>"
+              },
+              "TestDuration": {
+                "value": "<TestDuration>"
+              },
+              "ServiceClientConnectionString": {
+                "value": "<ServiceClientConnectionString>"
+              },
+              "TransportType" : {
+                "value": "Amqp"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
+          },
+          "twinTester3": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "trackingId": {
+                "value": "<TrackingId>"
+              },
+              "TestResultCoordinatorUrl": {
+                "value": "http://localhost:5001"
+              },
+              "TwinTestMode": {
+                "value": "TwinCloudOperations"
+              },
+              "TestStartDelay": {
+                "value": "<TestStartDelay>"
+              },
+              "TestDuration": {
+                "value": "<TestDuration>"
+              },
+              "ServiceClientConnectionString": {
+                "value": "<ServiceClientConnectionString>"
+              },
+              "TargetModuleId": {
+                "value": "twinTester4"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+            }
+          },
+          "twinTester4": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "trackingId": {
+                "value": "<TrackingId>"
+              },
+              "TestResultCoordinatorUrl": {
+                "value": "http://testResultCoordinator:5001"
+              },
+              "TwinTestMode": {
+                "value": "TwinEdgeOperations"
+              },
+              "TestStartDelay": {
+                "value": "<TestStartDelay>"
+              },
+              "TestDuration": {
+                "value": "<TestDuration>"
+              },
+              "ServiceClientConnectionString": {
+                "value": "<ServiceClientConnectionString>"
+              },
+              "TransportType" : {
+                "value": "Mqtt"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
             }
           },
           "networkController": {
