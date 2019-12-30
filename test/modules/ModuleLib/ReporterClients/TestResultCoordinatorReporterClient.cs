@@ -37,6 +37,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
                 logger,
                 source);
         }
+
         public override void Dispose()
         {
             // Intentionall left blank
@@ -44,9 +45,12 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
         }
 
         // TODO: How to merge this between modules
-        internal override async Task ReportStatusAsync(Object report, string source)
+        internal override async Task ReportStatusAsync(ReportContent report, string source)
         {
-            TestOperationResult stampedReport = report as Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient.TestOperationResult;
+            Preconditions.CheckNotNull(report, nameof(report));
+            Preconditions.CheckNonWhiteSpace(source, nameof(source));
+
+            TestOperationResult stampedReport = report.GenerateReport() as Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient.TestOperationResult;
             stampedReport.Source = source;
             stampedReport.CreatedAt = DateTime.UtcNow;
             await this.trcClient.ReportResultAsync(stampedReport);

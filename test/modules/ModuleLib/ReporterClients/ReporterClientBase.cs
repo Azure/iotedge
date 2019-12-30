@@ -22,11 +22,10 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
         }
         public abstract void Dispose();
 
-        public async Task ReportStatus(Object report)
+        public async Task ReportStatus(ReportContent report)
         {
             try
             {
-                //await this.trcClient.ReportResultAsync(new TestOperationResult { Source = this.source, Result = body, CreatedAt = DateTime.UtcNow, Type = testOperationResultType});
                 await this.ReportStatusAsync(report, this.source);
             }
             catch (Exception e)
@@ -34,6 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
                 this.logger.LogError(e.ToString());
             }
         }
-        internal abstract Task ReportStatusAsync(Object report, string source);
+
+        internal abstract Task ReportStatusAsync(ReportContent report, string source);
     }
 }
