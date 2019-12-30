@@ -39,7 +39,7 @@ namespace TwinTester
             try
             {
                 TwinState initializedState;
-                Twin twin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
+                Twin twin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId);
                 Dictionary<string, DateTime> reportedPropertyUpdates = await storage.GetAllReportedPropertiesUpdatedAsync();
                 Dictionary<string, DateTime> desiredPropertyUpdates = await storage.GetAllDesiredPropertiesUpdatedAsync();
 
@@ -50,14 +50,14 @@ namespace TwinTester
                     Logger.LogInformation("No existing storage detected. Initializing new module twin for fresh run.");
 
                     // reset desired properties
-                    Twin desiredPropertyResetTwin = await registryManager.ReplaceTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId, new Twin(), twin.ETag);
+                    Twin desiredPropertyResetTwin = await registryManager.ReplaceTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId, new Twin(), twin.ETag);
 
                     // reset reported properties
                     TwinCollection eraseReportedProperties = GetReportedPropertiesResetTwin(desiredPropertyResetTwin);
                     await moduleClient.UpdateReportedPropertiesAsync(eraseReportedProperties);
 
                     await Task.Delay(TimeSpan.FromSeconds(10)); // give enough time for reported properties reset to reach cloud
-                    twin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
+                    twin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId);
                     initializedState = new TwinState { ReportedPropertyUpdateCounter = 0, DesiredPropertyUpdateCounter = 0, TwinETag = twin.ETag, LastTimeOffline = DateTime.MinValue };
                 }
                 else
