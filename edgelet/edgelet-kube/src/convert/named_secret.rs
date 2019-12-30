@@ -37,11 +37,11 @@ impl TryFrom<(String, ImagePullSecret)> for NamedSecret {
         secret_data.insert(PULL_SECRET_DATA_NAME.to_string(), image_pull_secret.data()?);
 
         Ok(NamedSecret(
-            secret_name.to_string(),
+            secret_name.clone(),
             api_core::Secret {
                 data: Some(secret_data),
                 metadata: Some(api_meta::ObjectMeta {
-                    name: Some(secret_name.to_string()),
+                    name: Some(secret_name),
                     namespace: Some(namespace),
                     ..api_meta::ObjectMeta::default()
                 }),

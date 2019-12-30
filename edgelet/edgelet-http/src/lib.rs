@@ -5,6 +5,7 @@
 #![allow(
     clippy::default_trait_access,
     clippy::module_name_repetitions,
+    clippy::must_use_candidate,
     clippy::pub_enum_variant_names,
     clippy::similar_names,
     clippy::too_many_lines,
@@ -115,7 +116,7 @@ impl PemCertificate {
             .context(ErrorKind::IdentityCertificate)?;
 
         let key = match id_cert.get_private_key() {
-            Ok(Some(PrivateKey::Ref(ref_))) => Some(ref_.into_bytes().clone()),
+            Ok(Some(PrivateKey::Ref(ref_))) => Some(ref_.into_bytes()),
             Ok(Some(PrivateKey::Key(KeyBytes::Pem(buffer)))) => Some(buffer.as_ref().to_vec()),
             Ok(None) => None,
             Err(_err) => return Err(Error::from(ErrorKind::IdentityPrivateKey)),

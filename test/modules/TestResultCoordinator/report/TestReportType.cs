@@ -3,6 +3,7 @@ namespace TestResultCoordinator.Report
 {
     enum TestReportType
     {
-        CountingReport
+        CountingReport,
+        TwinCountingReport
     }
 }

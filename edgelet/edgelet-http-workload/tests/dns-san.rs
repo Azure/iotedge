@@ -5,6 +5,7 @@
 #![cfg(not(windows))]
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
+#![allow(clippy::must_use_candidate)]
 
 use std::env;
 use std::str;
