@@ -8,6 +8,7 @@ namespace DirectMethodSender
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
@@ -46,30 +47,30 @@ namespace DirectMethodSender
                 await Task.Delay(Settings.Current.TestStartDelay, cts.Token);
 
                 DateTime testStartAt = DateTime.UtcNow;
+                if (testReportCoordinatorUrl.HasValue)
+                {
+                    Uri baseUri = testReportCoordinatorUrl.Expect(() => new ArgumentException("testReportCoordinatorUrl is not expected to be empty"));
+                    ReporterClientBase reportClientTest = TestResultCoordinatorReporterClient.Create(
+                        baseUri,
+                        Logger,
+                        Settings.Current.ModuleId + ".send");
+                }
+
                 while (!cts.Token.IsCancellationRequested && IsTestTimeUp(testStartAt))
                 {
                     (HttpStatusCode result, long dmCounter) = await directMethodClient.InvokeDirectMethodAsync(cts);
 
                     // TODO: Create an abstract class to handle the reporting client generation
-                    if (testReportCoordinatorUrl.HasValue)
-                    {
-                        await testReportCoordinatorUrl.ForEachAsync(
-                            async (Uri uri) =>
-                            {
-                                TestResultCoordinatorClient trcClient = new TestResultCoordinatorClient { BaseUrl = uri.AbsoluteUri };
-                                await ModuleUtil.ReportStatus(
-                                        trcClient,
-                                        Logger,
-                                        Settings.Current.ModuleId + ".send",
-                                        ModuleUtil.FormatDirectMethodTestResultValue(
-                                            Settings.Current.TrackingId.Expect(() => new ArgumentException("TrackingId is empty")),
-                                            batchId.ToString(),
-                                            dmCounter.ToString(),
-                                            result.ToString()),
-                                        TestOperationResultType.DirectMethod.ToString());
-                            });
-                    }
-                    else
+                    ReportContent report = new ReportContent()
+                        .SetTestOperationResultType(TestOperationResultType.DirectMethod)
+                        .SetTrackingId(Settings.Current.TrackingId.Expect(() => new ArgumentException("TrackingId is empty")))
+                        .SetBatchId(batchId)
+                        .SetSequenceNumber(dmCounter)
+                        .SetResultMessage(result.ToString());
+
+                    await reportClientTest.ReportStatus(report);
+
+                    if (!testReportCoordinatorUrl.HasValue)
                     {
                         await analyzerUrl.ForEachAsync(
                             async (Uri uri) =>
