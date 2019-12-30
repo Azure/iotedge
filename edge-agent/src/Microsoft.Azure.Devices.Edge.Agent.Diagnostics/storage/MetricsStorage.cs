@@ -12,43 +12,37 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage
 
     public class MetricsStorage : IMetricsStorage
     {
-        readonly ISequentialStore<IEnumerable<Metric>> dataStore;
-        readonly HashSet<long> entriesToRemove = new HashSet<long>();
+        readonly IKeyValueStore<Guid, IEnumerable<Metric>> dataStore;
+        readonly List<Guid> entriesToRemove = new List<Guid>();
 
-        public MetricsStorage(ISequentialStore<IEnumerable<Metric>> sequentialStore)
+        public MetricsStorage(IStoreProvider storeProvider)
         {
-            this.dataStore = Preconditions.CheckNotNull(sequentialStore, nameof(sequentialStore));
+            Preconditions.CheckNotNull(storeProvider, nameof(storeProvider));
+            this.dataStore = Preconditions.CheckNotNull(storeProvider.GetEntityStore<Guid, IEnumerable<Metric>>("Metrics"), "dataStore");
         }
 
         public Task StoreMetricsAsync(IEnumerable<Metric> metrics)
         {
-            return this.dataStore.Append(metrics);
+            return this.dataStore.Put(Guid.NewGuid(), metrics);
         }
 
         public async Task<IEnumerable<Metric>> GetAllMetricsAsync()
         {
-            return (await this.dataStore.GetBatch(0, 1000))
-                    .SelectMany(((long offset, IEnumerable<Metric> metrics) storeResult) =>
-                    {
-                        this.entriesToRemove.Add(storeResult.offset);
-                        return storeResult.metrics;
-                    });
+            List<IEnumerable<Metric>> result = new List<IEnumerable<Metric>>();
+            await this.dataStore.IterateBatch(1000, (guid, metrics) =>
+            {
+                result.Add(metrics);
+                this.entriesToRemove.Add(guid);
+
+                return Task.CompletedTask;
+            });
+
+            return result.SelectMany(m => m);
         }
 
-        public async Task RemoveAllReturnedMetricsAsync()
+        public Task RemoveAllReturnedMetricsAsync()
         {
-            bool notLast = false;
-            do
-            {
-                // Only delete entries in entriesToRemove. Also remove from entriesToRemove.
-                Task<bool> ShouldRemove(long offset, object _)
-                {
-                    return Task.FromResult(this.entriesToRemove.Remove(offset));
-                }
-
-                notLast = await this.dataStore.RemoveFirst(ShouldRemove);
-            }
-            while (notLast);
+            return Task.WhenAll(this.entriesToRemove.Select(this.dataStore.Remove));
         }
     }
 }
