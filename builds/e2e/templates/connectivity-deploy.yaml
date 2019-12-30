@@ -7,6 +7,7 @@ parameters:
   container.registry.password: ''
   iotHub.connectionString: ''
   eventHub.connectionString: ''
+  upstream.protocol: ''
   loadGen.message.frequency: ''
   networkController.frequencies: ''
   networkController.mode: ''
@@ -46,6 +47,7 @@ steps:
           -containerRegistryPassword "${{ parameters['container.registry.password'] }}" \
           -iotHubConnectionString "${{ parameters['iotHub.connectionString'] }}" \
           -eventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" \
+          -upstreamProtocol "${{ parameters['upstream.protocol'] }}" \
           -testDuration "${{ parameters['testDuration'] }}" \
           -testStartDelay "${{ parameters['testStartDelay'] }}" \
           -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" \

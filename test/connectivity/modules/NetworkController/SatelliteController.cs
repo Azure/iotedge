@@ -3,9 +3,10 @@ namespace NetworkController
 {
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkControllerResult;
 
     // TODO: implement satellite
-    class SatelliteController : IController
+    class SatelliteController : INetworkController
     {
         string name;
 
@@ -14,16 +15,16 @@ namespace NetworkController
             this.name = name;
         }
 
-        public string Description => "Satellite";
+        public NetworkControllerType NetworkControllerType => NetworkControllerType.Sattelite;
 
-        public Task<bool> SetStatus(NetworkStatus status, CancellationToken cs)
+        public Task<bool> SetNetworkControllerStatusAsync(NetworkControllerStatus networkControllerStatus, CancellationToken cs)
         {
             return Task.FromResult(true);
         }
 
-        public Task<NetworkStatus> GetStatus(CancellationToken cs)
+        public Task<NetworkControllerStatus> GetNetworkControllerStatusAsync(CancellationToken cs)
         {
-            return Task.FromResult(NetworkStatus.Default);
+            return Task.FromResult(NetworkControllerStatus.Disabled);
         }
     }
 }

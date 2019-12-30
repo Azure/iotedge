@@ -234,7 +234,7 @@ mod tests {
             "iotedge-tls".to_string(),
         );
 
-        let manager = CertificateManager::new(crypto.clone(), edgelet_cert_props).unwrap();
+        let manager = CertificateManager::new(crypto, edgelet_cert_props).unwrap();
 
         let cert = manager.get_certificate().unwrap();
 
@@ -254,7 +254,7 @@ mod tests {
             "iotedge-tls".to_string(),
         );
 
-        let manager = CertificateManager::new(crypto.clone(), edgelet_cert_props).unwrap();
+        let manager = CertificateManager::new(crypto, edgelet_cert_props).unwrap();
         let _timer = manager.schedule_expiration_timer(|| Ok(()));
     }
 
@@ -269,7 +269,7 @@ mod tests {
             "iotedge-tls".to_string(),
         );
 
-        let manager = CertificateManager::new(crypto.clone(), edgelet_cert_props).unwrap();
+        let manager = CertificateManager::new(crypto, edgelet_cert_props).unwrap();
 
         let timer = manager.schedule_expiration_timer(|| Ok(())).wait();
         match timer {

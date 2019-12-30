@@ -1,36 +1,18 @@
 // Copyright (c) Microsoft. All rights reserved.
-
-#[macro_use]
-extern crate clap;
-extern crate edgelet_http;
-extern crate edgelet_utils;
-extern crate env_logger;
-extern crate failure;
-extern crate failure_derive;
-#[macro_use]
-extern crate log;
-extern crate hyper;
-extern crate serde_json;
-extern crate tokio;
-extern crate url;
-extern crate workload;
-
-mod error;
-mod logging;
-
 use std::fs;
 use std::process;
 
-use clap::{App, AppSettings, Arg, SubCommand};
+use clap::{crate_description, crate_name, crate_version, App, AppSettings, Arg, SubCommand};
 use edgelet_http::UrlConnector;
-use failure::Fail;
 use hyper::Client;
+use log::info;
 use url::Url;
+
+use edgehub_proxy::error::Error;
+use edgehub_proxy::logging;
 use workload::apis::client::APIClient;
 use workload::apis::configuration::Configuration;
 use workload::models::ServerCertificateRequest;
-
-use error::Error;
 
 fn main() {
     logging::init();
@@ -57,7 +39,8 @@ fn run() -> Result<(), Error> {
                 .value_name("HOST")
                 .required(true)
                 .env("IOTEDGE_WORKLOADURI"),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("moduleid")
                 .help("Module id")
                 .short("m")
@@ -66,7 +49,8 @@ fn run() -> Result<(), Error> {
                 .value_name("MODULEID")
                 .required(true)
                 .env("IOTEDGE_MODULEID"),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("genid")
                 .help("Generation id")
                 .short("g")
@@ -75,7 +59,8 @@ fn run() -> Result<(), Error> {
                 .value_name("GENID")
                 .required(true)
                 .env("IOTEDGE_MODULEGENERATIONID"),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("apiversion")
                 .help("iotedged API Version")
                 .short("a")
@@ -85,7 +70,8 @@ fn run() -> Result<(), Error> {
                 .required(true)
                 .env("IOTEDGE_APIVERSION")
                 .default_value("2018-06-28"),
-        ).subcommand(
+        )
+        .subcommand(
             SubCommand::with_name("cert-server")
                 .about("Retrieve a server cert")
                 .arg(
@@ -96,7 +82,8 @@ fn run() -> Result<(), Error> {
                         .takes_value(true)
                         .value_name("COMMON_NAME")
                         .required(true),
-                ).arg(
+                )
+                .arg(
                     Arg::with_name("expiration")
                         .help("Sets the expiration time of the certificate")
                         .required(true)
@@ -104,21 +91,24 @@ fn run() -> Result<(), Error> {
                         .takes_value(true)
                         .value_name("EXPIRATION")
                         .required(true),
-                ).arg(
+                )
+                .arg(
                     Arg::with_name("crt file")
                         .help("Sets the crt output file")
                         .required(false)
                         .long("crt")
                         .takes_value(true)
                         .value_name("CRT_FILE"),
-                ).arg(
+                )
+                .arg(
                     Arg::with_name("key file")
                         .help("Sets the key output file")
                         .required(false)
                         .long("key")
                         .takes_value(true)
                         .value_name("KEY_FILE"),
-                ).arg(
+                )
+                .arg(
                     Arg::with_name("combined file")
                         .help("Sets the combined output file")
                         .required(false)
@@ -126,13 +116,15 @@ fn run() -> Result<(), Error> {
                         .takes_value(true)
                         .value_name("COMBINED_FILE"),
                 ),
-        ).arg(
+        )
+        .arg(
             Arg::with_name("cmd")
                 .help("Command to run after retrieving certificate")
                 .multiple(true)
                 .global(true)
                 .value_name("CMD"),
-        ).get_matches();
+        )
+        .get_matches();
 
     let mut tokio_runtime = tokio::runtime::current_thread::Runtime::new()?;
     let url = Url::parse(
