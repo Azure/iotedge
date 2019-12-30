@@ -7,9 +7,10 @@
   <PropertyGroup Condition="'$(OS)|$(DotNet_Runtime)' == 'Unix|netcoreapp3.0'">
     <TargetFramework>netcoreapp3.0</TargetFramework>
   </PropertyGroup>
-
+  
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <RootNamespace>load_gen</RootNamespace>
     <LangVersion>latest</LangVersion>
     <Configurations>Debug;Release;CheckInBuild</Configurations>
     <HighEntropyVA>true</HighEntropyVA>
@@ -28,15 +29,12 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="2.2.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="2.2.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="2.2.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
+    <ProjectReference Include="..\..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
     <ProjectReference Include="..\ModuleLib\Microsoft.Azure.Devices.Edge.ModuleUtil.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <AdditionalFiles Include="..\..\stylecop.json" Link="stylecop.json" />
   </ItemGroup>
 
   <ItemGroup>
@@ -44,8 +42,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="..\..\..\stylecop.json" Link="stylecop.json" />
+  </ItemGroup>
   <PropertyGroup>
-    <CodeAnalysisRuleSet>..\..\stylecop.ruleset</CodeAnalysisRuleSet>
-  </PropertyGroup>
-  <Import Project="..\..\stylecop.props" />
+    <CodeAnalysisRuleSet>..\..\..\stylecop.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>  
+  <Import Project="..\..\..\stylecop.props" />
 </Project>
