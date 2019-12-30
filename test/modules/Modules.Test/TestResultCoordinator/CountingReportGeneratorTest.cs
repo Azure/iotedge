@@ -245,7 +245,7 @@ namespace Modules.Test.TestResultCoordinator
         {
             string expectedSource = "expectedSource";
             string actualSource = "actualSource";
-            string resultType = "resultType1";
+            string resultType = Microsoft.Azure.Devices.Edge.ModuleUtil.TestOperationResultType.Twin.ToString();
 
             var mockExpectedStore = new Mock<ISequentialStore<TestOperationResult>>();
             var expectedResults = new StoreTestResultCollection<TestOperationResult>(mockExpectedStore.Object, batchSize);

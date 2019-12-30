@@ -7,14 +7,17 @@ namespace MetricsCollector
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
+    using Serilog;
+    using Serilog.Core;
+    using Serilog.Events;
+    using ILogger = Microsoft.Extensions.Logging.ILogger;
 
     class MetricsScrapeAndUpload : IDisposable
     {
-        static readonly ILogger Logger = ModuleUtil.CreateLogger("MetricsCollector");
+        static readonly ILogger Logger = MetricsUtil.CreateLogger("MetricsCollector");
         readonly IMetricsScraper scraper;
         readonly IMetricsPublisher publisher;
         PeriodicTask periodicScrapeAndUpload;
