@@ -8,7 +8,6 @@ namespace DirectMethodSender
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using TestOperationResult = Microsoft.Azure.Devices.Edge.ModuleUtil.TestOperationResult;
@@ -56,9 +55,9 @@ namespace DirectMethodSender
                         await testReportCoordinatorUrl.ForEachAsync(
                             async (Uri uri) =>
                             {
-                                TestResultCoordinatorClient trcClient = new TestResultCoordinatorClient { BaseUrl = uri.AbsoluteUri };
+                                var testResultReportingClient = new TestResultReportingClient { BaseUrl = uri.AbsoluteUri };
                                 await ModuleUtil.ReportStatus(
-                                        trcClient,
+                                        testResultReportingClient,
                                         Logger,
                                         Settings.Current.ModuleId + ".send",
                                         ModuleUtil.FormatDirectMethodTestResultValue(
@@ -74,8 +73,8 @@ namespace DirectMethodSender
                         await analyzerUrl.ForEachAsync(
                             async (Uri uri) =>
                             {
-                                AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = uri.AbsoluteUri };
-                                await ReportStatus(Settings.Current.TargetModuleId, result, analyzerClient);
+                                var testResultReportingClient = new TestResultReportingClient { BaseUrl = uri.AbsoluteUri };
+                                await ReportStatus(Settings.Current.TargetModuleId, result, testResultReportingClient);
                             },
                             async () =>
                             {
@@ -139,11 +138,11 @@ namespace DirectMethodSender
             return (Settings.Current.TestDuration == TimeSpan.Zero) || (DateTime.UtcNow - testStartAt < Settings.Current.TestDuration);
         }
 
-        static async Task ReportStatus(string moduleId, HttpStatusCode result, AnalyzerClient analyzerClient)
+        static async Task ReportStatus(string moduleId, HttpStatusCode result, TestResultReportingClient apiClient)
         {
             try
             {
-                await analyzerClient.ReportResultAsync(new TestOperationResult { Source = moduleId, Result = result.ToString(), CreatedAt = DateTime.UtcNow, Type = Enum.GetName(typeof(TestOperationResultType), TestOperationResultType.LegacyDirectMethod) });
+                await apiClient.ReportResultAsync(new TestOperationResultDto { Source = moduleId, Result = result.ToString(), CreatedAt = DateTime.UtcNow, Type = Enum.GetName(typeof(TestOperationResultType), TestOperationResultType.LegacyDirectMethod) });
             }
             catch (Exception e)
             {
