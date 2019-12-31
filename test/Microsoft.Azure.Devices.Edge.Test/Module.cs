@@ -90,10 +90,6 @@ namespace Microsoft.Azure.Devices.Edge.Test
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                 builder =>
                 {
-                    builder.AddModule(tempSensorModule.Name, tempSensorModule.Image)
-                        .WithEnvironment(new[] { ("MessageCount", "1") });
-                    builder.AddModule(filterModuleName, filterImage)
-                        .WithEnvironment(new[] { ("TemperatureThreshold", "19") });
                     builder.GetModule("$edgeHub")
                         .WithDesiredProperties(new Dictionary<string, object>
                         {
@@ -103,6 +99,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
                                 TempSensorToTempFilter = "FROM /messages/modules/" + tempSensorModule.Name + "/outputs/temperatureOutput INTO BrokeredEndpoint('/modules/" + filterModuleName + "/inputs/input1')"
                             }
                         } );
+                },
+                builder =>
+                {
+                    builder.AddModule(tempSensorModule.Name, tempSensorModule.Image)
+                        .WithEnvironment(new[] { ("MessageCount", "1") });
+                    builder.AddModule(filterModuleName, filterImage)
+                        .WithEnvironment(new[] { ("TemperatureThreshold", "19") });
                 },
                 token);
 

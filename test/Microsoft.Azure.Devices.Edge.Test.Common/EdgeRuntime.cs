@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         // DeployConfigurationAsync builds a configuration that includes Edge Agent, Edge Hub, and
         // anything added by addConfig(). It deploys the config and waits for the edge device to
         // receive it and start up all the modules.
-        public async Task<EdgeDeployment> DeployConfigurationAsync(Action<EdgeConfigBuilder> addConfig, CancellationToken token)
+        public async Task<EdgeDeployment> DeployConfigurationAsync(Action<EdgeConfigBuilder> routesConfig, Action<EdgeConfigBuilder> modulesConfig, CancellationToken token)
         {
             var builder = new EdgeConfigBuilder(this.deviceId);
             builder.AddRegistryCredentials(this.registries);
@@ -45,11 +45,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
                 .WithProxy(this.proxy);
 
-            addConfig(builder);
-
             DateTime deployTime = DateTime.Now;
-            EdgeConfiguration config = builder.Build();
 
+            routesConfig(builder);
+            EdgeConfiguration config = builder.Build();
+            await config.DeployAsync(this.iotHub, token);
+
+            modulesConfig(builder);
+            config = builder.Build();
             await config.DeployAsync(this.iotHub, token);
 
             IEnumerable<EdgeModule> modules = config.ModuleNames
@@ -60,7 +63,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             return new EdgeDeployment(deployTime, modules);
         }
 
-        public Task<EdgeDeployment> DeployConfigurationAsync(CancellationToken token) =>
-            this.DeployConfigurationAsync(_ => { }, token);
+        public async Task<EdgeDeployment> DeployConfigurationAsync(Action<EdgeConfigBuilder> genericConfig, CancellationToken token)
+        {
+            return await this.DeployConfigurationAsync(_ => { }, genericConfig, token);
+        }
+
+        public async Task<EdgeDeployment> DeployConfigurationAsync(CancellationToken token)
+        {
+            return await this.DeployConfigurationAsync(_ => { }, _ => { }, token);
+        }
     }
 }
