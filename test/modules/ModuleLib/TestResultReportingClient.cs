@@ -44,7 +44,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
         partial void ProcessResponse(System.Net.Http.HttpClient client, System.Net.Http.HttpResponseMessage response);
     
         /// <summary>Report test operation result</summary>
-        /// <param name="body">Test result details</param>
+        /// <param name="body">Test operation result data transfer object (DTO)</param>
         /// <returns>Ok</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public System.Threading.Tasks.Task ReportResultAsync(TestOperationResultDto body)
@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
     
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>Report test operation result</summary>
-        /// <param name="body">Test result details</param>
+        /// <param name="body">Test operation result data transfer object (DTO)</param>
         /// <returns>Ok</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
         public async System.Threading.Tasks.Task ReportResultAsync(TestOperationResultDto body, System.Threading.CancellationToken cancellationToken)

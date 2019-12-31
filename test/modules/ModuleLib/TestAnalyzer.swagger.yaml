@@ -1,8 +1,8 @@
 swagger: "2.0"
 info:
-  description: "analyzer API"
+  description: "Get test result report API implemented by Test Analyzer"
   version: "1.0.0"
-  title: "Analyzer API swagger"
+  title: "Test Analyzer API swagger"
 schemes:
 - "https"
 paths:
