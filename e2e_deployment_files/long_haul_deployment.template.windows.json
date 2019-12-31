@@ -281,6 +281,9 @@
               },
               "LogAnalyticsLogType": {
                 "value": "<Analyzer.LogAnalyticsLogType>"
+              },
+              "Logging:LogLevel:Microsoft": {
+                "value": "Error"
               }
             },
             "settings": {
