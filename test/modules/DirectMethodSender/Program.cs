@@ -142,7 +142,7 @@ namespace DirectMethodSender
         {
             try
             {
-                await apiClient.ReportResultAsync(new ClientTestOperationResult { Source = moduleId, Result = result.ToString(), CreatedAt = DateTime.UtcNow, Type = Enum.GetName(typeof(TestOperationResultType), TestOperationResultType.LegacyDirectMethod) });
+                await apiClient.ReportResultAsync(new TestOperationResultDto { Source = moduleId, Result = result.ToString(), CreatedAt = DateTime.UtcNow, Type = Enum.GetName(typeof(TestOperationResultType), TestOperationResultType.LegacyDirectMethod) });
             }
             catch (Exception e)
             {

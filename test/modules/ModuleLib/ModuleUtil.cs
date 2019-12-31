@@ -69,7 +69,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
         {
             try
             {
-                await apiClient.ReportResultAsync(new ClientTestOperationResult { Source = source, Result = result, CreatedAt = DateTime.UtcNow, Type = format });
+                await apiClient.ReportResultAsync(new TestOperationResultDto { Source = source, Result = result, CreatedAt = DateTime.UtcNow, Type = format });
             }
             catch (Exception e)
             {

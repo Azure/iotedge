@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
         /// <param name="body">Test result details</param>
         /// <returns>Ok</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public System.Threading.Tasks.Task ReportResultAsync(ClientTestOperationResult body)
+        public System.Threading.Tasks.Task ReportResultAsync(TestOperationResultDto body)
         {
             return ReportResultAsync(body, System.Threading.CancellationToken.None);
         }
@@ -57,7 +57,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
         /// <param name="body">Test result details</param>
         /// <returns>Ok</returns>
         /// <exception cref="ApiException">A server side error occurred.</exception>
-        public async System.Threading.Tasks.Task ReportResultAsync(ClientTestOperationResult body, System.Threading.CancellationToken cancellationToken)
+        public async System.Threading.Tasks.Task ReportResultAsync(TestOperationResultDto body, System.Threading.CancellationToken cancellationToken)
         {
             var urlBuilder_ = new System.Text.StringBuilder();
             urlBuilder_.Append(BaseUrl != null ? BaseUrl.TrimEnd('/') : "").Append("/api/testoperationresult");
@@ -215,7 +215,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "10.0.28.0 (Newtonsoft.Json v11.0.0.0)")]
-    public partial class ClientTestOperationResult 
+    public partial class TestOperationResultDto 
     {
         [Newtonsoft.Json.JsonProperty("source", Required = Newtonsoft.Json.Required.Always)]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -232,6 +232,8 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
         [Newtonsoft.Json.JsonProperty("createdAt", Required = Newtonsoft.Json.Required.Always)]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset CreatedAt { get; set; }
+    
+    
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "13.1.6.0 (NJsonSchema v10.0.28.0 (Newtonsoft.Json v11.0.0.0))")]
@@ -243,11 +245,11 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
 
         public System.Collections.Generic.IReadOnlyDictionary<string, System.Collections.Generic.IEnumerable<string>> Headers { get; private set; }
 
-        public ApiException(string message, int statusCode, string response, System.Collections.Generic.IReadOnlyDictionary<string, System.Collections.Generic.IEnumerable<string>> headers, System.Exception innerException)
+        public ApiException(string message, int statusCode, string response, System.Collections.Generic.IReadOnlyDictionary<string, System.Collections.Generic.IEnumerable<string>> headers, System.Exception innerException) 
             : base(message + "\n\nStatus: " + statusCode + "\nResponse: \n" + response.Substring(0, response.Length >= 512 ? 512 : response.Length), innerException)
         {
             StatusCode = statusCode;
-            Response = response;
+            Response = response; 
             Headers = headers;
         }
 
@@ -262,7 +264,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
     {
         public TResult Result { get; private set; }
 
-        public ApiException(string message, int statusCode, string response, System.Collections.Generic.IReadOnlyDictionary<string, System.Collections.Generic.IEnumerable<string>> headers, TResult result, System.Exception innerException)
+        public ApiException(string message, int statusCode, string response, System.Collections.Generic.IReadOnlyDictionary<string, System.Collections.Generic.IEnumerable<string>> headers, TResult result, System.Exception innerException) 
             : base(message, statusCode, response, headers, innerException)
         {
             Result = result;

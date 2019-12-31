@@ -76,7 +76,7 @@ namespace TwinTester
         {
             try
             {
-                await this.testResultReportingClient.ReportResultAsync(new ClientTestOperationResult { Source = this.moduleId, Result = failureStatus, CreatedAt = DateTime.UtcNow, Type = "LegacyTwin" });
+                await this.testResultReportingClient.ReportResultAsync(new TestOperationResultDto { Source = this.moduleId, Result = failureStatus, CreatedAt = DateTime.UtcNow, Type = "LegacyTwin" });
             }
             catch (Exception e)
             {
