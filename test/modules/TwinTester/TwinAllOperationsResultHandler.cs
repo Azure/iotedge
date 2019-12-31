@@ -15,9 +15,9 @@ namespace TwinTester
         readonly string moduleId;
         readonly TwinEventStorage storage;
 
-        public TwinAllOperationsResultHandler(Uri analyzerClientUri, TwinEventStorage storage, string moduleId)
+        public TwinAllOperationsResultHandler(Uri reportUrl, TwinEventStorage storage, string moduleId)
         {
-            this.testResultReportingClient = new TestResultReportingClient { BaseUrl = analyzerClientUri.AbsoluteUri };
+            this.testResultReportingClient = new TestResultReportingClient { BaseUrl = reportUrl.AbsoluteUri };
             this.moduleId = moduleId;
             this.storage = storage;
         }
