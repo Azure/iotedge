@@ -85,29 +85,30 @@ namespace Microsoft.Azure.Devices.Edge.Test
             const string filterModuleName = "tempFilter";
             var tempSensorModule = TempSensorModule.GetInstance();
 
-            CancellationToken token = this.TestToken;
-
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
-                builder =>
-                {
-                    builder.GetModule("$edgeHub")
-                        .WithDesiredProperties(new Dictionary<string, object>
+            Action<EdgeConfigBuilder> addEdgeHub = builder =>
+            {
+                builder.GetModule("$edgeHub")
+                    .WithDesiredProperties(new Dictionary<string, object>
+                    {
+                        ["routes"] = new
                         {
-                            ["routes"] = new
-                            {
-                                TempFilterToCloud = "FROM /messages/modules/" + filterModuleName + "/outputs/alertOutput INTO $upstream",
-                                TempSensorToTempFilter = "FROM /messages/modules/" + tempSensorModule.Name + "/outputs/temperatureOutput INTO BrokeredEndpoint('/modules/" + filterModuleName + "/inputs/input1')"
-                            }
-                        } );
-                },
-                builder =>
-                {
-                    builder.AddModule(tempSensorModule.Name, tempSensorModule.Image)
-                        .WithEnvironment(new[] { ("MessageCount", "1") });
-                    builder.AddModule(filterModuleName, filterImage)
-                        .WithEnvironment(new[] { ("TemperatureThreshold", "19") });
-                },
-                token);
+                            TempFilterToCloud = "FROM /messages/modules/" + filterModuleName + "/outputs/alertOutput INTO $upstream",
+                            TempSensorToTempFilter = "FROM /messages/modules/" + tempSensorModule.Name + "/outputs/temperatureOutput INTO BrokeredEndpoint('/modules/" + filterModuleName + "/inputs/input1')"
+                        }
+                    } );
+            };
+
+            Action<EdgeConfigBuilder> addModules = builder =>
+            {
+                builder.AddModule(tempSensorModule.Name, tempSensorModule.Image)
+                    .WithEnvironment(new[] { ("MessageCount", "1") });
+                builder.AddModule(filterModuleName, filterImage)
+                    .WithEnvironment(new[] { ("TemperatureThreshold", "19") });
+            };
+
+            IEnumerable<Action<EdgeConfigBuilder>> edgeConfigsToApply = new List<Action<EdgeConfigBuilder>> { addEdgeHub, addModules }; // need separate configuration steps to assure routes are setup before test
+            CancellationToken token = this.TestToken;
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(edgeConfigsToApply, token);
 
             EdgeModule filter = deployment.Modules[filterModuleName];
             await filter.WaitForEventsReceivedAsync(deployment.StartTime, token);
@@ -123,27 +124,31 @@ namespace Microsoft.Azure.Devices.Edge.Test
             const string filterFuncModuleName = "tempFilterFunctions";
             var tempSensorModule = TempSensorModule.GetInstance();
 
-            CancellationToken token = this.TestToken;
-
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
-                builder =>
-                {
-                    builder.AddModule(tempSensorModule.Name, tempSensorModule.Image)
-                        .WithEnvironment(new[] { ("MessageCount", "1") });
-                    builder.AddModule(filterFuncModuleName, filterFunc)
-                        .WithEnvironment(new[] { ("AZURE_FUNCTIONS_ENVIRONMENT", "Development") });
-                    builder.GetModule("$edgeHub")
-                        .WithDesiredProperties(new Dictionary<string, object>
+            Action<EdgeConfigBuilder> addEdgeHub = builder =>
+            {
+                builder.GetModule("$edgeHub")
+                    .WithDesiredProperties(new Dictionary<string, object>
+                    {
+                        ["routes"] = new
                         {
-                            ["routes"] = new
-                            {
-                                TempFilterFunctionsToCloud = "FROM /messages/modules/" + filterFuncModuleName + "/outputs/output1 INTO $upstream",
-                                TempSensorToTempFilter = "FROM /messages/modules/" + tempSensorModule.Name + "/outputs/temperatureOutput " +
-                                                            "INTO BrokeredEndpoint('/modules/" + filterFuncModuleName + "/inputs/input1')"
-                            }
-                        });
-                },
-                token);
+                            TempFilterFunctionsToCloud = "FROM /messages/modules/" + filterFuncModuleName + "/outputs/output1 INTO $upstream",
+                            TempSensorToTempFilter = "FROM /messages/modules/" + tempSensorModule.Name + "/outputs/temperatureOutput " +
+                                                        "INTO BrokeredEndpoint('/modules/" + filterFuncModuleName + "/inputs/input1')"
+                        }
+                    });
+            };
+
+            Action<EdgeConfigBuilder> addModules = builder =>
+            {
+                builder.AddModule(tempSensorModule.Name, tempSensorModule.Image)
+                    .WithEnvironment(new[] { ("MessageCount", "1") });
+                builder.AddModule(filterFuncModuleName, filterFunc)
+                    .WithEnvironment(new[] { ("AZURE_FUNCTIONS_ENVIRONMENT", "Development") });
+            };
+
+            IEnumerable<Action<EdgeConfigBuilder>> edgeConfigsToApply = new List<Action<EdgeConfigBuilder>> { addEdgeHub, addModules }; // need separate configuration steps to assure routes are setup before test
+            CancellationToken token = this.TestToken;
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(edgeConfigsToApply, token);
 
             EdgeModule filter = deployment.Modules[filterFuncModuleName];
             await filter.WaitForEventsReceivedAsync(deployment.StartTime, token);
