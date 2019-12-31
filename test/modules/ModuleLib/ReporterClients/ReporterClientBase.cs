@@ -2,9 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
 {
     using System;
-    using System.Net;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -24,6 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
 
         public async Task ReportStatus(ReportContent report)
         {
+            Preconditions.CheckNotNull(report, nameof(report));
             try
             {
                 await this.ReportStatusAsync(report, this.source);

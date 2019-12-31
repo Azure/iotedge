@@ -26,9 +26,9 @@ namespace DirectMethodSender
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
             DirectMethodSenderBase directMethodClient = null;
-            ModuleClient reportClient = null;
             Option<Uri> analyzerUrl = Settings.Current.AnalyzerUrl;
             Option<Uri> testReportCoordinatorUrl = Settings.Current.TestResultCoordinatorUrl;
+            ReporterClientBase reportClient = null;
 
             try
             {
@@ -37,52 +37,55 @@ namespace DirectMethodSender
 
                 directMethodClient = await CreateClientAsync(Settings.Current.InvocationSource);
 
-                reportClient = await ModuleUtil.CreateModuleClientAsync(
-                    Settings.Current.TransportType,
-                    ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                    ModuleUtil.DefaultTransientRetryStrategy,
-                    Logger);
+                // reportClient = await ModuleUtil.CreateModuleClientAsync(
+                //     Settings.Current.TransportType,
+                //     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
+                //     ModuleUtil.DefaultTransientRetryStrategy,
+                //     Logger);
 
                 Logger.LogInformation($"Load gen delay start for {Settings.Current.TestStartDelay}.");
                 await Task.Delay(Settings.Current.TestStartDelay, cts.Token);
 
                 DateTime testStartAt = DateTime.UtcNow;
+                ReportContent report = new ReportContent();
                 if (testReportCoordinatorUrl.HasValue)
                 {
                     Uri baseUri = testReportCoordinatorUrl.Expect(() => new ArgumentException("testReportCoordinatorUrl is not expected to be empty"));
-                    ReporterClientBase reportClientTest = TestResultCoordinatorReporterClient.Create(
+                    reportClient = TestResultCoordinatorReporterClient.Create(
                         baseUri,
                         Logger,
                         Settings.Current.ModuleId + ".send");
+                    report.SetTestOperationResultType(TestOperationResultType.DirectMethod);
+                }
+                else if (analyzerUrl.HasValue)
+                {
+                    Uri baseUri = analyzerUrl.Expect(() => new ArgumentException("analyzerUrl is not expected to be empty"));
+                    reportClient = TestAnalyzerReporterClient.Create(
+                        baseUri,
+                        Logger,
+                        Settings.Current.ModuleId + ".send");
+                    report.SetTestOperationResultType(TestOperationResultType.LegacyDirectMethod);
+                }
+                else
+                {
+                    reportClient = ModuleReporterClient.Create(
+                        Settings.Current.TransportType,
+                        Logger,
+                        Settings.Current.ModuleId + ".send");
+                    report.SetTestOperationResultType(TestOperationResultType.LegacyDirectMethod);
                 }
 
                 while (!cts.Token.IsCancellationRequested && IsTestTimeUp(testStartAt))
                 {
                     (HttpStatusCode result, long dmCounter) = await directMethodClient.InvokeDirectMethodAsync(cts);
 
-                    // TODO: Create an abstract class to handle the reporting client generation
-                    ReportContent report = new ReportContent()
-                        .SetTestOperationResultType(TestOperationResultType.DirectMethod)
+                    report
                         .SetTrackingId(Settings.Current.TrackingId.Expect(() => new ArgumentException("TrackingId is empty")))
                         .SetBatchId(batchId)
                         .SetSequenceNumber(dmCounter)
                         .SetResultMessage(result.ToString());
 
-                    await reportClientTest.ReportStatus(report);
-
-                    if (!testReportCoordinatorUrl.HasValue)
-                    {
-                        await analyzerUrl.ForEachAsync(
-                            async (Uri uri) =>
-                            {
-                                AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = uri.AbsoluteUri };
-                                await ReportStatus(Settings.Current.TargetModuleId, result, analyzerClient);
-                            },
-                            async () =>
-                            {
-                                await reportClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method call succeeded.")));
-                            });
-                    }
+                    await reportClient.ReportStatus(report);
 
                     await Task.Delay(Settings.Current.DirectMethodDelay, cts.Token);
                 }
