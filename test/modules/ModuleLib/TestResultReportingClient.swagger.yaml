@@ -23,14 +23,14 @@ paths:
         description: "Test result details"
         required: true
         schema:
-          $ref: "#/definitions/TestOperationResult"
+          $ref: "#/definitions/ClientTestOperationResult"
       responses:
         204:
           description: "Ok"
         400:
           description: "Invalid status value"
 definitions:
-  TestOperationResult:
+  ClientTestOperationResult:
     type: "object"
     required:
     - "source"

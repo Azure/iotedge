@@ -7,7 +7,6 @@ namespace LoadGen
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
@@ -54,10 +53,10 @@ namespace LoadGen
                                 Uri testResultCoordinatorUrl = new Uri(
                                     trcUrl,
                                     UriKind.Absolute);
-                                TestResultCoordinatorClient trcClient = new TestResultCoordinatorClient { BaseUrl = testResultCoordinatorUrl.AbsoluteUri };
+                                var testResultReportingClient = new TestResultReportingClient { BaseUrl = testResultCoordinatorUrl.AbsoluteUri };
 
                                 await ModuleUtil.ReportStatus(
-                                    trcClient,
+                                    testResultReportingClient,
                                     Logger,
                                     Settings.Current.ModuleId + ".send",
                                     ModuleUtil.FormatMessagesTestResultValue(
