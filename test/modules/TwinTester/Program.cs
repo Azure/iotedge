@@ -61,7 +61,7 @@ namespace TwinTester
             }
         }
 
-        static async Task<ITwinTestInitializer> GetTwinAllOperationsInitializer(RegistryManager registryManager, Uri analyzerClientUri)
+        static async Task<ITwinTestInitializer> GetTwinAllOperationsInitializer(RegistryManager registryManager, Uri reportUrl)
         {
             ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
                 Settings.Current.TransportType,
@@ -71,7 +71,7 @@ namespace TwinTester
 
             TwinEventStorage storage = new TwinEventStorage();
             storage.Init(Settings.Current.StoragePath, new SystemEnvironment(), Settings.Current.StorageOptimizeForPerformance);
-            var resultHandler = new TwinAllOperationsResultHandler(analyzerClientUri, storage, Settings.Current.ModuleId);
+            var resultHandler = new TwinAllOperationsResultHandler(reportUrl, storage, Settings.Current.ModuleId);
             return await TwinAllOperationsInitializer.CreateAsync(registryManager, moduleClient, resultHandler, storage);
         }
     }

@@ -7,6 +7,7 @@ namespace Modules.Test.TestResultCoordinator
     using System.Threading.Tasks;
     using global::TestResultCoordinator;
     using global::TestResultCoordinator.Report;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Moq;
     using Xunit;
@@ -269,7 +270,7 @@ namespace Modules.Test.TestResultCoordinator
                     tc[item] = "1";
                 }
 
-                var twinTestResult = new Microsoft.Azure.Devices.Edge.ModuleUtil.TwinTestResult() { Properties = tc };
+                var twinTestResult = new TwinTestResult() { Properties = tc };
                 storeData.Add((count, new TestOperationResult(source, resultType, twinTestResult.ToString(), DateTime.UtcNow)));
                 count++;
             }

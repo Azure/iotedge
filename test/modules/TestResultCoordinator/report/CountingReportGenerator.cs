@@ -8,7 +8,6 @@ namespace TestResultCoordinator.Report
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using TestOperationResult = TestResultCoordinator.TestOperationResult;
 
     /// <summary>
     /// This is used to create counting report based on 2 different sources/stores; it will use given test result comparer to determine whether it matches or not.
