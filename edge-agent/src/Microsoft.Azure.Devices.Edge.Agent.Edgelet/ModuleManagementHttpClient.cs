@@ -7,7 +7,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Core.DeviceManager;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning;
@@ -70,11 +69,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet
             if (supportedVersion == ApiVersion.Version20190130)
             {
                 return new Version_2019_01_30.ModuleManagementHttpClient(managementUri);
-            }
-
-            if (supportedVersion == ApiVersion.Version20191022)
-            {
-                return new Version_2019_10_22.ModuleManagementHttpClient(managementUri);
             }
 
             if (supportedVersion == ApiVersion.Version20191105)

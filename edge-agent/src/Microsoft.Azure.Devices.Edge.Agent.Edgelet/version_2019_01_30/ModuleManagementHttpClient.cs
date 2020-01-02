@@ -13,7 +13,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
     using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30.GeneratedCode;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning;
-    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30.GeneratedCode;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
