@@ -47,26 +47,37 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
 
             DateTime deployTime = DateTime.Now;
 
-            List<EdgeModule> modulesForAllConfigurations = new List<EdgeModule>();
+            Option<EdgeConfiguration> config = Option.None<EdgeConfiguration>();
             foreach (Action<EdgeConfigBuilder> edgeConfig in configurations)
             {
                 edgeConfig(builder);
-                EdgeConfiguration config = builder.Build();
-                await config.DeployAsync(this.iotHub, token);
-
-                IEnumerable<EdgeModule> modules = config.ModuleNames
-                    .Select(id => new EdgeModule(id, this.deviceId, this.iotHub))
-                    .ToArray();
-                modulesForAllConfigurations.AddRange(modules);
-                await EdgeModule.WaitForStatusAsync(modules, EdgeModuleStatus.Running, token);
+                config = Option.Some(builder.Build());
+                await config.ForEachAsync(async c =>
+                {
+                    await c.DeployAsync(this.iotHub, token);
+                });
             }
 
-            return new EdgeDeployment(deployTime, modulesForAllConfigurations);
+            if (!config.HasValue)
+            {
+                throw new ArgumentException("Cannot deploy empty configuration");
+            }
+
+            IEnumerable<EdgeModule> modules = Enumerable.Empty<EdgeModule>();
+            config.ForEach(c =>
+            {
+                modules = c.ModuleNames
+                    .Select(id => new EdgeModule(id, this.deviceId, this.iotHub))
+                    .ToArray();
+            });
+            await EdgeModule.WaitForStatusAsync(modules, EdgeModuleStatus.Running, token);
+
+            return new EdgeDeployment(deployTime, modules);
         }
 
         public async Task<EdgeDeployment> DeployConfigurationAsync(Action<EdgeConfigBuilder> configuration, CancellationToken token)
         {
-            return await this.DeployConfigurationAsync(configuration, token);
+            return await this.DeployConfigurationAsync(new Action<EdgeConfigBuilder>[] { configuration }, token);
         }
 
         public async Task<EdgeDeployment> DeployConfigurationAsync(CancellationToken token)
