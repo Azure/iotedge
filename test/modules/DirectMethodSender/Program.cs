@@ -35,7 +35,6 @@ namespace DirectMethodSender
                 await Task.Delay(Settings.Current.TestStartDelay, cts.Token);
 
                 DateTime testStartAt = DateTime.UtcNow;
-                
 
                 // BEARWASHERE: Create reportClient
                 ReporterClientBase reportClient = ReporterClientBase.Create(
@@ -44,37 +43,8 @@ namespace DirectMethodSender
                     Settings.Current.TestResultCoordinatorUrl,
                     Settings.Current.AnalyzerUrl,
                     Settings.Current.TransportType);
-                // BEARWASHERE: Create reportContent
-                // BEARWASHERE: Deal with Source and TestOperationResultType in report setting
+                // Populate ReportContent with its necessary fields
                 ReportContent report = CreateReport(frameworkTestType);
-
-                // ReportContent report = new ReportContent();
-                // if (testReportCoordinatorUrl.HasValue)
-                // {
-                //     Uri baseUri = testReportCoordinatorUrl.Expect(() => new ArgumentException("testReportCoordinatorUrl is not expected to be empty"));
-                //     reportClient = TestResultCoordinatorReporterClient.Create(
-                //         baseUri,
-                //         Logger,
-                //         Settings.Current.ModuleId + ".send");
-                //     report.SetTestOperationResultType(TestOperationResultType.DirectMethod);
-                // }
-                // else if (analyzerUrl.HasValue)
-                // {
-                //     Uri baseUri = analyzerUrl.Expect(() => new ArgumentException("analyzerUrl is not expected to be empty"));
-                //     reportClient = TestResultCoordinatorReporterClient.Create(
-                //         baseUri,
-                //         Logger,
-                //         Settings.Current.ModuleId + ".send");
-                //     report.SetTestOperationResultType(TestOperationResultType.LegacyDirectMethod);
-                // }
-                // else
-                // {
-                //     reportClient = ModuleReporterClient.Create(
-                //         Settings.Current.TransportType,
-                //         Logger,
-                //         Settings.Current.ModuleId + ".send");
-                //     report.SetTestOperationResultType(TestOperationResultType.LegacyDirectMethod);
-                // }
 
                 while (!cts.Token.IsCancellationRequested && IsTestTimeUp(testStartAt))
                 {
@@ -85,38 +55,6 @@ namespace DirectMethodSender
                         .SetResultMessage(result.ToString());
 
                     await reportClient.ReportStatus(report);
-                    // if (testReportCoordinatorUrl.HasValue)
-                    // {
-                    //     await testReportCoordinatorUrl.ForEachAsync(
-                    //         async (Uri uri) =>
-                    //         {
-                    //             var testResultReportingClient = new TestResultReportingClient { BaseUrl = uri.AbsoluteUri };
-                    //             await ModuleUtil.ReportStatus(
-                    //                     testResultReportingClient,
-                    //                     Logger,
-                    //                     Settings.Current.ModuleId + ".send",
-                    //                     ModuleUtil.FormatDirectMethodTestResultValue(
-                    //                         Settings.Current.TrackingId.Expect(() => new ArgumentException("TrackingId is empty")),
-                    //                         batchId.ToString(),
-                    //                         dmCounter.ToString(),
-                    //                         result.ToString()),
-                    //                     TestOperationResultType.DirectMethod.ToString());
-                    //         });
-                    // }
-                    // else
-                    // {
-                    //     await analyzerUrl.ForEachAsync(
-                    //         async (Uri uri) =>
-                    //         {
-                    //             var testResultReportingClient = new TestResultReportingClient { BaseUrl = uri.AbsoluteUri };
-                    //             await ReportStatus(Settings.Current.TargetModuleId, result, testResultReportingClient);
-                    //         },
-                    //         async () =>
-                    //         {
-                    //             await reportClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method call succeeded.")));
-                    //         });
-                    // }
-
 
                     await Task.Delay(Settings.Current.DirectMethodDelay, cts.Token);
                 }
