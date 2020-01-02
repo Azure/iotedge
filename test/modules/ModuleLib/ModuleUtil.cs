@@ -65,11 +65,11 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
             return $"{trackingId};{batchId};{sequenceNumber};{resultMessage}";
         }
 
-        public static async Task ReportStatus(TestResultReportingClient apiClient, ILogger logger, string source, string result, string format)
+        public static async Task ReportStatus(TestResultReportingClient apiClient, ILogger logger, string source, string result, string resultType)
         {
             try
             {
-                await apiClient.ReportResultAsync(new TestOperationResultDto { Source = source, Result = result, CreatedAt = DateTime.UtcNow, Type = format });
+                await apiClient.ReportResultAsync(new TestOperationResultDto { Source = source, Result = result, CreatedAt = DateTime.UtcNow, Type = resultType });
             }
             catch (Exception e)
             {
