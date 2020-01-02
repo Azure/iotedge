@@ -22,16 +22,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
             this.PidsStats = Option.Maybe(pids_stats);
             this.Read = Option.Maybe(read);
 
-            // Check for null entries in dictionarys
-            if (this.BlockIoStats.Exists(n => n.Any(o => o.Key == null || o.Value == null)))
-            {
-                this.BlockIoStats = Option.None<Dictionary<string, DiskIO[]>>();
-            }
-
-            if (this.Networks.Exists(n => n.Any(o => o.Key == null || o.Value == null)))
-            {
-                this.Networks = Option.None<Dictionary<string, NetworkInfo>>();
-            }
+            // Remove null entries in dictionarys
+            this.BlockIoStats.ForEach(stats => stats.Where(stat => stat.Value == null).ToList().ForEach(stat => stats.Remove(stat.Key)));
+            this.Networks.ForEach(network => network.Where(n => n.Value == null).ToList().ForEach(n => network.Remove(n.Key)));
         }
 
         [JsonProperty("name", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
