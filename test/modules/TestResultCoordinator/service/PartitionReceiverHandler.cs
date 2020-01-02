@@ -9,7 +9,6 @@ namespace TestResultCoordinator.Service
     using Microsoft.Azure.EventHubs;
     using Microsoft.Extensions.Logging;
     using TestResultCoordinator.Storage;
-    using TestOperationResult = TestResultCoordinator.TestOperationResult;
 
     class PartitionReceiveHandler : IPartitionReceiveHandler
     {
