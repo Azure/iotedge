@@ -2,6 +2,7 @@
 
 namespace Microsoft.Azure.Devices.Edge.Agent.Service
 {
+    using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Autofac;
@@ -27,29 +28,34 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 .As<IMetricsScraper>()
                 .SingleInstance();
 
-            // IMetricsStorage
+            // Task<IMetricsStorage>
             builder.Register(async c =>
-                    {
-                        IStoreProvider storeProvider = await c.Resolve<Task<IStoreProvider>>();
-                        ISequentialStore<IEnumerable<Metric>> dataStore = await storeProvider.GetSequentialStore<IEnumerable<Metric>>("Metrics");
+                {
+                    IStoreProvider storeProvider = await c.Resolve<Task<IStoreProvider>>();
+                    ISequentialStore<IEnumerable<Metric>> dataStore = await storeProvider.GetSequentialStore<IEnumerable<Metric>>("Metrics");
 
-                        return new MetricsStorage(dataStore);
-                    })
+                    return new MetricsStorage(dataStore) as IMetricsStorage;
+                })
                 .As<Task<IMetricsStorage>>()
                 .SingleInstance();
 
             // IMetricsPublisher
             builder.RegisterType<EdgeRuntimeDiagnosticsUpload>()
-                    .As<IMetricsPublisher>()
-                    .SingleInstance();
+                .As<IMetricsPublisher>()
+                .SingleInstance();
 
-            // MetricsWorker
-            builder.Register(async c => new MetricsWorker(
-                        c.Resolve<IMetricsScraper>(),
-                        await c.Resolve<Task<IMetricsStorage>>(),
-                        c.Resolve<IMetricsPublisher>()))
-                    .As<Task<MetricsWorker>>()
-                    .SingleInstance();
+            // Task<MetricsWorker>
+            builder.Register(async c =>
+                {
+                    // Note: for some reason, the synchronous resolves must happen before the async resolve.
+                    IMetricsScraper scraper = c.Resolve<IMetricsScraper>();
+                    IMetricsPublisher publisher = c.Resolve<IMetricsPublisher>(); 
+                    IMetricsStorage storage = await c.Resolve<Task<IMetricsStorage>>();
+
+                    return new MetricsWorker(scraper, storage, publisher);
+                })
+                .As<Task<MetricsWorker>>()
+                .SingleInstance();
 
             base.Load(builder);
         }
