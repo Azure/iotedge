@@ -44,19 +44,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             return CombineHash(this.Name.GetHashCode(), GetOrderIndependentHash(this.Tags));
         }
 
-        public static int GetOrderIndependentHash<T1, T2>(IEnumerable<KeyValuePair<T1, T2>> dictionary)
+        static int GetOrderIndependentHash<T1, T2>(IEnumerable<KeyValuePair<T1, T2>> dictionary)
         {
             return CombineHash(dictionary.Select(o => CombineHash(o.Key.GetHashCode(), o.Value.GetHashCode())).OrderBy(h => h).ToArray());
         }
 
         // TODO: replace with "return HashCode.Combine();"
         // when upgraded to .net standard 2.1: https://docs.microsoft.com/en-us/dotnet/api/system.hashcode.combine?view=netstandard-2.1
-        public static int CombineHash(int hash1, int hash2)
+        static int CombineHash(int hash1, int hash2)
         {
             return (17 * 31 + hash1) * 31 + hash2;
         }
 
-        public static int CombineHash(params int[] hashes)
+        static int CombineHash(params int[] hashes)
         {
             int hash = 17;
             foreach (int h in hashes)
