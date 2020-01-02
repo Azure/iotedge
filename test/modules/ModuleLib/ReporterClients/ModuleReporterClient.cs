@@ -12,25 +12,20 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
     public sealed class ModuleReporterClient : ReporterClientBase
     {
         ILogger logger;
-        string source;
         ModuleClient moduleClient;
 
         private ModuleReporterClient(
             ModuleClient moduleClient,
-            ILogger logger,
-            string source)
-            : base(
-                logger,
-                source)
+            ILogger logger)
+            : base(logger)
         {
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
-            this.source = Preconditions.CheckNonWhiteSpace(source, nameof(source));
             this.moduleClient = Preconditions.CheckNotNull(moduleClient, nameof(moduleClient));
         }
 
-        public static ModuleReporterClient Create(TransportType transportType, ILogger logger, string source)
-            => CreateAsync(transportType, logger, source).Result;
-        public static async Task<ModuleReporterClient> CreateAsync(TransportType transportType, ILogger logger, string source)
+        public static ModuleReporterClient Create(TransportType transportType, ILogger logger)
+            => CreateAsync(transportType, logger).Result;
+        public static async Task<ModuleReporterClient> CreateAsync(TransportType transportType, ILogger logger)
         {
             ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
                     transportType,
@@ -39,8 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
                     logger);
             return new ModuleReporterClient(
                 moduleClient,
-                logger,
-                source);
+                logger);
         }
 
         public override void Dispose()
@@ -48,9 +42,9 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
             this.moduleClient?.Dispose();
         }
 
-        internal override async Task ReportStatusAsync(ReportContent report, string source)
+        internal override async Task ReportStatusAsync(ReportContent report)
         {
-            await this.moduleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes($"{source} succeeded: {report.SequenceNumber}.")));
+            await this.moduleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes($"{report.Source} succeeded: {report.SequenceNumber}.")));
         }
     }
 }

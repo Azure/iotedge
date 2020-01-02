@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
 {
-    public enum ReportEndpoint
+    public enum FrameworkTestType
     {
-        EventHub,
-        TestAnalyzer,
-        TestResultCoordinator
+        Connectivity,
+        EndToEnd,
+        LongHaul
     }
 }

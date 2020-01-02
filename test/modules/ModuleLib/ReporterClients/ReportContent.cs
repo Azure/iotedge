@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
         public Guid BatchId {get; private set;}        
         public string ResultMessage {get; private set;}
         public long SequenceNumber {get; private set;}
+        public string Source {get; private set;}
         public TestOperationResultType TestOperationResultType {get; private set;}
         public string TrackingId {get; private set;}
 
@@ -30,6 +31,12 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
             return this;
         }
 
+        public ReportContent SetSource(string source) 
+        {
+            this.Source = source;
+            return this;
+        }
+
         public ReportContent SetTestOperationResultType(TestOperationResultType testOperationResultType)
         {
             this.TestOperationResultType = testOperationResultType;
@@ -43,22 +50,21 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
         }
 
         public Object GenerateReport() => GenerateReport(this.TestOperationResultType);
-        public Object GenerateReport(TestOperationResultType testOperationResultType)
+        public Object GenerateReport(TestOperationResultType resultFormat)
         {
-            Preconditions.CheckNotNull(testOperationResultType, nameof(testOperationResultType));
-
             // TODO: Add the formatting rules for other type of reports
-            switch (testOperationResultType)
+            switch (resultFormat)
             {
                 // Send to TestResultCoordinator endpoint
-                // Note: the `Source` and `CreatedAt` will be generated ReportingClient
+                // Note: the `CreatedAt` will be generated ReportingClient
                 case TestOperationResultType.DirectMethod:
                     return
                         new TestOperationResultDto
                         {
                             CreatedAt = DateTime.UtcNow,
                             Result = $"{this.TrackingId};{this.BatchId.ToString()};{this.SequenceNumber.ToString()};{this.ResultMessage}",
-                            Type = Enum.GetName(typeof(TestOperationResultType), testOperationResultType)
+                            Source = $"{this.Source}",
+                            Type = Enum.GetName(typeof(TestOperationResultType), resultFormat)
                         };
 
                 // Send to TestAnalyzer endpoint
@@ -69,7 +75,8 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
                         {
                             CreatedAt = DateTime.UtcNow,
                             Result = this.ResultMessage,
-                            Type = Enum.GetName(typeof(TestOperationResultType), testOperationResultType)
+                            Source = $"{this.Source}",
+                            Type = Enum.GetName(typeof(TestOperationResultType), resultFormat)
                         };
             }
         }

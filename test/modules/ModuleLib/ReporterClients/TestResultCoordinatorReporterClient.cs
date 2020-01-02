@@ -10,29 +10,23 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
     public sealed class TestResultCoordinatorReporterClient : ReporterClientBase
     {
         ILogger logger;
-        string source;
         TestResultReportingClient trcrClient;
 
         private TestResultCoordinatorReporterClient(
             TestResultReportingClient trcrClient,
-            ILogger logger,
-            string source)
-            : base(
-                logger,
-                source)
+            ILogger logger)
+            : base(logger)
         {
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
-            this.source = Preconditions.CheckNonWhiteSpace(source, nameof(source));
             this.trcrClient = Preconditions.CheckNotNull(trcrClient, nameof(trcrClient));
         }
 
-        public static TestResultCoordinatorReporterClient Create(Uri baseUri, ILogger logger, string source)
+        public static TestResultCoordinatorReporterClient Create(Uri baseUri, ILogger logger)
         {
             TestResultReportingClient trcrClient = new TestResultReportingClient { BaseUrl = baseUri.AbsoluteUri };
             return new TestResultCoordinatorReporterClient(
                 trcrClient,
-                logger,
-                source);
+                logger);
         }
 
         public override void Dispose()
@@ -42,13 +36,11 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
         }
 
         // TODO: How to merge this between modules
-        internal override async Task ReportStatusAsync(ReportContent report, string source)
+        internal override async Task ReportStatusAsync(ReportContent report)
         {
             Preconditions.CheckNotNull(report, nameof(report));
-            Preconditions.CheckNonWhiteSpace(source, nameof(source));
 
             TestOperationResultDto stampedReport = report.GenerateReport() as TestOperationResultDto;
-            stampedReport.Source = source;
             stampedReport.CreatedAt = DateTime.UtcNow;
             await this.trcrClient.ReportResultAsync(stampedReport);
         }

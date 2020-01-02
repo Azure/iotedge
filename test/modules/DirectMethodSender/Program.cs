@@ -22,8 +22,6 @@ namespace DirectMethodSender
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
             DirectMethodSenderBase directMethodClient = null;
-            Option<Uri> analyzerUrl = Settings.Current.AnalyzerUrl;
-            Option<Uri> testReportCoordinatorUrl = Settings.Current.TestResultCoordinatorUrl;
             ReporterClientBase reportClient = null;
 
             try
@@ -33,56 +31,60 @@ namespace DirectMethodSender
 
                 directMethodClient = await CreateClientAsync(Settings.Current.InvocationSource);
 
-                // reportClient = await ModuleUtil.CreateModuleClientAsync(
-                //     Settings.Current.TransportType,
-                //     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                //     ModuleUtil.DefaultTransientRetryStrategy,
-                //     Logger);
-
                 Logger.LogInformation($"Load gen delay start for {Settings.Current.TestStartDelay}.");
                 await Task.Delay(Settings.Current.TestStartDelay, cts.Token);
 
                 DateTime testStartAt = DateTime.UtcNow;
-                ReportContent report = new ReportContent();
-                if (testReportCoordinatorUrl.HasValue)
-                {
-                    Uri baseUri = testReportCoordinatorUrl.Expect(() => new ArgumentException("testReportCoordinatorUrl is not expected to be empty"));
-                    reportClient = TestResultCoordinatorReporterClient.Create(
-                        baseUri,
-                        Logger,
-                        Settings.Current.ModuleId + ".send");
-                    report.SetTestOperationResultType(TestOperationResultType.DirectMethod);
-                }
-                else if (analyzerUrl.HasValue)
-                {
-                    Uri baseUri = analyzerUrl.Expect(() => new ArgumentException("analyzerUrl is not expected to be empty"));
-                    reportClient = TestAnalyzerReporterClient.Create(
-                        baseUri,
-                        Logger,
-                        Settings.Current.ModuleId + ".send");
-                    report.SetTestOperationResultType(TestOperationResultType.LegacyDirectMethod);
-                }
-                else
-                {
-                    reportClient = ModuleReporterClient.Create(
-                        Settings.Current.TransportType,
-                        Logger,
-                        Settings.Current.ModuleId + ".send");
-                    report.SetTestOperationResultType(TestOperationResultType.LegacyDirectMethod);
-                }
+                
+
+                // BEARWASHERE: Create reportClient
+                ReporterClientBase reportClient = ReporterClientBase.Create(
+                    FrameworkTestType frameworkTestType, // BEARWASHERE: Introduce the test type to Settings.
+                    Logger,
+                    Settings.Current.TestResultCoordinatorUrl,
+                    Settings.Current.AnalyzerUrl,
+                    Settings.Current.TransportType);
+                // BEARWASHERE: Create reportContent
+                // BEARWASHERE: Deal with Source and TestOperationResultType in report setting
+                ReportContent report = CreateReport(frameworkTestType);
+
+                // ReportContent report = new ReportContent();
+                // if (testReportCoordinatorUrl.HasValue)
+                // {
+                //     Uri baseUri = testReportCoordinatorUrl.Expect(() => new ArgumentException("testReportCoordinatorUrl is not expected to be empty"));
+                //     reportClient = TestResultCoordinatorReporterClient.Create(
+                //         baseUri,
+                //         Logger,
+                //         Settings.Current.ModuleId + ".send");
+                //     report.SetTestOperationResultType(TestOperationResultType.DirectMethod);
+                // }
+                // else if (analyzerUrl.HasValue)
+                // {
+                //     Uri baseUri = analyzerUrl.Expect(() => new ArgumentException("analyzerUrl is not expected to be empty"));
+                //     reportClient = TestResultCoordinatorReporterClient.Create(
+                //         baseUri,
+                //         Logger,
+                //         Settings.Current.ModuleId + ".send");
+                //     report.SetTestOperationResultType(TestOperationResultType.LegacyDirectMethod);
+                // }
+                // else
+                // {
+                //     reportClient = ModuleReporterClient.Create(
+                //         Settings.Current.TransportType,
+                //         Logger,
+                //         Settings.Current.ModuleId + ".send");
+                //     report.SetTestOperationResultType(TestOperationResultType.LegacyDirectMethod);
+                // }
 
                 while (!cts.Token.IsCancellationRequested && IsTestTimeUp(testStartAt))
                 {
                     (HttpStatusCode result, long dmCounter) = await directMethodClient.InvokeDirectMethodAsync(cts);
 
                     report
-                        .SetTrackingId(Settings.Current.TrackingId.Expect(() => new ArgumentException("TrackingId is empty")))
-                        .SetBatchId(batchId)
                         .SetSequenceNumber(dmCounter)
                         .SetResultMessage(result.ToString());
 
                     await reportClient.ReportStatus(report);
-                    // // TODO: Create an abstract class to handle the reporting client generation
                     // if (testReportCoordinatorUrl.HasValue)
                     // {
                     //     await testReportCoordinatorUrl.ForEachAsync(
@@ -182,6 +184,29 @@ namespace DirectMethodSender
             {
                 Logger.LogError(e.ToString());
             }
+        }
+
+        public ReportContent CreateReport(FrameworkTestType frameworkTestType, Guid batchId)
+        {
+            ReportContent report = new ReportContent();
+            switch (frameworkTestType)
+            {
+                case FrameworkTestType.Connectivity:
+                    report
+                        .SetTestOperationResultType(TestOperationResultType.DirectMethod)
+                        .SetTrackingId(Settings.Current.TrackingId.Expect(() => new ArgumentException("TrackingId is empty")));
+                    break;
+
+                case FrameworkTestType.EndToEnd:
+                case FrameworkTestType.LongHaul:
+                default:
+                    report.SetTestOperationResultType(TestOperationResultType.LegacyDirectMethod);
+                    break;
+            }
+            report
+                .SetBatchId(batchId)
+                .SetSource(Settings.Current.ModuleId + ".send");
+            return report;
         }
     }
 }
