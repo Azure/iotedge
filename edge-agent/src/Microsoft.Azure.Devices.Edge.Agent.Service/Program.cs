@@ -177,6 +177,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         throw new InvalidOperationException($"ConfigSource '{configSourceConfig}' not supported.");
                 }
 
+                metricsConfig = new MetricsConfig(experimentalFeatures.EnableMetrics, MetricsListenerConfig.Create(configuration));
+                builder.RegisterModule(new MetricsModule(metricsConfig, iothubHostname, deviceId));
+
                 container = builder.Build();
             }
             catch (Exception ex)
