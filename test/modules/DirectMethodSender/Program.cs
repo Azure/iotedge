@@ -3,16 +3,12 @@ namespace DirectMethodSender
 {
     using System;
     using System.Net;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using TestOperationResult = Microsoft.Azure.Devices.Edge.ModuleUtil.TestOperationResult;
 
     class Program
     {
@@ -86,6 +82,39 @@ namespace DirectMethodSender
                         .SetResultMessage(result.ToString());
 
                     await reportClient.ReportStatus(report);
+                    // // TODO: Create an abstract class to handle the reporting client generation
+                    // if (testReportCoordinatorUrl.HasValue)
+                    // {
+                    //     await testReportCoordinatorUrl.ForEachAsync(
+                    //         async (Uri uri) =>
+                    //         {
+                    //             var testResultReportingClient = new TestResultReportingClient { BaseUrl = uri.AbsoluteUri };
+                    //             await ModuleUtil.ReportStatus(
+                    //                     testResultReportingClient,
+                    //                     Logger,
+                    //                     Settings.Current.ModuleId + ".send",
+                    //                     ModuleUtil.FormatDirectMethodTestResultValue(
+                    //                         Settings.Current.TrackingId.Expect(() => new ArgumentException("TrackingId is empty")),
+                    //                         batchId.ToString(),
+                    //                         dmCounter.ToString(),
+                    //                         result.ToString()),
+                    //                     TestOperationResultType.DirectMethod.ToString());
+                    //         });
+                    // }
+                    // else
+                    // {
+                    //     await analyzerUrl.ForEachAsync(
+                    //         async (Uri uri) =>
+                    //         {
+                    //             var testResultReportingClient = new TestResultReportingClient { BaseUrl = uri.AbsoluteUri };
+                    //             await ReportStatus(Settings.Current.TargetModuleId, result, testResultReportingClient);
+                    //         },
+                    //         async () =>
+                    //         {
+                    //             await reportClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes("Direct Method call succeeded.")));
+                    //         });
+                    // }
+
 
                     await Task.Delay(Settings.Current.DirectMethodDelay, cts.Token);
                 }
@@ -143,11 +172,11 @@ namespace DirectMethodSender
             return (Settings.Current.TestDuration == TimeSpan.Zero) || (DateTime.UtcNow - testStartAt < Settings.Current.TestDuration);
         }
 
-        static async Task ReportStatus(string moduleId, HttpStatusCode result, AnalyzerClient analyzerClient)
+        static async Task ReportStatus(string moduleId, HttpStatusCode result, TestResultReportingClient apiClient)
         {
             try
             {
-                await analyzerClient.ReportResultAsync(new TestOperationResult { Source = moduleId, Result = result.ToString(), CreatedAt = DateTime.UtcNow, Type = Enum.GetName(typeof(TestOperationResultType), TestOperationResultType.LegacyDirectMethod) });
+                await apiClient.ReportResultAsync(new TestOperationResultDto { Source = moduleId, Result = result.ToString(), CreatedAt = DateTime.UtcNow, Type = Enum.GetName(typeof(TestOperationResultType), TestOperationResultType.LegacyDirectMethod) });
             }
             catch (Exception e)
             {

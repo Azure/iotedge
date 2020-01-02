@@ -2,6 +2,7 @@
 namespace TestResultCoordinator.Storage
 {
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Storage;
 
     public interface ITestOperationResultStorage

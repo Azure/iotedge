@@ -1,8 +1,8 @@
 swagger: "2.0"
 info:
-  description: "analyzer API"
+  description: "Report test result API implemented by both TestAnalyzer and TestResultCoordinator."
   version: "1.0.0"
-  title: "Analyzer API swagger"
+  title: "Test Result Repoting API swagger"
 schemes:
 - "https"
 paths:
@@ -20,17 +20,17 @@ paths:
       parameters:
       - in: "body"
         name: "body"
-        description: "Test result details"
+        description: "Test operation result data transfer object (DTO)"
         required: true
         schema:
-          $ref: "#/definitions/TestOperationResult"
+          $ref: "#/definitions/TestOperationResultDto"
       responses:
         204:
           description: "Ok"
         400:
           description: "Invalid status value"
 definitions:
-  TestOperationResult:
+  TestOperationResultDto:
     type: "object"
     required:
     - "source"

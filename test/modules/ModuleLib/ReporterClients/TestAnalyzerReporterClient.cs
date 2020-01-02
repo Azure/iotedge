@@ -9,6 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
 
     using TestOperationResult = Microsoft.Azure.Devices.Edge.ModuleUtil.TestOperationResult;
 
+    // TODO: Merge Philips' change and this class can be merged with TRCReportCLient
     public sealed class TestAnalyzerReporterClient : ReporterClientBase
     {
         ILogger logger;

@@ -47,14 +47,14 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
         {
             Preconditions.CheckNotNull(testOperationResultType, nameof(testOperationResultType));
 
-            // TODO: Add the formatting for other type of reports
+            // TODO: Add the formatting rules for other type of reports
             switch (testOperationResultType)
             {
                 // Send to TestResultCoordinator endpoint
                 // Note: the `Source` and `CreatedAt` will be generated ReportingClient
                 case TestOperationResultType.DirectMethod:
                     return
-                        new Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient.TestOperationResult
+                        new TestOperationResultDto
                         {
                             CreatedAt = DateTime.UtcNow,
                             Result = $"{this.TrackingId};{this.BatchId.ToString()};{this.SequenceNumber.ToString()};{this.ResultMessage}",
@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
                 case TestOperationResultType.LegacyDirectMethod:
                 default:
                     return
-                        new Microsoft.Azure.Devices.Edge.ModuleUtil.TestOperationResult
+                        new TestOperationResultDto
                         {
                             CreatedAt = DateTime.UtcNow,
                             Result = this.ResultMessage,

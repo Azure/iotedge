@@ -4,7 +4,6 @@ namespace TwinTester
     using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
@@ -12,13 +11,13 @@ namespace TwinTester
     class TwinEdgeOperationsResultHandler : ITwinTestResultHandler
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TwinEdgeOperationsResultHandler));
-        readonly TestResultCoordinatorClient trcClient;
+        readonly TestResultReportingClient testResultReportingClient;
         readonly string moduleId;
         readonly string trackingId;
 
         public TwinEdgeOperationsResultHandler(Uri reporterUri, string moduleId, Option<string> trackingId)
         {
-            this.trcClient = new TestResultCoordinatorClient() { BaseUrl = reporterUri.AbsoluteUri };
+            this.testResultReportingClient = new TestResultReportingClient { BaseUrl = reporterUri.AbsoluteUri };
             this.moduleId = moduleId;
             this.trackingId = trackingId.Expect(() => new ArgumentNullException(nameof(trackingId)));
         }
@@ -62,7 +61,7 @@ namespace TwinTester
         {
             var result = new TwinTestResult() { Operation = statusCode.ToString(), Properties = details, ErrorMessage = exception, TrackingId = this.trackingId };
             Logger.LogDebug($"Sending report {result.ToString()}");
-            await ModuleUtil.ReportStatus(this.trcClient, Logger, source, result.ToString(), TestOperationResultType.Twin.ToString());
+            await ModuleUtil.ReportStatus(this.testResultReportingClient, Logger, source, result.ToString(), TestOperationResultType.Twin.ToString());
         }
     }
 }
