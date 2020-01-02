@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
         // DeployConfigurationAsync builds a configuration that includes Edge Agent, Edge Hub, and
         // anything added by addConfig(). It deploys the config and waits for the edge device to
         // receive it and start up all the modules.
-        public async Task<EdgeDeployment> DeployConfigurationAsync(IEnumerable<Action<EdgeConfigBuilder>> configurations, CancellationToken token)
+        public async Task<EdgeDeployment> DeployConfigurationAsync(Action<EdgeConfigBuilder> addConfig, CancellationToken token)
         {
             var builder = new EdgeConfigBuilder(this.deviceId);
             builder.AddRegistryCredentials(this.registries);
@@ -45,44 +45,22 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 .WithEnvironment(new[] { ("RuntimeLogLevel", "debug") })
                 .WithProxy(this.proxy);
 
+            addConfig(builder);
+
             DateTime deployTime = DateTime.Now;
+            EdgeConfiguration config = builder.Build();
 
-            Option<EdgeConfiguration> config = Option.None<EdgeConfiguration>();
-            foreach (Action<EdgeConfigBuilder> edgeConfig in configurations)
-            {
-                edgeConfig(builder);
-                config = Option.Some(builder.Build());
-                await config.ForEachAsync(async c =>
-                {
-                    await c.DeployAsync(this.iotHub, token);
-                });
-            }
+            await config.DeployAsync(this.iotHub, token);
 
-            if (!config.HasValue)
-            {
-                throw new ArgumentException("Cannot deploy empty configuration");
-            }
-
-            IEnumerable<EdgeModule> modules = Enumerable.Empty<EdgeModule>();
-            config.ForEach(c =>
-            {
-                modules = c.ModuleNames
-                    .Select(id => new EdgeModule(id, this.deviceId, this.iotHub))
-                    .ToArray();
-            });
+            IEnumerable<EdgeModule> modules = config.ModuleNames
+                .Select(id => new EdgeModule(id, this.deviceId, this.iotHub))
+                .ToArray();
             await EdgeModule.WaitForStatusAsync(modules, EdgeModuleStatus.Running, token);
 
             return new EdgeDeployment(deployTime, modules);
         }
 
-        public async Task<EdgeDeployment> DeployConfigurationAsync(Action<EdgeConfigBuilder> configuration, CancellationToken token)
-        {
-            return await this.DeployConfigurationAsync(new Action<EdgeConfigBuilder>[] { configuration }, token);
-        }
-
-        public async Task<EdgeDeployment> DeployConfigurationAsync(CancellationToken token)
-        {
-            return await this.DeployConfigurationAsync(Enumerable.Empty<Action<EdgeConfigBuilder>>(), token);
-        }
+        public Task<EdgeDeployment> DeployConfigurationAsync(CancellationToken token) =>
+            this.DeployConfigurationAsync(_ => { }, token);
     }
 }
