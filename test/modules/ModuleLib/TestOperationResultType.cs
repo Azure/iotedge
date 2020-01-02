@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
         Messages,
         DirectMethod,
         Twin,
-        Network
+        Network,
+        Deployment
     }
 }
