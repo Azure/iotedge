@@ -8,6 +8,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Models
     using Microsoft.Azure.Devices.Edge.Util;
     using Newtonsoft.Json;
 
+    /// <summary>
+    /// This class is just used to parse the docker stats api.
+    /// </summary>
     public class DockerStats
     {
         [JsonConstructor]
