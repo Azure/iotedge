@@ -15,9 +15,9 @@ namespace TwinTester
         readonly string moduleId;
         readonly string trackingId;
 
-        public TwinEdgeOperationsResultHandler(Uri reporterUri, string moduleId, Option<string> trackingId)
+        public TwinEdgeOperationsResultHandler(Uri reportUrl, string moduleId, Option<string> trackingId)
         {
-            this.testResultReportingClient = new TestResultReportingClient { BaseUrl = reporterUri.AbsoluteUri };
+            this.testResultReportingClient = new TestResultReportingClient { BaseUrl = reportUrl.AbsoluteUri };
             this.moduleId = moduleId;
             this.trackingId = trackingId.Expect(() => new ArgumentNullException(nameof(trackingId)));
         }
