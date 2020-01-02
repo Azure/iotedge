@@ -47,12 +47,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             // Task<MetricsWorker>
             builder.Register(async c =>
                 {
-                    // Note: for some reason, the synchronous resolves must happen before the async resolve.
                     IMetricsScraper scraper = c.Resolve<IMetricsScraper>();
-                    IMetricsPublisher publisher = c.Resolve<IMetricsPublisher>(); 
-                    IMetricsStorage storage = await c.Resolve<Task<IMetricsStorage>>();
+                    IMetricsPublisher publisher = c.Resolve<IMetricsPublisher>();
+                    Task<IMetricsStorage> storage = c.Resolve<Task<IMetricsStorage>>();
 
-                    return new MetricsWorker(scraper, storage, publisher);
+                    return new MetricsWorker(scraper, await storage, publisher);
                 })
                 .As<Task<MetricsWorker>>()
                 .SingleInstance();
