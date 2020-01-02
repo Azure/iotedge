@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             return builder;
         }
 
-        public EdgeConfiguration Build()
+        public IEnumerable<EdgeConfiguration> Build()
         {
             // Build all modules *except* edge agent
             List<ModuleConfiguration> modules = this.moduleBuilders
@@ -62,6 +62,26 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
             // Build edge agent
             modules.Insert(0, this.BuildEdgeAgent(modules));
+
+            string desiredPropertiesKeyName = "properties.desired";
+            foreach (ModuleConfiguration module in modules)
+            {
+                if (module.Name == "$edgeHub")
+                {
+                    var edgeHubConfig = new ConfigurationContent
+                    {
+                        ModulesContent = new Dictionary<string, IDictionary<string, object>>
+                        {
+                            {
+                                module.Name,
+                                new Dictionary<string, object> { [desiredPropertiesKeyName] = module.DesiredProperties }
+                            }
+                        }
+                    };
+
+                    yield return new EdgeConfiguration(this.deviceId, new string[] { module.Name }, new string[] { module.Image }, edgeHubConfig);
+                }
+            }
 
             // Compose edge configuration
             var config = new ConfigurationContent
@@ -81,12 +101,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                 {
                     config.ModulesContent[module.Name] = new Dictionary<string, object>
                     {
-                        ["properties.desired"] = module.DesiredProperties
+                        [desiredPropertiesKeyName] = module.DesiredProperties
                     };
                 }
             }
 
-            return new EdgeConfiguration(this.deviceId, moduleNames, moduleImages, config);
+            yield return new EdgeConfiguration(this.deviceId, moduleNames, moduleImages, config);
         }
 
         ModuleConfiguration BuildEdgeAgent(IEnumerable<ModuleConfiguration> configs)
