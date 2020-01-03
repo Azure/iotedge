@@ -54,7 +54,6 @@ namespace TestResultCoordinator.Reports
                     {
                         foreach (var prop in r.Properties)
                         {
-                            Logger.LogDebug($"Add {expectedSource} {prop.ToString()}");
                             propertiesUpdated.TryAdd(prop.ToString(), this.expectedTestResults.Current.CreatedAt);
                         }
                     });
@@ -72,7 +71,6 @@ namespace TestResultCoordinator.Reports
                     {
                         foreach (var prop in r.Properties)
                         {
-                            Logger.LogDebug($"Add {actualSource} {prop.ToString()}");
                             bool added = propertiesReceived.TryAdd(prop.ToString(), this.actualTestResults.Current.CreatedAt);
                             if (!added)
                             {
@@ -125,7 +123,6 @@ namespace TestResultCoordinator.Reports
                 Option.None<TwinTestResult>();
             }
 
-            Logger.LogDebug($"Deserializing for source {current.Source} result: {current.Result} {current.Type}");
             TwinTestResult twinTestResult = JsonConvert.DeserializeObject<TwinTestResult>(current.Result);
             return Option.Some(twinTestResult);
         }
