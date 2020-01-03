@@ -66,7 +66,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             // Build edge agent
             modules.Insert(0, this.BuildEdgeAgent(modules));
 
-            // Compose edge configuration for all modules (including $edgeHub)
+            // Find each $edgeHub match and immediately compose and return a configuration
+            // After $edgeHub matches, then return the full configuration
             var config = new ConfigurationContent
             {
                 ModulesContent = new Dictionary<string, IDictionary<string, object>>()
@@ -75,8 +76,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             var moduleNames = new List<string>();
             var moduleImages = new List<string>();
 
-            // Find each $edgeHub match and immediately compose and return a configuration
-            // After $edgeHub matches, then return the full configuration
             foreach (ModuleConfiguration module in modules.OrderBy(m => m.Name != "$edgeHub")) // $edgeHub will come first (false ordered before true)
             {
                 moduleNames.Add(module.Name);
