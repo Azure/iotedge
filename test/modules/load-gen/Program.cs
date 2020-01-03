@@ -7,6 +7,7 @@ namespace LoadGen
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
@@ -50,20 +51,15 @@ namespace LoadGen
                         await Settings.Current.TestResultCoordinatorUrl.ForEachAsync(
                             async trcUrl =>
                             {
-                                Uri testResultCoordinatorUrl = new Uri(
-                                    trcUrl,
-                                    UriKind.Absolute);
+                                var testResultCoordinatorUrl = new Uri(trcUrl, UriKind.Absolute);
                                 var testResultReportingClient = new TestResultReportingClient { BaseUrl = testResultCoordinatorUrl.AbsoluteUri };
-
-                                await ModuleUtil.ReportStatus(
-                                    testResultReportingClient,
-                                    Logger,
-                                    Settings.Current.ModuleId + ".send",
-                                    ModuleUtil.FormatMessagesTestResultValue(
-                                        Settings.Current.TrackingId,
-                                        batchId.ToString(),
-                                        messageIdCounter.ToString()),
-                                    TestOperationResultType.Messages.ToString());
+                                var testResult = new MessageTestResult(Settings.Current.ModuleId + ".send", DateTime.UtcNow)
+                                {
+                                    TrackingId = Settings.Current.TrackingId,
+                                    BatchId = batchId.ToString(),
+                                    SequenceNumber = messageIdCounter.ToString()
+                                };
+                                await ModuleUtil.ReportTestResultAsync(testResultReportingClient, Logger, testResult);
                             });
 
                         if (messageIdCounter % 1000 == 0)

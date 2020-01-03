@@ -7,6 +7,7 @@ namespace Relayer
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -93,12 +94,13 @@ namespace Relayer
 
                 // Report receiving message successfully to Test Result Coordinator
                 var testResultReportingClient = new TestResultReportingClient { BaseUrl = testResultCoordinatorUrl.AbsoluteUri };
-                await ModuleUtil.ReportStatus(
-                    testResultReportingClient,
-                    Logger,
-                    Settings.Current.ModuleId + ".receive",
-                    ModuleUtil.FormatMessagesTestResultValue(trackingId, batchId, sequenceNumber),
-                    TestOperationResultType.Messages.ToString());
+                var testResultReceived = new MessageTestResult(Settings.Current.ModuleId + ".receive", DateTime.UtcNow)
+                {
+                    TrackingId = trackingId,
+                    BatchId = batchId,
+                    SequenceNumber = sequenceNumber
+                };
+                await ModuleUtil.ReportTestResultAsync(testResultReportingClient, Logger, testResultReceived);
                 Logger.LogInformation($"Successfully received message: trackingid={trackingId}, batchId={batchId}, sequenceNumber={sequenceNumber}");
 
                 byte[] messageBytes = message.GetBytes();
@@ -107,12 +109,13 @@ namespace Relayer
                 await moduleClient.SendEventAsync(Settings.Current.OutputName, messageCopy);
 
                 // Report sending message successfully to Test Result Coordinator
-                await ModuleUtil.ReportStatus(
-                    testResultReportingClient,
-                    Logger,
-                    Settings.Current.ModuleId + ".send",
-                    ModuleUtil.FormatMessagesTestResultValue(trackingId, batchId, sequenceNumber),
-                    TestOperationResultType.Messages.ToString());
+                var testResultSent = new MessageTestResult(Settings.Current.ModuleId + ".send", DateTime.UtcNow)
+                {
+                    TrackingId = trackingId,
+                    BatchId = batchId,
+                    SequenceNumber = sequenceNumber
+                };
+                await ModuleUtil.ReportTestResultAsync(testResultReportingClient, Logger, testResultSent);
                 Logger.LogInformation($"Successfully sent message: trackingid={trackingId}, batchId={batchId}, sequenceNumber={sequenceNumber}");
             }
             catch (Exception ex)
