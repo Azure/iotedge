@@ -8,18 +8,30 @@ namespace SimulatedTemperatureSensor
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
+    using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
+    using ExponentialBackoff = Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling.ExponentialBackoff;
 
     class Program
     {
         const string MessageCountConfigKey = "MessageCount";
         const string SendDataConfigKey = "SendData";
         const string SendIntervalConfigKey = "SendInterval";
+
+        static readonly ITransientErrorDetectionStrategy DefaultTimeoutErrorDetectionStrategy =
+            new DelegateErrorDetectionStrategy(ex => ex.HasTimeoutException());
+
+        static readonly RetryStrategy DefaultTransientRetryStrategy =
+            new ExponentialBackoff(
+                5,
+                TimeSpan.FromSeconds(2),
+                TimeSpan.FromSeconds(60),
+                TimeSpan.FromSeconds(4));
 
         static readonly Guid BatchId = Guid.NewGuid();
         static readonly AtomicBoolean Reset = new AtomicBoolean(false);
@@ -64,10 +76,10 @@ namespace SimulatedTemperatureSensor
 
             TransportType transportType = configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only);
 
-            ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
+            ModuleClient moduleClient = await CreateModuleClientAsync(
                 transportType,
-                ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                ModuleUtil.DefaultTransientRetryStrategy);
+                DefaultTimeoutErrorDetectionStrategy,
+                DefaultTransientRetryStrategy);
             await moduleClient.OpenAsync();
             await moduleClient.SetMethodHandlerAsync("reset", ResetMethod, null);
 
@@ -247,6 +259,45 @@ namespace SimulatedTemperatureSensor
             var moduleClient = (ModuleClient)userContext;
             var patch = new TwinCollection($"{{ \"SendData\":{sendData.ToString().ToLower()}, \"SendInterval\": {messageDelay.TotalSeconds}}}");
             await moduleClient.UpdateReportedPropertiesAsync(patch); // Just report back last desired property.
+        }
+
+        static async Task<ModuleClient> CreateModuleClientAsync(
+            TransportType transportType,
+            ITransientErrorDetectionStrategy transientErrorDetectionStrategy = null,
+            RetryStrategy retryStrategy = null)
+        {
+            var retryPolicy = new RetryPolicy(transientErrorDetectionStrategy, retryStrategy);
+            retryPolicy.Retrying += (_, args) => { Console.WriteLine($"[Error] Retry {args.CurrentRetryCount} times to create module client and failed with exception:{Environment.NewLine}{args.LastException}"); };
+
+            ModuleClient client = await retryPolicy.ExecuteAsync(
+                async () =>
+                {
+                    ITransportSettings[] GetTransportSettings()
+                    {
+                        switch (transportType)
+                        {
+                            case TransportType.Mqtt:
+                            case TransportType.Mqtt_Tcp_Only:
+                                return new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_Tcp_Only) };
+                            case TransportType.Mqtt_WebSocket_Only:
+                                return new ITransportSettings[] { new MqttTransportSettings(TransportType.Mqtt_WebSocket_Only) };
+                            case TransportType.Amqp_WebSocket_Only:
+                                return new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_WebSocket_Only) };
+                            default:
+                                return new ITransportSettings[] { new AmqpTransportSettings(TransportType.Amqp_Tcp_Only) };
+                        }
+                    }
+
+                    ITransportSettings[] settings = GetTransportSettings();
+                    Console.WriteLine($"[Information]: Trying to initialize module client using transport type [{transportType}].");
+                    ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync(settings);
+                    await moduleClient.OpenAsync();
+
+                    Console.WriteLine($"[Information]: Successfully initialized module client of transport type [{transportType}].");
+                    return moduleClient;
+                });
+
+            return client;
         }
 
         class ControlCommand

@@ -3,8 +3,8 @@ namespace Modules.Test.TestResultCoordinator
 {
     using System;
     using System.Collections.Generic;
-    using global::TestResultCoordinator;
     using global::TestResultCoordinator.Report;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Xunit;
 
     public class CountingReportTest
