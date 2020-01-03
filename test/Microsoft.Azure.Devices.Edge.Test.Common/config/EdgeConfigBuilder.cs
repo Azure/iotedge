@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
             // Find each $edgeHub match and immediately compose and return a configuration
             // After $edgeHub matches, then return the full configuration
-            foreach (ModuleConfiguration module in modules.OrderBy(m => m.Name != "$edgeHub")) // edgeHub will come first (false ordered before true)
+            foreach (ModuleConfiguration module in modules.OrderBy(m => m.Name != "$edgeHub")) // $edgeHub will come first (false ordered before true)
             {
                 moduleNames.Add(module.Name);
                 moduleImages.Add(module.Image);
