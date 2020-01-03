@@ -5,6 +5,7 @@ namespace TestResultCoordinator.Service
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.EventHubs;
     using Microsoft.Extensions.Logging;
@@ -64,16 +65,15 @@ namespace TestResultCoordinator.Service
                                 DateTime enqueuedtime = GetEnqueuedTime(deviceIdFromEvent.ToString(), moduleIdFromEvent.ToString(), eventData);
 
                                 // TODO: remove hardcoded eventHub string in next line
-                                var result = new TestOperationResult(
-                                    (string)moduleIdFromEvent + ".eventHub",
-                                    TestOperationResultType.Messages.ToString(),
-                                    ModuleUtil.FormatMessagesTestResultValue(
-                                        (string)trackingIdFromEvent,
-                                        (string)batchIdFromEvent,
-                                        (string)sequenceNumberFromEvent),
-                                    enqueuedtime);
-                                await this.storage.AddResultAsync(result);
-                                Logger.LogInformation($"Received event from Event Hub persisted to store: trackingId={(string)trackingIdFromEvent}, deviceId={(string)deviceIdFromEvent}, moduleId={(string)moduleIdFromEvent}, batchId={(string)batchIdFromEvent}, sequenceNumber={(string)sequenceNumberFromEvent}");
+                                var testResult = new MessageTestResult((string)moduleIdFromEvent + ".eventHub", enqueuedtime)
+                                {
+                                    TrackingId = (string)trackingIdFromEvent,
+                                    BatchId = (string)batchIdFromEvent,
+                                    SequenceNumber = sequenceNumber.ToString()
+                                };
+
+                                await this.storage.AddResultAsync(testResult.ToTestOperationResult());
+                                Logger.LogInformation($"Received event from Event Hub persisted to store: trackingId={(string)trackingIdFromEvent}, deviceId={(string)deviceIdFromEvent}, moduleId={(string)moduleIdFromEvent}, batchId={(string)batchIdFromEvent}, sequenceNumber={sequenceNumber}");
                             }
                             else
                             {
