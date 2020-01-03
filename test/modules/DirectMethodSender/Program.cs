@@ -8,7 +8,7 @@ namespace DirectMethodSender
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResultCoordinatorClient;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using TestOperationResult = Microsoft.Azure.Devices.Edge.ModuleUtil.TestOperationResult;
@@ -56,17 +56,16 @@ namespace DirectMethodSender
                         await testReportCoordinatorUrl.ForEachAsync(
                             async (Uri uri) =>
                             {
-                                TestResultCoordinatorClient trcClient = new TestResultCoordinatorClient { BaseUrl = uri.AbsoluteUri };
-                                await ModuleUtil.ReportStatus(
-                                        trcClient,
-                                        Logger,
-                                        Settings.Current.ModuleId + ".send",
-                                        ModuleUtil.FormatDirectMethodTestResultValue(
-                                            Settings.Current.TrackingId.Expect(() => new ArgumentException("TrackingId is empty")),
-                                            batchId.ToString(),
-                                            dmCounter.ToString(),
-                                            result.ToString()),
-                                        TestOperationResultType.DirectMethod.ToString());
+                                var testResult = new DirectMethodTestResult(Settings.Current.ModuleId + ".send", DateTime.UtcNow)
+                                {
+                                    TrackingId = Settings.Current.TrackingId.Expect(() => new ArgumentException("TrackingId is empty")),
+                                    BatchId = batchId.ToString(),
+                                    SequenceNumber = dmCounter.ToString(),
+                                    Result = result.ToString()
+                                };
+
+                                var testResultReportingClient = new TestResultReportingClient { BaseUrl = uri.AbsoluteUri };
+                                await ModuleUtil.ReportTestResultAsync(testResultReportingClient, Logger, testResult);
                             });
                     }
                     else
@@ -74,8 +73,13 @@ namespace DirectMethodSender
                         await analyzerUrl.ForEachAsync(
                             async (Uri uri) =>
                             {
-                                AnalyzerClient analyzerClient = new AnalyzerClient { BaseUrl = uri.AbsoluteUri };
-                                await ReportStatus(Settings.Current.TargetModuleId, result, analyzerClient);
+                                var testResult = new LegacyDirectMethodTestResult(Settings.Current.TargetModuleId, DateTime.UtcNow)
+                                {
+                                    Result = result.ToString()
+                                };
+
+                                var testResultReportingClient = new TestResultReportingClient { BaseUrl = uri.AbsoluteUri };
+                                await ModuleUtil.ReportTestResultAsync(testResultReportingClient, Logger, testResult);
                             },
                             async () =>
                             {
@@ -137,18 +141,6 @@ namespace DirectMethodSender
         public static bool IsTestTimeUp(DateTime testStartAt)
         {
             return (Settings.Current.TestDuration == TimeSpan.Zero) || (DateTime.UtcNow - testStartAt < Settings.Current.TestDuration);
-        }
-
-        static async Task ReportStatus(string moduleId, HttpStatusCode result, AnalyzerClient analyzerClient)
-        {
-            try
-            {
-                await analyzerClient.ReportResultAsync(new TestOperationResult { Source = moduleId, Result = result.ToString(), CreatedAt = DateTime.UtcNow, Type = Enum.GetName(typeof(TestOperationResultType), TestOperationResultType.LegacyDirectMethod) });
-            }
-            catch (Exception e)
-            {
-                Logger.LogError(e.ToString());
-            }
         }
     }
 }

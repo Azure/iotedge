@@ -7,6 +7,7 @@ namespace Modules.Test.TestResultCoordinator
     using System.Threading.Tasks;
     using global::TestResultCoordinator;
     using global::TestResultCoordinator.Report;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Moq;
     using Xunit;

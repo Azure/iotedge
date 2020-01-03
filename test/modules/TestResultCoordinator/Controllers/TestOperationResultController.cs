@@ -9,7 +9,6 @@ namespace TestResultCoordinator.Controllers
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using TestResultCoordinator.Storage;
-    using TestOperationResult = TestResultCoordinator.TestOperationResult;
 
     [Route("api/[controller]")]
     [ApiController]

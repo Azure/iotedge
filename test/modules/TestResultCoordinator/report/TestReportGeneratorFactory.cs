@@ -2,6 +2,7 @@
 namespace TestResultCoordinator.Report
 {
     using System;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using TestResultCoordinator.Storage;
 

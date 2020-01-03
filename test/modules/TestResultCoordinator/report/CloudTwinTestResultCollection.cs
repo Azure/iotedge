@@ -8,13 +8,14 @@ namespace TestResultCoordinator.Report
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
 
-    class CloudTwinTestResultCollection : ITestResultCollection<TestResultCoordinator.TestOperationResult>
+    class CloudTwinTestResultCollection : ITestResultCollection<TestOperationResult>
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(CloudTwinTestResultCollection));
         readonly RegistryManager registryManager;
         readonly string moduleId;
         readonly string trackingId;
-        TestResultCoordinator.TestOperationResult current;
+        readonly string source;
+        TestOperationResult current;
         bool isLoaded;
 
         public CloudTwinTestResultCollection(string source, string serviceClientConnectionString, string moduleId, string trackingId)
@@ -22,13 +23,11 @@ namespace TestResultCoordinator.Report
             this.registryManager = RegistryManager.CreateFromConnectionString(serviceClientConnectionString);
             this.isLoaded = false;
             this.moduleId = moduleId;
-            this.Source = source;
+            this.source = source;
             this.trackingId = trackingId;
         }
 
-        public string Source { get; }
-
-        TestResultCoordinator.TestOperationResult ITestResultCollection<TestResultCoordinator.TestOperationResult>.Current => this.current;
+        TestOperationResult ITestResultCollection<TestOperationResult>.Current => this.current;
 
         public void Dispose()
         {
@@ -56,7 +55,7 @@ namespace TestResultCoordinator.Report
             this.current = null;
         }
 
-        async Task<TestResultCoordinator.TestOperationResult> GetTwinAsync()
+        async Task<TestOperationResult> GetTwinAsync()
         {
             try
             {
@@ -67,12 +66,11 @@ namespace TestResultCoordinator.Report
                     return null;
                 }
 
-                var twinTestResult = new TwinTestResult() { TrackingId = this.trackingId, Properties = twin.Properties.Reported };
-                return new TestResultCoordinator.TestOperationResult(
-                    this.Source,
-                    TestOperationResultType.Twin.ToString(),
-                    twinTestResult.ToString(),
-                    twin.LastActivityTime.HasValue ? twin.LastActivityTime.Value : DateTime.UtcNow);
+                return new TwinTestResult(this.source, twin.LastActivityTime.HasValue ? twin.LastActivityTime.Value : DateTime.UtcNow)
+                {
+                    TrackingId = this.trackingId,
+                    Properties = twin.Properties.Reported
+                }.ToTestOperationResult();
             }
             catch (Exception e)
             {

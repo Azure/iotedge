@@ -8,7 +8,6 @@ namespace TestResultCoordinator.Report
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
-    using TestOperationResult = TestResultCoordinator.TestOperationResult;
 
     class TwinCountingReportGenerator : ITestResultReportGenerator
     {
