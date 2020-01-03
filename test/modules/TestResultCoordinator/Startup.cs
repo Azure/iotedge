@@ -12,7 +12,7 @@ namespace TestResultCoordinator
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
-    using TestResultCoordinator.Service;
+    using TestResultCoordinator.Services;
     using TestResultCoordinator.Storage;
 
     public class Startup
