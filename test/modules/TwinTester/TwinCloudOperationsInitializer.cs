@@ -56,7 +56,7 @@ namespace TwinTester
             await this.desiredPropertyUpdater.UpdateAsync();
         }
 
-        public void Dispose()
+        public void Stop()
         {
             this.periodicUpdate.Dispose();
         }

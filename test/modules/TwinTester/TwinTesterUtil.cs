@@ -17,6 +17,5 @@ namespace TwinTester
 
             return eraseReportedProperties;
         }
-
     }
 }

@@ -24,11 +24,12 @@ namespace TwinTester
             {
                 RegistryManager registryManager = RegistryManager.CreateFromConnectionString(Settings.Current.ServiceClientConnectionString);
 
-                using (ITwinTestInitializer twinOperator = await GetTwinOperatorAsync(registryManager))
-                {
-                    await twinOperator.StartAsync(cts.Token);
-                    await Task.Delay(Settings.Current.TestDuration, cts.Token);
-                }
+                ITwinTestInitializer twinOperator = await GetTwinOperatorAsync(registryManager);
+                await twinOperator.StartAsync(cts.Token);
+                await Task.Delay(Settings.Current.TestDuration, cts.Token);
+
+                Logger.LogInformation($"Test run completed after {Settings.Current.TestDuration}");
+                twinOperator.Stop();
 
                 await cts.Token.WhenCanceled();
                 completed.Set();

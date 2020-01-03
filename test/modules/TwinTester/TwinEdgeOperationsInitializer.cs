@@ -49,12 +49,12 @@ namespace TwinTester
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             await Task.Delay(Settings.Current.TestStartDelay, cancellationToken);
-            await DisplayInitialTwin();
+            await this.DisplayInitialTwin();
             this.periodicUpdate = new PeriodicTask(this.UpdateAsync, Settings.Current.TwinUpdateFrequency, Settings.Current.TwinUpdateFrequency, Logger, "TwinReportedPropertiesUpdate");
             await this.desiredPropertiesReceiver.UpdateAsync();
         }
 
-        private async Task DisplayInitialTwin()
+        async Task DisplayInitialTwin()
         {
             try
             {
@@ -67,7 +67,7 @@ namespace TwinTester
             }
         }
 
-        public void Dispose()
+        public void Stop()
         {
             this.periodicUpdate.Dispose();
         }
