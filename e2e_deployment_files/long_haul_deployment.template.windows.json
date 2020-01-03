@@ -301,6 +301,9 @@
               {
                 "value": "http://analyzer:15000"
               },
+              "TransportType": {
+                "value": "Amqp_Tcp_Only"
+              },
               "InvocationSource": {
                 "value": "Cloud"
               },
@@ -340,6 +343,9 @@
               "AnalyzerUrl":
               {
                 "value": "http://analyzer:15000"
+              },
+              "TransportType": {
+                "value": "Mqtt_Tcp_Only"
               },
               "InvocationSource": {
                 "value": "Cloud"
