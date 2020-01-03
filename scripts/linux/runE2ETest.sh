@@ -380,15 +380,6 @@ function process_args() {
                 '-loadGen4TransportType' ) saveNextArg=20;;
                 '-amqpSettingsEnabled' ) saveNextArg=21;;
                 '-mqttSettingsEnabled' ) saveNextArg=22;;
-<<<<<<< HEAD
-                '-longHaulProtocolHead' ) saveNextArg=23;;
-                '-certScriptDir' ) saveNextArg=24;;
-                '-installRootCACertPath' ) saveNextArg=25;;
-                '-installRootCAKeyPath' ) saveNextArg=26;;
-                '-installRootCAKeyPassword' ) saveNextArg=27;;
-                '-dpsScopeId' ) saveNextArg=28;;
-                '-dpsMasterSymmetricKey' ) saveNextArg=29;;
-=======
                 '-certScriptDir' ) saveNextArg=23;;
                 '-installRootCACertPath' ) saveNextArg=24;;
                 '-installRootCAKeyPath' ) saveNextArg=25;;
@@ -396,7 +387,6 @@ function process_args() {
                 '-dpsScopeId' ) saveNextArg=27;;
                 '-dpsMasterSymmetricKey' ) saveNextArg=28;;
                 '-eventHubConsumerGroup' ) saveNextArg=29;;
->>>>>>> 6114e39d... Configurable 'Consumer Group' for MessageAnalyzer (#1754)
                 '-cleanAll' ) CLEAN_ALL=1;;
                 * ) usage;;
             esac
