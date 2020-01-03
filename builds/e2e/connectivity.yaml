@@ -139,7 +139,7 @@ jobs:
           upstream.protocol: '$(upstream.protocol)'
           loadGen.message.frequency: '$(loadGen.message.frequency.arm32)'
           testDuration: '$(testDuration)'
-          testStartDelay: '$(testStartDelay)'
+          testStartDelay: '$(testStartDelay.arm32)'
           networkController.frequencies: '$(networkController.frequencies)'
           networkController.mode: '$(networkController.mode)'
           testResultCoordinator.logAnalyticsWorkspaceId: '$(kvLogAnalyticWorkspaceId)'
