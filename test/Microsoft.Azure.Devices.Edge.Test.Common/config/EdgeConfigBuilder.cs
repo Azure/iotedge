@@ -66,27 +66,6 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             // Build edge agent
             modules.Insert(0, this.BuildEdgeAgent(modules));
 
-            // Find each $edgeHub match and immediately compose and return a configuration
-            string desiredPropertiesKeyName = "properties.desired";
-            foreach (ModuleConfiguration module in modules)
-            {
-                if (module.Name == "$edgeHub")
-                {
-                    var edgeHubConfig = new ConfigurationContent
-                    {
-                        ModulesContent = new Dictionary<string, IDictionary<string, object>>
-                        {
-                            {
-                                module.Name,
-                                new Dictionary<string, object> { [desiredPropertiesKeyName] = module.DesiredProperties }
-                            }
-                        }
-                    };
-
-                    yield return new EdgeConfiguration(this.deviceId, new string[] { module.Name }, new string[] { module.Image }, edgeHubConfig);
-                }
-            }
-
             // Compose edge configuration for all modules (including $edgeHub)
             var config = new ConfigurationContent
             {
@@ -96,7 +75,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             var moduleNames = new List<string>();
             var moduleImages = new List<string>();
 
-            foreach (ModuleConfiguration module in modules)
+            // Find each $edgeHub match and immediately compose and return a configuration
+            // After $edgeHub matches, then return the full configuration
+            foreach (ModuleConfiguration module in modules.OrderBy(m => m.Name != "$edgeHub")) // edgeHub will come first (false ordered before true)
             {
                 moduleNames.Add(module.Name);
                 moduleImages.Add(module.Image);
@@ -105,8 +86,13 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                 {
                     config.ModulesContent[module.Name] = new Dictionary<string, object>
                     {
-                        [desiredPropertiesKeyName] = module.DesiredProperties
+                        ["properties.desired"] = module.DesiredProperties
                     };
+                }
+
+                if (module.Name == "$edgeHub")
+                {
+                    yield return new EdgeConfiguration(this.deviceId, moduleNames, moduleImages, config);
                 }
             }
 
