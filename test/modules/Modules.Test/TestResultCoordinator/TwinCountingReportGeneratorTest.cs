@@ -270,8 +270,8 @@ namespace Modules.Test.TestResultCoordinator
                     tc[item] = "1";
                 }
 
-                var twinTestResult = new TwinTestResult() { Properties = tc };
-                storeData.Add((count, new TestOperationResult(source, resultType, twinTestResult.ToString(), DateTime.UtcNow)));
+                var twinTestResult = new TwinTestResult(source, DateTime.UtcNow) { Properties = tc };
+                storeData.Add((count, twinTestResult.ToTestOperationResult()));
                 count++;
             }
 

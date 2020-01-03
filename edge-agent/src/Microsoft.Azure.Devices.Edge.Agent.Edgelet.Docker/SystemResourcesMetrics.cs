@@ -161,36 +161,61 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
             DockerStats[] modules = JsonConvert.DeserializeObject<DockerStats[]>(systemResources.ModuleStats);
             foreach (DockerStats module in modules)
             {
-                string name = module.Name.Substring(1); // remove '/' from start of name
+                if (!module.Name.HasValue)
+                {
+                    continue;
+                }
+
+                string name = module.Name.OrDefault().Substring(1); // remove '/' from start of name
                 var tags = new string[] { name };
 
-                this.GetCpuUsage(module).ForEach(usedCpu => this.cpuPercentage.Update(usedCpu, tags));
-                this.totalMemory.Set(module.MemoryStats.Limit, tags);
-                this.usedMemory.Set((long)module.MemoryStats.Usage, tags);
-                this.createdPids.Set(module.PidsStats.Current, tags);
-
-                if (!module.Networks.Values.Any(n => n == null))
+                this.GetCpuUsage(module, name).ForEach(usedCpu => this.cpuPercentage.Update(usedCpu, tags));
+                module.MemoryStats.ForEach(ms =>
                 {
-                    this.networkIn.Set(module.Networks.Sum(n => n.Value.RxBytes), tags);
-                    this.networkOut.Set(module.Networks.Sum(n => n.Value.TxBytes), tags);
-                }
+                    ms.Limit.ForEach(limit => this.totalMemory.Set(limit, tags));
+                    ms.Usage.ForEach(usage => this.usedMemory.Set((long)usage, tags));
+                });
+                module.PidsStats.ForEach(ps => ps.Current.ForEach(current => this.createdPids.Set(current, tags)));
 
-                if (!module.BlockIoStats.Values.Any(n => n == null))
+                module.Networks.ForEach(network =>
                 {
-                    this.diskRead.Set(module.BlockIoStats.Sum(io => io.Value.Where(d => d.Op == "Read").Sum(d => d.Value)), tags);
-                    this.diskWrite.Set(module.BlockIoStats.Sum(io => io.Value.Where(d => d.Op == "Write").Sum(d => d.Value)), tags);
-                }
+                    this.networkIn.Set(network.Sum(n => n.Value.RxBytes.OrDefault()), tags);
+                    this.networkOut.Set(network.Sum(n => n.Value.TxBytes.OrDefault()), tags);
+                });
+
+                module.BlockIoStats.ForEach(disk =>
+                {
+                    this.diskRead.Set(disk.Sum(io => io.Value.Where(d => d.Op.Exists(op => op == "Read")).Sum(d => d.Value.OrDefault())), tags);
+                    this.diskWrite.Set(disk.Sum(io => io.Value.Where(d => d.Op.Exists(op => op == "Write")).Sum(d => d.Value.OrDefault())), tags);
+                });
             }
         }
 
-        Option<double> GetCpuUsage(DockerStats module)
+        Option<double> GetCpuUsage(DockerStats module, string name)
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                if (this.previousModuleCpu.TryGetValue(module.Name, out ulong prevModule) && this.previousSystemCpu.TryGetValue(module.Name, out ulong prevSystem))
+                // Get values if exist
+                ulong totalUsage = 0, systemUsage = 0;
+                if (!module.CpuStats.Exists(cpuStats => cpuStats.CpuUsage.Exists(cpuUsage => cpuUsage.TotalUsage.Exists(tu =>
+                     {
+                         totalUsage = tu;
+                         return true;
+                     })) && cpuStats.SystemCpuUsage.Exists(su =>
+                     {
+                         systemUsage = su;
+                         return true;
+                     })))
                 {
-                    double moduleDiff = module.CpuStats.CpuUsage.TotalUsage - prevModule;
-                    double systemDiff = module.CpuStats.SystemCpuUsage - prevSystem;
+                    // One of the values is missing, skip.
+                    return Option.None<double>();
+                }
+
+                // Calculate
+                if (this.previousModuleCpu.TryGetValue(name, out ulong prevModule) && this.previousSystemCpu.TryGetValue(name, out ulong prevSystem))
+                {
+                    double moduleDiff = totalUsage - prevModule;
+                    double systemDiff = systemUsage - prevSystem;
                     if (systemDiff > 0)
                     {
                         double result = 100 * moduleDiff / systemDiff;
@@ -203,15 +228,33 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
                     }
                 }
 
-                this.previousModuleCpu[module.Name] = module.CpuStats.CpuUsage.TotalUsage;
-                this.previousSystemCpu[module.Name] = module.CpuStats.SystemCpuUsage;
+                this.previousModuleCpu[name] = totalUsage;
+                this.previousSystemCpu[name] = systemUsage;
             }
             else
             {
-                if (this.previousModuleCpu.TryGetValue(module.Name, out ulong prevModule) && this.previousReadTime.TryGetValue(module.Name, out DateTime prevTime))
+                // Get values if exist
+                ulong totalUsage = 0;
+                DateTime readTime = DateTime.MinValue;
+                if (!(module.CpuStats.Exists(cpuStats => cpuStats.CpuUsage.Exists(cpuUsage => cpuUsage.TotalUsage.Exists(tu =>
+                    {
+                        totalUsage = tu;
+                        return true;
+                    }))) && module.Read.Exists(read =>
+                    {
+                        readTime = read;
+                        return true;
+                    })))
                 {
-                    double totalIntervals = (module.Read - prevTime).TotalMilliseconds * 10; // Get number of 100ns intervals during read
-                    ulong intervalsUsed = module.CpuStats.CpuUsage.TotalUsage - prevModule;
+                    // One of the values is missing, skip.
+                    return Option.None<double>();
+                }
+
+                // Calculate
+                if (this.previousModuleCpu.TryGetValue(name, out ulong prevModule) && this.previousReadTime.TryGetValue(name, out DateTime prevTime))
+                {
+                    double totalIntervals = (readTime - prevTime).TotalMilliseconds * 10; // Get number of 100ns intervals during read
+                    ulong intervalsUsed = totalUsage - prevModule;
 
                     if (totalIntervals > 0)
                     {
@@ -219,8 +262,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Docker
                     }
                 }
 
-                this.previousModuleCpu[module.Name] = module.CpuStats.CpuUsage.TotalUsage;
-                this.previousReadTime[module.Name] = module.Read;
+                this.previousModuleCpu[name] = totalUsage;
+                this.previousReadTime[name] = readTime;
             }
 
             return Option.None<double>();

@@ -5,6 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
@@ -55,21 +56,12 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
             return new LoggerFactory().AddSerilog().CreateLogger(categoryName);
         }
 
-        public static string FormatMessagesTestResultValue(string trackingId, string batchId, string sequenceNumber)
-        {
-            return $"{trackingId};{batchId};{sequenceNumber}";
-        }
-
-        public static string FormatDirectMethodTestResultValue(string trackingId, string batchId, string sequenceNumber, string resultMessage)
-        {
-            return $"{trackingId};{batchId};{sequenceNumber};{resultMessage}";
-        }
-
-        public static async Task ReportStatus(TestResultReportingClient apiClient, ILogger logger, string source, string result, string resultType)
+        public static async Task ReportTestResultAsync(TestResultReportingClient apiClient, ILogger logger, TestResultBase testResult)
         {
             try
             {
-                await apiClient.ReportResultAsync(new TestOperationResultDto { Source = source, Result = result, CreatedAt = DateTime.UtcNow, Type = resultType });
+                logger.LogInformation($"Sending test result: Source={testResult.Source}, Type={testResult.ResultType}, CreatedAt={testResult.CreatedAt}, Result={testResult.GetFormattedResult()}");
+                await apiClient.ReportResultAsync(testResult.ToTestOperationResultDto());
             }
             catch (Exception e)
             {
