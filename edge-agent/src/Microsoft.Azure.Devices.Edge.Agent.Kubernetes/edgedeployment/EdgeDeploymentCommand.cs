@@ -137,13 +137,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                         var combinedConfig = this.configProvider.GetCombinedConfig(module, this.runtimeInfo);
                         string image = combinedConfig.Image;
 
-                        // TODO: this is a workaround in preview to keep Edge Agent from updating itself
-                        if (module.Name == Core.Constants.EdgeAgentModuleName)
-                        {
-                            var agentImage = this.FindAgentImageAsync(token).ConfigureAwait(false);
-                            agentImage.GetAwaiter().GetResult().ForEach(foundImage => image = foundImage);
-                        }
-
+                        //// TODO: this is a workaround in preview to keep Edge Agent from updating itself
+                        // if (module.Name == Core.Constants.EdgeAgentModuleName)
+                        // {
+                        //    var agentImage = this.FindAgentImageAsync(token).ConfigureAwait(false);
+                        //    agentImage.GetAwaiter().GetResult().ForEach(foundImage => image = foundImage);
+                        // }
                         var authConfig = combinedConfig.ImagePullSecret.Map(secret => new AuthConfig(secret.Name));
                         return new KubernetesModule(module, new KubernetesConfig(image, combinedConfig.CreateOptions, authConfig), this.moduleOwner);
                     })
