@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
         /* Will output edgeHub configurations in order, then a full configuration at the end.
            This is done to assure routes are set up for the most recent $edgeHub deployment before the test modules start sending messages (i.e. assure messages won't get dropped).
            Another way to handle this is to define all possible routes at the very beginning of the test, but there is added complexity as module names are assigned dynamically. */
-        public IEnumerable<EdgeConfiguration> Build()
+        public List<EdgeConfiguration> Build()
         {
             // Build all modules *except* edge agent
             List<ModuleConfiguration> modules = this.moduleBuilders
@@ -76,7 +76,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             var moduleNames = new List<string>();
             var moduleImages = new List<string>();
 
-            foreach (ModuleConfiguration module in modules.OrderBy(m => m.Name != "$edgeHub"))
+            var allConfigurations = new List<EdgeConfiguration>();
+            foreach (ModuleConfiguration module in modules)
             {
                 moduleNames.Add(module.Name);
                 moduleImages.Add(module.Image);
@@ -91,11 +92,12 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
                 if (module.Name == "$edgeHub")
                 {
-                    yield return new EdgeConfiguration(this.deviceId, moduleNames, moduleImages, config);
+                    allConfigurations.Add(new EdgeConfiguration(this.deviceId, new List<string>(moduleNames), new List<string>(moduleImages), config));
                 }
             }
 
-            yield return new EdgeConfiguration(this.deviceId, moduleNames, moduleImages, config);
+            allConfigurations.Add(new EdgeConfiguration(this.deviceId, moduleNames, moduleImages, config));
+            return allConfigurations;
         }
 
         ModuleConfiguration BuildEdgeAgent(IEnumerable<ModuleConfiguration> configs)
