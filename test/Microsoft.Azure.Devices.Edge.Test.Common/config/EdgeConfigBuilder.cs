@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             var moduleImages = new List<string>();
 
             var allConfigurations = new List<EdgeConfiguration>();
-            foreach (ModuleConfiguration module in modules)
+            foreach (ModuleConfiguration module in modules.OrderBy(m => m.Name != "$edgeHub"))
             {
                 moduleNames.Add(module.Name);
                 moduleImages.Add(module.Image);
