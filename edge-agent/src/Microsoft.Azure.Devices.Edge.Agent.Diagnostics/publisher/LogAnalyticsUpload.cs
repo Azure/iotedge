@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             try
             {
                 Preconditions.CheckNotNull(metrics, nameof(metrics));
-                IEnumerable<MetricWithStringTags> metricsToUpload = metrics.Select(m => new MetricWithStringTags(m));
+                IEnumerable<UploadMetric> metricsToUpload = metrics.Select(m => new UploadMetric(m));
                 await AzureLogAnalytics.Instance.PostAsync(this.workspaceId, this.workspaceKey, JsonConvert.SerializeObject(metricsToUpload), this.logType);
                 Log.LogInformation($"Successfully sent metrics to LogAnalytics");
                 return true;
@@ -42,14 +42,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             }
         }
 
-        class MetricWithStringTags
+        class UploadMetric
         {
             public DateTime TimeGeneratedUtc { get; }
             public string Name { get; }
             public double Value { get; }
             public string Tags { get; }
 
-            public MetricWithStringTags(Metric metric)
+            public UploadMetric(Metric metric)
             {
                 this.TimeGeneratedUtc = metric.TimeGeneratedUtc;
                 this.Name = metric.Name;
