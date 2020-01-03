@@ -970,7 +970,6 @@ function usage() {
     echo ' -loadGen4TransportType          Transport type for LoadGen4 for stress test. Default is mqtt.'
     echo ' -amqpSettingsEnabled            Enable amqp protocol head in Edge Hub.'
     echo ' -mqttSettingsEnabled            Enable mqtt protocol head in Edge Hub.'
-    echo ' -longHaulProtocolHead           Specify which protocol head is used to run long haul test for ARM32v7 device. Valid values are amqp (default) and mqtt.'
     echo ' -dpsScopeId                     DPS scope id. Required only when using DPS to provision the device.'
     echo ' -dpsMasterSymmetricKey          DPS master symmetric key. Required only when using DPS symmetric key to provision the Edge device.'
     echo ' -certScriptDir                  Optional path to certificate generation script dir'
@@ -1014,6 +1013,7 @@ if [ "$image_architecture_label" = 'arm32v7' ] ||
    [ "$image_architecture_label" = 'arm64v8' ]; then
     optimize_for_performance=false
 fi
+
 iotedged_artifact_folder="$(get_iotedged_artifact_folder)"
 iotedge_quickstart_artifact_file="$(get_iotedge_quickstart_artifact_file)"
 leafdevice_artifact_file="$(get_leafdevice_artifact_file)"
