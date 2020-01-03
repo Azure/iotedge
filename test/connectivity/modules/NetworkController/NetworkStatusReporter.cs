@@ -4,7 +4,8 @@ namespace NetworkController
     using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkControllerResult;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -22,10 +23,18 @@ namespace NetworkController
             this.trackingId = trackingId;
         }
 
-        public Task ReportNetworkStatus(NetworkControllerOperation operation, NetworkControllerStatus networkControllerStatus, NetworkControllerType networkControllerType, bool success = true)
+        public Task ReportNetworkStatusAsync(NetworkControllerOperation operation, NetworkControllerStatus networkControllerStatus, NetworkControllerType networkControllerType, bool success = true)
         {
-            var networkController = new NetworkControllerResult() { Operation = operation.ToString(), OperationStatus = success ? "Success" : "Failed", NetworkControllerType = networkControllerType, NetworkControllerStatus = networkControllerStatus, TrackingId = this.trackingId };
-            return ModuleUtil.ReportStatus(this.testResultReportingClient, Log, this.moduleId, networkController.ToString(), TestOperationResultType.Network.ToString());
+            var testResult = new NetworkControllerTestResult(this.moduleId, DateTime.UtcNow)
+            {
+                Operation = operation.ToString(),
+                OperationStatus = success ? "Success" : "Failed",
+                NetworkControllerType = networkControllerType,
+                NetworkControllerStatus = networkControllerStatus,
+                TrackingId = this.trackingId
+            };
+
+            return ModuleUtil.ReportTestResultAsync(this.testResultReportingClient, Log, testResult);
         }
     }
 }
