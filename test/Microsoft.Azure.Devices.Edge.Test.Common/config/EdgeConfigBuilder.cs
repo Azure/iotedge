@@ -76,7 +76,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             var moduleNames = new List<string>();
             var moduleImages = new List<string>();
 
-            foreach (ModuleConfiguration module in modules.OrderBy(m => m.Name != "$edgeHub")) // $edgeHub will come first (false ordered before true)
+            foreach (ModuleConfiguration module in modules.OrderBy(m => m.Name != "$edgeHub"))
             {
                 moduleNames.Add(module.Name);
                 moduleImages.Add(module.Image);
