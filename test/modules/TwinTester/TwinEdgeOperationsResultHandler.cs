@@ -59,9 +59,15 @@ namespace TwinTester
 
         async Task SendReportAsync(string source, StatusCode statusCode, TwinCollection details, string exception = "")
         {
-            var result = new TwinTestResult() { Operation = statusCode.ToString(), Properties = details, ErrorMessage = exception, TrackingId = this.trackingId };
-            Logger.LogDebug($"Sending report {result.ToString()}");
-            await ModuleUtil.ReportStatus(this.testResultReportingClient, Logger, source, result.ToString(), TestOperationResultType.Twin.ToString());
+            var result = new TwinTestResult(source, DateTime.UtcNow)
+            {
+                Operation = statusCode.ToString(),
+                Properties = details,
+                ErrorMessage = exception,
+                TrackingId = this.trackingId
+            };
+            Logger.LogDebug($"Sending report {result.GetFormattedResult()}");
+            await ModuleUtil.ReportTestResultAsync(this.testResultReportingClient, Logger, result);
         }
     }
 }
