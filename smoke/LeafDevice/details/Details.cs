@@ -16,6 +16,7 @@ namespace LeafDeviceTest
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Client.Transport.Mqtt;
     using Microsoft.Azure.Devices.Common;
+    using Microsoft.Azure.Devices.Common.Exceptions;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Azure.EventHubs;
@@ -178,7 +179,7 @@ namespace LeafDeviceTest
                             Console.WriteLine("Direct method callback is set.");
                             break;
                         }
-                        catch (Exception e)
+                        catch (DeviceNotFoundException e)
                         {
                             savedException = e;
                         }
