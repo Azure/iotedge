@@ -4,7 +4,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Net;
+    using System.Security.Cryptography.X509Certificates;
     using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
@@ -149,67 +151,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         string apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), storageTotalMaxWalSize));
                         builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, new Uri(managementUri), new Uri(workloadUri), apiVersion, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout));
-                        builder.RegisterInstance(metricsConfig.Enabled
-                                 ? new MetricsProvider("edgeagent", iothubHostname, deviceId)
-                                 : new NullMetricsProvider() as IMetricsProvider);
-                        break;
 
-                    case Constants.KubernetesMode:
-                        managementUri = configuration.GetValue<string>(Constants.EdgeletManagementUriVariableName);
-                        workloadUri = configuration.GetValue<string>(Constants.EdgeletWorkloadUriVariableName);
-                        moduleId = configuration.GetValue(Constants.ModuleIdVariableName, Constants.EdgeAgentModuleIdentityName);
-                        moduleGenerationId = configuration.GetValue<string>(Constants.EdgeletModuleGenerationIdVariableName);
-                        apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
-                        iothubHostname = configuration.GetValue<string>(Constants.IotHubHostnameVariableName);
-                        deviceId = configuration.GetValue<string>(Constants.DeviceIdVariableName);
-                        string networkId = configuration.GetValue<string>(Constants.NetworkIdKey);
-                        string proxyImage = configuration.GetValue<string>(K8sConstants.ProxyImageEnvKey);
-                        string proxyConfigPath = configuration.GetValue<string>(K8sConstants.ProxyConfigPathEnvKey);
-                        string proxyConfigVolumeName = configuration.GetValue<string>(K8sConstants.ProxyConfigVolumeEnvKey);
-                        string proxyConfigMapName = configuration.GetValue<string>(K8sConstants.ProxyConfigMapNameEnvKey);
-                        string proxyTrustBundlePath = configuration.GetValue<string>(K8sConstants.ProxyTrustBundlePathEnvKey);
-                        string proxyTrustBundleVolumeName = configuration.GetValue<string>(K8sConstants.ProxyTrustBundleVolumeEnvKey);
-                        string proxyTrustBundleConfigMapName = configuration.GetValue<string>(K8sConstants.ProxyTrustBundleConfigMapEnvKey);
-                        PortMapServiceType mappedServiceDefault = GetDefaultServiceType(configuration);
-                        bool enableServiceCallTracing = configuration.GetValue<bool>(K8sConstants.EnableK8sServiceCallTracingName);
-                        string persistentVolumeName = configuration.GetValue<string>(K8sConstants.PersistentVolumeNameKey);
-                        string storageClassName = configuration.GetValue<string>(K8sConstants.StorageClassNameKey);
-                        uint persistentVolumeClaimDefaultSizeMb = configuration.GetValue<uint>(K8sConstants.PersistentVolumeClaimDefaultSizeInMbKey);
-                        string deviceNamespace = configuration.GetValue<string>(K8sConstants.K8sNamespaceKey);
-                        var kubernetesExperimentalFeatures = KubernetesExperimentalFeatures.Create(configuration.GetSection("experimentalFeatures"), logger);
-
-                        builder.RegisterInstance(metricsConfig.Enabled
-                                 ? new MetricsProvider("edgeagent", iothubHostname, deviceId)
-                                 : new NullMetricsProvider() as IMetricsProvider);
-                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), enableNonPersistentStorageBackup, storageBackupPath));
-                        builder.RegisterModule(new KubernetesModule(
-                            iothubHostname,
-                            deviceId,
-                            networkId,
-                            edgeDeviceHostName,
-                            proxyImage,
-                            proxyConfigPath,
-                            proxyConfigVolumeName,
-                            proxyConfigMapName,
-                            proxyTrustBundlePath,
-                            proxyTrustBundleVolumeName,
-                            proxyTrustBundleConfigMapName,
-                            apiVersion,
-                            deviceNamespace,
-                            new Uri(managementUri),
-                            new Uri(workloadUri),
-                            dockerAuthConfig,
-                            upstreamProtocol,
-                            Option.Some(productInfo),
-                            mappedServiceDefault,
-                            enableServiceCallTracing,
-                            persistentVolumeName,
-                            storageClassName,
-                            persistentVolumeClaimDefaultSizeMb,
-                            proxy,
-                            closeOnIdleTimeout,
-                            idleTimeout,
-                            kubernetesExperimentalFeatures));
+                        IEnumerable<X509Certificate2> trustBundle = await CertificateHelper.GetTrustBundleFromEdgelet(new Uri(workloadUri), apiVersion, Constants.WorkloadApiVersion, moduleId, moduleGenerationId);
+                        CertificateHelper.InstallCertificates(trustBundle, logger);
 
                         break;
 
