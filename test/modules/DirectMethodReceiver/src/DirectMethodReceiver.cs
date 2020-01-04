@@ -49,7 +49,6 @@ namespace DirectMethodReceiver
                 ModuleUtil.DefaultTransientRetryStrategy,
                 logger);
 
-            //BEARWASHERE: Add testResultCoordinatorUrl, trackingId
             TestResultReportingClient testResultReportingClient = null;
             Option<Uri> testReportCoordinatorUrl = Option.Maybe(configuration.GetValue<Uri>("testResultCoordinatorUrl"));
             if (testReportCoordinatorUrl.HasValue)
