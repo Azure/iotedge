@@ -22,19 +22,20 @@ namespace TwinTester
 
             try
             {
-                RegistryManager registryManager = RegistryManager.CreateFromConnectionString(Settings.Current.ServiceClientConnectionString);
+                using (RegistryManager registryManager = RegistryManager.CreateFromConnectionString(Settings.Current.ServiceClientConnectionString))
+                {
+                    ITwinTestInitializer twinOperator = await GetTwinOperatorAsync(registryManager);
+                    await twinOperator.StartAsync(cts.Token);
+                    await Task.Delay(Settings.Current.TestDuration, cts.Token);
 
-                ITwinTestInitializer twinOperator = await GetTwinOperatorAsync(registryManager);
-                await twinOperator.StartAsync(cts.Token);
-                await Task.Delay(Settings.Current.TestDuration, cts.Token);
+                    Logger.LogInformation($"Test run completed after {Settings.Current.TestDuration}");
+                    twinOperator.Stop();
 
-                Logger.LogInformation($"Test run completed after {Settings.Current.TestDuration}");
-                twinOperator.Stop();
-
-                await cts.Token.WhenCanceled();
-                completed.Set();
-                handler.ForEach(h => GC.KeepAlive(h));
-                Logger.LogInformation("TwinTester exiting.");
+                    await cts.Token.WhenCanceled();
+                    completed.Set();
+                    handler.ForEach(h => GC.KeepAlive(h));
+                    Logger.LogInformation("TwinTester exiting.");
+                }
             }
             catch (Exception ex)
             {
