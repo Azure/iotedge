@@ -11,6 +11,7 @@ namespace IotEdgeQuickstart.Details
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Common;
+    using Microsoft.Azure.Devices.Common.Exceptions;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Azure.EventHubs;
@@ -305,7 +306,7 @@ namespace IotEdgeQuickstart.Details
                                 break;
                             }
                         }
-                        catch (Exception e)
+                        catch (DeviceNotFoundException e)
                         {
                             savedException = e;
                         }
@@ -365,7 +366,7 @@ namespace IotEdgeQuickstart.Details
 
             // TODO: [Improvement] should verify test results without using event hub, which introduce latency.
             var result = new TaskCompletionSource<bool>();
-            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(20))) // This long timeout is needed in case event hub is slow to process messages
+            using (var cts = new CancellationTokenSource(TimeSpan.FromMinutes(20))) // This long timeout is needed in case event hub's partition receive handler is slow to process messages
             {
                 using (cts.Token.Register(() => result.TrySetCanceled()))
                 {
