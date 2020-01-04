@@ -42,7 +42,7 @@ namespace DirectMethodReceiver
         {
             Preconditions.CheckNotNull(logger, nameof(logger));
             Preconditions.CheckNotNull(configuration, nameof(configuration));
-            
+
             ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
                 configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only),
                 ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
@@ -83,14 +83,16 @@ namespace DirectMethodReceiver
             DirectMethodTestResult testResult = null;
             if (this.testResultReportingClient != null)
             {
-                testResult = new DirectMethodTestResult(configuration.GetValue<string>("IOTEDGE_MODULEID") + ".receive", DateTime.UtcNow)
+                testResult = new DirectMethodTestResult(this.configuration.GetValue<string>("IOTEDGE_MODULEID") + ".receive", DateTime.UtcNow)
                 {
-                    TrackingId = Option.Maybe(configuration.GetValue<string>("trackingId")).Expect(() => new ArgumentException("TrackingId is empty")),
+                    TrackingId = Option.Maybe(this.configuration.GetValue<string>("trackingId"))
+                        .Expect(() => new ArgumentException("TrackingId is empty")),
                     BatchId = this.batchId.ToString(),
                     SequenceNumber = this.directMethodCount.ToString(),
                     Result = HttpStatusCode.OK.ToString()
                 };
             }
+
             await ModuleUtil.ReportTestResultAsync(this.testResultReportingClient, this.logger, testResult);
             this.directMethodCount++;
         }

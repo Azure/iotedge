@@ -51,6 +51,7 @@ namespace DirectMethodReceiver
             {
                 directMethodClient?.Dispose();
             }
+
             return 0;
         }
     }
