@@ -6,50 +6,94 @@ namespace DirectMethodReceiver
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
+    using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     class DirectMethodReceiver : IDisposable
     {
-        private IConfiguration configuration;
+        Guid batchId;
+        IConfiguration configuration;
         long directMethodCount = 1;
         ILogger logger;
         ModuleClient moduleClient;
+        TestResultReportingClient testResultReportingClient;
 
         public DirectMethodReceiver(
             ILogger logger,
             IConfiguration configuration,
-            ModuleClient moduleClient)
+            ModuleClient moduleClient,
+            TestResultReportingClient testResultReportingClient)
         {
+            Preconditions.CheckNotNull(logger, nameof(logger));
+            Preconditions.CheckNotNull(configuration, nameof(configuration));
+            Preconditions.CheckNotNull(moduleClient, nameof(moduleClient));
+
             this.logger = logger;
             this.configuration = configuration;
             this.moduleClient = moduleClient;
+            this.testResultReportingClient = testResultReportingClient;
+            this.batchId = Guid.NewGuid();
         }
 
         public static async Task<DirectMethodReceiver> CreateAsync(
             ILogger logger,
             IConfiguration configuration)
         {
+            Preconditions.CheckNotNull(logger, nameof(logger));
+            Preconditions.CheckNotNull(configuration, nameof(configuration));
+            
             ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
                 configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only),
                 ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                 ModuleUtil.DefaultTransientRetryStrategy,
                 logger);
 
+            //BEARWASHERE: Add testResultCoordinatorUrl, trackingId
+            TestResultReportingClient testResultReportingClient = null;
+            Option<Uri> testReportCoordinatorUrl = Option.Maybe(configuration.GetValue<Uri>("testResultCoordinatorUrl"));
+            if (testReportCoordinatorUrl.HasValue)
+            {
+                testResultReportingClient = new TestResultReportingClient
+                {
+                    BaseUrl = testReportCoordinatorUrl.Expect(
+                        () => new ArgumentException("testReportCoordinatorUrl is empty"))
+                        .AbsoluteUri
+                };
+            }
+
             return new DirectMethodReceiver(
                 logger,
                 configuration,
-                moduleClient);
+                moduleClient,
+                testResultReportingClient);
         }
 
         public void Dispose() => this.moduleClient?.Dispose();
 
-        Task<MethodResponse> HelloWorldMethodAsync(MethodRequest methodRequest, object userContext)
+        async Task<MethodResponse> HelloWorldMethodAsync(MethodRequest methodRequest, object userContext)
         {
             this.logger.LogInformation("Received direct method call.");
-            // Send the report here
-            // Increment the number
+            // Send the report to Test Result Coordinator
+            await this.ReportTestResult();
+            return new MethodResponse((int)HttpStatusCode.OK);
+        }
+
+        public async Task ReportTestResult()
+        {
+            DirectMethodTestResult testResult = null;
+            if (this.testResultReportingClient != null)
+            {
+                testResult = new DirectMethodTestResult(configuration.GetValue<string>("IOTEDGE_MODULEID") + ".receive", DateTime.UtcNow)
+                {
+                    TrackingId = Option.Maybe(configuration.GetValue<string>("trackingId")).Expect(() => new ArgumentException("TrackingId is empty")),
+                    BatchId = this.batchId.ToString(),
+                    SequenceNumber = this.directMethodCount.ToString(),
+                    Result = HttpStatusCode.OK.ToString()
+                };
+            }
+            await ModuleUtil.ReportTestResultAsync(this.testResultReportingClient, this.logger, testResult);
             this.directMethodCount++;
-            return Task.FromResult(new MethodResponse((int)HttpStatusCode.OK));
         }
 
         public async Task StartAsync()
