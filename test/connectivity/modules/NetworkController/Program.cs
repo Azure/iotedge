@@ -17,37 +17,41 @@ namespace NetworkController
         {
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Log);
 
-            Log.LogInformation($"Starting with {Settings.Current.NetworkControllerMode}");
+            Log.LogInformation($"Starting with {Settings.Current.NetworkRunProfile.ProfileType}");
 
             try
             {
                 var networkInterfaceName = DockerHelper.GetDockerInterfaceName();
 
-                if (networkInterfaceName.HasValue)
-                {
-                    await networkInterfaceName.ForEachAsync(
-                        async name =>
-                        {
-                            var firewall = new FirewallOfflineController(name, Settings.Current.IotHubHostname);
-                            var satellite = new SatelliteController(name);
-                            var controllers = new List<INetworkController>() { firewall, satellite };
-                            await RemoveAllControllingRules(controllers, cts.Token);
+                await networkInterfaceName.ForEachAsync(
+                    async name =>
+                    {
+                        var offline = new OfflineController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSettings);
+                        var satellite = new SatelliteController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSettings);
+                        var cellular = new CellularController(name, Settings.Current.IotHubHostname, Settings.Current.NetworkRunProfile.ProfileSettings);
+                        var controllers = new List<INetworkController>() { offline, satellite, cellular };
+                        await RemoveAllControllingRules(controllers, cts.Token);
 
-                            switch (Settings.Current.NetworkControllerMode)
-                            {
-                                case NetworkControllerMode.OfflineTrafficController:
-                                    await StartAsync(firewall, cts.Token);
-                                    break;
-                                case NetworkControllerMode.SatelliteTrafficController:
-                                    await StartAsync(satellite, cts.Token);
-                                    break;
-                            }
-                        });
-                }
-                else
-                {
-                    Log.LogError($"No network interface found for docker network {Settings.Current.NetworkId}");
-                }
+                        Enum.TryParse(Settings.Current.NetworkRunProfile.ProfileType, out NetworkControllerType ncType);
+                        switch (ncType)
+                        {
+                            case NetworkControllerType.Offline:
+                                await StartAsync(offline, cts.Token);
+                                break;
+                            case NetworkControllerType.Satellite:
+                                await StartAsync(satellite, cts.Token);
+                                break;
+                            case NetworkControllerType.Cellular:
+                                await StartAsync(cellular, cts.Token);
+                                break;
+                            case NetworkControllerType.All:
+                                throw new NotSupportedException($"Network type {Settings.Current.NetworkRunProfile.ProfileType} is not supported.");
+                        }
+                    });
+
+                await cts.Token.WhenCanceled();
+                completed.Set();
+                handler.ForEach(h => GC.KeepAlive(h));
             }
             catch (Exception ex)
             {

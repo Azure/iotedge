@@ -13,7 +13,7 @@ parameters:
   upstream.protocol: ''
   loadGen.message.frequency: ''
   networkController.frequencies: ''
-  networkController.mode: ''
+  networkController.runProfile: ''
   logAnalyticsWorkspaceId: ''
   logAnalyticsSharedKey: ''
   testResultCoordinator.logAnalyticsLogType: ''
@@ -64,7 +64,7 @@ steps:
           -testStartDelay "${{ parameters['testStartDelay'] }}" \
           -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" \
           -networkControllerFrequency "${{ parameters['networkController.frequencies'] }}" \
-          -networkControllerMode "${{ parameters['networkController.mode'] }}" \
+          -networkControllerRunProfile "${{ parameters['networkController.runProfile'] }}" \
           -logAnalyticsWorkspaceId "${{ parameters['logAnalyticsWorkspaceId'] }}" \
           -logAnalyticsSharedKey "${{ parameters['logAnalyticsSharedKey'] }}" \
           -logAnalyticsLogType "${{ parameters['testResultCoordinator.logAnalyticsLogType'] }}" \

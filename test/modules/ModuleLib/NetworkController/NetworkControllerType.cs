@@ -4,7 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController
     public enum NetworkControllerType
     {
         Offline,
-        Sattelite,
+        Satellite,
         Cellular,
         All
     }

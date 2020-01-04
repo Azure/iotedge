@@ -700,8 +700,8 @@
               "RunFrequencies__0__RunsCount": {
                 "value": "<NetworkController.RunsCount0>"
               },
-              "NetworkControllerMode": {
-                "value": "<NetworkController.Mode>"
+              "NetworkControllerRunProfile": {
+                "value": "<NetworkController.RunProfile>"
               },
               "StartAfter": {
                 "value": "<TestStartDelay>"
