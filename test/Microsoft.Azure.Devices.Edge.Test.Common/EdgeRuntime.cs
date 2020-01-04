@@ -59,7 +59,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
                 .Select(id => new EdgeModule(id, this.deviceId, this.iotHub))
                 .ToList();
 
-                await Task.Delay(TimeSpan.FromSeconds(5));
+                await Task.Delay(TimeSpan.FromSeconds(30));
             }
 
             await EdgeModule.WaitForStatusAsync(modules, EdgeModuleStatus.Running, token);
