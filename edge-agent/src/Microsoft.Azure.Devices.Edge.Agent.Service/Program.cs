@@ -4,9 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
     using System.Net;
-    using System.Security.Cryptography.X509Certificates;
     using System.Threading;
     using System.Threading.Tasks;
     using Autofac;
@@ -18,14 +16,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Microsoft.Azure.Devices.Edge.Agent.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
-    using Microsoft.Azure.Devices.Edge.Util.Metrics.NullMetrics;
-    using Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
     using Constants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
-    using K8sConstants = Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Constants;
-    using KubernetesModule = Microsoft.Azure.Devices.Edge.Agent.Service.Modules.KubernetesModule;
-    using MetricsListener = Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net.MetricsListener;
 
     public class Program
     {
@@ -134,10 +127,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         deviceId = connectionStringParser.DeviceId;
                         iothubHostname = connectionStringParser.HostName;
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, storageTotalMaxWalSize));
-                        builder.RegisterInstance(metricsConfig.Enabled
-                                 ? new MetricsProvider("edgeagent", iothubHostname, deviceId)
-                                 : new NullMetricsProvider() as IMetricsProvider);
-                        builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, enableNonPersistentStorageBackup, storageBackupPath));
                         builder.RegisterModule(new DockerModule(deviceConnectionString, edgeDeviceHostName, dockerUri, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout));
                         break;
 
@@ -151,9 +140,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                         string apiVersion = configuration.GetValue<string>(Constants.EdgeletApiVersionVariableName);
                         builder.RegisterModule(new AgentModule(maxRestartCount, intensiveCareTime, coolOffTimeUnitInSeconds, usePersistentStorage, storagePath, Option.Some(new Uri(workloadUri)), Option.Some(apiVersion), moduleId, Option.Some(moduleGenerationId), storageTotalMaxWalSize));
                         builder.RegisterModule(new EdgeletModule(iothubHostname, edgeDeviceHostName, deviceId, new Uri(managementUri), new Uri(workloadUri), apiVersion, dockerAuthConfig, upstreamProtocol, proxy, productInfo, closeOnIdleTimeout, idleTimeout));
-
-                        IEnumerable<X509Certificate2> trustBundle = await CertificateHelper.GetTrustBundleFromEdgelet(new Uri(workloadUri), apiVersion, Constants.WorkloadApiVersion, moduleId, moduleGenerationId);
-                        CertificateHelper.InstallCertificates(trustBundle, logger);
 
                         break;
 
@@ -197,38 +183,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             }
 
             // Initialize metrics
-            var metricsLifetimes = new List<IDisposable>();
             if (metricsConfig.Enabled)
             {
-                var metricsListener = new MetricsListener(metricsConfig.ListenerConfig, container.Resolve<IMetricsProvider>());
-                metricsListener.Start(logger);
-                metricsLifetimes.Add(metricsListener);
-            }
-
-            Dictionary<Type, string> recognizedExceptions = new Dictionary<Type, string>
-            {
-                // TODO: Decide what exceptions to recognize and ignore
-                { typeof(Newtonsoft.Json.JsonSerializationException), "json_serialization" },
-                { typeof(ArgumentException), "argument" },
-                { typeof(Rest.HttpOperationException), "http" },
-            };
-            HashSet<Type> ignoredExceptions = new HashSet<Type>
-            {
-                typeof(TaskCanceledException),
-                typeof(OperationCanceledException),
-            };
-            metricsLifetimes.Add(new ExceptionCounter(recognizedExceptions, ignoredExceptions, container.Resolve<IMetricsProvider>()));
-
-            // TODO move this code to Agent
-            if (mode.ToLowerInvariant().Equals(Constants.KubernetesMode))
-            {
-                // Start environment operator
-                IKubernetesEnvironmentOperator environmentOperator = container.Resolve<IKubernetesEnvironmentOperator>();
-                environmentOperator.Start();
-
-                // Start the edge deployment operator
-                IEdgeDeploymentOperator edgeDeploymentOperator = container.Resolve<IEdgeDeploymentOperator>();
-                edgeDeploymentOperator.Start();
+                container.Resolve<IMetricsListener>().Start(logger);
             }
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)
@@ -279,7 +236,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                     returnCode = 1;
                 }
 
-                metricsLifetimes.ForEach(m => m.Dispose());
                 // Attempt to report shutdown of Agent
                 await Cleanup(agentOption, logger);
                 completed.Set();
