@@ -14,6 +14,7 @@ namespace TestResultCoordinator.Report
         readonly RegistryManager registryManager;
         readonly string moduleId;
         readonly string trackingId;
+        readonly string source;
         TestOperationResult current;
         bool isLoaded;
 
@@ -22,11 +23,9 @@ namespace TestResultCoordinator.Report
             this.registryManager = RegistryManager.CreateFromConnectionString(serviceClientConnectionString);
             this.isLoaded = false;
             this.moduleId = moduleId;
-            this.Source = source;
+            this.source = source;
             this.trackingId = trackingId;
         }
-
-        public string Source { get; }
 
         TestOperationResult ITestResultCollection<TestOperationResult>.Current => this.current;
 
@@ -67,12 +66,11 @@ namespace TestResultCoordinator.Report
                     return null;
                 }
 
-                var twinTestResult = new TwinTestResult() { TrackingId = this.trackingId, Properties = twin.Properties.Reported };
-                return new TestOperationResult(
-                    this.Source,
-                    TestOperationResultType.Twin.ToString(),
-                    twinTestResult.ToString(),
-                    twin.LastActivityTime.HasValue ? twin.LastActivityTime.Value : DateTime.UtcNow);
+                return new TwinTestResult(this.source, twin.LastActivityTime.HasValue ? twin.LastActivityTime.Value : DateTime.UtcNow)
+                {
+                    TrackingId = this.trackingId,
+                    Properties = twin.Properties.Reported
+                }.ToTestOperationResult();
             }
             catch (Exception e)
             {
