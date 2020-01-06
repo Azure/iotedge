@@ -14,7 +14,7 @@ namespace TestResultCoordinator.Controllers
     [ApiController]
     public class TestOperationResultController : Controller
     {
-        static readonly ILogger Logger = Microsoft.Azure.Devices.Edge.ModuleUtil.ModuleUtil.CreateLogger(nameof(TestOperationResultController));
+        static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TestOperationResultController));
 
         readonly ITestOperationResultStorage storage;
 
