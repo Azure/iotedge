@@ -19,9 +19,12 @@ namespace DirectMethodReceiver
         static async Task<int> MainAsync()
         {
             DirectMethodReceiver directMethodClient = null;
+
             try
             {
                 Logger.LogInformation("DirectMethodReceiver Main() started.");
+
+                (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
 
                 IConfiguration configuration = new ConfigurationBuilder()
                     .SetBasePath(Directory.GetCurrentDirectory())
@@ -33,9 +36,7 @@ namespace DirectMethodReceiver
                     Logger,
                     configuration);
 
-                (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler) = ShutdownHandler.Init(TimeSpan.FromSeconds(5), Logger);
-
-                await directMethodClient.StartAsync();
+                await directMethodClient.InitDirectMethodClient();
 
                 await cts.Token.WhenCanceled();
 

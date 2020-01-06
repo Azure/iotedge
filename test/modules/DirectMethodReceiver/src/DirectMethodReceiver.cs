@@ -10,6 +10,7 @@ namespace DirectMethodReceiver
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
+
     class DirectMethodReceiver : IDisposable
     {
         Guid batchId;
@@ -19,19 +20,16 @@ namespace DirectMethodReceiver
         ModuleClient moduleClient;
         TestResultReportingClient testResultReportingClient;
 
-        public DirectMethodReceiver(
+        DirectMethodReceiver(
             ILogger logger,
             IConfiguration configuration,
-            ModuleClient moduleClient,
             TestResultReportingClient testResultReportingClient)
         {
             Preconditions.CheckNotNull(logger, nameof(logger));
             Preconditions.CheckNotNull(configuration, nameof(configuration));
-            Preconditions.CheckNotNull(moduleClient, nameof(moduleClient));
 
             this.logger = logger;
             this.configuration = configuration;
-            this.moduleClient = moduleClient;
             this.testResultReportingClient = testResultReportingClient;
             this.batchId = Guid.NewGuid();
         }
@@ -42,12 +40,6 @@ namespace DirectMethodReceiver
         {
             Preconditions.CheckNotNull(logger, nameof(logger));
             Preconditions.CheckNotNull(configuration, nameof(configuration));
-
-            ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
-                configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only),
-                ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                ModuleUtil.DefaultTransientRetryStrategy,
-                logger);
 
             TestResultReportingClient testResultReportingClient = null;
             Option<Uri> testReportCoordinatorUrl = Option.Maybe(configuration.GetValue<Uri>("testResultCoordinatorUrl"));
@@ -64,7 +56,6 @@ namespace DirectMethodReceiver
             return new DirectMethodReceiver(
                 logger,
                 configuration,
-                moduleClient,
                 testResultReportingClient);
         }
 
@@ -91,14 +82,21 @@ namespace DirectMethodReceiver
                     SequenceNumber = this.directMethodCount.ToString(),
                     Result = HttpStatusCode.OK.ToString()
                 };
+                await ModuleUtil.ReportTestResultAsync(this.testResultReportingClient, this.logger, testResult);
             }
 
-            await ModuleUtil.ReportTestResultAsync(this.testResultReportingClient, this.logger, testResult);
             this.directMethodCount++;
         }
 
-        public async Task StartAsync()
+        public async Task InitDirectMethodClient()
         {
+            this.moduleClient = await ModuleUtil.CreateModuleClientAsync(
+                this.configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only),
+                ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
+                ModuleUtil.DefaultTransientRetryStrategy,
+                this.logger);
+            Preconditions.CheckNotNull(this.moduleClient, nameof(this.moduleClient));
+
             await this.moduleClient.OpenAsync();
             await this.moduleClient.SetMethodHandlerAsync("HelloWorldMethod", this.HelloWorldMethodAsync, null);
         }
