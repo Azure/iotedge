@@ -53,11 +53,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common
             foreach (EdgeConfiguration edgeConfiguration in configs)
             {
                 await edgeConfiguration.DeployAsync(this.iotHub, token);
-                modules.AddRange(edgeConfiguration.ModuleNames
+                modules = edgeConfiguration.ModuleNames
                 .Select(id => new EdgeModule(id, this.deviceId, this.iotHub))
-                .ToArray());
+                .ToList();
 
-                await Task.Delay(TimeSpan.FromSeconds(5));
+                await Task.Delay(TimeSpan.FromSeconds(30));
             }
 
             await EdgeModule.WaitForStatusAsync(modules, EdgeModuleStatus.Running, token);
