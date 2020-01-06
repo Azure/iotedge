@@ -179,35 +179,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 });
         }
 
-        Task<Option<string>> FindAgentImageAsync(CancellationToken token)
-        {
-            var agentImage = this.activeDeployment.Match(
-                edgeDeployment =>
-                {
-                    var currentAgent = this.activeDeployment.OrDefault().Spec.First(agentModule => agentModule.Name == Core.Constants.EdgeAgentModuleName);
-                    return Task.FromResult(Option.Some(currentAgent.Config.Image));
-                },
-                async () =>
-                {
-                    try
-                    {
-                        // When CRD has not been created, use helm chart deployment details
-                        var agentDeployment = await this.client.ReadNamespacedDeploymentAsync(
-                                Core.Constants.EdgeAgentModuleName.ToLower(),
-                                this.deviceNamespace,
-                                cancellationToken: token);
-                        return Option.Some(agentDeployment.Spec.Template.Spec.Containers.First(container => container.Name == Core.Constants.EdgeAgentModuleName.ToLower()).Image);
-                    }
-                    catch (Exception e)
-                    {
-                        Events.FindActiveDeploymentFailed(Core.Constants.EdgeAgentModuleName, e);
-                        return Option.None<string>();
-                    }
-                });
-
-            return agentImage;
-        }
-
         public Task UndoAsync(CancellationToken token) => Task.CompletedTask;
 
         public string Show() => $"Create an EdgeDeployment with modules: ({string.Join(", ", this.modules.Select(m => m.Name))}\n)";
