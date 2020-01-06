@@ -13,6 +13,7 @@
     <RootNamespace>load_gen</RootNamespace>
     <LangVersion>latest</LangVersion>
     <Configurations>Debug;Release;CheckInBuild</Configurations>
+    <HighEntropyVA>true</HighEntropyVA>
   </PropertyGroup>
 
   <ItemGroup>
