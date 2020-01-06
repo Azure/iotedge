@@ -749,6 +749,7 @@ mod tests {
         }
     }
 
+    #[allow(clippy::cognitive_complexity)]
     #[test]
     fn module_to_role_binding() {
         let module = create_module_spec();
