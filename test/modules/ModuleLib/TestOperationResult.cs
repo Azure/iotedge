@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
         public DateTime CreatedAt { get; }
 
         [JsonIgnore]
-        public bool NetworkOn { get; set; }
+        public bool NetworkOnline { get; set; }
 
         [JsonIgnore]
         public DateTime NetworkLastUpdatedTime { get; set; }
