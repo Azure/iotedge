@@ -3,7 +3,9 @@ namespace TestResultCoordinator.Storage
 {
     using System;
     using System.Threading;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkControllerResult;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Microsoft.Extensions.Logging;
@@ -24,11 +26,11 @@ namespace TestResultCoordinator.Storage
             Preconditions.CheckNotNull(testOperationResult, nameof(testOperationResult));
             if (Microsoft.Azure.Devices.Edge.ModuleUtil.TestOperationResultType.Network.ToString().Equals(testOperationResult.Type))
             {
-                NetworkControllerResult networkControllerResult = (NetworkControllerResult)JsonConvert.DeserializeObject(testOperationResult.Result, typeof(NetworkControllerResult));
-                switch (networkControllerResult.NetworkControllerType)
+                NetworkControllerTestResult networkControllerTestResult = (NetworkControllerTestResult)JsonConvert.DeserializeObject(testOperationResult.Result, typeof(NetworkControllerTestResult));
+                switch (networkControllerTestResult.NetworkControllerType)
                 {
                     case NetworkControllerType.Offline:
-                        if (networkControllerResult.NetworkControllerStatus == NetworkControllerStatus.Enabled)
+                        if (networkControllerTestResult.NetworkControllerStatus == NetworkControllerStatus.Enabled)
                         {
                             Logger.LogInformation($"Setting Online Status to false");
                             currentlyOnline.Set(false);
@@ -42,7 +44,7 @@ namespace TestResultCoordinator.Storage
                         dateTimeTicks = Interlocked.Exchange(ref dateTimeTicks, DateTime.Now.Ticks);
                         break;
                     default:
-                        throw new NotImplementedException($"Storage preparation for {networkControllerResult.NetworkControllerType} is not yet implemented");
+                        throw new NotImplementedException($"Storage preparation for {networkControllerTestResult.NetworkControllerType} is not yet implemented");
                 }
             }
 

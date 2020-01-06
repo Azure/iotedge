@@ -5,6 +5,7 @@ namespace TestResultCoordinator.Controllers
     using System.Net;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Mvc;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using TestResultCoordinator.Storage;
