@@ -5,6 +5,7 @@ namespace TestResultCoordinator.Storage
     using System.Collections.Generic;
     using System.IO;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;

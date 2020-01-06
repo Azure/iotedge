@@ -124,9 +124,9 @@ mod tests {
         let input_sans: Vec<String> = vec![String::from("serif"), String::from("guile")];
         let core_props = CoreCertificateProperties::new(
             validity_in_secs,
-            common_name.clone(),
+            common_name,
             CoreCertificateType::Ca,
-            alias.clone(),
+            alias,
         )
         .with_san_entries(input_sans);
         check_conversion(

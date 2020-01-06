@@ -15,7 +15,7 @@ impl APIClient {
         let configuration = Arc::new(configuration);
 
         APIClient {
-            workload_api: Box::new(crate::apis::WorkloadApiClient::new(configuration.clone())),
+            workload_api: Box::new(crate::apis::WorkloadApiClient::new(configuration)),
         }
     }
 

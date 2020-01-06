@@ -3,8 +3,7 @@ namespace NetworkController
 {
     enum NetworkControllerMode
     {
-        OfflineNetworkInterface = 0,
-        OfflineTrafficController,
+        OfflineTrafficController = 0,
         SatelliteTrafficController
     }
 }

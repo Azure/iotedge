@@ -24,7 +24,7 @@ impl APIClient {
             identity_api: Box::new(crate::apis::IdentityApiClient::new(configuration.clone())),
             module_api: Box::new(crate::apis::ModuleApiClient::new(configuration.clone())),
             system_information_api: Box::new(crate::apis::SystemInformationApiClient::new(
-                configuration.clone(),
+                configuration,
             )),
         }
     }
