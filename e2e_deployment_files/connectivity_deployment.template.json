@@ -148,6 +148,12 @@
             "env": {
               "ClientTransportType": {
                 "value": "Amqp"
+              },
+              "testResultCoordinatorUrl": {
+                "value": "http://testResultCoordinator:5001"
+              },
+              "trackingId": {
+                "value": "<TrackingId>"
               }
             },
             "settings": {
@@ -197,6 +203,12 @@
             "env": {
               "ClientTransportType": {
                 "value": "Mqtt"
+              },
+              "testResultCoordinatorUrl": {
+                "value": "http://testResultCoordinator:5001"
+              },
+              "trackingId": {
+                "value": "<TrackingId>"
               }
             },
             "settings": {
