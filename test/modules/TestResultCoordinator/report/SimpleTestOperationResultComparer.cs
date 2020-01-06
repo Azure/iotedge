@@ -2,6 +2,7 @@
 namespace TestResultCoordinator.Report
 {
     using System;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
 
     /// <summary>
     /// This test result comparer is used to determine if 2 TestOperationResult instances matches.

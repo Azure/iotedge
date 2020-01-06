@@ -30,7 +30,7 @@ namespace TestResultCoordinator.Report
             }
             catch (Exception ex)
             {
-                logger.LogError("TestResultCoordinator failed during report generation", ex);
+                logger.LogError(ex, "TestResultCoordinator failed during report generation");
                 return new ITestResultReport[] { };
             }
         }
