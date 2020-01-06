@@ -8,8 +8,8 @@ namespace DeploymentTester
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Azure.Devices.Edge.Util.Json;
     using Microsoft.Azure.Devices.Shared;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
@@ -68,7 +68,7 @@ namespace DeploymentTester
                     ConfigurationContent configContent = JsonConvert.DeserializeObject<ConfigurationContent>(deploymentJson.ToString());
                     await registryManager.ApplyConfigurationContentOnDeviceAsync(Settings.Current.DeviceId, configContent);
 
-                    var deploymentTestResult = new DeploymentTestResult
+                    var testResult = new DeploymentTestResult(Settings.Current.ModuleId + ".send", DateTime.UtcNow)
                     {
                         TrackingId = Settings.Current.TrackingId,
                         EnvironmentVariables = new Dictionary<string, string>
@@ -77,12 +77,7 @@ namespace DeploymentTester
                         }
                     };
 
-                    await ModuleUtil.ReportStatus(
-                        apiClient,
-                        Logger,
-                        Settings.Current.ModuleId + ".send",
-                        deploymentTestResult.ToPrettyJson(),
-                        TestOperationResultType.Deployment.ToString());
+                    await ModuleUtil.ReportTestResultAsync(apiClient, Logger, testResult);
                     Logger.LogInformation($"Successfully report to TRC for new deployment: tracking id={Settings.Current.TrackingId}, new environment variable={newEnvVar.Key}:{newEnvVar.Value}.");
 
                     await Task.Delay(Settings.Current.DeploymentUpdatePeriod, cts.Token);
@@ -139,24 +134,24 @@ namespace DeploymentTester
 
         static async Task ReportDeploymentEnvironmentVariablesAsync(TestResultReportingClient trcClient)
         {
-            var deploymentTestResult = new DeploymentTestResult { TrackingId = Settings.Current.TrackingId };
-
             // Report all environment variable with predefined prefix to Test Result Coordinator
+            var envVars = new Dictionary<string, string>();
             foreach (DictionaryEntry envVariable in Environment.GetEnvironmentVariables())
             {
                 if (envVariable.Key.ToString().StartsWith(Settings.EnvironmentVariablePrefix, StringComparison.OrdinalIgnoreCase))
                 {
-                    deploymentTestResult.EnvironmentVariables.Add(envVariable.Key.ToString(), envVariable.Value.ToString());
+                    envVars.Add(envVariable.Key.ToString(), envVariable.Value.ToString());
                 }
             }
 
-            await ModuleUtil.ReportStatus(
-                trcClient,
-                Logger,
-                Settings.Current.ModuleId + ".receive",
-                deploymentTestResult.ToPrettyJson(),
-                TestOperationResultType.Deployment.ToString());
-            Logger.LogInformation($"Successfully report to TRC for new deployment: tracking id={Settings.Current.TrackingId}, environment variable count={deploymentTestResult.EnvironmentVariables.Count}.");
+            var testResult = new DeploymentTestResult(Settings.Current.ModuleId + ".receive", DateTime.UtcNow)
+            {
+                TrackingId = Settings.Current.TrackingId,
+                EnvironmentVariables = envVars
+            };
+
+            await ModuleUtil.ReportTestResultAsync(trcClient, Logger, testResult);
+            Logger.LogInformation($"Successfully report to TRC for new deployment: tracking id={Settings.Current.TrackingId}, environment variable count={testResult.EnvironmentVariables.Count}.");
         }
     }
 }
