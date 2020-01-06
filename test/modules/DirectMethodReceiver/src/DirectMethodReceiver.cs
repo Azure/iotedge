@@ -20,21 +20,7 @@ namespace DirectMethodReceiver
         ModuleClient moduleClient;
         TestResultReportingClient testResultReportingClient;
 
-        DirectMethodReceiver(
-            ILogger logger,
-            IConfiguration configuration,
-            TestResultReportingClient testResultReportingClient)
-        {
-            Preconditions.CheckNotNull(logger, nameof(logger));
-            Preconditions.CheckNotNull(configuration, nameof(configuration));
-
-            this.logger = logger;
-            this.configuration = configuration;
-            this.testResultReportingClient = testResultReportingClient;
-            this.batchId = Guid.NewGuid();
-        }
-
-        public static async Task<DirectMethodReceiver> CreateAsync(
+        public DirectMethodReceiver(
             ILogger logger,
             IConfiguration configuration)
         {
@@ -53,10 +39,10 @@ namespace DirectMethodReceiver
                 };
             }
 
-            return new DirectMethodReceiver(
-                logger,
-                configuration,
-                testResultReportingClient);
+            this.logger = logger;
+            this.configuration = configuration;
+            this.testResultReportingClient = testResultReportingClient;
+            this.batchId = Guid.NewGuid();
         }
 
         public void Dispose() => this.moduleClient?.Dispose();
@@ -88,7 +74,7 @@ namespace DirectMethodReceiver
             this.directMethodCount++;
         }
 
-        public async Task InitDirectMethodClient()
+        public async Task Init()
         {
             this.moduleClient = await ModuleUtil.CreateModuleClientAsync(
                 this.configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only),
