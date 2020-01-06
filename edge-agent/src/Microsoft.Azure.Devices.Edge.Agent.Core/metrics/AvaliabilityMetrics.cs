@@ -11,11 +11,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Extensions.Logging;
 
-    public interface IAvailabilityMetric
-    {
-        void ComputeAvailability(ModuleSet desired, ModuleSet current);
-    }
-
     public class AvailabilityMetrics : IAvailabilityMetric
     {
         readonly IMetricsGauge running;
