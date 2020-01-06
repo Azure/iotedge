@@ -424,7 +424,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
             Twin updatedCloudTwin = await deviceClient.GetTwinAsync();
 
             // replicate the patch operation locally
-            var delayTask = Task.Delay(TimeSpan.FromSeconds(10));
+            var delayTask = Task.Delay(TimeSpan.FromSeconds(60));
             while (!desiredPropertiesUpdateCallbackTriggered && !delayTask.IsCompleted)
             {
                 await Task.Delay(TimeSpan.FromMilliseconds(500));
