@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace Microsoft.Azure.Devices.Edge.Util
 {
-    using System.Collections.Generic;
     using System.IO;
     using System.IO.Compression;
 

@@ -9,7 +9,6 @@ pub const API_VERSION: Version = Version::Version2019_11_05;
 pub enum Version {
     Version2018_06_28,
     Version2019_01_30,
-    Version2019_10_22,
     Version2019_11_05,
 }
 
@@ -20,7 +19,6 @@ impl FromStr for Version {
         match s {
             "2018-06-28" => Ok(Version::Version2018_06_28),
             "2019-01-30" => Ok(Version::Version2019_01_30),
-            "2019-10-22" => Ok(Version::Version2019_10_22),
             "2019-11-05" => Ok(Version::Version2019_11_05),
             _ => Err(()),
         }
@@ -32,7 +30,6 @@ impl fmt::Display for Version {
         match *self {
             Version::Version2018_06_28 => write!(f, "2018-06-28"),
             Version::Version2019_01_30 => write!(f, "2019-01-30"),
-            Version::Version2019_10_22 => write!(f, "2019-10-22"),
             Version::Version2019_11_05 => write!(f, "2019-11-05"),
         }
     }
