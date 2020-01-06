@@ -92,7 +92,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
                 if (module.Name == "$edgeHub")
                 {
-                    allConfigurations.Add(new EdgeConfiguration(this.deviceId, new List<string>(moduleNames), new List<string>(moduleImages), config));
+                    Dictionary<string, IDictionary<string, object>> copyModulesContent = config.ModulesContent.ToDictionary(entry => entry.Key, entry => entry.Value);
+                    allConfigurations.Add(new EdgeConfiguration(this.deviceId, new List<string>(moduleNames), new List<string>(moduleImages), new ConfigurationContent { ModulesContent = copyModulesContent }));
                 }
             }
 
