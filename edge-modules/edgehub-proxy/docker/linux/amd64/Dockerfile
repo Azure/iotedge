@@ -1,4 +1,4 @@
-FROM haproxy:1.8.14-alpine
+FROM haproxy:1.8.23-alpine
 
 RUN apk add --no-cache curl jq
 
