@@ -4,7 +4,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
     using System.Net;
     using System.Security.Cryptography.X509Certificates;
     using System.Threading;
@@ -12,12 +11,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
     using Autofac;
     using global::Docker.DotNet.Models;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
+    using Microsoft.Azure.Devices.Edge.Agent.Core.Metrics;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Requests;
     using Microsoft.Azure.Devices.Edge.Agent.IoTHub.Stream;
     using Microsoft.Azure.Devices.Edge.Agent.Service.Modules;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
+    using Constants = Microsoft.Azure.Devices.Edge.Agent.Core.Constants;
 
     public class Program
     {
@@ -76,6 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             Dictionary<string, string> dockerLoggingOptions;
             IEnumerable<AuthConfig> dockerAuthConfig;
             int configRefreshFrequencySecs;
+            MetricsConfig metricsConfig;
 
             try
             {
@@ -112,8 +115,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 TimeSpan idleTimeout = TimeSpan.FromSeconds(idleTimeoutSecs);
                 ExperimentalFeatures experimentalFeatures = ExperimentalFeatures.Create(configuration.GetSection("experimentalFeatures"), logger);
                 Option<ulong> storageTotalMaxWalSize = GetStorageMaxTotalWalSizeIfExists(configuration);
+                metricsConfig = new MetricsConfig(experimentalFeatures.EnableMetrics, MetricsListenerConfig.Create(configuration));
                 string iothubHostname;
                 string deviceId;
+
                 switch (mode.ToLowerInvariant())
                 {
                     case Constants.DockerMode:
@@ -179,6 +184,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
             {
                 logger.LogCritical(AgentEventIds.Agent, ex, "Fatal error building application.");
                 return 1;
+            }
+
+            // Initialize metrics
+            if (metricsConfig.Enabled)
+            {
+                container.Resolve<IMetricsListener>().Start(logger);
             }
 
             (CancellationTokenSource cts, ManualResetEventSlim completed, Option<object> handler)
