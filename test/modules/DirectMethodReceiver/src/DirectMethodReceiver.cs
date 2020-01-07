@@ -36,7 +36,7 @@ namespace DirectMethodReceiver
             this.logger = logger;
             this.configuration = configuration;
             this.batchId = Guid.NewGuid();
-            this.trackingId = Option.Maybe(this.configuration.GetValue<string>("trackingId"));
+            this.trackingId = testReportCoordinatorUrl.HasValue ? Option.Some<string>(this.configuration.GetValue<string>("trackingId")) : Option.None<string>();
         }
 
         public void Dispose() => this.moduleClient?.Dispose();
