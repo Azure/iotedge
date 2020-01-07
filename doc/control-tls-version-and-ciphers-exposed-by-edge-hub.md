@@ -5,8 +5,6 @@ IoT Edge Hub can be configurated to expose endpoints on an IoT Edge device to al
 We leverage a haproxy reverse proxy IoT Edge module to limit TLS versions and cipher suites supported by the external facing endpoints on the IoT Edge device. The diagram below illustrates this approach: 
 
 ![](images/eh-proxy.png)
-
-
 ## Setup instructions 
 
 ### Build the edgehub-proxy image
@@ -15,9 +13,9 @@ We leverage a haproxy reverse proxy IoT Edge module to limit TLS versions and ci
 
 1. Modify **/edge-modules/edgehub-proxy/haproxy.cfg** with desired configuration and save the file. Values to set:
 
-| TLS           | Modify the `ssl-default-bind-options` entry. [Full list of options](https://www.haproxy.com/documentation/aloha/9-5/traffic-management/lb-layer7/tls/#define-bind-directives-on-the-frontend).<br><br> Use `ssl-default-bind-options no-sslv3 no-tlsv10 no-tlsv11` to expose only TLS v1.2 |   |
-|----------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---|
-| Cipher suite  | Modify the `ssl-default-bind-ciphers` entry. [Full list of options](https://www.haproxy.com/documentation/aloha/9-5/traffic-management/lb-layer7/tls/#define-tls-settings-in-the-global-section).                                                                                        |   |
+        | TLS           | Modify the `ssl-default-bind-options` entry. [Full list of options](https://www.haproxy.com/documentation/aloha/9-5/traffic-management/lb-layer7/tls/#define-bind-directives-on-the-frontend).<br><br> Use `ssl-default-bind-options no-sslv3 no-tlsv10 no-tlsv11` to expose only TLS v1.2 |   |
+        |----------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---|
+        | Cipher suite  | Modify the `ssl-default-bind-ciphers` entry. [Full list of options](https://www.haproxy.com/documentation/aloha/9-5/traffic-management/lb-layer7/tls/#define-tls-settings-in-the-global-section).                                                                                        |   |
 
 1. Build the image by running the following command:
 
