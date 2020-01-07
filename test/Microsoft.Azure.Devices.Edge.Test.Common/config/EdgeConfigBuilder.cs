@@ -77,24 +77,20 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
 
             string edgeHubModuleId = "$edgeHub";
             string edgeAgentModuleId = "$edgeAgent";
-            foreach (ModuleConfiguration module in modules.OrderBy(m => !(m.Name == edgeHubModuleId || m.Name == edgeAgentModuleId))) // edgeAgent and edgeHub will go first
+
+            // Return a configuration for $edgeHub and $edgeAgent
+            foreach (ModuleConfiguration module in modules.Where(m => m.Name.Equals(edgeHubModuleId) || m.Name.Equals(edgeAgentModuleId)))
             {
-                moduleNames.Add(module.Name);
-                moduleImages.Add(module.Image);
+                this.AddModuleToConfiguration(module, moduleNames, moduleImages, config);
+            }
 
-                if (module.DesiredProperties.Count != 0)
-                {
-                    config.ModulesContent[module.Name] = new Dictionary<string, object>
-                    {
-                        ["properties.desired"] = module.DesiredProperties
-                    };
-                }
+            Dictionary<string, IDictionary<string, object>> copyModulesContent = config.ModulesContent.ToDictionary(entry => entry.Key, entry => entry.Value);
+            yield return new EdgeConfiguration(this.deviceId, new List<string> { edgeHubModuleId, edgeAgentModuleId }, new List<string>(moduleImages), new ConfigurationContent { ModulesContent = copyModulesContent });
 
-                if (moduleNames.Count == 2) // return configuration for just $edgeAgent and $edgeHub
-                {
-                    Dictionary<string, IDictionary<string, object>> copyModulesContent = config.ModulesContent.ToDictionary(entry => entry.Key, entry => entry.Value);
-                    yield return new EdgeConfiguration(this.deviceId, new List<string> { edgeHubModuleId, edgeAgentModuleId }, new List<string>(moduleImages), new ConfigurationContent { ModulesContent = copyModulesContent });
-                }
+            // Return a configuration for other modules
+            foreach (ModuleConfiguration module in modules.Where(m => (m.Name != edgeHubModuleId && m.Name != edgeAgentModuleId)))
+            {
+                this.AddModuleToConfiguration(module, moduleNames, moduleImages, config);
             }
 
             yield return new EdgeConfiguration(this.deviceId, moduleNames, moduleImages, config);
@@ -176,6 +172,20 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             agentBuilder.WithDesiredProperties(desiredProperties);
 
             return agentBuilder.Build();
+        }
+
+        void AddModuleToConfiguration(ModuleConfiguration module, List<string> moduleNames, List<string> moduleImages, ConfigurationContent config)
+        {
+            moduleNames.Add(module.Name);
+            moduleImages.Add(module.Image);
+
+            if (module.DesiredProperties.Count != 0)
+            {
+                config.ModulesContent[module.Name] = new Dictionary<string, object>
+                {
+                    ["properties.desired"] = module.DesiredProperties
+                };
+            }
         }
 
         public IModuleConfigBuilder GetModule(string name)
