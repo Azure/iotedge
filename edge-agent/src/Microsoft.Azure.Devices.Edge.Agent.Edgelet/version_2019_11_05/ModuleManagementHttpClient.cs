@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
+namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_11_05
 {
     using System;
     using System.Collections.Generic;
@@ -10,12 +10,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
-    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30.GeneratedCode;
+    using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_11_05.GeneratedCode;
     using Microsoft.Azure.Devices.Edge.Agent.Edgelet.Versioning;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Azure.Devices.Edge.Util.Edged;
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
+    using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
+    using Disk = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.Disk;
     using Identity = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.Identity;
     using ModuleSpec = Microsoft.Azure.Devices.Edge.Agent.Edgelet.Models.ModuleSpec;
     using SystemInfo = Microsoft.Azure.Devices.Edge.Agent.Core.SystemInfo;
@@ -29,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
         }
 
         internal ModuleManagementHttpClient(Uri managementUri, Option<TimeSpan> operationTimeout)
-            : base(managementUri, ApiVersion.Version20190130, new ErrorDetectionStrategy(), operationTimeout)
+            : base(managementUri, ApiVersion.Version20191105, new ErrorDetectionStrategy(), operationTimeout)
         {
         }
 
@@ -130,6 +132,19 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
             }
         }
 
+        public override async Task<SystemResources> GetSystemResourcesAsync()
+        {
+            using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
+            {
+                var edgeletHttpClient = new EdgeletHttpClient(httpClient) { BaseUrl = HttpClientHelper.GetBaseUrl(this.ManagementUri) };
+                GeneratedCode.SystemResources systemResources = await this.Execute(
+                    () => edgeletHttpClient.GetSystemResourcesAsync(this.Version.Name),
+                    "Getting System Resources");
+
+                return new SystemResources(systemResources.Host_uptime, systemResources.Process_uptime, systemResources.Used_cpu, systemResources.Used_ram, systemResources.Total_ram, systemResources.Disks.Select(d => new Disk(d.Name, d.Available_space, d.Total_space, d.File_system, d.File_type)).ToArray(), systemResources.Docker_stats);
+            }
+        }
+
         public override async Task<IEnumerable<ModuleRuntimeInfo>> GetModules<T>(CancellationToken cancellationToken)
         {
             using (HttpClient httpClient = HttpClientHelper.GetHttpClient(this.ManagementUri))
@@ -187,11 +202,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
             }
         }
 
-        public override Task<SystemResources> GetSystemResourcesAsync()
-        {
-            return Task.FromResult<SystemResources>(null);
-        }
-
         protected override void HandleException(Exception exception, string operation)
         {
             switch (exception)
@@ -236,16 +246,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
             };
         }
 
-        internal static GeneratedCode.ImagePullPolicy ToGeneratedCodePullPolicy(Core.ImagePullPolicy imagePullPolicy)
+        internal static GeneratedCode.ModuleSpecImagePullPolicy ToGeneratedCodePullPolicy(Core.ImagePullPolicy imagePullPolicy)
         {
-            GeneratedCode.ImagePullPolicy resultantPullPolicy;
+            GeneratedCode.ModuleSpecImagePullPolicy resultantPullPolicy;
             switch (imagePullPolicy)
             {
                 case Core.ImagePullPolicy.OnCreate:
-                    resultantPullPolicy = GeneratedCode.ImagePullPolicy.OnCreate;
+                    resultantPullPolicy = GeneratedCode.ModuleSpecImagePullPolicy.OnCreate;
                     break;
                 case Core.ImagePullPolicy.Never:
-                    resultantPullPolicy = GeneratedCode.ImagePullPolicy.Never;
+                    resultantPullPolicy = GeneratedCode.ModuleSpecImagePullPolicy.Never;
                     break;
                 default:
                     throw new InvalidOperationException("Translation of this image pull policy type is not configured.");
@@ -267,8 +277,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Edgelet.Version_2019_01_30
                 exitCode = 0;
             }
 
-            Option<DateTime> exitTime = exitStatus == null ? Option.None<DateTime>() : Option.Some(exitStatus.ExitTime);
-            Option<DateTime> startTime = !moduleDetails.Status.StartTime.HasValue ? Option.None<DateTime>() : Option.Some(moduleDetails.Status.StartTime.Value);
+            Option<DateTime> exitTime = exitStatus == null ? Option.None<DateTime>() : Option.Some(exitStatus.ExitTime.DateTime);
+            Option<DateTime> startTime = !moduleDetails.Status.StartTime.HasValue ? Option.None<DateTime>() : Option.Some(moduleDetails.Status.StartTime.Value.DateTime);
 
             if (!Enum.TryParse(moduleDetails.Status.RuntimeStatus.Status, true, out ModuleStatus status))
             {
