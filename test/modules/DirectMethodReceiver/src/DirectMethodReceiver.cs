@@ -57,7 +57,7 @@ namespace DirectMethodReceiver
                     {
                         DirectMethodTestResult testResult = new DirectMethodTestResult(this.configuration.GetValue<string>("IOTEDGE_MODULEID") + ".receive", DateTime.UtcNow)
                         {
-                            TrackingId = this.trackingId.Expect(() => new ArgumentException("TrackingId is empty")),
+                            TrackingId = this.trackingId.GetOrElse(string.Empty),
                             BatchId = this.batchId.ToString(),
                             SequenceNumber = this.directMethodCount.ToString(),
                             Result = HttpStatusCode.OK.ToString()

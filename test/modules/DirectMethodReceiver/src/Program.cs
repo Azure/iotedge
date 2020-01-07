@@ -18,7 +18,7 @@ namespace DirectMethodReceiver
 
         static async Task<int> MainAsync()
         {
-            DirectMethodReceiver directMethodClient = null;
+            DirectMethodReceiver directMethodReceiver = null;
 
             try
             {
@@ -32,9 +32,9 @@ namespace DirectMethodReceiver
                     .AddEnvironmentVariables()
                     .Build();
 
-                directMethodClient = new DirectMethodReceiver(Logger, configuration);
+                directMethodReceiver = new DirectMethodReceiver(Logger, configuration);
 
-                await directMethodClient.InitAsync();
+                await directMethodReceiver.InitAsync();
 
                 await cts.Token.WhenCanceled();
 
@@ -48,7 +48,7 @@ namespace DirectMethodReceiver
             }
             finally
             {
-                directMethodClient?.Dispose();
+                directMethodReceiver?.Dispose();
             }
 
             return 0;
