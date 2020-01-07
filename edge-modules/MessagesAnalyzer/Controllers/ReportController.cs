@@ -15,14 +15,14 @@ namespace MessagesAnalyzer.Controllers
         {
             string resultJson = Reporter.GetReceivedMessagesReport(Settings.Current.ToleranceInMilliseconds).ToString();
 
-            if (Settings.Current.LogAnalyticEnabled)
+            if (Settings.Current.LogAnalyticsEnabled)
             {
                 // Upload the data to Log Analytics
                 AzureLogAnalytics.Instance.PostAsync(
-                    Settings.Current.LogAnalyticWorkspaceId,
-                    Settings.Current.LogAnalyticSharedKey,
+                    Settings.Current.LogAnalyticsWorkspaceId,
+                    Settings.Current.LogAnalyticsSharedKey,
                     resultJson,
-                    Settings.Current.LogAnalyticLogType);
+                    Settings.Current.LogAnalyticsLogType);
             }
 
             return resultJson;
