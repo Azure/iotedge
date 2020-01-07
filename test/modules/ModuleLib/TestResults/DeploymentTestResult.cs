@@ -7,8 +7,8 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
 
     public class DeploymentTestResult : TestResultBase
     {
-        public DeploymentTestResult(string source, DateTime createdAt) :
-            base(source, TestOperationResultType.Deployment, createdAt)
+        public DeploymentTestResult(string source, DateTime createdAt)
+            : base(source, TestOperationResultType.Deployment, createdAt)
         {
         }
 
