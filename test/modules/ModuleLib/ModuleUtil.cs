@@ -61,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
             try
             {
                 logger.LogInformation($"Sending test result: Source={testResult.Source}, Type={testResult.ResultType}, CreatedAt={testResult.CreatedAt}, Result={testResult.GetFormattedResult()}");
-                await apiClient?.ReportResultAsync(testResult?.ToTestOperationResultDto());
+                await apiClient.ReportResultAsync(testResult.ToTestOperationResultDto());
             }
             catch (Exception e)
             {
