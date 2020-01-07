@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             return builder;
         }
 
-        /* Will output edgeHub configurations in order, then a full configuration at the end.
+        /* Will output edgeHub and edgeAgent configurations, then a full configuration at the end.
            This is done to assure routes are set up for the most recent $edgeHub deployment before the test modules start sending messages (i.e. assure messages won't get dropped).
            Another way to handle this is to define all possible routes at the very beginning of the test, but there is added complexity as module names are assigned dynamically. */
         public IEnumerable<EdgeConfiguration> BuildConfigurationStages()
