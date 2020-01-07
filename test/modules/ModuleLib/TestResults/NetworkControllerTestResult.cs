@@ -5,7 +5,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Newtonsoft.Json;
 
-    public class NetworkControllerTestResult : TestResultBase
+    public class NetworkControllerTestResult : TestResultBase, IComparable<NetworkControllerTestResult>
     {
         public NetworkControllerTestResult(string source, DateTime createdAt) :
             base(source, TestOperationResultType.Network, createdAt)
@@ -21,6 +21,11 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
         public NetworkControllerType NetworkControllerType { get; set; }
 
         public NetworkControllerStatus NetworkControllerStatus { get; set; }
+
+        public int CompareTo(NetworkControllerTestResult other)
+        {
+            return this.CreatedAt.CompareTo(other.CreatedAt);
+        }
 
         public override string GetFormattedResult()
         {
