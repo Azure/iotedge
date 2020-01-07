@@ -15,7 +15,7 @@ RUN adduser -Ds /bin/sh -u ${EDGEHUBUSER_ID} edgehubuser
 
 # Add the CAP_NET_BIND_SERVICE capability to the dotnet binary because	
 # we are starting Edge Hub as a non-root user	
-RUN setcap 'cap_net_bind_service=+ep' /usr/share/dotnet/dotnet	
+# RUN setcap 'cap_net_bind_service=+ep' /usr/share/dotnet/dotnet	
 
 # Install RocksDB	
 COPY --from=builder publish/* /usr/local/lib/	
