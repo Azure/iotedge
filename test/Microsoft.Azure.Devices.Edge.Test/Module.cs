@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using NUnit.Framework;
 
-    public class Module : ManualProvisioningFixture
+    public class Module : SasManualProvisioningFixture
     {
         private sealed class TempSensorModule
         {
@@ -39,7 +39,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
             CancellationToken token = this.TestToken;
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
-                builder => { builder.AddModule(tempSensorModule.Name, tempSensorModule.Image); },
+                builder =>
+                {
+                    builder.AddModule(tempSensorModule.Name, tempSensorModule.Image)
+                        .WithEnvironment(new[] { ("MessageCount", "1") });
+                },
                 token);
 
             EdgeModule sensor = deployment.Modules[tempSensorModule.Name];
@@ -86,7 +90,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                 builder =>
                 {
-                    builder.AddModule(tempSensorModule.Name, tempSensorModule.Image);
+                    builder.AddModule(tempSensorModule.Name, tempSensorModule.Image)
+                        .WithEnvironment(new[] { ("MessageCount", "1") });
                     builder.AddModule(filterModuleName, filterImage)
                         .WithEnvironment(new[] { ("TemperatureThreshold", "19") });
                     builder.GetModule("$edgeHub")
@@ -120,7 +125,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
                 builder =>
                 {
-                    builder.AddModule(tempSensorModule.Name, tempSensorModule.Image);
+                    builder.AddModule(tempSensorModule.Name, tempSensorModule.Image)
+                        .WithEnvironment(new[] { ("MessageCount", "1") });
                     builder.AddModule(filterFuncModuleName, filterFunc)
                         .WithEnvironment(new[] { ("AZURE_FUNCTIONS_ENVIRONMENT", "Development") });
                     builder.GetModule("$edgeHub")

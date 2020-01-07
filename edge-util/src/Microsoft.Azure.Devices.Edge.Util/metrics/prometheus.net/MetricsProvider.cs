@@ -13,17 +13,15 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
     {
         const string CounterNameFormat = "{0}_{1}_total";
         const string NameFormat = "{0}_{1}";
-        const string InstanceFile = "metrics_instance";
         readonly string namePrefix;
         readonly List<string> defaultLabelNames;
-        static readonly Lazy<string> instanceNumber = new Lazy<string>(GetInstanceNumber);
 
         public MetricsProvider(string namePrefix, string iotHubName, string deviceId)
         {
             this.namePrefix = Preconditions.CheckNonWhiteSpace(namePrefix, nameof(namePrefix));
             Preconditions.CheckNonWhiteSpace(iotHubName, nameof(iotHubName));
             Preconditions.CheckNonWhiteSpace(deviceId, nameof(deviceId));
-            this.defaultLabelNames = new List<string> { iotHubName, deviceId, instanceNumber.Value };
+            this.defaultLabelNames = new List<string> { iotHubName, deviceId, Guid.NewGuid().ToString() };
 
             // TODO:
             // By default, the Prometheus.Net library emits some default metrics.
@@ -74,41 +72,6 @@ namespace Microsoft.Azure.Devices.Edge.Util.Metrics.Prometheus.Net
             };
             allLabelNames.AddRange(labelNames);
             return allLabelNames;
-        }
-
-        /// <summary>
-        /// Reads or creates a file to determine how many times this module has been restarted.
-        /// This is because prometheous metrics are cleared on restart.
-        /// Includung an instance number makes it clear when a counter reset.
-        /// If the time series of metrics goes
-        ///     {instance=1) 500
-        ///     {instance=1) 600
-        ///     {instance=1) 700
-        ///     {instance=2) 90
-        ///     {instance=2) 190
-        /// it is clear what happened.
-        /// </summary>
-        /// <returns></returns>
-        static string GetInstanceNumber()
-        {
-            if (!File.Exists(InstanceFile))
-            {
-                File.WriteAllText(InstanceFile, "1");
-                return "1";
-            }
-
-            try
-            {
-                string string_num = File.ReadAllText(InstanceFile);
-                string_num = (int.Parse(string_num) + 1).ToString();
-                File.WriteAllText(InstanceFile, string_num);
-                return string_num;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"{DateTime.UtcNow.ToLogString()} Failed to read metrics instance file:\n{ex}");
-                return "0";
-            }
         }
     }
 }

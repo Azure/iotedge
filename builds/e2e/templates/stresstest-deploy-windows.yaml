@@ -14,15 +14,21 @@ parameters:
   amqp.settings.enabled: 'true'
   mqtt.settings.enabled: 'true'
   loadGen.message.frequency: ''
-  loadGen1.transportType: 'Amqp_Tcp_Only'
-  loadGen2.transportType: 'Amqp_Tcp_Only'
-  loadGen3.transportType: 'Mqtt_Tcp_Only'
-  loadGen4.transportType: 'Mqtt_Tcp_Only'
+  transportType1: 'Amqp_Tcp_Only'
+  transportType2: 'Amqp_Tcp_Only'
+  transportType3: 'Mqtt_Tcp_Only'
+  transportType4: 'Mqtt_Tcp_Only'
   analyzer.consumerGroupId: ''
-  analyzer.logAnalytic.enabled: ''
-  analyzer.logAnalytic.workspaceId: ''
-  analyzer.logAnalytic.sharedKey: ''
-  analyzer.logAnalytic.logType: ''
+  analyzer.logAnalytics.enabled: ''
+  analyzer.logAnalytics.logType: ''
+  logAnalytics.workspaceId: ''
+  logAnalytics.sharedKey: ''
+  twinTester.twinUpdateSize: ''
+  twinTester.twinUpdateFrequency: ''
+  twinTester.twinUpdateFailureThreshold: ''
+  metricsCollector.metricsEndpointsCSV: ''
+  metricsCollector.scrapeFrequencyInSecs: ''
+  metricsCollector.uploadTarget: ''
 
 steps:
   - task: CopyFiles@2
@@ -59,18 +65,24 @@ steps:
           -SnitchStorageAccount "${{ parameters['snitch.storage.account'] }}" `
           -SnitchStorageMasterKey "${{ parameters['snitch.storage.masterKey'] }}" `
           -SnitchAlertUrl "${{ parameters['snitch.alert.url'] }}" `
-          -LoadGen1TransportType "${{ parameters['loadGen1.transportType'] }}" `
-          -LoadGen2TransportType "${{ parameters['loadGen2.transportType'] }}" `
-          -LoadGen3TransportType "${{ parameters['loadGen3.transportType'] }}" `
-          -LoadGen4TransportType "${{ parameters['loadGen4.transportType'] }}" `
+          -TransportType1 "${{ parameters['transportType1'] }}" `
+          -TransportType2 "${{ parameters['transportType2'] }}" `
+          -TransportType3 "${{ parameters['transportType3'] }}" `
+          -TransportType4 "${{ parameters['transportType4'] }}" `
           -AmqpSettingsEnabled "${{ parameters['amqp.settings.enabled'] }}" `
           -MqttSettingsEnabled "${{ parameters['mqtt.settings.enabled'] }}" `
           -LoadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" `
           -EventHubConsumerGroupId "${{ parameters['analyzer.consumerGroupId'] }}" `
-          -AnalyzerLaEnabled "${{ parameters['analyzer.logAnalytic.enabled'] }}" `
-          -AnalyzerLaWorkspaceId "${{ parameters['analyzer.logAnalytic.workspaceId'] }}" `
-          -AnalyzerLaSharedKey "${{ parameters['analyzer.logAnalytic.sharedKey'] }}" `
-          -AnalyzerLaLogType "${{ parameters['analyzer.logAnalytic.logType'] }}" 
+          -LogAnalyticsEnabled "${{ parameters['analyzer.logAnalytics.enabled'] }}" `
+          -LogAnalyticsLogType "${{ parameters['analyzer.logAnalytics.logType'] }}" `
+          -LogAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" `
+          -LogAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" `
+          -TwinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" `
+          -TwinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" `
+          -TwinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}" `
+          -MetricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" `
+          -MetricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" `
+          -MetricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}"
         # schedule a task to stop iotedge service (terminate the test) in 4:30h
         $ScheduleDatetime = [DateTime]::Now.AddMinutes(270)
         $ScheduleDate=$ScheduleDatetime.ToString("MM/dd/yyyy")

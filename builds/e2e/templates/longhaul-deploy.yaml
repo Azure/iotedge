@@ -12,14 +12,19 @@ parameters:
   snitch.storage.account: ''
   snitch.storage.masterKey: ''
   loadGen.message.frequency: ''
-  loadGen.transportType: 'mqtt'
   longHaul.desiredModulesToRestartCSV: ''
   longHaul.restartIntervalInMins: ''
   analyzer.consumerGroupId: ''
-  analyzer.logAnalytic.enabled: ''
-  analyzer.logAnalytic.workspaceId: ''
-  analyzer.logAnalytic.sharedKey: ''
-  analyzer.logAnalytic.logType: ''
+  analyzer.logAnalytics.enabled: ''
+  analyzer.logAnalytics.logType: ''
+  logAnalytics.workspaceId: ''
+  logAnalytics.sharedKey: ''
+  twinTester.twinUpdateSize: ''
+  twinTester.twinUpdateFrequency: ''
+  twinTester.twinUpdateFailureThreshold: ''
+  metricsCollector.metricsEndpointsCSV: ''
+  metricsCollector.scrapeFrequencyInSecs: ''
+  metricsCollector.uploadTarget: ''
 
 steps:
   - task: CopyFiles@2
@@ -44,7 +49,7 @@ steps:
         . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
         chmod +x $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh
         sudo $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/linux/runE2ETest.sh \
-          -testDir "$(Agent.HomeDirectory)/.." -releaseLabel "${{ parameters['release.label'] }}" \
+          -testDir "$(Agent.HomeDirectory)/.." \
           -releaseLabel "${{ parameters['release.label'] }}" \
           -artifactImageBuildNumber "$BuildNumber" \
           -testName "$testName" \
@@ -61,9 +66,15 @@ steps:
           -eventHubConsumerGroupId "${{ parameters['analyzer.consumerGroupId'] }}" \
           -desiredModulesToRestartCSV "${{ parameters['longHaul.desiredModulesToRestartCSV'] }}" \
           -restartIntervalInMins "${{ parameters['longHaul.restartIntervalInMins'] }}" \
-          -analyzerLaEnabled "${{ parameters['analyzer.logAnalytic.enabled'] }}" \
-          -analyzerLaWorkspaceId "${{ parameters['analyzer.logAnalytic.workspaceId'] }}" \
-          -analyzerLaSharedKey "${{ parameters['analyzer.logAnalytic.sharedKey'] }}" \
-          -analyzerLaLogType "${{ parameters['analyzer.logAnalytic.logType'] }}" \
+          -logAnalyticsEnabled "${{ parameters['analyzer.logAnalytics.enabled'] }}" \
+          -logAnalyticsLogType "${{ parameters['analyzer.logAnalytics.logType'] }}" \
+          -logAnalyticsWorkspaceId "${{ parameters['logAnalytics.workspaceId'] }}" \
+          -logAnalyticsSharedKey "${{ parameters['logAnalytics.sharedKey'] }}" \
+          -twinUpdateSize "${{ parameters['twinTester.twinUpdateSize'] }}" \
+          -twinUpdateFrequency "${{ parameters['twinTester.twinUpdateFrequency'] }}" \
+          -twinUpdateFailureThreshold "${{ parameters['twinTester.twinUpdateFailureThreshold'] }}" \
+          -metricsEndpointsCSV "${{ parameters['metricsCollector.metricsEndpointsCSV'] }}" \
+          -metricsScrapeFrequencyInSecs "${{ parameters['metricsCollector.scrapeFrequencyInSecs'] }}" \
+          -metricsUploadTarget "${{ parameters['metricsCollector.uploadTarget'] }}" \
           -cleanAll
       workingDirectory: "$(Agent.HomeDirectory)/.."

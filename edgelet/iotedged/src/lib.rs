@@ -5,6 +5,7 @@
 #![allow(
     clippy::doc_markdown, // clippy want the "IoT" of "IoT Hub" in a code fence
     clippy::module_name_repetitions,
+    clippy::must_use_candidate,
     clippy::shadow_unrelated,
     clippy::too_many_lines,
     clippy::type_complexity,
@@ -64,7 +65,7 @@ use edgelet_hsm::{Crypto, HsmLock, X509};
 use edgelet_http::certificate_manager::CertificateManager;
 use edgelet_http::client::{Client as HttpClient, ClientImpl};
 use edgelet_http::logging::LoggingService;
-use edgelet_http::{HyperExt, MaybeProxyClient, PemCertificate, API_VERSION};
+use edgelet_http::{HyperExt, MaybeProxyClient, PemCertificate, TlsAcceptorParams, API_VERSION};
 use edgelet_http_external_provisioning::ExternalProvisioningClient;
 use edgelet_http_mgmt::ManagementService;
 use edgelet_http_workload::WorkloadService;
@@ -503,8 +504,7 @@ where
                                 external_provisioning_val,
                             );
                         } else {
-                            let (derived_key_store, tpm_key) =
-                                external_provision_tpm(hsm_lock.clone())?;
+                            let (derived_key_store, tpm_key) = external_provision_tpm(hsm_lock)?;
                             start_edgelet!(
                                 derived_key_store,
                                 provisioning_result,
@@ -553,7 +553,7 @@ where
                         let (key_store, provisioning_result, root_key) = dps_tpm_provision(
                             dps_path,
                             &mut tokio_runtime,
-                            hsm_lock.clone(),
+                            hsm_lock,
                             tpm_instance,
                             &dps_tpm,
                         )?;
@@ -1797,7 +1797,7 @@ fn external_provision_x509(
 ) -> Result<(DerivedKeyStore<MemoryKey>, MemoryKey), Error> {
     let memory_key = MemoryKey::new(hybrid_identity_key);
     let mut memory_hsm = MemoryKeyStore::new();
-    memory_hsm.insert(&KeyIdentity::Device, "primary", memory_key.clone());
+    memory_hsm.insert(&KeyIdentity::Device, "primary", memory_key);
 
     let (derived_key_store, hybrid_derived_key) = prepare_derived_hybrid_key(
         &memory_hsm,
@@ -1984,11 +1984,7 @@ where
     )
     .context(ErrorKind::Initialize(InitializeErrorReason::EdgeRuntime))?;
 
-    let watchdog = Watchdog::new(
-        runtime,
-        id_man.clone(),
-        settings.watchdog().max_retries().clone(),
-    );
+    let watchdog = Watchdog::new(runtime, id_man.clone(), settings.watchdog().max_retries());
     let runtime_future = watchdog
         .run_until(spec, EDGE_RUNTIME_MODULEID, shutdown.map_err(|_| ()))
         .map_err(Error::from);
@@ -2069,6 +2065,8 @@ where
 
     let label = "mgmt".to_string();
     let url = settings.listen().management_uri().clone();
+    let min_protocol_version = settings.listen().min_tls_version();
+
     ManagementService::new(runtime, id_man, initiate_shutdown_and_reprovision)
         .then(move |service| -> Result<_, Error> {
             let service = service.context(ErrorKind::Initialize(
@@ -2076,8 +2074,10 @@ where
             ))?;
             let service = LoggingService::new(label, service);
 
+            let tls_params = TlsAcceptorParams::new(&cert_manager, min_protocol_version);
+
             let run = Http::new()
-                .bind_url(url.clone(), service, Some(&cert_manager))
+                .bind_url(url.clone(), service, Some(tls_params))
                 .map_err(|err| {
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::ManagementService,
@@ -2126,6 +2126,7 @@ where
 
     let label = "work".to_string();
     let url = settings.listen().workload_uri().clone();
+    let min_protocol_version = settings.listen().min_tls_version();
 
     WorkloadService::new(key_store, crypto.clone(), runtime, config)
         .then(move |service| -> Result<_, Error> {
@@ -2134,8 +2135,10 @@ where
             ))?;
             let service = LoggingService::new(label, service);
 
+            let tls_params = TlsAcceptorParams::new(&cert_manager, min_protocol_version);
+
             let run = Http::new()
-                .bind_url(url.clone(), service, Some(&cert_manager))
+                .bind_url(url.clone(), service, Some(tls_params))
                 .map_err(|err| {
                     err.context(ErrorKind::Initialize(
                         InitializeErrorReason::WorkloadService,
@@ -3127,7 +3130,7 @@ mod tests {
         // validate that module reprovision is required since decrypt failed
         assert!(force_module_reprovision);
         assert_eq!(
-            hybrid_identity_key.clone().unwrap().len(),
+            hybrid_identity_key.unwrap().len(),
             IDENTITY_MASTER_KEY_LEN_BYTES
         );
 
@@ -3266,7 +3269,7 @@ mod tests {
 
         // validate that a new hybrid id key was created
         assert_ne!(
-            first_hybrid_identity_key.clone().unwrap(),
+            first_hybrid_identity_key.unwrap(),
             second_hybrid_identity_key.unwrap()
         );
 
@@ -3376,7 +3379,7 @@ mod tests {
 
         // validate that a new hybrid id key was created
         assert_ne!(
-            first_hybrid_identity_key.clone().unwrap(),
+            first_hybrid_identity_key.unwrap(),
             second_hybrid_identity_key.unwrap()
         );
 

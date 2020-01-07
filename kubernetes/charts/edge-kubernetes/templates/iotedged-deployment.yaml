@@ -76,7 +76,14 @@ spec:
       */}}
       - name: edge-certs
         secret:
-          secretName: edgecerts
+          secretName: {{ .Values.iotedged.certificates.secret }}
+          items:
+          - key: {{ .Values.iotedged.certificates.device_ca_cert | default "device_ca_cert" }}
+            path: device_ca_cert
+          - key: {{ .Values.iotedged.certificates.device_ca_pk | default "device_ca_pk" }}
+            path: device_ca_pk
+          - key: {{ .Values.iotedged.certificates.trusted_ca_certs | default "trusted_ca_certs" }}
+            path: trusted_ca_certs
       {{else}}
       {{- /*
         NOTE: This sets up iotedged in the "quickstart" mode which is NOT meant

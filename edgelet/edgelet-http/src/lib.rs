@@ -5,6 +5,7 @@
 #![allow(
     clippy::default_trait_access,
     clippy::module_name_repetitions,
+    clippy::must_use_candidate,
     clippy::pub_enum_variant_names,
     clippy::similar_names,
     clippy::too_many_lines,
@@ -29,6 +30,13 @@ use hyper::server::conn::Http;
 use hyper::service::{NewService, Service};
 use hyper::{Body, Response};
 use log::{debug, error, Level};
+use native_tls::Identity;
+#[cfg(unix)]
+use native_tls::TlsAcceptor;
+use openssl::pkcs12::Pkcs12;
+use openssl::pkey::PKey;
+use openssl::stack::Stack;
+use openssl::x509::X509;
 #[cfg(target_os = "linux")]
 use systemd::Socket;
 use tokio::net::TcpListener;
@@ -36,17 +44,9 @@ use tokio::net::TcpListener;
 use tokio_uds::UnixListener;
 use url::Url;
 
-use openssl::pkcs12::Pkcs12;
-use openssl::pkey::PKey;
-use openssl::stack::Stack;
-use openssl::x509::X509;
-
 use edgelet_core::crypto::{Certificate, CreateCertificate, KeyBytes, PrivateKey};
-use edgelet_core::{UrlExt, UNIX_SCHEME};
+use edgelet_core::{Protocol, UrlExt, UNIX_SCHEME};
 use edgelet_utils::log_failure;
-use native_tls::Identity;
-#[cfg(unix)]
-use native_tls::TlsAcceptor;
 
 pub mod authentication;
 pub mod authorization;
@@ -116,7 +116,7 @@ impl PemCertificate {
             .context(ErrorKind::IdentityCertificate)?;
 
         let key = match id_cert.get_private_key() {
-            Ok(Some(PrivateKey::Ref(ref_))) => Some(ref_.into_bytes().clone()),
+            Ok(Some(PrivateKey::Ref(ref_))) => Some(ref_.into_bytes()),
             Ok(Some(PrivateKey::Key(KeyBytes::Pem(buffer)))) => Some(buffer.as_ref().to_vec()),
             Ok(None) => None,
             Err(_err) => return Err(Error::from(ErrorKind::IdentityPrivateKey)),
@@ -289,7 +289,7 @@ pub trait HyperExt {
         &self,
         url: Url,
         new_service: S,
-        cert_manager: Option<&CertificateManager<C>>,
+        cert_manager: Option<TlsAcceptorParams<'_, C>>,
     ) -> Result<Server<S>, Error>
     where
         C: CreateCertificate + Clone,
@@ -297,13 +297,13 @@ pub trait HyperExt {
 }
 
 // This variable is used on Unix but not Windows
-#[allow(unused_variables)]
 impl HyperExt for Http {
+    #[cfg_attr(not(unix), allow(unused_variables))]
     fn bind_url<C, S>(
         &self,
         url: Url,
         new_service: S,
-        cert_manager: Option<&CertificateManager<C>>,
+        tls_params: Option<TlsAcceptorParams<'_, C>>,
     ) -> Result<Server<S>, Error>
     where
         C: CreateCertificate + Clone,
@@ -339,17 +339,27 @@ impl HyperExt for Http {
                         )
                     })?;
 
-                let cert = match cert_manager {
-                    Some(cert_manager) => cert_manager.get_pkcs12_certificate(),
-                    None => return Err(Error::from(ErrorKind::CertificateCreationError)),
-                };
+                let cert = tls_params
+                    .as_ref()
+                    .map(|params| params.cert_manager.get_pkcs12_certificate())
+                    .ok_or(ErrorKind::CertificateCreationError)?;
 
                 let cert = cert.context(ErrorKind::TlsBootstrapError)?;
 
                 let cert_identity = Identity::from_pkcs12(&cert, "")
                     .context(ErrorKind::TlsIdentityCreationError)?;
 
+                let min_protocol_version =
+                    tls_params
+                        .as_ref()
+                        .map(|params| match params.min_protocol_version {
+                            Protocol::Tls10 => native_tls::Protocol::Tlsv10,
+                            Protocol::Tls11 => native_tls::Protocol::Tlsv11,
+                            Protocol::Tls12 => native_tls::Protocol::Tlsv12,
+                        });
+
                 let tls_acceptor = TlsAcceptor::builder(cert_identity)
+                    .min_protocol_version(min_protocol_version)
                     .build()
                     .context(ErrorKind::TlsBootstrapError)?;
                 let tls_acceptor = tokio_tls::TlsAcceptor::from(tls_acceptor);
@@ -422,5 +432,26 @@ impl HyperExt for Http {
             new_service,
             incoming,
         })
+    }
+}
+
+#[cfg_attr(not(unix), allow(dead_code))]
+pub struct TlsAcceptorParams<'a, C>
+where
+    C: CreateCertificate + Clone,
+{
+    cert_manager: &'a CertificateManager<C>,
+    min_protocol_version: Protocol,
+}
+
+impl<'a, C> TlsAcceptorParams<'a, C>
+where
+    C: CreateCertificate + Clone,
+{
+    pub fn new(cert_manager: &'a CertificateManager<C>, min_protocol_version: Protocol) -> Self {
+        Self {
+            cert_manager,
+            min_protocol_version,
+        }
     }
 }

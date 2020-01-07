@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.Util
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading.Tasks;
 
     public static class LinqEx
     {
@@ -75,6 +76,32 @@ namespace Microsoft.Azure.Devices.Edge.Util
                 yield return (num, item);
                 num += 1;
             }
+        }
+
+        /// <summary>
+        /// Converts an IEnumerable<typeparamref name="TSource"/> into an IEnumerable<typeparamref name="TResult"/>, only including the value
+        /// if the first element in the selector result tuple is true.
+        /// </summary>
+        /// <typeparam name="TSource"></typeparam>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="source"></param>
+        /// <param name="selector"></param>
+        /// <returns></returns>
+        public static IEnumerable<TResult> SelectWhere<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, (bool, TResult)> selector)
+        {
+            foreach (TSource s in source)
+            {
+                (bool include, TResult result) = selector(s);
+                if (include)
+                {
+                    yield return result;
+                }
+            }
+        }
+
+        public static async Task<IEnumerable<T1>> SelectManyAsync<T, T1>(this IEnumerable<T> source, Func<T, Task<IEnumerable<T1>>> selector)
+        {
+            return (await Task.WhenAll(source.Select(selector))).SelectMany(s => s);
         }
     }
 

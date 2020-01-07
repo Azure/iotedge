@@ -4,6 +4,7 @@
 #![deny(clippy::all, clippy::pedantic)]
 #![allow(
     clippy::module_name_repetitions,
+    clippy::must_use_candidate,
     clippy::too_many_lines,
     clippy::use_self
 )]
@@ -39,16 +40,17 @@ pub use error::{Error, ErrorKind};
 pub use identity::{AuthType, Identity, IdentityManager, IdentityOperation, IdentitySpec};
 pub use logs::{Chunked, LogChunk, LogDecode};
 pub use module::{
-    ImagePullPolicy, LogOptions, LogTail, MakeModuleRuntime, Module, ModuleOperation,
+    DiskInfo, ImagePullPolicy, LogOptions, LogTail, MakeModuleRuntime, Module, ModuleOperation,
     ModuleRegistry, ModuleRuntime, ModuleRuntimeErrorReason, ModuleRuntimeState, ModuleSpec,
     ModuleStatus, ModuleTop, ProvisioningResult, RegistryOperation, RuntimeOperation, SystemInfo,
+    SystemResources,
 };
 pub use network::{Ipam, IpamConfig, MobyNetwork, Network};
 pub use settings::{
     AttestationMethod, Certificates, Connect, Dps, External, Listen, Manual, ManualAuthMethod,
-    ManualDeviceConnectionString, ManualX509Auth, Provisioning, ProvisioningType, RetryLimit,
-    RuntimeSettings, Settings, SymmetricKeyAttestationInfo, TpmAttestationInfo, WatchdogSettings,
-    X509AttestationInfo,
+    ManualDeviceConnectionString, ManualX509Auth, Protocol, Provisioning, ProvisioningType,
+    RetryLimit, RuntimeSettings, Settings, SymmetricKeyAttestationInfo, TpmAttestationInfo,
+    WatchdogSettings, X509AttestationInfo,
 };
 pub use workload::WorkloadConfig;
 

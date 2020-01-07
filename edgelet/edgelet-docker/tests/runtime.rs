@@ -409,9 +409,8 @@ fn image_pull_with_invalid_creds_handler(req: Request<Body>) -> ResponseFuture {
         .into_iter()
         .map(|bytes| base64::decode(bytes).unwrap())
         .map(|raw| str::from_utf8(&raw).unwrap().to_owned())
-        .collect::<Vec<String>>()
-        .join("");
-    let auth_config: AuthConfig = serde_json::from_str(&auth_str.to_string()).unwrap();
+        .collect::<String>();
+    let auth_config: AuthConfig = serde_json::from_str(&auth_str).unwrap();
     assert_eq!(auth_config.username(), Some("u1"));
     assert_eq!(auth_config.password(), Some("wrong_password"));
     assert_eq!(auth_config.email(), Some("u1@bleh.com"));
@@ -597,9 +596,8 @@ fn image_pull_with_creds_handler(req: Request<Body>) -> ResponseFuture {
         .into_iter()
         .map(|bytes| base64::decode(bytes).unwrap())
         .map(|raw| str::from_utf8(&raw).unwrap().to_owned())
-        .collect::<Vec<String>>()
-        .join("");
-    let auth_config: AuthConfig = serde_json::from_str(&auth_str.to_string()).unwrap();
+        .collect::<String>();
+    let auth_config: AuthConfig = serde_json::from_str(&auth_str).unwrap();
     assert_eq!(auth_config.username(), Some("u1"));
     assert_eq!(auth_config.password(), Some("bleh"));
     assert_eq!(auth_config.email(), Some("u1@bleh.com"));
@@ -1085,7 +1083,7 @@ fn container_list_handler(req: Request<Body>) -> ResponseFuture {
             vec![],
             10,
             10,
-            labels.clone(),
+            labels,
             "".to_string(),
             "".to_string(),
             ContainerHostConfig::new(""),

@@ -57,10 +57,10 @@ process_args()
 
 process_args "$@"
 
+cd $PROJECT_ROOT
+
 echo "Installing rustfmt"
-echo "$RUSTUP component add rustfmt-preview"
-$RUSTUP component add rustfmt-preview
+$RUSTUP component add rustfmt
 
 echo "Running cargo fmt"
-echo "cd $PROJECT_ROOT && $CARGO fmt --all -- --check"
-cd $PROJECT_ROOT && $CARGO fmt --all --  --check
+$CARGO fmt --all -- --check

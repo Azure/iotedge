@@ -26,7 +26,7 @@ namespace DevOpsLib
         /// The results should always contain same number of vsts build entity of given build definitions.
         /// If result is not found for a build definition Id, it will return vsts build entity with no result.
         /// Note: no validation of build definition ids is taken.
-        /// Reference: https://docs.microsoft.com/en-us/rest/api/azure/devops/wit/work%20items/list?view=azure-devops-rest-5.1
+        /// Reference: https://docs.microsoft.com/en-us/rest/api/azure/devops/build/builds/list?view=azure-devops-rest-5.1
         /// </summary>
         /// <param name="buildDefinitionIds">build definition Ids</param>
         /// <param name="branchName">github repository branch name</param>
@@ -52,11 +52,11 @@ namespace DevOpsLib
 
             if (!result.ContainsKey("count") || (int) result["count"] <= 0)
             {
-                return buildDefinitionIds.Select(i => VstsBuild.GetBuildWithNoResult(i, branchName)).ToList();
+                return buildDefinitionIds.Select(i => VstsBuild.CreateBuildWithNoResult(i, branchName)).ToList();
             }
 
             Dictionary<BuildDefinitionId, VstsBuild> latestBuilds = JsonConvert.DeserializeObject<VstsBuild[]>(result["value"].ToString()).ToDictionary(b => b.DefinitionId, b => b);
-            return buildDefinitionIds.Select(i => latestBuilds.ContainsKey(i) ? latestBuilds[i] : VstsBuild.GetBuildWithNoResult(i, branchName)).ToList();
+            return buildDefinitionIds.Select(i => latestBuilds.ContainsKey(i) ? latestBuilds[i] : VstsBuild.CreateBuildWithNoResult(i, branchName)).ToList();
         }
     }
 }
