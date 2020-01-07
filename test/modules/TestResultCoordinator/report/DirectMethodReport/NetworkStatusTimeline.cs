@@ -32,7 +32,6 @@ namespace TestResultCoordinator.Report.DirectMethodReport
                     });
             }
 
-            networkControllerTestResults.Sort();
             return new NetworkStatusTimeline(networkControllerTestResults, tolerancePeriodInMilliseconds);
         }
 
