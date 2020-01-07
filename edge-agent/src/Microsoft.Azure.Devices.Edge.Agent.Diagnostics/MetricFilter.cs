@@ -11,12 +11,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
 
     /// <summary>
     /// This class acts as a pass through for a group of metrics.
-    /// It will exclude metrics based on a tag whitelist and blacklist.
+    /// It will exclude metrics based on a list of allowed tags.
     /// After filtering, it will add or remove tags.
     /// </summary>
     public class MetricFilter
     {
-        Option<List<KeyValuePair<string, string>>> tagsWhitelist = Option.None<List<KeyValuePair<string, string>>>();
+        Option<List<KeyValuePair<string, string>>> allowedTags = Option.None<List<KeyValuePair<string, string>>>();
         Option<List<KeyValuePair<string, string>>> tagsToAdd = Option.None<List<KeyValuePair<string, string>>>();
         Option<List<string>> tagsToRemove = Option.None<List<string>>();
 
@@ -24,8 +24,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
         {
             foreach (Metric metric in metrics)
             {
-                // Skip metric if the whitelist does not contain it.
-                if (this.tagsWhitelist.Exists(wl => !wl.Any(metric.Tags.Contains)))
+                // Skip metric if it doesn't contain any allowed tags.
+                if (this.allowedTags.Exists(wl => !wl.Any(metric.Tags.Contains)))
                 {
                     continue;
                 }
@@ -47,15 +47,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             }
         }
 
-        public MetricFilter AddToWhitelist(params KeyValuePair<string, string>[] pairs)
+        public MetricFilter AddAllowedTags(params KeyValuePair<string, string>[] pairs)
         {
-            if (this.tagsWhitelist.HasValue)
+            if (this.allowedTags.HasValue)
             {
-                this.tagsWhitelist.ForEach(wl => wl.AddRange(pairs));
+                this.allowedTags.ForEach(wl => wl.AddRange(pairs));
             }
             else
             {
-                this.tagsWhitelist = Option.Some(new List<KeyValuePair<string, string>>(pairs));
+                this.allowedTags = Option.Some(new List<KeyValuePair<string, string>>(pairs));
             }
 
             return this;

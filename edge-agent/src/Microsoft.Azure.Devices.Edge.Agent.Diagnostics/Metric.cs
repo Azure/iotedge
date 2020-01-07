@@ -51,11 +51,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
 
         // TODO: replace with "return HashCode.Combine();"
         // when upgraded to .net standard 2.1: https://docs.microsoft.com/en-us/dotnet/api/system.hashcode.combine?view=netstandard-2.1
-        static int CombineHash(int hash1, int hash2)
-        {
-            return (17 * 31 + hash1) * 31 + hash2;
-        }
-
         static int CombineHash(params int[] hashes)
         {
             int hash = 17;

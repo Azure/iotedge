@@ -34,7 +34,7 @@ namespace Microsoft.Azure.Devices.Edge.Util.Test.Common
                     expectedNode = expectedNode.Next;
                 }
 
-                Assert.False(expectedNode == null, $"Didn't expected actual to contain {JsonConvert.SerializeObject(actualItem)}");
+                Assert.False(expectedNode == null, $"Didn't expect actual to contain {JsonConvert.SerializeObject(actualItem)}");
                 expectedList.Remove(expectedNode);
             }
 
