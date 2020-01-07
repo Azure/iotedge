@@ -53,9 +53,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                         case "Running":
                             return new ReportedModuleStatus(ModuleStatus.Running, $"Started at {status.StartTime}");
                         case "Failed":
-                        case "Pending":
-                        case "Unknown":
                             return new ReportedModuleStatus(ModuleStatus.Failed, status.Reason);
+                        case "Pending":
+                            return new ReportedModuleStatus(ModuleStatus.Backoff, status.Reason);
+                        case "Unknown":
+                            return new ReportedModuleStatus(ModuleStatus.Unknown, status.Reason);
                         case "Succeeded":
                             return new ReportedModuleStatus(ModuleStatus.Stopped, status.Reason);
                         default:
