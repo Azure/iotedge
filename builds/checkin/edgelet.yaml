@@ -136,23 +136,25 @@ jobs:
           echo "##vso[task.setvariable variable=IOTEDGE_HOMEDIR;]/tmp"
           echo "##vso[task.setvariable variable=CARGO;]${CARGO_HOME:-"$HOME/.cargo"}/bin/cargo"
         displayName: Set env variables
-      - script: edgelet/build/linux/install.sh -t "${RUST_TOOLCHAIN}"
+      - script: |
+          echo "$RUST_TOOLCHAIN" > rust-toolchain
+        displayName: Override Rust toolchain
+        workingDirectory: edgelet
+        env:
+          RUST_TOOLCHAIN: $(rust.toolchain)
+      - script: edgelet/build/linux/install.sh
         displayName: Install Rust
       - script: |
           curl -L https://github.com/mozilla/grcov/releases/download/v0.5.1/grcov-linux-x86_64.tar.bz2 | tar jxf -
           curl -L https://raw.github.com/eriwen/lcov-to-cobertura-xml/8c55cd11f80a21e7e46f20f8c81fcde0bf11f5e5/lcov_cobertura/lcov_cobertura.py -o lcov_cobertura.py
         workingDirectory: edgelet
         displayName: Install code coverage tools
-      - script: $CARGO "+${RUST_TOOLCHAIN}" build --verbose
+      - script: $CARGO build --verbose
         displayName: Build
         workingDirectory: edgelet
-        env:
-          RUST_TOOLCHAIN: $(rust.toolchain)
-      - script: $CARGO "+${RUST_TOOLCHAIN}" test --verbose
+      - script: $CARGO test --verbose
         displayName: Test
         workingDirectory: edgelet
-        env:
-          RUST_TOOLCHAIN: $(rust.toolchain)
       - script: |
           zip -0 target/ccov.zip `find ./target \( -name "*.gc*" \) -print`
           ./grcov target/ccov.zip -s . -t lcov --llvm --branch --ignore-not-existing --ignore-dir "/*" --ignore-dir "*docker-rs*" > target/lcov.info

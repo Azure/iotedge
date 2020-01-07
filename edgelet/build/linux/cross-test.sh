@@ -15,7 +15,7 @@ DIR=$(cd "$(dirname "$0")" && pwd)
 BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}
 PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/edgelet
 SCRIPT_NAME=$(basename "$0")
-TOOLCHAIN="armv7-unknown-linux-gnueabihf"
+TARGET="armv7-unknown-linux-gnueabihf"
 RELEASE=
 
 ###############################################################################
@@ -27,7 +27,7 @@ usage()
     echo ""
     echo "options"
     echo " -h, --help          Print this help and exit."
-    echo " -t, --toolchain     Toolchain (default: stable-x86_64-unknown-linux-gnu)"
+    echo " -t, --target        Target architecture"
     echo " -r, --release       Release build? (flag, default: false)"
     exit 1;
 }
@@ -41,7 +41,7 @@ process_args()
     for arg in "$@"
     do
         if [ $save_next_arg -eq 1 ]; then
-            TOOLCHAIN="$arg"
+            TARGET="$arg"
             save_next_arg=0
         elif [ $save_next_arg -eq 2 ]; then
             RELEASE="true"
@@ -49,7 +49,7 @@ process_args()
         else
             case "$arg" in
                 "-h" | "--help" ) usage;;
-                "-t" | "--toolchain" ) save_next_arg=1;;
+                "-t" | "--target" ) save_next_arg=1;;
                 "-r" | "--release" ) save_next_arg=2;;
                 * ) usage;;
             esac
@@ -60,7 +60,7 @@ process_args()
 process_args "$@"
 
 if [[ -z ${RELEASE} ]]; then
-    cd "$PROJECT_ROOT" && IOTEDGE_HOMEDIR=/tmp cross test --all --target "$TOOLCHAIN"
+    cd "$PROJECT_ROOT" && IOTEDGE_HOMEDIR=/tmp cross test --all --target "$TARGET"
 else
-    cd "$PROJECT_ROOT" && IOTEDGE_HOMEDIR=/tmp cross test --all --release --target "$TOOLCHAIN"
+    cd "$PROJECT_ROOT" && IOTEDGE_HOMEDIR=/tmp cross test --all --release --target "$TARGET"
 fi
