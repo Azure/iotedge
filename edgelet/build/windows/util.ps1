@@ -10,7 +10,9 @@ function Test-RustUp
 
 function GetPrivateRustPath
 {
-    Join-Path -Path (Get-IotEdgeFolder) -ChildPath 'rust-windows-arm/rust-windows-arm/bin/'
+    $toolchain = Get-Content -Encoding UTF8 (Join-Path -Path (Get-EdgeletFolder) -ChildPath 'rust-toolchain')
+    $targetPath = Join-Path -Path (Get-IotEdgeFolder) -ChildPath "rust-windows-arm-$toolchain"
+    Join-Path -Path $targetPath -ChildPath 'rust-windows-arm/bin/'
 }
 
 function Get-CargoCommand
@@ -54,9 +56,10 @@ function Assert-Rust
 
     $ErrorActionPreference = 'Continue'
 
+    $toolchain = Get-Content -Encoding UTF8 (Join-Path -Path (Get-EdgeletFolder) -ChildPath 'rust-toolchain')
+
     if ($Arm) {
-        if (-not (Test-Path 'rust-windows-arm')) {
-            # if the folder rust-windows-arm exists, we assume the private rust compiler for arm is installed
+        if (-not (Test-Path (GetPrivateRustPath))) {
             InstallWinArmPrivateRustCompiler
         }
     }
@@ -77,7 +80,6 @@ function Assert-Rust
             }
         }
 
-        $toolchain = Get-Content -Encoding UTF8 (Join-Path -Path (Get-EdgeletFolder) -ChildPath 'rust-toolchain')
         Write-Host "Installing / updating $toolchain toolchain"
         rustup update $toolchain
         if ($LastExitCode)
@@ -90,15 +92,25 @@ function Assert-Rust
 }
 
 function InstallWinArmPrivateRustCompiler {
-    $toolchain = Get-Content -Encoding UTF8 (Join-Path -Path (Get-EdgeletFolder) -ChildPath 'rust-toolchain')
-    $link = "https://edgebuild.blob.core.windows.net/iotedge-win-arm32v7-tools/rust-windows-arm-$toolchain.zip"
-
-    Write-Host "Downloading $link"
     $ProgressPreference = 'SilentlyContinue'
-    Invoke-WebRequest $link -OutFile 'rust-windows-arm.zip' -UseBasicParsing
 
-    Write-Host "Extracting $link"
-    Expand-Archive -Path 'rust-windows-arm.zip' -DestinationPath 'rust-windows-arm'
+    $toolchain = Get-Content -Encoding UTF8 (Join-Path -Path (Get-EdgeletFolder) -ChildPath 'rust-toolchain')
+
+    $downloadPath = (Join-Path -Path (Get-IotEdgeFolder) -ChildPath "rust-windows-arm-$toolchain.zip")
+    if (-not (Test-Path $downloadPath)) {
+        $link = "https://edgebuild.blob.core.windows.net/iotedge-win-arm32v7-tools/rust-windows-arm-$toolchain.zip"
+
+        Write-Host "Downloading $link to $downloadPath"
+        Invoke-WebRequest $link -OutFile $downloadPath -UseBasicParsing
+    }
+
+    $targetPath = Join-Path -Path (Get-IotEdgeFolder) -ChildPath "rust-windows-arm-$toolchain"
+    Write-Host "Extracting $downloadPath to $targetPath"
+    if (Test-Path $targetPath) {
+        Remove-Item -Recurse -Force $targetPath
+    }
+    Expand-Archive -Path $downloadPath -DestinationPath $targetPath
+
     $ProgressPreference = 'Stop'
 }
 
