@@ -32,11 +32,9 @@ namespace DirectMethodReceiver
                     .AddEnvironmentVariables()
                     .Build();
 
-                directMethodClient = new DirectMethodReceiver(
-                    Logger,
-                    configuration);
+                directMethodClient = new DirectMethodReceiver(Logger, configuration);
 
-                await directMethodClient.Init();
+                await directMethodClient.InitAsync();
 
                 await cts.Token.WhenCanceled();
 

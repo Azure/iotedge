@@ -18,7 +18,7 @@ namespace DirectMethodReceiver
         long directMethodCount = 1;
         ILogger logger;
         ModuleClient moduleClient;
-        TestResultReportingClient testResultReportingClient;
+        Option<TestResultReportingClient> testResultReportingClient;
 
         public DirectMethodReceiver(
             ILogger logger,
@@ -29,19 +29,12 @@ namespace DirectMethodReceiver
 
             TestResultReportingClient testResultReportingClient = null;
             Option<Uri> testReportCoordinatorUrl = Option.Maybe(configuration.GetValue<Uri>("testResultCoordinatorUrl"));
-            if (testReportCoordinatorUrl.HasValue)
-            {
-                testResultReportingClient = new TestResultReportingClient
-                {
-                    BaseUrl = testReportCoordinatorUrl.Expect(
-                        () => new ArgumentException("testReportCoordinatorUrl is empty"))
-                        .AbsoluteUri
-                };
-            }
+            testReportCoordinatorUrl.ForEach(
+                (Uri uri) => testResultReportingClient = new TestResultReportingClient { BaseUrl = uri.AbsoluteUri });
 
             this.logger = logger;
             this.configuration = configuration;
-            this.testResultReportingClient = testResultReportingClient;
+            this.testResultReportingClient = Option.Maybe(testResultReportingClient);
             this.batchId = Guid.NewGuid();
         }
 
@@ -52,36 +45,35 @@ namespace DirectMethodReceiver
             this.logger.LogInformation("Received direct method call.");
             // Send the report to Test Result Coordinator
             await this.ReportTestResult();
+            this.directMethodCount++;
             return new MethodResponse((int)HttpStatusCode.OK);
         }
 
         public async Task ReportTestResult()
         {
             DirectMethodTestResult testResult = null;
-            if (this.testResultReportingClient != null)
-            {
-                testResult = new DirectMethodTestResult(this.configuration.GetValue<string>("IOTEDGE_MODULEID") + ".receive", DateTime.UtcNow)
-                {
-                    TrackingId = Option.Maybe(this.configuration.GetValue<string>("trackingId"))
-                        .Expect(() => new ArgumentException("TrackingId is empty")),
-                    BatchId = this.batchId.ToString(),
-                    SequenceNumber = this.directMethodCount.ToString(),
-                    Result = HttpStatusCode.OK.ToString()
-                };
-                await ModuleUtil.ReportTestResultAsync(this.testResultReportingClient, this.logger, testResult);
-            }
-
-            this.directMethodCount++;
+            await this.testResultReportingClient.ForEachAsync(
+                async (TestResultReportingClient testResultReportingClient) =>
+                    {
+                        testResult = new DirectMethodTestResult(this.configuration.GetValue<string>("IOTEDGE_MODULEID") + ".receive", DateTime.UtcNow)
+                        {
+                            TrackingId = Option.Maybe(this.configuration.GetValue<string>("trackingId"))
+                                .Expect(() => new ArgumentException("TrackingId is empty")),
+                            BatchId = this.batchId.ToString(),
+                            SequenceNumber = this.directMethodCount.ToString(),
+                            Result = HttpStatusCode.OK.ToString()
+                        };
+                        await ModuleUtil.ReportTestResultAsync(testResultReportingClient, this.logger, testResult);
+                    });
         }
 
-        public async Task Init()
+        public async Task InitAsync()
         {
             this.moduleClient = await ModuleUtil.CreateModuleClientAsync(
                 this.configuration.GetValue("ClientTransportType", TransportType.Amqp_Tcp_Only),
                 ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                 ModuleUtil.DefaultTransientRetryStrategy,
                 this.logger);
-            Preconditions.CheckNotNull(this.moduleClient, nameof(this.moduleClient));
 
             await this.moduleClient.OpenAsync();
             await this.moduleClient.SetMethodHandlerAsync("HelloWorldMethod", this.HelloWorldMethodAsync, null);
