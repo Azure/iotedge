@@ -55,7 +55,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
         /* Will output edgeHub configurations in order, then a full configuration at the end.
            This is done to assure routes are set up for the most recent $edgeHub deployment before the test modules start sending messages (i.e. assure messages won't get dropped).
            Another way to handle this is to define all possible routes at the very beginning of the test, but there is added complexity as module names are assigned dynamically. */
-        public IEnumerable<EdgeConfiguration> Build()
+        public IEnumerable<EdgeConfiguration> BuildConfigurationStages()
         {
             // Build all modules *except* edge agent
             List<ModuleConfiguration> modules = this.moduleBuilders
@@ -66,8 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             // Build edge agent
             modules.Insert(0, this.BuildEdgeAgent(modules));
 
-            // Find each $edgeHub match and immediately compose and return a configuration
-            // After $edgeHub matches, then return the full configuration
+            // Find the $edgeAgent and $edgeHub match, then immediately compose and return a configuration
             var config = new ConfigurationContent
             {
                 ModulesContent = new Dictionary<string, IDictionary<string, object>>()
@@ -76,7 +75,9 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             var moduleNames = new List<string>();
             var moduleImages = new List<string>();
 
-            foreach (ModuleConfiguration module in modules.OrderBy(m => m.Name != "$edgeHub"))
+            string edgeHubModuleId = "$edgeHub";
+            string edgeAgentModuleId = "$edgeAgent";
+            foreach (ModuleConfiguration module in modules.OrderBy(m => !(m.Name == edgeHubModuleId || m.Name == edgeAgentModuleId))) // edgeAgent and edgeHub will go first
             {
                 moduleNames.Add(module.Name);
                 moduleImages.Add(module.Image);
@@ -89,10 +90,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
                     };
                 }
 
-                if (module.Name == "$edgeHub")
+                if (moduleNames.Count == 2) // return configuration for just $edgeAgent and $edgeHub
                 {
                     Dictionary<string, IDictionary<string, object>> copyModulesContent = config.ModulesContent.ToDictionary(entry => entry.Key, entry => entry.Value);
-                    yield return new EdgeConfiguration(this.deviceId, new List<string>(moduleNames), new List<string>(moduleImages), new ConfigurationContent { ModulesContent = copyModulesContent });
+                    yield return new EdgeConfiguration(this.deviceId, new List<string> { edgeHubModuleId, edgeAgentModuleId }, new List<string>(moduleImages), new ConfigurationContent { ModulesContent = copyModulesContent });
                 }
             }
 
