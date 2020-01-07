@@ -13,8 +13,6 @@ REVISION="${REVISION:-1}"
 DEFAULT_VERSION="$(cat "$PROJECT_ROOT/version.txt")"
 VERSION="${VERSION:-$DEFAULT_VERSION}"
 
-RUST_TOOLCHAIN="${RUST_TOOLCHAIN:-stable}"
-
 CMAKE_ARGS='-DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_VERSION=1 -DCMAKE_BUILD_TYPE=Release'
 CMAKE_ARGS="$CMAKE_ARGS -DBUILD_SHARED=On -Drun_unittests=Off -Duse_default_uuid=On -Duse_emulator=Off -Duse_http=Off"
 
@@ -446,10 +444,9 @@ docker run --rm \
 
         $SETUP_COMMAND
 
-        echo 'Installing Rust toolchain $RUST_TOOLCHAIN' &&
-        curl -sSLf https://sh.rustup.rs | sh -s -- -y --default-toolchain '$RUST_TOOLCHAIN' &&
+        echo 'Installing rustup' &&
+        curl -sSLf https://sh.rustup.rs | sh -s -- -y &&
         . ~/.cargo/env &&
-        $RUST_TARGET_COMMAND
 
         # libiothsm
         cd /project/edgelet/target/hsm &&
@@ -458,6 +455,7 @@ docker run --rm \
 
         # iotedged
         cd /project/edgelet &&
+        $RUST_TARGET_COMMAND
         $MAKE_COMMAND
     "
 

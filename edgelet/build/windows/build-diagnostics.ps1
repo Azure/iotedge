@@ -43,7 +43,8 @@ for ($i = 0; $i -lt $targetArchs.Length; $i++) {
     }
 
     $cargo = Get-CargoCommand -Arm:$Arm
-    $ManifestPath = Get-Manifest
+
+    cd (Get-EdgeletFolder)
 
     $versionInfoFilePath = Join-Path $env:BUILD_REPOSITORY_LOCALPATH 'versionInfo.json'
     $env:VERSION = Get-Content $versionInfoFilePath | ConvertFrom-JSON | % version
@@ -51,8 +52,8 @@ for ($i = 0; $i -lt $targetArchs.Length; $i++) {
 
     $originalRustflags = $env:RUSTFLAGS
     $env:RUSTFLAGS += ' -C target-feature=+crt-static'
-    Write-Host "$cargo build -p iotedge-diagnostics $(if ($Arm) { '--target thumbv7a-pc-windows-msvc' }) $BuildConfigOption --manifest-path $ManifestPath"
-    Invoke-Expression "$cargo build -p iotedge-diagnostics $(if ($Arm) { '--target thumbv7a-pc-windows-msvc' }) $BuildConfigOption --manifest-path $ManifestPath"
+    Write-Host "$cargo build -p iotedge-diagnostics $(if ($Arm) { '--target thumbv7a-pc-windows-msvc' }) $BuildConfigOption"
+    Invoke-Expression "$cargo build -p iotedge-diagnostics $(if ($Arm) { '--target thumbv7a-pc-windows-msvc' }) $BuildConfigOption"
     if ($originalRustflags -eq '') {
         Remove-Item Env:\RUSTFLAGS
     }
