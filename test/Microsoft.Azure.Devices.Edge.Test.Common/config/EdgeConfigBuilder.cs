@@ -75,20 +75,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             var moduleNames = new List<string>();
             var moduleImages = new List<string>();
 
-            string edgeHubModuleId = "$edgeHub";
-            string edgeAgentModuleId = "$edgeAgent";
-
             // Return a configuration for $edgeHub and $edgeAgent
-            foreach (ModuleConfiguration module in modules.Where(m => m.Name.Equals(edgeHubModuleId) || m.Name.Equals(edgeAgentModuleId)))
+            foreach (ModuleConfiguration module in modules.Where(m => this.IsSystemModule(m)))
             {
                 this.AddModuleToConfiguration(module, moduleNames, moduleImages, config);
             }
 
             Dictionary<string, IDictionary<string, object>> copyModulesContent = config.ModulesContent.ToDictionary(entry => entry.Key, entry => entry.Value);
-            yield return new EdgeConfiguration(this.deviceId, new List<string> { edgeHubModuleId, edgeAgentModuleId }, new List<string>(moduleImages), new ConfigurationContent { ModulesContent = copyModulesContent });
+            yield return new EdgeConfiguration(this.deviceId, new List<string>(moduleNames), new List<string>(moduleImages), new ConfigurationContent { ModulesContent = copyModulesContent });
 
             // Return a configuration for other modules
-            foreach (ModuleConfiguration module in modules.Where(m => (m.Name != edgeHubModuleId && m.Name != edgeAgentModuleId)))
+            foreach (ModuleConfiguration module in modules.Where(m => !this.IsSystemModule(m)))
             {
                 this.AddModuleToConfiguration(module, moduleNames, moduleImages, config);
             }
@@ -172,6 +169,11 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             agentBuilder.WithDesiredProperties(desiredProperties);
 
             return agentBuilder.Build();
+        }
+
+        bool IsSystemModule(ModuleConfiguration module)
+        {
+            return module.Name.Equals("$edgeHub") || module.Name.Equals("$edgeAgent");
         }
 
         void AddModuleToConfiguration(ModuleConfiguration module, List<string> moduleNames, List<string> moduleImages, ConfigurationContent config)
