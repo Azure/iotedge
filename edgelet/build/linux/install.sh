@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ###############################################################################
-# This script installs the rust toolchain
+# This script installs rustup
 ###############################################################################
 
 set -e
@@ -11,7 +11,6 @@ set -e
 ###############################################################################
 SCRIPT_NAME=$(basename "$0")
 RUSTUP="${CARGO_HOME:-"$HOME/.cargo"}/bin/rustup"
-TOOLCHAIN="stable"
 ARM_PACKAGE=
 BUILD_REPOSITORY_LOCALPATH=${BUILD_REPOSITORY_LOCALPATH:-$DIR/../../..}
 PROJECT_ROOT=${BUILD_REPOSITORY_LOCALPATH}/edgelet
@@ -25,35 +24,30 @@ function usage()
     echo ""
     echo "options"
     echo " -h,  --help                   Print this help and exit."
-    echo " -t,  --toolchain              Toolchain (default: stable)"
     echo " -p,  --package-arm            Add additional dependencies for armhf packaging"
     exit 1;
 }
 
 ###############################################################################
-# Install rust toolchain
-#
-#   @param[1] - toolchain; Rust toolchain to install; Required;
-#   @param[2] - set_default_toolchain; Boolean to set the toolchain as the
-#               default toolchain duing its installation; Required;
+# Install Rust
 ###############################################################################
-function install_toolchain()
+function install_rust()
 {
-    toolchain="$1"
-    set_default_toolchain="$2"
-
-    if [[ $set_default_toolchain == "true" ]]; then
-        cmd_default_toolchain="--default-toolchain"
-    else
-        cmd_default_toolchain=""
+    if ! command -v "$RUSTUP" >/dev/null; then
+        echo "Installing rustup"
+        curl https://sh.rustup.rs -sSf | sh -s -- -y
     fi
 
-    echo "Installing rust toolchain $toolchain"
-    if command -v "$RUSTUP" >/dev/null; then
-        $RUSTUP install $toolchain
-    else
-        curl https://sh.rustup.rs -sSf | sh -s -- -y $cmd_default_toolchain $toolchain
-    fi
+    # Forcibly install the toolchain specified in the rust-toolchain file.
+    #
+    # rustup automatically installs a missing toolchain, so it would seem we don't have to do this.
+    # However, Azure Devops VMs have stable pre-installed, and it's not necessarily latest stable.
+    # If we let rustup auto-install the toolchain, it would continue to use the old pre-installed stable.
+    #
+    # We could check if the toolchain file contains "stable" and conditionally issue a `rustup update stable`,
+    # but it's simpler to just always `update` whatever toolchain it is. `update` installs the toolchain
+    # if it hasn't already been installed, so this also works for pinned versions.
+    rustup update "$(< "$PROJECT_ROOT/rust-toolchain")"
 }
 
 ###############################################################################
@@ -61,27 +55,19 @@ function install_toolchain()
 ###############################################################################
 function process_args()
 {
-    save_next_arg=0
     for arg in "$@"
     do
-        if [ $save_next_arg -eq 1 ]; then
-            TOOLCHAIN="$arg"
-            save_next_arg=0
-        else
-            case "$arg" in
-                "-h" | "--help" ) usage;;
-                "-t" | "--toolchain" ) save_next_arg=1;;
-                "-p" | "--package-arm" ) ARM_PACKAGE=1;;
-                * ) usage;;
-            esac
-        fi
+        case "$arg" in
+            "-h" | "--help" ) usage;;
+            "-p" | "--package-arm" ) ARM_PACKAGE=1;;
+            * ) usage;;
+        esac
     done
 }
 
 process_args "$@"
 
-# install specified toolchain
-install_toolchain $TOOLCHAIN true
+install_rust
 
 # Add trusty repo to get older version of libc6-armhf-cross
 sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu/ trusty main universe"
