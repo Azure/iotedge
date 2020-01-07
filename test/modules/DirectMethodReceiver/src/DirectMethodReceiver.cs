@@ -19,6 +19,7 @@ namespace DirectMethodReceiver
         ILogger logger;
         ModuleClient moduleClient;
         Option<TestResultReportingClient> testResultReportingClient;
+        Option<string> trackingId;
 
         public DirectMethodReceiver(
             ILogger logger,
@@ -27,15 +28,15 @@ namespace DirectMethodReceiver
             Preconditions.CheckNotNull(logger, nameof(logger));
             Preconditions.CheckNotNull(configuration, nameof(configuration));
 
-            TestResultReportingClient testResultReportingClient = null;
             Option<Uri> testReportCoordinatorUrl = Option.Maybe(configuration.GetValue<Uri>("testResultCoordinatorUrl"));
             testReportCoordinatorUrl.ForEach(
-                (Uri uri) => testResultReportingClient = new TestResultReportingClient { BaseUrl = uri.AbsoluteUri });
+                (Uri uri) => this.testResultReportingClient = Option.Some<TestResultReportingClient>(new TestResultReportingClient { BaseUrl = uri.AbsoluteUri }),
+                () => this.testResultReportingClient = Option.None<TestResultReportingClient>());
 
             this.logger = logger;
             this.configuration = configuration;
-            this.testResultReportingClient = Option.Maybe(testResultReportingClient);
             this.batchId = Guid.NewGuid();
+            this.trackingId = Option.Maybe(this.configuration.GetValue<string>("trackingId"));
         }
 
         public void Dispose() => this.moduleClient?.Dispose();
@@ -51,14 +52,12 @@ namespace DirectMethodReceiver
 
         public async Task ReportTestResult()
         {
-            DirectMethodTestResult testResult = null;
             await this.testResultReportingClient.ForEachAsync(
                 async (TestResultReportingClient testResultReportingClient) =>
                     {
-                        testResult = new DirectMethodTestResult(this.configuration.GetValue<string>("IOTEDGE_MODULEID") + ".receive", DateTime.UtcNow)
+                        DirectMethodTestResult testResult = new DirectMethodTestResult(this.configuration.GetValue<string>("IOTEDGE_MODULEID") + ".receive", DateTime.UtcNow)
                         {
-                            TrackingId = Option.Maybe(this.configuration.GetValue<string>("trackingId"))
-                                .Expect(() => new ArgumentException("TrackingId is empty")),
+                            TrackingId = this.trackingId.Expect(() => new ArgumentException("TrackingId is empty")),
                             BatchId = this.batchId.ToString(),
                             SequenceNumber = this.directMethodCount.ToString(),
                             Result = HttpStatusCode.OK.ToString()
@@ -74,6 +73,8 @@ namespace DirectMethodReceiver
                 ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                 ModuleUtil.DefaultTransientRetryStrategy,
                 this.logger);
+
+            this.directMethodCount = 1;
 
             await this.moduleClient.OpenAsync();
             await this.moduleClient.SetMethodHandlerAsync("HelloWorldMethod", this.HelloWorldMethodAsync, null);
