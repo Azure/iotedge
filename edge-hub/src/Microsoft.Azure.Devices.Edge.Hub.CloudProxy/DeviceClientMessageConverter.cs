@@ -69,6 +69,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
                 {
                     message.MessageSchema = messageSchema;
                 }
+
+                if (inputMessage.SystemProperties.TryGetNonEmptyValue(SystemProperties.InterfaceId, out string interfaceId)
+                    && interfaceId.Equals(Constants.SecurityMessageIoTHubInterfaceId, StringComparison.OrdinalIgnoreCase))
+                {
+                    message.SetAsSecurityMessage();
+                }
             }
 
             return message;

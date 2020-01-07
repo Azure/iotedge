@@ -29,26 +29,27 @@ use mio_uds_windows::net::UnixListener as StdUnixListener;
 
 pub fn run_tcp_server<F, R>(
     ip: &str,
-    port: u16,
     handler: F,
-) -> impl Future<Item = (), Error = hyper::Error>
+) -> (impl Future<Item = (), Error = hyper::Error>, u16)
 where
     F: 'static + Fn(Request<Body>) -> R + Clone + Send,
     R: 'static + Future<Item = Response<Body>, Error = hyper::Error> + Send,
 {
-    let addr = &format!("{}:{}", ip, port).parse().unwrap();
+    let addr = &format!("{}:0", ip).parse().unwrap();
 
     let serve = Http::new()
         .serve_addr(addr, move || service_fn(handler.clone()))
         .unwrap();
-    serve.for_each(|connecting| {
+    let port = serve.incoming_ref().local_addr().port();
+    let server = serve.for_each(|connecting| {
         connecting
             .then(|connection| {
                 let connection = connection.unwrap();
                 Ok::<_, hyper::Error>(connection)
             })
             .flatten()
-    })
+    });
+    (server, port)
 }
 
 pub fn run_uds_server<F, R>(path: &str, handler: F) -> impl Future<Item = (), Error = io::Error>

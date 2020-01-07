@@ -133,7 +133,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
                 [SystemProperties.UserId] = "user1",
                 [SystemProperties.MsgCorrelationId] = "1234",
                 [SystemProperties.MessageId] = "m1",
-                [SystemProperties.CreationTime] = creationTime
+                [SystemProperties.CreationTime] = creationTime,
+                [SystemProperties.InterfaceId] = Constants.SecurityMessageIoTHubInterfaceId
             };
 
             var message = Mock.Of<IMessage>(
@@ -157,6 +158,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Assert.Equal("1234", clientMessage.CorrelationId);
             Assert.Equal("m1", clientMessage.MessageId);
             Assert.Equal(creationTime, clientMessage.CreationTimeUtc.ToString("o"));
+            Assert.True(clientMessage.IsSecurityMessage);
         }
 
         [Unit]

@@ -60,7 +60,8 @@ impl UrlConnector {
                     Err(ErrorKind::InvalidUrlWithReason(
                         url.to_string(),
                         InvalidUrlReason::FileNotFound,
-                    ))?
+                    )
+                    .into())
                 }
             }
 
@@ -73,7 +74,8 @@ impl UrlConnector {
             _ => Err(ErrorKind::InvalidUrlWithReason(
                 url.to_string(),
                 InvalidUrlReason::InvalidScheme,
-            ))?,
+            )
+            .into()),
         }
     }
 
@@ -100,7 +102,19 @@ impl UrlConnector {
                 scheme: scheme.to_string(),
                 base_path: base_path.to_string(),
                 path: path.to_string(),
-            })?,
+            }
+            .into()),
+        }
+    }
+}
+
+impl std::fmt::Debug for UrlConnector {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            UrlConnector::Http(_) => f.debug_struct("Http").finish(),
+            #[cfg(windows)]
+            UrlConnector::Pipe(_) => f.debug_struct("Pipe").finish(),
+            UrlConnector::Unix(_) => f.debug_struct("UnixConnector").finish(),
         }
     }
 }
@@ -159,10 +173,11 @@ mod tests {
     use super::*;
 
     #[test]
-    #[should_panic(expected = "URL does not have a recognized scheme")]
     fn invalid_url_scheme() {
-        let _connector =
-            UrlConnector::new(&Url::parse("foo:///this/is/not/valid").unwrap()).unwrap();
+        let err = UrlConnector::new(&Url::parse("foo:///this/is/not/valid").unwrap()).unwrap_err();
+        assert!(failure::Fail::iter_chain(&err).any(|err| err
+            .to_string()
+            .contains("URL does not have a recognized scheme")));
     }
 
     #[test]

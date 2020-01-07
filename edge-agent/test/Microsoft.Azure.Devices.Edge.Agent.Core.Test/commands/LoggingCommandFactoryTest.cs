@@ -78,7 +78,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
             Task<ICommand> commandBeingDecorated,
             TestExecutionExpr testExpr)
         {
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
 
             var logFactoryMock = new Mock<ILoggerFactory>();
             var logMock = new Mock<ILogger<LoggingCommandFactory>>();
@@ -114,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
             Task<ICommand> commandBeingDecorated,
             TestExecutionExpr testExpr)
         {
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
 
             var logFactoryMock = new Mock<ILoggerFactory>();
             var logMock = new Mock<ILogger<LoggingCommandFactory>>();
@@ -144,7 +144,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
             Task<ICommand> commandBeingDecorated,
             TestExecutionExpr testExpr)
         {
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
 
             var logFactoryMock = new Mock<ILoggerFactory>();
             var logMock = new Mock<ILogger<LoggingCommandFactory>>();
@@ -174,7 +174,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
             Task<ICommand> commandBeingDecorated,
             TestExecutionExpr testExpr)
         {
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
             var logFactoryMock = new Mock<ILoggerFactory>();
             var logMock = new Mock<ILogger<LoggingCommandFactory>>();
             var factoryMock = new Mock<ICommandFactory>();

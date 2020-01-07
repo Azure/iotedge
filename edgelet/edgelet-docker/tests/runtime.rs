@@ -2,6 +2,7 @@
 
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
+#![allow(clippy::too_many_lines)]
 
 use std::collections::HashMap;
 use std::str;
@@ -9,7 +10,6 @@ use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
 use config::{Config, File, FileFormat};
-#[cfg(unix)]
 use failure::Fail;
 use futures::future;
 use futures::prelude::*;
@@ -20,11 +20,9 @@ use serde_json::{self, json, Value as JsonValue};
 use typed_headers::{mime, ContentLength, ContentType, HeaderMapExt};
 use url::form_urlencoded::parse as parse_query;
 
-#[cfg(unix)]
-use docker::models::AuthConfig;
 use docker::models::{
-    ContainerCreateBody, ContainerHostConfig, ContainerNetworkSettings, ContainerSummary,
-    HostConfig, HostConfigPortBindings, ImageDeleteResponseItem, NetworkConfig,
+    AuthConfig, ContainerCreateBody, ContainerHostConfig, ContainerNetworkSettings,
+    ContainerSummary, HostConfig, HostConfigPortBindings, ImageDeleteResponseItem, NetworkConfig,
 };
 
 use edgelet_core::{
@@ -37,15 +35,13 @@ use edgelet_test_utils::crypto::TestHsm;
 use edgelet_test_utils::web::{
     make_req_dispatcher, HttpMethod, RequestHandler, RequestPath, ResponseFuture,
 };
-use edgelet_test_utils::{get_unused_tcp_port, routes, run_tcp_server};
+use edgelet_test_utils::{routes, run_tcp_server};
 use hyper::Error as HyperError;
 use provisioning::{ProvisioningResult, ReprovisioningStatus};
 
 const IMAGE_NAME: &str = "nginx:latest";
 
-#[cfg(unix)]
 const INVALID_IMAGE_NAME: &str = "invalidname:latest";
-#[cfg(unix)]
 const INVALID_IMAGE_HOST: &str = "invalidhost.com/nginx:latest";
 
 fn make_settings(merge_json: Option<JsonValue>) -> Settings {
@@ -188,7 +184,6 @@ fn default_network_handler(
     make_req_dispatcher(dispatch_table, Box::new(not_found_handler))
 }
 
-#[cfg(unix)]
 #[allow(clippy::needless_pass_by_value)]
 fn invalid_image_name_pull_handler(req: Request<Body>) -> ResponseFuture {
     // verify that path is /images/create and that the "fromImage" query
@@ -226,26 +221,20 @@ fn invalid_image_name_pull_handler(req: Request<Body>) -> ResponseFuture {
     Box::new(future::ok(response))
 }
 
-// This test is super flaky on Windows for some reason. It keeps occassionally
-// failing on Windows with error 10054 which means the server keeps dropping the
-// socket for no reason apparently.
-#[cfg(unix)]
 #[test]
 fn image_pull_with_invalid_image_name_fails() {
-    let port = get_unused_tcp_port();
-
     let dispatch_table = routes!(
         GET "/networks" => default_get_networks_handler(),
         POST "/networks/create" => default_create_network_handler(),
         POST "/images/create" => invalid_image_name_pull_handler,
     );
 
-    let server = run_tcp_server(
+    let (server, port) = run_tcp_server(
         "127.0.0.1",
-        port,
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
-    )
-    .map_err(|err| eprintln!("{}", err));
+    );
+    let server = server.map_err(|err| panic!(err));
+
     let settings = make_settings(Some(json!({
         "moby_runtime": {
             "uri": &format!("http://localhost:{}", port)
@@ -297,7 +286,6 @@ fn image_pull_with_invalid_image_name_fails() {
     }
 }
 
-#[cfg(unix)]
 #[allow(clippy::needless_pass_by_value)]
 fn invalid_image_host_pull_handler(req: Request<Body>) -> ResponseFuture {
     // verify that path is /images/create and that the "fromImage" query
@@ -334,26 +322,20 @@ fn invalid_image_host_pull_handler(req: Request<Body>) -> ResponseFuture {
     Box::new(future::ok(response))
 }
 
-// This test is super flaky on Windows for some reason. It keeps occassionally
-// failing on Windows with error 10054 which means the server keeps dropping the
-// socket for no reason apparently.
-#[cfg(unix)]
 #[test]
 fn image_pull_with_invalid_image_host_fails() {
-    let port = get_unused_tcp_port();
-
     let dispatch_table = routes!(
         GET "/networks" => default_get_networks_handler(),
         POST "/networks/create" => default_create_network_handler(),
         POST "/images/create" => invalid_image_host_pull_handler,
     );
 
-    let server = run_tcp_server(
+    let (server, port) = run_tcp_server(
         "127.0.0.1",
-        port,
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
-    )
-    .map_err(|err| eprintln!("{}", err));
+    );
+    let server = server.map_err(|err| panic!(err));
+
     let settings = make_settings(Some(json!({
         "moby_runtime": {
             "uri": &format!("http://localhost:{}", port)
@@ -408,7 +390,6 @@ fn image_pull_with_invalid_image_host_fails() {
     }
 }
 
-#[cfg(unix)]
 #[allow(clippy::needless_pass_by_value)]
 fn image_pull_with_invalid_creds_handler(req: Request<Body>) -> ResponseFuture {
     // verify that path is /images/create and that the "fromImage" query
@@ -428,9 +409,8 @@ fn image_pull_with_invalid_creds_handler(req: Request<Body>) -> ResponseFuture {
         .into_iter()
         .map(|bytes| base64::decode(bytes).unwrap())
         .map(|raw| str::from_utf8(&raw).unwrap().to_owned())
-        .collect::<Vec<String>>()
-        .join("");
-    let auth_config: AuthConfig = serde_json::from_str(&auth_str.to_string()).unwrap();
+        .collect::<String>();
+    let auth_config: AuthConfig = serde_json::from_str(&auth_str).unwrap();
     assert_eq!(auth_config.username(), Some("u1"));
     assert_eq!(auth_config.password(), Some("wrong_password"));
     assert_eq!(auth_config.email(), Some("u1@bleh.com"));
@@ -457,26 +437,20 @@ fn image_pull_with_invalid_creds_handler(req: Request<Body>) -> ResponseFuture {
     Box::new(future::ok(response))
 }
 
-// This test is super flaky on Windows for some reason. It keeps occassionally
-// failing on Windows with error 10054 which means the server keeps dropping the
-// socket for no reason apparently.
-#[cfg(unix)]
 #[test]
 fn image_pull_with_invalid_creds_fails() {
-    let port = get_unused_tcp_port();
-
     let dispatch_table = routes!(
         GET "/networks" => default_get_networks_handler(),
         POST "/networks/create" => default_create_network_handler(),
         POST "/images/create" => image_pull_with_invalid_creds_handler,
     );
 
-    let server = run_tcp_server(
+    let (server, port) = run_tcp_server(
         "127.0.0.1",
-        port,
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
-    )
-    .map_err(|err| eprintln!("{}", err));
+    );
+    let server = server.map_err(|err| panic!(err));
+
     let settings = make_settings(Some(json!({
         "moby_runtime": {
             "uri": &format!("http://localhost:{}", port)
@@ -531,7 +505,6 @@ fn image_pull_with_invalid_creds_fails() {
     }
 }
 
-#[cfg(unix)]
 #[allow(clippy::needless_pass_by_value)]
 fn image_pull_handler(req: Request<Body>) -> ResponseFuture {
     // verify that path is /images/create and that the "fromImage" query
@@ -562,26 +535,20 @@ fn image_pull_handler(req: Request<Body>) -> ResponseFuture {
     Box::new(future::ok(response))
 }
 
-// This test is super flaky on Windows for some reason. It keeps occassionally
-// failing on Windows with error 10054 which means the server keeps dropping the
-// socket for no reason apparently.
-#[cfg(unix)]
 #[test]
 fn image_pull_succeeds() {
-    let port = get_unused_tcp_port();
-
     let dispatch_table = routes!(
         GET "/networks" => default_get_networks_handler(),
         POST "/networks/create" => default_create_network_handler(),
         POST "/images/create" => image_pull_handler,
     );
 
-    let server = run_tcp_server(
+    let (server, port) = run_tcp_server(
         "127.0.0.1",
-        port,
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
-    )
-    .map_err(|err| eprintln!("{}", err));
+    );
+    let server = server.map_err(|err| panic!(err));
+
     let settings = make_settings(Some(json!({
         "moby_runtime": {
             "uri": &format!("http://localhost:{}", port)
@@ -610,7 +577,6 @@ fn image_pull_succeeds() {
     runtime.block_on(task).unwrap();
 }
 
-#[cfg(unix)]
 #[allow(clippy::needless_pass_by_value)]
 fn image_pull_with_creds_handler(req: Request<Body>) -> ResponseFuture {
     // verify that path is /images/create and that the "fromImage" query
@@ -630,9 +596,8 @@ fn image_pull_with_creds_handler(req: Request<Body>) -> ResponseFuture {
         .into_iter()
         .map(|bytes| base64::decode(bytes).unwrap())
         .map(|raw| str::from_utf8(&raw).unwrap().to_owned())
-        .collect::<Vec<String>>()
-        .join("");
-    let auth_config: AuthConfig = serde_json::from_str(&auth_str.to_string()).unwrap();
+        .collect::<String>();
+    let auth_config: AuthConfig = serde_json::from_str(&auth_str).unwrap();
     assert_eq!(auth_config.username(), Some("u1"));
     assert_eq!(auth_config.password(), Some("bleh"));
     assert_eq!(auth_config.email(), Some("u1@bleh.com"));
@@ -656,26 +621,20 @@ fn image_pull_with_creds_handler(req: Request<Body>) -> ResponseFuture {
     Box::new(future::ok(response))
 }
 
-// This test is super flaky on Windows for some reason. It keeps occassionally
-// failing on Windows with error 10054 which means the server keeps dropping the
-// socket for no reason apparently.
-#[cfg(unix)]
 #[test]
 fn image_pull_with_creds_succeeds() {
-    let port = get_unused_tcp_port();
-
     let dispatch_table = routes!(
         GET "/networks" => default_get_networks_handler(),
         POST "/networks/create" => default_create_network_handler(),
         POST "/images/create" => image_pull_with_creds_handler,
     );
 
-    let server = run_tcp_server(
+    let (server, port) = run_tcp_server(
         "127.0.0.1",
-        port,
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
-    )
-    .map_err(|err| eprintln!("{}", err));
+    );
+    let server = server.map_err(|err| panic!(err));
+
     let settings = make_settings(Some(json!({
         "moby_runtime": {
             "uri": &format!("http://localhost:{}", port)
@@ -727,20 +686,18 @@ fn image_remove_handler(req: Request<Body>) -> ResponseFuture {
 
 #[test]
 fn image_remove_succeeds() {
-    let port = get_unused_tcp_port();
-
     let dispatch_table = routes!(
         GET "/networks" => default_get_networks_handler(),
         POST "/networks/create" => default_create_network_handler(),
         DELETE format!("/images/{}", IMAGE_NAME) => image_remove_handler,
     );
 
-    let server = run_tcp_server(
+    let (server, port) = run_tcp_server(
         "127.0.0.1",
-        port,
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
-    )
-    .map_err(|err| eprintln!("{}", err));
+    );
+    let server = server.map_err(|err| panic!(err));
+
     let settings = make_settings(Some(json!({
         "moby_runtime": {
             "uri": &format!("http://localhost:{}", port)
@@ -840,20 +797,18 @@ fn container_create_handler(req: Request<Body>) -> ResponseFuture {
 
 #[test]
 fn container_create_succeeds() {
-    let port = get_unused_tcp_port();
-
     let dispatch_table = routes!(
         GET "/networks" => default_get_networks_handler(),
         POST "/networks/create" => default_create_network_handler(),
         POST "/containers/create" => container_create_handler,
     );
 
-    let server = run_tcp_server(
+    let (server, port) = run_tcp_server(
         "127.0.0.1",
-        port,
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
-    )
-    .map_err(|err| eprintln!("{}", err));
+    );
+    let server = server.map_err(|err| panic!(err));
+
     let settings = make_settings(Some(json!({
         "moby_runtime": {
             "uri": &format!("http://localhost:{}", port)
@@ -924,20 +879,18 @@ fn container_start_handler(req: Request<Body>) -> ResponseFuture {
 
 #[test]
 fn container_start_succeeds() {
-    let port = get_unused_tcp_port();
-
     let dispatch_table = routes!(
         GET "/networks" => default_get_networks_handler(),
         POST "/networks/create" => default_create_network_handler(),
         POST "/containers/m1/start" => container_start_handler,
     );
 
-    let server = run_tcp_server(
+    let (server, port) = run_tcp_server(
         "127.0.0.1",
-        port,
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
-    )
-    .map_err(|err| eprintln!("{}", err));
+    );
+    let server = server.map_err(|err| panic!(err));
+
     let settings = make_settings(Some(json!({
         "moby_runtime": {
             "uri": &format!("http://localhost:{}", port)
@@ -962,20 +915,18 @@ fn container_stop_handler(req: Request<Body>) -> ResponseFuture {
 
 #[test]
 fn container_stop_succeeds() {
-    let port = get_unused_tcp_port();
-
     let dispatch_table = routes!(
         GET "/networks" => default_get_networks_handler(),
         POST "/networks/create" => default_create_network_handler(),
         POST "/containers/m1/stop" => container_stop_handler,
     );
 
-    let server = run_tcp_server(
+    let (server, port) = run_tcp_server(
         "127.0.0.1",
-        port,
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
-    )
-    .map_err(|err| eprintln!("{}", err));
+    );
+    let server = server.map_err(|err| panic!(err));
+
     let settings = make_settings(Some(json!({
         "moby_runtime": {
             "uri": &format!("http://localhost:{}", port)
@@ -1001,20 +952,18 @@ fn container_stop_with_timeout_handler(req: Request<Body>) -> ResponseFuture {
 
 #[test]
 fn container_stop_with_timeout_succeeds() {
-    let port = get_unused_tcp_port();
-
     let dispatch_table = routes!(
         GET "/networks" => default_get_networks_handler(),
         POST "/networks/create" => default_create_network_handler(),
         POST "/containers/m1/stop" => container_stop_with_timeout_handler,
     );
 
-    let server = run_tcp_server(
+    let (server, port) = run_tcp_server(
         "127.0.0.1",
-        port,
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
-    )
-    .map_err(|err| eprintln!("{}", err));
+    );
+    let server = server.map_err(|err| panic!(err));
+
     let settings = make_settings(Some(json!({
         "moby_runtime": {
             "uri": &format!("http://localhost:{}", port)
@@ -1039,20 +988,18 @@ fn container_remove_handler(req: Request<Body>) -> ResponseFuture {
 
 #[test]
 fn container_remove_succeeds() {
-    let port = get_unused_tcp_port();
-
     let dispatch_table = routes!(
         GET "/networks" => default_get_networks_handler(),
         POST "/networks/create" => default_create_network_handler(),
         DELETE "/containers/m1" => container_remove_handler,
     );
 
-    let server = run_tcp_server(
+    let (server, port) = run_tcp_server(
         "127.0.0.1",
-        port,
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
-    )
-    .map_err(|err| eprintln!("{}", err));
+    );
+    let server = server.map_err(|err| panic!(err));
+
     let settings = make_settings(Some(json!({
         "moby_runtime": {
             "uri": &format!("http://localhost:{}", port)
@@ -1136,7 +1083,7 @@ fn container_list_handler(req: Request<Body>) -> ResponseFuture {
             vec![],
             10,
             10,
-            labels.clone(),
+            labels,
             "".to_string(),
             "".to_string(),
             ContainerHostConfig::new(""),
@@ -1160,20 +1107,18 @@ fn container_list_handler(req: Request<Body>) -> ResponseFuture {
 
 #[test]
 fn container_list_succeeds() {
-    let port = get_unused_tcp_port();
-
     let dispatch_table = routes!(
         GET "/networks" => default_get_networks_handler(),
         POST "/networks/create" => default_create_network_handler(),
         GET "/containers/json" => container_list_handler,
     );
 
-    let server = run_tcp_server(
+    let (server, port) = run_tcp_server(
         "127.0.0.1",
-        port,
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
-    )
-    .map_err(|err| eprintln!("{}", err));
+    );
+    let server = server.map_err(|err| panic!(err));
+
     let settings = make_settings(Some(json!({
         "moby_runtime": {
             "uri": &format!("http://localhost:{}", port)
@@ -1243,20 +1188,18 @@ fn container_logs_handler(req: Request<Body>) -> ResponseFuture {
 
 #[test]
 fn container_logs_succeeds() {
-    let port = get_unused_tcp_port();
-
     let dispatch_table = routes!(
         GET "/networks" => default_get_networks_handler(),
         POST "/networks/create" => default_create_network_handler(),
         GET "/containers/mod1/logs" => container_logs_handler,
     );
 
-    let server = run_tcp_server(
+    let (server, port) = run_tcp_server(
         "127.0.0.1",
-        port,
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
-    )
-    .map_err(|err| eprintln!("{}", err));
+    );
+    let server = server.map_err(|err| panic!(err));
+
     let settings = make_settings(Some(json!({
         "moby_runtime": {
             "uri": &format!("http://localhost:{}", port)
@@ -1292,9 +1235,9 @@ fn container_logs_succeeds() {
 
 #[test]
 fn image_remove_with_white_space_name_fails() {
-    let port = get_unused_tcp_port();
-    let server = run_tcp_server("127.0.0.1", port, default_network_handler())
-        .map_err(|err| eprintln!("{}", err));
+    let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
+    let server = server.map_err(|err| panic!(err));
+
     let settings = make_settings(Some(json!({
         "moby_runtime": {
             "uri": &format!("http://localhost:{}", port)
@@ -1326,9 +1269,9 @@ fn image_remove_with_white_space_name_fails() {
 
 #[test]
 fn create_fails_for_non_docker_type() {
-    let port = get_unused_tcp_port();
-    let server = run_tcp_server("127.0.0.1", port, default_network_handler())
-        .map_err(|err| eprintln!("{}", err));
+    let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
+    let server = server.map_err(|err| panic!(err));
+
     let settings = make_settings(Some(json!({
         "moby_runtime": {
             "uri": &format!("http://localhost:{}", port)
@@ -1365,9 +1308,9 @@ fn create_fails_for_non_docker_type() {
 
 #[test]
 fn start_fails_for_empty_id() {
-    let port = get_unused_tcp_port();
-    let server = run_tcp_server("127.0.0.1", port, default_network_handler())
-        .map_err(|err| eprintln!("{}", err));
+    let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
+    let server = server.map_err(|err| panic!(err));
+
     let settings = make_settings(Some(json!({
         "moby_runtime": {
             "uri": &format!("http://localhost:{}", port)
@@ -1397,9 +1340,9 @@ fn start_fails_for_empty_id() {
 
 #[test]
 fn start_fails_for_white_space_id() {
-    let port = get_unused_tcp_port();
-    let server = run_tcp_server("127.0.0.1", port, default_network_handler())
-        .map_err(|err| eprintln!("{}", err));
+    let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
+    let server = server.map_err(|err| panic!(err));
+
     let settings = make_settings(Some(json!({
         "moby_runtime": {
             "uri": &format!("http://localhost:{}", port)
@@ -1429,9 +1372,9 @@ fn start_fails_for_white_space_id() {
 
 #[test]
 fn stop_fails_for_empty_id() {
-    let port = get_unused_tcp_port();
-    let server = run_tcp_server("127.0.0.1", port, default_network_handler())
-        .map_err(|err| eprintln!("{}", err));
+    let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
+    let server = server.map_err(|err| panic!(err));
+
     let settings = make_settings(Some(json!({
         "moby_runtime": {
             "uri": &format!("http://localhost:{}", port)
@@ -1461,9 +1404,9 @@ fn stop_fails_for_empty_id() {
 
 #[test]
 fn stop_fails_for_white_space_id() {
-    let port = get_unused_tcp_port();
-    let server = run_tcp_server("127.0.0.1", port, default_network_handler())
-        .map_err(|err| eprintln!("{}", err));
+    let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
+    let server = server.map_err(|err| panic!(err));
+
     let settings = make_settings(Some(json!({
         "moby_runtime": {
             "uri": &format!("http://localhost:{}", port)
@@ -1493,9 +1436,9 @@ fn stop_fails_for_white_space_id() {
 
 #[test]
 fn restart_fails_for_empty_id() {
-    let port = get_unused_tcp_port();
-    let server = run_tcp_server("127.0.0.1", port, default_network_handler())
-        .map_err(|err| eprintln!("{}", err));
+    let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
+    let server = server.map_err(|err| panic!(err));
+
     let settings = make_settings(Some(json!({
         "moby_runtime": {
             "uri": &format!("http://localhost:{}", port)
@@ -1525,9 +1468,9 @@ fn restart_fails_for_empty_id() {
 
 #[test]
 fn restart_fails_for_white_space_id() {
-    let port = get_unused_tcp_port();
-    let server = run_tcp_server("127.0.0.1", port, default_network_handler())
-        .map_err(|err| eprintln!("{}", err));
+    let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
+    let server = server.map_err(|err| panic!(err));
+
     let settings = make_settings(Some(json!({
         "moby_runtime": {
             "uri": &format!("http://localhost:{}", port)
@@ -1557,9 +1500,9 @@ fn restart_fails_for_white_space_id() {
 
 #[test]
 fn remove_fails_for_empty_id() {
-    let port = get_unused_tcp_port();
-    let server = run_tcp_server("127.0.0.1", port, default_network_handler())
-        .map_err(|err| eprintln!("{}", err));
+    let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
+    let server = server.map_err(|err| panic!(err));
+
     let settings = make_settings(Some(json!({
         "moby_runtime": {
             "uri": &format!("http://localhost:{}", port)
@@ -1589,9 +1532,9 @@ fn remove_fails_for_empty_id() {
 
 #[test]
 fn remove_fails_for_white_space_id() {
-    let port = get_unused_tcp_port();
-    let server = run_tcp_server("127.0.0.1", port, default_network_handler())
-        .map_err(|err| eprintln!("{}", err));
+    let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
+    let server = server.map_err(|err| panic!(err));
+
     let settings = make_settings(Some(json!({
         "moby_runtime": {
             "uri": &format!("http://localhost:{}", port)
@@ -1621,9 +1564,9 @@ fn remove_fails_for_white_space_id() {
 
 #[test]
 fn get_fails_for_empty_id() {
-    let port = get_unused_tcp_port();
-    let server = run_tcp_server("127.0.0.1", port, default_network_handler())
-        .map_err(|err| eprintln!("{}", err));
+    let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
+    let server = server.map_err(|err| panic!(err));
+
     let settings = make_settings(Some(json!({
         "moby_runtime": {
             "uri": &format!("http://localhost:{}", port)
@@ -1653,9 +1596,9 @@ fn get_fails_for_empty_id() {
 
 #[test]
 fn get_fails_for_white_space_id() {
-    let port = get_unused_tcp_port();
-    let server = run_tcp_server("127.0.0.1", port, default_network_handler())
-        .map_err(|err| eprintln!("{}", err));
+    let (server, port) = run_tcp_server("127.0.0.1", default_network_handler());
+    let server = server.map_err(|err| panic!(err));
+
     let settings = make_settings(Some(json!({
         "moby_runtime": {
             "uri": &format!("http://localhost:{}", port)
@@ -1691,8 +1634,6 @@ fn runtime_init_network_does_not_exist_create() {
     let create_got_called_lock = Arc::new(RwLock::new(false));
     let create_got_called_lock_cloned = create_got_called_lock.clone();
 
-    let port = get_unused_tcp_port();
-
     let network_handler = make_network_handler(
         move || {
             let mut list_got_called_w = list_got_called_lock.write().unwrap();
@@ -1706,8 +1647,8 @@ fn runtime_init_network_does_not_exist_create() {
         },
     );
 
-    let server =
-        run_tcp_server("127.0.0.1", port, network_handler).map_err(|err| eprintln!("{}", err));
+    let (server, port) = run_tcp_server("127.0.0.1", network_handler);
+    let server = server.map_err(|err| panic!(err));
 
     let settings = make_settings(Some(json!({
         "moby_runtime": {
@@ -1734,8 +1675,6 @@ fn network_ipv6_create() {
 
     let create_got_called_lock = Arc::new(RwLock::new(false));
     let create_got_called_lock_cloned = create_got_called_lock.clone();
-
-    let port = get_unused_tcp_port();
 
     let network_handler = make_network_handler(
         move || {
@@ -1772,8 +1711,8 @@ fn network_ipv6_create() {
         },
     );
 
-    let server =
-        run_tcp_server("127.0.0.1", port, network_handler).map_err(|err| eprintln!("{}", err));
+    let (server, port) = run_tcp_server("127.0.0.1", network_handler);
+    let server = server.map_err(|err| panic!(err));
 
     let settings = make_settings(Some(json!({
         "moby_runtime": {
@@ -1819,8 +1758,6 @@ fn runtime_init_network_exist_do_not_create() {
     let create_got_called_lock = Arc::new(RwLock::new(false));
     let create_got_called_lock_cloned = create_got_called_lock.clone();
 
-    let port = get_unused_tcp_port();
-
     let network_handler = make_network_handler(
         move || {
             let mut list_got_called_w = list_got_called_lock.write().unwrap();
@@ -1853,8 +1790,8 @@ fn runtime_init_network_exist_do_not_create() {
         },
     );
 
-    let server =
-        run_tcp_server("127.0.0.1", port, network_handler).map_err(|err| eprintln!("{}", err));
+    let (server, port) = run_tcp_server("127.0.0.1", network_handler);
+    let server = server.map_err(|err| panic!(err));
 
     let settings = make_settings(Some(json!({
         "moby_runtime": {
@@ -1905,8 +1842,6 @@ fn runtime_system_info_succeeds() {
         Box::new(future::ok(response)) as ResponseFuture
     };
 
-    let port = get_unused_tcp_port();
-
     let dispatch_table = routes!(
         GET "/networks" => default_get_networks_handler(),
         POST "/networks/create" => default_create_network_handler(),
@@ -1914,12 +1849,12 @@ fn runtime_system_info_succeeds() {
     );
 
     //act
-    let server = run_tcp_server(
+    let (server, port) = run_tcp_server(
         "127.0.0.1",
-        port,
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
-    )
-    .map_err(|err| eprintln!("{}", err));
+    );
+    let server = server.map_err(|err| panic!(err));
+
     let settings = make_settings(Some(json!({
         "moby_runtime": {
             "uri": &format!("http://localhost:{}", port)
@@ -1964,8 +1899,6 @@ fn runtime_system_info_none_returns_unkown() {
         Box::new(future::ok(response)) as ResponseFuture
     };
 
-    let port = get_unused_tcp_port();
-
     let dispatch_table = routes!(
         GET "/networks" => default_get_networks_handler(),
         POST "/networks/create" => default_create_network_handler(),
@@ -1973,12 +1906,12 @@ fn runtime_system_info_none_returns_unkown() {
     );
 
     //act
-    let server = run_tcp_server(
+    let (server, port) = run_tcp_server(
         "127.0.0.1",
-        port,
         make_req_dispatcher(dispatch_table, Box::new(not_found_handler)),
-    )
-    .map_err(|err| eprintln!("{}", err));
+    );
+    let server = server.map_err(|err| panic!(err));
+
     let settings = make_settings(Some(json!({
         "moby_runtime": {
             "uri": &format!("http://localhost:{}", port)

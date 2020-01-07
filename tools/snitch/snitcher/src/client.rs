@@ -5,10 +5,9 @@ use std::str;
 use std::sync::{Arc, Mutex};
 
 use bytes::Bytes;
-use edgelet_core::UrlExt;
-use edgelet_http::UrlConnector;
-use futures::future::{self, IntoFuture};
+use futures::future::{self, Either};
 use futures::{Future, Stream};
+use http::Uri;
 use hyper::header::{HeaderValue, CONTENT_LENGTH, CONTENT_TYPE, IF_MATCH};
 use hyper::service::Service;
 use hyper::{Body, Error as HyperError, Method, Request};
@@ -70,24 +69,23 @@ where
         let url_copy = self.host_name.clone();
         let path_copy = path.to_owned();
 
-        let scheme = self.host_name.scheme();
-        let base_path = self.host_name.to_base_path().expect(&format!(
-            "Error when parsing base path from {}",
-            self.host_name.as_str()
-        ));
-        let base_path = base_path.to_str().expect(&format!("Invalid base path: {:?}", base_path));
-        let path = format!("{}{}", path, query);
-        debug!("scheme={}, base_path={}, path={}", scheme, base_path, path);
-        UrlConnector::build_hyper_uri(
-                scheme, 
-                base_path, 
-                &path)
+        self.host_name
+            // build the full url
+            .join(&format!("{}?{}", path, query))
             .map_err(Error::from)
             .and_then(|url| {
                 debug!("Making HTTP request with URL: {}", url);
 
+                // NOTE: 'expect' here should be OK, because this is a type
+                // conversion from url::Url to hyper::Uri and not really a URL
+                // parse operation. At this point the URL has already been parsed
+                // and is known to be good.
                 let mut builder = Request::builder();
-                let req = builder.method(method).uri(url);
+                let req = builder.method(method).uri(
+                    url.as_str()
+                        .parse::<Uri>()
+                        .expect("Unexpected Url to Uri conversion failure"),
+                );
 
                 // add an `If-Match: "*"` header if we've been asked to
                 if add_if_match {
@@ -107,8 +105,8 @@ where
             })
             .map(move |req| {
                 let uri = req.uri().clone();
-
-                self.service
+                let res = self
+                    .service
                     .lock()
                     .unwrap()
                     .call(req)
@@ -122,9 +120,9 @@ where
 
                         let (_, body) = resp.into_parts();
                         body.concat2()
-                            .map(move |body| (status, body))
+                            .and_then(move |body| Ok((status, body)))
                             .map_err(|err| {
-                                error!("Reading response body failed with {:?}", err);
+                                error!("Reading response body, failed with {:?}", err);
                                 Error::from(err)
                             })
                     })
@@ -139,10 +137,11 @@ where
                             error!("HTTP request error: {}{}", url_copy, path_copy);
                             Err(Error::from((status, &*body)))
                         }
-                    })
+                    });
+
+                Either::A(res)
             })
-            .into_future()
-            .flatten()
+            .unwrap_or_else(|e| Either::B(future::err(e)))
     }
 
     pub fn request<BodyT, ResponseT>(

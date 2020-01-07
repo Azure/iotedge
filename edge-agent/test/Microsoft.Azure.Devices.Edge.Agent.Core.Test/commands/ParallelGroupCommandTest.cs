@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
         {
             var g = new ParallelGroupCommand(commandList.ToArray());
 
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
 
             await g.ExecuteAsync(token);
 
@@ -48,7 +48,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Commands
         {
             ICommand g = new ParallelGroupCommand(commandList.ToArray());
 
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
 
             await g.UndoAsync(token);
 

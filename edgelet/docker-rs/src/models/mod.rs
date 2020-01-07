@@ -26,8 +26,6 @@ mod container_1;
 pub use self::container_1::Container1;
 mod container_config;
 pub use self::container_config::ContainerConfig;
-mod container_config_volumes;
-pub use self::container_config_volumes::ContainerConfigVolumes;
 mod container_create_body_networking_config;
 pub use self::container_create_body_networking_config::ContainerCreateBodyNetworkingConfig;
 mod container_summary;

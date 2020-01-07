@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         {
             var factory = new TestCommandFactory();
             var planner = new RestartPlanner(factory);
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
 
             var addExecutionList = new List<TestRecordType>();
             Plan addPlan = await planner.PlanAsync(ModuleSet.Empty, ModuleSet.Empty, RuntimeInfo, ImmutableDictionary<string, IModuleIdentity>.Empty);
@@ -47,7 +47,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { addModule });
 
             var planner = new RestartPlanner(factory);
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
 
             ModuleSet addRunning = ModuleSet.Create(addModule);
             var addExecutionList = new List<TestRecordType>
@@ -73,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
 
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { stoppedModule });
             var planner = new RestartPlanner(factory);
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
 
             var addStoppedExecutionList = new List<TestRecordType>
             {
@@ -97,7 +97,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
 
             IImmutableDictionary<string, IModuleIdentity> moduleIdentities = GetModuleIdentities(new List<IModule>() { desiredModule });
             var planner = new RestartPlanner(factory);
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
 
             ModuleSet currentSet = ModuleSet.Create(currentModule);
             ModuleSet desiredSet = ModuleSet.Create(desiredModule);
@@ -120,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         {
             var factory = new TestCommandFactory();
             var planner = new RestartPlanner(factory);
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
 
             IModule removeModule = new TestModule("mod1", "version1", "test", ModuleStatus.Running, Config1, RestartPolicy.OnUnhealthy, ImagePullPolicy.OnCreate, DefaultConfigurationInfo, EnvVars);
             ModuleSet removeRunning = ModuleSet.Create(removeModule);
@@ -141,7 +141,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         public async void RestartPlannerAddRemoveUpdate()
         {
             var factory = new TestCommandFactory();
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
             DateTime lastStartTime = DateTime.Parse("2017-08-04T17:52:13.0419502Z", null, DateTimeStyles.RoundtripKind);
             DateTime lastExitTime = lastStartTime.AddDays(1);
 

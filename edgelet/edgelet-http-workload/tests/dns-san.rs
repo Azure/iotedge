@@ -5,6 +5,7 @@
 #![cfg(not(windows))]
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
+#![allow(clippy::must_use_candidate)]
 
 use std::env;
 use std::str;
@@ -34,7 +35,6 @@ use edgelet_core::{
 use edgelet_hsm::{Crypto, HsmLock};
 use edgelet_http_workload::WorkloadService;
 use edgelet_test_utils::crypto::TestHsm;
-use edgelet_test_utils::get_unused_tcp_port;
 use edgelet_test_utils::module::{
     TestConfig, TestModule, TestProvisioningResult, TestRuntime, TestSettings,
 };
@@ -57,8 +57,8 @@ pub enum Error {
 impl<'a> From<&'a Error> for ModuleRuntimeErrorReason {
     fn from(err: &'a Error) -> Self {
         match err {
-            Error::General => ModuleRuntimeErrorReason::Other,
-            Error::NotFound => ModuleRuntimeErrorReason::NotFound,
+            Error::General => Self::Other,
+            Error::NotFound => Self::NotFound,
         }
     }
 }
@@ -85,7 +85,7 @@ impl WorkloadConfig for Config {
 }
 
 fn init_crypto() -> Crypto {
-    let crypto = Crypto::new(HsmLock::new()).unwrap();
+    let crypto = Crypto::new(HsmLock::new(), 1000).unwrap();
 
     // create the default issuing CA cert
     let edgelet_ca_props = CertificateProperties::new(
@@ -188,16 +188,25 @@ fn create_workload_service(module_id: &str) -> (WorkloadService, Crypto) {
     )
 }
 
-fn run_echo_server(server_cert: Identity, port: u16) -> impl Future<Item = (), Error = ()> {
-    let addr = format!("127.0.0.1:{}", port).parse().unwrap();
-    let tcp = TcpListener::bind(&addr).unwrap();
+fn run_echo_server(server_cert: Identity) -> (impl Future<Item = (), Error = ()>, u16) {
+    let tcp = TcpListener::bind(
+        &"127.0.0.1:0"
+            .parse()
+            .expect("hard-coded address is a valid SocketAddr"),
+    )
+    .unwrap();
+    let port = tcp
+        .local_addr()
+        .expect("could not get local address of bound TCP listener")
+        .port();
     let tls_acceptor = tokio_tls::TlsAcceptor::from(
         native_tls::TlsAcceptor::builder(server_cert)
             .build()
             .unwrap(),
     );
 
-    tcp.incoming()
+    let server = tcp
+        .incoming()
         .for_each(move |socket| {
             let tls_accept = tls_acceptor
                 .accept(socket)
@@ -215,7 +224,8 @@ fn run_echo_server(server_cert: Identity, port: u16) -> impl Future<Item = (), E
             tokio::spawn(tls_accept);
             Ok(())
         })
-        .map_err(|err| panic!("server error: {:#?}", err))
+        .map_err(|err| panic!("server error: {:#?}", err));
+    (server, port)
 }
 
 fn run_echo_client(
@@ -304,9 +314,8 @@ fn dns_san_server() {
     let (mut service, identity, home_dir, crypto) = init_test(MODULE_ID, GENERATION_ID);
 
     // start up a simple Echo server using this server cert
-    let port = get_unused_tcp_port();
+    let (server, port) = run_echo_server(identity);
     println!("Test server listening on port {}", port);
-    let server = run_echo_server(identity, port);
     let mut runtime = tokio::runtime::Runtime::new().unwrap();
     runtime.spawn(server);
 

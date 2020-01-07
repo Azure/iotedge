@@ -57,7 +57,7 @@ pub struct ContainerConfig {
     #[serde(rename = "Image", skip_serializing_if = "Option::is_none")]
     image: Option<String>,
     #[serde(rename = "Volumes", skip_serializing_if = "Option::is_none")]
-    volumes: Option<crate::models::ContainerConfigVolumes>,
+    volumes: Option<::std::collections::HashMap<String, Value>>,
     /// The working directory for commands to run in.
     #[serde(rename = "WorkingDir", skip_serializing_if = "Option::is_none")]
     working_dir: Option<String>,
@@ -355,16 +355,16 @@ impl ContainerConfig {
         self.image = None;
     }
 
-    pub fn set_volumes(&mut self, volumes: crate::models::ContainerConfigVolumes) {
+    pub fn set_volumes(&mut self, volumes: ::std::collections::HashMap<String, Value>) {
         self.volumes = Some(volumes);
     }
 
-    pub fn with_volumes(mut self, volumes: crate::models::ContainerConfigVolumes) -> Self {
+    pub fn with_volumes(mut self, volumes: ::std::collections::HashMap<String, Value>) -> Self {
         self.volumes = Some(volumes);
         self
     }
 
-    pub fn volumes(&self) -> Option<&crate::models::ContainerConfigVolumes> {
+    pub fn volumes(&self) -> Option<&::std::collections::HashMap<String, Value>> {
         self.volumes.as_ref()
     }
 

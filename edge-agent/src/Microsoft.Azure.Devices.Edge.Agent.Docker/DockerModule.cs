@@ -75,13 +75,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker
             }
 
             return string.Equals(this.Name, other.Name) &&
-                   string.Equals(this.Version, other.Version) &&
-                   string.Equals(this.Type, other.Type) &&
-                   this.DesiredStatus == other.DesiredStatus &&
-                   this.Config.Equals(other.Config) &&
-                   this.RestartPolicy == other.RestartPolicy &&
-                   this.ImagePullPolicy == other.ImagePullPolicy &&
-                   EnvDictionaryComparer.Equals(this.Env, other.Env);
+                string.Equals(this.Version, other.Version) &&
+                string.Equals(this.Type, other.Type) &&
+                this.DesiredStatus == other.DesiredStatus &&
+                this.Config.Equals(other.Config) &&
+                this.RestartPolicy == other.RestartPolicy &&
+                this.ImagePullPolicy == other.ImagePullPolicy &&
+                EnvDictionaryComparer.Equals(this.Env, other.Env);
         }
 
         public virtual bool IsOnlyModuleStatusChanged(IModule other)

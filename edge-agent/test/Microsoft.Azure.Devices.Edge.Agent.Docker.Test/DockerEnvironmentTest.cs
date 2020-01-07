@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Docker.Test
             var store = Mock.Of<IEntityStore<string, ModuleState>>();
             var restartPolicyManager = Mock.Of<IRestartPolicyManager>();
 
-            var runtimeInfoProvider = Mock.Of<IRuntimeInfoProvider>(r => r.GetSystemInfo() == Task.FromResult(systemInfo));
+            var runtimeInfoProvider = Mock.Of<IRuntimeInfoProvider>(r => r.GetSystemInfo(CancellationToken.None) == Task.FromResult(systemInfo));
             var moduleStateStore = Mock.Of<IEntityStore<string, ModuleState>>();
             string minDockerVersion = "20";
             string dockerLoggingOptions = "dummy logging options";

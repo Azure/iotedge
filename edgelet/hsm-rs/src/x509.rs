@@ -37,27 +37,30 @@ impl Drop for X509 {
 
 impl X509 {
     /// Create a new x509 implementation for the HSM API.
-    pub fn new() -> Result<Self, Error> {
-        let result = unsafe { hsm_client_x509_init() as isize };
+    pub fn new(auto_generated_cert_lifetime: u64) -> Result<Self, Error> {
+        let result = unsafe { hsm_client_x509_init(auto_generated_cert_lifetime) as isize };
         if result != 0 {
-            Err(result)?
+            return Err(result.into());
         }
         let if_ptr = unsafe { hsm_client_x509_interface() };
         if if_ptr.is_null() {
-            Err(ErrorKind::NullResponse)?
+            return Err(ErrorKind::NullResponse.into());
         }
         let interface = unsafe { *if_ptr };
         if let Some(handle) = interface.hsm_client_x509_create.map(|f| unsafe { f() }) {
             if handle.is_null() {
-                Err(ErrorKind::NullResponse)?
+                return Err(ErrorKind::NullResponse.into());
             }
             Ok(X509 { handle, interface })
         } else {
-            Err(ErrorKind::NullResponse)?
+            Err(ErrorKind::NullResponse.into())
         }
     }
 
     pub fn get_version(&self) -> Result<String, Error> {
+        // We want to enforce Crypto::new is called before this, since ::new() initializes the libiothsm. So silence the allow_unused clippy lint.
+        let _ = self;
+
         let version = unsafe {
             CStr::from_ptr(hsm_get_version())
                 .to_string_lossy()
@@ -76,7 +79,7 @@ impl GetDeviceIdentityCertificate for X509 {
             .ok_or(ErrorKind::NoneFn)?;
         let result = unsafe { key_fn(self.handle) };
         if result.is_null() {
-            Err(ErrorKind::NullResponse)?
+            Err(ErrorKind::NullResponse.into())
         } else {
             Ok(X509Data::new(self.interface, result))
         }
@@ -87,7 +90,7 @@ impl GetDeviceIdentityCertificate for X509 {
         let key_fn = self.interface.hsm_client_get_key.ok_or(ErrorKind::NoneFn)?;
         let result = unsafe { key_fn(self.handle) };
         if result.is_null() {
-            Err(ErrorKind::NullResponse)?
+            Err(ErrorKind::NullResponse.into())
         } else {
             Ok(X509Data::new(self.interface, result))
         }
@@ -136,7 +139,7 @@ impl GetDeviceIdentityCertificate for X509 {
                 ptr as *const _,
                 key_ln,
             )),
-            _ => Err(ErrorKind::PrivateKeySignFn)?,
+            _ => Err(ErrorKind::PrivateKeySignFn.into()),
         }
     }
 
@@ -148,12 +151,12 @@ impl GetDeviceIdentityCertificate for X509 {
             .ok_or(ErrorKind::NoneFn)?;
         let cert_info_handle = unsafe { if_fn(self.handle) };
         if cert_info_handle.is_null() {
-            Err(ErrorKind::HsmCertificateFailure)?
+            Err(ErrorKind::HsmCertificateFailure.into())
         } else {
             let handle = HsmCertificate::from(cert_info_handle);
             match handle {
                 Ok(h) => Ok(h),
-                Err(_) => Err(ErrorKind::HsmCertificateFailure)?,
+                Err(_) => Err(ErrorKind::HsmCertificateFailure.into()),
             }
         }
     }
@@ -264,10 +267,10 @@ mod tests {
         free(b);
     }
 
-    fn fake_good_x509_buffer_free() -> HSM_CLIENT_X509_INTERFACE_TAG {
-        HSM_CLIENT_X509_INTERFACE_TAG {
+    fn fake_good_x509_buffer_free() -> HSM_CLIENT_X509_INTERFACE {
+        HSM_CLIENT_X509_INTERFACE {
             hsm_client_free_buffer: Some(real_buffer_destroy),
-            ..HSM_CLIENT_X509_INTERFACE_TAG::default()
+            ..HSM_CLIENT_X509_INTERFACE::default()
         }
     }
 
@@ -294,7 +297,7 @@ mod tests {
         let len = key.len();
 
         let key2 = X509Data::new(
-            HSM_CLIENT_X509_INTERFACE_TAG::default(),
+            HSM_CLIENT_X509_INTERFACE::default(),
             key.as_ptr() as *mut c_char,
         );
 
@@ -398,35 +401,35 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "HSM API Not Implemented")]
     fn x509_no_getcert_function_fail() {
         let hsm_x509 = fake_no_if_x509_hsm();
-        let result = hsm_x509.get_cert().unwrap();
-        println!("You should never see this print {:?}", result);
+        let err = hsm_x509.get_cert().unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM API Not Implemented")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API Not Implemented")]
     fn x509_no_getkey_function_fail() {
         let hsm_x509 = fake_no_if_x509_hsm();
-        let result = hsm_x509.get_key().unwrap();
-        println!("You should never see this print {:?}", result);
+        let err = hsm_x509.get_key().unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM API Not Implemented")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API Not Implemented")]
     fn x509_no_getname_function_fail() {
         let hsm_x509 = fake_no_if_x509_hsm();
-        let result = hsm_x509.get_common_name().unwrap();
-        println!("You should never see this print {:?}", result);
+        let err = hsm_x509.get_common_name().unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM API Not Implemented")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API Not Implemented")]
     fn x509_no_sign_with_private_key_function_fail() {
         let hsm_x509 = fake_no_if_x509_hsm();
-        let result = hsm_x509.sign_with_private_key(b"aabb").unwrap();
-        println!("You should never see this print {:?}", result);
+        let err = hsm_x509.sign_with_private_key(b"aabb").unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM API Not Implemented")));
     }
 
     fn fake_good_x509_hsm() -> X509 {
@@ -509,44 +512,46 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "HSM API returned an invalid null response")]
     fn get_cert_null() {
         let hsm_x509 = fake_bad_x509_hsm();
-        let result1 = hsm_x509.get_cert().unwrap();
-        let string1 = &result1;
-        assert!(string1.is_null());
+        let err = hsm_x509.get_cert().unwrap_err();
+        assert!(failure::Fail::iter_chain(&err).any(|err| err
+            .to_string()
+            .contains("HSM API returned an invalid null response")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API returned an invalid null response")]
     fn get_key_null() {
         let hsm_x509 = fake_bad_x509_hsm();
-        let result2 = hsm_x509.get_key().unwrap();
-        let string2 = &result2;
-        assert!(string2.is_null());
+        let err = hsm_x509.get_key().unwrap_err();
+        assert!(failure::Fail::iter_chain(&err).any(|err| err
+            .to_string()
+            .contains("HSM API returned an invalid null response")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API returned an invalid null response")]
     fn common_name_error() {
         let hsm_x509 = fake_bad_x509_hsm();
-        let result3 = hsm_x509.get_common_name().unwrap();
-        println!("This string should not be displayed {:?}", result3);
+        let err = hsm_x509.get_common_name().unwrap_err();
+        assert!(failure::Fail::iter_chain(&err).any(|err| err
+            .to_string()
+            .contains("HSM API returned an invalid null response")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM API sign with private key failed")]
     fn sign_with_private_key_error() {
         let hsm_x509 = fake_bad_x509_hsm();
-        let result = hsm_x509.sign_with_private_key(b"aabbcc").unwrap();
-        println!("This string should not be displayed {:?}", result);
+        let err = hsm_x509.sign_with_private_key(b"aabbcc").unwrap_err();
+        assert!(failure::Fail::iter_chain(&err).any(|err| err
+            .to_string()
+            .contains("HSM API sign with private key failed")));
     }
 
     #[test]
-    #[should_panic(expected = "HSM certificate info get failed")]
     fn get_certificate_info_error() {
         let hsm_x509 = fake_bad_x509_hsm();
-        let result = hsm_x509.get_certificate_info().unwrap();
-        println!("This string should not be displayed {:?}", result);
+        let err = hsm_x509.get_certificate_info().unwrap_err();
+        assert!(failure::Fail::iter_chain(&err)
+            .any(|err| err.to_string().contains("HSM certificate info get failed")));
     }
 }

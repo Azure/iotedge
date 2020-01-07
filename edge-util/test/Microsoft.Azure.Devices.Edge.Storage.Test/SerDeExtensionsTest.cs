@@ -47,6 +47,16 @@ namespace Microsoft.Azure.Devices.Edge.Storage.Test
             Assert.Equal(str, SerDeExtensions.FromJson<string>(str));
         }
 
+        [Theory]
+        [InlineData("")]
+        [InlineData("  ")]
+        [InlineData(" some value")]
+        public void StringToJsonRoundtripTest(string input)
+        {
+            string value = SerDeExtensions.FromJson<string>(SerDeExtensions.ToJson(input));
+            Assert.Equal(input, value);
+        }
+
         [Fact]
         public void StringToBytesRoundtripTest()
         {

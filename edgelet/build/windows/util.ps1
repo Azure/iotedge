@@ -23,11 +23,8 @@ function Get-CargoCommand
         # we have private rust arm tool chain downloaded and unzipped to <source root>\rust-windows-arm\rust-windows-arm\cargo.exe
         Join-Path -Path (GetPrivateRustPath) -ChildPath 'cargo.exe'
     }
-    elseif (Test-RustUp) {
-        'cargo +stable-x86_64-pc-windows-msvc '
-    }
     else {
-        "$env:USERPROFILE/.cargo/bin/cargo.exe +stable-x86_64-pc-windows-msvc "
+        'cargo'
     }
 }
 
@@ -63,35 +60,38 @@ function Assert-Rust
             InstallWinArmPrivateRustCompiler
         }
     }
-    elseif (-not (Test-RustUp)) {
-        Write-Host "Installing rustup and stable-x86_64-pc-windows-msvc Rust."
-        Invoke-RestMethod -usebasicparsing 'https://static.rust-lang.org/rustup/dist/i686-pc-windows-gnu/rustup-init.exe' -outfile 'rustup-init.exe'
-        if ($LastExitCode)
-        {
-            Throw "Failed to download rustup with exit code $LastExitCode"
+    else {
+        if (-not (Test-RustUp)) {
+            Write-Host "Installing rustup"
+            Invoke-RestMethod -usebasicparsing 'https://static.rust-lang.org/rustup/dist/i686-pc-windows-gnu/rustup-init.exe' -outfile 'rustup-init.exe'
+            if ($LastExitCode)
+            {
+                Throw "Failed to download rustup with exit code $LastExitCode"
+            }
+
+            Write-Host "Running rustup-init.exe"
+            ./rustup-init.exe -y
+            if ($LastExitCode)
+            {
+                Throw "Failed to install rust with exit code $LastExitCode"
+            }
         }
 
-        Write-Host "Running rustup-init.exe"
-        ./rustup-init.exe -y --default-toolchain stable-x86_64-pc-windows-msvc
+        $toolchain = Get-Content -Encoding UTF8 (Join-Path -Path (Get-EdgeletFolder) -ChildPath 'rust-toolchain')
+        Write-Host "Installing / updating $toolchain toolchain"
+        rustup update $toolchain
         if ($LastExitCode)
         {
             Throw "Failed to install rust with exit code $LastExitCode"
         }
     }
-    else {
-        Write-Host "Running rustup.exe"
-        rustup install stable-x86_64-pc-windows-msvc
-        if ($LastExitCode)
-        {
-            Throw "Failed to install rust with exit code $LastExitCode"
-        }
-    }
-    
+
     $ErrorActionPreference = 'Stop'
 }
 
 function InstallWinArmPrivateRustCompiler {
-    $link = 'https://edgebuild.blob.core.windows.net/iotedge-win-arm32v7-tools/rust-windows-arm.zip'
+    $toolchain = Get-Content -Encoding UTF8 (Join-Path -Path (Get-EdgeletFolder) -ChildPath 'rust-toolchain')
+    $link = "https://edgebuild.blob.core.windows.net/iotedge-win-arm32v7-tools/rust-windows-arm-$toolchain.zip"
 
     Write-Host "Downloading $link"
     $ProgressPreference = 'SilentlyContinue'
@@ -142,8 +142,6 @@ function PatchRustForArm {
     $ForkedCrates = @"
 
 [patch.crates-io]
-backtrace = { git = "https://github.com/philipktlin/backtrace-rs", branch = "arm" }
-dtoa = { git = "https://github.com/philipktlin/dtoa", branch = "arm" }
 iovec = { git = "https://github.com/philipktlin/iovec", branch = "arm" }
 mio = { git = "https://github.com/philipktlin/mio", branch = "arm" }
 miow = { git = "https://github.com/philipktlin/miow", branch = "arm" }

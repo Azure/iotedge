@@ -87,6 +87,8 @@ If ($osEdition -eq "IoTUAP")    # Windows IoT Core - update iotedge
             if($residualModules.Length -gt 0) {
                 docker -H npipe:////./pipe/iotedge_moby_engine rm -f $residualModules
             }
+	    
+	      docker -H npipe:////./pipe/iotedge_moby_engine system prune -a --volumes -f
         }
         catch {
             Write-Host "Cleanup existing containers failed."
@@ -104,7 +106,7 @@ If ($osEdition -eq "IoTUAP")    # Windows IoT Core - update iotedge
         if ($AttemptUpdate) {
             Write-Host "Attempt to update $serviceName..."
             try {
-                # triggers reboot
+                # update triggers reboot
                 Update-IoTEdge -ContainerOs Windows -OfflineInstallationPath $IoTEdgedArtifactFolder
             }
             catch {
@@ -116,6 +118,8 @@ If ($osEdition -eq "IoTUAP")    # Windows IoT Core - update iotedge
                 if ($testExitCode -eq "0x8018830D") {
                     Write-Host "A newer version is already installed on the device."
                 }
+		# sanity reboot on unsuccessful update
+		shutdown -r -t 10
             }
         }
     } Else {

@@ -3,9 +3,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 {
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Microsoft.Azure.Devices.Edge.Agent.Core;
     using Microsoft.Azure.Devices.Edge.Agent.Core.Commands;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Moq;
     using Xunit;
 
@@ -31,7 +31,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             Assert.Equal(NullCommand.Instance, await kcf.RestartAsync(mockModule));
             var newCommand = await kcf.WrapAsync(mockCommand);
             await newCommand.ExecuteAsync(ct);
-            Mock.Get(mockCommand).Verify( c => c.ExecuteAsync(ct), Times.Once);
+            Mock.Get(mockCommand).Verify(c => c.ExecuteAsync(ct), Times.Once);
         }
-}
+    }
 }

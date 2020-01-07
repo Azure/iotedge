@@ -6,6 +6,8 @@ edition = "2018"
 
 [dependencies]
 actix-web = { version="1.0", features=["ssl"] }
+actix-cors = "0.1.0"
+bytes = "0.4.10"
 dirs = "2.0.1"
 failure = "0.1"
 futures = "0.1.25"

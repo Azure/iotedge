@@ -5,11 +5,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
 
     public class ExperimentalFeatures
     {
-        public ExperimentalFeatures(bool enabled, bool disableCloudSubscriptions, bool disableConnectivityCheck)
+        public ExperimentalFeatures(bool enabled, bool disableCloudSubscriptions, bool disableConnectivityCheck, bool enableMetrics)
         {
             this.Enabled = enabled;
             this.DisableCloudSubscriptions = disableCloudSubscriptions;
             this.DisableConnectivityCheck = disableConnectivityCheck;
+            this.EnableMetrics = enableMetrics;
         }
 
         public static ExperimentalFeatures Create(IConfiguration experimentalFeaturesConfig)
@@ -17,7 +18,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
             bool enabled = experimentalFeaturesConfig.GetValue("enabled", false);
             bool disableCloudSubscriptions = enabled && experimentalFeaturesConfig.GetValue("disableCloudSubscriptions", false);
             bool disableConnectivityCheck = enabled && experimentalFeaturesConfig.GetValue("disableConnectivityCheck", false);
-            return new ExperimentalFeatures(enabled, disableCloudSubscriptions, disableConnectivityCheck);
+            bool enableMetrics = enabled && experimentalFeaturesConfig.GetValue("enableMetrics", false);
+            return new ExperimentalFeatures(enabled, disableCloudSubscriptions, disableConnectivityCheck, enableMetrics);
         }
 
         public bool Enabled { get; }
@@ -25,5 +27,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Service
         public bool DisableCloudSubscriptions { get; }
 
         public bool DisableConnectivityCheck { get; }
+
+        public bool EnableMetrics { get; }
     }
 }

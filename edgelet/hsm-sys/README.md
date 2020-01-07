@@ -7,10 +7,6 @@ used by the HSM-RS crate to provide more Rust-friendly interfaces.
 
 ## TPM functionality
 
-The default hsm library built as part of this crate has two modes for the TPM functional interface: 
-an in-memory keystore, and a TPM device keystore.  The default is the in-memory keystore. To enable 
-the TPM device keystore set an environment variable `IOTEDGE_USE_TPM_DEVICE` to "ON".
-
 You may need additional setup for a TPM device see [README-TPM](README-TPM.md) for details.
 
 ## Memory allocation

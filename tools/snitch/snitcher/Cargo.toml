@@ -11,8 +11,8 @@ backtrace = "0.3"
 bytes = "0.4"
 byteorder = "1.2"
 chrono = { version = "0.4", features = ["serde"] }
-edgelet-http = { git = "https://github.com/azure/iotedge", rev = "a742e1e9f8c764b9fc4474b46164831dae0b0456" }
-edgelet-core = { git = "https://github.com/azure/iotedge", rev = "a742e1e9f8c764b9fc4474b46164831dae0b0456" }
+edgelet-http-mgmt = { git = "https://github.com/azure/iotedge", rev = "386bde07fb6af9fb55d44d38ad03fe31bb326011" }
+edgelet-core = { git = "https://github.com/azure/iotedge", rev = "386bde07fb6af9fb55d44d38ad03fe31bb326011" }
 env_logger = "0.5"
 futures = "0.1"
 hex = "0.3"

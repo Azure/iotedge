@@ -4,6 +4,8 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
     using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using App.Metrics;
+    using App.Metrics.Timer;
     using Microsoft.Azure.Devices.Edge.Util;
     using RocksDbSharp;
 
@@ -40,9 +42,12 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             Preconditions.CheckNotNull(key, nameof(key));
 
             Option<byte[]> returnValue;
-            Func<byte[]> operation = () => this.db.Get(key, this.Handle);
-            byte[] value = await operation.ExecuteUntilCancelled(cancellationToken);
-            returnValue = value != null ? Option.Some(value) : Option.None<byte[]>();
+            using (MetricsV0.DbGetLatency("all"))
+            {
+                Func<byte[]> operation = () => this.db.Get(key, this.Handle);
+                byte[] value = await operation.ExecuteUntilCancelled(cancellationToken);
+                returnValue = value != null ? Option.Some(value) : Option.None<byte[]>();
+            }
 
             return returnValue;
         }
@@ -52,8 +57,11 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
             Preconditions.CheckNotNull(key, nameof(key));
             Preconditions.CheckNotNull(value, nameof(value));
 
-            Action operation = () => this.db.Put(key, value, this.Handle);
-            return operation.ExecuteUntilCancelled(cancellationToken);
+            using (MetricsV0.DbPutLatency("all"))
+            {
+                Action operation = () => this.db.Put(key, value, this.Handle);
+                return operation.ExecuteUntilCancelled(cancellationToken);
+            }
         }
 
         public Task Remove(byte[] key, CancellationToken cancellationToken)
@@ -157,6 +165,34 @@ namespace Microsoft.Azure.Devices.Edge.Storage.RocksDb
                     byte[] value = iterator.Value();
                     await callback(key, value);
                 }
+            }
+        }
+
+        static class MetricsV0
+        {
+            static readonly TimerOptions DbPutLatencyOptions = new TimerOptions
+            {
+                Name = "DbPutLatencyMs",
+                MeasurementUnit = Unit.None,
+                DurationUnit = TimeUnit.Milliseconds,
+                RateUnit = TimeUnit.Seconds
+            };
+
+            static readonly TimerOptions DbGetLatencyOptions = new TimerOptions
+            {
+                Name = "DbGetLatencyMs",
+                MeasurementUnit = Unit.None,
+                DurationUnit = TimeUnit.Milliseconds,
+                RateUnit = TimeUnit.Seconds
+            };
+
+            public static IDisposable DbPutLatency(string identity) => Util.Metrics.MetricsV0.Latency(GetTags(identity), DbPutLatencyOptions);
+
+            public static IDisposable DbGetLatency(string identity) => Util.Metrics.MetricsV0.Latency(GetTags(identity), DbGetLatencyOptions);
+
+            static MetricTags GetTags(string id)
+            {
+                return new MetricTags("EndpointId", id);
             }
         }
     }

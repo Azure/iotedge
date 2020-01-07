@@ -54,6 +54,10 @@
 #define ASN1_TIME_STRING_UTC_FORMAT 0x17
 #define ASN1_TIME_STRING_UTC_LEN 13
 
+// DER encoding defines BOOLEAN TRUE as 0xff
+#define ASN1_DER_TRUE 0xff
+#define ASN1_DER_FALSE 0x00
+
 struct SUBJECT_FIELD_OFFSET_TAG
 {
     char field[MAX_SUBJECT_FIELD_SIZE];
@@ -899,11 +903,11 @@ static int set_basic_constraints(X509 *x509_cert, CERTIFICATE_TYPE cert_type, in
     {
         bool is_pathlen_failure;
         int is_critical = 0;
-        bc->ca = 0;
+        bc->ca = ASN1_DER_FALSE;
         if (cert_type == CERTIFICATE_TYPE_CA)
         {
             is_critical = 1;
-            bc->ca = 1;
+            bc->ca = ASN1_DER_TRUE;
             bc->pathlen = ASN1_INTEGER_new();
             if (bc->pathlen == NULL)
             {

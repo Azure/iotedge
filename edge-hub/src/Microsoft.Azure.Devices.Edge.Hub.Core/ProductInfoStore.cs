@@ -19,7 +19,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         public Task SetProductInfo(string id, string productInfo)
         {
             Preconditions.CheckNonWhiteSpace(id, nameof(id));
-            return this.productInfoEntityStore.Put(id, productInfo);
+            return !string.IsNullOrWhiteSpace(productInfo) ? this.productInfoEntityStore.Put(id, productInfo) : Task.CompletedTask;
         }
 
         public async Task<string> GetProductInfo(string id)

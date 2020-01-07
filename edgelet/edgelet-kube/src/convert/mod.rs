@@ -3,19 +3,35 @@
 use crate::error::{ErrorKind, Result};
 use edgelet_utils::sanitize_dns_label;
 
+mod named_secret;
 mod to_docker;
 mod to_k8s;
 
-pub use self::to_docker::pod_to_module;
-pub use self::to_k8s::{
-    auth_to_image_pull_secret, spec_to_deployment, spec_to_role_binding, spec_to_service_account,
-    trust_bundle_to_config_map,
+pub use named_secret::NamedSecret;
+pub use to_docker::pod_to_module;
+pub use to_k8s::{
+    spec_to_deployment, spec_to_role_binding, spec_to_service_account, trust_bundle_to_config_map,
 };
+
+const DNS_DOMAIN_MAX_SIZE: usize = 253;
+
+pub fn sanitize_dns_domain(domain: &str) -> Result<String> {
+    let sanitized = domain
+        .split('.')
+        .map(|label| sanitize_dns_value(label))
+        .collect::<Result<Vec<String>>>()?
+        .join(".");
+    if sanitized.len() <= DNS_DOMAIN_MAX_SIZE {
+        Ok(sanitized)
+    } else {
+        Err(ErrorKind::InvalidDnsName(domain.to_owned()).into())
+    }
+}
 
 pub fn sanitize_dns_value(name: &str) -> Result<String> {
     let name_string = sanitize_dns_label(name);
     if name_string.is_empty() {
-        Err(ErrorKind::InvalidModuleName(name.to_owned()))?
+        Err(ErrorKind::InvalidModuleName(name.to_owned()).into())
     } else {
         Ok(name_string)
     }

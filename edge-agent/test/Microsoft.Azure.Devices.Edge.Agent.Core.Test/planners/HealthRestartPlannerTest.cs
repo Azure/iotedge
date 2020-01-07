@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.Planners
         {
             // Arrange
             (TestCommandFactory factory, _, _, HealthRestartPlanner planner) = CreatePlanner();
-            var token = new CancellationToken();
+            var token = default(CancellationToken);
             var expectedExecutionList = new List<TestRecordType>();
 
             // Act

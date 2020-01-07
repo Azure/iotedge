@@ -1,6 +1,5 @@
 provisioning:
   source: "manual"
-  device_connection_string: "<ADD DEVICE CONNECTION STRING HERE>"
 
 agent:
   name: "edgeAgent"
@@ -25,3 +24,6 @@ homedir: "C:\\ProgramData\\iotedge"
 moby_runtime:
   uri: "npipe://./pipe/iotedge_moby_engine"
   network: "nat"
+
+certificates:
+  auto_generated_ca_lifetime_days: 90

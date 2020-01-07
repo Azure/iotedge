@@ -1,0 +1,61 @@
+parameters:
+  release.label: ''
+  edgelet.artifact.name: ''
+  images.artifact.name: ''
+  container.registry: ''
+  container.registry.username: ''
+  container.registry.password: ''
+  iotHub.connectionString: ''
+  eventHub.connectionString: ''
+  upstream.protocol: ''
+  loadGen.message.frequency: ''
+  networkController.frequencies: ''
+  networkController.mode: ''
+  testResultCoordinator.logAnalyticsWorkspaceId: ''
+  testResultCoordinator.logAnalyticsSharedKey: ''
+  testResultCoordinator.logAnalyticsLogType: ''
+  testResultCoordinator.verificationDelay: ''
+
+steps:
+  - task: CopyFiles@2
+    displayName: 'Copy Edgelet Artifact'
+    inputs:
+      SourceFolder: "$(Build.StagingDirectory)/${{ parameters['edgelet.artifact.name'] }}"
+      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['edgelet.artifact.name'] }}"
+      CleanTargetFolder: true
+  - task: CopyFiles@2
+    displayName: 'Copy Images Artifact'
+    inputs:
+      SourceFolder: "$(Build.StagingDirectory)/${{ parameters['images.artifact.name'] }}"
+      TargetFolder: "$(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}"
+      CleanTargetFolder: true
+  - task: Bash@3
+    displayName: 'Run Connectivity Deployment'
+    inputs:
+      targetType: inline
+      script: |
+        declare -a cnreg=( ${{ parameters['container.registry.credential'] }} )
+        . $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/artifactInfo.txt
+        chmod +x $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/testHelper.sh
+        chmod +x $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/connectivityTest.sh
+        sudo $(Agent.HomeDirectory)/../artifacts/${{ parameters['images.artifact.name'] }}/scripts/connectivityTest.sh \
+          -testDir "$(Agent.HomeDirectory)/.." \
+          -releaseLabel "${{ parameters['release.label'] }}" \
+          -artifactImageBuildNumber "$BuildNumber" \
+          -containerRegistry "${{ parameters['container.registry'] }}" \
+          -containerRegistryUsername "${{ parameters['container.registry.username'] }}" \
+          -containerRegistryPassword "${{ parameters['container.registry.password'] }}" \
+          -iotHubConnectionString "${{ parameters['iotHub.connectionString'] }}" \
+          -eventHubConnectionString "${{ parameters['eventHub.connectionString'] }}" \
+          -upstreamProtocol "${{ parameters['upstream.protocol'] }}" \
+          -testDuration "${{ parameters['testDuration'] }}" \
+          -testStartDelay "${{ parameters['testStartDelay'] }}" \
+          -loadGenMessageFrequency "${{ parameters['loadGen.message.frequency'] }}" \
+          -networkControllerFrequency "${{ parameters['networkController.frequencies'] }}" \
+          -networkControllerMode "${{ parameters['networkController.mode'] }}" \
+          -logAnalyticsWorkspaceId "${{ parameters['testResultCoordinator.logAnalyticsWorkspaceId'] }}" \
+          -logAnalyticsSharedKey "${{ parameters['testResultCoordinator.logAnalyticsSharedKey'] }}" \
+          -logAnalyticsLogType "${{ parameters['testResultCoordinator.logAnalyticsLogType'] }}" \
+          -verificationDelay "${{ parameters['testResultCoordinator.verificationDelay'] }}" \
+          -cleanAll
+      workingDirectory: "$(Agent.HomeDirectory)/.."

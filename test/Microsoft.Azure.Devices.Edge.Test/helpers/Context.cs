@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
     using System.IO;
     using System.Linq;
     using System.Net;
+    using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
 
@@ -74,27 +75,14 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
                 return Option.None<(string, string, string)>();
             }
 
-            string GenerateDefaultDeviceId() =>
-                $"e2e-{string.Concat(Dns.GetHostName().Take(15))}-{DateTime.Now:yyMMdd'-'HHmmss'.'fff}";
+            string defaultId =
+                $"e2e-{string.Concat(Dns.GetHostName().Take(14)).TrimEnd(new[] { '-' })}-{DateTime.Now:yyMMdd'-'HHmmss'.'fff}";
 
-            const int DeviceIdMaxLength = 37;
-            string CheckDeviceIdLength(string deviceId)
-            {
-                if (deviceId.Length > DeviceIdMaxLength)
-                {
-                    string message =
-                        $"The device ID is more than {DeviceIdMaxLength} characters in length, and " +
-                        "may cause problems in tests that generate certificates with a CN based on " +
-                        "the device ID.";
-                    throw new ArgumentException(message);
-                }
-
-                return deviceId;
-            }
-
-            this.CaCertScriptPath = Get("caCertScriptPath");
+            this.CaCertScriptPath = Option.Maybe(Get("caCertScriptPath"));
             this.ConnectionString = Get("IOT_HUB_CONNECTION_STRING");
-            this.DeviceId = CheckDeviceIdLength(GetOrDefault("deviceId", GenerateDefaultDeviceId()));
+            this.DeviceId = IdentityLimits.CheckEdgeId(GetOrDefault("deviceId", defaultId));
+            this.DpsIdScope = Option.Maybe(Get("dpsIdScope"));
+            this.DpsGroupKey = Option.Maybe(Get("DPS_GROUP_KEY"));
             this.EdgeAgentImage = Option.Maybe(Get("edgeAgentImage"));
             this.EdgeHubImage = Option.Maybe(Get("edgeHubImage"));
             this.EventHubEndpoint = Get("EVENT_HUB_ENDPOINT");
@@ -109,6 +97,8 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
             this.RootCaKeys = GetAndValidateRootCaKeys();
             this.SetupTimeout = TimeSpan.FromMinutes(context.GetValue("setupTimeoutMinutes", 5));
             this.TeardownTimeout = TimeSpan.FromMinutes(context.GetValue("teardownTimeoutMinutes", 2));
+            this.TempFilterFuncImage = Option.Maybe(Get("tempFilterFuncImage"));
+            this.TempFilterImage = Option.Maybe(Get("tempFilterImage"));
             this.TempSensorImage = Option.Maybe(Get("tempSensorImage"));
             this.TestTimeout = TimeSpan.FromMinutes(context.GetValue("testTimeoutMinutes", 5));
             this.Verbose = context.GetValue<bool>("verbose");
@@ -118,11 +108,17 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
 
         public static Context Current => Default.Value;
 
-        public string CaCertScriptPath { get; }
+        public Option<string> CaCertScriptPath { get; }
 
         public string ConnectionString { get; }
 
+        public Dictionary<string, EdgeDevice> DeleteList { get; } = new Dictionary<string, EdgeDevice>();
+
         public string DeviceId { get; }
+
+        public Option<string> DpsIdScope { get; }
+
+        public Option<string> DpsGroupKey { get; }
 
         public Option<string> EdgeAgentImage { get; }
 
@@ -151,6 +147,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Helpers
         public TimeSpan SetupTimeout { get; }
 
         public TimeSpan TeardownTimeout { get; }
+
+        public Option<string> TempFilterFuncImage { get; }
+
+        public Option<string> TempFilterImage { get; }
 
         public Option<string> TempSensorImage { get; }
 

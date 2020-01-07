@@ -30,13 +30,15 @@ static CERT_INFO_HANDLE edge_x509_hsm_get_cert_info(HSM_CLIENT_HANDLE hsm_handle
 //##############################################################################
 // Interface implementation
 //##############################################################################
-int hsm_client_x509_init()
+int hsm_client_x509_init(uint64_t  auto_generated_cert_lifetime)
 {
     int result;
 
     if (!g_is_x509_initialized)
     {
-        result = hsm_client_crypto_init();
+        log_init(LVL_INFO);
+
+        result = hsm_client_crypto_init(auto_generated_cert_lifetime);
         if (result == 0)
         {
             g_is_x509_initialized = true;

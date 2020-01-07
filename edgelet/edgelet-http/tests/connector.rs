@@ -8,8 +8,7 @@ use std::io;
 use edgelet_http::UrlConnector;
 #[cfg(windows)]
 use edgelet_test_utils::run_pipe_server;
-use edgelet_test_utils::run_uds_server;
-use edgelet_test_utils::{get_unused_tcp_port, run_tcp_server};
+use edgelet_test_utils::{run_tcp_server, run_uds_server};
 use futures::future;
 use futures::prelude::*;
 use hyper::{
@@ -40,9 +39,8 @@ fn hello_handler(_: Request<Body>) -> impl Future<Item = Response<Body>, Error =
 
 #[test]
 fn tcp_get() {
-    let port = get_unused_tcp_port();
-    let server =
-        run_tcp_server("127.0.0.1", port, hello_handler).map_err(|err| eprintln!("{}", err));
+    let (server, port) = run_tcp_server("127.0.0.1", hello_handler);
+    let server = server.map_err(|err| panic!(err));
 
     let url = format!("http://localhost:{}", port);
     let connector = UrlConnector::new(&Url::parse(&url).unwrap()).unwrap();
@@ -166,9 +164,8 @@ fn post_handler(
 
 #[test]
 fn tcp_post() {
-    let port = get_unused_tcp_port();
-    let server =
-        run_tcp_server("127.0.0.1", port, post_handler).map_err(|err| eprintln!("{}", err));
+    let (server, port) = run_tcp_server("127.0.0.1", post_handler);
+    let server = server.map_err(|err| panic!(err));
 
     let url = format!("http://localhost:{}", port);
     let connector = UrlConnector::new(&Url::parse(&url).unwrap()).unwrap();

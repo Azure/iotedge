@@ -11,6 +11,27 @@
 #[allow(unused_imports)]
 use serde_json::Value;
 
+// DEVNOTE: Why is most of this type commented out?
+//
+// We do not want to restrict the properties that the user can set in their create options, because future versions of Docker can add new properties
+// that we don't define here.
+//
+// So this type has a `#[serde(flatten)] HashMap` field to collect all the extra properties that we don't have a struct field for.
+//
+// But if an existing field references another type under `crate::models::`, then that would still be parsed lossily, so we would have to also add
+// a `#[serde(flatten)] HashMap` field there. And if that type has fields that reference types under `crate::models::` ...
+//
+// To avoid having to do this for effectively the whole crate, instead we've just commented out the fields we don't use in our code.
+//
+// ---
+//
+// If you need to access a commented out field, uncomment it.
+//
+// - If it's a simple built-in type, then that is all you need to do.
+//
+// - Otherwise if it references another type under `crate::models::`, then ensure that that type also has a `#[serde(flatten)] HashMap` property
+//   and is commented out as much as possible. Also copy this devnote there for future readers.
+
 #[derive(Debug, serde_derive::Serialize, serde_derive::Deserialize, Clone)]
 pub struct Mount {
     /// Container path.
@@ -25,15 +46,17 @@ pub struct Mount {
     /// Whether the mount should be read-only.
     #[serde(rename = "ReadOnly", skip_serializing_if = "Option::is_none")]
     read_only: Option<bool>,
-    /// The consistency requirement for the mount: `default`, `consistent`, `cached`, or `delegated`.
-    #[serde(rename = "Consistency", skip_serializing_if = "Option::is_none")]
-    consistency: Option<String>,
-    #[serde(rename = "BindOptions", skip_serializing_if = "Option::is_none")]
-    bind_options: Option<crate::models::MountBindOptions>,
-    #[serde(rename = "VolumeOptions", skip_serializing_if = "Option::is_none")]
-    volume_options: Option<crate::models::MountVolumeOptions>,
-    #[serde(rename = "TmpfsOptions", skip_serializing_if = "Option::is_none")]
-    tmpfs_options: Option<crate::models::MountTmpfsOptions>,
+    // /// The consistency requirement for the mount: `default`, `consistent`, `cached`, or `delegated`.
+    // #[serde(rename = "Consistency", skip_serializing_if = "Option::is_none")]
+    // consistency: Option<String>,
+    // #[serde(rename = "BindOptions", skip_serializing_if = "Option::is_none")]
+    // bind_options: Option<crate::models::MountBindOptions>,
+    // #[serde(rename = "VolumeOptions", skip_serializing_if = "Option::is_none")]
+    // volume_options: Option<crate::models::MountVolumeOptions>,
+    // #[serde(rename = "TmpfsOptions", skip_serializing_if = "Option::is_none")]
+    // tmpfs_options: Option<crate::models::MountTmpfsOptions>,
+    #[serde(flatten)]
+    other_properties: std::collections::HashMap<String, serde_json::Value>,
 }
 
 impl Mount {
@@ -43,10 +66,11 @@ impl Mount {
             source: None,
             _type: None,
             read_only: None,
-            consistency: None,
-            bind_options: None,
-            volume_options: None,
-            tmpfs_options: None,
+            // consistency: None,
+            // bind_options: None,
+            // volume_options: None,
+            // tmpfs_options: None,
+            other_properties: Default::default(),
         }
     }
 
@@ -118,74 +142,74 @@ impl Mount {
         self.read_only = None;
     }
 
-    pub fn set_consistency(&mut self, consistency: String) {
-        self.consistency = Some(consistency);
-    }
+    // pub fn set_consistency(&mut self, consistency: String) {
+    //     self.consistency = Some(consistency);
+    // }
 
-    pub fn with_consistency(mut self, consistency: String) -> Self {
-        self.consistency = Some(consistency);
-        self
-    }
+    // pub fn with_consistency(mut self, consistency: String) -> Self {
+    //     self.consistency = Some(consistency);
+    //     self
+    // }
 
-    pub fn consistency(&self) -> Option<&str> {
-        self.consistency.as_ref().map(AsRef::as_ref)
-    }
+    // pub fn consistency(&self) -> Option<&str> {
+    //     self.consistency.as_ref().map(AsRef::as_ref)
+    // }
 
-    pub fn reset_consistency(&mut self) {
-        self.consistency = None;
-    }
+    // pub fn reset_consistency(&mut self) {
+    //     self.consistency = None;
+    // }
 
-    pub fn set_bind_options(&mut self, bind_options: crate::models::MountBindOptions) {
-        self.bind_options = Some(bind_options);
-    }
+    // pub fn set_bind_options(&mut self, bind_options: crate::models::MountBindOptions) {
+    //     self.bind_options = Some(bind_options);
+    // }
 
-    pub fn with_bind_options(mut self, bind_options: crate::models::MountBindOptions) -> Self {
-        self.bind_options = Some(bind_options);
-        self
-    }
+    // pub fn with_bind_options(mut self, bind_options: crate::models::MountBindOptions) -> Self {
+    //     self.bind_options = Some(bind_options);
+    //     self
+    // }
 
-    pub fn bind_options(&self) -> Option<&crate::models::MountBindOptions> {
-        self.bind_options.as_ref()
-    }
+    // pub fn bind_options(&self) -> Option<&crate::models::MountBindOptions> {
+    //     self.bind_options.as_ref()
+    // }
 
-    pub fn reset_bind_options(&mut self) {
-        self.bind_options = None;
-    }
+    // pub fn reset_bind_options(&mut self) {
+    //     self.bind_options = None;
+    // }
 
-    pub fn set_volume_options(&mut self, volume_options: crate::models::MountVolumeOptions) {
-        self.volume_options = Some(volume_options);
-    }
+    // pub fn set_volume_options(&mut self, volume_options: crate::models::MountVolumeOptions) {
+    //     self.volume_options = Some(volume_options);
+    // }
 
-    pub fn with_volume_options(
-        mut self,
-        volume_options: crate::models::MountVolumeOptions,
-    ) -> Self {
-        self.volume_options = Some(volume_options);
-        self
-    }
+    // pub fn with_volume_options(
+    //     mut self,
+    //     volume_options: crate::models::MountVolumeOptions,
+    // ) -> Self {
+    //     self.volume_options = Some(volume_options);
+    //     self
+    // }
 
-    pub fn volume_options(&self) -> Option<&crate::models::MountVolumeOptions> {
-        self.volume_options.as_ref()
-    }
+    // pub fn volume_options(&self) -> Option<&crate::models::MountVolumeOptions> {
+    //     self.volume_options.as_ref()
+    // }
 
-    pub fn reset_volume_options(&mut self) {
-        self.volume_options = None;
-    }
+    // pub fn reset_volume_options(&mut self) {
+    //     self.volume_options = None;
+    // }
 
-    pub fn set_tmpfs_options(&mut self, tmpfs_options: crate::models::MountTmpfsOptions) {
-        self.tmpfs_options = Some(tmpfs_options);
-    }
+    // pub fn set_tmpfs_options(&mut self, tmpfs_options: crate::models::MountTmpfsOptions) {
+    //     self.tmpfs_options = Some(tmpfs_options);
+    // }
 
-    pub fn with_tmpfs_options(mut self, tmpfs_options: crate::models::MountTmpfsOptions) -> Self {
-        self.tmpfs_options = Some(tmpfs_options);
-        self
-    }
+    // pub fn with_tmpfs_options(mut self, tmpfs_options: crate::models::MountTmpfsOptions) -> Self {
+    //     self.tmpfs_options = Some(tmpfs_options);
+    //     self
+    // }
 
-    pub fn tmpfs_options(&self) -> Option<&crate::models::MountTmpfsOptions> {
-        self.tmpfs_options.as_ref()
-    }
+    // pub fn tmpfs_options(&self) -> Option<&crate::models::MountTmpfsOptions> {
+    //     self.tmpfs_options.as_ref()
+    // }
 
-    pub fn reset_tmpfs_options(&mut self) {
-        self.tmpfs_options = None;
-    }
+    // pub fn reset_tmpfs_options(&mut self) {
+    //     self.tmpfs_options = None;
+    // }
 }

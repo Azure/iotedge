@@ -1,21 +1,29 @@
-FROM ekidd/rust-musl-builder AS builder
+FROM ubuntu:18.04 AS builder
 
 ARG SRC_DIR=.
 
 # Add source code
-COPY $SRC_DIR/ ./
+COPY $SRC_DIR/snitcher /snitcher
 
-# Fix permissions on source code.
-RUN sudo chown -R rust:rust /home/rust
-
-# Build app
-RUN cargo build --release
+# Install pre-requisite
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+    binutils build-essential ca-certificates cmake curl debhelper dh-systemd file git \
+    gcc g++ pkg-config \
+    libcurl4-openssl-dev libssl-dev uuid-dev && \
+    # Install Rust
+    curl -sSLf https://sh.rustup.rs | sh -s -- -y && \
+    . ~/.cargo/env && \
+    # Build app
+    cd /snitcher && \
+    $HOME/.cargo/bin/cargo build --release
 
 # Build real container
-
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates
-COPY --from=builder /home/rust/src/target/x86_64-unknown-linux-musl/release/snitcher \
-    /usr/local/bin/
-
+FROM ubuntu:18.04
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y ca-certificates openssl
+COPY --from=builder /snitcher/target/release/snitcher \
+     /usr/local/bin/
 CMD /usr/local/bin/snitcher

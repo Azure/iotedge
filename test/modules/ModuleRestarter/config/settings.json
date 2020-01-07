@@ -1,0 +1,5 @@
+{
+  "ServiceClientConnectionString": "",
+  "DesiredModulesToRestartCSV": "moduleRestarter",
+  "RestartIntervalInMins": "10"
+}
