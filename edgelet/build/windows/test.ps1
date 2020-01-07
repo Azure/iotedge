@@ -13,12 +13,13 @@ Assert-Rust
 
 # Run cargo test by specifying the manifest file
 $cargo = Get-CargoCommand
-$ManifestPath = Get-Manifest
+
+cd (Get-EdgeletFolder)
 
 $env:IOTEDGE_HOMEDIR = $env:Temp
 
-Write-Host "$cargo test --all $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
-Invoke-Expression "$cargo test --all $(if ($Release) { '--release' }) --manifest-path $ManifestPath"
+Write-Host "$cargo test --all $(if ($Release) { '--release' })"
+Invoke-Expression "$cargo test --all $(if ($Release) { '--release' })"
 if ($LastExitCode) {
     Throw "cargo test failed with exit code $LastExitCode"
 }
