@@ -59,8 +59,7 @@ function Assert-Rust
     $toolchain = Get-Content -Encoding UTF8 (Join-Path -Path (Get-EdgeletFolder) -ChildPath 'rust-toolchain')
 
     if ($Arm) {
-        if (-not (Test-Path (Join-Path -Path (Get-IotEdgeFolder) -ChildPath 'rust-windows-arm'))) {
-            # if the folder rust-windows-arm exists, we assume the private rust compiler for arm is installed
+        if (-not (Test-Path (GetPrivateRustPath))) {
             InstallWinArmPrivateRustCompiler
         }
     }
