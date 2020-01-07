@@ -15,15 +15,16 @@ namespace TestResultCoordinator.Report.DirectMethodReport
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(NetworkStatusTimeline));
 
-        readonly List<NetworkControllerTestResult> networkControllerTestResults;
-        readonly double tolerancePeriodInMilliseconds;
+        readonly IReadOnlyList<NetworkControllerTestResult> networkControllerTestResults;
+        readonly TimeSpan tolerancePeriod;
 
-        public static async Task<NetworkStatusTimeline> CreateNetworkStatusTimeline(ITestResultCollection<TestOperationResult> networkControllerCollection, double tolerancePeriodInMilliseconds)
+        public static async Task<NetworkStatusTimeline> Create(ITestResultCollection<TestOperationResult> networkControllerTestOperationResults, TimeSpan tolerancePeriod)
         {
             List<NetworkControllerTestResult> networkControllerTestResults = new List<NetworkControllerTestResult>();
-            while (await networkControllerCollection.MoveNextAsync())
+
+            while (await networkControllerTestOperationResults.MoveNextAsync())
             {
-                Option<NetworkControllerTestResult> networkControllerTestResult = GetNetworkControllerTestOperationResult(networkControllerCollection.Current);
+                Option<NetworkControllerTestResult> networkControllerTestResult = GetNetworkControllerTestOperationResult(networkControllerTestOperationResults.Current);
 
                 networkControllerTestResult.ForEach(
                     r =>
@@ -32,13 +33,13 @@ namespace TestResultCoordinator.Report.DirectMethodReport
                     });
             }
 
-            return new NetworkStatusTimeline(networkControllerTestResults, tolerancePeriodInMilliseconds);
+            return new NetworkStatusTimeline(networkControllerTestResults, tolerancePeriod);
         }
 
-        NetworkStatusTimeline(List<NetworkControllerTestResult> networkControllerTestResults, double tolerancePeriodInMilliseconds)
+        NetworkStatusTimeline(IReadOnlyList<NetworkControllerTestResult> networkControllerTestResults, TimeSpan tolerancePeriod)
         {
             this.networkControllerTestResults = networkControllerTestResults;
-            this.tolerancePeriodInMilliseconds = tolerancePeriodInMilliseconds;
+            this.tolerancePeriod = tolerancePeriod;
         }
 
         public NetworkControllerStatus GetNetworkControllerStatusAt(DateTime dateTime)
@@ -63,7 +64,7 @@ namespace TestResultCoordinator.Report.DirectMethodReport
             foreach (NetworkControllerTestResult networkControllerTestResult in this.networkControllerTestResults)
             {
                 // If dateTime is after a TestResult's CreatedAt time, but before that TestResult's CreatedAt time + tolerance period, then dateTime is within the tolerance period
-                if (dateTime > networkControllerTestResult.CreatedAt && dateTime.Ticks < networkControllerTestResult.CreatedAt.Ticks + this.tolerancePeriodInMilliseconds * 10000)
+                if (dateTime > networkControllerTestResult.CreatedAt && dateTime <= networkControllerTestResult.CreatedAt.Add(this.tolerancePeriod))
                 {
                     return true;
                 }

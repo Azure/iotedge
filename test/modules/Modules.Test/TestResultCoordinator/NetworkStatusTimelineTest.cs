@@ -44,7 +44,7 @@ namespace Modules.Test.TestResultCoordinator
                 mockResultStore.Setup(s => s.GetBatch(startingOffset, batchSize)).ReturnsAsync(expectedStoreData.Skip(startingOffset).Take(batchSize));
             }
 
-            NetworkStatusTimeline timeline = await NetworkStatusTimeline.CreateNetworkStatusTimeline(resultCollection, 5);
+            NetworkStatusTimeline timeline = await NetworkStatusTimeline.Create(resultCollection, new TimeSpan(0, 0, 0, 0, 5));
             Assert.Equal(NetworkControllerStatus.Enabled, timeline.GetNetworkControllerStatusAt(new DateTime(2020, 1, 1, 9, 10, 11, 10)));
             Assert.Equal(NetworkControllerStatus.Disabled, timeline.GetNetworkControllerStatusAt(new DateTime(2020, 1, 1, 9, 10, 16, 10)));
             Assert.Equal(NetworkControllerStatus.Enabled, timeline.GetNetworkControllerStatusAt(new DateTime(2020, 1, 1, 9, 10, 22, 10)));
