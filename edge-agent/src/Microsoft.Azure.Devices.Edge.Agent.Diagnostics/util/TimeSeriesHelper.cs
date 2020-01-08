@@ -21,7 +21,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util
 
             foreach (Metric newMetric in metrics)
             {
-                int key = newMetric.GetMetricKey();
+                int key = newMetric.MetricKey.Value;
                 (Metric metric, bool isFirst) previous;
                 if (previousValues.TryGetValue(key, out previous))
                 {
