@@ -56,16 +56,19 @@ namespace TestResultCoordinator.Report.DirectMethodReport
                 {
                     break;
                 }
+
                 if (NetworkControllerOperation.SettingRule.Equals(curr.Operation))
                 {
-                    if (i + 1 >= networkControllerTestResults.Count || !NetworkControllerOperation.RuleSet.Equals(this.networkControllerTestResults[i + 1].Operation))
+                    if (i + 1 >= this.networkControllerTestResults.Count || !NetworkControllerOperation.RuleSet.Equals(this.networkControllerTestResults[i + 1].Operation))
                     {
                         throw new InvalidOperationException("Test result SettingRule found with no RuleSet found after.");
                     }
-                    if (!curr.NetworkControllerStatus.Equals(networkControllerTestResults[i + 1].NetworkControllerStatus))
+
+                    if (!curr.NetworkControllerStatus.Equals(this.networkControllerTestResults[i + 1].NetworkControllerStatus))
                     {
                         throw new InvalidOperationException("Test result SettingRule and following RuleSet do not match NetwokControllerStatuses");
                     }
+
                     networkControllerStatus = curr.NetworkControllerStatus;
                     NetworkControllerTestResult next = this.networkControllerTestResults[i + 1];
                     isWithinTolerancePeriod = dateTime >= curr.CreatedAt && dateTime <= next.CreatedAt.Add(this.tolerancePeriod);

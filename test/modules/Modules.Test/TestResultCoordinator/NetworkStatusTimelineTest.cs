@@ -67,6 +67,9 @@ namespace Modules.Test.TestResultCoordinator
             (status, inTolerance) = timeline.GetNetworkControllerStatusAndWithinToleranceAt(new DateTime(2020, 1, 1, 9, 10, 25, 10));
             Assert.Equal(NetworkControllerStatus.Disabled, status);
             Assert.True(inTolerance);
+            (status, inTolerance) = timeline.GetNetworkControllerStatusAndWithinToleranceAt(new DateTime(2020, 1, 1, 9, 10, 25, 12));
+            Assert.Equal(NetworkControllerStatus.Disabled, status);
+            Assert.True(inTolerance);
         }
 
         static List<(long, TestOperationResult)> GetStoreData(string source, IEnumerable<string> resultValues, IEnumerable<DateTime> resultDates, IEnumerable<string> resultOperations, int start = 0)
