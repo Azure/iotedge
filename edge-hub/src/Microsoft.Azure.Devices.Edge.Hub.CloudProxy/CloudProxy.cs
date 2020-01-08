@@ -129,6 +129,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public async Task SendMessageAsync(IMessage inputMessage)
         {
+            inputMessage.WriteRoute();
             Preconditions.CheckNotNull(inputMessage, nameof(inputMessage));
             IMessageConverter<Message> converter = this.messageConverterProvider.Get<Message>();
             Message message = converter.FromMessage(inputMessage);
@@ -157,6 +158,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             IList<Message> messages = Preconditions.CheckNotNull(inputMessages, nameof(inputMessages))
                 .Select(inputMessage =>
                 {
+                    inputMessage.WriteRoute();
                     Metrics.MessageProcessingLatency(this.clientId, inputMessage);
                     return converter.FromMessage(inputMessage);
                 })

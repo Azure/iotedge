@@ -50,6 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Amqp.LinkHandlers
             public static void AddMessage(IIdentity identity, IMessage message)
             {
                 string from = message.GetSenderId();
+                message.WriteRoute();
                 string to = identity.Id;
                 MessagesMeter.Increment(1, new[] { "amqp", from, to });
             }

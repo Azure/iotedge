@@ -169,6 +169,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Mqtt
             public static void AddSentMessage(IIdentity identity, IMessage message)
             {
                 string from = message.GetSenderId();
+                message.WriteRoute();
+
                 string to = identity.Id;
                 SentMessagesCounter.Increment(1, new[] { from, to });
             }
