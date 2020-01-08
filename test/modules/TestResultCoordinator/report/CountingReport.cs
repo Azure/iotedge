@@ -33,5 +33,7 @@ namespace TestResultCoordinator.Report
         public ulong TotalDuplicateResultCount { get; }
 
         public IReadOnlyList<T> UnmatchedResults { get; }
+
+        public override bool IsPassed => this.TotalExpectCount == this.TotalMatchCount;
     }
 }
