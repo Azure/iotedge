@@ -22,10 +22,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
     // TODO add unit tests
     public class EdgeDeploymentController : IEdgeDeploymentController
     {
-        static readonly string EdgeAgentDeploymentName = KubeUtils.SanitizeLabelValue(CoreConstants.EdgeAgentModuleName);
-
         readonly IKubernetes client;
-
         readonly ResourceName resourceName;
         readonly string deploymentSelector;
         readonly string deviceNamespace;
@@ -62,6 +59,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             try
             {
                 var moduleIdentities = await this.moduleIdentityLifecycleManager.GetModuleIdentitiesAsync(desiredModules, currentModules);
+
+                // having desired modules an no module identities means that we are unable to obtain a list of module identities
+                if (desiredModules.Modules.Any() && !moduleIdentities.Any())
+                {
+                    Events.NoModuleIdentities();
+                    return EdgeDeploymentStatus.Failure("Unable to obtain identities for desired modules");
+                }
 
                 var labels = desiredModules.Modules
                     .ToDictionary(
@@ -364,7 +368,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 CreateServiceAccount,
                 DeleteServiceAccount,
                 UpdateServiceAccount,
-                DeployModulesException
+                DeployModulesException,
+                NoModuleIdentities
             }
 
             internal static void DeleteService(string name)
@@ -435,6 +440,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             internal static void UpdateServiceAccount(V1ServiceAccount serviceAccount)
             {
                 Log.LogDebug((int)EventIds.UpdateServiceAccount, $"Update Service Account {serviceAccount.Metadata.Name}");
+            }
+
+            internal static void NoModuleIdentities()
+            {
+                Log.LogError((int)EventIds.NoModuleIdentities, "Unable to get identities for desired modules");
             }
         }
     }
