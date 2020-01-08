@@ -37,7 +37,7 @@ namespace DirectMethodSender
 
                 DateTime testStartAt = DateTime.UtcNow;
 
-                reportClient = ReporterClientBase.Create(
+                reportClient = await ReporterClientBase.CreateAsync(
                     Logger,
                     Settings.Current.TestResultCoordinatorUrl,
                     Settings.Current.AnalyzerUrl,
@@ -48,7 +48,7 @@ namespace DirectMethodSender
                     (HttpStatusCode result, long dmCounter) = await directMethodClient.InvokeDirectMethodAsync(cts);
 
                     // Generate a report type depending on the reporting endpoint
-                    TestResultBase report = CreateReport(
+                    TestResultBase report = ConstructTestResult(
                         reportClient,
                         batchId,
                         dmCounter,
@@ -113,7 +113,7 @@ namespace DirectMethodSender
         }
 
         // Create reporting result depending on which endpoint is being used.
-        public static TestResultBase CreateReport(ReporterClientBase reportClient, Guid batchId, long counter, string result)
+        public static TestResultBase ConstructTestResult(ReporterClientBase reportClient, Guid batchId, long counter, string result)
         {
             string source = Settings.Current.ModuleId + ".send";
             switch (reportClient.GetType().Name)
@@ -127,7 +127,7 @@ namespace DirectMethodSender
                         Result = Preconditions.CheckNonWhiteSpace(result, nameof(result))
                     };
 
-                case nameof(ModuleReporterClient):
+                case nameof(EventReporterClient):
                     return new LegacyDirectMethodTestResult(source, DateTime.UtcNow)
                     {
                         Result = Preconditions.CheckNonWhiteSpace(result, nameof(result))

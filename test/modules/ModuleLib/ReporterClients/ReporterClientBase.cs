@@ -16,10 +16,11 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
         {
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
         }
+
         public abstract void Dispose();
 
         // TODO: Change this create signature once the TRC and Analyzer URL is merged
-        public static ReporterClientBase Create(
+        public static async Task<ReporterClientBase> CreateAsync(
             ILogger logger,
             Option<Uri> testResultCoordinatorUrl,
             Option<Uri> analyzerUrl,
@@ -27,21 +28,21 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
         {
             if (testResultCoordinatorUrl.HasValue)
             {
-                return TestResultCoordinatorReporterClient.Create(
+                return new TestResultCoordinatorReporterClient(
                         testResultCoordinatorUrl.Expect(() => new ArgumentException("testReportCoordinatorUrl is not expected to be empty")),
                         logger);
             }
             else if (analyzerUrl.HasValue)
             {
-                return TestResultCoordinatorReporterClient.Create(
+                return new TestResultCoordinatorReporterClient(
                         analyzerUrl.Expect(() => new ArgumentException("analyzerUrl is not expected to be empty")),
                         logger);
             }
             else
             {
-                return ModuleReporterClient.Create(
-                        transportType,
-                        logger);
+                Preconditions.CheckNotNull(transportType, nameof(transportType));
+                EventReporterClient eventReporterClient = new EventReporterClient(logger);
+                return await eventReporterClient.InitAsync(transportType);
             }
         }
 

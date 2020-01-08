@@ -13,21 +13,12 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
         ILogger logger;
         TestResultReportingClient trcrClient;
 
-        private TestResultCoordinatorReporterClient(
-            TestResultReportingClient trcrClient,
-            ILogger logger)
+        internal TestResultCoordinatorReporterClient(Uri baseUri, ILogger logger)
             : base(logger)
         {
+            Preconditions.CheckNotNull(baseUri, nameof(baseUri));
+            this.trcrClient = new TestResultReportingClient { BaseUrl = baseUri.AbsoluteUri };
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
-            this.trcrClient = Preconditions.CheckNotNull(trcrClient, nameof(trcrClient));
-        }
-
-        public static TestResultCoordinatorReporterClient Create(Uri baseUri, ILogger logger)
-        {
-            TestResultReportingClient trcrClient = new TestResultReportingClient { BaseUrl = baseUri.AbsoluteUri };
-            return new TestResultCoordinatorReporterClient(
-                trcrClient,
-                logger);
         }
 
         public override void Dispose()

@@ -10,37 +10,30 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public sealed class ModuleReporterClient : ReporterClientBase
+    public sealed class EventReporterClient : ReporterClientBase
     {
         ILogger logger;
         ModuleClient moduleClient;
 
-        private ModuleReporterClient(
-            ModuleClient moduleClient,
-            ILogger logger)
+        public EventReporterClient(ILogger logger)
             : base(logger)
         {
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
-            this.moduleClient = Preconditions.CheckNotNull(moduleClient, nameof(moduleClient));
-        }
-
-        public static ModuleReporterClient Create(TransportType transportType, ILogger logger)
-            => CreateAsync(transportType, logger).Result;
-        public static async Task<ModuleReporterClient> CreateAsync(TransportType transportType, ILogger logger)
-        {
-            ModuleClient moduleClient = await ModuleUtil.CreateModuleClientAsync(
-                    transportType,
-                    ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                    ModuleUtil.DefaultTransientRetryStrategy,
-                    logger);
-            return new ModuleReporterClient(
-                moduleClient,
-                logger);
         }
 
         public override void Dispose()
         {
             this.moduleClient?.Dispose();
+        }
+
+        internal async Task<EventReporterClient> InitAsync(TransportType transportType)
+        {
+            this.moduleClient = await ModuleUtil.CreateModuleClientAsync(
+                    transportType,
+                    ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
+                    ModuleUtil.DefaultTransientRetryStrategy,
+                    this.logger);
+            return this;
         }
 
         internal override async Task ReportStatusAsync(TestResultBase report)
