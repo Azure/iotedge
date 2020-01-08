@@ -20,22 +20,31 @@ namespace Modules.Test.TestResultCoordinator
                 {
                     new object[]
                     {
-                        new[] { "Enabled", "Disabled", "Enabled", "Disabled" }, new[]
+                        new[] { "Enabled", "Enabled", "Disabled", "Disabled", "Enabled", "Enabled", "Disabled", "Disabled" },
+                        new[]
                         {
                             new DateTime(2020, 1, 1, 9, 10, 10, 10),
+                            new DateTime(2020, 1, 1, 9, 10, 10, 13),
                             new DateTime(2020, 1, 1, 9, 10, 15, 10),
+                            new DateTime(2020, 1, 1, 9, 10, 15, 13),
                             new DateTime(2020, 1, 1, 9, 10, 20, 10),
-                            new DateTime(2020, 1, 1, 9, 10, 25, 10)
+                            new DateTime(2020, 1, 1, 9, 10, 20, 13),
+                            new DateTime(2020, 1, 1, 9, 10, 25, 10),
+                            new DateTime(2020, 1, 1, 9, 10, 25, 13)
                         },
+                        new[] { "SettingRule", "RuleSet", "SettingRule", "RuleSet", "SettingRule", "RuleSet", "SettingRule", "RuleSet" }
                     }
                 };
         [Theory]
         [MemberData(nameof(GetCreateReportData))]
-        public async void TestCreateNetworkStatusTimeline(IEnumerable<string> networkControllerResultValues, IEnumerable<DateTime> networkControllerResultDates)
+        public async void TestCreateNetworkStatusTimeline(
+            IEnumerable<string> networkControllerResultValues,
+            IEnumerable<DateTime> networkControllerResultDates,
+            IEnumerable<string> networkControllerResultOperations)
         {
             int batchSize = 500;
             string source = "testSource";
-            var expectedStoreData = GetStoreData(source, networkControllerResultValues, networkControllerResultDates);
+            var expectedStoreData = GetStoreData(source, networkControllerResultValues, networkControllerResultDates, networkControllerResultOperations);
             var mockResultStore = new Mock<ISequentialStore<TestOperationResult>>();
             var resultCollection = new StoreTestResultCollection<TestOperationResult>(mockResultStore.Object, batchSize);
             for (int i = 0; i < expectedStoreData.Count; i += batchSize)
@@ -60,7 +69,7 @@ namespace Modules.Test.TestResultCoordinator
             Assert.True(inTolerance);
         }
 
-        static List<(long, TestOperationResult)> GetStoreData(string source, IEnumerable<string> resultValues, IEnumerable<DateTime> resultDates, int start = 0)
+        static List<(long, TestOperationResult)> GetStoreData(string source, IEnumerable<string> resultValues, IEnumerable<DateTime> resultDates, IEnumerable<string> resultOperations, int start = 0)
         {
             var storeData = new List<(long, TestOperationResult)>();
             int count = start;
@@ -68,7 +77,8 @@ namespace Modules.Test.TestResultCoordinator
             for (int i = 0; i < resultValues.Count(); i++)
             {
                 var networkControllerStatus = (NetworkControllerStatus)Enum.Parse(typeof(NetworkControllerStatus), resultValues.ElementAt(i));
-                var networkControllerTestResult = new NetworkControllerTestResult(source, resultDates.ElementAt(i)) { NetworkControllerStatus = networkControllerStatus, NetworkControllerType = NetworkControllerType.Offline };
+                var networkControllerOperation = (NetworkControllerOperation)Enum.Parse(typeof(NetworkControllerOperation), resultOperations.ElementAt(i));
+                var networkControllerTestResult = new NetworkControllerTestResult(source, resultDates.ElementAt(i)) { NetworkControllerStatus = networkControllerStatus, NetworkControllerType = NetworkControllerType.Offline, Operation = networkControllerOperation };
                 storeData.Add((count, networkControllerTestResult.ToTestOperationResult()));
                 count++;
             }

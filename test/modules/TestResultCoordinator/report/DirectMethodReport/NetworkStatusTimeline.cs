@@ -2,6 +2,7 @@
 namespace TestResultCoordinator.Report.DirectMethodReport
 {
     using System;
+    using System.Collections;
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
@@ -33,6 +34,7 @@ namespace TestResultCoordinator.Report.DirectMethodReport
                     });
             }
 
+            networkControllerTestResults.Sort(new SortNetworkControllerTestResultHelper());
             return new NetworkStatusTimeline(networkControllerTestResults, tolerancePeriod);
         }
 
@@ -46,16 +48,32 @@ namespace TestResultCoordinator.Report.DirectMethodReport
         {
             // Return network controller status at given time
             NetworkControllerStatus networkControllerStatus = NetworkControllerStatus.Unknown;
-            DateTime maxCreatedAtBeforeGiven = DateTime.MinValue;
             bool isWithinTolerancePeriod = false;
             for (int i = 0;  i < this.networkControllerTestResults.Count; i++)
             {
                 NetworkControllerTestResult curr = this.networkControllerTestResults[i];
-                if (dateTime >= curr.CreatedAt && curr.CreatedAt > maxCreatedAtBeforeGiven)
+                if (dateTime < curr.CreatedAt)
                 {
-                    maxCreatedAtBeforeGiven = curr.CreatedAt;
+                    break;
+                }
+                if (NetworkControllerOperation.SettingRule.Equals(curr.Operation))
+                {
+                    if (i + 1 >= networkControllerTestResults.Count || !NetworkControllerOperation.RuleSet.Equals(this.networkControllerTestResults[i + 1].Operation))
+                    {
+                        throw new InvalidOperationException("Test result SettingRule found with no RuleSet found after.");
+                    }
+                    if (!curr.NetworkControllerStatus.Equals(networkControllerTestResults[i + 1].NetworkControllerStatus))
+                    {
+                        throw new InvalidOperationException("Test result SettingRule and following RuleSet do not match NetwokControllerStatuses");
+                    }
                     networkControllerStatus = curr.NetworkControllerStatus;
-                    isWithinTolerancePeriod = dateTime >= curr.CreatedAt && dateTime <= curr.CreatedAt.Add(this.tolerancePeriod);
+                    NetworkControllerTestResult next = this.networkControllerTestResults[i + 1];
+                    isWithinTolerancePeriod = dateTime >= curr.CreatedAt && dateTime <= next.CreatedAt.Add(this.tolerancePeriod);
+                    i++;
+                }
+                else
+                {
+                    throw new InvalidOperationException("Expected SettingRule");
                 }
             }
 
@@ -78,5 +96,10 @@ namespace TestResultCoordinator.Report.DirectMethodReport
             NetworkControllerTestResult twinTestResult = JsonConvert.DeserializeObject<NetworkControllerTestResult>(current.Result);
             return Option.Some(twinTestResult);
         }
+    }
+
+    public class SortNetworkControllerTestResultHelper : IComparer<NetworkControllerTestResult>
+    {
+        public int Compare(NetworkControllerTestResult n1, NetworkControllerTestResult n2) => n1.CreatedAt.CompareTo(n2.CreatedAt);
     }
 }

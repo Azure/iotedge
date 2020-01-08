@@ -27,7 +27,7 @@ namespace NetworkController
         {
             var testResult = new NetworkControllerTestResult(this.moduleId, DateTime.UtcNow)
             {
-                Operation = operation.ToString(),
+                Operation = operation,
                 OperationStatus = success ? "Success" : "Failed",
                 NetworkControllerType = networkControllerType,
                 NetworkControllerStatus = networkControllerStatus,

@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
 
         public string TrackingId { get; set; }
 
-        public string Operation { get; set; }
+        public NetworkControllerOperation Operation { get; set; }
 
         public string OperationStatus { get; set; }
 
