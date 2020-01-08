@@ -18,28 +18,27 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
         public abstract void Dispose();
 
         // TODO: Change this create signature once the TRC and Analyzer URL is merged
-        public ReporterClientBase Create(
-            FrameworkTestType testType,
+        public static ReporterClientBase Create(
             ILogger logger,
             Option<Uri> testResultCoordinatorUrl,
             Option<Uri> analyzerUrl,
             TransportType transportType)
         {
-            switch (testType)
+            if (testResultCoordinatorUrl.HasValue)
             {
-                case FrameworkTestType.Connectivity:
-                    return TestResultCoordinatorReporterClient.Create(
+                return TestResultCoordinatorReporterClient.Create(
                         testResultCoordinatorUrl.Expect(() => new ArgumentException("testReportCoordinatorUrl is not expected to be empty")),
                         logger);
-
-                case FrameworkTestType.LongHaul:
-                    return TestResultCoordinatorReporterClient.Create(
+            }
+            else if (analyzerUrl.HasValue)
+            {
+                return TestResultCoordinatorReporterClient.Create(
                         analyzerUrl.Expect(() => new ArgumentException("analyzerUrl is not expected to be empty")),
                         logger);
-
-                case FrameworkTestType.EndToEnd:
-                default:
-                    return ModuleReporterClient.Create(
+            }
+            else
+            {
+                return ModuleReporterClient.Create(
                         transportType,
                         logger);
             }

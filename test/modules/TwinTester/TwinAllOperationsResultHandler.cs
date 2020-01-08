@@ -15,9 +15,9 @@ namespace TwinTester
         readonly string moduleId;
         readonly TwinEventStorage storage;
 
-        public TwinAllOperationsResultHandler(Uri analyzerClientUri, TwinEventStorage storage, string moduleId)
+        public TwinAllOperationsResultHandler(Uri reportUrl, TwinEventStorage storage, string moduleId)
         {
-            this.testResultReportingClient = new TestResultReportingClient { BaseUrl = analyzerClientUri.AbsoluteUri };
+            this.testResultReportingClient = new TestResultReportingClient { BaseUrl = reportUrl.AbsoluteUri };
             this.moduleId = moduleId;
             this.storage = storage;
         }
@@ -76,7 +76,7 @@ namespace TwinTester
         {
             try
             {
-                await this.testResultReportingClient.ReportResultAsync(new TestOperationResultDto { Source = this.moduleId, Result = failureStatus, CreatedAt = DateTime.UtcNow, Type = "LegacyTwin" });
+                await this.testResultReportingClient.ReportResultAsync(new TestOperationResultDto { Source = this.moduleId, Result = failureStatus, CreatedAt = DateTime.UtcNow, Type = TestOperationResultType.LegacyTwin.ToString() });
             }
             catch (Exception e)
             {

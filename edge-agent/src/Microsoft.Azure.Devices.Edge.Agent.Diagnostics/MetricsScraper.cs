@@ -20,7 +20,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
         const string UrlPattern = @"[^/:]+://(?<host>[^/:]+)(:[^:]+)?$";
         static readonly Regex UrlRegex = new Regex(UrlPattern, RegexOptions.Compiled);
         readonly HttpClient httpClient;
-        readonly Lazy<IDictionary<string, string>> endpoints;
+        readonly IList<string> endpoints;
         readonly ISystemTime systemTime;
         static readonly ILogger Log = Logger.Factory.CreateLogger<MetricsScraper>();
 
@@ -35,16 +35,16 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             Preconditions.CheckNotNull(endpoints, nameof(endpoints));
 
             this.httpClient = new HttpClient();
-            this.endpoints = new Lazy<IDictionary<string, string>>(() => endpoints.ToDictionary(e => e, this.GetUriWithIpAddress));
+            this.endpoints = endpoints;
             this.systemTime = systemTime ?? SystemTime.Instance;
         }
 
         public Task<IEnumerable<Metric>> ScrapeEndpointsAsync(CancellationToken cancellationToken)
         {
-            return this.endpoints.Value.SelectManyAsync(async endpoint =>
+            return this.endpoints.SelectManyAsync(async endpoint =>
             {
-                Log.LogInformation($"Scraping endpoint {endpoint.Key}");
-                string metricsData = await this.ScrapeEndpoint(endpoint.Value, cancellationToken);
+                Log.LogInformation($"Scraping endpoint {endpoint}");
+                string metricsData = await this.ScrapeEndpoint(endpoint, cancellationToken);
                 return PrometheusMetricsParser.ParseMetrics(this.systemTime.UtcNow, metricsData);
             });
         }
@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
 
         string GetUriWithIpAddress(string endpoint)
         {
-            Log.LogInformation($"Getting uri with Ip for {endpoint}");
+            Log.LogDebug($"Getting uri with Ip for {endpoint}");
             Match match = UrlRegex.Match(endpoint);
             if (!match.Success)
             {
@@ -70,7 +70,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             var builder = new UriBuilder(endpoint);
             builder.Host = ipAddr;
             string endpointWithIp = builder.Uri.ToString();
-            Log.LogInformation($"Endpoint = {endpoint}, IP Addr = {ipAddr}, Endpoint with Ip = {endpointWithIp}");
+            Log.LogDebug($"Endpoint = {endpoint}, IP Addr = {ipAddr}, Endpoint with Ip = {endpointWithIp}");
             return endpointWithIp;
         }
 
@@ -78,6 +78,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
         {
             try
             {
+                // Temporary. Only needed until edgeHub starts using asp.net to expose endpoints
+                endpoint = this.GetUriWithIpAddress(endpoint);
+
                 HttpResponseMessage result = await this.httpClient.GetAsync(endpoint, cancellationToken);
                 if (result.IsSuccessStatusCode)
                 {

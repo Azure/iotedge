@@ -7,6 +7,7 @@ namespace DirectMethodSender
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -37,14 +38,14 @@ namespace DirectMethodSender
                 DateTime testStartAt = DateTime.UtcNow;
 
                 // BEARWASHERE: Create reportClient
-                ReporterClientBase reportClient = ReporterClientBase.Create(
-                    FrameworkTestType frameworkTestType, // BEARWASHERE: Introduce the test type to Settings.
+                reportClient = ReporterClientBase.Create(
                     Logger,
                     Settings.Current.TestResultCoordinatorUrl,
                     Settings.Current.AnalyzerUrl,
                     Settings.Current.TransportType);
                 // Populate ReportContent with its necessary fields
-                ReportContent report = CreateReport(frameworkTestType);
+                //BEARWASHERE -- TODO: DO THIS
+                TestResultReportBase report = CreateReport(reportClient, batchId);
 
                 while (!cts.Token.IsCancellationRequested && IsTestTimeUp(testStartAt))
                 {
@@ -124,8 +125,14 @@ namespace DirectMethodSender
             }
         }
 
-        public ReportContent CreateReport(FrameworkTestType frameworkTestType, Guid batchId)
+        public ReportContent CreateReport(ReporterClientBase reportClient, Guid batchId)
         {
+            //BEARWASHERE -- TODO
+            if (reportClient.GetType().Name == nameof(TestResultCoordinatorReporterClient))
+            {
+
+            }
+
             ReportContent report = new ReportContent();
             switch (frameworkTestType)
             {
