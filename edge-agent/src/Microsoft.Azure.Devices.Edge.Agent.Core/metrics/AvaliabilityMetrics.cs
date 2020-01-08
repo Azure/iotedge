@@ -36,12 +36,12 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
             this.running = metricsProvider.CreateGauge(
                 "total_time_running_correctly_seconds",
                 "The amount of time the module was specified in the deployment and was in the running state",
-                new List<string> { "module_name" });
+                new List<string> { "module_name", MetricsConstants.MsTelemetry });
 
             this.expectedRunning = metricsProvider.CreateGauge(
                 "total_time_expected_running_seconds",
                 "The amount of time the module was specified in the deployment",
-                new List<string> { "module_name" });
+                new List<string> { "module_name", MetricsConstants.MsTelemetry });
 
             string storageDirectory = Path.Combine(Preconditions.CheckNonWhiteSpace(storageFolder, nameof(storageFolder)), "availability");
             try
@@ -77,8 +77,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
 
             /* handle edgeAgent specially */
             this.edgeAgent.Value.AddPoint(true);
-            this.running.Set(this.edgeAgent.Value.ExpectedTime.TotalSeconds, new[] { this.edgeAgent.Value.Name });
-            this.expectedRunning.Set(this.edgeAgent.Value.RunningTime.TotalSeconds, new[] { this.edgeAgent.Value.Name });
+            this.running.Set(this.edgeAgent.Value.ExpectedTime.TotalSeconds, new[] { this.edgeAgent.Value.Name, true.ToString() });
+            this.expectedRunning.Set(this.edgeAgent.Value.RunningTime.TotalSeconds, new[] { this.edgeAgent.Value.Name, true.ToString() });
 
             /* Add points for all other modules found */
             foreach (Availability availability in this.availabilities)
@@ -97,8 +97,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Metrics
                     availability.NoPoint();
                 }
 
-                this.running.Set(availability.RunningTime.TotalSeconds, new[] { availability.Name });
-                this.expectedRunning.Set(availability.ExpectedTime.TotalSeconds, new[] { availability.Name });
+                string[] tags = new string[] { availability.Name, (availability.Name == Constants.EdgeHubModuleName).ToString() };
+                this.running.Set(availability.RunningTime.TotalSeconds, tags);
+                this.expectedRunning.Set(availability.ExpectedTime.TotalSeconds, tags);
             }
 
             /* Add new modules to track */

@@ -21,15 +21,15 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
             int n = 100; // Keep this value even
 
             // baseline
-            Metric[] scrape1 = Enumerable.Range(start, n).Select(i => new Metric(baseTime, $"Test Metric {i}", i, $"Tags")).ToArray();
+            Metric[] scrape1 = Enumerable.Range(start, n).Select(i => new Metric(baseTime, $"Test Metric {i}", i, tags)).ToArray();
 
             // second half is changed
-            Metric[] scrape2_1 = Enumerable.Range(start, n / 2).Select(i => new Metric(baseTime, $"Test Metric {i}", i, $"Tags")).ToArray();
-            Metric[] scrape2_2 = Enumerable.Range(start + n / 2, n / 2).Select(i => new Metric(baseTime, $"Test Metric {i}", i * 2, $"Tags")).ToArray();
+            Metric[] scrape2_1 = Enumerable.Range(start, n / 2).Select(i => new Metric(baseTime, $"Test Metric {i}", i, tags)).ToArray();
+            Metric[] scrape2_2 = Enumerable.Range(start + n / 2, n / 2).Select(i => new Metric(baseTime, $"Test Metric {i}", i * 2, tags)).ToArray();
             Metric[] scrape2 = scrape2_1.Concat(scrape2_2).ToArray();
 
             // everything changed
-            Metric[] scrape3 = Enumerable.Range(start, n).Select(i => new Metric(baseTime, $"Test Metric {i}", i / 2.0, $"Tags")).ToArray();
+            Metric[] scrape3 = Enumerable.Range(start, n).Select(i => new Metric(baseTime, $"Test Metric {i}", i / 2.0, tags)).ToArray();
 
             /* test */
             IEnumerable<Metric> test1 = scrape1.Concat(scrape1).Concat(scrape1).Concat(scrape1);
@@ -63,29 +63,31 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Test.Util
 
             Metric[] testMetrics = new Metric[]
             {
-                new Metric(baseTime, "Test", 1, "Tags"),
-                new Metric(baseTime.AddMinutes(1), "Test", 1, "Tags"),
-                new Metric(baseTime.AddMinutes(2), "Test", 1, "Tags"),
-                new Metric(baseTime.AddMinutes(3), "Test", 1, "Tags"),
-                new Metric(baseTime.AddMinutes(4), "Test", 2, "Tags"),
-                new Metric(baseTime.AddMinutes(5), "Test", 3, "Tags"),
-                new Metric(baseTime.AddMinutes(6), "Test", 3, "Tags"),
-                new Metric(baseTime.AddMinutes(7), "Test", 3, "Tags"),
-                new Metric(baseTime.AddMinutes(8), "Test", 3, "Tags"),
-                new Metric(baseTime.AddMinutes(9), "Test", 3, "Tags"),
+                new Metric(baseTime, "Test", 1, tags),
+                new Metric(baseTime.AddMinutes(1), "Test", 1, tags),
+                new Metric(baseTime.AddMinutes(2), "Test", 1, tags),
+                new Metric(baseTime.AddMinutes(3), "Test", 1, tags),
+                new Metric(baseTime.AddMinutes(4), "Test", 2, tags),
+                new Metric(baseTime.AddMinutes(5), "Test", 3, tags),
+                new Metric(baseTime.AddMinutes(6), "Test", 3, tags),
+                new Metric(baseTime.AddMinutes(7), "Test", 3, tags),
+                new Metric(baseTime.AddMinutes(8), "Test", 3, tags),
+                new Metric(baseTime.AddMinutes(9), "Test", 3, tags),
             };
 
             Metric[] expected = new Metric[]
             {
-                new Metric(baseTime, "Test", 1, "Tags"),
-                new Metric(baseTime.AddMinutes(3), "Test", 1, "Tags"),
-                new Metric(baseTime.AddMinutes(4), "Test", 2, "Tags"),
-                new Metric(baseTime.AddMinutes(5), "Test", 3, "Tags"),
-                new Metric(baseTime.AddMinutes(9), "Test", 3, "Tags"),
+                new Metric(baseTime, "Test", 1, tags),
+                new Metric(baseTime.AddMinutes(3), "Test", 1, tags),
+                new Metric(baseTime.AddMinutes(4), "Test", 2, tags),
+                new Metric(baseTime.AddMinutes(5), "Test", 3, tags),
+                new Metric(baseTime.AddMinutes(9), "Test", 3, tags),
             };
 
             Metric[] result = testMetrics.CondenseTimeSeries().ToArray();
             Assert.Equal(expected, result);
         }
+
+        static Dictionary<string, string> tags = new Dictionary<string, string>() { { "Tag1", "foo" } };
     }
 }
