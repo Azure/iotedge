@@ -48,7 +48,7 @@ namespace DirectMethodSender
 
         internal override async Task<int> InvokeDeviceMethodAsync(string deviceId, string targetModuleId, CancellationToken none)
         {
-            MethodRequest request = new MethodRequest("HelloWorldMethod", Encoding.UTF8.GetBytes("{ \"Message\": \"Hello\" }"));
+            MethodRequest request = new MethodRequest(Settings.Current.DirectMethodName, Encoding.UTF8.GetBytes("{ \"Message\": \"Hello\" }"));
             MethodResponse result = await this.moduleClient.InvokeMethodAsync(deviceId, targetModuleId, request);
             return result.Status;
         }

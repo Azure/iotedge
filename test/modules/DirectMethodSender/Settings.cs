@@ -32,7 +32,7 @@ namespace DirectMethodSender
                     configuration.GetValue<string>("IOTEDGE_MODULEID"),
                     configuration.GetValue("testDuration", TimeSpan.Zero),
                     configuration.GetValue("testStartDelay", TimeSpan.Zero),
-                    Option.Maybe(configuration.GetValue<Uri>("testResultCoordinatorUrl")),
+                    Option.Maybe(configuration.GetValue<string>("DirectMethodName")),
                     Option.Maybe(configuration.GetValue<string>("trackingId")));
             });
 
@@ -47,7 +47,7 @@ namespace DirectMethodSender
             string moduleId,
             TimeSpan testDuration,
             TimeSpan testStartDelay,
-            Option<Uri> testResultCoordinatorUrl,
+            Option<string> directMethodName,
             Option<string> trackingId)
         {
             Preconditions.CheckRange(testDuration.Ticks, 0);
@@ -64,7 +64,7 @@ namespace DirectMethodSender
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.TestDuration = testDuration;
             this.TestStartDelay = testStartDelay;
-            this.TestResultCoordinatorUrl = testResultCoordinatorUrl;
+            this.DirectMethodName = directMethodName.GetOrElse("HelloWorldMethod");
             this.TrackingId = trackingId;
         }
 
@@ -90,7 +90,7 @@ namespace DirectMethodSender
 
         public TimeSpan TestStartDelay { get; }
 
-        public Option<Uri> TestResultCoordinatorUrl { get; }
+        public string DirectMethodName { get; }
 
         public Option<string> TrackingId { get; }
 
@@ -106,6 +106,7 @@ namespace DirectMethodSender
                 { nameof(this.TestStartDelay), this.TestStartDelay.ToString() },
                 { nameof(this.TrackingId), this.TrackingId.ToString() },
                 { nameof(this.TransportType), Enum.GetName(typeof(TransportType), this.TransportType) },
+                { nameof(this.DirectMethodName), this.DirectMethodName },
                 { nameof(this.DirectMethodDelay), this.DirectMethodDelay.ToString() },
                 { nameof(this.InvocationSource), this.InvocationSource.ToString() },
             };

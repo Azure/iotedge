@@ -13,7 +13,28 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
     public sealed class EventReporterClient : ReporterClientBase
     {
         ILogger logger;
-        ModuleClient moduleClient;
+        TransportType transportType;
+        ModuleClient moduleClient = null;
+        ModuleClient ModuleClient
+        {
+            get
+            {
+                if (this.moduleClient == null)
+                {
+                    Preconditions.CheckNotNull(this.transportType, nameof(this.transportType));
+                    this.moduleClient = ModuleUtil.CreateModuleClientAsync(
+                        this.transportType,
+                        ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
+                        ModuleUtil.DefaultTransientRetryStrategy,
+                        this.logger).Result;
+                    return this.moduleClient;
+                }
+                else
+                {
+                    return this.moduleClient;
+                }
+            }
+        }
 
         public EventReporterClient(ILogger logger)
             : base(logger)
@@ -28,6 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
 
         internal async Task<EventReporterClient> InitAsync(TransportType transportType)
         {
+            this.transportType = Preconditions.CheckNotNull(transportType, nameof(transportType));
             this.moduleClient = await ModuleUtil.CreateModuleClientAsync(
                     transportType,
                     ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
@@ -42,7 +64,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
             {
                 case nameof(LegacyDirectMethodTestResult):
                     TestResultBase shadowReport = report as LegacyDirectMethodTestResult;
-                    await this.moduleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes($"Source:{shadowReport.Source} CreatedAt:{shadowReport.CreatedAt}.")));
+                    await this.ModuleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes($"Source:{shadowReport.Source} CreatedAt:{shadowReport.CreatedAt}.")));
                     break;
 
                 default:
