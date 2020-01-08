@@ -119,23 +119,24 @@ public class FactoryMetrics
             return metricsProvider.CreateCounter(
                 $"module_{commandName}_total",
                 "Command sent to module",
-                new List<string> { "module_name", "module_version" });
+                new List<string> { "module_name", "module_version", MetricsConstants.MsTelemetry });
         });
 
         this.commandTiming = metricsProvider.CreateDuration(
             $"command_latency_seconds",
             "Command sent to module",
-            new List<string> { "command" });
+            new List<string> { "command", MetricsConstants.MsTelemetry });
     }
 
     public void AddMessage(Microsoft.Azure.Devices.Edge.Agent.Core.IModule module, ModuleCommandMetric command)
     {
-        this.commandCounters[command].Increment(1, new[] { module.Name, module.Version });
+        // TODO: determine if module name is PII
+        this.commandCounters[command].Increment(1, new[] { module.Name, module.Version, true.ToString() });
     }
 
     public DurationSetter MeasureTime(string command)
     {
-        return new DurationSetter(duration => this.commandTiming.Set(duration, new string[] { command }));
+        return new DurationSetter(duration => this.commandTiming.Set(duration, new string[] { command, true.ToString() }));
     }
 
     public class DurationSetter : IDisposable
