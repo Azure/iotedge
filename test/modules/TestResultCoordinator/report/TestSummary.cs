@@ -8,11 +8,11 @@ namespace TestResultCoordinator.Report
         internal TestSummary(ITestResultReport[] testResultReports)
         {
             this.TestResultReports = testResultReports;
-            this.AreAllTestsPassed = testResultReports.All(r => r.IsPassed);
+            this.IsPassed = testResultReports.All(r => r.IsPassed);
         }
 
-        public bool AreAllTestsPassed { get; private set; }
+        public bool IsPassed { get; }
 
-        public ITestResultReport[] TestResultReports { get; private set; }
+        public ITestResultReport[] TestResultReports { get; }
     }
 }
