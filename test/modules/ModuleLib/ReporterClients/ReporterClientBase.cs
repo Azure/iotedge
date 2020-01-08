@@ -22,20 +22,13 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
         // TODO: Change this create signature once the TRC and Analyzer URL is merged
         public static async Task<ReporterClientBase> CreateAsync(
             ILogger logger,
-            Option<Uri> testResultCoordinatorUrl,
-            Option<Uri> analyzerUrl,
+            Option<Uri> reportingEndpointUrl,
             TransportType transportType)
         {
-            if (testResultCoordinatorUrl.HasValue)
+            if (reportingEndpointUrl.HasValue)
             {
                 return new TestResultReporterClient(
-                        testResultCoordinatorUrl.Expect(() => new ArgumentException("testReportCoordinatorUrl is not expected to be empty")),
-                        logger);
-            }
-            else if (analyzerUrl.HasValue)
-            {
-                return new TestResultReporterClient(
-                        analyzerUrl.Expect(() => new ArgumentException("analyzerUrl is not expected to be empty")),
+                        reportingEndpointUrl.Expect(() => new ArgumentException("testReportCoordinatorUrl is not expected to be empty")),
                         logger);
             }
             else

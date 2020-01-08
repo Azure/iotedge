@@ -26,7 +26,7 @@ namespace DirectMethodSender
                     configuration.GetValue<string>("TargetModuleId", "DirectMethodReceiver"),
                     configuration.GetValue<TransportType>("TransportType", TransportType.Amqp_Tcp_Only),
                     configuration.GetValue<TimeSpan>("DirectMethodDelay", TimeSpan.FromSeconds(5)),
-                    Option.Maybe(configuration.GetValue<Uri>("AnalyzerUrl")),
+                    Option.Maybe(configuration.GetValue<Uri>("ReportingEndpointUrl")),
                     configuration.GetValue<InvocationSource>("InvocationSource", InvocationSource.Local),
                     Option.Maybe<string>(configuration.GetValue<string>("ServiceClientConnectionString")),
                     configuration.GetValue<string>("IOTEDGE_MODULEID"),
@@ -41,7 +41,7 @@ namespace DirectMethodSender
             string targetModuleId,
             TransportType transportType,
             TimeSpan directMethodDelay,
-            Option<Uri> analyzerUrl,
+            Option<Uri> reportingEndpointUrl,
             InvocationSource invocationSource,
             Option<string> serviceClientConnectionString,
             string moduleId,
@@ -59,7 +59,7 @@ namespace DirectMethodSender
             this.TransportType = transportType;
             this.DirectMethodDelay = directMethodDelay;
             this.InvocationSource = invocationSource;
-            this.AnalyzerUrl = analyzerUrl;
+            this.ReportingEndpointUrl = reportingEndpointUrl;
             this.ServiceClientConnectionString = serviceClientConnectionString;
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
             this.TestDuration = testDuration;
@@ -82,7 +82,7 @@ namespace DirectMethodSender
 
         public Option<string> ServiceClientConnectionString { get; }
 
-        public Option<Uri> AnalyzerUrl { get; }
+        public Option<Uri> ReportingEndpointUrl { get; }
 
         public string ModuleId { get; }
 
@@ -110,9 +110,9 @@ namespace DirectMethodSender
                 { nameof(this.InvocationSource), this.InvocationSource.ToString() },
             };
 
-            this.AnalyzerUrl.ForEach((url) =>
+            this.ReportingEndpointUrl.ForEach((url) =>
             {
-                fields.Add(nameof(this.AnalyzerUrl), url.AbsoluteUri);
+                fields.Add(nameof(this.ReportingEndpointUrl), url.AbsoluteUri);
             });
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";

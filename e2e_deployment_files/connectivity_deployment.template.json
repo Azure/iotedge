@@ -128,7 +128,7 @@
               "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
-              "testResultCoordinatorUrl": {
+              "ReportingEndpointUrl": {
                 "value": "http://localhost:5001"
               },
               "trackingId": {
@@ -149,7 +149,7 @@
               "ClientTransportType": {
                 "value": "Amqp"
               },
-              "testResultCoordinatorUrl": {
+              "ReportingEndpointUrl": {
                 "value": "http://testResultCoordinator:5001"
               },
               "trackingId": {
@@ -182,7 +182,7 @@
               "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
-              "testResultCoordinatorUrl":
+              "ReportingEndpointUrl":
               {
                 "value": "http://localhost:5001"
               },
@@ -204,7 +204,7 @@
               "ClientTransportType": {
                 "value": "Mqtt"
               },
-              "testResultCoordinatorUrl": {
+              "ReportingEndpointUrl": {
                 "value": "http://testResultCoordinator:5001"
               },
               "trackingId": {

@@ -39,8 +39,7 @@ namespace DirectMethodSender
 
                 reportClient = await ReporterClientBase.CreateAsync(
                     Logger,
-                    Settings.Current.TestResultCoordinatorUrl,
-                    Settings.Current.AnalyzerUrl,
+                    Settings.Current.ReportingEndpointUrl,
                     Settings.Current.TransportType);
 
                 while (!cts.Token.IsCancellationRequested && IsTestTimeUp(testStartAt))
