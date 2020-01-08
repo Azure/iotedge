@@ -8,16 +8,16 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public sealed class TestResultCoordinatorReporterClient : ReporterClientBase
+    public sealed class TestResultReporterClient : ReporterClientBase
     {
         ILogger logger;
-        TestResultReportingClient trcrClient;
+        TestResultReportingClient testResultReportingClient;
 
-        internal TestResultCoordinatorReporterClient(Uri baseUri, ILogger logger)
+        internal TestResultReporterClient(Uri baseUri, ILogger logger)
             : base(logger)
         {
             Preconditions.CheckNotNull(baseUri, nameof(baseUri));
-            this.trcrClient = new TestResultReportingClient { BaseUrl = baseUri.AbsoluteUri };
+            this.testResultReportingClient = new TestResultReportingClient { BaseUrl = baseUri.AbsoluteUri };
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
         }
 
@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
             Preconditions.CheckNotNull(report, nameof(report));
             //BEARWASHERE -- TEST
             this.logger.LogInformation($"Sending test result - TRC: Source={report.Source}, Type={report.ResultType}, CreatedAt={report.CreatedAt}");
-            await this.trcrClient.ReportResultAsync(report.ToTestOperationResultDto());
+            await this.testResultReportingClient.ReportResultAsync(report.ToTestOperationResultDto());
         }
     }
 }

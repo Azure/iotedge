@@ -118,7 +118,7 @@ namespace DirectMethodSender
             string source = Settings.Current.ModuleId + ".send";
             switch (reportClient.GetType().Name)
             {
-                case nameof(TestResultCoordinatorReporterClient):
+                case nameof(TestResultReporterClient):
                     return new DirectMethodTestResult(source, DateTime.UtcNow)
                     {
                         TrackingId = Settings.Current.TrackingId.Expect(() => new ArgumentException("TrackingId is empty")),
