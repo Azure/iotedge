@@ -6,6 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -42,9 +43,18 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
             this.moduleClient?.Dispose();
         }
 
-        internal override async Task ReportStatusAsync(ReportContent report)
+        internal override async Task ReportStatusAsync(TestResultBase report)
         {
-            await this.moduleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes($"{report.Source} succeeded: {report.SequenceNumber}.")));
+            switch (report.GetType().Name)
+            {
+                case nameof(LegacyDirectMethodTestResult):
+                    TestResultBase shadowReport = report as LegacyDirectMethodTestResult;
+                    await this.moduleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes($"Source:{shadowReport.Source} CreatedAt:{shadowReport.CreatedAt}.")));
+                    break;
+
+                default:
+                    throw (new NotImplementedException($"{this.GetType().Name} does not have an implementation for {report.GetType().Name} type"));
+            }
         }
     }
 }

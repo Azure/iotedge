@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
     using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -44,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
             }
         }
 
-        public async Task ReportStatus(ReportContent report)
+        public async Task ReportStatus(TestResultBase report)
         {
             Preconditions.CheckNotNull(report, nameof(report));
             try
@@ -57,6 +58,6 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
             }
         }
 
-        internal abstract Task ReportStatusAsync(ReportContent report);
+        internal abstract Task ReportStatusAsync(TestResultBase report);
     }
 }

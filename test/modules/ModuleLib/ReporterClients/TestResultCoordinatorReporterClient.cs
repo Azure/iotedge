@@ -4,6 +4,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
     using System;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -35,14 +36,10 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
             // C# genereated from swagger.yaml automatically call Dispose()
         }
 
-        // TODO: How to merge this between modules
-        internal override async Task ReportStatusAsync(ReportContent report)
+        internal override async Task ReportStatusAsync(TestResultBase report)
         {
             Preconditions.CheckNotNull(report, nameof(report));
-
-            TestOperationResultDto stampedReport = report.GenerateReport() as TestOperationResultDto;
-            stampedReport.CreatedAt = DateTime.UtcNow;
-            await this.trcrClient.ReportResultAsync(stampedReport);
+            await this.trcrClient.ReportResultAsync(report.ToTestOperationResultDto());
         }
     }
 }

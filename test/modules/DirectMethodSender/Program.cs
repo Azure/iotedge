@@ -37,23 +37,22 @@ namespace DirectMethodSender
 
                 DateTime testStartAt = DateTime.UtcNow;
 
-                // BEARWASHERE: Create reportClient
                 reportClient = ReporterClientBase.Create(
                     Logger,
                     Settings.Current.TestResultCoordinatorUrl,
                     Settings.Current.AnalyzerUrl,
                     Settings.Current.TransportType);
-                // Populate ReportContent with its necessary fields
-                //BEARWASHERE -- TODO: DO THIS
-                TestResultReportBase report = CreateReport(reportClient, batchId);
 
                 while (!cts.Token.IsCancellationRequested && IsTestTimeUp(testStartAt))
                 {
                     (HttpStatusCode result, long dmCounter) = await directMethodClient.InvokeDirectMethodAsync(cts);
 
-                    report
-                        .SetSequenceNumber(dmCounter)
-                        .SetResultMessage(result.ToString());
+                    // Generate a report type depending on the reporting endpoint
+                    TestResultBase report = CreateReport(
+                        reportClient,
+                        batchId,
+                        dmCounter,
+                        result.ToString());
 
                     await reportClient.ReportStatus(report);
 
@@ -113,45 +112,30 @@ namespace DirectMethodSender
             return (Settings.Current.TestDuration == TimeSpan.Zero) || (DateTime.UtcNow - testStartAt < Settings.Current.TestDuration);
         }
 
-        static async Task ReportStatus(string moduleId, HttpStatusCode result, TestResultReportingClient apiClient)
+        // Create reporting result depending on which endpoint is being used.
+        public static TestResultBase CreateReport(ReporterClientBase reportClient, Guid batchId, long counter, string result)
         {
-            try
+            string source = Settings.Current.ModuleId + ".send";
+            switch (reportClient.GetType().Name)
             {
-                await apiClient.ReportResultAsync(new TestOperationResultDto { Source = moduleId, Result = result.ToString(), CreatedAt = DateTime.UtcNow, Type = Enum.GetName(typeof(TestOperationResultType), TestOperationResultType.LegacyDirectMethod) });
-            }
-            catch (Exception e)
-            {
-                Logger.LogError(e.ToString());
-            }
-        }
+                case nameof(TestResultCoordinatorReporterClient):
+                    return new DirectMethodTestResult(source, DateTime.UtcNow)
+                    {
+                        TrackingId = Settings.Current.TrackingId.Expect(() => new ArgumentException("TrackingId is empty")),
+                        BatchId = Preconditions.CheckNotNull(batchId, nameof(batchId)).ToString(),
+                        SequenceNumber = Preconditions.CheckNotNull(counter, nameof(counter)).ToString(),
+                        Result = Preconditions.CheckNonWhiteSpace(result, nameof(result))
+                    };
 
-        public ReportContent CreateReport(ReporterClientBase reportClient, Guid batchId)
-        {
-            //BEARWASHERE -- TODO
-            if (reportClient.GetType().Name == nameof(TestResultCoordinatorReporterClient))
-            {
+                case nameof(ModuleReporterClient):
+                    return new LegacyDirectMethodTestResult(source, DateTime.UtcNow)
+                    {
+                        Result = Preconditions.CheckNonWhiteSpace(result, nameof(result))
+                    };
 
-            }
-
-            ReportContent report = new ReportContent();
-            switch (frameworkTestType)
-            {
-                case FrameworkTestType.Connectivity:
-                    report
-                        .SetTestOperationResultType(TestOperationResultType.DirectMethod)
-                        .SetTrackingId(Settings.Current.TrackingId.Expect(() => new ArgumentException("TrackingId is empty")));
-                    break;
-
-                case FrameworkTestType.EndToEnd:
-                case FrameworkTestType.LongHaul:
                 default:
-                    report.SetTestOperationResultType(TestOperationResultType.LegacyDirectMethod);
-                    break;
+                    throw (new NotImplementedException("Reporting Endpoint has an unknown type"));
             }
-            report
-                .SetBatchId(batchId)
-                .SetSource(Settings.Current.ModuleId + ".send");
-            return report;
         }
     }
 }
