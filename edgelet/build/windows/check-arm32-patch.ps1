@@ -21,12 +21,9 @@
 $util = Join-Path -Path $PSScriptRoot -ChildPath 'util.ps1'
 . $util
 
-# Note: We're not passing in `-Arm` here because we don't need the Windows ARM32 Rust toolchain,
-#       which in turn is because we're just patching the manifest, not doing a full build.
-Assert-Rust
-
-# Note: This is destructive since it modifies the manifest and lockfile.
+# Note: This is destructive since it modifies the manifest, lockfile and environment.
 #       Ensure that no new x86_64-pc-windows-msvc builds happen after this script runs.
+Assert-Rust -Arm
 PatchRustForArm
 
 if (Select-String '"winapi 0.2' (Join-Path (Get-EdgeletFolder) -ChildPath 'Cargo.lock')) {
