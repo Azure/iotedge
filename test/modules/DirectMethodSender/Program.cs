@@ -134,7 +134,7 @@ namespace DirectMethodSender
                     };
 
                 default:
-                    throw (new NotImplementedException("Reporting Endpoint has an unknown type"));
+                    throw new NotImplementedException("Reporting Endpoint has an unknown type");
             }
         }
     }
