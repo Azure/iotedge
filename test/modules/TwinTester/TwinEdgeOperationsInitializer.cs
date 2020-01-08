@@ -54,7 +54,7 @@ namespace TwinTester
             await this.desiredPropertiesReceiver.UpdateAsync();
         }
 
-        async Task DisplayInitialTwin()
+        async Task LogEdgeDeviceTwin()
         {
             try
             {
