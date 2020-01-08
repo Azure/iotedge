@@ -24,6 +24,12 @@ edgelet-core = { path = "../edgelet-core" }
 edgelet-http = { path = "../edgelet-http" }
 edgelet-utils = { path = "../edgelet-utils" }
 
+[target.'cfg(not(windows))'.dependencies]
+libc = "0.2.66"
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3", features = ["sysinfoapi"] }
+
 [dev_dependencies]
 time = "0.1"
 typed-headers = "0.1"
