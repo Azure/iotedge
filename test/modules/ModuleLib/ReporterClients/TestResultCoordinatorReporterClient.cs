@@ -39,6 +39,8 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
         internal override async Task ReportStatusAsync(TestResultBase report)
         {
             Preconditions.CheckNotNull(report, nameof(report));
+            //BEARWASHERE -- TEST
+            this.logger.LogInformation($"Sending test result - TRC: Source={report.Source}, Type={report.ResultType}, CreatedAt={report.CreatedAt}");
             await this.trcrClient.ReportResultAsync(report.ToTestOperationResultDto());
         }
     }

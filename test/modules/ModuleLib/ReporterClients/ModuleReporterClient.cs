@@ -49,11 +49,13 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
             {
                 case nameof(LegacyDirectMethodTestResult):
                     TestResultBase shadowReport = report as LegacyDirectMethodTestResult;
+                    //BEARWASHERE -- TEST
+                    this.logger.LogInformation($"Sending test result - Module: Source={report.Source}, Type={report.ResultType}, CreatedAt={report.CreatedAt}");
                     await this.moduleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes($"Source:{shadowReport.Source} CreatedAt:{shadowReport.CreatedAt}.")));
                     break;
 
                 default:
-                    throw (new NotImplementedException($"{this.GetType().Name} does not have an implementation for {report.GetType().Name} type"));
+                    throw new NotImplementedException($"{this.GetType().Name} does not have an implementation for {report.GetType().Name} type");
             }
         }
     }
