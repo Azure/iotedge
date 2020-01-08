@@ -318,8 +318,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                         var moduleStateStore = await c.Resolve<Task<IEntityStore<string, ModuleState>>>();
                         var restartPolicyManager = c.Resolve<IRestartPolicyManager>();
                         IRuntimeInfoProvider runtimeInfoProvider = c.Resolve<IRuntimeInfoProvider>();
-                        IEnvironmentProvider dockerEnvironmentProvider = await DockerEnvironmentProvider.CreateAsync(runtimeInfoProvider, moduleStateStore, restartPolicyManager, tokenSource.Token);
-                        return dockerEnvironmentProvider;
+                        IEnvironmentProvider kubernetesEnvironmentProvider = await KubernetesEnvironmentProvider.CreateAsync(runtimeInfoProvider, moduleStateStore, tokenSource.Token);
+                        return kubernetesEnvironmentProvider;
                     })
                 .As<Task<IEnvironmentProvider>>()
                 .SingleInstance();
