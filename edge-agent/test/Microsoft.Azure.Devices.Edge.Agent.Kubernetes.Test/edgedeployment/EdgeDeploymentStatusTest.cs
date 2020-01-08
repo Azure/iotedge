@@ -12,14 +12,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test.Edgedeployment
     [Unit]
     public class EdgeDeploymentStatusTest
     {
-        static readonly EdgeDeploymentStatus Status1 = new EdgeDeploymentStatus(EdgeDeploymentStatusType.Failure, "message");
-        static readonly EdgeDeploymentStatus Status2 = new EdgeDeploymentStatus(EdgeDeploymentStatusType.Success, "message");
-        static readonly EdgeDeploymentStatus Status3 = new EdgeDeploymentStatus(EdgeDeploymentStatusType.Failure, "message1");
-        static readonly EdgeDeploymentStatus Status4 = new EdgeDeploymentStatus(EdgeDeploymentStatusType.Failure, "message2");
-        static readonly EdgeDeploymentStatus Status5 = new EdgeDeploymentStatus(EdgeDeploymentStatusType.Success, null);
-        static readonly EdgeDeploymentStatus Status6 = new EdgeDeploymentStatus(EdgeDeploymentStatusType.Success, null);
-        static readonly EdgeDeploymentStatus Status7 = new EdgeDeploymentStatus(EdgeDeploymentStatusType.Failure, "message");
-        static readonly EdgeDeploymentStatus Status8 = new EdgeDeploymentStatus(EdgeDeploymentStatusType.Failure, "message");
+        static readonly EdgeDeploymentStatus Status1 = EdgeDeploymentStatus.Failure("message");
+        static readonly EdgeDeploymentStatus Status2 = EdgeDeploymentStatus.Success("message");
+        static readonly EdgeDeploymentStatus Status3 = EdgeDeploymentStatus.Failure("message1");
+        static readonly EdgeDeploymentStatus Status4 = EdgeDeploymentStatus.Failure("message2");
+        static readonly EdgeDeploymentStatus Status5 = EdgeDeploymentStatus.Success(null);
+        static readonly EdgeDeploymentStatus Status6 = EdgeDeploymentStatus.Success(null);
+        static readonly EdgeDeploymentStatus Status7 = EdgeDeploymentStatus.Failure("message");
+        static readonly EdgeDeploymentStatus Status8 = EdgeDeploymentStatus.Failure("message");
 
         [Fact]
         public void EdgeDeploymentStatusSuccessFactoryIsSuccessStatus()
