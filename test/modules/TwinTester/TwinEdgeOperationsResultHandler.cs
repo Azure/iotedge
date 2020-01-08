@@ -29,13 +29,13 @@ namespace TwinTester
 
         public Task HandleDesiredPropertyUpdateAsync(string propertyKey, string value)
         {
-            TwinCollection properties = this.GetTwinCollection(propertyKey, value);
+            TwinCollection properties = this.CreateTwinCollection(propertyKey, value);
             return this.SendReportAsync($"{this.moduleId}.desiredUpdated", StatusCode.DesiredPropertyUpdated, properties);
         }
 
         public Task HandleReportedPropertyUpdateAsync(string propertyKey, string value)
         {
-            TwinCollection properties = this.GetTwinCollection(propertyKey, value);
+            TwinCollection properties = this.CreateTwinCollection(propertyKey, value);
             return this.SendReportAsync($"{this.moduleId}.reportedUpdated", StatusCode.ReportedPropertyUpdated, properties);
         }
 
@@ -49,7 +49,7 @@ namespace TwinTester
             return Task.CompletedTask;
         }
 
-        TwinCollection GetTwinCollection(string propertyKey, string value)
+        TwinCollection CreateTwinCollection(string propertyKey, string value)
         {
             var properties = new TwinCollection();
             properties[propertyKey] = value;

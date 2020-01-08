@@ -35,8 +35,8 @@ namespace TwinTester
                 Twin twin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId);
 
                 // reset reported properties
-                TwinCollection resetProperties = TwinTesterUtil.GetResetedReportedPropertiesTwin(twin);
-                await moduleClient.UpdateReportedPropertiesAsync(resetProperties);
+                await TwinTesterUtil.ResetTwinReportedPropertiesAsync(moduleClient, twin);
+                
 
                 return new TwinEdgeOperationsInitializer(registryManager, moduleClient, reporter, 0);
             }
@@ -49,7 +49,7 @@ namespace TwinTester
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             await Task.Delay(Settings.Current.TestStartDelay, cancellationToken);
-            await this.DisplayInitialTwin();
+            await this.LogEdgeDeviceTwin();
             this.periodicUpdate = new PeriodicTask(this.UpdateAsync, Settings.Current.TwinUpdateFrequency, Settings.Current.TwinUpdateFrequency, Logger, "TwinReportedPropertiesUpdate");
             await this.desiredPropertiesReceiver.UpdateAsync();
         }

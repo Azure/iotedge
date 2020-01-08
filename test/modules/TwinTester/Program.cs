@@ -20,11 +20,12 @@ namespace TwinTester
 
             Logger.LogInformation($"Starting twin tester with the following settings:\r\n{Settings.Current}");
 
+            ITwinTestInitializer twinOperator = null;
             try
             {
                 using (RegistryManager registryManager = RegistryManager.CreateFromConnectionString(Settings.Current.ServiceClientConnectionString))
                 {
-                    ITwinTestInitializer twinOperator = await GetTwinOperatorAsync(registryManager);
+                    twinOperator = await GetTwinOperatorAsync(registryManager);
                     await twinOperator.StartAsync(cts.Token);
                     await Task.Delay(Settings.Current.TestDuration, cts.Token);
 
@@ -40,6 +41,7 @@ namespace TwinTester
             catch (Exception ex)
             {
                 Logger.LogError(ex, $"Error occurred during twin test setup.");
+                twinOperator?.Stop();
             }
         }
 
