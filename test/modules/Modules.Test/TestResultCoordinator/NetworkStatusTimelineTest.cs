@@ -45,12 +45,19 @@ namespace Modules.Test.TestResultCoordinator
             }
 
             NetworkStatusTimeline timeline = await NetworkStatusTimeline.Create(resultCollection, new TimeSpan(0, 0, 0, 0, 5));
-            Assert.Equal(NetworkControllerStatus.Enabled, timeline.GetNetworkControllerStatusAt(new DateTime(2020, 1, 1, 9, 10, 11, 10)));
-            Assert.Equal(NetworkControllerStatus.Disabled, timeline.GetNetworkControllerStatusAt(new DateTime(2020, 1, 1, 9, 10, 16, 10)));
-            Assert.Equal(NetworkControllerStatus.Enabled, timeline.GetNetworkControllerStatusAt(new DateTime(2020, 1, 1, 9, 10, 22, 10)));
-            Assert.Equal(NetworkControllerStatus.Disabled, timeline.GetNetworkControllerStatusAt(new DateTime(2020, 1, 1, 9, 10, 40, 10)));
-            Assert.True(timeline.IsWithinTolerancePeriod(new DateTime(2020, 1, 1, 9, 10, 10, 12)));
-            Assert.False(timeline.IsWithinTolerancePeriod(new DateTime(2020, 1, 1, 9, 10, 10, 16)));
+
+            (NetworkControllerStatus status, bool inTolerance) = timeline.GetNetworkControllerStatusAndWithinToleranceAt(new DateTime(2020, 1, 1, 9, 10, 11, 10));
+            Assert.Equal(NetworkControllerStatus.Enabled, status);
+            Assert.False(inTolerance);
+            (status, inTolerance) = timeline.GetNetworkControllerStatusAndWithinToleranceAt(new DateTime(2020, 1, 1, 9, 10, 16, 10));
+            Assert.Equal(NetworkControllerStatus.Disabled, status);
+            Assert.False(inTolerance);
+            (status, inTolerance) = timeline.GetNetworkControllerStatusAndWithinToleranceAt(new DateTime(2020, 1, 1, 9, 10, 20, 15));
+            Assert.Equal(NetworkControllerStatus.Enabled, status);
+            Assert.True(inTolerance);
+            (status, inTolerance) = timeline.GetNetworkControllerStatusAndWithinToleranceAt(new DateTime(2020, 1, 1, 9, 10, 25, 10));
+            Assert.Equal(NetworkControllerStatus.Disabled, status);
+            Assert.True(inTolerance);
         }
 
         static List<(long, TestOperationResult)> GetStoreData(string source, IEnumerable<string> resultValues, IEnumerable<DateTime> resultDates, int start = 0)

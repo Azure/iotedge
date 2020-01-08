@@ -42,35 +42,29 @@ namespace TestResultCoordinator.Report.DirectMethodReport
             this.tolerancePeriod = tolerancePeriod;
         }
 
-        public NetworkControllerStatus GetNetworkControllerStatusAt(DateTime dateTime)
+        public (NetworkControllerStatus, bool) GetNetworkControllerStatusAndWithinToleranceAt(DateTime dateTime)
         {
             // Return network controller status at given time
-            NetworkControllerStatus networkControllerStatus = NetworkControllerStatus.Enabled;
+            NetworkControllerStatus networkControllerStatus = NetworkControllerStatus.Unknown;
+            DateTime maxCreatedAtBeforeGiven = DateTime.MinValue;
+            bool isWithinTolerancePeriod = false;
             for (int i = 0;  i < this.networkControllerTestResults.Count; i++)
             {
-                // If given DateTime is temporally after a DateTime on the list, set the networkStatus to that
-                if (dateTime >= this.networkControllerTestResults[i].CreatedAt)
+                NetworkControllerTestResult curr = this.networkControllerTestResults[i];
+                if (dateTime >= curr.CreatedAt && curr.CreatedAt > maxCreatedAtBeforeGiven)
                 {
-                    networkControllerStatus = this.networkControllerTestResults[i].NetworkControllerStatus;
+                    maxCreatedAtBeforeGiven = curr.CreatedAt;
+                    networkControllerStatus = curr.NetworkControllerStatus;
+                    isWithinTolerancePeriod = dateTime >= curr.CreatedAt && dateTime <= curr.CreatedAt.Add(this.tolerancePeriod);
                 }
             }
 
-            return networkControllerStatus;
-        }
-
-        public bool IsWithinTolerancePeriod(DateTime dateTime)
-        {
-            // Return true if given dateTime is within a tolerance period of one of the NetworkControllerTestResults
-            foreach (NetworkControllerTestResult networkControllerTestResult in this.networkControllerTestResults)
+            if (NetworkControllerStatus.Unknown.Equals(networkControllerStatus))
             {
-                // If dateTime is after a TestResult's CreatedAt time, but before that TestResult's CreatedAt time + tolerance period, then dateTime is within the tolerance period
-                if (dateTime > networkControllerTestResult.CreatedAt && dateTime <= networkControllerTestResult.CreatedAt.Add(this.tolerancePeriod))
-                {
-                    return true;
-                }
+                throw new InvalidOperationException("No network controller status found for this time period.");
             }
 
-            return false;
+            return (networkControllerStatus, isWithinTolerancePeriod);
         }
 
         static Option<NetworkControllerTestResult> GetNetworkControllerTestOperationResult(TestOperationResult current)
