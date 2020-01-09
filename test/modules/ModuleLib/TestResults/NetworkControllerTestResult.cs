@@ -7,8 +7,8 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
 
     public class NetworkControllerTestResult : TestResultBase
     {
-        public NetworkControllerTestResult(string source, DateTime createdAt) :
-            base(source, TestOperationResultType.Network, createdAt)
+        public NetworkControllerTestResult(string source, DateTime createdAt)
+            : base(source, TestOperationResultType.Network, createdAt)
         {
         }
 

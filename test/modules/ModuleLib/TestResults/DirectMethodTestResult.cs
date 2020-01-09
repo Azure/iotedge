@@ -5,8 +5,8 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
 
     public class DirectMethodTestResult : TestResultBase
     {
-        public DirectMethodTestResult(string source, DateTime createdAt) :
-            base(source, TestOperationResultType.DirectMethod, createdAt)
+        public DirectMethodTestResult(string source, DateTime createdAt)
+            : base(source, TestOperationResultType.DirectMethod, createdAt)
         {
         }
 
