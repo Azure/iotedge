@@ -3,6 +3,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Util;
@@ -29,7 +30,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             try
             {
                 Preconditions.CheckNotNull(metrics, nameof(metrics));
-                await AzureLogAnalytics.Instance.PostAsync(this.workspaceId, this.workspaceKey, JsonConvert.SerializeObject(metrics), this.logType);
+                IEnumerable<UploadMetric> metricsToUpload = metrics.Select(m => new UploadMetric(m));
+                await AzureLogAnalytics.Instance.PostAsync(this.workspaceId, this.workspaceKey, JsonConvert.SerializeObject(metricsToUpload), this.logType);
                 Log.LogInformation($"Successfully sent metrics to LogAnalytics");
                 return true;
             }
@@ -37,6 +39,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher
             {
                 Log.LogError(e, "Error uploading metrics to LogAnalytics");
                 return false;
+            }
+        }
+
+        class UploadMetric
+        {
+            public DateTime TimeGeneratedUtc { get; }
+            public string Name { get; }
+            public double Value { get; }
+            public string Tags { get; }
+
+            public UploadMetric(Metric metric)
+            {
+                this.TimeGeneratedUtc = metric.TimeGeneratedUtc;
+                this.Name = metric.Name;
+                this.Value = metric.Value;
+                this.Tags = JsonConvert.SerializeObject(metric.Tags);
             }
         }
     }

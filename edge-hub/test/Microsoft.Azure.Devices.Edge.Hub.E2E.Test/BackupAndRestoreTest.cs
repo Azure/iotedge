@@ -169,6 +169,10 @@ namespace Microsoft.Azure.Devices.Edge.Hub.E2E.Test
                 // Get new fixture to re-initialize the edge hub container.
                 protocolHeadFixture = EdgeHubFixtureCollection.GetFixture();
 
+                // Reconnect clients due to C# SDK bug where it illegally attempts to send through closed amqp link
+                sender = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "sender1", transportSettings);
+                receiver = await TestModule.CreateAndConnect(rm, connectionStringBuilder.HostName, connectionStringBuilder.DeviceId, "receiver1", transportSettings);
+
                 // Register the message handler now.
                 await receiver.SetupReceiveMessageHandler();
 
