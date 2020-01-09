@@ -112,7 +112,8 @@ namespace TwinTester
 
         public void Stop()
         {
-            this.periodicValidation.Dispose();
+            this.periodicValidation?.Dispose();
+            this.periodicUpdate?.Dispose();
             this.periodicUpdate.Dispose();
         }
 
