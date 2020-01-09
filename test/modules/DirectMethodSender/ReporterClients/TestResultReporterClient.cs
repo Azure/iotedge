@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
             }
         }
 
-        TestResultReporterClient(Uri baseUri, ILogger logger)
+        internal TestResultReporterClient(Uri baseUri, ILogger logger)
             : base(logger)
         {
             Preconditions.CheckNotNull(baseUri, nameof(baseUri));
