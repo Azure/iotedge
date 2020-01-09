@@ -66,7 +66,8 @@ namespace TestResultCoordinator.Service
                 return;
             }
 
-            string reportsContent = JsonConvert.SerializeObject(testResultReports, Formatting.Indented);
+            var testSummary = new TestSummary(testResultReports);
+            string reportsContent = JsonConvert.SerializeObject(testSummary, Formatting.Indented);
             this.logger.LogInformation($"Test result report{Environment.NewLine}{reportsContent}");
 
             await AzureLogAnalytics.Instance.PostAsync(

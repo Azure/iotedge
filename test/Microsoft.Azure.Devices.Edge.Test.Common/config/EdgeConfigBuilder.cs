@@ -52,7 +52,10 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             return builder;
         }
 
-        public EdgeConfiguration Build()
+        /* Will output edgeHub and edgeAgent configurations, then a full configuration at the end.
+           This is done to assure routes are set up for the most recent $edgeHub deployment before the test modules start sending messages (i.e. assure messages won't get dropped).
+           Another way to handle this is to define all possible routes at the very beginning of the test, but there is added complexity as module names are assigned dynamically. */
+        public IEnumerable<EdgeConfiguration> BuildConfigurationStages()
         {
             // Build all modules *except* edge agent
             List<ModuleConfiguration> modules = this.moduleBuilders
@@ -63,7 +66,7 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             // Build edge agent
             modules.Insert(0, this.BuildEdgeAgent(modules));
 
-            // Compose edge configuration
+            // Find the $edgeAgent and $edgeHub match, then immediately compose and return a configuration
             var config = new ConfigurationContent
             {
                 ModulesContent = new Dictionary<string, IDictionary<string, object>>()
@@ -72,21 +75,22 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             var moduleNames = new List<string>();
             var moduleImages = new List<string>();
 
-            foreach (ModuleConfiguration module in modules)
+            // Return a configuration for $edgeHub and $edgeAgent
+            foreach (ModuleConfiguration module in modules.Where(m => this.IsSystemModule(m)))
             {
-                moduleNames.Add(module.Name);
-                moduleImages.Add(module.Image);
-
-                if (module.DesiredProperties.Count != 0)
-                {
-                    config.ModulesContent[module.Name] = new Dictionary<string, object>
-                    {
-                        ["properties.desired"] = module.DesiredProperties
-                    };
-                }
+                this.AddModuleToConfiguration(module, moduleNames, moduleImages, config);
             }
 
-            return new EdgeConfiguration(this.deviceId, moduleNames, moduleImages, config);
+            Dictionary<string, IDictionary<string, object>> copyModulesContent = config.ModulesContent.ToDictionary(entry => entry.Key, entry => entry.Value);
+            yield return new EdgeConfiguration(this.deviceId, new List<string>(moduleNames), new List<string>(moduleImages), new ConfigurationContent { ModulesContent = copyModulesContent });
+
+            // Return a configuration for other modules
+            foreach (ModuleConfiguration module in modules.Where(m => !this.IsSystemModule(m)))
+            {
+                this.AddModuleToConfiguration(module, moduleNames, moduleImages, config);
+            }
+
+            yield return new EdgeConfiguration(this.deviceId, moduleNames, moduleImages, config);
         }
 
         ModuleConfiguration BuildEdgeAgent(IEnumerable<ModuleConfiguration> configs)
@@ -165,6 +169,25 @@ namespace Microsoft.Azure.Devices.Edge.Test.Common.Config
             agentBuilder.WithDesiredProperties(desiredProperties);
 
             return agentBuilder.Build();
+        }
+
+        bool IsSystemModule(ModuleConfiguration module)
+        {
+            return module.Name.Equals("$edgeHub") || module.Name.Equals("$edgeAgent");
+        }
+
+        void AddModuleToConfiguration(ModuleConfiguration module, List<string> moduleNames, List<string> moduleImages, ConfigurationContent config)
+        {
+            moduleNames.Add(module.Name);
+            moduleImages.Add(module.Image);
+
+            if (module.DesiredProperties.Count != 0)
+            {
+                config.ModulesContent[module.Name] = new Dictionary<string, object>
+                {
+                    ["properties.desired"] = module.DesiredProperties
+                };
+            }
         }
 
         public IModuleConfigBuilder GetModule(string name)
