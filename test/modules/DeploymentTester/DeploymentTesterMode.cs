@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace DeploymentTester
 {
-    public enum DeploymentTesterMode {
+    public enum DeploymentTesterMode
+    {
         Receiver,
         Sender
     }
