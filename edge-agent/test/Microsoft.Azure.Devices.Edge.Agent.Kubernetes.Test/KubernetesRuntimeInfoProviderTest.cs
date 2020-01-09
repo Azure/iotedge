@@ -205,7 +205,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 }
                 else if (string.Equals("edgeHub", i.Name))
                 {
-                    Assert.Equal(ModuleStatus.Failed, i.ModuleStatus);
+                    Assert.Equal(ModuleStatus.Backoff, i.ModuleStatus);
                     Assert.Equal(pendingDescription, i.Description);
                     Assert.Equal(Option.None<DateTime>(), i.ExitTime);
                 }
@@ -233,6 +233,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
 
             modified["edgehub"].Status = null;
 
+            modified["simulatedtemperaturesensor"].Status.Phase = "Failed";
+            string failedDescription = "Pod failed as it terminated with non-zero exit code";
+            modified["simulatedtemperaturesensor"].Status.Reason = failedDescription;
+
             foreach (V1Pod pod in modified.Values)
             {
                 runtimeInfo.CreateOrUpdateAddPodInfo(pod);
@@ -246,22 +250,25 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             {
                 if (string.Equals("edgeAgent", i.Name))
                 {
-                    Assert.Equal(ModuleStatus.Failed, i.ModuleStatus);
+                    Assert.Equal(ModuleStatus.Unknown, i.ModuleStatus);
                     Assert.Equal(unknownDescription, i.Description);
                 }
                 else if (string.Equals("edgeHub", i.Name))
                 {
-                    Assert.Equal(ModuleStatus.Failed, i.ModuleStatus);
+                    Assert.Equal(ModuleStatus.Unknown, i.ModuleStatus);
                     Assert.Equal("Unable to get pod status", i.Description);
                 }
                 else if (string.Equals("SimulatedTemperatureSensor", i.Name))
                 {
+                    Assert.Equal(ModuleStatus.Failed, i.ModuleStatus);
+                    Assert.Equal(failedDescription, i.Description);
                 }
                 else
                 {
                     Assert.True(false, $"Missing module {i.Name} in validation");
                 }
             }
+
         }
 
         static Dictionary<string, V1Pod> BuildPodList()
