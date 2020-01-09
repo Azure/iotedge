@@ -69,7 +69,7 @@ namespace TwinTester
 
         public void Stop()
         {
-            this.periodicUpdate.Dispose();
+            this.periodicUpdate?.Dispose();
         }
 
         async Task UpdateAsync(CancellationToken cancellationToken)
