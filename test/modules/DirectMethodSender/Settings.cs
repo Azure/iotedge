@@ -32,7 +32,8 @@ namespace DirectMethodSender
                     configuration.GetValue("testDuration", TimeSpan.Zero),
                     configuration.GetValue("testStartDelay", TimeSpan.Zero),
                     Option.Maybe(configuration.GetValue<string>("DirectMethodName")),
-                    Option.Maybe(configuration.GetValue<string>("trackingId")));
+                    Option.Maybe(configuration.GetValue<string>("trackingId")),
+                    Option.Maybe(configuration.GetValue<string>("DirectMethodResultType")));
             });
 
         Settings(
@@ -47,7 +48,8 @@ namespace DirectMethodSender
             TimeSpan testDuration,
             TimeSpan testStartDelay,
             Option<string> directMethodName,
-            Option<string> trackingId)
+            Option<string> trackingId,
+            Option<string> directMethodResultType)
         {
             Preconditions.CheckRange(testDuration.Ticks, 0);
             Preconditions.CheckRange(testStartDelay.Ticks, 0);
@@ -65,6 +67,7 @@ namespace DirectMethodSender
             this.TestStartDelay = testStartDelay;
             this.DirectMethodName = directMethodName.GetOrElse("HelloWorldMethod");
             this.TrackingId = trackingId;
+            this.DirectMethodResultType = (DirectMethodResultType)Enum.Parse(typeof(DirectMethodResultType), directMethodResultType.GetOrElse("LegacyDirectMethodTestResult"));
         }
 
         public static Settings Current => DefaultSettings.Value;
@@ -93,6 +96,8 @@ namespace DirectMethodSender
 
         public Option<string> TrackingId { get; }
 
+        public DirectMethodResultType DirectMethodResultType { get; }
+
         public override string ToString()
         {
             // serializing in this pattern so that secrets don't accidentally get added anywhere in the future
@@ -108,6 +113,7 @@ namespace DirectMethodSender
                 { nameof(this.DirectMethodName), this.DirectMethodName },
                 { nameof(this.DirectMethodDelay), this.DirectMethodDelay.ToString() },
                 { nameof(this.InvocationSource), this.InvocationSource.ToString() },
+                { nameof(this.DirectMethodResultType), this.DirectMethodResultType.ToString() },
             };
 
             this.ReportingEndpointUrl.ForEach((url) =>
