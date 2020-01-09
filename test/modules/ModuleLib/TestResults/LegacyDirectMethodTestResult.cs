@@ -5,8 +5,8 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
 
     public class LegacyDirectMethodTestResult : TestResultBase
     {
-        public LegacyDirectMethodTestResult(string source, DateTime createdAt) :
-            base(source, TestOperationResultType.LegacyDirectMethod, createdAt)
+        public LegacyDirectMethodTestResult(string source, DateTime createdAt)
+            : base(source, TestOperationResultType.LegacyDirectMethod, createdAt)
         {
         }
 
