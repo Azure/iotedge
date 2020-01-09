@@ -60,8 +60,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Routing
                 IRoutingMessage routingMessage = this.ProcessMessageInternal(message, true);
                 Metrics.AddMessageSize(routingMessage.Size(), identity.Id);
                 Metrics.AddReceivedMessage(identity.Id, message.GetOutput());
-                message.SystemProperties.TryGetValue(SystemProperties.MessageType, out string temp);
-                Console.WriteLine(temp);
                 return this.router.RouteAsync(routingMessage);
             }
         }
