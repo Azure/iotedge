@@ -34,12 +34,12 @@ namespace TestResultCoordinator.Report.DirectMethodReport
                     });
             }
 
-            networkControllerTestResults.Sort(new SortNetworkControllerTestResultHelper());
             return new NetworkStatusTimeline(networkControllerTestResults, tolerancePeriod);
         }
 
-        NetworkStatusTimeline(IReadOnlyList<NetworkControllerTestResult> networkControllerTestResults, TimeSpan tolerancePeriod)
+        NetworkStatusTimeline(List<NetworkControllerTestResult> networkControllerTestResults, TimeSpan tolerancePeriod)
         {
+            networkControllerTestResults.Sort(new NetworkTimelineResultComparer());
             this.networkControllerTestResults = networkControllerTestResults;
             this.tolerancePeriod = tolerancePeriod;
         }
@@ -101,7 +101,7 @@ namespace TestResultCoordinator.Report.DirectMethodReport
         }
     }
 
-    public class SortNetworkControllerTestResultHelper : IComparer<NetworkControllerTestResult>
+    public class NetworkTimelineResultComparer : IComparer<NetworkControllerTestResult>
     {
         public int Compare(NetworkControllerTestResult n1, NetworkControllerTestResult n2) => n1.CreatedAt.CompareTo(n2.CreatedAt);
     }
