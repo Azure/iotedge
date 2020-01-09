@@ -35,7 +35,7 @@ namespace DirectMethodSender
 
             try
             {
-                int resultStatus = await this.InvokeDeviceMethodAsync(this.deviceId, this.targetModuleId, methodName, CancellationToken.None);
+                int resultStatus = await this.InvokeDeviceMethodAsync(this.deviceId, this.targetModuleId, methodName, this.directMethodCount, CancellationToken.None);
 
                 string statusMessage = $"Calling Direct Method with count {this.directMethodCount} returned with status code {resultStatus}";
                 if (resultStatus == (int)HttpStatusCode.OK)
@@ -54,10 +54,16 @@ namespace DirectMethodSender
             catch (Exception e)
             {
                 logger.LogError(e, $"Exception caught with count {this.directMethodCount}");
+                this.directMethodCount++;
                 return new Tuple<HttpStatusCode, long>(HttpStatusCode.InternalServerError, this.directMethodCount);
             }
         }
 
-        internal abstract Task<int> InvokeDeviceMethodAsync(string deviceId, string targetModuleId, string methodName, CancellationToken none);
+        internal abstract Task<int> InvokeDeviceMethodAsync(
+            string deviceId,
+            string targetModuleId,
+            string methodName,
+            long directMethodCount,
+            CancellationToken none);
     }
 }

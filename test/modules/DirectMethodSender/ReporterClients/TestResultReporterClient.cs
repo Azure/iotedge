@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
+namespace DirectMethodSender
 {
     using System;
     using System.Threading.Tasks;

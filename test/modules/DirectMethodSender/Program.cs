@@ -6,7 +6,6 @@ namespace DirectMethodSender
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;

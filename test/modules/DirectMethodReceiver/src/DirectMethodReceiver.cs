@@ -10,12 +10,12 @@ namespace DirectMethodReceiver
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json.Linq;
 
     class DirectMethodReceiver : IDisposable
     {
         Guid batchId;
         IConfiguration configuration;
-        long directMethodCount = 1;
         ILogger logger;
         ModuleClient moduleClient;
         Option<TestResultReportingClient> testResultReportingClient;
@@ -43,14 +43,14 @@ namespace DirectMethodReceiver
 
         async Task<MethodResponse> HelloWorldMethodAsync(MethodRequest methodRequest, object userContext)
         {
-            this.logger.LogInformation("Received direct method call.");
+            this.logger.LogInformation($"Received direct method call: {methodRequest.DataAsJson}");
+            JToken payload = JToken.Parse(methodRequest.DataAsJson);
             // Send the report to Test Result Coordinator
-            await this.ReportTestResult();
-            this.directMethodCount++;
+            await this.ReportTestResult(payload["DirectMethodCount"].ToString());
             return new MethodResponse((int)HttpStatusCode.OK);
         }
 
-        public async Task ReportTestResult()
+        public async Task ReportTestResult(string directMethodCount)
         {
             await this.testResultReportingClient.ForEachAsync(
                 async (TestResultReportingClient testResultReportingClient) =>
@@ -59,7 +59,7 @@ namespace DirectMethodReceiver
                         {
                             TrackingId = this.trackingId.GetOrElse(string.Empty),
                             BatchId = this.batchId.ToString(),
-                            SequenceNumber = this.directMethodCount.ToString(),
+                            SequenceNumber = directMethodCount,
                             Result = HttpStatusCode.OK.ToString()
                         };
                         await ModuleUtil.ReportTestResultAsync(testResultReportingClient, this.logger, testResult);
@@ -73,8 +73,6 @@ namespace DirectMethodReceiver
                 ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
                 ModuleUtil.DefaultTransientRetryStrategy,
                 this.logger);
-
-            this.directMethodCount = 1;
 
             await this.moduleClient.OpenAsync();
             await this.moduleClient.SetMethodHandlerAsync("HelloWorldMethod", this.HelloWorldMethodAsync, null);
