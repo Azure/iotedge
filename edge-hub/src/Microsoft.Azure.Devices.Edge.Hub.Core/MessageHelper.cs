@@ -1,5 +1,4 @@
 // Copyright (c) Microsoft. All rights reserved.
-using System;
 
 namespace Microsoft.Azure.Devices.Edge.Hub.Core
 {
@@ -17,24 +16,24 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             return string.Empty;
         }
 
-        public static void WriteRoute(this IMessage message)
+        public static string GetOutput(this IMessage message)
         {
-            Console.WriteLine("\nRoute:");
-            Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(message.SystemProperties));
-            if (message.SystemProperties.TryGetValue(SystemProperties.InputName, out string inputName))
-            {
-                Console.WriteLine(inputName);
-            }
-
             if (message.SystemProperties.TryGetValue(SystemProperties.OutputName, out string outputName))
             {
-                Console.WriteLine(outputName);
+                return outputName;
             }
 
-            if (message.SystemProperties.TryGetValue(SystemProperties.OutboundUri, out string outputUri))
+            return string.Empty;
+        }
+
+        public static string GetInput(this IMessage message)
+        {
+            if (message.SystemProperties.TryGetValue(SystemProperties.InputName, out string outputName))
             {
-                Console.WriteLine(outputUri);
+                return outputName;
             }
+
+            return string.Empty;
         }
     }
 }

@@ -502,7 +502,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             public static IDisposable TimeMessageSend(IIdentity identity, IMessage message)
             {
                 string from = message.GetSenderId();
-                message.WriteRoute();
                 string to = identity.Id;
                 return MessagesTimer.GetTimer(new[] { from, to });
             }
@@ -518,8 +517,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Device
             public static void MessageProcessingLatency(IIdentity identity, IMessage message)
             {
                 string from = message.GetSenderId();
-                message.WriteRoute();
-
                 string to = identity.Id;
                 if (message.SystemProperties != null
                     && message.SystemProperties.TryGetValue(SystemProperties.EnqueuedTime, out string enqueuedTimeString)
