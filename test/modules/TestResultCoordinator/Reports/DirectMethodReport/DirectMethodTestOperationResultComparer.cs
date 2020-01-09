@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace TestResultCoordinator.report.DirectMethodReport
+namespace TestResultCoordinator.Reports.DirectMethodReport
 {
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Newtonsoft.Json;
     using System;
     using System.IO;
-    using TestResultCoordinator.Report;
+    using TestResultCoordinator.Reports;
 
     /// <summary>
     /// This test result comparer is used to determine if 2 DirectMethod TestOperationResult instances matches.

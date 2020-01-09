@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace TestResultCoordinator.Report.DirectMethodReport
+namespace TestResultCoordinator.Reports.DirectMethodReport
 {
-    using System.Collections.Generic;
+    using TestResultCoordinator.Reports;
 
     /// <summary>
     /// This is a DirectMethod report to show test results for DirectMethods.
@@ -48,5 +48,7 @@ namespace TestResultCoordinator.Report.DirectMethodReport
         public ulong MismatchSuccess { get; }
 
         public ulong MismatchFailure { get; }
+
+        public override bool IsPassed => throw new System.NotImplementedException();
     }
 }

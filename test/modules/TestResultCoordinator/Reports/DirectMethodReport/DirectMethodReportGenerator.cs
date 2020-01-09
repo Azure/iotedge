@@ -1,14 +1,15 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace TestResultCoordinator.report.DirectMethodReport
+namespace TestResultCoordinator.Reports.DirectMethodReport
 {
     using System;
     using System.IO;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
-    using TestResultCoordinator.Report;
     using TestResultCoordinator.Report.DirectMethodReport;
+    using TestResultCoordinator.Reports;
 
     class DirectMethodReportGenerator : ITestResultReportGenerator
     {
@@ -23,7 +24,8 @@ namespace TestResultCoordinator.report.DirectMethodReport
             string actualSource,
             ITestResultCollection<TestOperationResult> actualTestResults,
             string resultType,
-            ITestResultComparer<TestOperationResult> testResultComparer)
+            ITestResultComparer<TestOperationResult> testResultComparer,
+            NetworkStatusTimeline networkStatusTimeline)
         {
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.ExpectedTestResults = Preconditions.CheckNotNull(expectedTestResults, nameof(expectedTestResults));
@@ -32,6 +34,7 @@ namespace TestResultCoordinator.report.DirectMethodReport
             this.ActualTestResults = Preconditions.CheckNotNull(actualTestResults, nameof(actualTestResults));
             this.TestResultComparer = Preconditions.CheckNotNull(testResultComparer, nameof(testResultComparer));
             this.ResultType = Preconditions.CheckNonWhiteSpace(resultType, nameof(resultType));
+            this.NetworkStatusTimeline = Preconditions.CheckNotNull(networkStatusTimeline, nameof(networkStatusTimeline));
         }
 
         internal string ActualSource { get; }
@@ -52,8 +55,18 @@ namespace TestResultCoordinator.report.DirectMethodReport
         {
             Logger.LogInformation($"Start to generate report by {nameof(DirectMethodReportGenerator)} for Sources [{this.ExpectedSource}] and [{this.ActualSource}]");
 
-            bool hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
+            ulong networkOnSuccess = 0;
+            ulong networkOffSuccess = 0;
+            ulong networkOnToleratedSuccess = 0;
+            ulong networkOffToleratedSuccess = 0;
+            ulong networkOnFailure = 0;
+            ulong networkOffFailure = 0;
+            ulong mismatchSuccess = 0;
+            ulong mismatchFailure = 0;
+
+        bool hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
             bool hasActualResult = await this.ActualTestResults.MoveNextAsync();
+
             while (hasExpectedResult && hasActualResult)
             {
                 this.ValidateDataSource(this.ExpectedTestResults.Current, this.ExpectedSource);
@@ -62,9 +75,23 @@ namespace TestResultCoordinator.report.DirectMethodReport
                 if (this.TestResultComparer.Matches(this.ExpectedTestResults.Current, this.ActualTestResults.Current))
                 {
                     // Found same message in both stores.
-                    // If network off at time, fail.
-                    // If network on at time, succeed
+                    (NetworkControllerStatus networkControllerStatus, bool isWithinTolerancePeriod) = this.NetworkStatusTimeline.GetNetworkControllerStatusAndWithinToleranceAt(this.ExpectedTestResults.Current.CreatedAt);
 
+                    if (NetworkControllerStatus.Disabled.Equals(networkControllerStatus))
+                    {
+                        // If network on at time, succeed
+                        networkOnSuccess++;
+                    }
+                    if (NetworkControllerStatus.Enabled.Equals(networkControllerStatus))
+                    {
+                        // If network off at time, fail unless in tolerance period
+                        if (isWithinTolerancePeriod)
+                        {
+                            networkOffToleratedSuccess++;
+                        }
+
+                        networkOffFailure++;
+                    }
                 }
 
             }
