@@ -1,3 +1,32 @@
+# 1.0.9-rc4 (2019-01-10)
+
+## Edge Hub
+### Features
+* Update Microsoft.Azure.Devices to version 1.18.2 ([ade908a](https://github.com/Azure/iotedge/commit/ade908a78a0d885cdfadf11f1b6636e6d1a8ffa6))
+* Update Microsoft.Azure.Devices.Client to version 1.21.3 ([b52c719](https://github.com/Azure/iotedge/commit/b52c719f41b342876dc926c542cf660fe7e3224d))
+* Install Trust Bundle in EdgeAgent and EdgeHub ([2847ffc](https://github.com/Azure/iotedge/commit/2847ffcf32f3e3467a4523c1d84c4d971ea7ceed))
+* Add support for Queue length metric in EdgeHub ([4ce6aa4](https://github.com/Azure/iotedge/commit/4ce6aa43f82c9e5fdece6c6d2ceb4a2b6249af23))
+* Direct method calls now support multibyte utf8 encoded characters in payload ([bfc87a8](https://github.com/Azure/iotedge/commit/bfc87a82e85687bbf368f94eefde430b453dbed9))
+
+### Bug Fixes
+* Fix flag typo ([5d8e6b0](https://github.com/Azure/iotedge/commit/5d8e6b06fe62f82353e6792fcd26d0ec22b5d141))
+* Fix edgeHub crash when using experimental features ([5c7dfe9](https://github.com/Azure/iotedge/commit/5c7dfe9e63aba1d39815ff8ce72b9696f948bc28))
+* Fix message loss during transient network scenarios ([ada2042](https://github.com/Azure/iotedge/commit/ada2042e0da344a586f4e5fed03c46369f9ca856))
+* Fix message ordering during transient network scenarios ([25ebf58](https://github.com/Azure/iotedge/commit/25ebf58de507720b1560ee5a06b33bd0d279d66d))
+
+## Edge Agent
+
+### Features
+* Update Microsoft.Azure.Devices to version 1.18.2 ([ade908a](https://github.com/Azure/iotedge/commit/ade908a78a0d885cdfadf11f1b6636e6d1a8ffa6))
+* Update Microsoft.Azure.Devices.Client to version 1.21.3 ([b52c719](https://github.com/Azure/iotedge/commit/b52c719f41b342876dc926c542cf660fe7e3224d))
+* Add prometheus metrics to Agent ([1268500](https://github.com/Azure/iotedge/commit/1268500b8f1977722987d5e87e5b23e8dde4347e))
+* Add host and docker level metrics ([d5531d4](https://github.com/Azure/iotedge/commit/d5531d4bb93b4e22c8d03ba7af21b3fd4cdab4ef))
+* Install Trust Bundle in EdgeAgent and EdgeHub ([2847ffc](https://github.com/Azure/iotedge/commit/2847ffcf32f3e3467a4523c1d84c4d971ea7ceed))
+
+## iotedged
+### Features
+* Update rust to 1.40.0 ([f7a14fd](https://github.com/Azure/iotedge/commit/f7a14fd84270d242d13574654c56aa351816d35f))
+
 # 1.0.9-rc3 (2019-11-21)
 
 ## Edge Hub
