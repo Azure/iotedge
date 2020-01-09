@@ -113,6 +113,9 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
+              "DirectMethodResultType": {
+                "value": "DirectMethodTestResult"
+              },
               "InvocationSource": {
                 "value": "Cloud"
               },
@@ -167,6 +170,9 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
+              "DirectMethodResultType": {
+                "value": "DirectMethodTestResult"
+              },
               "InvocationSource": {
                 "value": "Cloud"
               },
