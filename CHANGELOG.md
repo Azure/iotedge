@@ -15,7 +15,6 @@
 * Fix message ordering during transient network scenarios ([25ebf58](https://github.com/Azure/iotedge/commit/25ebf58de507720b1560ee5a06b33bd0d279d66d))
 
 ## Edge Agent
-
 ### Features
 * Update Microsoft.Azure.Devices to version 1.18.2 ([ade908a](https://github.com/Azure/iotedge/commit/ade908a78a0d885cdfadf11f1b6636e6d1a8ffa6))
 * Update Microsoft.Azure.Devices.Client to version 1.21.3 ([b52c719](https://github.com/Azure/iotedge/commit/b52c719f41b342876dc926c542cf660fe7e3224d))
