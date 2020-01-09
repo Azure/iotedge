@@ -18,6 +18,7 @@ namespace TestResultCoordinator.Report.DirectMethodReport
 
         readonly IReadOnlyList<NetworkControllerTestResult> networkControllerTestResults;
         readonly TimeSpan tolerancePeriod;
+        bool testResultsValidated = false;
 
         public static async Task<NetworkStatusTimeline> Create(ITestResultCollection<TestOperationResult> networkControllerTestOperationResults, TimeSpan tolerancePeriod)
         {
@@ -44,19 +45,11 @@ namespace TestResultCoordinator.Report.DirectMethodReport
             this.tolerancePeriod = tolerancePeriod;
         }
 
-        public (NetworkControllerStatus, bool) GetNetworkControllerStatusAndWithinToleranceAt(DateTime dateTime)
+        private void ValidateNetworkControllerTestResults()
         {
-            // Return network controller status at given time
-            NetworkControllerStatus networkControllerStatus = NetworkControllerStatus.Unknown;
-            bool isWithinTolerancePeriod = false;
-            for (int i = 0;  i < this.networkControllerTestResults.Count; i++)
+            for (int i = 0; i < this.networkControllerTestResults.Count; i++)
             {
                 NetworkControllerTestResult curr = this.networkControllerTestResults[i];
-                if (dateTime < curr.CreatedAt)
-                {
-                    break;
-                }
-
                 if (NetworkControllerOperation.SettingRule.Equals(curr.Operation))
                 {
                     if (i + 1 >= this.networkControllerTestResults.Count || !NetworkControllerOperation.RuleSet.Equals(this.networkControllerTestResults[i + 1].Operation))
@@ -68,16 +61,37 @@ namespace TestResultCoordinator.Report.DirectMethodReport
                     {
                         throw new InvalidOperationException("Test result SettingRule and following RuleSet do not match NetwokControllerStatuses");
                     }
-
-                    networkControllerStatus = curr.NetworkControllerStatus;
-                    NetworkControllerTestResult next = this.networkControllerTestResults[i + 1];
-                    isWithinTolerancePeriod = dateTime >= curr.CreatedAt && dateTime <= next.CreatedAt.Add(this.tolerancePeriod);
                     i++;
                 }
                 else
                 {
                     throw new InvalidOperationException("Expected SettingRule");
                 }
+            }
+            this.testResultsValidated = true;
+        }
+
+        public (NetworkControllerStatus, bool) GetNetworkControllerStatusAndWithinToleranceAt(DateTime dateTime)
+        {
+            if (this.testResultsValidated == false)
+            {
+                this.ValidateNetworkControllerTestResults();
+            }
+            // Return network controller status at given time
+            NetworkControllerStatus networkControllerStatus = NetworkControllerStatus.Unknown;
+            bool isWithinTolerancePeriod = false;
+            for (int i = 0;  i < this.networkControllerTestResults.Count; i++)
+            {
+                NetworkControllerTestResult curr = this.networkControllerTestResults[i];
+                if (dateTime <= curr.CreatedAt)
+                {
+                    break;
+                }
+
+                networkControllerStatus = curr.NetworkControllerStatus;
+                NetworkControllerTestResult next = this.networkControllerTestResults[i + 1];
+                isWithinTolerancePeriod = dateTime >= curr.CreatedAt && dateTime <= next.CreatedAt.Add(this.tolerancePeriod);
+                i++;
             }
 
             if (NetworkControllerStatus.Unknown.Equals(networkControllerStatus))
