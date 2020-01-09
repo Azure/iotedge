@@ -48,7 +48,7 @@ namespace DirectMethodSender
 
                     // Generate a report type depending on the reporting endpoint
                     TestResultBase report = ConstructTestResult(
-                        reportClient,
+                        Settings.Current.DirectMethodResultType,
                         batchId,
                         dmCounter,
                         result.ToString());
@@ -112,12 +112,12 @@ namespace DirectMethodSender
         }
 
         // Create reporting result depending on which endpoint is being used.
-        public static TestResultBase ConstructTestResult(ReporterClientBase reportClient, Guid batchId, long counter, string result)
+        public static TestResultBase ConstructTestResult(DirectMethodResultType directMethodResultType, Guid batchId, long counter, string result)
         {
             string source = Settings.Current.ModuleId + ".send";
-            switch (reportClient.GetType().Name)
+            switch (directMethodResultType)
             {
-                case nameof(TestResultReporterClient):
+                case DirectMethodResultType.DirectMethodTestResult:
                     return new DirectMethodTestResult(source, DateTime.UtcNow)
                     {
                         TrackingId = Settings.Current.TrackingId.Expect(() => new ArgumentException("TrackingId is empty")),
@@ -126,7 +126,7 @@ namespace DirectMethodSender
                         Result = Preconditions.CheckNonWhiteSpace(result, nameof(result))
                     };
 
-                case nameof(EventReporterClient):
+                case DirectMethodResultType.LegacyDirectMethodTestResult:
                     return new LegacyDirectMethodTestResult(source, DateTime.UtcNow)
                     {
                         Result = Preconditions.CheckNonWhiteSpace(result, nameof(result))
