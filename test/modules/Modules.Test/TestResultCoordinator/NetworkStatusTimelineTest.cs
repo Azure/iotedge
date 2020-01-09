@@ -4,8 +4,8 @@ namespace Modules.Test.TestResultCoordinator
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using global::TestResultCoordinator;
     using global::TestResultCoordinator.Report.DirectMethodReport;
+    using global::TestResultCoordinator.Reports;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
@@ -127,9 +127,8 @@ namespace Modules.Test.TestResultCoordinator
             IEnumerable<string> networkControllerResultOperations)
         {
             var resultCollection = this.GetStoreTestResultCollection(networkControllerResultValues, networkControllerResultDates, networkControllerResultOperations);
-            NetworkStatusTimeline timeline = await NetworkStatusTimeline.Create(resultCollection, new TimeSpan(0, 0, 0, 0, 5));
-            var ex = Assert.Throws<InvalidOperationException>(() => timeline.GetNetworkControllerStatusAndWithinToleranceAt(new DateTime(2020, 1, 1, 9, 10, 16, 10)));
-            Assert.Equal("Test result SettingRule found with no test result found after.", ex.Message);
+            var ex = await Assert.ThrowsAsync<ArgumentException>(async () => await NetworkStatusTimeline.Create(resultCollection, new TimeSpan(0, 0, 0, 0, 5)));
+            Assert.Equal("Network Controller Test Results must have an even number of results.", ex.Message);
         }
 
         [Theory]
@@ -166,7 +165,7 @@ namespace Modules.Test.TestResultCoordinator
             IEnumerable<string> networkControllerResultOperations)
         {
             var resultCollection = this.GetInvalidStoreTestResultCollection(networkControllerResultValues, networkControllerResultDates, networkControllerResultOperations);
-            var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () => await NetworkStatusTimeline.Create(resultCollection, new TimeSpan(0, 0, 0, 0, 5)));
+            var ex = await Assert.ThrowsAsync<ArgumentException>(async () => await NetworkStatusTimeline.Create(resultCollection, new TimeSpan(0, 0, 0, 0, 5)));
             Assert.Equal("Network Controller Test Results is empty.", ex.Message);
         }
 
@@ -178,7 +177,7 @@ namespace Modules.Test.TestResultCoordinator
             IEnumerable<string> networkControllerResultOperations)
         {
             var resultCollection = this.GetStoreTestResultCollection(networkControllerResultValues, networkControllerResultDates, networkControllerResultOperations);
-            var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () => await NetworkStatusTimeline.Create(resultCollection, new TimeSpan(0, 0, 0, 0, 5)));
+            var ex = await Assert.ThrowsAsync<ArgumentException>(async () => await NetworkStatusTimeline.Create(resultCollection, new TimeSpan(0, 0, 0, 0, 5)));
             Assert.Equal("Network Controller Test Results is empty.", ex.Message);
         }
 

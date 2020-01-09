@@ -2,7 +2,6 @@
 namespace TestResultCoordinator.Report.DirectMethodReport
 {
     using System;
-    using System.Collections;
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
@@ -11,12 +10,13 @@ namespace TestResultCoordinator.Report.DirectMethodReport
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
+    using TestResultCoordinator.Reports;
 
     class NetworkStatusTimeline
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(NetworkStatusTimeline));
 
-        readonly IReadOnlyList<NetworkControllerTestResult> networkControllerTestResults;
+        readonly List<NetworkControllerTestResult> networkControllerTestResults;
         readonly TimeSpan tolerancePeriod;
         bool testResultsValidated = false;
         NetworkControllerStatus initialNetworkControllerStatus;
@@ -44,13 +44,18 @@ namespace TestResultCoordinator.Report.DirectMethodReport
 
         NetworkStatusTimeline(List<NetworkControllerTestResult> networkControllerTestResults, TimeSpan tolerancePeriod, NetworkControllerStatus initialNetworkControllerStatus)
         {
-            if (networkControllerTestResults.Count == 0)
+            if (networkControllerTestResults?.Count == 0)
             {
-                throw new InvalidOperationException("Network Controller Test Results is empty.");
+                throw new ArgumentException("Network Controller Test Results is empty.");
             }
 
-            networkControllerTestResults.Sort(new NetworkTimelineResultComparer());
+            if (networkControllerTestResults?.Count % 2 != 0)
+            {
+                throw new ArgumentException("Network Controller Test Results must have an even number of results.");
+            }
+
             this.networkControllerTestResults = networkControllerTestResults;
+            this.networkControllerTestResults.Sort(new NetworkTimelineResultComparer());
             this.tolerancePeriod = tolerancePeriod;
             this.initialNetworkControllerStatus = initialNetworkControllerStatus;
         }
@@ -68,11 +73,6 @@ namespace TestResultCoordinator.Report.DirectMethodReport
                 if (!NetworkControllerOperation.SettingRule.Equals(curr.Operation))
                 {
                     throw new InvalidOperationException("Expected SettingRule.");
-                }
-
-                if (i + 1 >= this.networkControllerTestResults.Count)
-                {
-                    throw new InvalidOperationException("Test result SettingRule found with no test result found after.");
                 }
 
                 if (!NetworkControllerOperation.RuleSet.Equals(this.networkControllerTestResults[i + 1].Operation))
