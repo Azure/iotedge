@@ -1,10 +1,13 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace DirectMethodReceiver
+namespace MetricsValidator
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
@@ -18,8 +21,6 @@ namespace DirectMethodReceiver
 
         static async Task<int> MainAsync()
         {
-            DirectMethodReceiver directMethodReceiver = null;
-
             try
             {
                 Logger.LogInformation("DirectMethodReceiver Main() started.");
@@ -32,11 +33,16 @@ namespace DirectMethodReceiver
                     .AddEnvironmentVariables()
                     .Build();
 
-                directMethodReceiver = new DirectMethodReceiver(Logger, configuration);
+                using (ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync())
+                using (MetricsScraper scraper = new MetricsScraper(new List<string> { "http://edgeHub:9600/metrics" }))
+                {
+                    await moduleClient.OpenAsync();
 
-                await directMethodReceiver.InitAsync();
+                    await new ValidateNumberOfMessagesSent(moduleClient, scraper).Start(cts.Token);
 
-                await cts.Token.WhenCanceled();
+                    await cts.Token.WhenCanceled();
+                }
+
 
                 completed.Set();
                 handler.ForEach(h => GC.KeepAlive(h));
@@ -45,10 +51,6 @@ namespace DirectMethodReceiver
             catch (Exception e)
             {
                 Logger.LogError(e.ToString());
-            }
-            finally
-            {
-                directMethodReceiver?.Dispose();
             }
 
             return 0;
