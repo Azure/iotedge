@@ -15,5 +15,7 @@ namespace TestResultCoordinator.Report
         string ExpectSource { get; }
 
         string ActualSource { get; }
+
+        bool IsPassed { get; }
     }
 }
