@@ -61,6 +61,7 @@ namespace DeploymentTester
 
                 DateTime testStartAt = DateTime.UtcNow;
                 long count = 1;
+                var envVars = new Dictionary<string, string>();
 
                 while (!cts.IsCancellationRequested && DateTime.UtcNow - testStartAt < Settings.Current.TestDuration)
                 {
@@ -68,20 +69,12 @@ namespace DeploymentTester
                     ConfigurationContent configContent = JsonConvert.DeserializeObject<ConfigurationContent>(deploymentJson.ToString());
                     await registryManager.ApplyConfigurationContentOnDeviceAsync(Settings.Current.DeviceId, configContent);
 
-                    var testResult = new DeploymentTestResult(Settings.Current.ModuleId + ".send", DateTime.UtcNow)
-                    {
-                        TrackingId = Settings.Current.TrackingId,
-                        EnvironmentVariables = new Dictionary<string, string>
-                        {
-                            { newEnvVar.Key, newEnvVar.Value }
-                        }
-                    };
-
+                    envVars.Add(newEnvVar.Key, newEnvVar.Value);
+                    var testResult = new DeploymentTestResult(Settings.Current.ModuleId + ".send", DateTime.UtcNow) { TrackingId = Settings.Current.TrackingId, EnvironmentVariables = envVars };
                     await ModuleUtil.ReportTestResultAsync(apiClient, Logger, testResult);
-                    Logger.LogInformation($"Successfully report to TRC for new deployment: tracking id={Settings.Current.TrackingId}, new environment variable={newEnvVar.Key}:{newEnvVar.Value}.");
+                    Logger.LogInformation($"Successfully report to TRC for new deployment: tracking id={Settings.Current.TrackingId}, new environment variable={newEnvVar.Key}:{newEnvVar.Value}, EnvVars Count={envVars.Count}.");
 
                     await Task.Delay(Settings.Current.DeploymentUpdatePeriod, cts.Token);
-
                     count++;
                 }
             }

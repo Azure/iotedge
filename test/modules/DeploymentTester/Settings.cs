@@ -31,7 +31,7 @@ namespace DeploymentTester
                     configuration.GetValue("testDuration", TimeSpan.FromHours(1)),
                     configuration.GetValue<string>("trackingId"),
                     configuration.GetValue<string>("targetModuleId"),
-                    configuration.GetValue("DEPLOYMENT_UPDATE_PERIOD", TimeSpan.FromMinutes(5)));
+                    configuration.GetValue("DEPLOYMENT_UPDATE_PERIOD", TimeSpan.FromMinutes(3)));
             });
 
         Settings(

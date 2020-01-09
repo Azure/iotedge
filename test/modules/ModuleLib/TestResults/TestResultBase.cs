@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft. All rights reserved.
-using System;
-using Microsoft.Azure.Devices.Edge.Util;
-
 namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
 {
+    using System;
+    using Microsoft.Azure.Devices.Edge.Util;
+
     public abstract class TestResultBase
     {
         public TestResultBase(string source, TestOperationResultType resultType, DateTime createdAt)
