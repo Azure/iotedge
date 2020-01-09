@@ -117,7 +117,7 @@
                 "value": "Cloud"
               },
               "ServiceClientConnectionString": {
-                "value": "<ServiceClientConnectionString>"
+                "value": "<IoTHubConnectionString>"
               },
               "TargetModuleId": {
                 "value": "directMethodReceiver1"
@@ -171,7 +171,7 @@
                 "value": "Cloud"
               },
               "ServiceClientConnectionString": {
-                "value": "<ServiceClientConnectionString>"
+                "value": "<IoTHubConnectionString>"
               },
               "TargetModuleId": {
                 "value": "directMethodReceiver2"
@@ -304,7 +304,7 @@
                 "value": "<TestResultCoordinator.LogAnalyticsLogType>"
               },
               "ServiceClientConnectionString": {
-                "value": "<ServiceClientConnectionString>"
+                "value": "<IoTHubConnectionString>"
               }
             },
             "settings": {
@@ -334,7 +334,7 @@
                 "value": "<TestDuration>"
               },
               "ServiceClientConnectionString": {
-                "value": "<ServiceClientConnectionString>"
+                "value": "<IoTHubConnectionString>"
               },
               "TargetModuleId": {
                 "value": "twinTester2"
@@ -367,7 +367,7 @@
                 "value": "<TestDuration>"
               },
               "ServiceClientConnectionString": {
-                "value": "<ServiceClientConnectionString>"
+                "value": "<IoTHubConnectionString>"
               },
               "TransportType" : {
                 "value": "Amqp"
@@ -400,7 +400,7 @@
                 "value": "<TestDuration>"
               },
               "ServiceClientConnectionString": {
-                "value": "<ServiceClientConnectionString>"
+                "value": "<IoTHubConnectionString>"
               },
               "TargetModuleId": {
                 "value": "twinTester4"
@@ -433,7 +433,7 @@
                 "value": "<TestDuration>"
               },
               "ServiceClientConnectionString": {
-                "value": "<ServiceClientConnectionString>"
+                "value": "<IoTHubConnectionString>"
               },
               "TransportType" : {
                 "value": "Mqtt"
@@ -441,6 +441,63 @@
             },
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-twin-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": ""
+            }
+          },
+          "deploymentTest1": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "DEPLOYMENT_TESTER_MODE": {
+                "value": "Sender"
+              },
+              "TestStartDelay": {
+                "value": "<TestStartDelay>"
+              },
+              "TestDuration": {
+                "value": "<TestDuration>"
+              },
+              "IOT_HUB_CONNECTION_STRING": {
+                "value": "<IoTHubConnectionString>"
+              },
+              "trackingId": {
+                "value": "<TrackingId>"
+              },
+              "targetModuleId": {
+                "value": "deploymentTest2"
+              },
+              "testResultCoordinatorUrl": {
+                "value": "http://localhost:5001"
+              },
+              "DEPLOYMENT_UPDATE_PERIOD" : {
+                "value": "<DeploymentTester1.DeploymentUpdatePeriod>"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-deployment-tester:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
+            }
+          },
+          "deploymentTest2": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "DEPLOYMENT_TESTER_MODE": {
+                "value": "Receiver"
+              },
+              "trackingId": {
+                "value": "<TrackingId>"
+              },
+              "testResultCoordinatorUrl": {
+                "value": "http://testResultCoordinator:5001"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-deployment-tester:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
             }
           },
