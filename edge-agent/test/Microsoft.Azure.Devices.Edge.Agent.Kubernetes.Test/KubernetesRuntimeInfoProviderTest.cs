@@ -268,7 +268,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                     Assert.True(false, $"Missing module {i.Name} in validation");
                 }
             }
-
         }
 
         static Dictionary<string, V1Pod> BuildPodList()
