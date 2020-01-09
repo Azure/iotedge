@@ -114,12 +114,8 @@ namespace DirectMethodSender
                 { nameof(this.DirectMethodDelay), this.DirectMethodDelay.ToString() },
                 { nameof(this.InvocationSource), this.InvocationSource.ToString() },
                 { nameof(this.DirectMethodResultType), this.DirectMethodResultType.ToString() },
+                { nameof(this.ReportingEndpointUrl), this.ReportingEndpointUrl.ToString() },
             };
-
-            this.ReportingEndpointUrl.ForEach((url) =>
-            {
-                fields.Add(nameof(this.ReportingEndpointUrl), url.AbsoluteUri);
-            });
 
             return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
         }

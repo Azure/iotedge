@@ -9,7 +9,7 @@ namespace DirectMethodSender
     using Microsoft.Extensions.Logging;
     using TransportType = Microsoft.Azure.Devices.TransportType;
 
-    public sealed class DirectMethodCloudSender : DirectMethodSenderBase
+    internal sealed class DirectMethodCloudSender : DirectMethodSenderBase
     {
         readonly ServiceClient serviceClient;
 

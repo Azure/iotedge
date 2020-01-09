@@ -29,14 +29,12 @@ namespace DirectMethodSender
             {
                 Guid batchId = Guid.NewGuid();
                 Logger.LogInformation($"Batch Id={batchId}");
-
-                directMethodClient = await CreateClientAsync(Settings.Current.InvocationSource);
-
                 Logger.LogInformation($"Load gen delay start for {Settings.Current.TestStartDelay}.");
                 await Task.Delay(Settings.Current.TestStartDelay, cts.Token);
 
                 DateTime testStartAt = DateTime.UtcNow;
 
+                directMethodClient = await CreateClientAsync(Settings.Current.InvocationSource);
                 reportClient = await ReporterClientBase.CreateAsync(
                     Logger,
                     Settings.Current.ReportingEndpointUrl,

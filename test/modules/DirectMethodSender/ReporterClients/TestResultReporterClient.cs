@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public sealed class TestResultReporterClient : ReporterClientBase
+    internal sealed class TestResultReporterClient : ReporterClientBase
     {
         ILogger logger;
         Uri baseUri;
@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
             }
         }
 
-        internal TestResultReporterClient(Uri baseUri, ILogger logger)
+        TestResultReporterClient(Uri baseUri, ILogger logger)
             : base(logger)
         {
             Preconditions.CheckNotNull(baseUri, nameof(baseUri));

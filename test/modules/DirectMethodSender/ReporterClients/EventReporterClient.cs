@@ -10,7 +10,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public sealed class EventReporterClient : ReporterClientBase
+    internal sealed class EventReporterClient : ReporterClientBase
     {
         ILogger logger;
         TransportType transportType;

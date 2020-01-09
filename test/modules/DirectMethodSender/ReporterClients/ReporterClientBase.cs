@@ -19,7 +19,6 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
 
         public abstract void Dispose();
 
-        // TODO: Change this create signature once the TRC and Analyzer URL is merged
         public static async Task<ReporterClientBase> CreateAsync(
             ILogger logger,
             Option<Uri> reportingEndpointUrl,
@@ -28,15 +27,13 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
             if (reportingEndpointUrl.HasValue)
             {
                 return new TestResultReporterClient(
-                        reportingEndpointUrl.Expect(() => new ArgumentException("testReportCoordinatorUrl is not expected to be empty")),
+                        reportingEndpointUrl.OrDefault(),
                         logger);
             }
-            else
-            {
-                Preconditions.CheckNotNull(transportType, nameof(transportType));
-                EventReporterClient eventReporterClient = new EventReporterClient(logger);
-                return await eventReporterClient.InitAsync(transportType);
-            }
+
+            Preconditions.CheckNotNull(transportType, nameof(transportType));
+            EventReporterClient eventReporterClient = new EventReporterClient(logger);
+            return await eventReporterClient.InitAsync(transportType);
         }
 
         public async Task ReportStatus(TestResultBase report)
@@ -48,7 +45,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
             }
             catch (Exception e)
             {
-                this.logger.LogError(e.ToString());
+                this.logger.LogError(e, "Failed to send report");
             }
         }
 
