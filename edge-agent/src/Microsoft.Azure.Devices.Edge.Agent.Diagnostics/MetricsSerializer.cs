@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
     using System.Linq;
     using System.Text;
     using Microsoft.Azure.Devices.Edge.Util;
+    using Newtonsoft.Json;
 
     /// <summary>
     /// Provides a way to serialize a group of metrics that share a name and tag.
@@ -16,9 +17,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
     {
         public static IEnumerable<byte> MetricsToBytes(IEnumerable<Metric> metrics)
         {
-            return metrics.GroupBy(m => m.GetMetricKey()).SelectMany(x => MetricGroupsToBytes(
+            return metrics.GroupBy(m => m.MetricKey.Value).SelectMany(x => MetricGroupsToBytes(
                 x.First().Name,
-                x.First().Tags,
+                JsonConvert.SerializeObject(x.First().Tags),
                 x.Select(m => new RawMetricValue(m.TimeGeneratedUtc, m.Value))));
         }
 
@@ -43,7 +44,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
             int index = 0;
             while (index < bytes.Length)
             {
-                string name, tags;
+                string name;
+                Dictionary<string, string> tags;
                 IEnumerable<RawMetricValue> rawValues;
                 try
                 {
@@ -54,8 +56,9 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
 
                     int tagsLength = BitConverter.ToInt32(bytes, index);
                     index = checked(index + sizeof(int));
-                    tags = Encoding.UTF8.GetString(bytes, index, tagsLength);
+                    string rawTags = Encoding.UTF8.GetString(bytes, index, tagsLength);
                     index = checked(index + tagsLength);
+                    tags = JsonConvert.DeserializeObject<Dictionary<string, string>>(rawTags);
 
                     int valuesLength = BitConverter.ToInt32(bytes, index);
                     index = checked(index + sizeof(int));
@@ -64,7 +67,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics
                     index = checked(index + valuesLength * RawMetricValue.EncodedSize);
                     rawValues = RawMetricValue.BytesToRawValues(bytes, oldIndex, valuesLength);
                 }
-                catch (Exception e) when (e is OverflowException || e is ArgumentException || e is ArgumentOutOfRangeException)
+                catch (Exception e) when (e is OverflowException || e is ArgumentException || e is ArgumentOutOfRangeException || e is JsonSerializationException)
                 {
                     throw new InvalidDataException("Error decoding metrics", e);
                 }

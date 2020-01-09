@@ -21,5 +21,7 @@ namespace TestResultCoordinator.Report
         public ulong TotalPatches { get; }
 
         public ReadOnlyCollection<string> UnmatchedResults { get; }
+
+        public override bool IsPassed => this.TotalExpectCount == this.TotalMatchCount;
     }
 }

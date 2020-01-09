@@ -22,12 +22,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         readonly IEdgeDeploymentController controller;
         readonly ResourceName resourceName;
         readonly string deviceNamespace;
-        readonly JsonSerializerSettings serializerSettings;
+        readonly JsonSerializerSettings serializerSettings = EdgeDeploymentSerialization.SerializerSettings;
         Option<Watcher<EdgeDeploymentDefinition>> operatorWatch;
-        ModuleSet currentModules;
-        EdgeDeploymentStatus currentStatus;
-
-        static readonly EdgeDeploymentStatus DefaultStatus = new EdgeDeploymentStatus(EdgeDeploymentStatusType.Failure, string.Empty);
+        ModuleSet currentModules = ModuleSet.Empty;
+        EdgeDeploymentStatus currentStatus = EdgeDeploymentStatus.Default;
 
         public EdgeDeploymentOperator(
             ResourceName resourceName,
@@ -41,10 +39,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             this.client = Preconditions.CheckNotNull(client, nameof(client));
             this.operatorWatch = Option.None<Watcher<EdgeDeploymentDefinition>>();
             this.controller = Preconditions.CheckNotNull(controller, nameof(controller));
-
-            this.serializerSettings = EdgeDeploymentSerialization.SerializerSettings;
-            this.currentModules = ModuleSet.Empty;
-            this.currentStatus = DefaultStatus;
         }
 
         public void Start() => this.StartListEdgeDeployments();
@@ -123,7 +117,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                 case WatchEventType.Deleted:
                     // Kubernetes garbage collection will handle cleanup of deployment artifacts
                     this.currentModules = ModuleSet.Empty;
-                    this.currentStatus = DefaultStatus;
+                    this.currentStatus = EdgeDeploymentStatus.Default;
                     break;
 
                 case WatchEventType.Error:
