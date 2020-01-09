@@ -44,6 +44,11 @@ namespace TestResultCoordinator.Report.DirectMethodReport
 
         NetworkStatusTimeline(List<NetworkControllerTestResult> networkControllerTestResults, TimeSpan tolerancePeriod, NetworkControllerStatus initialNetworkControllerStatus)
         {
+            if (networkControllerTestResults.Count == 0)
+            {
+                throw new InvalidOperationException("Network Controller Test Results is empty.");
+            }
+
             networkControllerTestResults.Sort(new NetworkTimelineResultComparer());
             this.networkControllerTestResults = networkControllerTestResults;
             this.tolerancePeriod = tolerancePeriod;
@@ -57,22 +62,12 @@ namespace TestResultCoordinator.Report.DirectMethodReport
                 return;
             }
 
-            if (this.networkControllerTestResults == null)
-            {
-                throw new InvalidOperationException("Network Controller Test Results is null.");
-            }
-
-            if (this.networkControllerTestResults.Count == 0)
-            {
-                throw new InvalidOperationException("Network Controller Test Results is empty.");
-            }
-
             for (int i = 0; i < this.networkControllerTestResults.Count; i += 2)
             {
                 NetworkControllerTestResult curr = this.networkControllerTestResults[i];
                 if (!NetworkControllerOperation.SettingRule.Equals(curr.Operation))
                 {
-                    throw new InvalidOperationException("Expected SettingRule");
+                    throw new InvalidOperationException("Expected SettingRule.");
                 }
 
                 if (i + 1 >= this.networkControllerTestResults.Count)
@@ -121,7 +116,7 @@ namespace TestResultCoordinator.Report.DirectMethodReport
         {
             if (!current.Type.Equals(TestOperationResultType.Network.ToString(), StringComparison.OrdinalIgnoreCase))
             {
-                Option.None<TwinTestResult>();
+                return Option.None<NetworkControllerTestResult>();
             }
 
             Logger.LogDebug($"Deserializing for source {current.Source} result: {current.Result} {current.Type}");
