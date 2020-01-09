@@ -27,7 +27,7 @@ namespace DirectMethodSender
 
         public abstract void Dispose();
 
-        public async Task<Tuple<HttpStatusCode, long>> InvokeDirectMethodAsync(CancellationTokenSource cts)
+        public async Task<Tuple<HttpStatusCode, long>> InvokeDirectMethodAsync(string methodName, CancellationTokenSource cts)
         {
             ILogger logger = this.logger;
             logger.LogDebug("Invoke DirectMethod: started.");
@@ -35,7 +35,7 @@ namespace DirectMethodSender
 
             try
             {
-                int resultStatus = await this.InvokeDeviceMethodAsync(this.deviceId, this.targetModuleId, CancellationToken.None);
+                int resultStatus = await this.InvokeDeviceMethodAsync(this.deviceId, this.targetModuleId, methodName, CancellationToken.None);
 
                 string statusMessage = $"Calling Direct Method with count {this.directMethodCount} returned with status code {resultStatus}";
                 if (resultStatus == (int)HttpStatusCode.OK)
@@ -58,6 +58,6 @@ namespace DirectMethodSender
             }
         }
 
-        internal abstract Task<int> InvokeDeviceMethodAsync(string deviceId, string targetModuleId, CancellationToken none);
+        internal abstract Task<int> InvokeDeviceMethodAsync(string deviceId, string targetModuleId, string methodName, CancellationToken none);
     }
 }

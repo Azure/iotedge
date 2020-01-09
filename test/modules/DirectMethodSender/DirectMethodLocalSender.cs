@@ -46,9 +46,9 @@ namespace DirectMethodSender
                 logger);
         }
 
-        internal override async Task<int> InvokeDeviceMethodAsync(string deviceId, string targetModuleId, CancellationToken none)
+        internal override async Task<int> InvokeDeviceMethodAsync(string deviceId, string targetModuleId, string methodName, CancellationToken none)
         {
-            MethodRequest request = new MethodRequest(Settings.Current.DirectMethodName, Encoding.UTF8.GetBytes("{ \"Message\": \"Hello\" }"));
+            MethodRequest request = new MethodRequest(methodName, Encoding.UTF8.GetBytes("{ \"Message\": \"Hello\" }"));
             MethodResponse result = await this.moduleClient.InvokeMethodAsync(deviceId, targetModuleId, request);
             return result.Status;
         }

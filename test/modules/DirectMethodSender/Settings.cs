@@ -6,7 +6,6 @@ namespace DirectMethodSender
     using System.IO;
     using System.Linq;
     using Microsoft.Azure.Devices.Client;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
 

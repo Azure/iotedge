@@ -38,9 +38,9 @@ namespace DirectMethodSender
                 logger);
         }
 
-        internal override async Task<int> InvokeDeviceMethodAsync(string deviceId, string targetModuleId, CancellationToken none)
+        internal override async Task<int> InvokeDeviceMethodAsync(string deviceId, string targetModuleId, string methodName, CancellationToken none)
         {
-            CloudToDeviceMethod cloudToDeviceMethod = new CloudToDeviceMethod(Settings.Current.DirectMethodName).SetPayloadJson("{ \"Message\": \"Hello\" }");
+            CloudToDeviceMethod cloudToDeviceMethod = new CloudToDeviceMethod(methodName).SetPayloadJson("{ \"Message\": \"Hello\" }");
             CloudToDeviceMethodResult result = await this.serviceClient.InvokeDeviceMethodAsync(deviceId, targetModuleId, cloudToDeviceMethod, CancellationToken.None);
             return result.Status;
         }

@@ -44,7 +44,7 @@ namespace DirectMethodSender
 
                 while (!cts.Token.IsCancellationRequested && IsTestTimeUp(testStartAt))
                 {
-                    (HttpStatusCode result, long dmCounter) = await directMethodClient.InvokeDirectMethodAsync(cts);
+                    (HttpStatusCode result, long dmCounter) = await directMethodClient.InvokeDirectMethodAsync(Settings.Current.DirectMethodName, cts);
 
                     // Generate a report type depending on the reporting endpoint
                     TestResultBase report = ConstructTestResult(
