@@ -2,6 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
 {
     using System;
+    using System.Net;
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
@@ -63,8 +64,15 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.ReporterClients
             switch (report.GetType().Name)
             {
                 case nameof(LegacyDirectMethodTestResult):
-                    TestResultBase shadowReport = report as LegacyDirectMethodTestResult;
-                    await this.ModuleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes($"Source:{shadowReport.Source} CreatedAt:{shadowReport.CreatedAt}.")));
+                    LegacyDirectMethodTestResult shadowReport = report as LegacyDirectMethodTestResult;
+                    // The Old End-to-End test framework checks if there is an event in the eventHub for a particular module
+                    // to determine if the test case is passed/failed. Hence, this function need to check if the report status is Http.OK
+                    // before sending an event.
+                    if (shadowReport.Result == HttpStatusCode.OK.ToString())
+                    {
+                        await this.ModuleClient.SendEventAsync("AnyOutput", new Message(Encoding.UTF8.GetBytes($"Source:{shadowReport.Source} CreatedAt:{shadowReport.CreatedAt}.")));
+                    }
+
                     break;
 
                 default:
