@@ -28,7 +28,7 @@ namespace TestResultCoordinator.Reports.DirectMethodReport
             ITestResultCollection<TestOperationResult> actualTestResults,
             string resultType,
             ITestResultComparer<TestOperationResult> testResultComparer,
-            NetworkStatusTimeline networkStatusTimeline)
+            Option<NetworkStatusTimeline> networkStatusTimeline)
         {
             this.trackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
             this.ExpectedTestResults = Preconditions.CheckNotNull(expectedTestResults, nameof(expectedTestResults));
@@ -52,7 +52,7 @@ namespace TestResultCoordinator.Reports.DirectMethodReport
 
         internal ITestResultComparer<TestOperationResult> TestResultComparer { get; }
 
-        internal NetworkStatusTimeline NetworkStatusTimeline { get; }
+        internal Option<NetworkStatusTimeline> NetworkStatusTimeline { get; }
 
         public async Task<ITestResultReport> CreateReportAsync()
         {
@@ -76,7 +76,9 @@ namespace TestResultCoordinator.Reports.DirectMethodReport
                 this.ValidateDataSource(this.ActualTestResults.Current, this.ActualSource);
 
                 (NetworkControllerStatus networkControllerStatus, bool isWithinTolerancePeriod) =
-                        this.NetworkStatusTimeline.GetNetworkControllerStatusAndWithinToleranceAt(this.ExpectedTestResults.Current.CreatedAt);
+                        this.NetworkStatusTimeline.Expect<InvalidOperationException>(
+                            () => throw new InvalidOperationException("Results are present, but NetworkStatusTimeline is empty."))
+                        .GetNetworkControllerStatusAndWithinToleranceAt(this.ExpectedTestResults.Current.CreatedAt);
 
                 if (this.TestResultComparer.Matches(this.ExpectedTestResults.Current, this.ActualTestResults.Current))
                 {
@@ -116,7 +118,10 @@ namespace TestResultCoordinator.Reports.DirectMethodReport
             while (hasExpectedResult)
             {
                 (NetworkControllerStatus networkControllerStatus, bool isWithinTolerancePeriod) =
-                    this.NetworkStatusTimeline.GetNetworkControllerStatusAndWithinToleranceAt(this.ExpectedTestResults.Current.CreatedAt);
+                    this.NetworkStatusTimeline.Expect<InvalidOperationException>(
+                        () => throw new InvalidOperationException("Results are present, but NetworkStatusTimeline is empty."))
+                    .GetNetworkControllerStatusAndWithinToleranceAt(this.ExpectedTestResults.Current.CreatedAt);
+
                 (ulong addNetOffSuccess, ulong addNetOnTolSuccess, ulong addNetOnFailure, ulong addMismatchSuccess) =
                         this.CheckUnmatchedResult(this.ExpectedTestResults.Current, networkControllerStatus, isWithinTolerancePeriod, networkOffSuccess, networkOnToleratedSuccess, networkOnFailure, mismatchSuccess);
             }
@@ -132,6 +137,20 @@ namespace TestResultCoordinator.Reports.DirectMethodReport
                 // Log actual queue items
                 Logger.LogError($"Unexpected actual test result: {this.ActualTestResults.Current.Source}, {this.ActualTestResults.Current.Type}, {this.ActualTestResults.Current.Result} at {this.ActualTestResults.Current.CreatedAt}");
             }
+
+            return new DirectMethodReport(
+                this.trackingId,
+                this.ExpectedSource,
+                this.ActualSource,
+                this.ResultType,
+                networkOnSuccess,
+                networkOffSuccess,
+                networkOnToleratedSuccess,
+                networkOffToleratedSuccess,
+                networkOnFailure,
+                networkOffFailure,
+                mismatchSuccess,
+                mismatchFailure);
         }
 
         (ulong networkOffSuccess, ulong networkOnToleratedSuccess, ulong networkOnFailure, ulong mismatchSuccess) CheckUnmatchedResult(

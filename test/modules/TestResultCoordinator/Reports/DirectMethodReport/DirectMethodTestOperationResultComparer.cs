@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace TestResultCoordinator.Reports.DirectMethodReport
 {
+    using System;
+    using System.IO;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Newtonsoft.Json;
-    using System;
-    using System.IO;
     using TestResultCoordinator.Reports;
 
     /// <summary>
