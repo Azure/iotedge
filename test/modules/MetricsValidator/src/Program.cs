@@ -33,16 +33,17 @@ namespace MetricsValidator
                     .AddEnvironmentVariables()
                     .Build();
 
+                TestReporter testReporter = new TestReporter("Metrics Validation");
+
                 using (ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync())
                 using (MetricsScraper scraper = new MetricsScraper(new List<string> { "http://edgeHub:9600/metrics" }))
                 {
                     await moduleClient.OpenAsync();
 
-                    await new ValidateNumberOfMessagesSent(moduleClient, scraper).Start(cts.Token);
+                    await new ValidateNumberOfMessagesSent(testReporter, moduleClient, scraper).Start(cts.Token);
 
-                    await cts.Token.WhenCanceled();
+                    await testReporter.ReportResults(moduleClient, cts.Token);
                 }
-
 
                 completed.Set();
                 handler.ForEach(h => GC.KeepAlive(h));
