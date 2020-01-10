@@ -674,8 +674,8 @@ impl ModuleRuntime for DockerModuleRuntime {
                 .find(|p| p.get_name() == "Total CPU")
                 .map_or_else(|| -1.0, |p| p.get_cpu_usage());
 
-            let total_memory = system_info.get_total_memory();
-            let used_memory = system_info.get_used_memory();
+            let total_memory = system_info.get_total_memory() * 1000;
+            let used_memory = system_info.get_used_memory() * 1000;
 
             let disks = system_info
                 .get_disks()
@@ -696,8 +696,8 @@ impl ModuleRuntime for DockerModuleRuntime {
                     uptime,
                     current_time - start_time,
                     used_cpu.into(),
-                    total_memory,
                     used_memory,
+                    total_memory,
                     disks,
                     stats,
                 )

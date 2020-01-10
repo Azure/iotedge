@@ -1,6 +1,7 @@
 #![cfg(not(windows))]
 #![deny(rust_2018_idioms, warnings)]
 #![deny(clippy::all, clippy::pedantic)]
+#![allow(clippy::must_use_candidate)]
 
 use std::env;
 
@@ -86,7 +87,7 @@ pub fn configure_test(address: &str) -> (Run, u16) {
     )
     .with_issuer(CertificateIssuer::DeviceCa);
 
-    let manager = CertificateManager::new(crypto.clone(), edgelet_cert_props).unwrap();
+    let manager = CertificateManager::new(crypto, edgelet_cert_props).unwrap();
 
     let recognizer = RegexRoutesBuilder::default()
         .get(Version::Version2018_06_28, "/route1/hello", route1)

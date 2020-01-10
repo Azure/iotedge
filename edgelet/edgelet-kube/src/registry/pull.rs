@@ -59,7 +59,7 @@ where
     S::Error: Fail,
     S::Future: Send,
 {
-    let client_copy = runtime.client().clone();
+    let client_copy = runtime.client();
     let namespace_copy = runtime.settings().namespace().to_owned();
 
     let named_secrets: Vec<_> = image_pull_secrets

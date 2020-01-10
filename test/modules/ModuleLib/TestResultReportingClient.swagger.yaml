@@ -1,0 +1,50 @@
+swagger: "2.0"
+info:
+  description: "Report test result API implemented by both TestAnalyzer and TestResultCoordinator."
+  version: "1.0.0"
+  title: "Test Result Repoting API swagger"
+schemes:
+- "https"
+paths:
+  /api/testoperationresult:
+    post:
+      tags:
+      - "TestOperationResult"
+      summary: "Report test operation result"
+      description: ""
+      operationId: "reportResult"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "Test operation result data transfer object (DTO)"
+        required: true
+        schema:
+          $ref: "#/definitions/TestOperationResultDto"
+      responses:
+        204:
+          description: "Ok"
+        400:
+          description: "Invalid status value"
+definitions:
+  TestOperationResultDto:
+    type: "object"
+    required:
+    - "source"
+    - "result"
+    - "type"
+    - "createdAt"
+    properties:
+      source:
+        type: "string"
+      result:
+        type: "string"
+      type:
+        type: "string"
+      createdAt:
+        type: "string"
+        format: date-time
+        

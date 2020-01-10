@@ -4,15 +4,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
 {
     using System;
     using System.Collections.Generic;
-    using System.IO;
-    using System.Text;
+    using System.Threading.Tasks;
     using Autofac;
-    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Publisher;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Storage;
+    using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
-    using Microsoft.Extensions.Logging;
 
     public sealed class DiagnosticsModule : Module
     {
@@ -30,18 +28,32 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service
                 .As<IMetricsScraper>()
                 .SingleInstance();
 
-            // IMetricsStorage
-            builder.RegisterType<MetricsStorage>()
-                .As<IMetricsStorage>()
+            // Task<IMetricsStorage>
+            builder.Register(async c =>
+                {
+                    IStoreProvider storeProvider = await c.Resolve<Task<IStoreProvider>>();
+                    ISequentialStore<IEnumerable<Metric>> dataStore = await storeProvider.GetSequentialStore<IEnumerable<Metric>>("Metrics");
+
+                    return new MetricsStorage(dataStore) as IMetricsStorage;
+                })
+                .As<Task<IMetricsStorage>>()
                 .SingleInstance();
 
             // IMetricsPublisher
-            builder.RegisterType<IoTHubMetricsUpload>()
+            builder.RegisterType<EdgeRuntimeDiagnosticsUpload>()
                 .As<IMetricsPublisher>()
                 .SingleInstance();
 
-            // MetricsWorker
-            builder.RegisterType<MetricsWorker>()
+            // Task<MetricsWorker>
+            builder.Register(async c =>
+                {
+                    IMetricsScraper scraper = c.Resolve<IMetricsScraper>();
+                    IMetricsPublisher publisher = c.Resolve<IMetricsPublisher>();
+                    Task<IMetricsStorage> storage = c.Resolve<Task<IMetricsStorage>>();
+
+                    return new MetricsWorker(scraper, await storage, publisher);
+                })
+                .As<Task<MetricsWorker>>()
                 .SingleInstance();
 
             base.Load(builder);

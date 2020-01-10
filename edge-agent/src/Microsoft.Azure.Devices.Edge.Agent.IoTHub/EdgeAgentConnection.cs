@@ -165,17 +165,22 @@ namespace Microsoft.Azure.Devices.Edge.Agent.IoTHub
                     this.ModuleConnection.GetModuleClient().Map(x => x.UpstreamProtocol).GetOrElse(UpstreamProtocol.Amqp);
                 Events.ConnectionStatusChanged(status, reason);
 
-                // Notify the IoT Edge daemon that a device has been deprovisioned and it should check
-                // if the device has been provisioned to a different IoT hub instead.
+                // We want to notify the IoT Edge daemon in the following two cases -
+                // 1. The device has been deprovisioned and might have been reprovisioned on another IoT hub.
+                // 2. The IoT Hub that the device belongs to is no longer in existence and the device might have been
+                // moved to a different IoT hub.
+                //
                 // When the Amqp or AmqpWs protocol is used, the SDK returns a connection status change reason of
                 // Device_Disabled when a device is either disabled or deleted in IoT hub.
                 // For the Mqtt and MqttWs protocol however, the SDK returns a Bad_Credential status as it's not
                 // possible for IoT hub to distinguish between 'device does not exist', 'device is disabled' and
                 // 'device exists but wrong credentials were supplied' cases.
+                //
+                // When an IoT hub is no longer in existence (i.e., it has been deleted), the SDK returns the
+                // connection status change reason of Bad_Credential for all the Amqp and Mqtt protocols.
                 if ((reason == ConnectionStatusChangeReason.Device_Disabled &&
                     (protocol == UpstreamProtocol.Amqp || protocol == UpstreamProtocol.AmqpWs)) ||
-                    (reason == ConnectionStatusChangeReason.Bad_Credential &&
-                    (protocol == UpstreamProtocol.Mqtt || protocol == UpstreamProtocol.MqttWs)))
+                    reason == ConnectionStatusChangeReason.Bad_Credential)
                 {
                     await this.deviceManager.ReprovisionDeviceAsync();
                 }
