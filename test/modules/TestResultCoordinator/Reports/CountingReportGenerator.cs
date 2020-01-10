@@ -97,20 +97,19 @@ namespace TestResultCoordinator.Reports
                 }
             }
 
+            // Check duplicates at the end of actual results
+            while (hasActualResult && this.TestResultComparer.Matches(lastLoadedResult, this.ActualTestResults.Current))
+            {
+                totalDuplicateResultCount++;
+                lastLoadedResult = this.ActualTestResults.Current;
+                hasActualResult = await this.ActualTestResults.MoveNextAsync();
+            }
+
             while (hasExpectedResult)
             {
-                if (this.TestResultComparer.Matches(this.ExpectedTestResults.Current, lastLoadedResult))
-                {
-                    totalDuplicateResultCount++;
-                    lastLoadedResult = this.ExpectedTestResults.Current;
-                }
-                else
-                {
-                    unmatchedResults.Add(this.ExpectedTestResults.Current);
-                }
-
-                hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
                 totalExpectCount++;
+                unmatchedResults.Add(this.ExpectedTestResults.Current);
+                hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
             }
 
             while (hasActualResult)
@@ -120,6 +119,7 @@ namespace TestResultCoordinator.Reports
 
                 hasActualResult = await this.ActualTestResults.MoveNextAsync();
                 // Log actual queue items
+
                 Logger.LogError($"Unexpected actual test result: {this.ActualTestResults.Current.Source}, {this.ActualTestResults.Current.Type}, {this.ActualTestResults.Current.Result} at {this.ActualTestResults.Current.CreatedAt}");
             }
 
