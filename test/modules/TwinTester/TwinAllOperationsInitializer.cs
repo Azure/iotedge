@@ -114,7 +114,6 @@ namespace TwinTester
         {
             this.periodicValidation?.Dispose();
             this.periodicUpdate?.Dispose();
-            this.periodicUpdate.Dispose();
         }
 
         static int GetNewPropertyCounter(Dictionary<string, DateTime> properties)

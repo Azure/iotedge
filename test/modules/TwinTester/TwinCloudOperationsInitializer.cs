@@ -58,7 +58,7 @@ namespace TwinTester
 
         public void Stop()
         {
-            this.periodicUpdate.Dispose();
+            this.periodicUpdate?.Dispose();
         }
     }
 }
