@@ -9,7 +9,7 @@ namespace LoadGen
     using Microsoft.Azure.Devices.Edge.Util.Concurrency;
     using Serilog;
 
-    public class BufferPool
+    class BufferPool
     {
         readonly ConcurrentDictionary<ulong, List<Buffer>> buffers = new ConcurrentDictionary<ulong, List<Buffer>>();
 
@@ -46,7 +46,7 @@ namespace LoadGen
         }
     }
 
-    public class Buffer : IDisposable
+    class Buffer : IDisposable
     {
         static long bufferIdCounter = 0;
 

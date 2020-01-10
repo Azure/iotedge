@@ -11,13 +11,11 @@ namespace TwinTester
     class DesiredPropertyReceiver : ITwinOperation
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(DesiredPropertyReceiver));
-        readonly RegistryManager registryManager;
         readonly ModuleClient moduleClient;
         readonly ITwinTestResultHandler resultHandler;
 
-        public DesiredPropertyReceiver(RegistryManager registryManager, ModuleClient moduleClient, ITwinTestResultHandler resultHandler)
+        public DesiredPropertyReceiver(ModuleClient moduleClient, ITwinTestResultHandler resultHandler)
         {
-            this.registryManager = registryManager;
             this.moduleClient = moduleClient;
             this.resultHandler = resultHandler;
         }
