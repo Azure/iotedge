@@ -11,7 +11,7 @@ namespace DirectMethodSender
     using Microsoft.Azure.Devices.Edge.Util.TransientFaultHandling;
     using Microsoft.Extensions.Logging;
 
-    internal sealed class DirectMethodLocalSender : DirectMethodSenderBase
+    sealed class DirectMethodLocalSender : DirectMethodSenderBase
     {
         ModuleClient moduleClient;
 

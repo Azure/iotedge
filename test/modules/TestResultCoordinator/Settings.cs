@@ -8,11 +8,8 @@ namespace TestResultCoordinator
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Serialization;
     using TestResultCoordinator.Reports;
 
-    [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
     class Settings
     {
         const string DefaultStoragePath = "";
@@ -78,7 +75,7 @@ namespace TestResultCoordinator
             this.ReportMetadataList = this.InitializeReportMetadataList();
         }
 
-        public static Settings Current => DefaultSettings.Value;
+        internal static Settings Current => DefaultSettings.Value;
 
         public string EventHubConnectionString { get; }
 
@@ -148,10 +145,10 @@ namespace TestResultCoordinator
                 new CountingReportMetadata("directMethodSender2.send", "directMethodReceiver2.receive", TestOperationResultType.DirectMethod, TestReportType.CountingReport),
                 new CountingReportMetadata("directMethodSender3.send", "directMethodSender3.send", TestOperationResultType.DirectMethod, TestReportType.CountingReport),
                 new TwinCountingReportMetadata("twinTester1.desiredUpdated", "twinTester2.desiredReceived", TestReportType.TwinCountingReport, TwinTestPropertyType.Desired),
-                new TwinCountingReportMetadata("twinTester2.reportedUpdated", "twinTester2.reportedReceived", TestReportType.TwinCountingReport, TwinTestPropertyType.Reported),
+                new TwinCountingReportMetadata("twinTester2.reportedReceived", "twinTester2.reportedUpdated", TestReportType.TwinCountingReport, TwinTestPropertyType.Reported),
                 new TwinCountingReportMetadata("twinTester3.desiredUpdated", "twinTester4.desiredReceived", TestReportType.TwinCountingReport, TwinTestPropertyType.Desired),
-                new TwinCountingReportMetadata("twinTester4.reportedUpdated", "twinTester4.reportedReceived", TestReportType.TwinCountingReport, TwinTestPropertyType.Reported),
-                new DeploymentTestReportMetadata("deploymentTester1.send",  "deploymentTester2.receive"),
+                new TwinCountingReportMetadata("twinTester4.reportedReceived", "twinTester4.reportedUpdated", TestReportType.TwinCountingReport, TwinTestPropertyType.Reported),
+                new DeploymentTestReportMetadata("deploymentTester1.send",  "deploymentTester2.receive")
             };
         }
 

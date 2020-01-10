@@ -10,7 +10,7 @@ namespace TestResultCoordinator.Storage
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public class TestOperationResultStorage : ITestOperationResultStorage
+    class TestOperationResultStorage : ITestOperationResultStorage
     {
         static readonly ILogger Logger = Microsoft.Azure.Devices.Edge.ModuleUtil.ModuleUtil.CreateLogger(nameof(TestOperationResultStorage));
         readonly Dictionary<string, ISequentialStore<TestOperationResult>> resultStores;
