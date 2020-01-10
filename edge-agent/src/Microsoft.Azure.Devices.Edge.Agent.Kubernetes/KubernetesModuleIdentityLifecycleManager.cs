@@ -9,7 +9,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public class KubernetesModuleIdentityLifecycleManager : Edgelet.ModuleIdentityLifecycleManager
+    public class KubernetesModuleIdentityLifecycleManager : ModuleIdentityLifecycleManager
     {
         protected override bool ShouldAlwaysReturnIdentities => true;
 

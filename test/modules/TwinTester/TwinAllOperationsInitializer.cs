@@ -27,9 +27,9 @@ namespace TwinTester
 
         TwinAllOperationsInitializer(RegistryManager registryManager, ModuleClient moduleClient, ITwinTestResultHandler resultHandler, TwinEventStorage storage, TwinState twinState)
         {
-            this.reportedPropertyUpdater = new ReportedPropertyUpdater(registryManager, moduleClient, resultHandler, twinState);
+            this.reportedPropertyUpdater = new ReportedPropertyUpdater(moduleClient, resultHandler, twinState.ReportedPropertyUpdateCounter);
             this.desiredPropertyUpdater = new DesiredPropertyUpdater(registryManager, resultHandler, twinState);
-            this.desiredPropertyReceiver = new DesiredPropertyReceiver(registryManager, moduleClient, resultHandler);
+            this.desiredPropertyReceiver = new DesiredPropertyReceiver(moduleClient, resultHandler);
             this.reportedPropertiesValidator = new ReportedPropertiesValidator(registryManager, moduleClient, storage, resultHandler, twinState);
             this.desiredPropertiesValidator = new DesiredPropertiesValidator(registryManager, moduleClient, storage, resultHandler, twinState);
         }
@@ -39,7 +39,7 @@ namespace TwinTester
             try
             {
                 TwinState initializedState;
-                Twin twin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
+                Twin twin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId);
                 Dictionary<string, DateTime> reportedPropertyUpdates = await storage.GetAllReportedPropertiesUpdatedAsync();
                 Dictionary<string, DateTime> desiredPropertyUpdates = await storage.GetAllDesiredPropertiesUpdatedAsync();
 
@@ -50,14 +50,12 @@ namespace TwinTester
                     Logger.LogInformation("No existing storage detected. Initializing new module twin for fresh run.");
 
                     // reset desired properties
-                    Twin desiredPropertyResetTwin = await registryManager.ReplaceTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId, new Twin(), twin.ETag);
+                    Twin desiredPropertyResetTwin = await registryManager.ReplaceTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId, new Twin(), twin.ETag);
 
-                    // reset reported properties
-                    TwinCollection eraseReportedProperties = GetReportedPropertiesResetTwin(desiredPropertyResetTwin);
-                    await moduleClient.UpdateReportedPropertiesAsync(eraseReportedProperties);
+                    await TwinTesterUtil.ResetTwinReportedPropertiesAsync(moduleClient, desiredPropertyResetTwin);
 
                     await Task.Delay(TimeSpan.FromSeconds(10)); // give enough time for reported properties reset to reach cloud
-                    twin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
+                    twin = await registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId);
                     initializedState = new TwinState { ReportedPropertyUpdateCounter = 0, DesiredPropertyUpdateCounter = 0, TwinETag = twin.ETag, LastTimeOffline = DateTime.MinValue };
                 }
                 else
@@ -75,12 +73,13 @@ namespace TwinTester
             }
         }
 
-        public Task Start()
+        public async Task StartAsync(CancellationToken cancellationToken)
         {
+            await Task.Delay(Settings.Current.TestStartDelay, cancellationToken);
             TimeSpan validationInterval = new TimeSpan(Settings.Current.TwinUpdateFailureThreshold.Ticks / 4);
             this.periodicValidation = new PeriodicTask(this.PerformValidationAsync, validationInterval, validationInterval, Logger, "TwinValidation");
             this.periodicUpdate = new PeriodicTask(this.PerformUpdatesAsync, Settings.Current.TwinUpdateFrequency, Settings.Current.TwinUpdateFrequency, Logger, "TwinUpdates");
-            return this.desiredPropertyReceiver.UpdateAsync();
+            await this.desiredPropertyReceiver.UpdateAsync();
         }
 
         public async Task PerformUpdatesAsync(CancellationToken cancellationToken)
@@ -111,10 +110,10 @@ namespace TwinTester
             }
         }
 
-        public void Dispose()
+        public void Stop()
         {
-            this.periodicValidation.Dispose();
-            this.periodicUpdate.Dispose();
+            this.periodicValidation?.Dispose();
+            this.periodicUpdate?.Dispose();
         }
 
         static int GetNewPropertyCounter(Dictionary<string, DateTime> properties)
@@ -126,18 +125,6 @@ namespace TwinTester
             }
 
             return maxPropertyId + 1;
-        }
-
-        static TwinCollection GetReportedPropertiesResetTwin(Twin originalTwin)
-        {
-            TwinCollection eraseReportedProperties = new TwinCollection();
-            foreach (dynamic twinUpdate in originalTwin.Properties.Reported)
-            {
-                KeyValuePair<string, object> pair = (KeyValuePair<string, object>)twinUpdate;
-                eraseReportedProperties[pair.Key] = null; // erase twin property by assigning null
-            }
-
-            return eraseReportedProperties;
         }
     }
 }

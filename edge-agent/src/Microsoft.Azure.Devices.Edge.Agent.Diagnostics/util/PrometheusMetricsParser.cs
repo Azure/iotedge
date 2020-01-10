@@ -52,7 +52,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Diagnostics.Util
                             timeGeneratedUtc,
                             metricName,
                             metricValue,
-                            JsonConvert.SerializeObject(tags));
+                            tags);
                     }
                 }
             }
