@@ -5,6 +5,7 @@ namespace MetricsValidator
     using System;
     using System.Collections.Generic;
     using System.ComponentModel;
+    using System.Linq;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -13,13 +14,46 @@ namespace MetricsValidator
 
     public class TestReporter
     {
+        [JsonProperty("Category")]
         string category;
+
+        [JsonProperty("Successes")]
         List<string> successes = new List<string>();
+
+        [JsonProperty("Failures")]
         Dictionary<string, string> failures = new Dictionary<string, string>();
 
-        [JsonProperty("subcategories", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
+        [JsonProperty("Subcategories", DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate)]
         [DefaultValue(null)]
         List<TestReporter> subcategories = null;
+
+        [JsonProperty("Succeeded", Order = -2)]
+        int NumSuccesses
+        {
+            get
+            {
+                if (this.subcategories != null)
+                {
+                    return this.subcategories.Sum(sc => sc.NumSuccesses) + this.successes.Count;
+                }
+
+                return this.successes.Count;
+            }
+        }
+
+        [JsonProperty("Failed", Order = -2)]
+        int NumFailures
+        {
+            get
+            {
+                if (this.subcategories != null)
+                {
+                    return this.subcategories.Sum(sc => sc.NumFailures) + this.failures.Count;
+                }
+
+                return this.failures.Count;
+            }
+        }
 
         public TestReporter(string category)
         {
