@@ -39,10 +39,10 @@ namespace MetricsValidator
                 using (MetricsScraper scraper = new MetricsScraper(new List<string> { "http://edgeHub:9600/metrics", "http://edgeAgent:9600/metrics" }))
                 {
                     await moduleClient.OpenAsync();
+                    await Task.Delay(5000);
 
                     await new ValidateNumberOfMessagesSent(testReporter, scraper, moduleClient).Start(cts.Token);
                     // await new ValidateDocumentedMetrics(testReporter, scraper).Start(cts.Token);
-
                     await testReporter.ReportResults(moduleClient, cts.Token);
                 }
 
