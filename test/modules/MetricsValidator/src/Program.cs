@@ -4,6 +4,8 @@ namespace MetricsValidator
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Net;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
@@ -33,18 +35,22 @@ namespace MetricsValidator
                     .AddEnvironmentVariables()
                     .Build();
 
-                TestReporter testReporter = new TestReporter("Metrics Validation");
-
                 using (ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync())
                 using (MetricsScraper scraper = new MetricsScraper(new List<string> { "http://edgeHub:9600/metrics", "http://edgeAgent:9600/metrics" }))
                 {
                     await moduleClient.OpenAsync();
-                    await Task.Delay(5000);
+                    await moduleClient.SetMethodHandlerAsync("ValidateMetrics", async (MethodRequest methodRequest, object _) =>
+                    {
+                        Console.WriteLine("Validating metrics");
+                        TestReporter testReporter = new TestReporter("Metrics Validation");
 
-                    await new ValidateNumberOfMessagesSent(testReporter, scraper, moduleClient).Start(cts.Token);
-                    await new ValidateDocumentedMetrics(testReporter, scraper).Start(cts.Token);
+                        await new ValidateNumberOfMessagesSent(testReporter, scraper, moduleClient).Start(cts.Token);
+                        await new ValidateDocumentedMetrics(testReporter, scraper).Start(cts.Token);
 
-                    await testReporter.ReportResults(moduleClient, cts.Token);
+                        return new MethodResponse(Encoding.UTF8.GetBytes(testReporter.ReportResults()), (int)HttpStatusCode.OK);
+                    }, null);
+
+                    Console.WriteLine("Ready to validate metrics");
                     await cts.Token.WhenCanceled();
                 }
 

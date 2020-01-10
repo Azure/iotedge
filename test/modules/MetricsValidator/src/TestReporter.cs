@@ -98,15 +98,12 @@ namespace MetricsValidator
             return newCategory;
         }
 
-        public Task ReportResults(ModuleClient moduleClient, CancellationToken cancellationToken)
+        public string ReportResults()
         {
             string result = JsonConvert.SerializeObject(this, Formatting.Indented);
             Console.WriteLine(result);
 
-            Message message = new Message(Encoding.UTF8.GetBytes(result));
-            message.Properties.Add("Report", (this.NumFailures == 0).ToString());
-
-            return moduleClient.SendEventAsync(message, cancellationToken);
+            return result;
         }
     }
 }
