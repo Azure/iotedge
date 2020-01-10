@@ -115,19 +115,19 @@ namespace DirectMethodSender
             switch (directMethodResultType)
             {
                 case DirectMethodResultType.DirectMethodTestResult:
-                    return new DirectMethodTestResult(source, DateTime.UtcNow)
-                    {
-                        TrackingId = Settings.Current.TrackingId.Expect(() => new ArgumentException("TrackingId is empty")),
-                        BatchId = Preconditions.CheckNotNull(batchId, nameof(batchId)).ToString(),
-                        SequenceNumber = Preconditions.CheckNotNull(counter, nameof(counter)).ToString(),
-                        Result = Preconditions.CheckNonWhiteSpace(result, nameof(result))
-                    };
+                    return new DirectMethodTestResult(
+                        source,
+                        DateTime.UtcNow,
+                        Settings.Current.TrackingId.Expect(() => new ArgumentException("TrackingId is empty")),
+                        batchId,
+                        counter,
+                        result);
 
                 case DirectMethodResultType.LegacyDirectMethodTestResult:
-                    return new LegacyDirectMethodTestResult(source, DateTime.UtcNow)
-                    {
-                        Result = Preconditions.CheckNonWhiteSpace(result, nameof(result))
-                    };
+                    return new LegacyDirectMethodTestResult(
+                        source,
+                        DateTime.UtcNow,
+                        result);
 
                 default:
                     throw new NotImplementedException("Reporting Endpoint has an unknown type");
