@@ -85,7 +85,7 @@ namespace TwinTester
                     continue;
                 }
 
-                await this.HandleReportStatusAsync(Settings.Current.ModuleId, status);
+                await this.HandleReportStatusAsync(status);
                 propertiesToRemoveFromTwin.Add(desiredPropertyUpdate.Key, null); // will later be serialized as a twin update
             }
 
@@ -113,7 +113,7 @@ namespace TwinTester
             try
             {
                 string patch = $"{{ properties: {{ desired: {JsonConvert.SerializeObject(propertiesToRemoveFromTwin)} }}";
-                Twin newTwin = await this.registryManager.UpdateTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId, patch, this.twinState.TwinETag);
+                Twin newTwin = await this.registryManager.UpdateTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId, patch, this.twinState.TwinETag);
                 this.twinState.TwinETag = newTwin.ETag;
             }
             catch (Exception e)
@@ -128,7 +128,7 @@ namespace TwinTester
             return DateTime.UtcNow - comparisonPoint > Settings.Current.TwinUpdateFailureThreshold;
         }
 
-        async Task HandleReportStatusAsync(string moduleId, string status)
+        async Task HandleReportStatusAsync(string status)
         {
             await this.resultHandler.HandleTwinValidationStatusAsync(status);
         }

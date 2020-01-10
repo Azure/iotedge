@@ -8,7 +8,7 @@ namespace DeploymentTester
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
 
-    public class Settings
+    class Settings
     {
         public const string EnvironmentVariablePrefix = "IOTEDGE_DT";
 
@@ -66,7 +66,7 @@ namespace DeploymentTester
             this.DeploymentUpdatePeriod = deploymentUpdatePeriod;
         }
 
-        public static Settings Current => DefaultSettings.Value;
+        internal static Settings Current => DefaultSettings.Value;
 
         public string DeviceId { get; }
 

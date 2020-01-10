@@ -12,17 +12,15 @@ namespace TwinTester
     class ReportedPropertyUpdater : ITwinOperation
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(ReportedPropertyUpdater));
-        readonly RegistryManager registryManager;
         readonly ModuleClient moduleClient;
         readonly ITwinTestResultHandler reporter;
-        readonly TwinState twinState;
+        int reportedPropertyUpdateCounter;
 
-        public ReportedPropertyUpdater(RegistryManager registryManager, ModuleClient moduleClient, ITwinTestResultHandler reporter, TwinState twinState)
+        public ReportedPropertyUpdater(ModuleClient moduleClient, ITwinTestResultHandler reporter, int reportedPropertyUpdateCounter)
         {
-            this.registryManager = registryManager;
             this.moduleClient = moduleClient;
             this.reporter = reporter;
-            this.twinState = twinState;
+            this.reportedPropertyUpdateCounter = reportedPropertyUpdateCounter;
         }
 
         public async Task UpdateAsync()
@@ -31,12 +29,12 @@ namespace TwinTester
             {
                 string reportedPropertyUpdateValue = new string('1', Settings.Current.TwinUpdateSize); // dummy twin update can to be any number
                 var twin = new TwinCollection();
-                twin[this.twinState.ReportedPropertyUpdateCounter.ToString()] = reportedPropertyUpdateValue;
+                twin[this.reportedPropertyUpdateCounter.ToString()] = reportedPropertyUpdateValue;
 
                 await this.moduleClient.UpdateReportedPropertiesAsync(twin);
-                Logger.LogInformation($"Reported property updated {this.twinState.ReportedPropertyUpdateCounter}");
+                Logger.LogInformation($"Reported property updated {this.reportedPropertyUpdateCounter}");
 
-                await this.ReportAsync();
+                await this.ReportAsync(reportedPropertyUpdateValue);
             }
             catch (Exception e)
             {
@@ -46,12 +44,12 @@ namespace TwinTester
             }
         }
 
-        async Task ReportAsync()
+        async Task ReportAsync(string value)
         {
             try
             {
-                await this.reporter.HandleReportedPropertyUpdateAsync(this.twinState.ReportedPropertyUpdateCounter.ToString());
-                this.twinState.ReportedPropertyUpdateCounter += 1;
+                await this.reporter.HandleReportedPropertyUpdateAsync(this.reportedPropertyUpdateCounter.ToString(), value);
+                this.reportedPropertyUpdateCounter += 1;
             }
             catch (Exception e)
             {

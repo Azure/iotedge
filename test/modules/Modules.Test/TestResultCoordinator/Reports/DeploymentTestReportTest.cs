@@ -157,13 +157,14 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
         private static DeploymentTestResult GetDeploymentTestResult()
         {
-            var testResult = new DeploymentTestResult("actualSource", DateTime.UtcNow) { TrackingId = "trackingId123" };
+            var envVars = new Dictionary<string, string>();
+
             for (int i = 1; i <= 13; i++)
             {
-                testResult.EnvironmentVariables.Add($"Env_Key{i}", $"Env_Value{i}");
+                envVars.Add($"Env_Key{i}", $"Env_Value{i}");
             }
 
-            return testResult;
+            return new DeploymentTestResult("trackingId123", "actualSource", envVars, DateTime.UtcNow);
         }
     }
 }
