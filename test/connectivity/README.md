@@ -68,4 +68,4 @@ Network offline/online should not affect this test result since Edge hub stores 
 5. Edge Agent will get updated deployment of target module from IoT hub (#3); and deploy module with updated environment variables (#4).
 6. When DeploymentTester2 starts up, it will get all environment variables and report to Test Result Coordinator (#5).
 
-When network offline, route#3 will not be happened.  But once get back online, Edge Agent should be able to get latest updated deployemnt and deploy DeploymentTester2.
+When network goes offline, route#3 will not happen.  But once the network comes back online, Edge Agent should be able to get the latest updated deployment and deploy DeploymentTester2.
