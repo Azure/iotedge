@@ -38,7 +38,7 @@ namespace TwinTester
 
                 Logger.LogInformation($"Desired property updated {propertyKey}");
 
-                await this.Report(propertyKey);
+                await this.Report(propertyKey, desiredPropertyUpdateValue);
             }
             catch (Exception e)
             {
@@ -46,11 +46,11 @@ namespace TwinTester
             }
         }
 
-        async Task Report(string propertyKey)
+        async Task Report(string propertyKey, string value)
         {
             try
             {
-                await this.resultHandler.HandleDesiredPropertyUpdateAsync(propertyKey);
+                await this.resultHandler.HandleDesiredPropertyUpdateAsync(propertyKey, value);
                 this.twinState.DesiredPropertyUpdateCounter += 1;
             }
             catch (Exception e)

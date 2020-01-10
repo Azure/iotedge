@@ -11,13 +11,13 @@ namespace TwinTester
     class TwinAllOperationsResultHandler : ITwinTestResultHandler
     {
         static readonly ILogger Logger = ModuleUtil.CreateLogger(nameof(TwinAllOperationsResultHandler));
-        readonly AnalyzerClient analyzerClient;
+        readonly TestResultReportingClient testResultReportingClient;
         readonly string moduleId;
         readonly TwinEventStorage storage;
 
-        public TwinAllOperationsResultHandler(Uri analyzerClientUri, TwinEventStorage storage, string moduleId)
+        public TwinAllOperationsResultHandler(Uri reportUrl, TwinEventStorage storage, string moduleId)
         {
-            this.analyzerClient = new AnalyzerClient() { BaseUrl = analyzerClientUri.AbsoluteUri };
+            this.testResultReportingClient = new TestResultReportingClient { BaseUrl = reportUrl.AbsoluteUri };
             this.moduleId = moduleId;
             this.storage = storage;
         }
@@ -38,7 +38,7 @@ namespace TwinTester
             }
         }
 
-        public async Task HandleDesiredPropertyUpdateAsync(string status)
+        public async Task HandleDesiredPropertyUpdateAsync(string status, string value)
         {
             try
             {
@@ -50,7 +50,7 @@ namespace TwinTester
             }
         }
 
-        public async Task HandleReportedPropertyUpdateAsync(string status)
+        public async Task HandleReportedPropertyUpdateAsync(string status, string value)
         {
             try
             {
@@ -76,7 +76,7 @@ namespace TwinTester
         {
             try
             {
-                await this.analyzerClient.ReportResultAsync(new TestOperationResult { Source = this.moduleId, Result = failureStatus, CreatedAt = DateTime.UtcNow, Type = "LegacyTwin" });
+                await this.testResultReportingClient.ReportResultAsync(new TestOperationResultDto { Source = this.moduleId, Result = failureStatus, CreatedAt = DateTime.UtcNow, Type = TestOperationResultType.LegacyTwin.ToString() });
             }
             catch (Exception e)
             {

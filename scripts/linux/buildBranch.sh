@@ -257,6 +257,7 @@ publish_app "Relayer"
 publish_app "MetricsCollector"
 publish_app "TestResultCoordinator"
 publish_app "NetworkController"
+publish_app "DeploymentTester"
 
 publish_lib "Microsoft.Azure.WebJobs.Extensions.EdgeHub"
 publish_lib "EdgeHubTriggerCSharp"

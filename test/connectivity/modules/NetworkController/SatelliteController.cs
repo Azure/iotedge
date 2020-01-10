@@ -3,7 +3,7 @@ namespace NetworkController
 {
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkControllerResult;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
 
     // TODO: implement satellite
     class SatelliteController : INetworkController
