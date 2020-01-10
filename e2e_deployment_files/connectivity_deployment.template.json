@@ -241,7 +241,7 @@
                 "value": "<IoTHubConnectionString>"
               },
               "TargetModuleId": {
-                "value": "edgeAgent"
+                "value": "$edgeAgent"
               },
               "testDuration": {
                 "value": "<TestDuration>"
