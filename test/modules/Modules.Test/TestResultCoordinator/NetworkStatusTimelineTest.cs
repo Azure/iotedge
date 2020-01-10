@@ -27,7 +27,7 @@ namespace Modules.Test.TestResultCoordinator
             new DateTime(2020, 1, 1, 9, 10, 25, 13)
         };
 
-        public static string[] NetworkControllerStatusArray => new[] { "Enabled", "Enabled", "Disabled", "Disabled", "Enabled", "Enabled", "Disabled", "Disabled" };
+        public static string[] NetworkControllerStatusArray => new[] { "Disabled", "Disabled", "Enabled", "Enabled", "Disabled", "Disabled", "Enabled", "Enabled" };
 
         public static string[] NetworkControllerOperationArray => new[] { "SettingRule", "RuleSet", "SettingRule", "RuleSet", "SettingRule", "RuleSet", "SettingRule", "RuleSet" };
 
@@ -50,7 +50,7 @@ namespace Modules.Test.TestResultCoordinator
                 {
                     new object[]
                     {
-                        new[] { "Enabled", "Enabled", "Disabled", "Disabled", "Enabled", "Enabled", "Disabled" },
+                        new[] { "Disabled", "Disabled", "Enabled", "Enabled", "Disabled", "Disabled", "Enabled" },
                         DateTimeArray,
                         new[] { "SettingRule", "RuleSet", "SettingRule", "RuleSet", "SettingRule", "RuleSet", "SettingRule" }
                     }
@@ -70,7 +70,7 @@ namespace Modules.Test.TestResultCoordinator
                 {
                     new object[]
                     {
-                        new[] { "Enabled", "Enabled", "Disabled", "Enabled", "Enabled", "Enabled", "Disabled", "Disabled" },
+                        new[] { "Disabled", "Disabled", "Enabled", "Disabled", "Disabled", "Disabled", "Enabled", "Enabled" },
                         DateTimeArray,
                         NetworkControllerOperationArray
                     }
@@ -90,19 +90,19 @@ namespace Modules.Test.TestResultCoordinator
             NetworkStatusTimeline timeline = await NetworkStatusTimeline.Create(resultCollection, new TimeSpan(0, 0, 0, 0, 5));
 
             (NetworkControllerStatus status, bool inTolerance) = timeline.GetNetworkControllerStatusAndWithinToleranceAt(new DateTime(2020, 1, 1, 9, 10, 11, 10));
-            Assert.Equal(NetworkControllerStatus.Enabled, status);
+            Assert.Equal(NetworkControllerStatus.Disabled, status);
             Assert.False(inTolerance);
             (status, inTolerance) = timeline.GetNetworkControllerStatusAndWithinToleranceAt(new DateTime(2020, 1, 1, 9, 10, 16, 10));
-            Assert.Equal(NetworkControllerStatus.Disabled, status);
+            Assert.Equal(NetworkControllerStatus.Enabled, status);
             Assert.False(inTolerance);
             (status, inTolerance) = timeline.GetNetworkControllerStatusAndWithinToleranceAt(new DateTime(2020, 1, 1, 9, 10, 20, 15));
-            Assert.Equal(NetworkControllerStatus.Enabled, status);
+            Assert.Equal(NetworkControllerStatus.Disabled, status);
             Assert.True(inTolerance);
             (status, inTolerance) = timeline.GetNetworkControllerStatusAndWithinToleranceAt(new DateTime(2020, 1, 1, 9, 10, 25, 11));
-            Assert.Equal(NetworkControllerStatus.Disabled, status);
+            Assert.Equal(NetworkControllerStatus.Enabled, status);
             Assert.True(inTolerance);
             (status, inTolerance) = timeline.GetNetworkControllerStatusAndWithinToleranceAt(new DateTime(2020, 1, 1, 9, 10, 25, 12));
-            Assert.Equal(NetworkControllerStatus.Disabled, status);
+            Assert.Equal(NetworkControllerStatus.Enabled, status);
             Assert.True(inTolerance);
         }
 
