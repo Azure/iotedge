@@ -3,11 +3,14 @@ namespace TestResultCoordinator.Reports.DirectMethodReport
 {
     using System;
     using System.IO;
+    using System.Net;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
+    using Newtonsoft.Json;
     using TestResultCoordinator.Report.DirectMethodReport;
     using TestResultCoordinator.Reports;
 
@@ -64,7 +67,7 @@ namespace TestResultCoordinator.Reports.DirectMethodReport
             ulong mismatchSuccess = 0;
             ulong mismatchFailure = 0;
 
-        bool hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
+            bool hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
             bool hasActualResult = await this.ActualTestResults.MoveNextAsync();
 
             while (hasExpectedResult && hasActualResult)
@@ -72,30 +75,109 @@ namespace TestResultCoordinator.Reports.DirectMethodReport
                 this.ValidateDataSource(this.ExpectedTestResults.Current, this.ExpectedSource);
                 this.ValidateDataSource(this.ActualTestResults.Current, this.ActualSource);
 
+                (NetworkControllerStatus networkControllerStatus, bool isWithinTolerancePeriod) =
+                        this.NetworkStatusTimeline.GetNetworkControllerStatusAndWithinToleranceAt(this.ExpectedTestResults.Current.CreatedAt);
+
                 if (this.TestResultComparer.Matches(this.ExpectedTestResults.Current, this.ActualTestResults.Current))
                 {
                     // Found same message in both stores.
-                    (NetworkControllerStatus networkControllerStatus, bool isWithinTolerancePeriod) = this.NetworkStatusTimeline.GetNetworkControllerStatusAndWithinToleranceAt(this.ExpectedTestResults.Current.CreatedAt);
-
                     if (NetworkControllerStatus.Disabled.Equals(networkControllerStatus))
                     {
                         // If network on at time, succeed
                         networkOnSuccess++;
                     }
-                    if (NetworkControllerStatus.Enabled.Equals(networkControllerStatus))
+                    else if (NetworkControllerStatus.Enabled.Equals(networkControllerStatus))
                     {
                         // If network off at time, fail unless in tolerance period
                         if (isWithinTolerancePeriod)
                         {
                             networkOffToleratedSuccess++;
                         }
-
-                        networkOffFailure++;
+                        else
+                        {
+                            networkOffFailure++;
+                        }
                     }
-                }
+                    else
+                    {
+                        throw new InvalidOperationException($"Unexpected Result. NetworkControllerStatus was {networkControllerStatus}");
+                    }
 
+                    hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
+                    hasActualResult = await this.ActualTestResults.MoveNextAsync();
+                }
+                else // If the expected and actual don't match, we assume actual will be higher sequence # than expected
+                {
+                    (networkOffSuccess, networkOnToleratedSuccess, networkOnFailure, mismatchSuccess) =
+                        this.CheckUnmatchedResult(this.ExpectedTestResults.Current, networkControllerStatus, isWithinTolerancePeriod, networkOffSuccess, networkOnToleratedSuccess, networkOnFailure, mismatchSuccess);
+                }
+            }
+
+            while (hasExpectedResult)
+            {
+                (NetworkControllerStatus networkControllerStatus, bool isWithinTolerancePeriod) =
+                    this.NetworkStatusTimeline.GetNetworkControllerStatusAndWithinToleranceAt(this.ExpectedTestResults.Current.CreatedAt);
+                (ulong addNetOffSuccess, ulong addNetOnTolSuccess, ulong addNetOnFailure, ulong addMismatchSuccess) =
+                        this.CheckUnmatchedResult(this.ExpectedTestResults.Current, networkControllerStatus, isWithinTolerancePeriod, networkOffSuccess, networkOnToleratedSuccess, networkOnFailure, mismatchSuccess);
+            }
+
+            while (hasActualResult)
+            {
+                // Log message for unexpected case.
+                Logger.LogError($"[{nameof(DirectMethodReportGenerator)}] Actual test result source has unexpected results.");
+
+                mismatchFailure++;
+                hasActualResult = await this.ActualTestResults.MoveNextAsync();
+
+                // Log actual queue items
+                Logger.LogError($"Unexpected actual test result: {this.ActualTestResults.Current.Source}, {this.ActualTestResults.Current.Type}, {this.ActualTestResults.Current.Result} at {this.ActualTestResults.Current.CreatedAt}");
             }
         }
+
+        (ulong networkOffSuccess, ulong networkOnToleratedSuccess, ulong networkOnFailure, ulong mismatchSuccess) CheckUnmatchedResult(
+            TestOperationResult testOperationResult,
+            NetworkControllerStatus networkControllerStatus,
+            bool isWithinTolerancePeriod,
+            ulong networkOffSuccess,
+            ulong networkOnToleratedSuccess,
+            ulong networkOnFailure,
+            ulong mismatchSuccess)
+        {
+            DirectMethodTestResult dmTestResult = JsonConvert.DeserializeObject<DirectMethodTestResult>(testOperationResult.Result);
+            HttpStatusCode statusCode = JsonConvert.DeserializeObject<HttpStatusCode>(dmTestResult.Result);
+            if (HttpStatusCode.InternalServerError.Equals(statusCode))
+            {
+                if (NetworkControllerStatus.Enabled.Equals(networkControllerStatus))
+                {
+                    // If the result is a failure AND network is offline, succeed
+                    networkOffSuccess++;
+                }
+                else if (NetworkControllerStatus.Disabled.Equals(networkControllerStatus))
+                {
+                    if (isWithinTolerancePeriod)
+                    {
+                        // If result is a failure and network is online, but we're within the tolerance period, succeed
+                        networkOnToleratedSuccess++;
+                    }
+                    else
+                    {
+                        networkOnFailure++;
+                    }
+                }
+                else
+                {
+                    throw new InvalidOperationException($"Unexpected Result. NetworkControllerStatus was {networkControllerStatus}");
+                }
+            }
+            else
+            {
+                // Success, but no matching report from Actual store, means mismatch
+                mismatchSuccess++;
+            }
+
+            return (networkOffSuccess, networkOnToleratedSuccess, networkOnFailure, mismatchSuccess);
+        }
+
         void ValidateDataSource(TestOperationResult current, string expectedSource)
         {
             if (!current.Source.Equals(expectedSource, StringComparison.OrdinalIgnoreCase))
