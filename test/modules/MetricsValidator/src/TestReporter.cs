@@ -10,6 +10,7 @@ namespace MetricsValidator
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Azure.Devices.Edge.Util.Test.Common;
     using Newtonsoft.Json;
 
     public class TestReporter
@@ -78,6 +79,12 @@ namespace MetricsValidator
             this.Assert(name, expected.Equals(actual), message ?? $"Expected {JsonConvert.SerializeObject(actual)} to equal {JsonConvert.SerializeObject(expected)}");
         }
 
+        public void OrderlessCompare<T>(string name, IEnumerable<T> expected, IEnumerable<T> actual)
+            where T : IEquatable<T>
+        {
+            TestUtilities.OrderlessCompareLogic(expected, actual).ForEach(reason => this.Assert(name, false, reason));
+        }
+
         public TestReporter MakeSubcategory(string name)
         {
             if (this.subcategories == null)
@@ -95,6 +102,7 @@ namespace MetricsValidator
         {
             string result = JsonConvert.SerializeObject(this, Formatting.Indented);
             Message message = new Message(Encoding.UTF8.GetBytes(result));
+            message.Properties.Add("Report", (this.NumFailures == 0).ToString());
 
             return moduleClient.SendEventAsync(message, cancellationToken);
         }

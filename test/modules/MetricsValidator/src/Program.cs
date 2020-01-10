@@ -36,11 +36,12 @@ namespace MetricsValidator
                 TestReporter testReporter = new TestReporter("Metrics Validation");
 
                 using (ModuleClient moduleClient = await ModuleClient.CreateFromEnvironmentAsync())
-                using (MetricsScraper scraper = new MetricsScraper(new List<string> { "http://edgeHub:9600/metrics" }))
+                using (MetricsScraper scraper = new MetricsScraper(new List<string> { "http://edgeHub:9600/metrics", "http://edgeAgent:9600/metrics" }))
                 {
                     await moduleClient.OpenAsync();
 
-                    await new ValidateNumberOfMessagesSent(testReporter, moduleClient, scraper).Start(cts.Token);
+                    await new ValidateNumberOfMessagesSent(testReporter, scraper, moduleClient).Start(cts.Token);
+                    await new ValidateHostMetrics(testReporter, scraper).Start(cts.Token);
 
                     await testReporter.ReportResults(moduleClient, cts.Token);
                 }

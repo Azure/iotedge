@@ -14,14 +14,14 @@ namespace MetricsValidator
     public class ValidateNumberOfMessagesSent
     {
         TestReporter testReporter;
-        ModuleClient moduleClient;
         IMetricsScraper scraper;
+        ModuleClient moduleClient;
 
-        public ValidateNumberOfMessagesSent(TestReporter testReporter, ModuleClient moduleClient, IMetricsScraper scraper)
+        public ValidateNumberOfMessagesSent(TestReporter testReporter, IMetricsScraper scraper, ModuleClient moduleClient)
         {
-            this.testReporter = testReporter.MakeSubcategory("ValidateNumberOfMessagesSent");
-            this.moduleClient = moduleClient;
+            this.testReporter = testReporter.MakeSubcategory(nameof(ValidateNumberOfMessagesSent));
             this.scraper = scraper;
+            this.moduleClient = moduleClient;
         }
 
         public async Task Start(CancellationToken cancellationToken)
