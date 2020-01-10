@@ -11,7 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
         public DeploymentTestResult(string trackingId, string source, Dictionary<string, string> environmentVariables, DateTime createdAt)
             : base(source, TestOperationResultType.Deployment, createdAt)
         {
-            this.TrackingId = trackingId;
+            this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId);
             this.EnvironmentVariables = Preconditions.CheckNotNull(environmentVariables, nameof(environmentVariables));
         }
 
