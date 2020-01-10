@@ -70,7 +70,7 @@ namespace DeploymentTester
                     await registryManager.ApplyConfigurationContentOnDeviceAsync(Settings.Current.DeviceId, configContent);
 
                     envVars.Add(newEnvVar.Key, newEnvVar.Value);
-                    var testResult = new DeploymentTestResult(Settings.Current.ModuleId + ".send", DateTime.UtcNow) { TrackingId = Settings.Current.TrackingId, EnvironmentVariables = envVars };
+                    var testResult = new DeploymentTestResult(Settings.Current.TrackingId, Settings.Current.ModuleId + ".send", envVars, DateTime.UtcNow);
                     await ModuleUtil.ReportTestResultAsync(apiClient, Logger, testResult);
                     Logger.LogInformation($"Successfully report to TRC for new deployment: tracking id={Settings.Current.TrackingId}, new environment variable={newEnvVar.Key}:{newEnvVar.Value}, EnvVars Count={envVars.Count}.");
 
@@ -137,12 +137,7 @@ namespace DeploymentTester
                 }
             }
 
-            var testResult = new DeploymentTestResult(Settings.Current.ModuleId + ".receive", DateTime.UtcNow)
-            {
-                TrackingId = Settings.Current.TrackingId,
-                EnvironmentVariables = envVars
-            };
-
+            var testResult = new DeploymentTestResult(Settings.Current.TrackingId, Settings.Current.ModuleId + ".receive", envVars, DateTime.UtcNow);
             await ModuleUtil.ReportTestResultAsync(trcClient, Logger, testResult);
             Logger.LogInformation($"Successfully report to TRC for new deployment: tracking id={Settings.Current.TrackingId}, environment variable count={testResult.EnvironmentVariables.Count}.");
         }
