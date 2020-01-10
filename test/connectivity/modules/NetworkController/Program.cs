@@ -5,7 +5,7 @@ namespace NetworkController
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkControllerResult;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
@@ -82,10 +82,10 @@ namespace NetworkController
 
         static async Task SetNetworkControllerStatus(INetworkController controller, NetworkControllerStatus networkControllerStatus, INetworkStatusReporter reporter, CancellationToken cs)
         {
-            await reporter.ReportNetworkStatus(NetworkControllerOperation.SettingRule, networkControllerStatus, controller.NetworkControllerType);
+            await reporter.ReportNetworkStatusAsync(NetworkControllerOperation.SettingRule, networkControllerStatus, controller.NetworkControllerType);
             bool success = await controller.SetNetworkControllerStatusAsync(networkControllerStatus, cs);
             success = await CheckSetNetworkControllerStatusAsyncResult(success, NetworkControllerStatus.Disabled, controller, cs);
-            await reporter.ReportNetworkStatus(NetworkControllerOperation.RuleSet, networkControllerStatus, controller.NetworkControllerType, success);
+            await reporter.ReportNetworkStatusAsync(NetworkControllerOperation.RuleSet, networkControllerStatus, controller.NetworkControllerType, success);
         }
 
         static async Task RemoveAllControllingRules(IList<INetworkController> controllerList, CancellationToken cancellationToken)
@@ -103,14 +103,14 @@ namespace NetworkController
                     if (!online)
                     {
                         Log.LogError($"Failed to ensure it starts with default values.");
-                        await reporter.ReportNetworkStatus(NetworkControllerOperation.RuleSet, NetworkControllerStatus.Enabled, controller.NetworkControllerType, true);
+                        await reporter.ReportNetworkStatusAsync(NetworkControllerOperation.RuleSet, NetworkControllerStatus.Enabled, controller.NetworkControllerType, true);
                         throw new TestInitializationException();
                     }
                 }
             }
 
             Log.LogInformation($"Network is online");
-            await reporter.ReportNetworkStatus(NetworkControllerOperation.RuleSet, NetworkControllerStatus.Disabled, NetworkControllerType.All, true);
+            await reporter.ReportNetworkStatusAsync(NetworkControllerOperation.RuleSet, NetworkControllerStatus.Disabled, NetworkControllerType.All, true);
         }
 
         static async Task<bool> CheckSetNetworkControllerStatusAsyncResult(bool success, NetworkControllerStatus networkControllerStatus, INetworkController controller, CancellationToken cs)

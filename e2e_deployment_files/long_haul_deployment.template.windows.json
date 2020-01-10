@@ -281,6 +281,9 @@
               },
               "LogAnalyticsLogType": {
                 "value": "<Analyzer.LogAnalyticsLogType>"
+              },
+              "Logging:LogLevel:Microsoft": {
+                "value": "Error"
               }
             },
             "settings": {
@@ -294,7 +297,7 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "AnalyzerUrl":
+              "ReportingEndpointUrl":
               {
                 "value": "http://analyzer:15000"
               },
@@ -334,7 +337,7 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
-              "AnalyzerUrl":
+              "ReportingEndpointUrl":
               {
                 "value": "http://analyzer:15000"
               },

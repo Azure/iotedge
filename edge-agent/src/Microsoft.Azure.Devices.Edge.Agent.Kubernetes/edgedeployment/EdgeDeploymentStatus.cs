@@ -14,19 +14,23 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         public string Message { get; }
 
         public static EdgeDeploymentStatus Success(string message)
-        {
-            return new EdgeDeploymentStatus(EdgeDeploymentStatusType.Success, message);
-        }
+            => new EdgeDeploymentStatus(EdgeDeploymentStatusType.Success, message);
 
         public static EdgeDeploymentStatus Failure(Exception e)
         {
-            string message = (e is HttpOperationException httpEx) ?
-                $"{httpEx.Request.Method} [{httpEx.Request.RequestUri}]({httpEx.Message})" :
-                e.Message;
-            return new EdgeDeploymentStatus(EdgeDeploymentStatusType.Failure, message);
+            string message = e is HttpOperationException httpEx
+                ? $"{httpEx.Request.Method} [{httpEx.Request.RequestUri}]({httpEx.Message})"
+                : e.Message;
+            return Failure(message);
         }
 
-        public EdgeDeploymentStatus(EdgeDeploymentStatusType state, string message)
+        public static EdgeDeploymentStatus Failure(string message)
+            => new EdgeDeploymentStatus(EdgeDeploymentStatusType.Failure, message);
+
+        public static readonly EdgeDeploymentStatus Default = new EdgeDeploymentStatus(EdgeDeploymentStatusType.Failure, string.Empty);
+
+        [JsonConstructor]
+        EdgeDeploymentStatus(EdgeDeploymentStatusType state, string message)
         {
             this.State = state;
             this.Message = message;
