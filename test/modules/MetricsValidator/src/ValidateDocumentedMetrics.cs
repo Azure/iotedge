@@ -67,7 +67,10 @@ namespace MetricsValidator
             IEnumerable<string> lines = Enumerable.Empty<string>();
             try
             {
-                lines = File.ReadAllLines(Path.Combine("doc", "EdgeAgentMetrics.md")).Skip(2);
+                var agent = File.ReadAllLines(Path.Combine("doc", "EdgeAgentMetrics.md")).Skip(2);
+                var hub = File.ReadAllLines(Path.Combine("doc", "EdgeHubMetrics.md")).Skip(2);
+
+                lines = agent.Concat(hub);
             }
             catch (Exception ex)
             {

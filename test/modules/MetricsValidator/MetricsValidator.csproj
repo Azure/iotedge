@@ -67,6 +67,9 @@
     <None Include="..\..\..\doc\EdgeAgentMetrics.md" Link="doc\EdgeAgentMetrics.md">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="..\..\..\doc\EdgeHubMetrics.md" Link="doc\EdgeHubMetrics.md">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <PropertyGroup>

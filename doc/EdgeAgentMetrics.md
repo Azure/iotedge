@@ -24,4 +24,4 @@ Tag | Description
 ---|---
 iothub | The hub the device is talking to
 edge_device | The device id of the current device
-instance_number | The number of times edgeAgent has been restarted. On restart, all metrics will be reset. This makes it easier to reconcile restarts. 
+instance_number | A Guid representing the current runtime. On restart, all metrics will be reset. This Guid makes it easier to reconcile restarts. 
