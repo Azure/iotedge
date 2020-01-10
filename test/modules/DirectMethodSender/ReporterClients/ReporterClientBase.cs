@@ -19,7 +19,7 @@ namespace DirectMethodSender
 
         public abstract void Dispose();
 
-        public static ReporterClientBase Create(
+        internal static ReporterClientBase Create(
             ILogger logger,
             Option<Uri> reportingEndpointUrl,
             TransportType transportType)
@@ -35,7 +35,7 @@ namespace DirectMethodSender
             return new EventReporterClient(logger, transportType);
         }
 
-        public async Task SendTestResultAsync(TestResultBase testResult)
+        internal async Task SendTestResultAsync(TestResultBase testResult)
         {
             Preconditions.CheckNotNull(testResult, nameof(testResult));
             try

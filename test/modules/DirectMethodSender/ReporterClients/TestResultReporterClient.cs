@@ -8,7 +8,7 @@ namespace DirectMethodSender
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    internal sealed class TestResultReporterClient : ReporterClientBase
+    sealed class TestResultReporterClient : ReporterClientBase
     {
         readonly ILogger logger;
         readonly Uri baseUri;

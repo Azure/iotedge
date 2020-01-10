@@ -11,7 +11,7 @@ namespace DirectMethodSender
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    internal sealed class EventReporterClient : ReporterClientBase
+    sealed class EventReporterClient : ReporterClientBase
     {
         readonly ILogger logger;
         readonly TransportType transportType;
@@ -37,7 +37,7 @@ namespace DirectMethodSender
             }
         }
 
-        public EventReporterClient(ILogger logger, TransportType transportType)
+        internal EventReporterClient(ILogger logger, TransportType transportType)
             : base(logger)
         {
             this.transportType = Preconditions.CheckNotNull(transportType, nameof(transportType));
