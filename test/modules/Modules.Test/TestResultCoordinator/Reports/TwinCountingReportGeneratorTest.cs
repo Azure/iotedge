@@ -251,7 +251,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             Assert.Equal(expectedTotalExpectedCount, report.TotalExpectCount);
             Assert.Equal(expectedTotalMatchCount, report.TotalMatchCount);
-            Assert.Equal(expectedTotalPatches, report.TotalPatches);
+            Assert.Equal(expectedTotalPatches, report.TotalPatchesCount);
             Assert.Equal(expectedMissingResultsCount, report.UnmatchedResults.Count);
         }
 

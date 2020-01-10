@@ -34,7 +34,7 @@ namespace TwinTester
             Twin receivedTwin;
             try
             {
-                receivedTwin = await this.registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.ModuleId);
+                receivedTwin = await this.registryManager.GetTwinAsync(Settings.Current.DeviceId, Settings.Current.TargetModuleId);
                 this.twinState.TwinETag = receivedTwin.ETag;
             }
             catch (Exception e)
@@ -119,7 +119,7 @@ namespace TwinTester
                 }
 
                 propertiesToRemoveFromTwin[reportedPropertyUpdate.Key] = null; // will later be serialized as a twin update
-                await this.HandleReportStatusAsync(Settings.Current.ModuleId, status);
+                await this.HandleReportStatusAsync(status);
             }
 
             return propertiesToRemoveFromTwin;
@@ -131,7 +131,7 @@ namespace TwinTester
             return DateTime.UtcNow - comparisonPoint > Settings.Current.TwinUpdateFailureThreshold;
         }
 
-        async Task HandleReportStatusAsync(string moduleId, string status)
+        async Task HandleReportStatusAsync(string status)
         {
             await this.reporter.HandleTwinValidationStatusAsync(status);
         }
