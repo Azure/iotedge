@@ -28,6 +28,8 @@ namespace MetricsValidator
 
         public async Task Start(CancellationToken cancellationToken)
         {
+            Console.WriteLine($"Starting {nameof(ValidateNumberOfMessagesSent)}");
+
             int prevSent = await this.GetNumberOfMessagesSent(cancellationToken);
             await this.SendMessages(10, cancellationToken);
             int newSent = await this.GetNumberOfMessagesSent(cancellationToken);
@@ -41,8 +43,9 @@ namespace MetricsValidator
 
         async Task<int> GetNumberOfMessagesSent(CancellationToken cancellationToken)
         {
-            var metrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
-            Metric metric = metrics.First(m => m.Name == "edgehub_messages_received_total" && m.Tags.TryGetValue("id", out string id) && id.Contains("MetricsValidator"));
+            var metrics = (await this.scraper.ScrapeEndpointsAsync(cancellationToken)).ToArray();
+            Console.WriteLine($"Scraped {metrics.Length} metrics");
+            Metric metric = metrics.FirstOrDefault(m => m.Name == "edgehub_messages_received_total" && m.Tags.TryGetValue("id", out string id) && id.Contains("MetricsValidator"));
 
             return (int?)metric?.Value ?? 0;
         }
@@ -50,7 +53,7 @@ namespace MetricsValidator
         Task SendMessages(int n, CancellationToken cancellationToken)
         {
             var messagesToSend = Enumerable.Range(1, n).Select(i => new Message(Encoding.UTF8.GetBytes($"Message {i}")));
-            return Task.WhenAll(messagesToSend.Select(m => this.moduleClient.SendEventAsync(this.endpoint, m, cancellationToken)));
+            return Task.WhenAll(messagesToSend.Select(m => this.moduleClient.SendEventAsync(m, cancellationToken)));
         }
     }
 }

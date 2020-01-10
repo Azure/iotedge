@@ -42,8 +42,10 @@ namespace MetricsValidator
                     await Task.Delay(5000);
 
                     await new ValidateNumberOfMessagesSent(testReporter, scraper, moduleClient).Start(cts.Token);
-                    // await new ValidateDocumentedMetrics(testReporter, scraper).Start(cts.Token);
+                    await new ValidateDocumentedMetrics(testReporter, scraper).Start(cts.Token);
+
                     await testReporter.ReportResults(moduleClient, cts.Token);
+                    await cts.Token.WhenCanceled();
                 }
 
                 completed.Set();
