@@ -10,25 +10,9 @@ namespace DirectMethodSender
 
     internal sealed class TestResultReporterClient : ReporterClientBase
     {
-        ILogger logger;
-        Uri baseUri;
-        TestResultReportingClient testResultReportingClient = null;
-        TestResultReportingClient TestResultReportingClient
-        {
-            get
-            {
-                if (this.testResultReportingClient == null)
-                {
-                    Preconditions.CheckNotNull(this.baseUri, nameof(this.baseUri));
-                    this.testResultReportingClient = new TestResultReportingClient { BaseUrl = this.baseUri.AbsoluteUri };
-                    return this.testResultReportingClient;
-                }
-                else
-                {
-                    return this.testResultReportingClient;
-                }
-            }
-        }
+        readonly ILogger logger;
+        readonly Uri baseUri;
+        readonly TestResultReportingClient testResultReportingClient = null;
 
         internal TestResultReporterClient(Uri baseUri, ILogger logger)
             : base(logger)
@@ -45,10 +29,10 @@ namespace DirectMethodSender
             // C# genereated from swagger.yaml automatically call Dispose()
         }
 
-        internal override async Task ReportStatusAsync(TestResultBase report)
+        internal override async Task ReportStatusAsync(TestResultBase testResult)
         {
-            Preconditions.CheckNotNull(report, nameof(report));
-            await this.TestResultReportingClient.ReportResultAsync(report.ToTestOperationResultDto());
+            Preconditions.CheckNotNull(testResult, nameof(testResult));
+            await this.testResultReportingClient.ReportResultAsync(testResult.ToTestOperationResultDto());
         }
     }
 }

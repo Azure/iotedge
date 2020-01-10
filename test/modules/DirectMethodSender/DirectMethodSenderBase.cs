@@ -13,7 +13,7 @@ namespace DirectMethodSender
         readonly ILogger logger;
         readonly string deviceId;
         readonly string targetModuleId;
-        long directMethodCount = 1;
+        long directMethodCount = 0;
 
         protected DirectMethodSenderBase(
             ILogger logger,
@@ -33,6 +33,7 @@ namespace DirectMethodSender
             logger.LogDebug("Invoke DirectMethod: started.");
             logger.LogInformation($"{this.GetType().ToString()} : Calling Direct Method on device {this.deviceId} targeting module [{this.targetModuleId}] with count {this.directMethodCount}.");
 
+            this.directMethodCount++;
             try
             {
                 int resultStatus = await this.InvokeDeviceMethodAsync(this.deviceId, this.targetModuleId, methodName, this.directMethodCount, CancellationToken.None);
@@ -48,13 +49,11 @@ namespace DirectMethodSender
                 }
 
                 logger.LogInformation($"Invoke DirectMethod with count {this.directMethodCount}: finished.");
-                this.directMethodCount++;
                 return new Tuple<HttpStatusCode, long>((HttpStatusCode)resultStatus, this.directMethodCount);
             }
             catch (Exception e)
             {
                 logger.LogError(e, $"Exception caught with count {this.directMethodCount}");
-                this.directMethodCount++;
                 return new Tuple<HttpStatusCode, long>(HttpStatusCode.InternalServerError, this.directMethodCount);
             }
         }

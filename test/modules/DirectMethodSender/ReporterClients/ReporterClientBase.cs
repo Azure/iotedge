@@ -19,7 +19,7 @@ namespace DirectMethodSender
 
         public abstract void Dispose();
 
-        public static async Task<ReporterClientBase> CreateAsync(
+        public static ReporterClientBase Create(
             ILogger logger,
             Option<Uri> reportingEndpointUrl,
             TransportType transportType)
@@ -32,23 +32,22 @@ namespace DirectMethodSender
             }
 
             Preconditions.CheckNotNull(transportType, nameof(transportType));
-            EventReporterClient eventReporterClient = new EventReporterClient(logger);
-            return await eventReporterClient.InitAsync(transportType);
+            return new EventReporterClient(logger, transportType);
         }
 
-        public async Task ReportStatus(TestResultBase report)
+        public async Task SendTestResultAsync(TestResultBase testResult)
         {
-            Preconditions.CheckNotNull(report, nameof(report));
+            Preconditions.CheckNotNull(testResult, nameof(testResult));
             try
             {
-                await this.ReportStatusAsync(report);
+                await this.ReportStatusAsync(testResult);
             }
             catch (Exception e)
             {
-                this.logger.LogError(e, "Failed to send report");
+                this.logger.LogError(e, "Failed to send testResult");
             }
         }
 
-        internal abstract Task ReportStatusAsync(TestResultBase report);
+        internal abstract Task ReportStatusAsync(TestResultBase testResult);
     }
 }
