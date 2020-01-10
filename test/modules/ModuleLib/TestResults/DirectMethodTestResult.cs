@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
             string result)
             : base(source, TestOperationResultType.DirectMethod, createdAt)
         {
-            this.TrackingId = trackingId;
+            this.TrackingId = trackingId ?? string.Empty;
             this.BatchId = Preconditions.CheckNotNull(batchId, nameof(batchId)).ToString();
             this.SequenceNumber = Preconditions.CheckNonWhiteSpace(sequenceNumber, nameof(sequenceNumber));
             this.Result = Preconditions.CheckNonWhiteSpace(result, nameof(result));

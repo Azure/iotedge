@@ -62,7 +62,7 @@ namespace DirectMethodReceiver
                             this.batchId,
                             directMethodCount,
                             HttpStatusCode.OK.ToString());
-                        
+
                         await ModuleUtil.ReportTestResultAsync(testResultReportingClient, this.logger, testResult);
                     });
         }
