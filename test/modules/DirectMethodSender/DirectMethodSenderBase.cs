@@ -8,7 +8,7 @@ namespace DirectMethodSender
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public abstract class DirectMethodSenderBase : IDisposable
+    abstract class DirectMethodSenderBase : IDisposable
     {
         readonly ILogger logger;
         readonly string deviceId;

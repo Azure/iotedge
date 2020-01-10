@@ -9,7 +9,7 @@ namespace DirectMethodSender
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
 
-    public class Settings
+    class Settings
     {
         static readonly Lazy<Settings> DefaultSettings = new Lazy<Settings>(
             () =>
@@ -70,33 +70,33 @@ namespace DirectMethodSender
             this.DirectMethodResultType = (DirectMethodResultType)Enum.Parse(typeof(DirectMethodResultType), directMethodResultType.GetOrElse("LegacyDirectMethodTestResult"));
         }
 
-        public static Settings Current => DefaultSettings.Value;
+        internal static Settings Current => DefaultSettings.Value;
 
-        public string DeviceId { get; }
+        internal string DeviceId { get; }
 
-        public string TargetModuleId { get; }
+        internal string TargetModuleId { get; }
 
-        public TransportType TransportType { get; }
+        internal TransportType TransportType { get; }
 
-        public TimeSpan DirectMethodDelay { get; }
+        internal TimeSpan DirectMethodDelay { get; }
 
-        public InvocationSource InvocationSource { get; }
+        internal InvocationSource InvocationSource { get; }
 
-        public Option<string> ServiceClientConnectionString { get; }
+        internal Option<string> ServiceClientConnectionString { get; }
 
-        public Option<Uri> ReportingEndpointUrl { get; }
+        internal Option<Uri> ReportingEndpointUrl { get; }
 
-        public string ModuleId { get; }
+        internal string ModuleId { get; }
 
-        public TimeSpan TestDuration { get; }
+        internal TimeSpan TestDuration { get; }
 
-        public TimeSpan TestStartDelay { get; }
+        internal TimeSpan TestStartDelay { get; }
 
-        public string DirectMethodName { get; }
+        internal string DirectMethodName { get; }
 
-        public Option<string> TrackingId { get; }
+        internal Option<string> TrackingId { get; }
 
-        public DirectMethodResultType DirectMethodResultType { get; }
+        internal DirectMethodResultType DirectMethodResultType { get; }
 
         public override string ToString()
         {
