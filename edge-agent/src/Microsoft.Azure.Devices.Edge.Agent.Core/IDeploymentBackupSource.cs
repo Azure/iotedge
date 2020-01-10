@@ -2,7 +2,7 @@
 namespace Microsoft.Azure.Devices.Edge.Agent.Core
 {
     using System.Threading.Tasks;
-    public interface IBackupSource
+    public interface IDeploymentBackupSource
     {
         string Name { get; }
 

@@ -8,7 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core
         public const int TwinConfigSource = EventIdStart + 200;
         public const int RestartPlanner = EventIdStart + 300;
         public const int OrderedPlanRunner = EventIdStart + 400;
-        public const int FileBackup = EventIdStart + 500;
+        public const int DeploymentFileBackup = EventIdStart + 500;
         public const int HealthRestartPlanner = EventIdStart + 600;
         public const int RestartManager = EventIdStart + 700;
         public const int IoTHubReporter = EventIdStart + 800;

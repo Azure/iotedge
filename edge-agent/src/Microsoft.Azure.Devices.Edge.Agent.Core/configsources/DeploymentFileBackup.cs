@@ -10,14 +10,14 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Logging;
 
-    public class FileBackup : IBackupSource
+    public class DeploymentFileBackup : IDeploymentBackupSource
     {
         readonly ISerde<DeploymentConfigInfo> serde;
         readonly IEncryptionProvider encryptionProvider;
 
         Option<DeploymentConfigInfo> lastBackedUpConfig = Option.None<DeploymentConfigInfo>();
 
-        public FileBackup(string path, ISerde<DeploymentConfigInfo> serde, IEncryptionProvider encryptionProvider)
+        public DeploymentFileBackup(string path, ISerde<DeploymentConfigInfo> serde, IEncryptionProvider encryptionProvider)
         {
             this.Name = Preconditions.CheckNonWhiteSpace(path, nameof(path));
             this.serde = Preconditions.CheckNotNull(serde, nameof(serde));
@@ -64,8 +64,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
 
         static class Events
         {
-            const int IdStart = AgentEventIds.FileBackup;
-            static readonly ILogger Log = Logger.Factory.CreateLogger<FileBackup>();
+            const int IdStart = AgentEventIds.DeploymentFileBackup;
+            static readonly ILogger Log = Logger.Factory.CreateLogger<DeploymentFileBackup>();
 
             enum EventIds
             {

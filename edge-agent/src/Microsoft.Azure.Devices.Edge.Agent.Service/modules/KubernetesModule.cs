@@ -229,10 +229,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 c =>
                 {
                     var serde = c.Resolve<ISerde<DeploymentConfigInfo>>();
-                    IBackupSource backupSource = new SecretBackup(Constants.EdgeAgentBackupName, this.deviceNamespace, this.moduleOwner, serde, c.Resolve<IKubernetes>());
+                    IDeploymentBackupSource backupSource = new DeploymentSecretBackup(Constants.EdgeAgentBackupName, this.deviceNamespace, this.moduleOwner, serde, c.Resolve<IKubernetes>());
                     return Task.FromResult(backupSource);
                 })
-                .As<Task<IBackupSource>>()
+                .As<Task<IDeploymentBackupSource>>()
                 .SingleInstance();
 
             // KubernetesDeploymentProvider

@@ -12,13 +12,13 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.ConfigSources
 
     public class BackupConfigSource : IConfigSource
     {
-        readonly IBackupSource backupSource;
+        readonly IDeploymentBackupSource backupSource;
         readonly IConfigSource underlying;
         readonly AsyncLock sync = new AsyncLock();
 
         Option<DeploymentConfigInfo> lastBackedUpConfig = Option.None<DeploymentConfigInfo>();
 
-        public BackupConfigSource(IBackupSource backupSource, IConfigSource underlying)
+        public BackupConfigSource(IDeploymentBackupSource backupSource, IConfigSource underlying)
         {
             this.backupSource = Preconditions.CheckNotNull(backupSource, nameof(backupSource));
             this.underlying = Preconditions.CheckNotNull(underlying, nameof(underlying));

@@ -183,8 +183,8 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 {
                     var edgeAgentConnection = c.Resolve<IEdgeAgentConnection>();
                     var twinConfigSource = new TwinConfigSource(edgeAgentConnection, this.configuration);
-                    var backupSource = await c.Resolve<Task<IBackupSource>>();
-                    IConfigSource backupConfigSource = new BackupConfigSource(backupSource, twinConfigSource);
+                    var backupSourceTask = c.Resolve<Task<IDeploymentBackupSource>>();
+                    IConfigSource backupConfigSource = new BackupConfigSource(await backupSourceTask, twinConfigSource);
                     return backupConfigSource;
                 })
                 .As<Task<IConfigSource>>()

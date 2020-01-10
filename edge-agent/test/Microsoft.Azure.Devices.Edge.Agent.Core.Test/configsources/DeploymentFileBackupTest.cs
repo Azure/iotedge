@@ -13,7 +13,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
     using Moq;
     using Xunit;
 
-    public class FileBackupTest : IDisposable
+    public class DeploymentFileBackupTest : IDisposable
     {
         const string TestType = "test";
         static readonly IDictionary<string, EnvVal> EnvVars = new Dictionary<string, EnvVal>();
@@ -32,7 +32,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 
         readonly string tempFileName;
 
-        public FileBackupTest()
+        public DeploymentFileBackupTest()
         {
             this.tempFileName = Path.GetTempFileName();
         }
@@ -49,7 +49,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
         [Unit]
         public void CreateSuccess()
         {
-            IBackupSource backupSource = new FileBackup(this.tempFileName, this.GetSerde(), NullEncryptionProvider.Instance);
+            IDeploymentBackupSource backupSource = new DeploymentFileBackup(this.tempFileName, this.GetSerde(), NullEncryptionProvider.Instance);
             Assert.NotNull(backupSource);
         }
 
@@ -57,10 +57,10 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
         [Unit]
         public void InvalidInputsFails()
         {
-            Assert.Throws<ArgumentException>(() => new FileBackup(string.Empty, this.GetSerde(), NullEncryptionProvider.Instance));
-            Assert.Throws<ArgumentException>(() => new FileBackup(null, this.GetSerde(), NullEncryptionProvider.Instance));
-            Assert.Throws<ArgumentNullException>(() => new FileBackup(this.tempFileName, null, NullEncryptionProvider.Instance));
-            Assert.Throws<ArgumentNullException>(() => new FileBackup(this.tempFileName, this.GetSerde(), null));
+            Assert.Throws<ArgumentException>(() => new DeploymentFileBackup(string.Empty, this.GetSerde(), NullEncryptionProvider.Instance));
+            Assert.Throws<ArgumentException>(() => new DeploymentFileBackup(null, this.GetSerde(), NullEncryptionProvider.Instance));
+            Assert.Throws<ArgumentNullException>(() => new DeploymentFileBackup(this.tempFileName, null, NullEncryptionProvider.Instance));
+            Assert.Throws<ArgumentNullException>(() => new DeploymentFileBackup(this.tempFileName, this.GetSerde(), null));
         }
 
         [Fact]
@@ -73,7 +73,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
             }
 
             ISerde<DeploymentConfigInfo> serde = this.GetSerde();
-            IBackupSource fileBackup = new FileBackup(this.tempFileName, serde, NullEncryptionProvider.Instance);
+            IDeploymentBackupSource fileBackup = new DeploymentFileBackup(this.tempFileName, serde, NullEncryptionProvider.Instance);
 
             await fileBackup.BackupDeploymentConfigAsync(ValidConfigInfo1);
 
@@ -98,7 +98,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
             ISerde<DeploymentConfigInfo> serde = this.GetSerde();
 
             // Act
-            IBackupSource fileBackup = new FileBackup(this.tempFileName, serde, NullEncryptionProvider.Instance);
+            IDeploymentBackupSource fileBackup = new DeploymentFileBackup(this.tempFileName, serde, NullEncryptionProvider.Instance);
 
             await fileBackup.BackupDeploymentConfigAsync(exceptionDeployment);
 
@@ -118,7 +118,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
             // Arrange
             ISerde<DeploymentConfigInfo> serde = this.GetSerde();
 
-            IBackupSource fileBackup = new FileBackup(this.tempFileName, serde, NullEncryptionProvider.Instance);
+            IDeploymentBackupSource fileBackup = new DeploymentFileBackup(this.tempFileName, serde, NullEncryptionProvider.Instance);
 
             // Act
             var config = await fileBackup.ReadFromBackupAsync();
@@ -142,7 +142,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
             encryptionProvider.Setup(ep => ep.EncryptAsync(It.IsAny<string>()))
                 .ReturnsAsync(serde.Serialize(ValidConfigInfo1));
 
-            IBackupSource fileBackup = new FileBackup(this.tempFileName, serde, encryptionProvider.Object);
+            IDeploymentBackupSource fileBackup = new DeploymentFileBackup(this.tempFileName, serde, encryptionProvider.Object);
 
             await fileBackup.BackupDeploymentConfigAsync(ValidConfigInfo1);
 
@@ -168,7 +168,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
             encryptionProvider.Setup(ep => ep.EncryptAsync(It.IsAny<string>()))
                 .ThrowsAsync(new WorkloadCommunicationException("failed", 404));
 
-            IBackupSource fileBackup = new FileBackup(this.tempFileName, serde, encryptionProvider.Object);
+            IDeploymentBackupSource fileBackup = new DeploymentFileBackup(this.tempFileName, serde, encryptionProvider.Object);
 
             await fileBackup.BackupDeploymentConfigAsync(ValidConfigInfo1);
 
@@ -192,7 +192,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
             encryptionProvider.Setup(ep => ep.DecryptAsync(It.IsAny<string>()))
                 .ReturnsAsync(serde.Serialize(ValidConfigInfo1));
 
-            IBackupSource fileBackup = new FileBackup(this.tempFileName, serde, encryptionProvider.Object);
+            IDeploymentBackupSource fileBackup = new DeploymentFileBackup(this.tempFileName, serde, encryptionProvider.Object);
 
             await fileBackup.BackupDeploymentConfigAsync(ValidConfigInfo1);
             DeploymentConfigInfo config1 = await fileBackup.ReadFromBackupAsync();
@@ -226,7 +226,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
             encryptionProvider.Setup(ep => ep.DecryptAsync(It.IsAny<string>()))
                 .ThrowsAsync(new WorkloadCommunicationException("failed", 404));
 
-            IBackupSource fileBackup = new FileBackup(this.tempFileName, serde, encryptionProvider.Object);
+            IDeploymentBackupSource fileBackup = new DeploymentFileBackup(this.tempFileName, serde, encryptionProvider.Object);
 
             await fileBackup.BackupDeploymentConfigAsync(ValidConfigInfo1);
             await Assert.ThrowsAsync<WorkloadCommunicationException>(async () => await fileBackup.ReadFromBackupAsync());

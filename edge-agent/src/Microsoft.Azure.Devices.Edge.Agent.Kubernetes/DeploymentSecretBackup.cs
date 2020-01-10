@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
     using Microsoft.Extensions.Logging;
     using Microsoft.Rest;
 
-    public class SecretBackup : IBackupSource
+    public class DeploymentSecretBackup : IDeploymentBackupSource
     {
         const string BackupData = "backup.json";
         readonly string deviceNamespace;
@@ -26,7 +26,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         readonly ISerde<DeploymentConfigInfo> serde;
         readonly IKubernetes client;
 
-        public SecretBackup(string secretName, string deviceNamespace, KubernetesModuleOwner moduleOwner, ISerde<DeploymentConfigInfo> serde, IKubernetes client)
+        public DeploymentSecretBackup(string secretName, string deviceNamespace, KubernetesModuleOwner moduleOwner, ISerde<DeploymentConfigInfo> serde, IKubernetes client)
         {
             this.Name = Preconditions.CheckNonWhiteSpace(secretName, nameof(secretName));
             this.deviceNamespace = Preconditions.CheckNonWhiteSpace(deviceNamespace, nameof(deviceNamespace));
@@ -123,7 +123,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes
         static class Events
         {
             const int IdStart = KubernetesEventIds.SecretBackup;
-            static readonly ILogger Log = Logger.Factory.CreateLogger<SecretBackup>();
+            static readonly ILogger Log = Logger.Factory.CreateLogger<DeploymentSecretBackup>();
 
             enum EventIds
             {

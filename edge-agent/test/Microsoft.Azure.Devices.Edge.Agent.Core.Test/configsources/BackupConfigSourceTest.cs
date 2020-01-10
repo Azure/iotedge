@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
         public void NullOptionsThrowsExceptions()
         {
             var underlying = Mock.Of<IConfigSource>();
-            var backup = Mock.Of<IBackupSource>();
+            var backup = Mock.Of<IDeploymentBackupSource>();
             Assert.Throws<ArgumentNullException>(() => new BackupConfigSource(null, underlying));
             Assert.Throws<ArgumentNullException>(() => new BackupConfigSource(backup, null));
         }
@@ -30,7 +30,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 
             var underlying = new Mock<IConfigSource>();
             underlying.Setup(u => u.GetDeploymentConfigInfoAsync()).ReturnsAsync(configInfo);
-            var backup = new Mock<IBackupSource>();
+            var backup = new Mock<IDeploymentBackupSource>();
             backup.SetupGet(b => b.Name).Returns("backup");
             backup.Setup(b => b.BackupDeploymentConfigAsync(configInfo)).Returns(TaskEx.Done);
 
@@ -53,7 +53,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
             underlying.SetupSequence(u => u.GetDeploymentConfigInfoAsync())
                 .ReturnsAsync(configInfo1)
                 .ReturnsAsync(configInfo2);
-            var backup = new Mock<IBackupSource>();
+            var backup = new Mock<IDeploymentBackupSource>();
             backup.SetupGet(b => b.Name).Returns("backup");
             backup.Setup(b => b.BackupDeploymentConfigAsync(configInfo1)).Returns(TaskEx.Done);
             backup.Setup(b => b.BackupDeploymentConfigAsync(configInfo2)).Returns(TaskEx.Done);
@@ -74,7 +74,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
             DeploymentConfigInfo configInfo = SetupExceptionDeployment();
             var underlying = new Mock<IConfigSource>();
             underlying.Setup(u => u.GetDeploymentConfigInfoAsync()).ReturnsAsync(configInfo);
-            var backup = new Mock<IBackupSource>();
+            var backup = new Mock<IDeploymentBackupSource>();
             backup.SetupGet(b => b.Name).Returns("backup");
 
             var backupSource = new BackupConfigSource(backup.Object, underlying.Object);
@@ -91,7 +91,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 
             var underlying = new Mock<IConfigSource>();
             underlying.Setup(u => u.GetDeploymentConfigInfoAsync()).ReturnsAsync(DeploymentConfigInfo.Empty);
-            var backup = new Mock<IBackupSource>();
+            var backup = new Mock<IDeploymentBackupSource>();
             backup.SetupGet(b => b.Name).Returns("backup");
             backup.Setup(b => b.ReadFromBackupAsync()).ReturnsAsync(configInfo);
 
@@ -109,7 +109,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 
             var underlying = new Mock<IConfigSource>();
             underlying.Setup(u => u.GetDeploymentConfigInfoAsync()).ThrowsAsync(new NullException("failure"));
-            var backup = new Mock<IBackupSource>();
+            var backup = new Mock<IDeploymentBackupSource>();
             backup.SetupGet(b => b.Name).Returns("backup");
             backup.Setup(b => b.ReadFromBackupAsync()).ReturnsAsync(configInfo);
 
@@ -127,7 +127,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
 
             var underlying = new Mock<IConfigSource>();
             underlying.Setup(u => u.GetDeploymentConfigInfoAsync()).ThrowsAsync(new NullException("failure"));
-            var backup = new Mock<IBackupSource>();
+            var backup = new Mock<IDeploymentBackupSource>();
             backup.SetupGet(b => b.Name).Returns("backup");
             backup.SetupSequence(b => b.ReadFromBackupAsync())
                 .ReturnsAsync(configInfo)
@@ -148,7 +148,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Core.Test.ConfigSources
         {
             var underlying = new Mock<IConfigSource>();
             underlying.Setup(u => u.GetDeploymentConfigInfoAsync()).ThrowsAsync(new NullException("underlying"));
-            var backup = new Mock<IBackupSource>();
+            var backup = new Mock<IDeploymentBackupSource>();
             backup.SetupGet(b => b.Name).Returns("backup");
             backup.Setup(b => b.ReadFromBackupAsync()).ThrowsAsync(new NullException("backup"));
 

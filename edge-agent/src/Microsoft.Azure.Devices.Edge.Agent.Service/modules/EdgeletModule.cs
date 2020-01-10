@@ -155,11 +155,11 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Service.Modules
                 async c =>
                 {
                     var serde = c.Resolve<ISerde<DeploymentConfigInfo>>();
-                    IEncryptionProvider encryptionProvider = await c.Resolve<Task<IEncryptionProvider>>();
-                    IBackupSource backupSource = new FileBackup(this.backupConfigFilePath, serde, encryptionProvider);
+                    var encryptionProviderTask = c.Resolve<Task<IEncryptionProvider>>();
+                    IDeploymentBackupSource backupSource = new DeploymentFileBackup(this.backupConfigFilePath, serde, await encryptionProviderTask);
                     return backupSource;
                 })
-                .As<Task<IBackupSource>>()
+                .As<Task<IDeploymentBackupSource>>()
                 .SingleInstance();
 
             // SystemResourcesMetrics
