@@ -1,0 +1,9 @@
+{
+  "registries": [
+    {
+      "username": "lefitcheReg1",
+      "password": "=NJMsnUgoUvcIYBIkEwI3kJqwPWw5Hby",
+      "address": "lefitchereg1.azurecr.io"
+    }
+  ]
+}
