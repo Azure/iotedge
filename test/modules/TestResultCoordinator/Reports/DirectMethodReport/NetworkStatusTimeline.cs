@@ -24,7 +24,7 @@ namespace TestResultCoordinator.Report.DirectMethodReport
         public static async Task<NetworkStatusTimeline> Create(
             ITestResultCollection<TestOperationResult> networkControllerTestOperationResults,
             TimeSpan tolerancePeriod,
-            NetworkControllerStatus initialNetworkControllerStatus = NetworkControllerStatus.Enabled)
+            NetworkControllerStatus initialNetworkControllerStatus = NetworkControllerStatus.Disabled)
         {
             List<NetworkControllerTestResult> networkControllerTestResults = new List<NetworkControllerTestResult>();
 
