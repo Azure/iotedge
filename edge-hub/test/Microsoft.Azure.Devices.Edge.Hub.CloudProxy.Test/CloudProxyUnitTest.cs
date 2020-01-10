@@ -14,13 +14,14 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
     public class CloudProxyUnitTest
     {
         [Fact]
-        public async Task TestDisposeOnInactive()
+        public async Task TestCloseOnInactive()
         {
             // Arrange
             var client = new Mock<IClient>();
             bool isClientActive = true;
-            client.Setup(c => c.Dispose())
-                .Callback(() => isClientActive = false);
+            client.Setup(c => c.CloseAsync())
+                .Callback(() => isClientActive = false)
+                .Returns(Task.CompletedTask);
             client.SetupGet(c => c.IsActive).Returns(() => isClientActive);
             client.Setup(c => c.SendEventAsync(It.IsAny<Message>())).Returns(Task.CompletedTask);
 
@@ -54,13 +55,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             // Assert
             Assert.False(cloudProxy.IsActive);
             Assert.False(isClientActive);
-            client.Verify(c => c.Dispose(), Times.Once);
+            client.Verify(c => c.CloseAsync(), Times.Once);
 
             // Act
             await Task.Delay(TimeSpan.FromSeconds(6));
 
             // Assert
-            client.Verify(c => c.Dispose(), Times.Once);
+            client.Verify(c => c.CloseAsync(), Times.Once);
         }
 
         [Fact]

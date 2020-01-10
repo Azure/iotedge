@@ -393,8 +393,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             {
                 var deviceClient = new Mock<IClient>();
                 deviceClient.SetupGet(dc => dc.IsActive).Returns(true);
-                deviceClient.Setup(dc => dc.Dispose())
-                    .Callback(() => deviceClient.SetupGet(dc => dc.IsActive).Returns(false));
+                deviceClient.Setup(dc => dc.CloseAsync())
+                    .Callback(() => deviceClient.SetupGet(dc => dc.IsActive).Returns(false))
+                    .Returns(Task.FromResult(true));
 
                 deviceClient.Setup(dc => dc.SetConnectionStatusChangedHandler(It.IsAny<ConnectionStatusChangesHandler>()))
                     .Callback<ConnectionStatusChangesHandler>(c => connectionStatusChangesHandler = c);
@@ -486,8 +487,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
         {
             var deviceClient = new Mock<IClient>();
             deviceClient.SetupGet(dc => dc.IsActive).Returns(true);
-            deviceClient.Setup(dc => dc.Dispose())
-                .Callback(() => deviceClient.SetupGet(dc => dc.IsActive).Returns(false));
+            deviceClient.Setup(dc => dc.CloseAsync())
+                .Callback(() => deviceClient.SetupGet(dc => dc.IsActive).Returns(false))
+                .Returns(Task.FromResult(true));
             deviceClient.Setup(dc => dc.OpenAsync()).Returns(Task.CompletedTask);
             return deviceClient.Object;
         }

@@ -412,13 +412,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
 
             public bool IsActive { get; private set; }
 
-            public void Dispose()
-            {
-                lock (this.stateLock)
-                {
-                    this.IsActive = false;
-                }
-            }
+            public void Dispose() => throw new NotImplementedException();
 
             public async Task<Shared.Twin> GetTwinAsync()
             {
