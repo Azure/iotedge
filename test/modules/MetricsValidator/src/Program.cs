@@ -41,7 +41,7 @@ namespace MetricsValidator
                     await moduleClient.OpenAsync();
 
                     await new ValidateNumberOfMessagesSent(testReporter, scraper, moduleClient).Start(cts.Token);
-                    await new ValidateHostMetrics(testReporter, scraper).Start(cts.Token);
+                    await new ValidateDocumentedMetrics(testReporter, scraper).Start(cts.Token);
 
                     await testReporter.ReportResults(moduleClient, cts.Token);
                 }
