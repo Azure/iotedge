@@ -34,7 +34,7 @@ namespace DirectMethodSender
                 DateTime testStartAt = DateTime.UtcNow;
 
                 directMethodClient = await CreateClientAsync(Settings.Current.InvocationSource);
-                reportClient = await ReporterClientBase.CreateAsync(
+                reportClient = ReporterClientBase.Create(
                     Logger,
                     Settings.Current.ReportingEndpointUrl,
                     Settings.Current.TransportType);
@@ -43,14 +43,14 @@ namespace DirectMethodSender
                 {
                     (HttpStatusCode result, long dmCounter) = await directMethodClient.InvokeDirectMethodAsync(Settings.Current.DirectMethodName, cts);
 
-                    // Generate a report type depending on the reporting endpoint
-                    TestResultBase report = ConstructTestResult(
+                    // Generate a testResult type depending on the reporting endpoint
+                    TestResultBase testResult = ConstructTestResult(
                         Settings.Current.DirectMethodResultType,
                         batchId,
                         dmCounter,
                         result.ToString());
 
-                    await reportClient.ReportStatus(report);
+                    await reportClient.SendTestResultAsync(testResult);
 
                     await Task.Delay(Settings.Current.DirectMethodDelay, cts.Token);
                 }

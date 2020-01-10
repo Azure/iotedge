@@ -13,8 +13,8 @@ namespace DirectMethodSender
 
     internal sealed class EventReporterClient : ReporterClientBase
     {
-        ILogger logger;
-        TransportType transportType;
+        readonly ILogger logger;
+        readonly TransportType transportType;
         ModuleClient moduleClient = null;
         ModuleClient ModuleClient
         {
@@ -37,9 +37,10 @@ namespace DirectMethodSender
             }
         }
 
-        public EventReporterClient(ILogger logger)
+        public EventReporterClient(ILogger logger, TransportType transportType)
             : base(logger)
         {
+            this.transportType = Preconditions.CheckNotNull(transportType, nameof(transportType));
             this.logger = Preconditions.CheckNotNull(logger, nameof(logger));
         }
 
@@ -48,25 +49,14 @@ namespace DirectMethodSender
             this.moduleClient?.Dispose();
         }
 
-        internal async Task<EventReporterClient> InitAsync(TransportType transportType)
+        internal override async Task ReportStatusAsync(TestResultBase testResult)
         {
-            this.transportType = Preconditions.CheckNotNull(transportType, nameof(transportType));
-            this.moduleClient = await ModuleUtil.CreateModuleClientAsync(
-                    transportType,
-                    ModuleUtil.DefaultTimeoutErrorDetectionStrategy,
-                    ModuleUtil.DefaultTransientRetryStrategy,
-                    this.logger);
-            return this;
-        }
-
-        internal override async Task ReportStatusAsync(TestResultBase report)
-        {
-            switch (report.GetType().Name)
+            switch (testResult.GetType().Name)
             {
                 case nameof(LegacyDirectMethodTestResult):
-                    LegacyDirectMethodTestResult shadowReport = report as LegacyDirectMethodTestResult;
+                    LegacyDirectMethodTestResult shadowReport = testResult as LegacyDirectMethodTestResult;
                     // The Old End-to-End test framework checks if there is an event in the eventHub for a particular module
-                    // to determine if the test case is passed/failed. Hence, this function need to check if the report status is Http.OK
+                    // to determine if the test case is passed/failed. Hence, this function need to check if the testResult status is Http.OK
                     // before sending an event.
                     if (shadowReport.Result == HttpStatusCode.OK.ToString())
                     {
@@ -76,7 +66,7 @@ namespace DirectMethodSender
                     break;
 
                 default:
-                    throw new NotImplementedException($"{this.GetType().Name} does not have an implementation for {report.GetType().Name} type");
+                    throw new NotSupportedException($"{this.GetType().Name} does not have an implementation for {testResult.GetType().Name} type");
             }
         }
     }
