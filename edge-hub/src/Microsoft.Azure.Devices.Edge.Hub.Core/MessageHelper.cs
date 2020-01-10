@@ -6,7 +6,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
     {
         public static string GetSenderId(this IMessage message)
         {
-            if (message.SystemProperties.TryGetValue(SystemProperties.ConnectionDeviceId, out string deviceId))
+            if (message != null && message.SystemProperties.TryGetValue(SystemProperties.ConnectionDeviceId, out string deviceId))
             {
                 return message.SystemProperties.TryGetValue(SystemProperties.ConnectionModuleId, out string moduleId)
                     ? $"{deviceId}/{moduleId}"
@@ -18,7 +18,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public static string GetOutput(this IMessage message)
         {
-            if (message.SystemProperties.TryGetValue(SystemProperties.OutputName, out string outputName))
+            if (message != null && message.SystemProperties.TryGetValue(SystemProperties.OutputName, out string outputName))
             {
                 return outputName;
             }
@@ -28,7 +28,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
 
         public static string GetInput(this IMessage message)
         {
-            if (message.SystemProperties.TryGetValue(SystemProperties.InputName, out string outputName))
+            if (message != null && message.SystemProperties.TryGetValue(SystemProperties.InputName, out string outputName))
             {
                 return outputName;
             }
