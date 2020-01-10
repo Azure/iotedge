@@ -113,6 +113,9 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
+              "DirectMethodResultType": {
+                "value": "DirectMethodTestResult"
+              },
               "InvocationSource": {
                 "value": "Cloud"
               },
@@ -128,7 +131,7 @@
               "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
-              "testResultCoordinatorUrl": {
+              "ReportingEndpointUrl": {
                 "value": "http://localhost:5001"
               },
               "trackingId": {
@@ -149,7 +152,7 @@
               "ClientTransportType": {
                 "value": "Amqp"
               },
-              "testResultCoordinatorUrl": {
+              "ReportingEndpointUrl": {
                 "value": "http://testResultCoordinator:5001"
               },
               "trackingId": {
@@ -167,6 +170,9 @@
             "status": "running",
             "restartPolicy": "always",
             "env": {
+              "DirectMethodResultType": {
+                "value": "DirectMethodTestResult"
+              },
               "InvocationSource": {
                 "value": "Cloud"
               },
@@ -182,7 +188,7 @@
               "testStartDelay": {
                 "value": "<TestStartDelay>"
               },
-              "testResultCoordinatorUrl":
+              "ReportingEndpointUrl":
               {
                 "value": "http://localhost:5001"
               },
@@ -204,7 +210,7 @@
               "ClientTransportType": {
                 "value": "Mqtt"
               },
-              "testResultCoordinatorUrl": {
+              "ReportingEndpointUrl": {
                 "value": "http://testResultCoordinator:5001"
               },
               "trackingId": {

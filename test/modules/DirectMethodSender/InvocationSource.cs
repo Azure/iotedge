@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Microsoft.Azure.Devices.Edge.ModuleUtil
+namespace DirectMethodSender
 {
-    public enum InvocationSource
+    enum InvocationSource
     {
         Local,
         Cloud
