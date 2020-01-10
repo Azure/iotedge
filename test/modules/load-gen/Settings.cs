@@ -12,8 +12,7 @@ namespace LoadGen
     using Newtonsoft.Json.Converters;
     using Newtonsoft.Json.Serialization;
 
-    [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
-    public class Settings
+    class Settings
     {
         static readonly Lazy<Settings> DefaultSettings = new Lazy<Settings>(
             () =>
@@ -73,7 +72,6 @@ namespace LoadGen
 
         public ulong MessageSizeInBytes { get; }
 
-        [JsonConverter(typeof(StringEnumConverter))]
         public TransportType TransportType { get; }
 
         public string OutputName { get; }

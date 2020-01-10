@@ -4,12 +4,10 @@ namespace TestAnalyzer
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Serialization;
 
-    [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
     class Settings
     {
         const string DefaultConsumerGroupId = "$Default";
@@ -59,9 +57,8 @@ namespace TestAnalyzer
             this.LogAnalyticsLogType = logAnalyticsLogTypeName;
         }
 
-        public static Settings Current => Setting.Value;
+        internal static Settings Current => Setting.Value;
 
-        [JsonIgnore]
         public string EventHubConnectionString { get; }
 
         public string ConsumerGroupId { get; }
@@ -82,14 +79,27 @@ namespace TestAnalyzer
 
         public string LogAnalyticsWorkspaceId { get; }
 
-        [JsonIgnore]
         public string LogAnalyticsSharedKey { get; }
 
         public string LogAnalyticsLogType { get; }
 
         public override string ToString()
         {
-            return JsonConvert.SerializeObject(this, Formatting.Indented);
+            // serializing in this pattern so that secrets don't accidentally get added anywhere in the future
+            var fields = new Dictionary<string, string>
+            {
+                { nameof(this.ConsumerGroupId), this.ConsumerGroupId },
+                { nameof(this.ExcludedModuleIds), string.Join(",", this.ExcludedModuleIds) },
+                { nameof(this.DeviceId), this.DeviceId },
+                { nameof(this.WebhostPort), this.WebhostPort },
+                { nameof(this.ToleranceInMilliseconds), this.ToleranceInMilliseconds.ToString() },
+                { nameof(this.OptimizeForPerformance), this.OptimizeForPerformance.ToString() },
+                { nameof(this.LogAnalyticsEnabled), this.LogAnalyticsEnabled.ToString() },
+                { nameof(this.LogAnalyticsWorkspaceId), this.LogAnalyticsWorkspaceId },
+                { nameof(this.LogAnalyticsLogType), this.LogAnalyticsLogType },
+            };
+
+            return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
         }
     }
 }

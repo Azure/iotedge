@@ -3,7 +3,7 @@ namespace TwinTester
 {
     using System;
 
-    public class TwinState
+    class TwinState
     {
         public int ReportedPropertyUpdateCounter { get; set; }
 

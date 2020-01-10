@@ -6,7 +6,7 @@ namespace TestAnalyzer
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
 
-    public class Startup
+    class Startup
     {
         public Startup(IConfiguration configuration)
         {

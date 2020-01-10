@@ -8,12 +8,8 @@ namespace Relayer
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Converters;
-    using Newtonsoft.Json.Serialization;
 
-    [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
-    public class Settings
+    class Settings
     {
         static readonly Lazy<Settings> DefaultSettings = new Lazy<Settings>(
             () =>
@@ -46,9 +42,8 @@ namespace Relayer
             this.ModuleId = Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId));
         }
 
-        public static Settings Current => DefaultSettings.Value;
+        internal static Settings Current => DefaultSettings.Value;
 
-        [JsonConverter(typeof(StringEnumConverter))]
         public TransportType TransportType { get; }
 
         public string InputName { get; }

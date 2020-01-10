@@ -9,7 +9,7 @@ namespace TwinTester
     using Microsoft.Extensions.Configuration;
     using Newtonsoft.Json;
 
-    public class Settings
+    class Settings
     {
         static readonly Lazy<Settings> DefaultSettings = new Lazy<Settings>(
             () =>
@@ -85,7 +85,7 @@ namespace TwinTester
             }
         }
 
-        public static Settings Current => DefaultSettings.Value;
+        internal static Settings Current => DefaultSettings.Value;
 
         public string DeviceId { get; }
 
