@@ -35,27 +35,12 @@ namespace MetricsValidator
             var metrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);
             metrics = this.metricFilter.FilterMetrics(metrics);
 
-            // read documented metrics
-            IEnumerable<string> lines = Enumerable.Empty<string>();
-            try
-            {
-                lines = File.ReadAllLines(Path.Combine("doc", "EdgeAgentMetrics.md")).Skip(2);
-            }
-            catch (Exception ex)
-            {
-                this.testReporter.Assert("Read metrics docs", false, ex.Message);
-            }
-
-            Dictionary<string, string[]> expected = lines.Select(line => line.Split('|')).Where(rows => rows.Length == 4).ToDictionary(rows => rows[0].Trim(), rows => rows[1].Split(',').Select(tag => tag.Trim()).ToArray());
-            expected.Remove(string.Empty);
-
-            // track returned metrics
+            var expected = this.GetExpectedMetrics();
             HashSet<string> unreturnedMetrics = new HashSet<string>(expected.Keys);
 
             Console.WriteLine("Got expected metrics");
             foreach (Metric metric in metrics)
             {
-
                 unreturnedMetrics.Remove(metric.Name);
 
                 string metricId = $"{metric.Name}:{JsonConvert.SerializeObject(metric.Tags)}";
@@ -74,6 +59,33 @@ namespace MetricsValidator
             {
                 this.testReporter.Assert(unreturnedMetric, false, $"Metric did not exist in scrape.");
             }
+        }
+
+        Dictionary<string, string[]> GetExpectedMetrics()
+        {
+            // read documented metrics
+            IEnumerable<string> lines = Enumerable.Empty<string>();
+            try
+            {
+                lines = File.ReadAllLines(Path.Combine("doc", "EdgeAgentMetrics.md")).Skip(2);
+            }
+            catch (Exception ex)
+            {
+                this.testReporter.Assert("Read metrics docs", false, ex.Message);
+            }
+
+            Dictionary<string, string[]> expected = lines.Select(line => line.Split('|')).Where(rows => rows.Length == 4).ToDictionary(rows => rows[0].Trim(), rows =>
+            {
+                if (rows[1].Trim() == string.Empty)
+                {
+                    return new string[] { };
+                }
+
+                return rows[1].Split(',').Select(tag => tag.Trim()).ToArray();
+            });
+            expected.Remove(string.Empty);
+
+            return expected;
         }
     }
 }
