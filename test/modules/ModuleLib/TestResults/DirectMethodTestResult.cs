@@ -11,13 +11,13 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
             DateTime createdAt,
             string trackingId,
             Guid batchId,
-            long sequenceNumber,
+            string sequenceNumber,
             string result)
             : base(source, TestOperationResultType.DirectMethod, createdAt)
         {
-            this.TrackingId = Preconditions.CheckNonWhiteSpace(trackingId, nameof(trackingId));
+            this.TrackingId = trackingId;
             this.BatchId = Preconditions.CheckNotNull(batchId, nameof(batchId)).ToString();
-            this.SequenceNumber = Preconditions.CheckNotNull(sequenceNumber, nameof(sequenceNumber)).ToString();
+            this.SequenceNumber = Preconditions.CheckNonWhiteSpace(sequenceNumber, nameof(sequenceNumber));
             this.Result = Preconditions.CheckNonWhiteSpace(result, nameof(result));
         }
 

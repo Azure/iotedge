@@ -120,7 +120,7 @@ namespace DirectMethodSender
                         DateTime.UtcNow,
                         Settings.Current.TrackingId.Expect(() => new ArgumentException("TrackingId is empty")),
                         batchId,
-                        counter,
+                        counter.ToString(),
                         result);
 
                 case DirectMethodResultType.LegacyDirectMethodTestResult:

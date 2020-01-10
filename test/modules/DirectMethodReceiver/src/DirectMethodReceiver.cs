@@ -55,13 +55,14 @@ namespace DirectMethodReceiver
             await this.testResultReportingClient.ForEachAsync(
                 async (TestResultReportingClient testResultReportingClient) =>
                     {
-                        DirectMethodTestResult testResult = new DirectMethodTestResult(this.configuration.GetValue<string>("IOTEDGE_MODULEID") + ".receive", DateTime.UtcNow)
-                        {
-                            TrackingId = this.trackingId.GetOrElse(string.Empty),
-                            BatchId = this.batchId.ToString(),
-                            SequenceNumber = directMethodCount,
-                            Result = HttpStatusCode.OK.ToString()
-                        };
+                        DirectMethodTestResult testResult = new DirectMethodTestResult(
+                            this.configuration.GetValue<string>("IOTEDGE_MODULEID") + ".receive",
+                            DateTime.UtcNow,
+                            this.trackingId.GetOrElse(string.Empty),
+                            this.batchId,
+                            directMethodCount,
+                            HttpStatusCode.OK.ToString());
+                        
                         await ModuleUtil.ReportTestResultAsync(testResultReportingClient, this.logger, testResult);
                     });
         }
