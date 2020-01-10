@@ -43,7 +43,7 @@ These are test scenarios to be covered in Connectivity test
 
 ### Tests
 
-#### Messaging Tests
+#### Messaging Test
 
 ![Connectivity Test Diagram](./images/ConnectivityTest_Messaging.png)
 
@@ -56,3 +56,16 @@ These are test scenarios to be covered in Connectivity test
 7. All messages should contain tracking id, batch id and sequence number.  Sequence number should always start at 1 in loadGen.
 
 Network offline/online should not affect this test result since Edge hub stores all messages when offline and resumes back once get back online.
+
+#### Deployment Update Test
+
+![Connectivity Test Diagram](./images/ConnectivityTest_DeploymentUpdate.png)
+
+1. DeploymentTester1 is in host network, while DeploymentTester2 is in Azure-IoT-Edge docker network.
+2. DeploymentTester1 starts updating target module (DeploymentTester2) deployment by adding new environment variables after pre-defined warm-up period.
+3. DeploymentTester1 sends updated deployment of DeploymentTester2 to IoT hub (#1).
+4. After updating target module deployment, DeploymentTester1 will report result to Test Result Coordinator (#2).
+5. Edge Agent will get updated deployment of target module from IoT hub (#3); and deploy module with updated environment variables (#4).
+6. When DeploymentTester2 starts up, it will get all environment variables and report to Test Result Coordinator (#5).
+
+When network goes offline, route#3 will not happen.  But once the network comes back online, Edge Agent should be able to get the latest updated deployment and deploy DeploymentTester2.
