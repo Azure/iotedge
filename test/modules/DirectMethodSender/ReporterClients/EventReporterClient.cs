@@ -14,7 +14,7 @@ namespace DirectMethodSender
     internal sealed class EventReporterClient : ReporterClientBase
     {
         readonly ILogger logger;
-        TransportType transportType;
+        readonly TransportType transportType;
         ModuleClient moduleClient = null;
         ModuleClient ModuleClient
         {
