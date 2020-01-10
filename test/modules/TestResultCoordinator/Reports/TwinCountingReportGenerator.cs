@@ -33,11 +33,12 @@ namespace TestResultCoordinator.Reports
 
         public async Task<ITestResultReport> CreateReportAsync()
         {
-            Logger.LogInformation($"Start to generate report by {nameof(TwinCountingReportGenerator)} for Sources [{this.expectedTestResults}] and [{this.actualSource}]");
+            Logger.LogInformation($"Start to generate report by {nameof(TwinCountingReportGenerator)} for Sources [{this.expectedSource}] and [{this.actualSource}]");
 
             ulong totalExpectCount = 0;
             ulong totalMatchCount = 0;
             ulong totalPatches = 0;
+            ulong totalDuplicates = 0;
             List<string> unmatchedResults = new List<string>();
 
             Dictionary<string, DateTime> propertiesUpdated = new Dictionary<string, DateTime>();
@@ -46,13 +47,14 @@ namespace TestResultCoordinator.Reports
             while (await this.expectedTestResults.MoveNextAsync())
             {
                 Option<TwinTestResult> twinTestResult = this.GetTwinTestResult(this.expectedTestResults.Current);
+                Logger.LogDebug($"Expected test results {twinTestResult}");
 
                 twinTestResult.ForEach(
                     r =>
                     {
                         foreach (var prop in r.Properties)
                         {
-                            propertiesUpdated.Add(prop.ToString(), this.expectedTestResults.Current.CreatedAt);
+                            propertiesUpdated.TryAdd(prop.ToString(), this.expectedTestResults.Current.CreatedAt);
                         }
                     });
             }
@@ -62,12 +64,19 @@ namespace TestResultCoordinator.Reports
                 totalPatches++;
 
                 Option<TwinTestResult> twinTestResult = this.GetTwinTestResult(this.actualTestResults.Current);
+                Logger.LogDebug($"Actual test results {twinTestResult}");
+
                 twinTestResult.ForEach(
                     r =>
                     {
                         foreach (var prop in r.Properties)
                         {
-                            propertiesReceived.Add(prop.ToString(), this.actualTestResults.Current.CreatedAt);
+                            bool added = propertiesReceived.TryAdd(prop.ToString(), this.actualTestResults.Current.CreatedAt);
+                            if (!added)
+                            {
+                                Logger.LogDebug($"Duplicate for {actualSource} {prop.ToString()}");
+                                totalDuplicates++;
+                            }
                         }
                     });
             }
@@ -103,6 +112,7 @@ namespace TestResultCoordinator.Reports
                 totalExpectCount,
                 totalMatchCount,
                 totalPatches,
+                totalDuplicates,
                 unmatchedResults.AsReadOnly());
         }
 
@@ -113,7 +123,6 @@ namespace TestResultCoordinator.Reports
                 Option.None<TwinTestResult>();
             }
 
-            Logger.LogDebug($"Deserializing for source {current.Source} result: {current.Result} {current.Type}");
             TwinTestResult twinTestResult = JsonConvert.DeserializeObject<TwinTestResult>(current.Result);
             return Option.Some(twinTestResult);
         }

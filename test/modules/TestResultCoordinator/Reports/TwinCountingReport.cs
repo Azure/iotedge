@@ -5,12 +5,13 @@ namespace TestResultCoordinator.Reports
 
     class TwinCountingReport : TestResultReportBase
     {
-        public TwinCountingReport(string trackingId, string expectedSource, string actualSource, string resultType, ulong totalExpectCount, ulong totalMatchCount, ulong totalPatches, ReadOnlyCollection<string> unmatchedResults)
+        public TwinCountingReport(string trackingId, string expectedSource, string actualSource, string resultType, ulong totalExpectCount, ulong totalMatchCount, ulong totalPatches, ulong totalDuplicates, ReadOnlyCollection<string> unmatchedResults)
             : base(trackingId, expectedSource, actualSource, resultType)
         {
             this.TotalExpectCount = totalExpectCount;
             this.TotalMatchCount = totalMatchCount;
-            this.TotalPatches = totalPatches;
+            this.TotalPatchesCount = totalPatches;
+            this.TotalDuplicateResultCount = totalDuplicates;
             this.UnmatchedResults = unmatchedResults;
         }
 
@@ -18,7 +19,9 @@ namespace TestResultCoordinator.Reports
 
         public ulong TotalMatchCount { get; }
 
-        public ulong TotalPatches { get; }
+        public ulong TotalPatchesCount { get; }
+
+        public ulong TotalDuplicateResultCount { get; }
 
         public ReadOnlyCollection<string> UnmatchedResults { get; }
 
