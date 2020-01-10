@@ -200,27 +200,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             await cloudProxy.StartListening();
         }
 
-        [Fact]
-        public async Task TestCloseThrows()
-        {
-            // Arrange
-            var messageConverterProvider = Mock.Of<IMessageConverterProvider>();
-            string clientId = "d1";
-            var cloudListener = Mock.Of<ICloudListener>();
-            TimeSpan idleTimeout = TimeSpan.FromSeconds(60);
-            Action<string, CloudConnectionStatus> connectionStatusChangedHandler = (s, status) => { };
-            var client = new Mock<IClient>();
-            client.Setup(c => c.CloseAsync()).ThrowsAsync(new InvalidOperationException());
-            var cloudProxy = new CloudProxy(client.Object, messageConverterProvider, clientId, connectionStatusChangedHandler, cloudListener, idleTimeout, false);
-
-            // Act
-            bool result = await cloudProxy.CloseAsync();
-
-            // Assert.
-            Assert.True(result);
-            client.VerifyAll();
-        }
-
         [Theory]
         [InlineData(typeof(NullReferenceException))]
         [InlineData(typeof(ObjectDisposedException))]
@@ -235,7 +214,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy.Test
             Action<string, CloudConnectionStatus> connectionStatusChangedHandler = (s, status) => { };
             var client = new Mock<IClient>(MockBehavior.Strict);
             client.Setup(c => c.SendEventAsync(It.IsAny<Message>())).ThrowsAsync((Exception)Activator.CreateInstance(exceptionType, "dummy message"));
-            client.Setup(c => c.CloseAsync()).Returns(Task.CompletedTask);
+            client.Setup(c => c.Dispose());
             var cloudProxy = new CloudProxy(client.Object, messageConverterProvider, clientId, connectionStatusChangedHandler, cloudListener, idleTimeout, false);
             IMessage message = new EdgeMessage.Builder(new byte[0]).Build();
 

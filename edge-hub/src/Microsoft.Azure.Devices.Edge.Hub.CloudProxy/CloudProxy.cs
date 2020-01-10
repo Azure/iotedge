@@ -65,17 +65,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
         {
             try
             {
-                // In offline scenario, sometimes the underlying connection has already closed and
-                // in that case calling CloseAsync throws. This needs to be fixed in the SDK, but meanwhile
-                // wrapping this.client.CloseAsync in a try/catch
-                try
-                {
-                    await this.client.CloseAsync();
-                }
-                catch (Exception ex)
-                {
-                    Events.ErrorClosingClient(this.clientId, ex);
-                }
+                // SDK calls CloseAsync when Dispose is called, but it doesn't await on the CloseAsync and no exception is thrown
+                this.client.Dispose();
 
                 await (this.cloudReceiver?.CloseAsync() ?? Task.CompletedTask);
                 this.timer.Disable();

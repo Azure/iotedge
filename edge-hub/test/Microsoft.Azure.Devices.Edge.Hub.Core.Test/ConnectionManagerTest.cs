@@ -339,13 +339,13 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(currentCloudProxy == cloudProxy1 || currentCloudProxy == cloudProxy2);
             if (currentCloudProxy == cloudProxy1)
             {
-                Mock.Get(client2).Verify(cp => cp.CloseAsync(), Times.Once);
-                Mock.Get(client1).Verify(cp => cp.CloseAsync(), Times.Never);
+                Mock.Get(client2).Verify(cp => cp.Dispose(), Times.Once);
+                Mock.Get(client1).Verify(cp => cp.Dispose(), Times.Never);
             }
             else
             {
-                Mock.Get(client1).Verify(cp => cp.CloseAsync(), Times.Once);
-                Mock.Get(client2).Verify(cp => cp.CloseAsync(), Times.Never);
+                Mock.Get(client1).Verify(cp => cp.Dispose(), Times.Once);
+                Mock.Get(client2).Verify(cp => cp.Dispose(), Times.Never);
             }
         }
 
@@ -802,8 +802,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             Assert.True(newCloudProxyTask1.HasValue);
             Assert.NotEqual(newCloudProxyTask1.OrDefault(), getCloudProxyTask.OrDefault());
 
-            Mock.Get(client1).Verify(cp => cp.CloseAsync(), Times.Once);
-            Mock.Get(client2).Verify(cp => cp.CloseAsync(), Times.Never);
+            Mock.Get(client1).Verify(cp => cp.Dispose(), Times.Once);
+            Mock.Get(client2).Verify(cp => cp.Dispose(), Times.Never);
         }
 
         [Fact]
@@ -866,8 +866,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
             // Assert
             Assert.True(newCloudProxyTask1.HasValue);
             Assert.NotEqual(newCloudProxyTask1.OrDefault(), cloudProxies[0].OrDefault());
-            Mock.Get(client1).Verify(cp => cp.CloseAsync(), Times.Once);
-            Mock.Get(client2).Verify(cp => cp.CloseAsync(), Times.Never);
+            Mock.Get(client1).Verify(cp => cp.Dispose(), Times.Once);
+            Mock.Get(client2).Verify(cp => cp.Dispose(), Times.Never);
         }
 
         static ICloudConnection GetCloudConnectionMock()
@@ -906,9 +906,8 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core.Test
         {
             var deviceClient = new Mock<IClient>();
             deviceClient.SetupGet(d => d.IsActive).Returns(true);
-            deviceClient.Setup(d => d.CloseAsync())
-                .Callback(() => deviceClient.SetupGet(d => d.IsActive).Returns(false))
-                .Returns(Task.CompletedTask);
+            deviceClient.Setup(d => d.Dispose())
+                .Callback(() => deviceClient.SetupGet(d => d.IsActive).Returns(false));
             deviceClient.Setup(dc => dc.OpenAsync()).Returns(Task.CompletedTask);
             return deviceClient.Object;
         }

@@ -50,6 +50,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
             catch (Exception)
             {
                 this.isActive.Set(false);
+                this.underlyingModuleClient?.Dispose();
                 throw;
             }
         }
