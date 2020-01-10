@@ -120,8 +120,8 @@ namespace TestResultCoordinator.Report.DirectMethodReport
             }
 
             Logger.LogDebug($"Deserializing for source {current.Source} result: {current.Result} {current.Type}");
-            NetworkControllerTestResult twinTestResult = JsonConvert.DeserializeObject<NetworkControllerTestResult>(current.Result);
-            return Option.Some(twinTestResult);
+            NetworkControllerTestResult networkControllerTestResult = JsonConvert.DeserializeObject<NetworkControllerTestResult>(current.Result);
+            return Option.Some(networkControllerTestResult);
         }
     }
 
