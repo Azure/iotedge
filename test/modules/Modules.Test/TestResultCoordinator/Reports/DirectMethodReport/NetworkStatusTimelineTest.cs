@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
+namespace Modules.Test.TestResultCoordinator.Reports.DirectMethodReport
 {
     using System;
     using System.Collections.Generic;
