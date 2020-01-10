@@ -5,7 +5,7 @@ namespace TestResultCoordinator.Reports
     using System.Threading.Tasks;
 
     // TODO: Replace ITestResultCollection<T> with IAsyncEnumerable<T> when project is moved to .Net Core 3.1
-    public interface ITestResultCollection<T> : IDisposable
+    interface ITestResultCollection<T> : IDisposable
     {
         T Current { get; }
 

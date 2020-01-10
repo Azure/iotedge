@@ -252,13 +252,13 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
         private static DeploymentTestResult GetDeploymentTestResult(string source, int envVarEnd, int envVarStart = 1)
         {
-            var testResult = new DeploymentTestResult(source, DateTime.UtcNow) { TrackingId = "fb0f0a8b-d420-4dd1-8fbb-639e2e5d3863" };
+            var envVars = new Dictionary<string, string>();
             for (int i = envVarStart; i <= envVarEnd; i++)
             {
-                testResult.EnvironmentVariables.Add($"Env_Key{i}", $"Env_Value{i}");
+                envVars.Add($"Env_Key{i}", $"Env_Value{i}");
             }
 
-            return testResult;
+            return new DeploymentTestResult("fb0f0a8b-d420-4dd1-8fbb-639e2e5d3863", source, envVars, DateTime.UtcNow);
         }
     }
 }

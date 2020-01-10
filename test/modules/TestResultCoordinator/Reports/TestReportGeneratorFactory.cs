@@ -94,7 +94,7 @@ namespace TestResultCoordinator.Reports
                 throw new NotSupportedException($"Report type {reportMetadata.TestReportType} requires TwinReportMetadata instead of {reportMetadata.GetType()}");
             }
 
-            if (twinMetadata.TwinTestPropertyType == TwinTestPropertyType.Reported)
+            if (twinMetadata.TwinTestPropertyType == TwinTestPropertyType.Desired)
             {
                 return this.GetExpectedResults(reportMetadata);
             }
