@@ -8,11 +8,8 @@ namespace TestResultCoordinator
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Serialization;
     using TestResultCoordinator.Reports;
 
-    [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
     class Settings
     {
         const string DefaultStoragePath = "";
@@ -78,7 +75,7 @@ namespace TestResultCoordinator
             this.ReportMetadataList = this.InitializeReportMetadataList();
         }
 
-        public static Settings Current => DefaultSettings.Value;
+        internal static Settings Current => DefaultSettings.Value;
 
         public string EventHubConnectionString { get; }
 

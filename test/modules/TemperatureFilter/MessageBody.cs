@@ -25,7 +25,7 @@ namespace TemperatureFilter
     ///Humidity: int, %
     ///Pressure: double, psi
     /// </summary>
-    public class MessageBody
+    internal class MessageBody
     {
         [JsonProperty(PropertyName = "machine")]
         public Machine Machine { get; set; }
@@ -37,7 +37,7 @@ namespace TemperatureFilter
         public DateTime TimeCreated { get; set; }
     }
 
-    public class Machine
+    internal class Machine
     {
         [JsonProperty(PropertyName = "temperature")]
         public double Temperature { get; set; }
@@ -46,7 +46,7 @@ namespace TemperatureFilter
         public double Pressure { get; set; }
     }
 
-    public class Ambient
+    internal class Ambient
     {
         [JsonProperty(PropertyName = "temperature")]
         public double Temperature { get; set; }

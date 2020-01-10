@@ -4,13 +4,11 @@ namespace ModuleRestarter
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Configuration;
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Serialization;
 
-    [JsonObject(NamingStrategyType = typeof(CamelCaseNamingStrategy))]
-    public class Settings
+    class Settings
     {
         static readonly Lazy<Settings> DefaultSettings = new Lazy<Settings>(
             () =>
@@ -49,9 +47,8 @@ namespace ModuleRestarter
             }
         }
 
-        public static Settings Current => DefaultSettings.Value;
+        internal static Settings Current => DefaultSettings.Value;
 
-        [JsonIgnore]
         public string ServiceClientConnectionString { get; }
 
         public string DeviceId { get; }
@@ -62,7 +59,15 @@ namespace ModuleRestarter
 
         public override string ToString()
         {
-            return JsonConvert.SerializeObject(this, Formatting.Indented);
+            // serializing in this pattern so that secrets don't accidentally get added anywhere in the future
+            var fields = new Dictionary<string, string>
+            {
+                { nameof(this.DeviceId), this.DeviceId },
+                { nameof(this.DesiredModulesToRestart), string.Join(",", this.DesiredModulesToRestart) },
+                { nameof(this.RestartIntervalInMins), this.RestartIntervalInMins.ToString() },
+            };
+
+            return $"Settings:{Environment.NewLine}{string.Join(Environment.NewLine, fields.Select(f => $"{f.Key}={f.Value}"))}";
         }
     }
 }
