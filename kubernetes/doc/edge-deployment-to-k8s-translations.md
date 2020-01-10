@@ -1,20 +1,20 @@
-# Conversion of Edge Deployment ModuleSpec to Kubernetes Deployments.
+# Conversion of IoT Edge Deployment ModuleSpec to Kubernetes Deployments.
 
-Azure IoT Edge was originally designed for running on a standalone system. Now with Edge on 
-Kubernetes, Azure IoT Edge supports deployments of IoT Edge devices on a Kubernetes cluster. 
+Azure IoT Edge was originally designed for running on a standalone system. Now with IoT Edge on 
+Kubernetes, Azure IoT Edge supports deployments of edge devices on a Kubernetes cluster. 
 The expectation is that these edge deployments running on a single node will "just work" 
-when installed in a Kubernetes cluster.  In order to do that, Edge on K8s has to transform the edge 
-deployment into Kubernetes objects which will support module-module communication. 
+when installed in a Kubernetes cluster.  In order to do that, IoT Edge on K8s has to transform the edge 
+deployment specifcation into Kubernetes objects which will support module-module communication. 
 
 Existing edge deployments running on a single system specify some module settings via the [Docker 
 ContainerCreate structure](https://docs.docker.com/engine/api/v1.40/#operation/ContainerCreate). 
-This means Edge on K8s will need to translate IoT Edge device and module configuration based 
+This means IoT Edge on K8s will need to translate IoT Edge device and module configuration based 
 on these settings. This document will describe which values are used from the module specification 
 and how they are transformed into Kubernetes objects.
 
-Edge on K8s will create Namespaces, Deployments, Services, ImagePullSecrets, 
+IoT Edge on K8s will create Namespaces, Deployments, Services, ImagePullSecrets, 
 PersistentVolumeClaims, and ServiceAccounts to establish this framework.
-The Edge Docker to K8s object mappings will be described in detail in subsequent sections.
+These Docker to K8s object mappings will be described in detail in subsequent sections.
 
 ## Map of configuration source to Kubernetes objects
 
@@ -65,21 +65,21 @@ they affect the Kubernetes objects.
 
 ## Conversion details
 
-The following sections describe in detail how the Edge deployment gets translated into Kubernetes
+The following sections describe in detail how the edge deployment gets translated into Kubernetes
 objects.
 
 ## Namespace
 
-Edge on K8s is intended to be installed in a namespace - the `default` namespace is not recommended. 
+IoT Edge on K8s is intended to be installed in a namespace - the `default` namespace is not recommended. 
 The namespace is provided by the user and must be created before the runtime can be installed. The 
 Azure IoT Edge runtime will be installed in the given namespace, and there is a 1 to 1 relationship 
 between that namespace and the edge device. Two devices may not be installed in the same namespace, 
-but there may be multiple namespaces in the cluster running Edge on K8s. All objects created by 
-Edge on K8s will be namespaced.
+but there may be multiple namespaces in the cluster running IoT Edge on K8s. All objects created by 
+IoT Edge on K8s will be namespaced.
 
 ## Common labels
 
-There will be a default label set used on most created objects in Edge on K8s deployment. Three 
+There will be a default label set used on most created objects in IoT Edge on K8s deployment. Three 
 labels are put into object metadata:
 - **net.azure-devices.edge.module** = module name
 - **net.azure-devices.edge.deviceid** = device id
@@ -90,7 +90,7 @@ to "edgehub".
 
 ## Deployment
 
-Each Edge Module will create one Deployment. This will run the module's specified container image.
+Each IoT Edge Module will create one Deployment. This will run the module's specified container image.
 
 ### metadata
 
@@ -113,7 +113,7 @@ Each Edge Module will create one Deployment. This will run the module's specifie
 - **namespace**   = The given namespace.
 - **labels**      = Default label set.
 - **annotations** = The pod's metadata will have one fixed annotation:
-    - **net.azure-devices.edge.original-moduleid** = unsanitized module id from Edge Deployment Spec.
+    - **net.azure-devices.edge.original-moduleid** = unsanitized module id from edge deployment specification.
     - then `settings.createOptions.Labels` will be added to the pod's annotations.
     
 ##### spec (PodSpec)
@@ -130,12 +130,12 @@ Each Edge Module will create one Deployment. This will run the module's specifie
             - privileged = Derived from `settings.createOptions.HostConfig.Privileged`.
         - **volumeMounts** = There are 4 sources to volume mounts.
             - bind mounts from `settings.createOptions.HostConfig.Binds` in format "host path:target path[:readwrite mode]".
-              *This is not recommended for Edge on K8s.*
+              *This is not recommended for IoT Edge on K8s.*
                 - Name = Sanitized host path.
                 - MountPath = target path.
                 - readOnlyProperty = readwrite mode if set, default is false.
             - bind mounts from `settings.createOptions.HostConfig.Mounts`
-              *This is not recommended for Edge on K8s.*
+              *This is not recommended for IoT Edge on K8s.*
                 - Name = mount.Source
                 - MountPath = mount.Target
                 - readOnlyProperty = readwrite mode if set, default is false.
@@ -146,17 +146,17 @@ Each Edge Module will create one Deployment. This will run the module's specifie
             - volume mounts from `settings.k8s-extensions.volumes[*].volumeMounts`. Placed in spec 
               as provided.
 - **imagePullSecrets**
-    If the module server address matches a server address in the Edge Deployment's 
+    If the module server address matches a server address in the edge deployment specification's 
     *Container Registry Settings*, this will be an array with one name, the created ImagePullSecret.
 - **volumes** There are 4 sources for volumes.
     - bind mounts from `settings.createOptions.HostConfig.Binds` in format "host path:target path[:readwrite mode]".
-      *This is not recommended for Edge on K8s.*
+      *This is not recommended for IoT Edge on K8s.*
         - name = Sanitized host path
         - hostPath
             - path = host path.
             - type = "DirectoryOrCreate".
     - bind mounts from `settings.createOptions.HostConfig.Mounts`
-      *This is not recommended for Edge on K8s.*
+      *This is not recommended for IoT Edge on K8s.*
         - name = mount.Source
         - hostPath
             - path = mount.Source
@@ -196,8 +196,8 @@ Each Edge Module will create one Deployment. This will run the module's specifie
 
 ## ImagePullSecret
 
-Image pull secrets are derived from the Edge Deployment's *Container Registry Settings*, which 
-contain the following fields:
+Image pull secrets are derived from the edge deployment specification's *Container Registry Settings*, 
+which contain the following fields:
 - **UserName**
 - **ServerAddress**
 - **Password**
@@ -216,7 +216,7 @@ user, and the runtime has been set to expect to use persistent volumes.
 
 The runtime is set to expect PVs by assigning `persistentVolumeName` or `storageClassName` at 
 startup. User will also need to set a value for `persistentVolumeClaimDefaultSizeInMb`. This value 
-gives the Edge Runtime a default claim size as this is not provided by `createOptions`.
+gives the IoT Edge Runtime a default claim size as this is not provided by `createOptions`.
 
 
 ### metadata
@@ -236,12 +236,12 @@ gives the Edge Runtime a default claim size as this is not provided by `createOp
 
 ## ServiceAccount
 
-Service accounts are described in the document describing our [Edge RBAC](rbac.md)
+Service accounts are described in the [document describing our IoT Edge on Kubernetes RBAC](rbac.md).
 
 
 ### K8s Extensions
 
-Some Kubernetes concepts are not represented in the Docker ContainerCreate structure. Edge on 
+Some Kubernetes concepts are not represented in the Docker ContainerCreate structure. IoT Edge on 
 K8s has provided extensions to the createOptions which will give some useful extensions to an 
 IoT Edge application running on Kubernetes. This is described in [Kubernetes createOptions 
 Extensions](create-options.md).
