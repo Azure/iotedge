@@ -516,12 +516,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void SendFeedbackMessage(CloudProxy cloudProxy, string messageId)
             {
-                Log.LogDebug((int)EventIds.SendFeedbackMessage, Invariant($"Sending feedback message with id {messageId} for device {cloudProxy.clientId}"));
+                Log.LogDebug((int)EventIds.SendFeedbackMessage, Invariant($"Sending feedback message with id {messageId} for {cloudProxy.clientId}"));
             }
 
             public static void MessageReceived(string clientId)
             {
-                Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received message from cloud for device {clientId}"));
+                Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received message from cloud for {clientId}"));
             }
 
             public static void Closing(CloudProxy cloudProxy)
@@ -531,12 +531,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void ErrorReceivingMessage(CloudProxy cloudProxy, Exception ex)
             {
-                Log.LogDebug((int)EventIds.ReceiveError, ex, Invariant($"Error receiving message for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
+                Log.LogDebug((int)EventIds.ReceiveError, ex, Invariant($"Error receiving message for {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
             }
 
             public static void ReceiverStopped(CloudProxy cloudProxy)
             {
-                Log.LogInformation((int)EventIds.ReceiverStopped, Invariant($"Cloud message receiver stopped for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
+                Log.LogInformation((int)EventIds.ReceiverStopped, Invariant($"Cloud message receiver stopped for {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
             }
 
             public static void MethodCallReceived(string clientId)
@@ -546,7 +546,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void StartListening(string clientId)
             {
-                Log.LogInformation((int)EventIds.StartListening, Invariant($"Start listening for C2D messages for device {clientId}"));
+                Log.LogInformation((int)EventIds.StartListening, Invariant($"Start listening for C2D messages for {clientId}"));
             }
 
             public static void ErrorOpening(string clientId, Exception ex)
@@ -596,7 +596,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             internal static void TerminatingErrorReceivingMessage(CloudProxy cloudProxy, Exception e)
             {
-                Log.LogInformation((int)EventIds.ReceiveError, e, Invariant($"Error receiving C2D messages for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}. Closing receive loop."));
+                Log.LogInformation((int)EventIds.ReceiveError, e, Invariant($"Error receiving C2D messages for {cloudProxy.clientId} in cloud proxy {cloudProxy.id}. Closing receive loop."));
             }
 
             internal static void CloudReceiverNull(string clientId, string operation)
