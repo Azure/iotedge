@@ -26,7 +26,7 @@ FUNCTIONS_SAMPLE_DIR=$ROOT_FOLDER/edge-modules/functions/samples
 VERSIONINFO_FILE_PATH=$BUILD_REPOSITORY_LOCALPATH/versionInfo.json
 CONNECTIVITY_TEST_SCRIPT_DIR=$ROOT_FOLDER/test/connectivity/scripts
 DOTNETBUILD_OS=
-DOTNET_RUNTIME=netcoreapp2.1
+DOTNET_RUNTIME=netcoreapp3.1
 
 usage()
 {
@@ -248,7 +248,7 @@ publish_app "Microsoft.Azure.Devices.Edge.Hub.Service"
 publish_app "SimulatedTemperatureSensor"
 publish_app "TemperatureFilter"
 publish_app "load-gen"
-publish_app "TestAnalyzer"
+publish_app "TestAnalyzer" 
 publish_app "DirectMethodSender"
 publish_app "DirectMethodReceiver"
 publish_app "ModuleRestarter"
