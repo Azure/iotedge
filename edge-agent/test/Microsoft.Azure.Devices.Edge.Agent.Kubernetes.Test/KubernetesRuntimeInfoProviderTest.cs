@@ -177,9 +177,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
             modified["edgeagent"].Status.Phase = "Running";
             modified["edgeagent"].Status.StartTime = agentStartTime;
 
-            string pendingDescription = "0/1 node available";
             modified["edgehub"].Status.Phase = "Pending";
-            modified["edgehub"].Status.Reason = pendingDescription;
 
             string finishedDescription = "Pod finished";
             modified["simulatedtemperaturesensor"].Status.Phase = "Succeeded";
@@ -206,7 +204,6 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.Test
                 else if (string.Equals("edgeHub", i.Name))
                 {
                     Assert.Equal(ModuleStatus.Backoff, i.ModuleStatus);
-                    Assert.Equal(pendingDescription, i.Description);
                     Assert.Equal(Option.None<DateTime>(), i.ExitTime);
                 }
                 else if (string.Equals("SimulatedTemperatureSensor", i.Name))
