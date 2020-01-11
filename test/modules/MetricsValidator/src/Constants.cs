@@ -8,6 +8,6 @@ namespace MetricsValidator
 
     public class Constants
     {
-        public const string SendEndpoint = "metrics_validator_send";
+        public const string DirectMethodName = "ValidateMetrics";
     }
 }

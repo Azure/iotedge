@@ -29,7 +29,7 @@ namespace MetricsValidator
         List<TestReporter> subcategories = null;
 
         [JsonProperty("Succeeded", Order = -2)]
-        int NumSuccesses
+        public int NumSuccesses
         {
             get
             {
@@ -43,7 +43,7 @@ namespace MetricsValidator
         }
 
         [JsonProperty("Failed", Order = -2)]
-        int NumFailures
+        public int NumFailures
         {
             get
             {

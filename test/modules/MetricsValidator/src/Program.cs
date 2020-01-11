@@ -39,16 +39,19 @@ namespace MetricsValidator
                 using (MetricsScraper scraper = new MetricsScraper(new List<string> { "http://edgeHub:9600/metrics", "http://edgeAgent:9600/metrics" }))
                 {
                     await moduleClient.OpenAsync();
-                    await moduleClient.SetMethodHandlerAsync("ValidateMetrics", async (MethodRequest methodRequest, object _) =>
-                    {
-                        Console.WriteLine("Validating metrics");
-                        TestReporter testReporter = new TestReporter("Metrics Validation");
+                    await moduleClient.SetMethodHandlerAsync(
+                        Constants.DirectMethodName,
+                        async (MethodRequest methodRequest, object _) =>
+                        {
+                            Console.WriteLine("Validating metrics");
+                            TestReporter testReporter = new TestReporter("Metrics Validation");
 
-                        await new ValidateNumberOfMessagesSent(testReporter, scraper, moduleClient).Start(cts.Token);
-                        await new ValidateDocumentedMetrics(testReporter, scraper).Start(cts.Token);
+                            await new ValidateNumberOfMessagesSent(testReporter, scraper, moduleClient).Start(cts.Token);
+                            await new ValidateDocumentedMetrics(testReporter, scraper).Start(cts.Token);
 
-                        return new MethodResponse(Encoding.UTF8.GetBytes(testReporter.ReportResults()), (int)HttpStatusCode.OK);
-                    }, null);
+                            return new MethodResponse(Encoding.UTF8.GetBytes(testReporter.ReportResults()), (int)HttpStatusCode.OK);
+                        },
+                        null);
 
                     Console.WriteLine("Ready to validate metrics");
                     await cts.Token.WhenCanceled();

@@ -4,13 +4,16 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
+    using MetricsValidator;
     using Microsoft.Azure.Devices.Edge.Test.Common;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
+    using Newtonsoft.Json;
     using NUnit.Framework;
 
-    public class MetricsValidator : SasManualProvisioningFixture
+    public class MetricsValidation : SasManualProvisioningFixture
     {
         string moduleName = "MetricsValidator";
         string imageName = "lefitchereg1.azurecr.io/metrics_validator_test:0.0.1-amd64";
@@ -46,10 +49,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 },
                 token);
 
-            EdgeModule filter = deployment.Modules[this.moduleName];
-            string result = await filter.WaitForEventsReceivedAsync(deployment.StartTime, token, "Report");
+            var result = await this.iotHub.InvokeMethodAsync(Context.Current.DeviceId, this.moduleName, new CloudToDeviceMethod(Constants.DirectMethodName), CancellationToken.None);
+            Assert.Equals(result.Status, (int)HttpStatusCode.OK);
 
-            File.WriteAllText(".", result);
+            string body = result.GetPayloadAsJson();
+            Console.WriteLine(body);
+            TestReporter report = JsonConvert.DeserializeObject<TestReporter>(body);
+            Assert.Zero(report.NumFailures, body);
         }
     }
 }
