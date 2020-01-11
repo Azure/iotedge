@@ -20,7 +20,7 @@ namespace TestResultCoordinator.Storage
             this.resultStores = resultStores;
         }
 
-        public static async Task<TestOperationResultStorage> Create(IStoreProvider storeProvider, HashSet<string> resultSources)
+        public static async Task<TestOperationResultStorage> CreateAsync(IStoreProvider storeProvider, HashSet<string> resultSources)
         {
             Preconditions.CheckNotNull(storeProvider, nameof(storeProvider));
             var resultSourcesToStores = new Dictionary<string, ISequentialStore<TestOperationResult>>();

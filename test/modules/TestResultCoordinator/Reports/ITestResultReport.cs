@@ -4,7 +4,7 @@ namespace TestResultCoordinator.Reports
     /// <summary>
     /// This defines the basic properties of a test result report.
     /// </summary>
-    interface ITestResultReport
+    public interface ITestResultReport
     {
         string TrackingId { get; }
 

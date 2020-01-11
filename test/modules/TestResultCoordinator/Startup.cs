@@ -53,7 +53,7 @@ namespace TestResultCoordinator
             }
 
             services.AddSingleton<ITestOperationResultStorage>(
-                TestOperationResultStorage.Create(
+                TestOperationResultStorage.CreateAsync(
                     storeProvider,
                     Settings.Current.GetResultSources()).Result);
 
