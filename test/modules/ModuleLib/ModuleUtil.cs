@@ -56,7 +56,7 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
             return new LoggerFactory().AddSerilog().CreateLogger(categoryName);
         }
 
-        public static async Task ReportTestResultAsync(TestResultReportingClient apiClient, ILogger logger, TestResultBase testResult, bool isRethrow = false)
+        public static async Task ReportTestResultAsync(TestResultReportingClient apiClient, ILogger logger, TestResultBase testResult)
         {
             try
             {
@@ -66,10 +66,6 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil
             catch (Exception e)
             {
                 logger.LogError(e, "Failed call to report status to TestResultCoordinator");
-                if (isRethrow)
-                {
-                    throw;
-                }
             }
         }
 
