@@ -17,14 +17,15 @@ use url::Url;
 
 use docker::apis::client::APIClient;
 use docker::apis::configuration::Configuration;
-use docker::models::{ContainerCreateBody, InlineResponse200, Ipam, NetworkConfig};
+use docker::models::{ContainerCreateBody, ContainerCreateBodyNetworkingConfig, EndpointSettings, InlineResponse200, Ipam, NetworkConfig};
 use edgelet_core::{
     AuthId, Authenticator, GetTrustBundle, Ipam as CoreIpam, LogOptions, MakeModuleRuntime,
     MobyNetwork, Module, ModuleId, ModuleRegistry, ModuleRuntime, ModuleRuntimeState, ModuleSpec,
     RegistryOperation, RuntimeOperation, SystemInfo as CoreSystemInfo, SystemResources, UrlExt,
 };
 use edgelet_http::{Pid, UrlConnector};
-use edgelet_utils::{ensure_not_empty_with_context, log_failure};
+use edgelet_utils::{ensure_not_empty_with_context, log_failure, serde_clone};
+
 use provisioning::ProvisioningResult;
 
 use crate::client::DockerClient;
@@ -350,13 +351,32 @@ impl ModuleRuntime for DockerModuleRuntime {
                     module.config().image()
                 );
 
-                let create_options = create_options
+                let mut create_options = create_options
                     .with_image(module.config().image().to_string())
                     .with_env(merged_env)
                     .with_labels(labels);
 
-                // Here we don't add the container to the iot edge docker network as the edge-agent is expected to do that.
-                // It contains the logic to add a container to the iot edge network only if a network is not already specified.
+                // In the bootstrap scenario (edge runtime module starting up for the first time),
+                // add the container to the custom network. We identify this scenario by looking
+                // for 'NetworkId' in the module's environment. The edge runtime module is then
+                // responsible for adding all subsequent modules to the custom network.
+                if let Some(network_id) = module.env().get("NetworkId") {
+                    let mut network_config = create_options
+                        .networking_config()
+                        .and_then(|network_config| serde_clone(network_config).ok())
+                        .unwrap_or_else(ContainerCreateBodyNetworkingConfig::new);
+
+                    let mut endpoints_config = network_config
+                        .endpoints_config()
+                        .and_then(|endpoints_config| serde_clone(endpoints_config).ok())
+                        .unwrap_or_else(HashMap::new);
+                    if !endpoints_config.contains_key(network_id.as_str()) {
+                        endpoints_config.insert(network_id.to_string(), EndpointSettings::new());
+                    }
+
+                    network_config = network_config.with_endpoints_config(endpoints_config);
+                    create_options = create_options.with_networking_config(network_config);
+                }
 
                 Ok(self
                     .client
