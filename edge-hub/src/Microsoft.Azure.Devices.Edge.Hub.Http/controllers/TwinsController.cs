@@ -2,8 +2,8 @@
 namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
 {
     using System;
-    using System.Net;
     using System.Collections.Generic;
+    using System.Net;
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.AspNetCore.Mvc;
@@ -85,7 +85,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             Events.ReceivedMethodCall(directMethodRequest, this.identity);
             IEdgeHub edgeHub = await this.edgeHubGetter;
 
-            using (Metrics.TimeDirectMethod(identity.Id, directMethodRequest.Id))
+            using (Metrics.TimeDirectMethod(this.identity.Id, directMethodRequest.Id))
             {
                 DirectMethodResponse directMethodResponse = await edgeHub.InvokeMethodAsync(this.identity.Id, directMethodRequest);
                 Events.ReceivedMethodCallResponse(directMethodRequest, this.identity);
