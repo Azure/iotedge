@@ -41,7 +41,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\edge-util\src\Microsoft.Azure.Devices.Edge.Util\Microsoft.Azure.Devices.Edge.Util.csproj" />
     <ProjectReference Include="..\Microsoft.Azure.Devices.Edge.Test.Common\Microsoft.Azure.Devices.Edge.Test.Common.csproj" />
-    <ProjectReference Include="..\modules\MetricsValidator\MetricsValidator.csproj" />
   </ItemGroup>
 
   <ItemGroup>

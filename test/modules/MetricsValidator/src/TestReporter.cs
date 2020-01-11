@@ -100,10 +100,20 @@ namespace MetricsValidator
 
         public string ReportResults()
         {
+            this.SortSubcategories();
             string result = JsonConvert.SerializeObject(this, Formatting.Indented);
             Console.WriteLine(result);
 
             return result;
+        }
+
+        void SortSubcategories()
+        {
+            if (this.subcategories != null)
+            {
+                this.subcategories.ForEach(sc => sc.SortSubcategories());
+                this.subcategories = this.subcategories.OrderBy(sc => sc.NumFailures).ToList();
+            }
         }
     }
 }
