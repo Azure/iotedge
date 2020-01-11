@@ -14,7 +14,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
         public static ModuleRuntimeInfo ConvertToRuntime(this V1Pod pod, string name)
         {
             Option<V1ContainerStatus> containerStatus = GetContainerByName(name, pod);
-            ReportedModuleStatus moduleStatus = ConvertPodStatusToModuleStatus(Option.Maybe(pod.Status));
+            ReportedModuleStatus moduleStatus = ConvertPodStatusToModuleStatus(Option.Maybe(pod.Status), containerStatus);
             RuntimeData runtimeData = GetRuntimeData(containerStatus.OrDefault());
 
             string moduleName = string.Empty;
@@ -43,7 +43,7 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
             return Option.Maybe(status);
         }
 
-        static ReportedModuleStatus ConvertPodStatusToModuleStatus(Option<V1PodStatus> podStatus)
+        static ReportedModuleStatus ConvertPodStatusToModuleStatus(Option<V1PodStatus> podStatus, Option<V1ContainerStatus> containerStatus)
         {
             return podStatus.Map(
                 status =>
@@ -51,11 +51,51 @@ namespace Microsoft.Azure.Devices.Edge.Agent.Kubernetes.EdgeDeployment
                     switch (status.Phase)
                     {
                         case "Running":
-                            return new ReportedModuleStatus(ModuleStatus.Running, $"Started at {status.StartTime}");
+                            {
+                                return containerStatus.Map(c =>
+                                {
+                                    switch (c.State?.ToString())
+                                    {
+                                        case "Waiting":
+                                            return new ReportedModuleStatus(ModuleStatus.Backoff, $"Module in Back-off because of the reason: {c.State.Waiting.Reason}");
+                                        case "Terminated":
+                                            {
+                                                if (c.State.Terminated.ExitCode != 0)
+                                                    return new ReportedModuleStatus(ModuleStatus.Failed, $"Module Failed becasue of the reason: {c.State.Terminated.Reason}");
+                                                else
+                                                    return new ReportedModuleStatus(ModuleStatus.Stopped, $"Module Stopped becasue of the reason: {c.State.Terminated.Reason}");
+                                            }
+                                        case "Running":
+                                            return new ReportedModuleStatus(ModuleStatus.Running, $"Started at {status.StartTime}");
+                                        default:
+                                            return new ReportedModuleStatus(ModuleStatus.Running, $"Started at {status.StartTime}");
+                                    }
+                                }).GetOrElse(() => new ReportedModuleStatus(ModuleStatus.Failed, $"Module's container state unknown"));
+                            }
                         case "Failed":
                             return new ReportedModuleStatus(ModuleStatus.Failed, status.Reason);
                         case "Pending":
-                            return new ReportedModuleStatus(ModuleStatus.Backoff, status.Reason);
+                            {
+                                return containerStatus.Map(c =>
+                                {
+                                    switch (c.State?.ToString())
+                                    {
+                                        case "Waiting":
+                                            return new ReportedModuleStatus(ModuleStatus.Backoff, $"Module in Back-off because of the reason: {c.State.Waiting.Reason}");
+                                        case "Terminated":
+                                            {
+                                                if (c.State.Terminated.ExitCode != 0)
+                                                    return new ReportedModuleStatus(ModuleStatus.Failed, $"Module Failed becasue of the reason: {c.State.Terminated.Reason}");
+                                                else
+                                                    return new ReportedModuleStatus(ModuleStatus.Stopped, $"Module Stopped becasue of the reason: {c.State.Terminated.Reason}");
+                                            }
+                                        case "Running":
+                                            return new ReportedModuleStatus(ModuleStatus.Backoff, $"Started at {status.StartTime}");
+                                        default:
+                                            return new ReportedModuleStatus(ModuleStatus.Backoff, $"Started at {status.StartTime}");
+                                    }
+                                }).GetOrElse(() => new ReportedModuleStatus(ModuleStatus.Failed, $"Module's container state unknown"));
+                            }
                         case "Unknown":
                             return new ReportedModuleStatus(ModuleStatus.Unknown, status.Reason);
                         case "Succeeded":
