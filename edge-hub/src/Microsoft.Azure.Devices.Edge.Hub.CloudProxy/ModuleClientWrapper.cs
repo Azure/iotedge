@@ -25,8 +25,11 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
         public Task CloseAsync()
         {
-            this.isActive.Set(false);
-            this.underlyingModuleClient?.Dispose();
+            if (this.isActive.GetAndSet(false))
+            {
+                this.underlyingModuleClient?.Dispose();
+            }
+
             return Task.CompletedTask;
         }
 

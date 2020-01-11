@@ -27,17 +27,21 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
         readonly int maxClients;
         readonly ICredentialsCache credentialsCache;
         readonly IIdentityProvider identityProvider;
+        readonly IDeviceConnectivityManager connectivityManager;
 
         public ConnectionManager(
             ICloudConnectionProvider cloudConnectionProvider,
             ICredentialsCache credentialsCache,
             IIdentityProvider identityProvider,
+            IDeviceConnectivityManager connectivityManager,
             int maxClients = DefaultMaxClients)
         {
             this.cloudConnectionProvider = Preconditions.CheckNotNull(cloudConnectionProvider, nameof(cloudConnectionProvider));
             this.maxClients = Preconditions.CheckRange(maxClients, 1, nameof(maxClients));
             this.credentialsCache = Preconditions.CheckNotNull(credentialsCache, nameof(credentialsCache));
             this.identityProvider = Preconditions.CheckNotNull(identityProvider, nameof(identityProvider));
+            this.connectivityManager = Preconditions.CheckNotNull(connectivityManager, nameof(connectivityManager));
+            this.connectivityManager.DeviceDisconnected += (o, args) => this.HandleDeviceCloudConnectionDisconnected();
             Util.Metrics.MetricsV0.RegisterGaugeCallback(() => MetricsV0.SetConnectedClientCountGauge(this));
         }
 
@@ -266,8 +270,6 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
                 case CloudConnectionStatus.Disconnected:
                     Events.InvokingCloudConnectionLostEvent(device.Identity);
                     this.CloudConnectionLost?.Invoke(this, device.Identity);
-                    // Closing all connections so new connections are created a network disconnection
-                    await this.CloseAllCloudConnections();
                     break;
 
                 case CloudConnectionStatus.ConnectionEstablished:
@@ -277,7 +279,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Core
             }
         }
 
-        async Task CloseAllCloudConnections()
+        async void HandleDeviceCloudConnectionDisconnected()
         {
             using (await this.connectToCloudLock.LockAsync())
             {
