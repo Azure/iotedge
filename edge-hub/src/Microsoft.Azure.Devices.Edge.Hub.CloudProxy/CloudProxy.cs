@@ -663,7 +663,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void AddUpdateReportedProperties(string id) => ReportedPropertiesCounter.Increment(1, new[] { "upstream", id });
 
-            public static IDisposable TimeDirectMethod(string fromId, string toId) => ReportedPropertiesTimer.GetTimer(new[] { fromId, toId });
+            public static IDisposable TimeDirectMethod(string fromId, string toId) => DirectMethodsTimer.GetTimer(new[] { fromId, toId });
 
             public static void MessageProcessingLatency(string id, IMessage message)
             {
