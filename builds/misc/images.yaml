@@ -228,12 +228,12 @@ jobs:
           imageName: azureiotedge-direct-method-receiver
           project: DirectMethodReceiver
 
-    # Metrics Validator
-    - template: templates/image-linux.yaml
-      parameters:
-        name: Metrics Validator
-        imageName: azureiotedge-metrics-validator
-        project: MetricsValidator
+      # Metrics Validator
+      - template: templates/image-linux.yaml
+        parameters:
+          name: Metrics Validator
+          imageName: azureiotedge-metrics-validator
+          project: MetricsValidator
 
      # Module Restarter
       - template: templates/image-linux.yaml
