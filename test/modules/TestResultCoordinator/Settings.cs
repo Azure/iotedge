@@ -143,7 +143,8 @@ namespace TestResultCoordinator
                 new CountingReportMetadata("relayer2.send", "relayer2.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport),
                 new CountingReportMetadata("directMethodSender1.send", "directMethodReceiver1.receive", TestOperationResultType.DirectMethod, TestReportType.CountingReport),
                 new CountingReportMetadata("directMethodSender2.send", "directMethodReceiver2.receive", TestOperationResultType.DirectMethod, TestReportType.CountingReport),
-                new CountingReportMetadata("directMethodSender3.send", "directMethodSender3.send", TestOperationResultType.DirectMethod, TestReportType.CountingReport),
+                // TODO: Enable Direct Method Cloud-to-EdgeAgent once the verification scheme is finallized.
+                // new CountingReportMetadata("directMethodSender3.send", "directMethodSender3.send", TestOperationResultType.DirectMethod, TestReportType.CountingReport),
                 new TwinCountingReportMetadata("twinTester1.desiredUpdated", "twinTester2.desiredReceived", TestReportType.TwinCountingReport, TwinTestPropertyType.Desired),
                 new TwinCountingReportMetadata("twinTester2.reportedReceived", "twinTester2.reportedUpdated", TestReportType.TwinCountingReport, TwinTestPropertyType.Reported),
                 new TwinCountingReportMetadata("twinTester3.desiredUpdated", "twinTester4.desiredReceived", TestReportType.TwinCountingReport, TwinTestPropertyType.Desired),
