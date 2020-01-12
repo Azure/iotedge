@@ -490,7 +490,7 @@
               "createOptions": ""
             }
           },
-          "deploymentTest1": {
+          "deploymentTester1": {
             "version": "1.0",
             "type": "docker",
             "status": "running",
@@ -512,7 +512,7 @@
                 "value": "<TrackingId>"
               },
               "targetModuleId": {
-                "value": "deploymentTest2"
+                "value": "deploymentTester2"
               },
               "testResultCoordinatorUrl": {
                 "value": "http://localhost:5001"
@@ -526,7 +526,7 @@
               "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
-          "deploymentTest2": {
+          "deploymentTester2": {
             "version": "1.0",
             "type": "docker",
             "status": "running",
