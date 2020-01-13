@@ -49,6 +49,7 @@ namespace TestResultCoordinator.Reports.DirectMethod
 
         public ulong MismatchFailure { get; }
 
-        public override bool IsPassed => throw new System.NotImplementedException();
+        public override bool IsPassed =>
+            this.MismatchFailure == 0 && this.NetworkOffFailure == 0 && this.NetworkOnFailure == 0;
     }
 }

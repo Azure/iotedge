@@ -36,7 +36,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                         new DateTime(2020, 1, 1, 9, 10, 24, 10),
                         new DateTime(2020, 1, 1, 9, 10, 24, 15)
                     },
-                    10, 7, 0, 0, 0, 0, 0, 0, 0
+                    10, 7, 0, 0, 0, 0, 0, 0, 0, true
                 },
                 new object[]
                 {
@@ -53,7 +53,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                         new DateTime(2020, 1, 1, 9, 10, 24, 10),
                         new DateTime(2020, 1, 1, 9, 10, 24, 15)
                     },
-                    10, 6, 1, 0, 0, 0, 0, 0, 0
+                    10, 6, 1, 0, 0, 0, 0, 0, 0, true
                 },
                 new object[]
                 {
@@ -70,7 +70,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                         new DateTime(2020, 1, 1, 9, 10, 24, 10),
                         new DateTime(2020, 1, 1, 9, 10, 24, 15)
                     },
-                    10, 6, 0, 1, 0, 0, 0, 0, 0
+                    10, 6, 0, 1, 0, 0, 0, 0, 0, true
                 },
                 new object[]
                 {
@@ -87,7 +87,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                         new DateTime(2020, 1, 1, 9, 10, 24, 10),
                         new DateTime(2020, 1, 1, 9, 10, 24, 15)
                     },
-                    10, 6, 0, 0, 1, 0, 0, 0, 0
+                    10, 6, 0, 0, 1, 0, 0, 0, 0, true
                 },
                 new object[]
                 {
@@ -104,7 +104,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                         new DateTime(2020, 1, 1, 9, 10, 24, 10),
                         new DateTime(2020, 1, 1, 9, 10, 24, 15)
                     },
-                    10, 6, 0, 0, 0, 1, 0, 0, 0
+                    10, 6, 0, 0, 0, 1, 0, 0, 0, false
                 },
                 new object[]
                 {
@@ -121,7 +121,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                         new DateTime(2020, 1, 1, 9, 10, 24, 10),
                         new DateTime(2020, 1, 1, 9, 10, 24, 15)
                     },
-                    10, 6, 0, 0, 0, 0, 1, 0, 0
+                    10, 6, 0, 0, 0, 0, 1, 0, 0, false
                 },
                 new object[]
                 {
@@ -138,7 +138,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                         new DateTime(2020, 1, 1, 9, 10, 24, 10),
                         new DateTime(2020, 1, 1, 9, 10, 24, 15)
                     },
-                    10, 6, 0, 0, 0, 0, 0, 1, 0
+                    10, 6, 0, 0, 0, 0, 0, 1, 0, true
                 },
                 new object[]
                 {
@@ -155,7 +155,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
                         new DateTime(2020, 1, 1, 9, 10, 24, 10),
                         new DateTime(2020, 1, 1, 9, 10, 24, 15)
                     },
-                    10, 6, 0, 0, 0, 0, 0, 0, 1
+                    10, 6, 0, 0, 0, 0, 0, 0, 1, false
                 }
             };
 
@@ -402,7 +402,8 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             ulong expectedNetworkOnFailure,
             ulong expectedNetworkOffFailure,
             ulong expectedMismatchSuccess,
-            ulong expectedMismatchFailure)
+            ulong expectedMismatchFailure,
+            bool expectedIsPassed)
         {
             string expectedSource = "expectedSource";
             string actualSource = "actualSource";
@@ -447,6 +448,7 @@ namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
             Assert.Equal(expectedNetworkOffFailure, report.NetworkOffFailure);
             Assert.Equal(expectedMismatchSuccess, report.MismatchSuccess);
             Assert.Equal(expectedMismatchFailure, report.MismatchFailure);
+            Assert.Equal(expectedIsPassed, report.IsPassed);
         }
 
         static List<(long, TestOperationResult)> GetExpectedStoreData(
