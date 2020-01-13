@@ -119,7 +119,7 @@
               "InvocationSource": {
                 "value": "Cloud"
               },
-              "ServiceClientConnectionString": {
+              "IOT_HUB_CONNECTION_STRING": {
                 "value": "<IoTHubConnectionString>"
               },
               "TargetModuleId": {
@@ -176,7 +176,7 @@
               "InvocationSource": {
                 "value": "Cloud"
               },
-              "ServiceClientConnectionString": {
+              "IOT_HUB_CONNECTION_STRING": {
                 "value": "<IoTHubConnectionString>"
               },
               "TargetModuleId": {
@@ -220,6 +220,46 @@
             "settings": {
               "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-receiver:<Build.BuildNumber>-linux-<Architecture>",
               "createOptions": ""
+            }
+          },
+          "directMethodSender3": {
+            "version": "1.0",
+            "type": "docker",
+            "status": "running",
+            "restartPolicy": "always",
+            "env": {
+              "DirectMethodResultType": {
+                "value": "DirectMethodTestResult"
+              },
+              "DirectMethodName": {
+                "value": "ping"
+              },
+              "InvocationSource": {
+                "value": "Cloud"
+              },
+              "IOT_HUB_CONNECTION_STRING": {
+                "value": "<IoTHubConnectionString>"
+              },
+              "TargetModuleId": {
+                "value": "$edgeAgent"
+              },
+              "testDuration": {
+                "value": "<TestDuration>"
+              },
+              "testStartDelay": {
+                "value": "<TestStartDelay>"
+              },
+              "ReportingEndpointUrl":
+              {
+                "value": "http://localhost:5001"
+              },
+              "trackingId": {
+                "value": "<TrackingId>"
+              }
+            },
+            "settings": {
+              "image": "<Container_Registry>/microsoft/azureiotedge-direct-method-sender:<Build.BuildNumber>-linux-<Architecture>",
+              "createOptions": "{\"HostConfig\":{\"NetworkMode\":\"host\"},\"NetworkingConfig\":{\"EndpointsConfig\":{\"host\":{}}}}"
             }
           },
           "relayer1": {
