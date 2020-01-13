@@ -141,7 +141,7 @@ namespace TestResultCoordinator
                 new CountingReportMetadata("relayer1.send", "relayer1.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport),
                 new CountingReportMetadata("loadGen2.send", "relayer2.receive", TestOperationResultType.Messages, TestReportType.CountingReport),
                 new CountingReportMetadata("relayer2.send", "relayer2.eventHub", TestOperationResultType.Messages, TestReportType.CountingReport),
-                // TODO: Enable Direct Method Cloud-to-Module and Cloud-to-EdgeAgent once the verification scheme is finallized.
+                // TODO: Enable Direct Method Cloud-to-Module and Cloud-to-EdgeAgent once the verification scheme is finalized.
                 // new CountingReportMetadata("directMethodSender1.send", "directMethodReceiver1.receive", TestOperationResultType.DirectMethod, TestReportType.CountingReport),
                 // new CountingReportMetadata("directMethodSender2.send", "directMethodReceiver2.receive", TestOperationResultType.DirectMethod, TestReportType.CountingReport),
                 // new CountingReportMetadata("directMethodSender3.send", "directMethodSender3.send", TestOperationResultType.DirectMethod, TestReportType.CountingReport),
