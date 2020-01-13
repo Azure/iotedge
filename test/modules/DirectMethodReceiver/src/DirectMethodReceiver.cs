@@ -28,7 +28,7 @@ namespace DirectMethodReceiver
             Preconditions.CheckNotNull(logger, nameof(logger));
             Preconditions.CheckNotNull(configuration, nameof(configuration));
 
-            Option<Uri> testReportCoordinatorUrl = Option.Maybe(configuration.GetValue<Uri>("testResultCoordinatorUrl"));
+            Option<Uri> testReportCoordinatorUrl = Option.Maybe(configuration.GetValue<Uri>("ReportingEndpointUrl"));
             testReportCoordinatorUrl.ForEach(
                 (Uri uri) => this.testResultReportingClient = Option.Some<TestResultReportingClient>(new TestResultReportingClient { BaseUrl = uri.AbsoluteUri }),
                 () => this.testResultReportingClient = Option.None<TestResultReportingClient>());
