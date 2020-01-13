@@ -60,6 +60,9 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             moduleId = WebUtility.UrlDecode(Preconditions.CheckNonWhiteSpace(moduleId, nameof(moduleId)));
             this.validator.Validate(methodRequest);
 
+            // TODO: here for debugging, remove later
+            Events.Log.LogDebug(JsonConvert.SerializeObject(methodRequest.Payload, Formatting.Indented));
+
             var directMethodRequest = new DirectMethodRequest($"{deviceId}/{moduleId}", methodRequest.MethodName, methodRequest.PayloadBytes, methodRequest.ResponseTimeout, methodRequest.ConnectTimeout);
             var methodResult = await this.InvokeMethodAsync(directMethodRequest);
             await this.SendResponse(methodResult);
@@ -111,7 +114,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
         static class Events
         {
             const int IdStart = HttpEventIds.TwinsController;
-            static readonly ILogger Log = Logger.Factory.CreateLogger<TwinsController>();
+            public static readonly ILogger Log = Logger.Factory.CreateLogger<TwinsController>();
 
             enum EventIds
             {
