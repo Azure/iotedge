@@ -25,7 +25,7 @@ namespace TestResultCoordinator.Reports.DirectMethodReport
                 return true;
             }
 
-            if (!TestOperationResultType.DirectMethod.Equals(value1.Type) || !TestOperationResultType.DirectMethod.Equals(value2.Type))
+            if (!TestOperationResultType.DirectMethod.ToString().Equals(value1.Type) || !TestOperationResultType.DirectMethod.ToString().Equals(value2.Type))
             {
                 throw new InvalidDataException($"Incorrect TestOperationResult Type for comparer {nameof(DirectMethodTestOperationResultComparer)}. Types are: {value1.Type} and {value2.Type}");
             }

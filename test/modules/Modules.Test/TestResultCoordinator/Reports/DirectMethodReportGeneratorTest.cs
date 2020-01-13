@@ -4,6 +4,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Net;
     using System.Threading.Tasks;
     using global::TestResultCoordinator.Report.DirectMethodReport;
     using global::TestResultCoordinator.Reports;
@@ -14,6 +15,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
     using Microsoft.Azure.Devices.Edge.Storage;
     using Microsoft.Azure.Devices.Edge.Util;
     using Moq;
+    using Newtonsoft.Json;
     using Xunit;
 
     public class DirectMethodReportGeneratorTest
@@ -21,24 +23,34 @@ namespace Modules.Test.TestResultCoordinator.Reports
         public static IEnumerable<object[]> GetCreateReportData =>
             new List<object[]>
             {
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), Enumerable.Range(1, 7).Select(v => v.ToString()), 10, 7, 7, 0, 0 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "2", "3", "4", "5", "6" }, 10, 7, 6, 0, 1 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "2", "3", "4", "5", "6", "7" }, 10, 7, 6, 0, 1 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "5", "6", "7" }, 10, 7, 6, 0, 1 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "6", "7" }, 10, 7, 5, 0, 2 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "5", "6" }, 10, 7, 5, 0, 2 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "2", "3", "4", "5", "7" }, 10, 7, 5, 0, 2 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "2", "2", "3", "4", "4", "5", "6" }, 10, 7, 6, 2, 1 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "2", "2", "2", "3", "4", "4", "5", "6" }, 10, 7, 6, 3, 1 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "1", "2", "3", "4", "5", "6", "6" }, 10, 7, 6, 2, 1 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "2", "3", "4", "5", "6" }, 4, 7, 6, 0, 1 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "2", "3", "4", "5", "6", "7" }, 4, 7, 6, 0, 1 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "5", "6", "7" }, 4, 7, 6, 0, 1 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "6", "7" }, 4, 7, 5, 0, 2 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "1", "3", "4", "5", "6" }, 4, 7, 5, 0, 2 },
-                new object[] { Enumerable.Range(1, 7).Select(v => v.ToString()), new[] { "2", "3", "4", "5", "7" }, 4, 7, 5, 0, 2 },
-            };
-
+                new object[] {
+                    Enumerable.Range(1, 7).Select(v => v.ToString()),
+                    Enumerable.Range(1, 7).Select(v => v.ToString()),
+                    new int[] { 200, 200, 200, 200, 200, 200, 200},
+                    new DateTime[] {
+                        new DateTime(2020, 1, 1, 9, 10, 12, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 13, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 21, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 22, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 23, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 24, 10),
+                        new DateTime(2020, 1, 1, 9, 10, 24, 15)},
+                    10, 7, 0, 0, 0, 0, 0, 0, 0 }
+            }
+        ;
+        /*
+         *  IEnumerable<string> expectedStoreValues,
+            IEnumerable<string> actualStoreValues,
+            int batchSize,4
+            ulong expectedNetworkOnSuccess,
+            ulong expectedNetworkOffSuccess,
+            ulong expectedNetworkOnToleratedSuccess,
+            ulong expectedNetworkOffToleratedSuccess,
+            ulong expectedNetworkOnFailure,
+            ulong expectedNetworkOffFailure,
+            ulong expectedMismatchSuccess,
+            ulong expectedMismatchFailure
+         */
         public static DateTime[] DateTimeArray => new[]
        {
             new DateTime(2020, 1, 1, 9, 10, 10, 10),
@@ -301,6 +313,8 @@ namespace Modules.Test.TestResultCoordinator.Reports
         public async Task TestCreateReportAsync(
             IEnumerable<string> expectedStoreValues,
             IEnumerable<string> actualStoreValues,
+            IEnumerable<int> statusCodes,
+            IEnumerable<DateTime> timestamps,
             int batchSize,
             ulong expectedNetworkOnSuccess,
             ulong expectedNetworkOffSuccess,
@@ -313,7 +327,7 @@ namespace Modules.Test.TestResultCoordinator.Reports
         {
             string expectedSource = "expectedSource";
             string actualSource = "actualSource";
-            string resultType = TestOperationResultType.Messages.ToString();
+            string resultType = TestOperationResultType.DirectMethod.ToString();
             TimeSpan tolerancePeriod = new TimeSpan(0, 0, 0, 0, 5);
 
             var mockExpectedStore = new Mock<ISequentialStore<TestOperationResult>>();
@@ -337,14 +351,14 @@ namespace Modules.Test.TestResultCoordinator.Reports
                 new DirectMethodTestOperationResultComparer(),
                 networkStatusTimeline);
 
-            var expectedStoreData = GetStoreData(expectedSource, resultType, expectedStoreValues);
+            var expectedStoreData = GetStoreData(expectedSource, resultType, expectedStoreValues, statusCodes, timestamps);
             for (int i = 0; i < expectedStoreData.Count; i += batchSize)
             {
                 int startingOffset = i;
                 mockExpectedStore.Setup(s => s.GetBatch(startingOffset, batchSize)).ReturnsAsync(expectedStoreData.Skip(startingOffset).Take(batchSize));
             }
 
-            var actualStoreData = GetStoreData(actualSource, resultType, actualStoreValues);
+            var actualStoreData = GetStoreData(actualSource, resultType, actualStoreValues, statusCodes, timestamps);
             for (int j = 0; j < expectedStoreData.Count; j += batchSize)
             {
                 int startingOffset = j;
@@ -417,21 +431,23 @@ namespace Modules.Test.TestResultCoordinator.Reports
 
             return storeData;
         }
-        static List<(long, TestOperationResult)> GetStoreData(string source, string resultType, IEnumerable<string> resultValues, int start = 0)
+        static List<(long, TestOperationResult)> GetStoreData(
+            string source,
+            string resultType,
+            IEnumerable<string> resultValues,
+            IEnumerable<int> statusCodes,
+            IEnumerable<DateTime> timestamps,
+            int start = 0)
         {
             var storeData = new List<(long, TestOperationResult)>();
             int count = start;
 
             for (int i = 0; i < resultValues.Count(); i++)
             {
-                storeData.Add((count, new TestOperationResult(source, resultType, resultValues.ElementAt(i), DateTimeArray[i])));
-            }
-            foreach (string value in resultValues)
-            {
-                storeData.Add((count, new TestOperationResult(source, resultType, value, DateTime.UtcNow)));
+                DirectMethodTestResult directMethodTestResult = new DirectMethodTestResult(source, timestamps.ElementAt(i)) { SequenceNumber = resultValues.ElementAt(i), Result = statusCodes.ElementAt(i).ToString() };
+                storeData.Add((count, new TestOperationResult(source, resultType, JsonConvert.SerializeObject(directMethodTestResult, Formatting.Indented), timestamps.ElementAt(i))));
                 count++;
             }
-
             return storeData;
         }
     }
