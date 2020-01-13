@@ -119,7 +119,7 @@
               "InvocationSource": {
                 "value": "Cloud"
               },
-              "ServiceClientConnectionString": {
+              "IOT_HUB_CONNECTION_STRING": {
                 "value": "<IoTHubConnectionString>"
               },
               "TargetModuleId": {
@@ -176,7 +176,7 @@
               "InvocationSource": {
                 "value": "Cloud"
               },
-              "ServiceClientConnectionString": {
+              "IOT_HUB_CONNECTION_STRING": {
                 "value": "<IoTHubConnectionString>"
               },
               "TargetModuleId": {
@@ -237,7 +237,7 @@
               "InvocationSource": {
                 "value": "Cloud"
               },
-              "ServiceClientConnectionString": {
+              "IOT_HUB_CONNECTION_STRING": {
                 "value": "<IoTHubConnectionString>"
               },
               "TargetModuleId": {
