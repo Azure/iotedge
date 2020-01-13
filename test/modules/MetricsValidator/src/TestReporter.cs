@@ -112,7 +112,7 @@ namespace MetricsValidator
             if (this.subcategories != null)
             {
                 this.subcategories.ForEach(sc => sc.SortSubcategories());
-                this.subcategories = this.subcategories.OrderBy(sc => sc.NumFailures).ToList();
+                this.subcategories = this.subcategories.OrderByDescending(sc => sc.NumFailures).ToList();
             }
         }
     }

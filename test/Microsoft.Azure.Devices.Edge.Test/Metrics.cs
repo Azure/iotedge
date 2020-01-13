@@ -15,7 +15,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     public class Metrics : SasManualProvisioningFixture
     {
         string moduleName = "MetricsValidator";
-        string imageName = "edgebuilds.azurecr.io/azureiotedge-metrics-validator:1.0";
+        string imageName = " edgebuilds.azurecr.io/microsoft/azureiotedge-metrics-validator:20200111.6-linux-amd64";
         /* string imageName = "lefitchereg1.azurecr.io/metrics_validator_test:0.0.1-amd64"; */
 
         [Test]
