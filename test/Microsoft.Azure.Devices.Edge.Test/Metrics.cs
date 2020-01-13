@@ -8,6 +8,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Edge.Test.Common;
+    using Microsoft.Azure.Devices.Edge.Test.Common.Config;
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Newtonsoft.Json;
     using NUnit.Framework;
@@ -24,35 +25,11 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             CancellationToken token = this.TestToken;
 
-            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
-                builder =>
-                {
-                    builder.AddModule(this.moduleName, this.imageName);
-                    builder.GetModule("$edgeHub")
-                        .WithDesiredProperties(new Dictionary<string, object>
-                        {
-                            ["routes"] = new
-                            {
-                                MetricsValidatorToCloud = "FROM /messages/modules/" + this.moduleName + "/* INTO $upstream",
-                            },
-                        })
-                        .WithEnvironment(new[]
-                        {
-                            ("experimentalfeatures__enabled", "true"),
-                            ("experimentalfeatures__enableMetrics", "true")
-                        });
-                    builder.GetModule("$edgeAgent")
-                        .WithEnvironment(new[]
-                        {
-                            ("experimentalfeatures__enabled", "true"),
-                            ("experimentalfeatures__enableMetrics", "true")
-                        });
-                },
-                token);
+            EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(this.BaseConfig, token);
 
             // System resource metrics wait 1 minute to start collecting.
             Log.Information("Pausing to let metrics load");
-            await Task.Delay(TimeSpan.FromMinutes(2));
+            await Task.Delay(TimeSpan.FromMinutes(2), token);
 
             Log.Information("Calling direct method");
             var result = await this.iotHub.InvokeMethodAsync(Context.Current.DeviceId, this.moduleName, new CloudToDeviceMethod("ValidateMetrics"), CancellationToken.None);
@@ -68,6 +45,30 @@ namespace Microsoft.Azure.Devices.Edge.Test
         {
             public int Succeeded { get; set; }
             public int Failed { get; set; }
+        }
+
+        void BaseConfig(EdgeConfigBuilder builder)
+        {
+            builder.AddModule(this.moduleName, this.imageName);
+            builder.GetModule("$edgeHub")
+                .WithDesiredProperties(new Dictionary<string, object>
+                {
+                    ["routes"] = new
+                    {
+                        MetricsValidatorToCloud = "FROM /messages/modules/" + this.moduleName + "/* INTO $upstream",
+                    },
+                })
+                .WithEnvironment(new[]
+                {
+                            ("experimentalfeatures__enabled", "true"),
+                            ("experimentalfeatures__enableMetrics", "true")
+                });
+            builder.GetModule("$edgeAgent")
+                .WithEnvironment(new[]
+                {
+                            ("experimentalfeatures__enabled", "true"),
+                            ("experimentalfeatures__enableMetrics", "true")
+                });
         }
     }
 }
