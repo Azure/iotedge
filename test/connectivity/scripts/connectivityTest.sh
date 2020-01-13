@@ -9,8 +9,13 @@ set -e
 . $(dirname "$0")/testHelper.sh
 
 function examine_test_result() {
-    #TODO: check TRC log for test report result
-    return 0
+    found_test_passed="$(docker logs testResultCoordinator | grep -Pzo 'Test result report\n{\n.*"IsPassed": true')"
+
+    if [[ $found_test_passed -ne "" ]]; then
+        return 0
+    fi
+
+    return 1
 }
 
 function prepare_test_from_artifacts() {
@@ -60,20 +65,20 @@ function prepare_test_from_artifacts() {
     sed -i -e "s@<NetworkController.Mode>@$NETWORK_CONTROLLER_MODE@g" "$deployment_working_file"
     
     sed -i -e "s@<DeploymentTester1.DeploymentUpdatePeriod>@$DEPLOYMENT_TEST_UPDATE_PERIOD@g" "$deployment_working_file"
-    
 }
 
 function print_deployment_logs() {
     print_highlighted_message 'LOGS FROM IOTEDGED'
     journalctl -u iotedge -u docker --since "$test_start_time" --no-pager || true
 
-    print_highlighted_message 'EDGE AGENT LOGS'
+    print_highlighted_message 'edgeAgent LOGS'
     docker logs edgeAgent || true
 }
 
 function print_test_run_logs() {
     local ret=$1
 
+    print_highlighted_message 'test run exit code=$ret'
     print_highlighted_message 'Print logs'
     print_highlighted_message 'testResultCoordinator LOGS'
     docker logs testResultCoordinator || true
@@ -85,10 +90,10 @@ function print_test_run_logs() {
     print_highlighted_message 'LOGS FROM IOTEDGED'
     journalctl -u iotedge -u docker --since "$test_start_time" --no-pager || true
 
-    print_highlighted_message 'EDGE AGENT LOGS'
+    print_highlighted_message 'edgeAgent LOGS'
     docker logs edgeAgent || true
 
-    print_highlighted_message 'EDGE HUB LOGS'
+    print_highlighted_message 'edgeHub LOGS'
     docker logs edgeHub || true
 
     print_highlighted_message 'loadGen1 LOGS'
@@ -282,14 +287,15 @@ function run_connectivity_test() {
 
     print_highlighted_message "Deploy connectivity test succeeded."
 
+    # Delay for (buffer for module download + test start delay + test duration + verification delay + report generation)
+    local module_download_buffer=300
+    local time_for_test_to_complete=$(($module_download_buffer + \
+                                    $(echo $TEST_START_DELAY | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') + \
+                                    $(echo $TEST_DURATION | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') + \
+                                    $(echo $VERIFICATION_DELAY | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') + \
+                                    $(echo $TIME_FOR_REPORT_GENERATION | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }')))
+
     if [ $WAIT_FOR_TEST_COMPLETE -eq 1 ]; then
-        # Delay for (buffer for module download + test start delay + test duration + verification delay + report generation)
-        local module_download_buffer=300
-        local time_for_test_to_complete=$(($module_download_buffer + \
-                                           $(echo $TEST_START_DELAY | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') + \
-                                           $(echo $TEST_DURATION | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') + \
-                                           $(echo $VERIFICATION_DELAY | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }') + \
-                                           $(echo $TIME_FOR_REPORT_GENERATION | awk -F: '{ print ($1 * 3600) + ($2 * 60) + $3 }')))
         local sleep_frequency_secs=300
         local total_wait=0
 
@@ -302,11 +308,14 @@ function run_connectivity_test() {
 
         test_end_time="$(date '+%Y-%m-%d %H:%M:%S')"
         print_highlighted_message "Connectivity test should be completed at $test_end_time."
-        $funcRet=examine_test_result
-        print_test_run_logs $funcRet
+        $testResult=examine_test_result
+        print_test_run_logs $testResult
+
+        # stop IoT Edge service after test complete to prevent sending metrics
+        sudo systemctl stop iotedge
     fi
 
-    return $funcRet
+    return $testResult
 }
 
 function test_setup() {
