@@ -27,7 +27,7 @@ namespace DirectMethodSender
                     configuration.GetValue<TimeSpan>("DirectMethodDelay", TimeSpan.FromSeconds(5)),
                     Option.Maybe(configuration.GetValue<Uri>("ReportingEndpointUrl")),
                     configuration.GetValue<InvocationSource>("InvocationSource", InvocationSource.Local),
-                    Option.Maybe<string>(configuration.GetValue<string>("ServiceClientConnectionString")),
+                    Option.Maybe<string>(configuration.GetValue<string>("IOT_HUB_CONNECTION_STRING")),
                     configuration.GetValue<string>("IOTEDGE_MODULEID"),
                     configuration.GetValue("testDuration", TimeSpan.Zero),
                     configuration.GetValue("testStartDelay", TimeSpan.Zero),
