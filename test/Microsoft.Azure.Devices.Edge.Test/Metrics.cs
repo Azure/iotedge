@@ -58,13 +58,13 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string body = result.GetPayloadAsJson();
             Console.WriteLine(body);
             Report report = JsonConvert.DeserializeObject<Report>(body);
-            Assert.Zero(report.NumFailures, body);
+            Assert.Zero(report.Failed, body);
         }
 
         class Report
         {
-            public int NumSuccesses { get; }
-            public int NumFailures { get; }
+            public int Succeeded { get; }
+            public int Failed { get; }
         }
     }
 }
