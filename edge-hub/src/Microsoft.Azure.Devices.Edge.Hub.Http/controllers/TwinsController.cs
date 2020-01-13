@@ -61,7 +61,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.Http.Controllers
             this.validator.Validate(methodRequest);
 
             // TODO: here for debugging, remove later
-            Events.Log.LogDebug(JsonConvert.SerializeObject(methodRequest.Payload, Formatting.Indented));
+            Events.Log.LogInformation(JsonConvert.SerializeObject(methodRequest.Payload, Formatting.Indented));
 
             var directMethodRequest = new DirectMethodRequest($"{deviceId}/{moduleId}", methodRequest.MethodName, methodRequest.PayloadBytes, methodRequest.ResponseTimeout, methodRequest.ConnectTimeout);
             var methodResult = await this.InvokeMethodAsync(directMethodRequest);
