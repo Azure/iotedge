@@ -11,6 +11,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
     using Microsoft.Azure.Devices.Edge.Test.Helpers;
     using Newtonsoft.Json;
     using NUnit.Framework;
+    using Serilog;
 
     public class Metrics : SasManualProvisioningFixture
     {
@@ -49,8 +50,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                 },
                 token);
 
+            Log.Information("Calling direct method");
             var result = await this.iotHub.InvokeMethodAsync(Context.Current.DeviceId, this.moduleName, new CloudToDeviceMethod("ValidateMetrics"), CancellationToken.None);
-            Assert.Equals(result.Status, (int)HttpStatusCode.OK);
+            Log.Information($"Got result {result.GetPayloadAsJson()}");
+            Assert.AreEqual(result.Status, (int)HttpStatusCode.OK);
 
             string body = result.GetPayloadAsJson();
             Console.WriteLine(body);
