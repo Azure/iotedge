@@ -33,7 +33,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         {
                             ["routes"] = new
                             {
-                                TempFilterToCloud = "FROM /messages/modules/" + this.moduleName + "/* INTO $upstream",
+                                MetricsValidatorToCloud = "FROM /messages/modules/" + this.moduleName + "/* INTO $upstream",
                             },
                         })
                         .WithEnvironment(new[]
@@ -49,6 +49,10 @@ namespace Microsoft.Azure.Devices.Edge.Test
                         });
                 },
                 token);
+
+            // System resource metrics wait 1 minute to start collecting.
+            Log.Information("Pausing to let metrics load");
+            await Task.Delay(TimeSpan.FromMinutes(2));
 
             Log.Information("Calling direct method");
             var result = await this.iotHub.InvokeMethodAsync(Context.Current.DeviceId, this.moduleName, new CloudToDeviceMethod("ValidateMetrics"), CancellationToken.None);
