@@ -4,7 +4,7 @@ namespace TestAnalyzer
     using System;
     using Newtonsoft.Json;
 
-    public class MessageDetails
+    class MessageDetails
     {
         [JsonConstructor]
         public MessageDetails(string moduleId, string batchId, long sequenceNumber, DateTime enqueuedDateTime)

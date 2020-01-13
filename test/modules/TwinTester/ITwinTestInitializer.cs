@@ -2,10 +2,13 @@
 namespace TwinTester
 {
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
 
-    interface ITwinTestInitializer : IDisposable
+    interface ITwinTestInitializer
     {
-        Task Start();
+        Task StartAsync(CancellationToken cancellationToken);
+
+        void Stop();
     }
 }
