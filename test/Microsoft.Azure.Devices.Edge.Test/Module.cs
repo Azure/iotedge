@@ -12,7 +12,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
 
     public class Module : SasManualProvisioningFixture
     {
-        private sealed class MetricsValidatorModule
+        private sealed class TempSensorModule
         {
             public string Name { get; }
             public string Image { get; }
@@ -20,21 +20,21 @@ namespace Microsoft.Azure.Devices.Edge.Test
             private const string DefaultSensorImage = "mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0";
             private static int instanceCount = 0;
 
-            private MetricsValidatorModule(int number)
+            private TempSensorModule(int number)
             {
                 this.Name = "tempSensor" + number.ToString();
                 this.Image = Context.Current.TempSensorImage.GetOrElse(DefaultSensorImage);
             }
 
-            public static MetricsValidatorModule GetInstance()
+            public static TempSensorModule GetInstance()
             {
-                return new MetricsValidatorModule(MetricsValidatorModule.instanceCount++);
+                return new TempSensorModule(TempSensorModule.instanceCount++);
             }
         }
 
         public async Task TempSensor()
         {
-            var tempSensorModule = MetricsValidatorModule.GetInstance();
+            var tempSensorModule = TempSensorModule.GetInstance();
             CancellationToken token = this.TestToken;
 
             EdgeDeployment deployment = await this.runtime.DeployConfigurationAsync(
@@ -81,7 +81,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string filterImage = Context.Current.TempFilterImage.Expect(() => new ArgumentException("tempFilterImage parameter is required for TempFilter test"));
 
             const string filterModuleName = "tempFilter";
-            var tempSensorModule = MetricsValidatorModule.GetInstance();
+            var tempSensorModule = TempSensorModule.GetInstance();
 
             CancellationToken token = this.TestToken;
 
@@ -115,7 +115,7 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string filterFunc = Context.Current.TempFilterFuncImage.Expect(() => new ArgumentException("'tempFilterFuncImage' parameter is required for TempFilterFunc() test"));
 
             const string filterFuncModuleName = "tempFilterFunctions";
-            var tempSensorModule = MetricsValidatorModule.GetInstance();
+            var tempSensorModule = TempSensorModule.GetInstance();
 
             CancellationToken token = this.TestToken;
 
