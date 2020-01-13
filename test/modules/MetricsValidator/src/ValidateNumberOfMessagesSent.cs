@@ -11,22 +11,16 @@ namespace MetricsValidator
     using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
 
-    public class ValidateNumberOfMessagesSent
+    public class ValidateNumberOfMessagesSent : TestBase
     {
         readonly string endpoint = Guid.NewGuid().ToString();
 
-        TestReporter testReporter;
-        IMetricsScraper scraper;
-        ModuleClient moduleClient;
-
         public ValidateNumberOfMessagesSent(TestReporter testReporter, IMetricsScraper scraper, ModuleClient moduleClient)
+            : base(testReporter, scraper, moduleClient)
         {
-            this.testReporter = testReporter.MakeSubcategory(nameof(ValidateNumberOfMessagesSent));
-            this.scraper = scraper;
-            this.moduleClient = moduleClient;
         }
 
-        public async Task Start(CancellationToken cancellationToken)
+        public override async Task Start(CancellationToken cancellationToken)
         {
             Console.WriteLine($"Starting {nameof(ValidateNumberOfMessagesSent)}");
             await this.TestNumberSent(10, cancellationToken);

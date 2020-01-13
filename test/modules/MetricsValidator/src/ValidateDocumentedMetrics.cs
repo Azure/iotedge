@@ -9,27 +9,27 @@ namespace MetricsValidator
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Devices.Client;
     using Microsoft.Azure.Devices.Edge.Agent.Diagnostics;
     using Microsoft.Azure.Devices.Edge.Util.Metrics;
     using Newtonsoft.Json;
 
-    public class ValidateDocumentedMetrics
+    public class ValidateDocumentedMetrics : TestBase
     {
-        TestReporter testReporter;
-        IMetricsScraper scraper;
         MetricFilter metricFilter;
 
-        public ValidateDocumentedMetrics(TestReporter testReporter, IMetricsScraper scraper)
+        public ValidateDocumentedMetrics(TestReporter testReporter, IMetricsScraper scraper, ModuleClient moduleClient)
+            : base(testReporter, scraper, moduleClient)
         {
-            this.testReporter = testReporter.MakeSubcategory(nameof(ValidateDocumentedMetrics));
-            this.scraper = scraper;
             this.metricFilter = new MetricFilter()
                 .AddTagsToRemove(MetricsConstants.MsTelemetry, MetricsConstants.IotHubLabel, MetricsConstants.DeviceIdLabel);
         }
 
-        public async Task Start(CancellationToken cancellationToken)
+        public override async Task Start(CancellationToken cancellationToken)
         {
             Console.WriteLine($"Starting {nameof(ValidateDocumentedMetrics)}");
+
+            await this.moduleClient.SendEventAsync(new Message(Encoding.UTF8.GetBytes("Test message to seed metrics")));
 
             // scrape metrics
             var metrics = await this.scraper.ScrapeEndpointsAsync(cancellationToken);

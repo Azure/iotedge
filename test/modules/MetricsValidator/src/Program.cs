@@ -4,6 +4,7 @@ namespace MetricsValidator
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Net;
     using System.Text;
     using System.Threading;
@@ -44,11 +45,15 @@ namespace MetricsValidator
                         async (MethodRequest methodRequest, object _) =>
                         {
                             Console.WriteLine("Validating metrics");
+
                             TestReporter testReporter = new TestReporter("Metrics Validation");
+                            List<TestBase> tests = new List<TestBase>
+                            {
+                                new ValidateNumberOfMessagesSent(testReporter, scraper, moduleClient),
+                                new ValidateDocumentedMetrics(testReporter, scraper, moduleClient),
+                            };
 
-                            await new ValidateNumberOfMessagesSent(testReporter, scraper, moduleClient).Start(cts.Token);
-                            await new ValidateDocumentedMetrics(testReporter, scraper).Start(cts.Token);
-
+                            await Task.WhenAll(tests.Select(test => test.Start(cts.Token)));
                             return new MethodResponse(Encoding.UTF8.GetBytes(testReporter.ReportResults()), (int)HttpStatusCode.OK);
                         },
                         null);
