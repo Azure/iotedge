@@ -2,18 +2,20 @@
 
 Azure IoT Edge was originally designed for running on a standalone system. Now with IoT Edge on 
 Kubernetes, Azure IoT Edge supports deployments of edge devices on a Kubernetes cluster. 
-The expectation is that these edge deployments running on a single node will "just work" 
-when installed in a Kubernetes cluster.  In order to do that, IoT Edge on K8s has to transform the edge 
-deployment specifcation into Kubernetes objects which will support module-module communication. 
+The expectation is that these edge deployments designed for running on a single node will "just work" 
+when installed in a Kubernetes cluster.  In order to do that, IoT Edge on K8s has to transform the 
+edge deployment specifcation into Kubernetes objects which emulate the IoT Edge single device 
+experience.
 
 Existing edge deployments running on a single system specify some module settings via the [Docker 
 ContainerCreate structure](https://docs.docker.com/engine/api/v1.40/#operation/ContainerCreate). 
 This means IoT Edge on K8s will need to translate IoT Edge device and module configuration based 
 on these settings. This document will describe which values are used from the module specification 
-and how they are transformed into Kubernetes objects.
+and how they are transformed into Kubernetes objects. This document will also show how settings in
+the Helm chart affect these translations.
 
 IoT Edge on K8s will create Namespaces, Deployments, Services, ImagePullSecrets, 
-PersistentVolumeClaims, and ServiceAccounts to establish this framework.
+PersistentVolumeClaims, and ServiceAccounts to establish the IoT Edge runtime.
 These Docker to K8s object mappings will be described in detail in subsequent sections.
 
 ## Map of configuration source to Kubernetes objects
@@ -80,7 +82,7 @@ IoT Edge on K8s will be namespaced.
 ## Common labels
 
 There will be a default label set used on most created objects in IoT Edge on K8s deployment. Three 
-labels are put into object metadata:
+labels are automatically put into object metadata:
 - **net.azure-devices.edge.module** = module name
 - **net.azure-devices.edge.deviceid** = device id
 - **net.azure-devices.edge.hub** = associated IoT Hub name.
@@ -169,7 +171,7 @@ Each IoT Edge Module will create one Deployment. This will run the module's spec
             - readOnlyProperty = mount.ReadOnly
         - emptyDir is assigned otherwise.
     - volume mounts from `settings.k8s-extensions.volumes[*].volume`. Placed in spec as provided.
-- **serviceAccountName** = The module name, sanitized to be a K8s identifier.
+- **serviceAccountName** = The module name, sanitized to be a K8s identifier. See [Module Authentication](rbac.md#module-authentication) for details.
 - **nodeSelector** = `settings.k8s-extensions.nodeSelector` Placed in spec as provided.
 
 ## Service
