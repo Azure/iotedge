@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft. All rights reserved.
 namespace TestResultCoordinator.Reports.DirectMethod
 {
-    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using System;
+    using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using TestResultCoordinator.Reports;
 
     class DirectMethodReportMetadata : IReportMetadata

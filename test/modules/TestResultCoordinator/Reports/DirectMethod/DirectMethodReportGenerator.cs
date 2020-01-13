@@ -11,7 +11,6 @@ namespace TestResultCoordinator.Reports.DirectMethod
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
-    using TestResultCoordinator.Reports.DirectMethod;
     using TestResultCoordinator.Reports;
 
     class DirectMethodReportGenerator : ITestResultReportGenerator

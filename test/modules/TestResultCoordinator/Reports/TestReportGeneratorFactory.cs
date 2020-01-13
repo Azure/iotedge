@@ -92,7 +92,7 @@ namespace TestResultCoordinator.Reports
             }
         }
 
-         async Task<Option<NetworkStatusTimeline>> GetNetworkStatusTimeline(TimeSpan tolerancePeriod)
+        async Task<Option<NetworkStatusTimeline>> GetNetworkStatusTimeline(TimeSpan tolerancePeriod)
         {
             try
             {
