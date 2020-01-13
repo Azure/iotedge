@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace TestResultCoordinator.Reports.DirectMethodReport
+namespace TestResultCoordinator.Reports.DirectMethod
 {
     using System;
     using System.IO;
@@ -11,7 +11,7 @@ namespace TestResultCoordinator.Reports.DirectMethodReport
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
-    using TestResultCoordinator.Report.DirectMethodReport;
+    using TestResultCoordinator.Reports.DirectMethod;
     using TestResultCoordinator.Reports;
 
     class DirectMethodReportGenerator : ITestResultReportGenerator
@@ -112,6 +112,7 @@ namespace TestResultCoordinator.Reports.DirectMethodReport
                 {
                     (networkOffSuccess, networkOnToleratedSuccess, networkOnFailure, mismatchSuccess) =
                         this.CheckUnmatchedResult(this.ExpectedTestResults.Current, networkControllerStatus, isWithinTolerancePeriod, networkOffSuccess, networkOnToleratedSuccess, networkOnFailure, mismatchSuccess);
+                    hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
                 }
             }
 
@@ -124,6 +125,11 @@ namespace TestResultCoordinator.Reports.DirectMethodReport
 
                 (ulong addNetOffSuccess, ulong addNetOnTolSuccess, ulong addNetOnFailure, ulong addMismatchSuccess) =
                         this.CheckUnmatchedResult(this.ExpectedTestResults.Current, networkControllerStatus, isWithinTolerancePeriod, networkOffSuccess, networkOnToleratedSuccess, networkOnFailure, mismatchSuccess);
+                networkOffSuccess += addNetOffSuccess;
+                networkOnToleratedSuccess += addNetOnTolSuccess;
+                networkOnFailure += addNetOnFailure;
+                mismatchSuccess += addMismatchSuccess;
+                hasExpectedResult = await this.ExpectedTestResults.MoveNextAsync();
             }
 
             while (hasActualResult)
@@ -132,10 +138,11 @@ namespace TestResultCoordinator.Reports.DirectMethodReport
                 Logger.LogError($"[{nameof(DirectMethodReportGenerator)}] Actual test result source has unexpected results.");
 
                 mismatchFailure++;
-                hasActualResult = await this.ActualTestResults.MoveNextAsync();
 
                 // Log actual queue items
                 Logger.LogError($"Unexpected actual test result: {this.ActualTestResults.Current.Source}, {this.ActualTestResults.Current.Type}, {this.ActualTestResults.Current.Result} at {this.ActualTestResults.Current.CreatedAt}");
+
+                hasActualResult = await this.ActualTestResults.MoveNextAsync();
             }
 
             return new DirectMethodReport(

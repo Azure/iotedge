@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace Modules.Test.TestResultCoordinator.Reports.DirectMethodReport
+namespace Modules.Test.TestResultCoordinator.Reports.DirectMethod
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using global::TestResultCoordinator.Report.DirectMethodReport;
     using global::TestResultCoordinator.Reports;
+    using global::TestResultCoordinator.Reports.DirectMethod;
     using Microsoft.Azure.Devices.Edge.ModuleUtil;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.NetworkController;
     using Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults;

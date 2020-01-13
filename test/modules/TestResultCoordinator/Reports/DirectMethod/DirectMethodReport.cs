@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace TestResultCoordinator.Reports.DirectMethodReport
+namespace TestResultCoordinator.Reports.DirectMethod
 {
     using TestResultCoordinator.Reports;
 

@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft. All rights reserved.
-namespace TestResultCoordinator.Reports.DirectMethodReport
+namespace TestResultCoordinator.Reports.DirectMethod
 {
     using System;
     using System.IO;
@@ -9,7 +9,7 @@ namespace TestResultCoordinator.Reports.DirectMethodReport
     using TestResultCoordinator.Reports;
 
     /// <summary>
-    /// This test result comparer is used to determine if 2 DirectMethod TestOperationResult instances matches.
+    /// This test result comparer is used to determine if two DirectMethod TestOperationResult instances match.
     /// </summary>
     sealed class DirectMethodTestOperationResultComparer : ITestResultComparer<TestOperationResult>
     {
