@@ -51,6 +51,8 @@ MAKE=make
 MKDIR_P=mkdir -p
 SED=sed
 HOST_URI_OPTION=
+CONFIG_YAML="config.yaml"
+CONFIG_YAML_TEMPLATE="$(CONFIG_YAML).template"
 
 all:
 	VERSION=${VERSION} $(CARGO) build $(CARGOFLAGS)
@@ -85,7 +87,7 @@ deb8: release
 	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/iotedge.service $(TARGET)/$(PACKAGE)/debian/iotedge.service
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(TARGET)/$(PACKAGE)/man/iotedge.1
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/iotedged.8 $(TARGET)/$(PACKAGE)/man/iotedged.8
-	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/config.yaml $(TARGET)/$(PACKAGE)/etc/iotedge/config.yaml
+	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/$(CONFIG_YAML) $(TARGET)/$(PACKAGE)/etc/iotedge/$(CONFIG_YAML_TEMPLATE)
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/logrotate $(TARGET)/$(PACKAGE)/etc/logrotate.d/iotedge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/LICENSE $(TARGET)/$(PACKAGE)$(docdir)/LICENSE
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/ThirdPartyNotices $(TARGET)/$(PACKAGE)$(docdir)/ThirdPartyNotices
@@ -105,7 +107,7 @@ deb: release
 	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/debian/iotedge.mgmt.socket $(TARGET)/$(PACKAGE)/debian/iotedge.mgmt.socket
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(TARGET)/$(PACKAGE)/man/iotedge.1
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man8/iotedged.8 $(TARGET)/$(PACKAGE)/man/iotedged.8
-	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/debian/config.yaml $(TARGET)/$(PACKAGE)/etc/iotedge/config.yaml
+	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/debian/$(CONFIG_YAML) $(TARGET)/$(PACKAGE)/etc/iotedge/$(CONFIG_YAML_TEMPLATE)
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/logrotate $(TARGET)/$(PACKAGE)/etc/logrotate.d/iotedge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/LICENSE $(TARGET)/$(PACKAGE)$(docdir)/LICENSE
 	$(INSTALL_DATA) -D $(srcdir)/contrib/docs/ThirdPartyNotices $(TARGET)/$(PACKAGE)$(docdir)/ThirdPartyNotices
@@ -123,7 +125,7 @@ rpm:
 install: release
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedged $(DESTDIR)$(bindir)/iotedged
 	$(INSTALL_PROGRAM) -D $(TARGET)/iotedge $(DESTDIR)$(bindir)/iotedge
-	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/config.yaml $(DESTDIR)$(sysconfdir)/iotedge/config.yaml
+	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/$(CONFIG_YAML) $(DESTDIR)$(sysconfdir)/iotedge/$(CONFIG_YAML)
 	$(INSTALL_DATA) -D $(srcdir)/contrib/config/linux/logrotate $(DESTDIR)$(sysconfdir)/logrotate.d/iotedge
 	$(INSTALL_DATA) -D $(srcdir)/contrib/systemd/iotedge.service $(DESTDIR)$(unitdir)/iotedge.service
 	$(INSTALL_DATA) -D $(srcdir)/contrib/man/man1/iotedge.1 $(DESTDIR)$(man1)/iotedge.1
@@ -145,7 +147,7 @@ uninstall:
 	rm -f $(DESTDIR)$(bindir)/iotedge
 	-rm -f $(DESTDIR)$(man1)/iotedge.1
 	-rm -f $(DESTDIR)$(man8)/iotedged.8
-	-rm $(DESTDIR)$(systconfdir)/iotedge/config.yaml
+	-rm $(DESTDIR)$(systconfdir)/iotedge/$(CONFIG_YAML)
 	-rm $(DESTDIR)$(systconfdir)/logrotate.d/iotedge
 	-rm $(DESTDIR)$(docdir)/LICENSE
 	-rm $(DESTDIR)$(docdir)/ThirdPartyNotices
