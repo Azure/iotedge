@@ -486,42 +486,42 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void ErrorClosing(CloudProxy cloudProxy, Exception ex)
             {
-                Log.LogError((int)EventIds.CloseError, ex, Invariant($"Error closing cloud proxy {cloudProxy.id} for device {cloudProxy.clientId}"));
+                Log.LogError((int)EventIds.CloseError, ex, Invariant($"Error closing cloud proxy {cloudProxy.id} for {cloudProxy.clientId}"));
             }
 
             public static void GetTwin(CloudProxy cloudProxy)
             {
-                Log.LogDebug((int)EventIds.GetTwin, Invariant($"Getting twin for device {cloudProxy.clientId}"));
+                Log.LogDebug((int)EventIds.GetTwin, Invariant($"Getting twin for {cloudProxy.clientId}"));
             }
 
             public static void SendMessage(CloudProxy cloudProxy)
             {
-                Log.LogDebug((int)EventIds.SendMessage, Invariant($"Sending message for device {cloudProxy.clientId}"));
+                Log.LogDebug((int)EventIds.SendMessage, Invariant($"Sending message for {cloudProxy.clientId}"));
             }
 
             public static void ErrorSendingMessage(CloudProxy cloudProxy, Exception ex)
             {
-                Log.LogDebug((int)EventIds.SendMessageError, ex, Invariant($"Error sending message for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
+                Log.LogDebug((int)EventIds.SendMessageError, ex, Invariant($"Error sending message for {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
             }
 
             public static void ErrorSendingBatchMessage(CloudProxy cloudProxy, Exception ex)
             {
-                Log.LogDebug((int)EventIds.SendMessageBatchError, ex, Invariant($"Error sending message batch for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
+                Log.LogDebug((int)EventIds.SendMessageBatchError, ex, Invariant($"Error sending message batch for {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
             }
 
             public static void UpdateReportedProperties(CloudProxy cloudProxy)
             {
-                Log.LogDebug((int)EventIds.UpdateReportedProperties, Invariant($"Updating reported properties for device {cloudProxy.clientId}"));
+                Log.LogDebug((int)EventIds.UpdateReportedProperties, Invariant($"Updating reported properties for {cloudProxy.clientId}"));
             }
 
             public static void SendFeedbackMessage(CloudProxy cloudProxy, string messageId)
             {
-                Log.LogDebug((int)EventIds.SendFeedbackMessage, Invariant($"Sending feedback message with id {messageId} for device {cloudProxy.clientId}"));
+                Log.LogDebug((int)EventIds.SendFeedbackMessage, Invariant($"Sending feedback message with id {messageId} for {cloudProxy.clientId}"));
             }
 
             public static void MessageReceived(string clientId)
             {
-                Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received message from cloud for device {clientId}"));
+                Log.LogDebug((int)EventIds.MessageReceived, Invariant($"Received message from cloud for {clientId}"));
             }
 
             public static void Closing(CloudProxy cloudProxy)
@@ -531,27 +531,27 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             public static void ErrorReceivingMessage(CloudProxy cloudProxy, Exception ex)
             {
-                Log.LogDebug((int)EventIds.ReceiveError, ex, Invariant($"Error receiving message for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
+                Log.LogDebug((int)EventIds.ReceiveError, ex, Invariant($"Error receiving message for {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
             }
 
             public static void ReceiverStopped(CloudProxy cloudProxy)
             {
-                Log.LogInformation((int)EventIds.ReceiverStopped, Invariant($"Cloud message receiver stopped for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
+                Log.LogInformation((int)EventIds.ReceiverStopped, Invariant($"Cloud message receiver stopped for {cloudProxy.clientId} in cloud proxy {cloudProxy.id}"));
             }
 
             public static void MethodCallReceived(string clientId)
             {
-                Log.LogDebug((int)EventIds.MethodReceived, Invariant($"Received call method from cloud for device {clientId}"));
+                Log.LogDebug((int)EventIds.MethodReceived, Invariant($"Received call method from cloud for {clientId}"));
             }
 
             public static void StartListening(string clientId)
             {
-                Log.LogInformation((int)EventIds.StartListening, Invariant($"Start listening for C2D messages for device {clientId}"));
+                Log.LogInformation((int)EventIds.StartListening, Invariant($"Start listening for C2D messages for {clientId}"));
             }
 
             public static void ErrorOpening(string clientId, Exception ex)
             {
-                Log.LogWarning((int)EventIds.ErrorOpening, ex, Invariant($"Error opening IotHub connection for device {clientId}"));
+                Log.LogWarning((int)EventIds.ErrorOpening, ex, Invariant($"Error opening IotHub connection for {clientId}"));
             }
 
             public static void TimedOutClosing(CloudProxy cloudProxy)
@@ -596,12 +596,12 @@ namespace Microsoft.Azure.Devices.Edge.Hub.CloudProxy
 
             internal static void TerminatingErrorReceivingMessage(CloudProxy cloudProxy, Exception e)
             {
-                Log.LogInformation((int)EventIds.ReceiveError, e, Invariant($"Error receiving C2D messages for device {cloudProxy.clientId} in cloud proxy {cloudProxy.id}. Closing receive loop."));
+                Log.LogInformation((int)EventIds.ReceiveError, e, Invariant($"Error receiving C2D messages for {cloudProxy.clientId} in cloud proxy {cloudProxy.id}. Closing receive loop."));
             }
 
             internal static void CloudReceiverNull(string clientId, string operation)
             {
-                Log.LogWarning((int)EventIds.CloudReceiverNull, Invariant($"Cannot complete operation {operation} for device {clientId} because cloud receiver is null"));
+                Log.LogWarning((int)EventIds.CloudReceiverNull, Invariant($"Cannot complete operation {operation} for {clientId} because cloud receiver is null"));
             }
         }
 
