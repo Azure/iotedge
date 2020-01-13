@@ -56,17 +56,14 @@ namespace Microsoft.Azure.Devices.Edge.Test
             Assert.AreEqual(result.Status, (int)HttpStatusCode.OK);
 
             string body = result.GetPayloadAsJson();
-            Console.WriteLine(body);
-            Report report = JsonConvert.DeserializeObject<Report>(body);
-            Log.Information($"Parsed body: {JsonConvert.SerializeObject(report)}");
-
+            Report report = JsonConvert.DeserializeObject<Report>(body, new JsonSerializerSettings() { DefaultValueHandling = DefaultValueHandling.IgnoreAndPopulate });
             Assert.Zero(report.Failed, body);
         }
 
         class Report
         {
-            public int Succeeded { get; }
-            public int Failed { get; }
+            public int Succeeded { get; set; }
+            public int Failed { get; set; }
         }
     }
 }
