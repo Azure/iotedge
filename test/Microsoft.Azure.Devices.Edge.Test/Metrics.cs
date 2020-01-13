@@ -58,6 +58,8 @@ namespace Microsoft.Azure.Devices.Edge.Test
             string body = result.GetPayloadAsJson();
             Console.WriteLine(body);
             Report report = JsonConvert.DeserializeObject<Report>(body);
+            Log.Information($"Parsed body: {JsonConvert.SerializeObject(report)}");
+
             Assert.Zero(report.Failed, body);
         }
 
