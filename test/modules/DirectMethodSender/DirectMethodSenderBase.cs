@@ -8,12 +8,12 @@ namespace DirectMethodSender
     using Microsoft.Azure.Devices.Edge.Util;
     using Microsoft.Extensions.Logging;
 
-    public abstract class DirectMethodSenderBase : IDisposable
+    abstract class DirectMethodSenderBase : IDisposable
     {
         readonly ILogger logger;
         readonly string deviceId;
         readonly string targetModuleId;
-        long directMethodCount = 1;
+        long directMethodCount = 0;
 
         protected DirectMethodSenderBase(
             ILogger logger,
@@ -27,15 +27,16 @@ namespace DirectMethodSender
 
         public abstract void Dispose();
 
-        public async Task<Tuple<HttpStatusCode, long>> InvokeDirectMethodAsync(CancellationTokenSource cts)
+        public async Task<Tuple<HttpStatusCode, long>> InvokeDirectMethodAsync(string methodName, CancellationTokenSource cts)
         {
             ILogger logger = this.logger;
             logger.LogDebug("Invoke DirectMethod: started.");
             logger.LogInformation($"{this.GetType().ToString()} : Calling Direct Method on device {this.deviceId} targeting module [{this.targetModuleId}] with count {this.directMethodCount}.");
 
+            this.directMethodCount++;
             try
             {
-                int resultStatus = await this.InvokeDeviceMethodAsync(this.deviceId, this.targetModuleId, CancellationToken.None);
+                int resultStatus = await this.InvokeDeviceMethodAsync(this.deviceId, this.targetModuleId, methodName, this.directMethodCount, CancellationToken.None);
 
                 string statusMessage = $"Calling Direct Method with count {this.directMethodCount} returned with status code {resultStatus}";
                 if (resultStatus == (int)HttpStatusCode.OK)
@@ -48,7 +49,6 @@ namespace DirectMethodSender
                 }
 
                 logger.LogInformation($"Invoke DirectMethod with count {this.directMethodCount}: finished.");
-                this.directMethodCount++;
                 return new Tuple<HttpStatusCode, long>((HttpStatusCode)resultStatus, this.directMethodCount);
             }
             catch (Exception e)
@@ -58,6 +58,11 @@ namespace DirectMethodSender
             }
         }
 
-        internal abstract Task<int> InvokeDeviceMethodAsync(string deviceId, string targetModuleId, CancellationToken none);
+        internal abstract Task<int> InvokeDeviceMethodAsync(
+            string deviceId,
+            string targetModuleId,
+            string methodName,
+            long directMethodCount,
+            CancellationToken none);
     }
 }

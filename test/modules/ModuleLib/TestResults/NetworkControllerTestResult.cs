@@ -7,14 +7,14 @@ namespace Microsoft.Azure.Devices.Edge.ModuleUtil.TestResults
 
     public class NetworkControllerTestResult : TestResultBase
     {
-        public NetworkControllerTestResult(string source, DateTime createdAt) :
-            base(source, TestOperationResultType.Network, createdAt)
+        public NetworkControllerTestResult(string source, DateTime createdAt)
+            : base(source, TestOperationResultType.Network, createdAt)
         {
         }
 
         public string TrackingId { get; set; }
 
-        public string Operation { get; set; }
+        public NetworkControllerOperation Operation { get; set; }
 
         public string OperationStatus { get; set; }
 
