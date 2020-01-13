@@ -29,16 +29,29 @@ namespace MetricsValidator
         public async Task Start(CancellationToken cancellationToken)
         {
             Console.WriteLine($"Starting {nameof(ValidateNumberOfMessagesSent)}");
+            await this.TestNumberSent(10, cancellationToken);
+            await this.TestNumberSent(100, cancellationToken);
 
+            await this.TestBatch(1, 1, cancellationToken);
+            await this.TestBatch(10, 1, cancellationToken);
+            await this.TestBatch(1, 10, cancellationToken);
+            await this.TestBatch(10, 10, cancellationToken);
+        }
+
+        async Task TestNumberSent(int n, CancellationToken cancellationToken)
+        {
             int prevSent = await this.GetNumberOfMessagesSent(cancellationToken);
-            await this.SendMessages(10, cancellationToken);
+            await this.SendMessages(n, cancellationToken);
             int newSent = await this.GetNumberOfMessagesSent(cancellationToken);
-            this.testReporter.Assert("Reports 10 messages sent", 10, newSent - prevSent);
+            this.testReporter.Assert($"Reports {n} messages sent", n, newSent - prevSent);
+        }
 
-            prevSent = await this.GetNumberOfMessagesSent(cancellationToken);
-            await this.SendMessages(20, cancellationToken);
-            newSent = await this.GetNumberOfMessagesSent(cancellationToken);
-            this.testReporter.Assert("Reports 20 messages sent", 20, newSent - prevSent);
+        async Task TestBatch(int n, int m, CancellationToken cancellationToken)
+        {
+            int prevSent = await this.GetNumberOfMessagesSent(cancellationToken);
+            await this.SendMessageBatches(n, m, cancellationToken);
+            int newSent = await this.GetNumberOfMessagesSent(cancellationToken);
+            this.testReporter.Assert($"Reports {n * m} for {n} batches of {n}", n * m, newSent - prevSent);
         }
 
         async Task<int> GetNumberOfMessagesSent(CancellationToken cancellationToken)
@@ -54,6 +67,11 @@ namespace MetricsValidator
         {
             var messagesToSend = Enumerable.Range(1, n).Select(i => new Message(Encoding.UTF8.GetBytes($"Message {i}")));
             return Task.WhenAll(messagesToSend.Select(m => this.moduleClient.SendEventAsync(this.endpoint, m, cancellationToken)));
+        }
+
+        Task SendMessageBatches(int n, int m, CancellationToken cancellationToken)
+        {
+            return Task.WhenAll(Enumerable.Range(1, n).Select(i => this.moduleClient.SendEventBatchAsync(this.endpoint, Enumerable.Range(1, m).Select(j => new Message(Encoding.UTF8.GetBytes($"Message {i}, {j}"))), cancellationToken)));
         }
     }
 }
